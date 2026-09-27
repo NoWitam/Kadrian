@@ -10,9 +10,9 @@ Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
 of the Player and the Producer is measured and gated
 ([`docs/spike/report.md`](docs/spike/report.md)). The workflow runs on a
-GitHub runner in the pinned image. Q14 is open again: its evidence, the run
-36072703155 of the commit 4f4d467, was checked against a golden manifest that
-PR-16 (D36) changed, so Q14 waits for a green run of a commit with PR-16
+GitHub runner in the pinned image, and Q14 is closed: the run 36350016065 of
+the validated PR-16 commit 531ab79 met every criterion, with its evidence in
+[`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
 ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 packages are private and unpublished; the APIs below are those of the spike and
 may still change.
@@ -27,8 +27,8 @@ may still change.
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
   its evidence and its limits
-- [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, and how
-  Q14 closes and reopens
+- [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, the
+  evidence that closes Q14, and how Q14 reopens
 - [`docs/architecture/package-boundaries.json`](docs/architecture/package-boundaries.json)
   — machine-checked package dependency map (see D12)
 

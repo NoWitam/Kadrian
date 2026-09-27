@@ -1,6 +1,8 @@
 # D34 — Parity thresholds from the first measurement
 
 - Status: Accepted — by the project owner on 2026-09-23, without a change of substance
+- Implementation status updated by: PR-16 (D36) on 2026-09-27 at the owner's request, 34.3 and
+  Verification (the CI job of D26.6 has run and gates the thresholds; the decision is unchanged)
 - Date: 2026-09-23
 - Supersedes: —
 - Related: D26, D28, D33,
@@ -81,7 +83,16 @@ first reference point, not a limit.
 - The CI job of D26.6, which runs `test:pinned` in the container, is meant to
   enforce the gate from then on. That job has never run (Q14, still open), so
   until it has, the gate holds only in the local reference run of
-  `pinned-run.sh`.
+  `pinned-run.sh`. (Implementation status updated by PR-16 (D36) on
+  2026-09-27: this sentence describes the state when D34 was accepted, when the
+  job had not run and Q14 was open. The job has run since. Q14 was first
+  closed on 2026-09-25 by the run 36072703155 of PR-15. PR-16 (commit 531ab79, 2026-09-27) reopened it,
+  because it changed the runtime build and so the protected
+  `render.runtime.contentHash` of the golden manifest. The run 36350016065 of
+  the commit 531ab79f5e4189c4a551bca2f9b0f780f4263af4 (PR-16) met the
+  thresholds 0/0 of 34.1 on every frame, and its evidence
+  (`docs/ci/q14-evidence.json`) closes Q14 again; the gate holds in CI too.
+  The thresholds and this decision are unchanged.)
 
 **34.4 Changing a threshold** takes a new ADR with the measurements that justify
 it. It never happens by editing a number in a test.
@@ -147,4 +158,6 @@ changing 34.1–34.4.
   version-2 record of the reference run and is current with the build.
 - `tests/repo/pinned-environment.test.ts`: the order in `pinned-run.sh` and
   the workflow's commands.
-- The CI job of D26.6 has **not** run yet (Q14).
+- The CI job of D26.6 has **not** run yet (Q14). (Implementation status updated
+  by PR-16 (D36) on 2026-09-27: true when D34 was accepted; the job has run
+  since, see the note in 34.3.)

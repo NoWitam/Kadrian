@@ -2,22 +2,35 @@
 
 `.github/workflows/ci.yml` (D26.6) failed on its first run, passed on the run of
 PR-14, and passed on the run of PR-15, whose evidence closed Q14 on 2026-09-25.
-PR-16 reopened Q14 (below). A local run of the same commands, including
+PR-16 (commit `531ab79`, 2026-09-27) reopened Q14, and the evidence of its run
+closes it again on 2026-09-27
+(below). A local run of the same commands, including
 `tests/pinned/container/pinned-run.sh`, does **not** verify CI.
 
-## Status after PR-16 (2026-09-25)
+## Status after the evidence of PR-16 (2026-09-27)
 
-**Status: Q14 is open.**
+**Status: Q14 is closed.**
 
-- PR-16 implements D36. Its runtime build changes, so the golden-frame
-  manifest gets a new `render.runtime.contentHash`, and the evidence is
-  checked against that manifest. The evidence of the run of PR-15 no longer
-  validates, so PR-16 reopened Q14 by the procedure below and deleted
-  `docs/ci/q14-evidence.json`. The golden PNG files did not change.
-- Q14 closes again only on the evidence of a green run, on a GitHub runner,
-  of a reviewed commit that contains PR-16, and of its artifact, added by a
-  later documentation commit. No evidence was written locally.
-- History: Q14 was closed on 2026-09-25. The evidence was of the run
+- The evidence is `docs/ci/q14-evidence.json`. It is of the run
+  https://github.com/NoWitam/Kadrian/actions/runs/36350016065 (run ID
+  `36350016065`, attempt 1, event `push`) of the validated commit
+  `531ab79f5e4189c4a551bca2f9b0f780f4263af4` (PR-16, branch
+  `pr-16-player-custom-html-policy`), which passed every step.
+- The owner downloaded its `kadrion-reports` artifact `10941847963` from GitHub
+  by hand and gave the path of the ZIP. The SHA-256 of the ZIP was computed
+  during the verification and equals the digest the GitHub API publishes,
+  `sha256:5ab4f499f754410ff893d771d47c45f67f8c18c097fdd65b34f10f5fdff046a8`.
+- The validator of that commit found no problem, and each of the eight
+  criteria below passed. The pinned run passed the D36 test of the Player
+  without the opt-in, and the parity harness trusted its fixture explicitly.
+- The commit that closes Q14 is a later documentation commit that only adds
+  the evidence; the evidence is of the validated commit, not of that one.
+- Why Q14 was reopened: PR-16 implements D36. Its runtime build changed, so
+  the golden-frame manifest got a new `render.runtime.contentHash` (the
+  golden PNG files did not change), and the evidence of PR-15, checked
+  against that manifest, no longer validated. PR-16 reopened Q14 by the
+  procedure below and deleted that evidence.
+- History: Q14 was first closed on 2026-09-25. That evidence was of the run
   https://github.com/NoWitam/Kadrian/actions/runs/36072703155 (run ID
   `36072703155`, attempt 1, event `push`) of the validated commit
   `4f4d4675c09d73d33916885961d1568f73a36c80` (PR-15, branch
@@ -46,10 +59,11 @@ PR-16 reopened Q14 (below). A local run of the same commands, including
 - Local tests, including the pinned container runs, do not replace a run on a
   GitHub runner.
 
-## What "Q14 is closed" means (2026-09-25)
+## What "Q14 is closed" means (2026-09-25, updated 2026-09-27)
 
-Q14 is open again since PR-16 (above). This section states what a closure
-means and how Q14 reopens, as it did on 2026-09-25 and for the next one.
+Q14 is closed by the evidence of PR-16 (above), after the commit of PR-16
+(`531ab79`, 2026-09-27) had reopened it. This section states what a closure
+means and how Q14 reopens.
 
 - One push run of the reviewed commit on a GitHub runner, in the pinned image,
   met all eight criteria below, and the evidence of that run is in the
@@ -88,7 +102,7 @@ Reopening Q14, in the commit that makes such a change:
   plain text, even in a phrase such as "until Q14 is closed".
 - Correct the plain-text statements the guard cannot read: the introduction of
   this file, the sentence on the eight criteria in "When Q14 may close", this
-  section, section 5 ("Closed since") and item 1 of section 8 of the report,
+  section, section 5 ("Closed since:") and item 1 of section 8 of the report,
   and the status sentence of the README.
 
 What "Q14 is closed" does not mean:
@@ -271,7 +285,9 @@ as `a58ffc3` and pushed on the branch `pr-14-ci-repair`. For every push:
 
 Q14 closes only when **all** of the following exist. In every other case it
 stays open. On 2026-09-25 all eight were met by the run of PR-15, and PR-16
-reopened Q14 on the same day (above).
+reopened Q14 in its commit of 2026-09-27; on 2026-09-27 all eight were met by
+the run of
+PR-16 (above).
 
 1. The URL of the GitHub Actions run.
 2. The SHA of a commit that matches the run and the reviewed code.
@@ -300,7 +316,7 @@ The file holds:
   `vitest-pinned.json`, `pinned-test-summary.json`, `golden-comparison.json`,
   `parity/parity-measurement.json`, and `export-report.json`, and nothing
   else: not the ZIP, the videos, or the other reports.
-- **The verification (2026-09-25).** A record of the check: the validated
+- **The verification (the format since 2026-09-25).** A record of the check: the validated
   commit, run ID, attempt, URL, event, artifact ID, and ZIP hash; the validator
   and its result; each of the eight criteria in the owner's words, with its
   result and what showed it; that the closing commit is a later documentation

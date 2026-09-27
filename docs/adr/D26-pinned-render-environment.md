@@ -1,6 +1,8 @@
 # D26 — The pinned render environment
 
 - Status: Accepted — by the project owner on 2026-09-22, without a change of substance
+- Implementation status updated by: PR-16 (D36) on 2026-09-27 at the owner's request, 26.6 (the
+  CI job has run and verified the pinned environment; the decision is unchanged)
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D06, D11, D12, D21, D25, D27, D28,
@@ -120,6 +122,16 @@ the difference and states that it proves nothing.
 `corepack pnpm run check`, and `node --run test:pinned` with
 `KADRION_PINNED_IMAGE` set. **It has not run:** nothing has been pushed, so the
 workflow is unverified, and its first run is the first evidence that it works.
+(Implementation status updated by PR-16 (D36) on 2026-09-27: "It has not run"
+and "unverified" describe the state when D26 was accepted. The workflow has run
+since, and the pinned environment was verified on GitHub runners: it first ran
+green in the run 36054995870 of PR-14; the first evidence that closed Q14 was the
+run 36072703155 of PR-15 (2026-09-25); and, after
+PR-16, by the run 36350016065 of the commit
+531ab79f5e4189c4a551bca2f9b0f780f4263af4, which is the current
+verification (`docs/ci/q14-evidence.json`). The image stays pinned by its
+digest, and the environment of 26.2 is unchanged. This note updates the status
+only; it does not change the decision of D26.)
 
 ## Alternatives considered
 
