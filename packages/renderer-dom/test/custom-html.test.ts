@@ -28,6 +28,7 @@ import {
   reference,
   referenceUrls,
   shuffled,
+  TRUSTED,
 } from './support.js';
 
 const NODE = 'node-custom-html';
@@ -53,7 +54,7 @@ const POLICY =
 function mounted(composition = reference) {
   const window = createWindow();
   const root = createRoot(window);
-  mountComposition(root, composition, referenceUrls);
+  mountComposition(root, composition, referenceUrls, TRUSTED);
   return { window, root };
 }
 
@@ -118,7 +119,7 @@ describe('the sandboxed frame (D23.1, D23.2)', () => {
       },
     });
     try {
-      mountComposition(root, reference, referenceUrls);
+      mountComposition(root, reference, referenceUrls, TRUSTED);
     } finally {
       if (original !== undefined) Object.defineProperty(prototype, 'setAttribute', original);
     }

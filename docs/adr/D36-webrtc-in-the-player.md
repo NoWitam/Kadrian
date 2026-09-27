@@ -1,6 +1,7 @@
 # D36 — WebRTC and the network isolation of Custom HTML in the Player
 
 - Status: Accepted — by the project owner on 2026-09-24, with the corrections of PR-13
+- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request, the section Implementation
 - Date: 2026-09-24
 - Supersedes: —
 - Related: D05, D23 (23.7, 23.9), D25, D28 (28.9, Measurements),
@@ -225,8 +226,47 @@ none of them in PR-13.
   - an update of the playground's Custom HTML showcase (D32), which must
     declare that it enables Custom HTML.
 
+## Implementation
+
+PR-16 implements the decision, on 2026-09-25:
+
+- **Player API.** `createPlayer(container, options)`, whose `options` gain
+  `customHtml?: PlayerCustomHtmlPolicy`, the type
+  `{ readonly mode: 'disabled' } | { readonly mode: 'trusted' }`. Absent means `disabled` (decisions 1 and 3); only an
+  explicit `trusted` runs Custom HTML (decision 4). A malformed policy is the
+  `PlayerError` code `invalid-options`. The policy is per Player, set by the
+  host, never a field of the schema; per-element trust was not needed and can be
+  a later member of the union.
+- **Preview of an untrusted element (option B).** `disabled` mounts the empty
+  placeholder box of D22/D23 at the element's size and place, with no frame, so
+  no script, message, network request, or WebRTC of the element can start. A
+  still frame from the Producer was not needed.
+- **Renderer.** `mountComposition(root, composition, assetUrls, options)`,
+  `KadrionRuntime.load(root, document, assets, host, options)`, and
+  `KadrionRuntime.mount(root, document, assetUrls, options)` require
+  `options: { customHtml: { mode: 'disabled' | 'trusted' } }`; the runtime build
+  has no default (D23.10).
+- **Producer (decision 5).** Its page agent states `trusted`, and its isolation
+  stays `--network none` (D28.9). It already refuses a page whose Custom HTML
+  frames do not match the document's nodes (D29.7), so it never exports a
+  disabled element.
+- **Playground (D32 showcase).** It starts with Custom HTML disabled; a checkbox
+  of the page, with a warning that it runs the document's code, creates a Player
+  that trusts it.
+- **Amended ADRs.** D21 (21.4), D22 (22.3, 22.4), D23 (23.1, 23.4, 23.8, 23.10),
+  D25 (25.4, 25.7, 25.10), and D27 (27.1). The signatures they name are checked
+  against the code by `tests/repo/adr-signatures.test.ts`.
+- **Limits that stay.** `trusted` is a decision to run code, not isolation: in a
+  user's browser an element still reaches STUN, TURN, and DNS. The page's
+  `Permissions-Policy` and headers are the host's; the Producer's isolation is
+  its container. Nothing was measured outside the pinned Chromium.
+
 ## Verification
 
 Not mechanically verified until the implementing pull request. PR-13 changes no
-code for this decision. The evidence it relies on is D28 (Measurements),
+code for this decision. Since PR-16: `packages/renderer-dom/test/custom-html-policy.test.ts`,
+`packages/player/test/player.test.ts` (the policy of the host), and, in the pinned
+Chromium, `tests/pinned/player.pinned.test.ts` (a Player without the opt-in
+creates no element frame and makes no request) and
+`tests/pinned/parity.pinned.test.ts` (the parity harness opts in explicitly). The evidence it relies on is D28 (Measurements),
 D28.9, and D23.9, all measured in the pinned Chromium only.

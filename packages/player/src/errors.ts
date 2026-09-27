@@ -25,6 +25,8 @@ export type PlayerErrorCode =
   | 'readiness-unsupported'
   /** The bytes of a font asset are not a font the browser can load (D27.1). */
   | 'font-load-failed'
+  /** The Custom HTML policy is not exactly one of its forms (D36). */
+  | 'invalid-options'
   /** A Custom HTML element did not acknowledge the time (D23.4). */
   | 'custom-html-timeout'
   /** A Custom HTML element loaded another document than its shell; the render ends (D23.9). */
@@ -67,6 +69,7 @@ const PAGE_CODES: readonly PlayerErrorCode[] = [
   'asset-decode-failed',
   'readiness-unsupported',
   'font-load-failed',
+  'invalid-options',
   'custom-html-timeout',
   'custom-html-navigated',
   'time-out-of-range',

@@ -40,6 +40,7 @@ import {
   renderFrames,
   verifiedScript,
 } from '../src/index.js';
+import { producerAgent } from '../src/agent.js';
 import { hostNetworkInterfaces } from '../src/environment.js';
 import { producerCode } from '../src/errors.js';
 import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
@@ -233,6 +234,36 @@ describe('the page of D28.1', () => {
 });
 
 describe('the agent of D28.3', () => {
+  it('states the Custom HTML policy trusted when it loads, and no other (D36, decision 5)', async () => {
+    const policies: unknown[] = [];
+    const page = {
+      setTimeout,
+      clearTimeout,
+      KadrionRuntime: {
+        load: (...args: unknown[]) => {
+          policies.push(args[4]);
+          return Promise.resolve({ ok: true });
+        },
+        frame: () => Promise.resolve({ ok: true }),
+      },
+    };
+    const globals = globalThis as { window?: unknown; document?: unknown };
+    const saved = { window: globals.window, document: globals.document };
+    globals.window = page;
+    globals.document = { getElementById: () => ({}) };
+    try {
+      producerAgent();
+    } finally {
+      globals.window = saved.window;
+      globals.document = saved.document;
+    }
+    const api = (
+      page as unknown as { kadrionProducer: { load(json: string, assets: []): unknown } }
+    ).kadrionProducer;
+    await api.load('{}', []);
+    expect(policies).toEqual([{ customHtml: { mode: 'trusted' } }]);
+  });
+
   it('only calls load and frame of the artifact, with a font constructor and a timer it captured', () => {
     expect(PRODUCER_AGENT_SCRIPT.startsWith('(function producerAgent()')).toBe(true);
     expect(PRODUCER_AGENT_SCRIPT).toContain('.load(root');

@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest';
 import { RENDER_PAGE_POLICY, RENDER_ROOT_ID, renderPageDocument } from '../src/index.js';
 import { frame, mount } from '../src/page.js';
 import { elementDouble, hostDouble, settledState } from './elements.js';
-import { createRoot, createWindow, describeRoot, referenceUrls } from './support.js';
+import { createRoot, createWindow, describeRoot, referenceUrls, TRUSTED } from './support.js';
 
 /** Written out independently of render-page.ts (D25.2). */
 const POLICY =
@@ -92,7 +92,7 @@ function readinessDoubles(
 function mountedPage(window: DOMWindow) {
   const root = createRoot(window);
   const document = JSON.parse(JSON.stringify(referenceComposition)) as unknown;
-  mount(root, document, JSON.parse(JSON.stringify(referenceUrls)));
+  mount(root, document, JSON.parse(JSON.stringify(referenceUrls)), TRUSTED);
   return { root, document };
 }
 

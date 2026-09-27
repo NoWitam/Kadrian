@@ -10,6 +10,8 @@
 import type { CompositionState } from '@kadrion/runtime';
 
 import { RenderError } from './errors.js';
+import { NODE_ATTRIBUTE } from './mount.js';
+import { CUSTOM_HTML_ATTRIBUTE, CUSTOM_HTML_DISABLED } from './policy.js';
 import { mountedNodes } from './render.js';
 import { FRAME_ATTRIBUTES, NAVIGATED_ATTRIBUTE, SANDBOX_TOKENS, sandboxShell } from './sandbox.js';
 
@@ -58,6 +60,46 @@ function navigatedError(nodeId: string): RenderError {
     'custom-html-navigated',
     `The Custom HTML element "${nodeId}" loaded another document than its shell; its session is over (D23.9).`,
   );
+}
+
+/** The attributes of a disabled placeholder, sorted; anything else means the tree was altered. */
+const DISABLED_ATTRIBUTES = [CUSTOM_HTML_ATTRIBUTE, NODE_ATTRIBUTE, 'style'].sort().join(',');
+
+/**
+ * Whether the tree was mounted with Custom HTML disabled (D36): the stage says
+ * so, and only in exactly one way. `mountedNodes` has checked the stage already.
+ */
+function mountedDisabled(root: Element): boolean {
+  const stage = root.firstElementChild;
+  if (stage?.hasAttribute(CUSTOM_HTML_ATTRIBUTE) !== true) return false;
+  if (stage.getAttribute(CUSTOM_HTML_ATTRIBUTE) !== CUSTOM_HTML_DISABLED) {
+    throw new RenderError('not-mounted', 'The stage has another Custom HTML mark than "disabled".');
+  }
+  return true;
+}
+
+/**
+ * A placeholder of a tree mounted disabled must be exactly the empty one that
+ * `mountComposition` built (D36): the mark, its three attributes, no child at
+ * all. In a trusted tree no placeholder may carry the mark. Either way, a
+ * placeholder cannot opt itself out of the time contract; the mount decided.
+ */
+function checkPlaceholder(placeholder: HTMLElement, nodeId: string, disabled: boolean): void {
+  const marked = placeholder.hasAttribute(CUSTOM_HTML_ATTRIBUTE);
+  if (
+    disabled
+      ? placeholder.getAttribute(CUSTOM_HTML_ATTRIBUTE) !== CUSTOM_HTML_DISABLED ||
+        placeholder.getAttributeNames().sort().join(',') !== DISABLED_ATTRIBUTES ||
+        placeholder.childNodes.length !== 0
+      : marked
+  ) {
+    throw new RenderError(
+      'not-mounted',
+      disabled
+        ? `The Custom HTML element "${nodeId}" is not the empty placeholder that mountComposition builds when Custom HTML is disabled.`
+        : `The Custom HTML element "${nodeId}" carries the disabled mark in a tree mounted with Custom HTML trusted.`,
+    );
+  }
 }
 
 /** The mounted frame of a Custom HTML placeholder, exactly as `mountComposition` built it. */
@@ -125,6 +167,10 @@ function isAcknowledgement(data: unknown, expected: Message): boolean {
  *
  * - The tree is checked first, as by `renderState`; a problem rejects before any
  *   message is posted.
+ * - A tree mounted disabled (D36), which its stage says, has no frame: every
+ *   placeholder must be exactly its empty, marked one, and it resolves at once
+ *   without a listener or a timer. In a trusted tree no placeholder may carry
+ *   the mark.
  * - An answer counts only from that element's frame, with the opaque origin
  *   `null`, in the exact shape of D23.3, and for the requested time; anything
  *   else is ignored and the wait goes on.
@@ -154,12 +200,18 @@ export function synchronizeCustomHtml(
         `The request ID must be a non-negative safe integer, got ${String(requestId)}.`,
       );
     }
-    const frames: readonly Frame[] = mountedNodes(root, state)
-      .filter(({ state: node }) => node.type === 'custom-html')
-      .map(({ element, state: node }) => ({
-        nodeId: node.id,
-        frame: frameOf(element, node.id),
-      }));
+    // A disabled element has no frame and gets no message, listener, or timer (D36).
+    const elements = mountedNodes(root, state).filter(
+      ({ state: node }) => node.type === 'custom-html',
+    );
+    const disabled = mountedDisabled(root);
+    for (const { element, state: node } of elements) checkPlaceholder(element, node.id, disabled);
+    const frames: readonly Frame[] = disabled
+      ? []
+      : elements.map(({ element, state: node }) => ({
+          nodeId: node.id,
+          frame: frameOf(element, node.id),
+        }));
     if (frames.length === 0) {
       resolve();
       return;

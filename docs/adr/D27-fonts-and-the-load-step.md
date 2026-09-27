@@ -1,6 +1,8 @@
 # D27 — Fonts from asset bytes, the load step of the runtime build, and the fixture assets
 
 - Status: Accepted — by the project owner on 2026-09-22, without a change of substance
+- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request, 27.1 (`load` takes the host's
+  Custom HTML policy)
 - Date: 2026-09-22
 - Supersedes: —
 - Amends (accepted with this ADR): D22.5 ("The renderer never verifies a hash"), D22.6, and
@@ -74,6 +76,13 @@ before the first two steps have passed:
    not a usable font", whichever the browser reports;
 5. await `document.fonts.ready`;
 6. mount the tree (D22.3) with the URLs of step 2.
+
+(Amended by PR-16 (D36), D23.10: the load step is
+`KadrionRuntime.load(root, document, assets, host, options)`, where `options` is
+`{ customHtml: { mode: 'disabled' | 'trusted' } }`. The first step is still the
+validation of the whole input: the policy is checked before step 1, and
+anything else throws the `RenderError` code `invalid-options` before anything is
+touched. Step 6 mounts under that policy.)
 
 `KadrionRuntime.frame` (D25.3) keeps waiting for `document.fonts.ready` before
 every frame. `mount` stays in the artifact for the tests of D21, but both hosts

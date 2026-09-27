@@ -1,8 +1,10 @@
 /**
  * @kadrion/renderer-dom — DOM/SVG rendering of evaluated state and the Custom HTML mount.
  *
- * `mountComposition` builds the tree of a validated document once, with every
- * Custom HTML element in a sandboxed frame; `renderState` writes the state that
+ * `mountComposition` builds the tree of a validated document once, under the
+ * host's Custom HTML policy: with every Custom HTML element in a sandboxed
+ * frame when the host trusts it, and as an empty placeholder of the same
+ * geometry when it does not (D36); `renderState` writes the state that
  * `@kadrion/runtime` evaluated for one instant into it (D20, D22);
  * `synchronizeCustomHtml` pushes that instant to the Custom HTML elements and
  * waits for their acknowledgements with a timer lent by the host (D23);
@@ -20,6 +22,7 @@ export { fontFamily } from './css.js';
 export { RenderError } from './errors.js';
 export type { RenderErrorCode } from './errors.js';
 export { mountComposition } from './mount.js';
+export type { CustomHtmlPolicy, MountOptions } from './policy.js';
 export { base64 } from './load.js';
 export type { FontHost, LoadableFont, PageAsset } from './load.js';
 export { awaitMediaReady } from './ready.js';

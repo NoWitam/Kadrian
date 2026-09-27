@@ -7,6 +7,13 @@ import type { GroupNode, SceneNode, ValidatedComposition } from '@kadrion/schema
 import { checkAssetUrls, type AssetUrls } from './assets.js';
 import { cssColor, cssPixels, fontFamily } from './css.js';
 import { unsupportedNode } from './errors.js';
+import {
+  CUSTOM_HTML_ATTRIBUTE,
+  CUSTOM_HTML_DISABLED,
+  mountOptions,
+  type CustomHtmlPolicy,
+  type MountOptions,
+} from './policy.js';
 import { sandboxFrame } from './sandbox.js';
 
 /** Attributes that address the elements of a mounted tree. They hold IDs, never state. */
@@ -37,6 +44,7 @@ function nodeElement(
   node: SceneNode | GroupNode['children'][number],
   canvas: Styles,
   assetUrls: AssetUrls,
+  customHtml: CustomHtmlPolicy,
 ): HTMLElement {
   const address = { [NODE_ATTRIBUTE]: node.id };
   switch (node.type) {
@@ -49,7 +57,9 @@ function nodeElement(
     case 'group': {
       const group = create(document, 'div', address, TRANSFORMED);
       group.append(
-        ...node.children.map((child) => nodeElement(document, child, canvas, assetUrls)),
+        ...node.children.map((child) =>
+          nodeElement(document, child, canvas, assetUrls, customHtml),
+        ),
       );
       return group;
     }
@@ -82,13 +92,24 @@ function nodeElement(
       return text;
     }
     case 'custom-html': {
-      // A sized placeholder that carries the transform, and inside it the
-      // sandboxed frame, the only place the document's HTML goes (D05, D23).
-      const placeholder = create(document, 'div', address, {
+      // A sized placeholder that carries the transform. Only a trusted element
+      // gets the sandboxed frame inside it, the only place the document's HTML
+      // goes (D05, D23). A disabled one stays an empty, marked box of the same
+      // geometry: its HTML is not read at all (D36).
+      const styles = {
         ...TRANSFORMED,
         width: cssPixels(node.width),
         height: cssPixels(node.height),
-      });
+      };
+      if (customHtml.mode === 'disabled') {
+        return create(
+          document,
+          'div',
+          { ...address, [CUSTOM_HTML_ATTRIBUTE]: CUSTOM_HTML_DISABLED },
+          styles,
+        );
+      }
+      const placeholder = create(document, 'div', address, styles);
       placeholder.append(sandboxFrame(document, node));
       return placeholder;
     }
@@ -99,23 +120,30 @@ function nodeElement(
 
 /**
  * Replaces the content of `root` with the tree of `composition` (D22.3). The
- * asset URLs are checked first; any problem throws a `RenderError` before the
- * DOM is touched. Every element is created through `root.ownerDocument`, so the
- * renderer works in whichever realm owns `root`. Nothing is kept between calls:
- * the tree itself is the only state, and `renderState` finds it again.
+ * host's Custom HTML policy is required and checked first (D36), then the asset
+ * URLs; any problem throws a `RenderError` before the DOM is touched. Every
+ * element is created through `root.ownerDocument`, so the renderer works in
+ * whichever realm owns `root`. Nothing is kept between calls: the tree itself
+ * is the only state, and `renderState` finds it again.
  */
 export function mountComposition(
   root: Element,
   composition: ValidatedComposition,
   assetUrls: AssetUrls,
+  options: MountOptions,
 ): void {
+  const { customHtml } = mountOptions(options);
   const urls = checkAssetUrls(composition, assetUrls);
   const document = root.ownerDocument;
   const canvas = { width: cssPixels(composition.width), height: cssPixels(composition.height) };
+  // A disabled mount says so once on the stage too, so that every element of the
+  // tree must agree with it (D36); a trusted stage is exactly the stage of D22.3.
   const stage = create(
     document,
     'div',
-    { [STAGE_ATTRIBUTE]: '' },
+    customHtml.mode === 'disabled'
+      ? { [STAGE_ATTRIBUTE]: '', [CUSTOM_HTML_ATTRIBUTE]: CUSTOM_HTML_DISABLED }
+      : { [STAGE_ATTRIBUTE]: '' },
     { position: 'relative', ...canvas, overflow: 'hidden' },
   );
   for (const scene of composition.scenes) {
@@ -125,7 +153,9 @@ export function mountComposition(
       { [SCENE_ATTRIBUTE]: scene.id },
       { ...PLACED, ...canvas },
     );
-    sceneElement.append(...scene.nodes.map((node) => nodeElement(document, node, canvas, urls)));
+    sceneElement.append(
+      ...scene.nodes.map((node) => nodeElement(document, node, canvas, urls, customHtml)),
+    );
     stage.append(sceneElement);
   }
   root.replaceChildren(stage);

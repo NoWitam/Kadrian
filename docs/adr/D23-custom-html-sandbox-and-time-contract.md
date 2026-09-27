@@ -5,6 +5,8 @@
 - Supersedes: —
 - Amends: D22.3, the Custom HTML row (the placeholder is no longer empty)
 - Amended by: PR-07 on 2026-09-22 at the owner's request, 23.9 (a navigated element ends the render)
+- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request, 23.10 (the host's Custom HTML
+  policy: 23.1, 23.4, and 23.8 hold for a trusted element; a disabled one has no frame)
 - Related: D05, D14, D16, D19, D20, D21, D22,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §7, and open questions
   Q13 and Q16
@@ -60,7 +62,8 @@ change and green tests the owner accepted this ADR.
 ## Decision
 
 **23.1 Isolation.** `mountComposition` places exactly one `iframe` into the
-placeholder of every Custom HTML node. Its attributes are `sandbox` with the
+placeholder of every Custom HTML node. (Amended by PR-16 (D36), 23.10: this
+holds when the host's policy is `trusted`; under `disabled` it places zero.) Its attributes are `sandbox` with the
 single token `allow-scripts`, then `srcdoc` (23.2), then its styles, all set
 while the element is still detached; it is attached together with the whole
 tree. It has no `src` and no `allow-same-origin`, so its document has an opaque
@@ -146,7 +149,7 @@ synchronizeCustomHtml(root, state, host): Promise<void>
   `host.requestId` is the request ID of 23.3; another value rejects with the
   `RenderError` code `invalid-request`.
 - The mounted tree is checked against `state` first, as by `renderState`, and
-  every Custom HTML element must hold exactly one `iframe` with the attributes
+  every trusted Custom HTML element (23.10) must hold exactly one `iframe` with the attributes
   `sandbox="allow-scripts"`, `srcdoc` beginning with the shell of 23.2 for that
   very node, and `style`, and nothing else; a problem throws before any message
   is posted.
@@ -218,7 +221,9 @@ verified that is not:
 **23.8 Amendment of D22.3.** The Custom HTML row of D22.3 reads: "Custom HTML
 placeholder `div` with `data-kadrion-node`, the group styles plus `width` and
 `height` in px, and exactly one child, the `iframe` of 23.1." `renderState`
-still writes `transform` and `opacity` to the placeholder only.
+still writes `transform` and `opacity` to the placeholder only. (Amended by
+PR-16 (D36), 23.10: that row depends on the host's policy; under `disabled` the
+placeholder has no child and carries `data-kadrion-custom-html="disabled"`.)
 
 **23.9 Amendment of PR-07: a navigated element ends the render.** Recorded at
 the project owner's request on 2026-09-22. The measurement of D28 (Measurements,
@@ -257,6 +262,50 @@ Verified by `packages/renderer-dom/test/custom-html.test.ts` (jsdom: a second
 `tests/pinned/custom-html.pinned.test.ts` (every self-navigation variant ends
 with `custom-html-navigated`; a conforming element sees exactly one `load` over
 a whole render).
+
+**23.10 Amendment of PR-16 (D36): the host's Custom HTML policy.** Recorded at
+the project owner's request on 2026-09-25, implementing D36 (accepted
+2026-09-24). Whether the HTML of a document runs is the host's decision, never
+the document's (D16, D36):
+
+- `mountComposition(root, composition, assetUrls, options)` takes the required
+  `options: { customHtml: { mode: 'disabled' | 'trusted' } }`. It is checked
+  first: exactly these own data properties and a known mode, or the
+  `RenderError` code `invalid-options` before the DOM is touched. The renderer
+  and the runtime build have no default.
+- `trusted`: 23.1 to 23.9 hold unchanged. The tree, the frame, the shell, the
+  protocol, and the navigation mark are exactly those of this ADR, so trusted
+  output is the output measured before PR-16.
+- `disabled`: the stage carries `data-kadrion-custom-html="disabled"`, and the
+  placeholder of 23.8 is mounted with the same attributes and styles plus the
+  same mark, and with no child. Zero
+  `iframe` elements are created, and the node's `html` is not read, so nothing
+  of it is parsed, run, or written into any attribute. `renderState` writes
+  `transform` and `opacity` to it as to every placeholder, so its geometry is
+  the trusted element's.
+- `synchronizeCustomHtml` (23.4) reads the mount from the stage. In a disabled
+  tree every placeholder must be exactly the one above (the mark, its three
+  attributes, no child node); it posts nothing and listens to nothing, and it
+  resolves at once without a listener or a timer. In a trusted tree no
+  placeholder may carry the mark. Anything else is `not-mounted`.
+- The page entry (23.5, D21.4, D27.1):
+  `KadrionRuntime.load(root, document, assets, host, options)` and
+  `KadrionRuntime.mount(root, document, assetUrls, options)` take the same
+  required options. The Player sends the host's policy (D25.10); the Producer's
+  agent states `trusted` (D36, decision 5).
+- `RenderErrorCode` gains `invalid-options`, and the package exports the types
+  `CustomHtmlPolicy` and `MountOptions` of the policy.
+- The ADRs this amendment changes, each with an `Amended by: PR-16 (D36)` line:
+  D21 (21.4, the signature of `mount`), D22 (22.3 and 22.4), D23 (23.1, 23.4,
+  23.8, and this section), D25 (25.4, 25.7, and 25.10), and D27 (27.1, the
+  signature of `load`). `tests/repo/adr-signatures.test.ts` checks that each
+  names the signatures of the implementation.
+
+`trusted` is the host's decision to execute the document's code. It is not
+network isolation: in a user's browser an element can still reach the network
+through WebRTC and DNS (D36). Verified by
+`packages/renderer-dom/test/custom-html-policy.test.ts` and, in Chromium, by
+`tests/pinned/player.pinned.test.ts`.
 
 ## Alternatives considered
 

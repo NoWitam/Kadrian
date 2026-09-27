@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import { mountComposition, renderState } from '../src/index.js';
 import { patchedDescriptors, withoutClocks } from './clocks.js';
-import { createWindow, describeRoot, reference, referenceUrls } from './support.js';
+import { createWindow, describeRoot, reference, referenceUrls, TRUSTED } from './support.js';
 
 describe('clock independence of the renderer', () => {
   const window = createWindow();
@@ -55,7 +55,7 @@ describe('clock independence of the renderer', () => {
   // the host, not the renderer; the renderer's calls run on a detached root.
   it('premise: attaching a Custom HTML frame reads a clock of the environment', () => {
     const root = window.document.createElement('div');
-    mountComposition(root, reference, referenceUrls);
+    mountComposition(root, reference, referenceUrls, TRUSTED);
     expect(() => {
       withoutClocks([window], () => {
         window.document.body.append(root);
@@ -66,7 +66,7 @@ describe('clock independence of the renderer', () => {
   it('mounts and renders the golden timestamps while every clock of both realms throws', () => {
     const root = window.document.createElement('div');
     const trees = withoutClocks([window], () => {
-      mountComposition(root, reference, referenceUrls);
+      mountComposition(root, reference, referenceUrls, TRUSTED);
       return referenceExpectedRender.golden.map(({ timeUs }) => {
         renderState(root, evaluateComposition(reference, timeUs));
         return describeRoot(root);

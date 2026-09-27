@@ -2,6 +2,9 @@
 
 - Status: Accepted — by the project owner on 2026-09-22
 - Amended by: D23 (accepted 2026-09-22) — the Custom HTML row of 22.3, as 22.3 anticipated
+- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request — the Custom HTML row of 22.3
+  (through D23.8 and D23.10) depends on the host's Custom HTML policy; 22.4: the policy is
+  checked before the asset URLs; 22.7: the code `invalid-options`
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
@@ -69,7 +72,10 @@ Every transformed element additionally carries the `transform` and `opacity` of
 22.2 once it has been rendered. A colour `#rrggbb` is written as
 `rgb(r, g, b)` with decimal channels. Text is set as a text node, never parsed
 as markup. The Custom HTML placeholder stays empty: its `html` is not copied
-anywhere until the sandbox of PR-04. The image fills its node box and is
+anywhere until the sandbox of PR-04. (Amended by PR-16 (D36): the row as D23.8
+states it holds for a trusted element; for a disabled one the placeholder is
+empty and carries `data-kadrion-custom-html="disabled"`, and so does the stage,
+D23.10.) The image fills its node box and is
 stretched when the aspect ratios differ (`object-fit: fill`); that is the answer
 to D14's "image pixels versus its node box". Text has an explicit line height
 and weight so that no browser default decides its box. The attributes address
@@ -79,7 +85,10 @@ elements; no meaning lives in them that the document does not hold (`AGENTS.md`)
 
 - `mountComposition(root, composition, assetUrls)` checks the asset URLs first,
   then builds the tree of 22.3. It writes every static property of the
-  document and no evaluated value.
+  document and no evaluated value. (Amended by PR-16 (D36), D23.10: the
+  function is `mountComposition(root, composition, assetUrls, options)`. It
+  checks its whole input contract first: the host's Custom HTML policy
+  `options`, and then the asset URLs. Only then does it build the tree.)
 - `renderState(root, state)` first checks that the mounted tree has exactly the
   scenes and nodes of the state, in the same order and hierarchy, and only then
   writes `transform` and `opacity` of every transformed node. A mismatch throws
@@ -111,7 +120,9 @@ fallback font, so no text pixel may count as golden before Q5 is answered.
 `asset-url-missing`, `asset-url-unknown`, and `asset-url-invalid` from 22.5;
 `not-mounted` and `state-mismatch` from 22.4; and `invalid-document` for a node
 type the renderer does not know, which only a forged brand can bring in (D19). As in D19.3, callers check `code`,
-because `instanceof` fails across realms.
+because `instanceof` fails across realms. (Amended by PR-16 (D36), D23.10: also
+`invalid-options` from 22.4, when the host states no Custom HTML policy or not
+exactly one of its forms.)
 
 **22.8 Guardrail lists.** D20.3 binds every source of `@kadrion/runtime` and
 `@kadrion/renderer-dom`. `eslint.config.js` implements it with these lists,

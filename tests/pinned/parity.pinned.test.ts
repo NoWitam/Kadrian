@@ -136,6 +136,15 @@ afterAll(async () => {
 });
 
 describe('the conformance host (D33.2)', () => {
+  it('trusts the Custom HTML of the reference fixture explicitly, never by a default (D36)', () => {
+    const stated = [...HOST_SCRIPT.matchAll(/customHtml:\s*\{\s*mode:\s*'([a-z]+)'\s*\}/g)].map(
+      (match) => match[1],
+    );
+    expect(stated).toEqual(['trusted']);
+    // The element really runs: the render page holds its one frame.
+    expect(host.renderFrame.childFrames()).toHaveLength(1);
+  });
+
   it('imports only @kadrion/player and serves only its build and the runtime', () => {
     const imports = [...HOST_SCRIPT.matchAll(/\bimport\b[\s\S]*?from\s*'([^']+)'/g)].map(
       (match) => match[1],

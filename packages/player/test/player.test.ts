@@ -26,6 +26,7 @@ import {
   type PlayerScheduler,
 } from '../src/index.js';
 import { PAGE_AGENT_SCRIPT } from '../src/agent.js';
+import { playerCode } from '../src/errors.js';
 import { createHarness, sleep, type Harness } from './harness.js';
 
 const buildDirectory = new URL('../../renderer-dom/dist/runtime-build/', import.meta.url);
@@ -88,11 +89,20 @@ afterEach(() => {
   players = [];
 });
 
+/**
+ * A started Player. It trusts Custom HTML unless the test says otherwise: the
+ * tests of D23 and D25 need the element, and the default, which never runs it,
+ * has its own tests (D36).
+ */
 async function started(
   harness: Harness,
   options: Partial<Parameters<typeof createPlayer>[1]> = {},
 ) {
-  const player = await createPlayer(harness.container, { runtime, ...options });
+  const player = await createPlayer(harness.container, {
+    runtime,
+    customHtml: { mode: 'trusted' },
+    ...options,
+  });
   players.push(player);
   return player;
 }
@@ -683,5 +693,151 @@ describe('destroy', () => {
     player.destroy();
     await expect(pending).rejects.toMatchObject({ code: 'destroyed' });
     expect(harness.container.childNodes).toHaveLength(0);
+  });
+});
+
+describe('the Custom HTML policy of the host (D36)', () => {
+  const typeOf = (data: unknown): string =>
+    typeof data === 'object' && data !== null ? String((data as { type?: unknown }).type) : '';
+  const loadsOf = (harness: Harness): unknown[] =>
+    harness.log
+      .filter(({ data }) => typeOf(data) === 'kadrion-player:load')
+      .map(({ data }) => (data as { customHtml?: unknown }).customHtml);
+  const timeMessages = (harness: Harness) =>
+    harness.log.filter(({ data }) => typeOf(data).startsWith('kadrion:time'));
+  const placeholderOf = (harness: Harness) =>
+    pageView(harness).document.querySelector('[data-kadrion-node="node-custom-html"]');
+
+  it('runs no Custom HTML when the host states no policy: no frame, no time message', async () => {
+    const harness = createHarness();
+    const player = await createPlayer(harness.container, { runtime });
+    players.push(player);
+    await player.load(pinned, resolve);
+    await player.seek(5_000_000);
+    expect(loadsOf(harness)).toEqual([{ mode: 'disabled' }]);
+    expect(pageView(harness).document.querySelectorAll('iframe')).toHaveLength(0);
+    expect(placeholderOf(harness)?.getAttribute('data-kadrion-custom-html')).toBe('disabled');
+    expect(placeholderOf(harness)?.childNodes).toHaveLength(0);
+    expect(timeMessages(harness)).toEqual([]);
+    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: 5_000_000, error: null });
+  });
+
+  it('treats an explicit disabled policy as the default', async () => {
+    const harness = createHarness();
+    const player = await started(harness, { customHtml: { mode: 'disabled' } });
+    await player.load(pinned, resolve);
+    expect(loadsOf(harness)).toEqual([{ mode: 'disabled' }]);
+    expect(pageView(harness).document.querySelectorAll('iframe')).toHaveLength(0);
+  });
+
+  it('runs Custom HTML only when trusted explicitly: sandboxed, and on the time protocol', async () => {
+    const harness = createHarness();
+    const player = await started(harness, { customHtml: { mode: 'trusted' } });
+    await player.load(pinned, resolve);
+    await player.seek(2_500_000);
+    expect(loadsOf(harness)).toEqual([{ mode: 'trusted' }]);
+    const frames = pageView(harness).document.querySelectorAll('iframe');
+    expect(frames).toHaveLength(1);
+    expect(frames[0]?.getAttribute('sandbox')).toBe('allow-scripts');
+    const answered = timeMessages(harness).map(({ data }) => {
+      const { type, timeUs } = data as { type: string; timeUs: number };
+      return `${type} ${String(timeUs)}`;
+    });
+    expect(answered).toContain('kadrion:time 2500000');
+    expect(answered).toContain('kadrion:time-ack 2500000');
+    expect(shownTree(harness)).toStrictEqual(expectedTree(2_500_000));
+  });
+
+  it.each<[string, unknown]>([
+    ['null', null],
+    ['a boolean', true],
+    ['a string', 'trusted'],
+    ['an empty object', {}],
+    ['an unknown mode', { mode: 'all' }],
+    ['an extra key', { mode: 'trusted', elementIds: [] }],
+    ['an array', [{ mode: 'trusted' }]],
+    [
+      'a getter instead of a value',
+      {
+        get mode() {
+          return 'trusted';
+        },
+      },
+    ],
+    ['a symbol key beside it', { mode: 'trusted', [Symbol('extra')]: 1 }],
+  ])('refuses %s as the policy before the render page exists', async (_, customHtml) => {
+    const harness = createHarness();
+    await expect(
+      createPlayer(harness.container, {
+        runtime,
+        customHtml: customHtml as { mode: 'trusted' },
+      }),
+    ).rejects.toMatchObject({ code: 'invalid-options' });
+    expect(harness.container.childNodes).toHaveLength(0);
+  });
+
+  it.each<[string, (load: Record<string, unknown>) => void]>([
+    ['no policy', (load) => delete load.customHtml],
+    ['an unknown mode', (load) => (load.customHtml = { mode: 'all' })],
+    ['an extra key in the policy', (load) => (load.customHtml = { mode: 'trusted', ids: [] })],
+  ])('lets the page ignore a load with %s', async (_, change) => {
+    const harness = createHarness();
+    const player = await started(harness, { customHtml: { mode: 'disabled' } });
+    await player.load(pinned, resolve);
+    const view = pageView(harness) as unknown as Window;
+    const sent = harness.log.find(({ data }) => typeOf(data) === 'kadrion-player:load');
+    const load = { ...(sent?.data as Record<string, unknown>), requestId: 97 };
+    change(load);
+    await harness.deliver(view, load, harness.parentOf(view));
+    await harness.settle();
+    await sleep(20);
+    await harness.settle();
+    const answered = (requestId: number) =>
+      harness.log.filter(
+        ({ data }) =>
+          typeOf(data) === 'kadrion-player:result' &&
+          (data as { requestId?: number }).requestId === requestId,
+      );
+    expect(answered(97)).toEqual([]);
+    expect(pageView(harness).document.querySelectorAll('iframe')).toHaveLength(0);
+    // The same load without the change is served, so only the change was refused.
+    await harness.deliver(
+      view,
+      { ...(sent?.data as Record<string, unknown>), requestId: 96 },
+      harness.parentOf(view),
+    );
+    await harness.settle();
+    await sleep(20);
+    await harness.settle();
+    expect(answered(96)).toHaveLength(1);
+  });
+
+  it('keeps invalid-options as its own code when the page reports it (D25.7)', () => {
+    expect(playerCode('invalid-options')).toBe('invalid-options');
+    expect(playerCode('invalid-option')).toBe('page-error');
+  });
+
+  it('removes the page, the element frames, and its message listener on destroy', async () => {
+    const harness = createHarness();
+    const listeners = new Set<unknown>();
+    const view = harness.window as unknown as Window;
+    const add = view.addEventListener.bind(view);
+    const remove = view.removeEventListener.bind(view);
+    view.addEventListener = ((type: string, listener: unknown, ...rest: never[]) => {
+      if (type === 'message') listeners.add(listener);
+      add(type, listener as EventListener, ...rest);
+    }) as typeof view.addEventListener;
+    view.removeEventListener = ((type: string, listener: unknown, ...rest: never[]) => {
+      if (type === 'message') listeners.delete(listener);
+      remove(type, listener as EventListener, ...rest);
+    }) as typeof view.removeEventListener;
+    const player = await started(harness, { customHtml: { mode: 'trusted' } });
+    await player.load(pinned, resolve);
+    expect(pageView(harness).document.querySelectorAll('iframe')).toHaveLength(1);
+    expect(listeners.size).toBe(1);
+    player.destroy();
+    expect(harness.container.childNodes).toHaveLength(0);
+    expect(listeners.size).toBe(0);
+    await expect(player.seek(0)).rejects.toMatchObject({ code: 'destroyed' });
   });
 });

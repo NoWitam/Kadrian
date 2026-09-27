@@ -146,6 +146,18 @@
       </section>
       <section id="middle">
         <div id="controls"></div>
+        <div id="custom-html-policy">
+          <label
+            ><input id="trust-custom-html" type="checkbox" autocomplete="off" /> Run Custom
+            HTML</label
+          >
+          <div class="note">
+            Off by default. Turning it on runs the code of the document's Custom HTML elements, in
+            an allow-scripts-only sandbox. That is not network isolation: in this browser the code
+            can still reach the network, for example through WebRTC (D36). The choice belongs to
+            this page, not to the document.
+          </div>
+        </div>
         <input id="timeline" type="range" min="0" max="0" value="0" step="1" />
         <div>
           <label
@@ -173,7 +185,8 @@
         </div>
         <div class="note">
           Loading replaces the document and starts a new undo history. Custom HTML of a loaded
-          document runs inside the allow-scripts-only sandbox.
+          document runs only when "Run Custom HTML" is on, and then inside the allow-scripts-only
+          sandbox.
         </div>
         <pre id="current" hidden></pre>
         <h2>AI tool call (set_node_position)</h2>

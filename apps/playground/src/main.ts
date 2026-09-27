@@ -9,10 +9,15 @@
  * (the full `validateComposition`), and `player.load`; whatever they refuse is
  * shown as they report it. Assets are the bytes `@kadrion/test-fixtures`
  * generates, looked up by ID with no fallback (D32.2).
+ *
+ * Custom HTML is the page's decision, never the document's (D36): the page
+ * starts with it disabled, and only the "Run Custom HTML" checkbox makes a
+ * Player that trusts it. Changing the choice replaces the Player and shows the
+ * same document, with its undo history, again.
  */
 import { executeSetNodePosition, setNodePositionTool } from '@kadrion/ai-sdk';
 import type { CommandBus } from '@kadrion/editor-sdk';
-import { createPlayer, type Player } from '@kadrion/player';
+import { createPlayer, type Player, type PlayerCustomHtmlPolicy } from '@kadrion/player';
 import { frameCount, frameToTimeUs, timeUsToFrame } from '@kadrion/schema';
 import { FONT_GLYPHS, generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
 
@@ -103,6 +108,11 @@ async function main(): Promise<void> {
   const source = element('source') as HTMLTextAreaElement;
   const toolCall = element('tool-call') as HTMLTextAreaElement;
   const current = element('current');
+  const trust = element('trust-custom-html') as HTMLInputElement;
+  /** The page's own choice (D36): unchecked, the default, runs no Custom HTML. */
+  const customHtml = (): PlayerCustomHtmlPolicy =>
+    trust.checked ? { mode: 'trusted' } : { mode: 'disabled' };
+  const runtime = { bytes, contentHash: manifest.contentHash };
 
   const sizeViewport = (size: { width: number; height: number }): void => {
     viewport.style.width = `${String(Math.round(size.width * SCALE))}px`;
@@ -112,17 +122,32 @@ async function main(): Promise<void> {
   // Before the Player: the render frame needs a stage that already has a height (D30.10).
   sizeViewport(referenceComposition as { width: number; height: number });
   sizeCanvas(elements, referenceComposition as { width: number; height: number });
-  const player: Player = await createPlayer(elements.stage, {
-    runtime: { bytes, contentHash: manifest.contentHash },
-  });
+  let player: Player = await createPlayer(elements.stage, { runtime, customHtml: customHtml() });
+  /** The policy of the Player on screen, which the status line reports. */
+  let shown: PlayerCustomHtmlPolicy = customHtml();
   const assets = new Map(generateReferenceAssets().map((asset) => [asset.id, asset]));
   // A lookup by ID and nothing else: an unknown ID is the Player's asset-missing (D32.2).
   const resolve = ({ id }: { id: string }) => assets.get(id) ?? null;
 
   let session: Session | null = null;
 
+  /**
+   * Opening a document, re-rendering it, and replacing the Player run one at a
+   * time, so that none of them sees a Player the other one is replacing.
+   */
+  let queue: Promise<void> = Promise.resolve();
+  const serially = (task: () => Promise<void>): Promise<void> => {
+    const run = queue.then(task, task);
+    queue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  };
+
   /** Re-renders the current document, keeping the time the preview showed. */
-  const rerender = async (): Promise<void> => {
+  const rerender = (): Promise<void> => serially(rerenderNow);
+  const rerenderNow = async (): Promise<void> => {
     if (session === null) return;
     if (session.editor !== null) {
       await session.editor.show();
@@ -168,7 +193,9 @@ async function main(): Promise<void> {
    * that does not parse or validate leaves the one on screen as it was; one the
    * Player refuses (a missing asset, say) is shown with its error (D32.2, D32.3).
    */
-  const open = async (text: string, label: string, showcase: Showcase | null): Promise<void> => {
+  const open = (text: string, label: string, showcase: Showcase | null): Promise<void> =>
+    serially(() => openNow(text, label, showcase));
+  const openNow = async (text: string, label: string, showcase: Showcase | null): Promise<void> => {
     clearErrors();
     let parsed: unknown;
     try {
@@ -240,6 +267,38 @@ async function main(): Promise<void> {
     control.dataset['id'] = showcase.id;
   }
 
+  // The page's Custom HTML policy (D36): a new Player, the same document and
+  // history. The new Player is made first; if that fails, the old one and the
+  // old choice stay.
+  trust.addEventListener('change', () => {
+    const wanted = customHtml();
+    trust.disabled = true;
+    serially(async () => {
+      let replacement: Player;
+      try {
+        replacement = await createPlayer(elements.stage, { runtime, customHtml: wanted });
+      } catch (reason: unknown) {
+        trust.checked = !trust.checked;
+        throw reason;
+      }
+      const at = player.getState().timeUs ?? 0;
+      session?.editor?.detach();
+      if (session !== null) session.editor = null;
+      const previous = player;
+      player = replacement;
+      shown = wanted;
+      previous.destroy();
+      if (session === null) return;
+      await player.load(session.bus.getDocument(), resolve);
+      if (at !== 0) await player.seek(at);
+      attachGrip(session.nodeId);
+    })
+      .catch(report)
+      .finally(() => {
+        trust.disabled = false;
+      });
+  });
+
   // Playback and history.
   const controls = element('controls');
   button(controls, 'Play', () => {
@@ -264,8 +323,10 @@ async function main(): Promise<void> {
     if (session === null) return;
     const { fps } = session.bus.getDocument();
     player.seek(frameToTimeUs(Number(timeline.value), fps)).catch((reason: unknown) => {
-      // A newer seek replacing this one is the normal case while the slider moves.
-      if ((reason as { code?: unknown }).code !== 'superseded') report(reason);
+      // A newer seek replacing this one is the normal case while the slider moves,
+      // and so is a seek of a Player that the policy checkbox is replacing.
+      const code = (reason as { code?: unknown }).code;
+      if (code !== 'superseded' && code !== 'destroyed' && code !== 'not-loaded') report(reason);
     });
   });
   dragSelect.addEventListener('change', () => {
@@ -358,6 +419,7 @@ async function main(): Promise<void> {
       `timeUs   ${String(state.timeUs)}`,
       // Integrity, not identity: the manifest also supplied the expected hash (D25.5).
       `runtime  ${state.runtimeHash === manifest.contentHash ? 'verified against its manifest' : 'MISMATCH'}`,
+      `custom   ${shown.mode === 'disabled' ? 'disabled: no Custom HTML runs' : 'trusted: the document runs code'}`,
     ];
     if (session !== null) {
       const { bus, nodeId } = session;

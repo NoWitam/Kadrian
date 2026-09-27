@@ -110,10 +110,13 @@ window.e = {
       overlay: document.getElementById('overlay'),
       grip: document.getElementById('grip'),
     };
-    // Before the Player, exactly as main.ts does it.
+    // Before the Player, exactly as main.ts does it. The fixture's Custom HTML is
+    // trusted explicitly, as the playground's checkbox does: the frames of this
+    // page are counted with the element's own (FRAMES, D36).
     sizeCanvas(elements, bus.getDocument());
     player = await createPlayer(elements.stage, {
       runtime: { bytes: new Uint8Array(bytes), contentHash: manifest.contentHash },
+      customHtml: { mode: 'trusted' },
     });
     const counted = {
       // Counted when the load has FINISHED: a render that is still building its

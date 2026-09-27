@@ -12,6 +12,7 @@ import {
   resolveAssets,
   type AssetRequest,
   type AssetResolver,
+  type CustomHtmlPolicy,
   type ResolvedAsset,
 } from '@kadrion/renderer-dom';
 import {
@@ -47,6 +48,16 @@ export type PlayerAsset = ResolvedAsset;
  */
 export type PlayerAssetResolver = AssetResolver;
 
+/**
+ * The host's decision about the Custom HTML of every document this Player
+ * loads (D36). `disabled`, the default, never runs it: each element stays an
+ * empty box of its size and place. `trusted` runs it in its sandboxed frame
+ * (D23), which is the host's decision to execute the document's code, not
+ * network isolation: in a user's browser an element can still reach the
+ * network through WebRTC (STUN, TURN) and DNS (D36).
+ */
+export type PlayerCustomHtmlPolicy = CustomHtmlPolicy;
+
 /** The preview clock (D25.6): milliseconds and frame callbacks. */
 export interface PlayerScheduler {
   now(): number;
@@ -62,6 +73,8 @@ export interface PlayerTimers {
 
 export interface PlayerOptions {
   readonly runtime: PlayerRuntime;
+  /** Absent means `{ mode: 'disabled' }`; only an explicit `{ mode: 'trusted' }` runs Custom HTML (D36). */
+  readonly customHtml?: PlayerCustomHtmlPolicy;
   /** How long the page waits for a Custom HTML acknowledgement (D23.4). */
   readonly ackTimeoutMs?: number;
   /** How long the Player waits for the page's answer to one request. */
@@ -91,6 +104,32 @@ export interface Player {
 }
 
 const CONTENT_HASH = /^sha256:[0-9a-f]{64}$/;
+
+/**
+ * The policy the host stated, or `disabled` when it stated none (D36). Only
+ * exactly `{ mode: 'disabled' }` or `{ mode: 'trusted' }`, as own data
+ * properties, is accepted; anything else is a typed error, never a guess.
+ */
+function customHtmlPolicy(value: unknown): PlayerCustomHtmlPolicy {
+  if (value === undefined) return Object.freeze({ mode: 'disabled' });
+  const descriptor =
+    typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? Object.getOwnPropertyDescriptor(value, 'mode')
+      : undefined;
+  const mode: unknown =
+    descriptor !== undefined && 'value' in descriptor ? descriptor.value : undefined;
+  if (
+    descriptor === undefined ||
+    Reflect.ownKeys(value as object).length !== 1 ||
+    (mode !== 'disabled' && mode !== 'trusted')
+  ) {
+    throw new PlayerError(
+      'invalid-options',
+      'customHtml must be absent, { mode: "disabled" }, or { mode: "trusted" } (D36).',
+    );
+  }
+  return Object.freeze({ mode });
+}
 
 async function sha256(bytes: Uint8Array): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', bytes.slice());
@@ -180,6 +219,7 @@ export async function createPlayer(
 ): Promise<Player> {
   const view = container.ownerDocument.defaultView;
   if (view === null) throw new PlayerError('page-error', 'The container has no window.');
+  const customHtml = customHtmlPolicy(options.customHtml);
   const script = await runtimeScript(options.runtime);
   const runtimeHash = options.runtime.contentHash;
   const srcdoc = pageDocument(script);
@@ -403,6 +443,7 @@ export async function createPlayer(
           document: text,
           assets,
           ackTimeoutMs,
+          customHtml: { mode: customHtml.mode },
         });
       } catch (reason) {
         throw fail(reason);

@@ -32,7 +32,7 @@ export const SHOWCASES: readonly Showcase[] = [
     id: 'reference',
     title: 'Reference composition',
     description:
-      'The spike reference: 1080x1920, 30 fps, 10 s. Background, image, two texts, a group, opacity/position/scale keyframes, a sandboxed Custom HTML progress bar, and an audio clip. Drag the title or undo/redo (P3).',
+      'The spike reference: 1080x1920, 30 fps, 10 s. Background, image, two texts, a group, opacity/position/scale keyframes, a sandboxed Custom HTML progress bar (shown when "Run Custom HTML" is on, D36), and an audio clip. Drag the title or undo/redo (P3).',
     features: ['P1', 'P3', 'P4', 'D16', 'D23', 'D30'],
     url: '/pkg/test-fixtures/compositions/reference.json',
     sourceFile: 'packages/test-fixtures/src/compositions/reference.json',
@@ -74,8 +74,8 @@ export const SHOWCASES: readonly Showcase[] = [
     id: 'custom-html',
     title: 'Sandboxed Custom HTML',
     description:
-      'A dial drawn by a Custom HTML element. It keeps no clock: it draws the time the host sends over the versioned message protocol and acknowledges it, so seeking backwards works (D23). It runs in an allow-scripts-only sandbox.',
-    features: ['D05', 'D23'],
+      'A dial drawn by a Custom HTML element. It keeps no clock: it draws the time the host sends over the versioned message protocol and acknowledges it, so seeking backwards works (D23). It runs in an allow-scripts-only sandbox, and only when "Run Custom HTML" is on: the page runs no Custom HTML by default (D36).',
+    features: ['D05', 'D23', 'D36'],
     url: '/app/showcases/custom-html.json',
     sourceFile: 'apps/playground/src/showcases/custom-html.json',
     dragNodeId: 'node-dial',

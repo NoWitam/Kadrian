@@ -21,6 +21,7 @@ import {
   elementOf,
   reference,
   referenceUrls,
+  TRUSTED,
 } from './support.js';
 
 const gridTimes = Array.from(
@@ -95,7 +96,7 @@ describe('the text the renderer writes', () => {
     const golden = referenceExpectedRender.golden.at(-1);
     const root = createRoot(window);
     try {
-      mountComposition(root, reference, referenceUrls);
+      mountComposition(root, reference, referenceUrls, TRUSTED);
       renderState(root, evaluateComposition(reference, golden?.timeUs ?? 0));
     } finally {
       if (original !== undefined) Object.defineProperty(prototype, 'setProperty', original);
@@ -122,7 +123,7 @@ describe('reference composition at the golden timestamps', () => {
     'renders exactly the hand-derived tree at $timeUs',
     ({ timeUs, tree }) => {
       const root = createRoot();
-      mountComposition(root, reference, referenceUrls);
+      mountComposition(root, reference, referenceUrls, TRUSTED);
       renderState(root, evaluateComposition(reference, timeUs));
       expect(describeRoot(root)).toStrictEqual([tree]);
     },
@@ -143,7 +144,7 @@ describe('every frame of the grid (D22.1, D22.2)', () => {
   // 92.26666399999999 (frame 61), which a renderer that rounds would change.
   it('writes String() of every evaluated value, on one mounted tree', () => {
     const root = createRoot();
-    mountComposition(root, reference, referenceUrls);
+    mountComposition(root, reference, referenceUrls, TRUSTED);
     // Values whose shortest decimal has at least 15 significant digits.
     const long = (value: number): boolean => String(value).replace(/[-.]/g, '').length >= 15;
     let longValues = 0;

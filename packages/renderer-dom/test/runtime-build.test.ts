@@ -23,7 +23,14 @@ import {
 import type { CustomHtmlHost } from '../src/index.js';
 import { withoutClocks } from './clocks.js';
 import { elementDouble, hostDouble } from './elements.js';
-import { createRoot, createWindow, describeRoot, referenceUrls } from './support.js';
+import {
+  createRoot,
+  createWindow,
+  describeRoot,
+  DISABLED,
+  referenceUrls,
+  TRUSTED,
+} from './support.js';
 
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
 const manifestOnDisk = JSON.parse(
@@ -105,7 +112,7 @@ describe('runtime build artifact (D21)', () => {
 });
 
 interface PageApi {
-  mount(root: Element, document: unknown, assetUrls: unknown): { ok: boolean };
+  mount(root: Element, document: unknown, assetUrls: unknown, options: unknown): { ok: boolean };
   render(root: Element, document: unknown, timeUs: number): { ok: boolean };
   synchronize(
     root: Element,
@@ -155,7 +162,7 @@ describe('the artifact as the page entry (D21.4)', () => {
     const urls = inPage(window, referenceUrls);
     const results: unknown[] = [];
     const trees = withoutClocks([window], () => {
-      results.push(api.mount(root, document, urls));
+      results.push(api.mount(root, document, urls, inPage(window, TRUSTED)));
       return referenceExpectedRender.golden.map(({ timeUs }) => {
         results.push(api.render(root, document, timeUs));
         return describeRoot(root);
@@ -170,7 +177,9 @@ describe('the artifact as the page entry (D21.4)', () => {
     const root = createRoot(window);
     root.innerHTML = '<p>before</p>';
     const invalid = inPage(window, { ...(referenceComposition as object), fps: 0 });
-    expect(api.mount(root, invalid, inPage(window, referenceUrls))).toMatchObject({
+    expect(
+      api.mount(root, invalid, inPage(window, referenceUrls), inPage(window, TRUSTED)),
+    ).toMatchObject({
       ok: false,
       errors: [expect.objectContaining({ path: '/fps' })],
     });
@@ -183,7 +192,9 @@ describe('the artifact as the page entry (D21.4)', () => {
     const { window, api } = loadArtifact();
     const root = createRoot(window);
     const foreign: unknown = JSON.parse(JSON.stringify(referenceComposition));
-    expect(api.mount(root, foreign, inPage(window, referenceUrls))).toMatchObject({ ok: false });
+    expect(
+      api.mount(root, foreign, inPage(window, referenceUrls), inPage(window, TRUSTED)),
+    ).toMatchObject({ ok: false });
     expect(root.childNodes).toHaveLength(0);
   });
 
@@ -191,7 +202,9 @@ describe('the artifact as the page entry (D21.4)', () => {
     const { window, api } = loadArtifact();
     const root = createRoot(window);
     const document = inPage(window, referenceComposition);
-    expect(api.mount(root, document, inPage(window, referenceUrls))).toEqual({ ok: true });
+    expect(
+      api.mount(root, document, inPage(window, referenceUrls), inPage(window, TRUSTED)),
+    ).toEqual({ ok: true });
     const element = elementDouble(window, root, 'node-custom-html');
     const golden = referenceExpectedRender.golden;
     // The host passes the frame index as its request ID, as the fixture assumes.
@@ -232,12 +245,36 @@ describe('the artifact as the page entry (D21.4)', () => {
     expect(element.posted).toHaveLength(golden.length + 1);
   });
 
+  it('mounts only under a stated Custom HTML policy, and no frame when it is disabled (D36)', () => {
+    const { window, api } = loadArtifact();
+    const root = createRoot(window);
+    root.innerHTML = '<p>before</p>';
+    const document = inPage(window, referenceComposition);
+    const urls = inPage(window, referenceUrls);
+    expect(() => api.mount(root, document, urls, undefined)).toThrow(
+      expect.objectContaining({ name: 'RenderError', code: 'invalid-options' }),
+    );
+    expect(root.innerHTML).toBe('<p>before</p>');
+    expect(api.mount(root, document, urls, inPage(window, DISABLED))).toEqual({ ok: true });
+    expect(root.querySelectorAll('iframe')).toHaveLength(0);
+    expect(
+      root
+        .querySelector('[data-kadrion-node="node-custom-html"]')
+        ?.getAttribute('data-kadrion-custom-html'),
+    ).toBe('disabled');
+  });
+
   it('reports a missing asset URL as a typed error before the first frame', () => {
     const { window, api } = loadArtifact();
     const root = createRoot(window);
-    expect(() => api.mount(root, inPage(window, referenceComposition), inPage(window, {}))).toThrow(
-      expect.objectContaining({ name: 'RenderError', code: 'asset-url-missing' }),
-    );
+    expect(() =>
+      api.mount(
+        root,
+        inPage(window, referenceComposition),
+        inPage(window, {}),
+        inPage(window, TRUSTED),
+      ),
+    ).toThrow(expect.objectContaining({ name: 'RenderError', code: 'asset-url-missing' }));
     expect(root.childNodes).toHaveLength(0);
   });
 });

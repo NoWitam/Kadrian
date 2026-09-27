@@ -5,7 +5,8 @@
  * `KadrionRuntime.frame` (D25.3). A
  * document that reaches the page as JSON or through `postMessage` has no brand,
  * so every call takes it as `unknown` and
- * validates it (D19). Nothing is kept between calls except the DOM under
+ * validates it (D19). `load` and `mount` also take the host's Custom HTML
+ * policy, which the artifact never assumes (D36). Nothing is kept between calls except the DOM under
  * `root` and the font set that `load` registers. Both hosts consume this
  * contract through `load` and `frame` (D25, D28); `mount` stays for the tests of
  * D21.
@@ -16,6 +17,7 @@ import { validateComposition, type ValidationError } from '@kadrion/schema';
 import { checkAssetUrls, type AssetUrls } from './assets.js';
 import { pageAssets, registerFonts, type FontHost } from './load.js';
 import { mountComposition } from './mount.js';
+import { mountOptions } from './policy.js';
 import { awaitMediaReady } from './ready.js';
 import { renderState } from './render.js';
 import { synchronizeCustomHtml, type CustomHtmlHost } from './synchronize.js';
@@ -24,20 +26,29 @@ export type PageResult =
   { readonly ok: true } | { readonly ok: false; readonly errors: readonly ValidationError[] };
 
 /**
- * Validates `document` and mounts it into `root`. An invalid document is
- * expected input and yields its errors; a problem with the asset URLs throws a
- * `RenderError` before the DOM is touched (D22.5).
+ * Validates `document` and mounts it into `root` under the host's Custom HTML
+ * policy, which is required: no policy, or anything but exactly one of its
+ * forms, throws the `RenderError` code `invalid-options` first (D36). An
+ * invalid document is expected input and yields its errors; a problem with the
+ * asset URLs throws a `RenderError` before the DOM is touched (D22.5).
  */
-export function mount(root: Element, document: unknown, assetUrls: unknown): PageResult {
+export function mount(
+  root: Element,
+  document: unknown,
+  assetUrls: unknown,
+  options: unknown,
+): PageResult {
+  const checked = mountOptions(options);
   const result = validateComposition(document);
   if (!result.ok) return { ok: false, errors: result.errors };
   // `mountComposition` checks the shape of the URLs before it reads them.
-  mountComposition(root, result.composition, assetUrls as AssetUrls);
+  mountComposition(root, result.composition, assetUrls as AssetUrls, checked);
   return { ok: true };
 }
 
 /**
- * The load step both hosts use (D27.1), in this order: validate `document`;
+ * The load step both hosts use (D27.1), in this order: check the host's Custom
+ * HTML policy, which is required and has no default here (D36); validate `document`;
  * turn the asset bytes into `data:` URLs and check them against it (D22.5);
  * clear the font set; register every font a text node uses from its bytes,
  * through the constructor the host lends, and wait for the font set; then
@@ -49,13 +60,15 @@ export async function load(
   document: unknown,
   assets: unknown,
   host: FontHost,
+  options: unknown,
 ): Promise<PageResult> {
+  const checked = mountOptions(options);
   const result = validateComposition(document);
   if (!result.ok) return { ok: false, errors: result.errors };
   const { urls, bytes } = pageAssets(assets);
   checkAssetUrls(result.composition, urls);
   await registerFonts(root, result.composition, bytes, host);
-  mountComposition(root, result.composition, urls);
+  mountComposition(root, result.composition, urls, checked);
   return { ok: true };
 }
 

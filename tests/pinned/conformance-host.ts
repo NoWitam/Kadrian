@@ -57,8 +57,11 @@ window.conformance = {
       fetch('/runtime/kadrion-runtime.js').then((response) => response.arrayBuffer()),
       fetch('/runtime/kadrion-runtime.json').then((response) => response.json()),
     ]);
+    // The reference fixture is trusted content, and the host says so: parity is
+    // measured with the element running, never on the Player's default (D36).
     player = await createPlayer(document.getElementById('stage'), {
       runtime: { bytes: new Uint8Array(bytes), contentHash: manifest.contentHash },
+      customHtml: { mode: 'trusted' },
     });
   },
   load(text, assets) {

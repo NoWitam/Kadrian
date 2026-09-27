@@ -14,6 +14,7 @@ export type {
   PlayerAsset,
   PlayerAssetRequest,
   PlayerAssetResolver,
+  PlayerCustomHtmlPolicy,
   PlayerOptions,
   PlayerRuntime,
   PlayerScheduler,

@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { mountComposition, type AssetUrls } from '../src/index.js';
-import { createRoot, derived, draftNode, reference, referenceUrls } from './support.js';
+import { createRoot, derived, draftNode, reference, referenceUrls, TRUSTED } from './support.js';
 
 /** Mounts into a root that already holds content, and proves the content survives a failure. */
 function mountFails(
@@ -18,7 +18,7 @@ function mountFails(
   const root = createRoot();
   root.innerHTML = '<p>before</p>';
   expect(() => {
-    mountComposition(root, document, urls as AssetUrls);
+    mountComposition(root, document, urls as AssetUrls, TRUSTED);
   }).toThrow(expect.objectContaining({ name: 'RenderError', code, message }));
   expect(root.innerHTML).toBe('<p>before</p>');
 }
@@ -26,7 +26,7 @@ function mountFails(
 describe('asset URLs (D22.5)', () => {
   it('accepts the URLs of the used image and font, and an extra one for the audio asset', () => {
     const root = createRoot();
-    mountComposition(root, reference, { ...referenceUrls, 'asset-audio': 'blob:audio' });
+    mountComposition(root, reference, { ...referenceUrls, 'asset-audio': 'blob:audio' }, TRUSTED);
     expect(root.querySelector('img')?.getAttribute('src')).toBe(referenceUrls['asset-image']);
   });
 
@@ -114,10 +114,10 @@ describe('asset URLs (D22.5)', () => {
     add(urls);
     const root = createRoot();
     expect(() => {
-      mountComposition(root, reference, urls as AssetUrls);
+      mountComposition(root, reference, urls as AssetUrls, TRUSTED);
     }).toThrow(expect.objectContaining({ code: 'asset-url-invalid' }));
     expect(() => {
-      mountComposition(root, reference, urls as AssetUrls);
+      mountComposition(root, reference, urls as AssetUrls, TRUSTED);
     }).toThrow(problems);
     expect(root.childNodes).toHaveLength(0);
   });
@@ -140,7 +140,7 @@ describe('asset URLs (D22.5)', () => {
       },
     });
     const root = createRoot();
-    mountComposition(root, reference, proxy);
+    mountComposition(root, reference, proxy, TRUSTED);
     expect(reads).toBe(1);
     expect(root.querySelector('img')?.getAttribute('src')).toBe(urls['asset-image']);
   });
@@ -165,11 +165,12 @@ describe('asset URLs (D22.5)', () => {
       `(${JSON.stringify(referenceUrls)})`,
     );
     expect(Object.getPrototypeOf(foreign)).not.toBe(Object.prototype);
-    mountComposition(createRoot(), reference, foreign as AssetUrls);
+    mountComposition(createRoot(), reference, foreign as AssetUrls, TRUSTED);
     mountComposition(
       createRoot(),
       reference,
       Object.assign(Object.create(null), referenceUrls) as AssetUrls,
+      TRUSTED,
     );
   });
 
@@ -192,7 +193,7 @@ describe('asset URLs (D22.5)', () => {
       // JSON.parse creates `__proto__` as an own property, unlike an object literal.
       const urls = JSON.parse(JSON.stringify({ ...font, [id]: 'blob:image' })) as AssetUrls;
       const root = createRoot();
-      mountComposition(root, document, urls);
+      mountComposition(root, document, urls, TRUSTED);
       expect(root.querySelector('img')?.getAttribute('src')).toBe('blob:image');
     },
   );

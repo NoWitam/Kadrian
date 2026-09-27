@@ -33,6 +33,10 @@ export const reference = validated(referenceComposition);
 /** The URLs the expected trees assume. */
 export const referenceUrls = referenceExpectedRender.assetUrls;
 
+/** The host's two Custom HTML policies (D36); every mount in these tests states one. */
+export const TRUSTED = Object.freeze({ customHtml: Object.freeze({ mode: 'trusted' as const }) });
+export const DISABLED = Object.freeze({ customHtml: Object.freeze({ mode: 'disabled' as const }) });
+
 /** A variant of the reference composition: clone, edit, validate. */
 export function derived(edit: (draft: Draft) => void): ValidatedComposition {
   const draft = structuredClone(referenceComposition) as Draft;

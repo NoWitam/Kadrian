@@ -10,9 +10,9 @@ Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
 of the Player and the Producer is measured and gated
 ([`docs/spike/report.md`](docs/spike/report.md)). The workflow runs on a
-GitHub runner in the pinned image, and Q14 is closed: the run 36072703155 of the
-validated commit 4f4d467 met every criterion, with its evidence in
-[`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
+GitHub runner in the pinned image. Q14 is open again: its evidence, the run
+36072703155 of the commit 4f4d467, was checked against a golden manifest that
+PR-16 (D36) changed, so Q14 waits for a green run of a commit with PR-16
 ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 packages are private and unpublished; the APIs below are those of the spike and
 may still change.
@@ -27,8 +27,8 @@ may still change.
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
   its evidence and its limits
-- [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run and the
-  evidence that closes Q14
+- [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, and how
+  Q14 closes and reopens
 - [`docs/architecture/package-boundaries.json`](docs/architecture/package-boundaries.json)
   — machine-checked package dependency map (see D12)
 
@@ -238,7 +238,8 @@ import { createPlayer } from '@kadrion/player';
 const bytes = new Uint8Array(await (await fetch('/kadrion-runtime.js')).arrayBuffer());
 const { contentHash } = await (await fetch('/kadrion-runtime.json')).json();
 
-// Give the container its size before the Player is created.
+// Give the container its size before the Player is created. Without
+// `customHtml`, no Custom HTML runs (D36); see "Custom HTML in the Player".
 const player = await createPlayer(container, { runtime: { bytes, contentHash } });
 
 // The resolver gets { id, type, contentHash } and returns { bytes, mediaType }, or null.
@@ -255,13 +256,32 @@ player.destroy();
   `code`.
 - After an edit, load the edited document again.
 
-**Custom HTML in the Player.** Custom HTML runs in its own sandboxed frame
-without host secrets (D23). The Player does not claim full network isolation
-for untrusted Custom HTML. Under D36, such content must be off by default in an
-interactive preview, and enabling it will be an explicit host decision.
-Implementing that is still to come, so do not load untrusted Custom HTML into
-the Player. The Producer's network isolation is its container with
-`--network none`.
+**Custom HTML in the Player.** Custom HTML is disabled by default (D36). A
+Player created without `customHtml` never runs it: every Custom HTML element
+is an empty box of its size and place, with no frame, so none of its script,
+messages, requests, or WebRTC can start. The host enables it explicitly:
+
+```ts
+const player = await createPlayer(container, {
+  runtime: { bytes, contentHash },
+  customHtml: { mode: 'trusted' }, // or { mode: 'disabled' }, the default
+});
+```
+
+- `trusted` is the host's decision to execute the code of every document this
+  Player loads. It runs each element in its sandboxed frame without host
+  secrets (D23), but it is **not** a security guarantee: the Player does not
+  provide network isolation, and in a user's browser an element can still
+  reach STUN and TURN servers and DNS through WebRTC. Trust only documents
+  whose code you would run.
+- The policy belongs to the host and holds for the Player's lifetime; it is
+  never a field of the document. To change it, create a new Player.
+- A policy other than these two forms is the `PlayerError` code
+  `invalid-options`.
+- The `Permissions-Policy`, the Content Security Policy, and the other response
+  headers of the page that embeds the Player are the host's responsibility.
+- The Producer renders Custom HTML as trusted and relies on its container's
+  `--network none` for isolation (D28.9), not on the browser.
 
 ### 5. Edit through the command bus
 
@@ -391,7 +411,7 @@ apps/
 docs/
   adr/            decision log
   architecture/   package dependency map
-  ci/             the first CI run and the evidence that closes Q14
+  ci/             the first CI run and the Q14 procedure
   spike/          vertical-spike specification, report, and parity record
 tests/
   repo/           repository-level checks (boundaries, workspace structure, ADR log, Q14)

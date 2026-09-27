@@ -17,6 +17,7 @@ import {
   referenceUrls,
   transformedNode,
   type Draft,
+  TRUSTED,
 } from './support.js';
 
 interface Point {
@@ -109,7 +110,7 @@ describe('nested transforms and a scale that is not the identity (D15, D22.2)', 
   it('places the corner of a scaled child of a scaled group where D15 puts it', () => {
     const document = derived(groupWithImage);
     const root = createRoot();
-    mountComposition(root, document, referenceUrls);
+    mountComposition(root, document, referenceUrls, TRUSTED);
     renderState(root, evaluateComposition(document, 0));
     const image = elementOf(root, 'node-image');
     expect(image.parentElement).toBe(elementOf(root, 'node-group'));
@@ -126,7 +127,7 @@ describe('nested transforms and a scale that is not the identity (D15, D22.2)', 
       image.opacity = 1e-7;
     });
     const root = createRoot();
-    mountComposition(root, document, referenceUrls);
+    mountComposition(root, document, referenceUrls, TRUSTED);
     renderState(root, evaluateComposition(document, 0));
     const image = elementOf(root, 'node-image');
     expect(image.style.transform).toBe('translate(10px, 20px) scale(1e-7, 0.1)');
@@ -146,7 +147,7 @@ describe('opacity of a group (D15, D22.2)', () => {
 
   it('stays on the group element and is not folded into its children', () => {
     const root = createRoot();
-    mountComposition(root, document, referenceUrls);
+    mountComposition(root, document, referenceUrls, TRUSTED);
     renderState(root, evaluateComposition(document, 5_000_000));
     const group = elementOf(root, 'node-group');
     expect(group.style.opacity).toBe('0.5');
@@ -174,7 +175,7 @@ describe('z-order (D16.4, D22.2)', () => {
 
   it('follows the array order in the DOM and sets no z-index anywhere', () => {
     const root = createRoot();
-    mountComposition(root, document, referenceUrls);
+    mountComposition(root, document, referenceUrls, TRUSTED);
     renderState(root, evaluateComposition(document, 0));
     const scene = root.querySelector('[data-kadrion-scene]');
     expect(
@@ -196,7 +197,7 @@ describe('content that must never become markup (D05, D22.3, D23.2)', () => {
       title.text = markup;
     });
     const root = createRoot();
-    mountComposition(root, document, referenceUrls);
+    mountComposition(root, document, referenceUrls, TRUSTED);
     const title = elementOf(root, 'node-title');
     expect(title.children).toHaveLength(0);
     expect(title.childNodes).toHaveLength(1);
@@ -212,7 +213,7 @@ describe('content that must never become markup (D05, D22.3, D23.2)', () => {
       custom.html = markup;
     });
     const root = createRoot();
-    mountComposition(root, document, referenceUrls);
+    mountComposition(root, document, referenceUrls, TRUSTED);
     renderState(root, evaluateComposition(document, 0));
     const placeholder = elementOf(root, 'node-custom-html');
     expect(placeholder.localName).toBe('div');

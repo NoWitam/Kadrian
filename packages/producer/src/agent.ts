@@ -5,7 +5,8 @@
  * it exposes `kadrionProducer.load` and `kadrionProducer.frame`, which the
  * Producer calls through Playwright, and nothing else. It holds no pixel logic:
  * it decodes the base64 of the asset bytes that CDP carries, and calls
- * `KadrionRuntime.load` and `KadrionRuntime.frame` (D25.3, D27.1). The
+ * `KadrionRuntime.load`, with the policy `trusted` stated explicitly (D36, decision 5),
+ * and `KadrionRuntime.frame` (D25.3, D27.1). The
  * `FontFace` constructor and the timer are captured when it starts, so a page
  * whose clocks are replaced later still gets them (§6.1).
  */
@@ -15,7 +16,13 @@ export function producerAgent(): void {
     errors?: unknown;
   }
   interface Runtime {
-    load(root: Element, document: unknown, assets: unknown, host: unknown): Promise<Result>;
+    load(
+      root: Element,
+      document: unknown,
+      assets: unknown,
+      host: unknown,
+      options: unknown,
+    ): Promise<Result>;
     frame(root: Element, document: unknown, timeUs: number, host: unknown): Promise<Result>;
   }
   interface Outcome {
@@ -75,12 +82,18 @@ export function producerAgent(): void {
         mediaType,
         bytes: bytesOf(base64),
       }));
-      return (runtime as Runtime)
-        .load(root as Element, JSON.parse(documentJson), decoded, fontHost)
-        .then((result) => {
-          if (result.ok) state.documentJson = documentJson;
-          return done(result);
-        }, failed);
+      return (
+        (runtime as Runtime)
+          // The reference run trusts Custom HTML and states it: its isolation is the
+          // container's --network none (D28.9), not the browser (D36, decision 5).
+          .load(root as Element, JSON.parse(documentJson), decoded, fontHost, {
+            customHtml: { mode: 'trusted' },
+          })
+          .then((result) => {
+            if (result.ok) state.documentJson = documentJson;
+            return done(result);
+          }, failed)
+      );
     },
     frame(timeUs: number, requestId: number, ackTimeoutMs: number) {
       if (state.documentJson === null) {

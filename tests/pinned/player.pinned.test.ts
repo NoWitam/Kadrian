@@ -25,7 +25,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { ISOLATION_PROBE } from './probes.js';
 import {
+  BAR,
   customHtmlNode,
+  decodePng,
   expectedTree,
   fontsUsed,
   frameSession,
@@ -33,6 +35,7 @@ import {
   inSinglePrecision,
   referenceResolver,
   repoRoot,
+  pixel,
   pixelReport,
   samePixels,
   shownTree,
@@ -70,14 +73,17 @@ import { generateReferenceAssets, referenceComposition } from '@kadrion/test-fix
 const assets = Object.fromEntries(generateReferenceAssets().map((asset) => [asset.id, asset]));
 let player;
 window.p1 = {
-  async start() {
+  async start(customHtml) {
     const [bytes, manifest] = await Promise.all([
       fetch('/runtime/kadrion-runtime.js').then((response) => response.arrayBuffer()),
       fetch('/runtime/kadrion-runtime.json').then((response) => response.json()),
     ]);
-    player = await createPlayer(document.getElementById('stage'), {
-      runtime: { bytes: new Uint8Array(bytes), contentHash: manifest.contentHash },
-    });
+    const runtime = { bytes: new Uint8Array(bytes), contentHash: manifest.contentHash };
+    // Without a policy the Player takes its default; the harness never adds one on its own.
+    player = await createPlayer(
+      document.getElementById('stage'),
+      customHtml === null ? { runtime } : { runtime, customHtml },
+    );
     return manifest.contentHash;
   },
   load(json) {
@@ -96,7 +102,7 @@ window.p1ready = true;
 
 interface P1Window {
   readonly p1: {
-    start(): Promise<string>;
+    start(customHtml: { mode: string } | null): Promise<string>;
     load(json?: string): Promise<void>;
     seek(timeUs: number): Promise<void>;
     play(): void;
@@ -136,7 +142,16 @@ let chromium: LaunchedChromium;
 let producer: RenderResult;
 const times = goldenTimestamps.map(({ timeUs }) => timeUs);
 
-async function openPlayer(json?: string): Promise<PlayerPage> {
+/**
+ * The P1 tests show the element, so they trust it explicitly (D36); `null`
+ * states no policy, which is the Player's default.
+ */
+const TRUSTED = { mode: 'trusted' } as const;
+
+async function openPlayer(
+  json?: string,
+  customHtml: { mode: 'trusted' | 'disabled' } | null = TRUSTED,
+): Promise<PlayerPage> {
   const context = await chromium.browser.newContext(contextOptions(WIDTH, HEIGHT));
   const unexpected: string[] = [];
   const fromRenderPage: string[] = [];
@@ -171,7 +186,10 @@ async function openPlayer(json?: string): Promise<PlayerPage> {
   const page = await context.newPage();
   await page.goto(`${ORIGIN}/`);
   await page.waitForFunction(() => 'p1ready' in window);
-  const runtimeHash = await page.evaluate(() => (window as unknown as P1Window).p1.start());
+  const runtimeHash = await page.evaluate(
+    (policy) => (window as unknown as P1Window).p1.start(policy),
+    customHtml,
+  );
   const found = page.mainFrame().childFrames()[0];
   if (found === undefined) throw new Error('The Player made no frame.');
   renderFrame = found;
@@ -369,6 +387,57 @@ describe('P1: the Player in Chromium (D25)', () => {
         expect(probe[name], name).toMatch(/^blocked:/);
       }
       expect(await player.page.evaluate(() => location.href)).toBe(`${ORIGIN}/`);
+    } finally {
+      await closePlayer(player);
+    }
+  });
+
+  it('runs no Custom HTML without the host opt-in: no element frame, no request, the same geometry (D36)', async () => {
+    // The probe of §7.6 would mark itself, answer the time, and try every
+    // channel; without the opt-in it must never get a frame to do so in.
+    const probed = variant((draft) => {
+      customHtmlNode(draft).html = ISOLATION_PROBE;
+    });
+    const player = await openPlayer(JSON.stringify(probed.document), null);
+    try {
+      const shown = decodePng(await seekAndCapture(player, 5_000_000));
+      expect(player.renderFrame.childFrames()).toHaveLength(0);
+      expect(player.page.frames()).toHaveLength(2);
+      expect(player.unexpected).toEqual([]);
+      expect(player.fromRenderPage).toEqual([]);
+      const placeholder = await player.renderFrame.evaluate(() => {
+        const element = document.querySelector('[data-kadrion-node="node-custom-html"]');
+        const rect = element?.getBoundingClientRect();
+        return {
+          mark: element?.getAttribute('data-kadrion-custom-html') ?? null,
+          children: element?.childNodes.length ?? -1,
+          frames: document.querySelectorAll('iframe').length,
+          text: document.documentElement.outerHTML.includes('data-probe'),
+          rect: rect && { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        };
+      });
+      expect(placeholder).toEqual({
+        mark: 'disabled',
+        children: 0,
+        frames: 0,
+        text: false,
+        rect: { x: BAR.x, y: BAR.y, width: BAR.width, height: BAR.height },
+      });
+      // Outside the element's box, the frame is the trusted Player's frame pixel
+      // for pixel; inside it, what lies under the element shows (the background).
+      const trusted = decodePng(fresh.get(5_000_000) ?? new Uint8Array(0));
+      let outside = 0;
+      for (let y = 0; y < HEIGHT; y += 1) {
+        for (let x = 0; x < WIDTH; x += 1) {
+          const inBar = x >= BAR.x && x < BAR.x + BAR.width && y >= BAR.y && y < BAR.y + BAR.height;
+          if (inBar) continue;
+          if (pixel(shown, x, y).join() !== pixel(trusted, x, y).join()) outside += 1;
+        }
+      }
+      expect(outside).toBe(0);
+      for (const x of [BAR.x, BAR.x + BAR.width / 2, BAR.x + BAR.width - 1]) {
+        expect(pixel(shown, x, BAR.y + BAR.height / 2), String(x)).toEqual([11, 16, 32]);
+      }
     } finally {
       await closePlayer(player);
     }

@@ -7,13 +7,15 @@ export type RenderErrorCode =
   | 'asset-url-invalid'
   /**
    * The root holds no tree that `mountComposition` built (D22.4), or a Custom
-   * HTML element lost its sandboxed frame (D23.4).
+   * HTML element lost its sandboxed frame or its disabled mark (D23.4).
    */
   | 'not-mounted'
   /** A Custom HTML element did not acknowledge the time before the host's timer expired (D23.4). */
   | 'custom-html-timeout'
   /** The frame of a Custom HTML element loaded another document than its shell (D23.9). */
   | 'custom-html-navigated'
+  /** The host stated no Custom HTML policy, or not exactly one of its forms (D36). */
+  | 'invalid-options'
   /** The host's request ID is not a non-negative safe integer (D23.3). */
   | 'invalid-request'
   /** An image of the frame could not be decoded (D25.3). */

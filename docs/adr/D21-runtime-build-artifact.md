@@ -1,6 +1,8 @@
 # D21 — The runtime build artifact
 
 - Status: Accepted — by the project owner on 2026-09-22
+- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request, 21.4 (`mount` takes the host's
+  Custom HTML policy)
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D10, D11, D12, D14, D19, D20, [specification](../spike/vertical-spike.md)
@@ -67,6 +69,11 @@ hash, not the name, is the address.
 and validate it on every call (D19); an invalid document yields
 `{ ok: false, errors }`, a valid one `{ ok: true }`. Everything else follows
 D22. Nothing in the page keeps state between calls except the DOM under `root`.
+(Amended by PR-16 (D36), D23.10: the mount of the page is
+`KadrionRuntime.mount(root, document, assetUrls, options)`, where `options` is
+`{ customHtml: { mode: 'disabled' | 'trusted' } }`. It is required and
+checked first; anything else throws the `RenderError` code `invalid-options`
+before the document is validated or the DOM is touched.)
 
 ## Alternatives considered
 

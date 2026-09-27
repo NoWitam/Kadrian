@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mountComposition, renderState, synchronizeCustomHtml } from '../src/index.js';
 import { frameFor, hostDouble } from './elements.js';
 import { installMessaging, loadSrcdoc, type Delivery, type Messaging } from './messaging.js';
-import { createRoot, createWindow, derived, reference, referenceUrls } from './support.js';
+import { createRoot, createWindow, derived, reference, referenceUrls, TRUSTED } from './support.js';
 
 const VICTIM = 'node-custom-html';
 const ATTACKER = 'node-attacker';
@@ -59,7 +59,7 @@ afterEach(() => {
 function mounted(composition: ValidatedComposition, load: readonly string[]) {
   const window = createWindow('dangerously');
   const root = createRoot(window);
-  mountComposition(root, composition, referenceUrls);
+  mountComposition(root, composition, referenceUrls, TRUSTED);
   const views = new Map(load.map((id) => [id, loadSrcdoc(frameFor(root, id))]));
   const frames = [...root.querySelectorAll('iframe')].map((frame) => {
     const view = frame.contentWindow;

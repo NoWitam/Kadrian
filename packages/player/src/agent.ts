@@ -22,6 +22,7 @@ export function pageAgent(): void {
       document: unknown,
       assets: unknown,
       host: unknown,
+      options: unknown,
     ): Promise<{ ok: boolean; errors?: unknown }>;
     frame(
       root: Element,
@@ -32,7 +33,15 @@ export function pageAgent(): void {
   }
 
   const VERSION = 1;
-  const LOAD_KEYS = ['ackTimeoutMs', 'assets', 'document', 'requestId', 'type', 'version'];
+  const LOAD_KEYS = [
+    'ackTimeoutMs',
+    'assets',
+    'customHtml',
+    'document',
+    'requestId',
+    'type',
+    'version',
+  ];
   const SEEK_KEYS = ['requestId', 'timeUs', 'type', 'version'];
 
   const runtime = (window as unknown as { KadrionRuntime?: Runtime }).KadrionRuntime;
@@ -60,6 +69,9 @@ export function pageAgent(): void {
     sortedKeys(value) === keys.join(',');
   const isCount = (value: unknown): value is number =>
     typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+  // The host's Custom HTML policy (D36): exactly one of its forms, nothing assumed.
+  const isPolicy = (value: unknown): value is { mode: string } =>
+    hasExactly(value, ['mode']) && (value.mode === 'disabled' || value.mode === 'trusted');
 
   const post = (message: object): void => {
     window.parent.postMessage(message, '*');
@@ -87,13 +99,13 @@ export function pageAgent(): void {
       : [],
   });
 
-  const load = (data: Record<string, unknown>): Promise<void> => {
+  const load = (data: Record<string, unknown>, mode: string): Promise<void> => {
     const requestId = data.requestId as number;
     const text = data.document as string;
     // Parsed here, so that the validator sees a plain object of this realm (D21);
     // the assets go through unchanged, and the artifact checks them (D27.1).
     return (runtime as Runtime)
-      .load(root as Element, JSON.parse(text), data.assets, fontHost)
+      .load(root as Element, JSON.parse(text), data.assets, fontHost, { customHtml: { mode } })
       .then((result) => {
         if (!result.ok) {
           reply(requestId, invalid(result.errors));
@@ -152,9 +164,11 @@ export function pageAgent(): void {
       isCount(data.requestId) &&
       typeof data.document === 'string' &&
       Array.isArray(data.assets) &&
-      isCount(data.ackTimeoutMs)
+      isCount(data.ackTimeoutMs) &&
+      isPolicy(data.customHtml)
     ) {
-      enqueue(data.requestId, () => load(data));
+      const { mode } = data.customHtml;
+      enqueue(data.requestId, () => load(data, mode));
     } else if (
       hasExactly(data, SEEK_KEYS) &&
       data.type === 'kadrion-player:seek' &&

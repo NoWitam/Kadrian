@@ -179,3 +179,50 @@ describe('the playground server (D25.9)', () => {
     });
   });
 });
+
+describe('the Custom HTML policy of the playground (D36)', () => {
+  const html = readText('apps', 'playground', 'index.html');
+  const main = readText('apps', 'playground', 'src', 'main.ts');
+  const sources = listFiles('apps', 'playground').filter(
+    (file) => !file.includes('/dist/') && !file.includes('/node_modules/'),
+  );
+
+  it('starts with Custom HTML disabled: an unchecked checkbox of the page decides', () => {
+    const inputs = [...html.matchAll(/<input\b[^>]*\bid="trust-custom-html"[^>]*>/g)].map(
+      (match) => match[0],
+    );
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0]).toMatch(/\btype="checkbox"/);
+    expect(inputs[0]).not.toMatch(/\bchecked\b/);
+    // A reload never brings back a checked box from the browser's form state.
+    expect(inputs[0]).toMatch(/\bautocomplete="off"/);
+    expect(main).toContain("trust.checked ? { mode: 'trusted' } : { mode: 'disabled' }");
+  });
+
+  it("makes every Player with the page's choice, and trusts nothing anywhere else", () => {
+    const calls = [
+      ...main.matchAll(
+        /createPlayer\(elements\.stage, \{ runtime, customHtml: (\w+(?:\(\))?) \}\)/g,
+      ),
+    ];
+    expect(calls.map((match) => match[1])).toEqual(['customHtml()', 'wanted']);
+    expect([...main.matchAll(/createPlayer\(/g)]).toHaveLength(calls.length);
+    expect(main).toContain('const wanted = customHtml();');
+    const trusted = sources.flatMap((file) =>
+      [...readText(...file.split('/')).matchAll(/'trusted'|"trusted"/g)].map(() => file),
+    );
+    expect(trusted).toEqual(['apps/playground/src/main.ts']);
+    // The choice is the page's, never a field of a document (D16).
+    for (const file of sources.filter((path) => path.endsWith('.json'))) {
+      expect(readText(...file.split('/')), file).not.toContain('customHtml');
+    }
+  });
+
+  it("says next to the checkbox that it runs the document's code and is not network isolation", () => {
+    const note = /id="custom-html-policy">([\s\S]*?)<\/div>\s*<\/div>/.exec(html)?.[1] ?? '';
+    const text = note.replace(/\s+/g, ' ');
+    expect(text).toContain("runs the code of the document's Custom HTML elements");
+    expect(text).toContain('That is not network isolation');
+    expect(text).toContain('Off by default.');
+  });
+});

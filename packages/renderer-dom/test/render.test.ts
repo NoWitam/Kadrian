@@ -22,6 +22,7 @@ import {
   reference,
   referenceUrls,
   shuffled,
+  TRUSTED,
 } from './support.js';
 
 const SEED = 20_260_922;
@@ -31,7 +32,7 @@ const expectedTrees = new Map(
 );
 
 function mountedReference(root: HTMLElement = createRoot()): HTMLElement {
-  mountComposition(root, reference, referenceUrls);
+  mountComposition(root, reference, referenceUrls, TRUSTED);
   return root;
 }
 
@@ -130,9 +131,9 @@ describe('one mounted tree, many instants', () => {
   it('builds a fresh tree on every mount and removes what the root held before', () => {
     const root = createRoot();
     root.append(root.ownerDocument.createElement('span'), 'text');
-    mountComposition(root, reference, referenceUrls);
+    mountComposition(root, reference, referenceUrls, TRUSTED);
     const first = elementsOf(root);
-    mountComposition(root, reference, referenceUrls);
+    mountComposition(root, reference, referenceUrls, TRUSTED);
     const second = elementsOf(root);
     expect(root.childNodes).toHaveLength(1);
     expect(second.filter((element) => first.includes(element))).toEqual([]);
@@ -232,7 +233,7 @@ describe('a state that does not fit the mounted tree (D22.4)', () => {
     const mounted = derived(groupLast);
     expect(mounted.scenes[0]?.nodes.at(-1)?.id).toBe('node-group');
     const root = createRoot();
-    mountComposition(root, mounted, referenceUrls);
+    mountComposition(root, mounted, referenceUrls, TRUSTED);
     renderState(root, evaluateComposition(mounted, 0));
     const before = describeRoot(root);
     const renamed = derived((draft) => {
@@ -256,7 +257,7 @@ describe('a state that does not fit the mounted tree (D22.4)', () => {
     const root = mountedReference();
     renderState(root, evaluateComposition(edited, 0));
     expect(elementOf(root, 'node-title').textContent).toBe('Kadrion');
-    mountComposition(root, edited, referenceUrls);
+    mountComposition(root, edited, referenceUrls, TRUSTED);
     renderState(root, evaluateComposition(edited, 0));
     expect(elementOf(root, 'node-title').textContent).toBe('Edited');
   });

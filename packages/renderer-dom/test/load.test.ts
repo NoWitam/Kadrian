@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { base64 } from '../src/index.js';
 import { load } from '../src/page.js';
-import { createRoot, createWindow, derived, describeRoot, reference } from './support.js';
+import { createRoot, createWindow, derived, describeRoot, reference, TRUSTED } from './support.js';
 
 interface Log {
   readonly calls: string[];
@@ -83,7 +83,7 @@ const document = JSON.parse(JSON.stringify(reference)) as unknown;
 describe('KadrionRuntime.load (D27.1)', () => {
   it('clears the font set, loads and adds the face, waits for the set, and only then mounts', async () => {
     const { root, log, host } = setUp();
-    await expect(load(root, document, assets(), host)).resolves.toEqual({ ok: true });
+    await expect(load(root, document, assets(), host, TRUSTED)).resolves.toEqual({ ok: true });
     await Promise.resolve();
     expect(log.calls).toEqual([
       'clear',
@@ -98,7 +98,7 @@ describe('KadrionRuntime.load (D27.1)', () => {
 
   it('mounts with data: URLs of the exact bytes, in RFC 4648 base64', async () => {
     const { root, host } = setUp();
-    await load(root, document, assets(), host);
+    await load(root, document, assets(), host, TRUSTED);
     const image = root.querySelector('img');
     const expected = Buffer.from(bytes['asset-image']).toString('base64');
     expect(image?.getAttribute('src')).toBe(`data:image/png;base64,${expected}`);
@@ -124,14 +124,26 @@ describe('KadrionRuntime.load (D27.1)', () => {
     const { root, log } = setUp();
     // No constructor is needed when there is nothing to draw with it.
     await expect(
-      load(root, JSON.parse(JSON.stringify(withoutText)), assets(), {}),
+      load(root, JSON.parse(JSON.stringify(withoutText)), assets(), {}, TRUSTED),
     ).resolves.toEqual({ ok: true });
     expect(log.calls.filter((call) => call !== 'mounted')).toEqual(['clear', 'ready']);
   });
 
+  it.each<[string, unknown]>([
+    ['no policy', undefined],
+    ['a policy with an unknown mode', { customHtml: { mode: 'all' } }],
+  ])('refuses %s with invalid-options before any font or DOM work (D36)', async (_, options) => {
+    const { root, log, host } = setUp();
+    await expect(load(root, document, assets(), host, options)).rejects.toMatchObject({
+      code: 'invalid-options',
+    });
+    expect(log.calls).toEqual([]);
+    expect(root.childNodes).toHaveLength(0);
+  });
+
   it('yields the errors of an invalid document and touches nothing', async () => {
     const { root, log, host } = setUp();
-    const result = await load(root, { ...(document as object), fps: 0 }, assets(), host);
+    const result = await load(root, { ...(document as object), fps: 0 }, assets(), host, TRUSTED);
     expect(result.ok).toBe(false);
     expect(log.calls).toEqual([]);
   });
@@ -162,13 +174,13 @@ describe('KadrionRuntime.load (D27.1)', () => {
     ],
   ])('refuses %s before any font call or mount', async (_, given, code) => {
     const { root, log, host } = setUp();
-    await expect(load(root, document, given, host)).rejects.toMatchObject({ code });
+    await expect(load(root, document, given, host, TRUSTED)).rejects.toMatchObject({ code });
     expect(log.calls).toEqual([]);
   });
 
   it('fails with font-load-failed when the face does not load, and mounts nothing', async () => {
     const { root, log, host } = setUp(['kadrion-font-asset-font']);
-    await expect(load(root, document, assets(), host)).rejects.toMatchObject({
+    await expect(load(root, document, assets(), host, TRUSTED)).rejects.toMatchObject({
       code: 'font-load-failed',
     });
     await Promise.resolve();
@@ -187,19 +199,25 @@ describe('KadrionRuntime.load (D27.1)', () => {
         throw new SyntaxError('bad descriptor');
       },
     };
-    await expect(load(root, document, assets(), host)).rejects.toMatchObject({
+    await expect(load(root, document, assets(), host, TRUSTED)).rejects.toMatchObject({
       code: 'font-load-failed',
     });
   });
 
   it('is readiness-unsupported without a font constructor or a font set', async () => {
     const { root } = setUp();
-    await expect(load(root, document, assets(), {})).rejects.toMatchObject({
+    await expect(load(root, document, assets(), {}, TRUSTED)).rejects.toMatchObject({
       code: 'readiness-unsupported',
     });
     const bare = createRoot(createWindow());
     await expect(
-      load(bare, document, assets(), { createFont: () => ({ load: () => Promise.resolve() }) }),
+      load(
+        bare,
+        document,
+        assets(),
+        { createFont: () => ({ load: () => Promise.resolve() }) },
+        TRUSTED,
+      ),
     ).rejects.toMatchObject({ code: 'readiness-unsupported' });
     expect(bare.childNodes).toHaveLength(0);
   });
@@ -207,7 +225,7 @@ describe('KadrionRuntime.load (D27.1)', () => {
   it('gives every face a copy of its bytes', async () => {
     const { root, log, host } = setUp();
     const given = assets();
-    await load(root, document, given, host);
+    await load(root, document, given, host, TRUSTED);
     const font = given[2] as { bytes: ArrayBuffer };
     new Uint8Array(font.bytes).fill(7);
     expect(log.faces[0]?.bytes).toEqual(bytes['asset-font']);
