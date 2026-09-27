@@ -29,11 +29,48 @@ export function listDirs(...segments: string[]): string[] {
     .sort();
 }
 
-/** Files below a directory, as repository-relative paths with forward slashes. */
+/** Generated directories that no repository scan reads: installed packages and build output. */
+export const PRUNED_DIRECTORIES: readonly string[] = Object.freeze(['dist', 'node_modules']);
+
+/** The part of a directory entry that the walk reads. */
+export interface DirectoryEntry {
+  readonly name: string;
+  isDirectory(): boolean;
+  isFile(): boolean;
+}
+
+/**
+ * Every file below `directory`, as paths joined onto it, in the order found. A
+ * directory named in `PRUNED_DIRECTORIES` is never read, so what it holds costs
+ * nothing, however much that is. `read` lists one directory; tests lend their own.
+ */
+export function filesBelow(
+  directory: string,
+  read: (directory: string) => readonly DirectoryEntry[] = (at) =>
+    readdirSync(at, { withFileTypes: true }),
+): string[] {
+  const files: string[] = [];
+  const walk = (at: string): void => {
+    for (const entry of read(at)) {
+      const path = join(at, entry.name);
+      if (entry.isDirectory()) {
+        if (!PRUNED_DIRECTORIES.includes(entry.name)) walk(path);
+      } else if (entry.isFile()) {
+        files.push(path);
+      }
+    }
+  };
+  walk(directory);
+  return files;
+}
+
+/**
+ * Files below a directory, as repository-relative paths with forward slashes,
+ * sorted. Generated directories (`PRUNED_DIRECTORIES`) are not entered.
+ */
 export function listFiles(...segments: string[]): string[] {
-  return readdirSync(repoPath(...segments), { recursive: true, withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => relative(repoRoot, join(entry.parentPath, entry.name)).replaceAll('\\', '/'))
+  return filesBelow(repoPath(...segments))
+    .map((path) => relative(repoRoot, path).replaceAll('\\', '/'))
     .sort();
 }
 
