@@ -3,6 +3,8 @@
 - Status: Accepted — by the project owner on 2026-09-22, without a change of substance
 - Implementation status updated by: PR-16 (D36) on 2026-09-27 at the owner's request, 26.6 (the
   CI job has run and verified the pinned environment; the decision is unchanged)
+- Implementation status updated by: PR-17 on 2026-09-28 at the owner's request, evidence 5 and
+  Consequences (the pinned container has run since PR-07; the decision is unchanged)
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D06, D11, D12, D21, D25, D27, D28,
@@ -60,6 +62,8 @@ Evidence gathered on 2026-09-22:
 5. Docker 29.5.3 is installed on the development machine, but the project owner
    declined to pull the image for PR-06. The container has therefore **not been
    run**, no golden frame exists yet, and nothing here proves P1 or P2.
+   (Implementation status updated by PR-17 on 2026-09-28: evidence as of PR-06; the
+   container has run since PR-07, see Consequences.)
 
 ## Decision
 
@@ -157,7 +161,13 @@ only; it does not change the decision of D26.)
   frames together; `tests/repo/pinned-environment.test.ts` fails until all pins
   agree.
 - Until the owner runs the container, P1 and P2 stay unproven and there are no
-  golden frames (Consequences of D28).
+  golden frames (Consequences of D28). (Implementation status updated by PR-17
+  on 2026-09-28: true when D26 was accepted. The owner ran the pinned container in
+  the reference run of PR-07 (2026-09-22, `--network none`, D28.9); the golden
+  frames of 26.5 were written there, and P1 and P2 hold in the pinned
+  environment (specification §5, D28). CI has run green in the pinned image since PR-14
+  (see 26.6). This note updates the status only; it does not change the
+  decision of D26.)
 
 ## Verification
 

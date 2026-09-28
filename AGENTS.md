@@ -7,13 +7,15 @@ editing, and deterministically rendering video compositions. It is not an end-us
 application. Taskio will be its first consumer, but Kadrion must not depend on
 Taskio, Laravel, Vue, a tenant model, or Taskio-specific domain objects.
 
-The project may become open source later. Keep product-specific infrastructure,
+The repository is publicly visible, but the project is not open source: no
+licence is granted to use, modify, or redistribute it (D37). It may become open
+source later only by a future ADR. Keep product-specific infrastructure,
 credentials, private URLs, and Taskio implementation details outside this repo.
 
 ## Current phase
 
-The repository is in the vertical-spike phase. The immediate goal is to prove
-one narrow end-to-end path:
+The vertical spike is complete (`docs/spike/report.md`). It proved one narrow
+end-to-end path:
 
 1. One versioned JSON composition is loaded by a browser player.
 2. The same runtime renders it in pinned Chromium on the server.
@@ -21,8 +23,12 @@ one narrow end-to-end path:
 4. An AI-shaped tool call performs an equivalent command.
 5. The Producer exports an H.264 MP4 without storing all intermediate frames.
 
-Do not turn the spike into a complete editor, media platform, plugin ecosystem,
-or Taskio integration.
+The current phase is phase two: authoring, and preparing the engine for
+integration with the Taskio editor. `docs/roadmap/phase-2.md` holds the plan;
+every pull request of it is approved separately.
+
+Do not turn phase two into an end-user editor, a media platform, a plugin
+ecosystem, or a Taskio integration inside this repository.
 
 ## Accepted architectural decisions
 
@@ -35,7 +41,7 @@ or Taskio integration.
 - D07: Initial output is H.264 MP4 in 720p and 1080p.
 - D08: Real-time collaboration is outside MVP.
 - D09: AI edits films, animations, and assets through typed domain tools.
-- D10: The repository is private initially and designed for possible future open source.
+- D37: The repository is publicly visible but proprietary; it grants no licence, its packages stay private and unpublished, and it stays designed for a possible future open-source release.
 
 Treat these decisions as constraints. If implementation evidence suggests one
 must change, stop and propose an ADR instead of silently bypassing it.

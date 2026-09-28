@@ -20,7 +20,8 @@ For each task:
 
 1. Identify the requested outcome and the smallest vertical slice.
 2. List the packages and public contracts affected.
-3. Check the proposal against D01-D10 and all non-negotiable invariants.
+3. Check the proposal against the accepted decisions of `AGENTS.md` (D01-D09
+   and D37; D10 is superseded by D37) and all non-negotiable invariants.
 4. Call out hidden state, nondeterminism, Taskio coupling, unsafe Custom HTML,
    premature public APIs, and schema fields that exist without a spike use case.
 5. Define observable acceptance criteria and the tests needed at each layer.

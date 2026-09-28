@@ -4,7 +4,10 @@ Kadrion is a TypeScript engine for describing, previewing, editing, and
 deterministically rendering video compositions. It is an engine/SDK, not an
 end-user application, and it does not depend on any consumer product.
 
-**Status: vertical-spike phase.** Schema `0.1`, the evaluation core, the DOM
+**Status: phase two.** The vertical spike is complete
+([`docs/spike/report.md`](docs/spike/report.md), section 10); the current
+phase is authoring and the preparation for the Taskio editor
+([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)). Schema `0.1`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -14,19 +17,22 @@ GitHub runner in the pinned image, and Q14 is closed: the run 36350016065 of
 the validated PR-16 commit 531ab79 met every criterion, with its evidence in
 [`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
 ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
-packages are private and unpublished; the APIs below are those of the spike and
-may still change.
+repository is publicly visible, but the project is not open source: no licence
+is granted, and the packages are private and unpublished (D37). The APIs below
+are those of the spike and may still change.
 
 ## Documentation
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D36; all accepted except
-  D32, proposed)
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D37; all accepted, except
+  D10, superseded by D37)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
   its evidence and its limits
+- [`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md) — the plan of phase
+  two: authoring and the integration contract for the Taskio editor
 - [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, the
   evidence that closes Q14, and how Q14 reopens
 - [`docs/architecture/package-boundaries.json`](docs/architecture/package-boundaries.json)
@@ -94,6 +100,9 @@ It serves http://127.0.0.1:4520/ (set `PORT` to change it). The page offers:
   glyphs ` DKabcdegimnorsty`, one audio track).
 - **Editing** — drag a node on the canvas, run a `set_node_position` tool call
   (the AI tool of D31), and undo or redo either on the one command bus.
+- **Run Custom HTML** — off by default. Checking it makes the page run the
+  code of the loaded document's Custom HTML elements; that is the page's
+  decision, not the document's, and it is not network isolation (D32.9, D36).
 
 ## Using Kadrion
 
@@ -451,4 +460,5 @@ tests/
   only `validateComposition` may produce a
   `ValidatedComposition`. A test feeds violating source text to the real
   ESLint configuration and asserts the rejection.
-- D01–D10 stay `Accepted`, and their quotations stay verbatim with `AGENTS.md`.
+- The decisions that `AGENTS.md` lists (D01–D09 and D37, which superseded D10)
+  stay `Accepted`, and their quotations stay verbatim with `AGENTS.md`.

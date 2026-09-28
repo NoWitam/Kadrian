@@ -1,10 +1,12 @@
 # D32 — Playground showcases and documents of the user's own
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-09-28, with the amendment D32.9
 - Date: 2026-09-23
 - Supersedes: — (widens D25.9)
-- Related: D14, D23, D25, D30, D31, [specification](../spike/vertical-spike.md)
-  §5 P1, P3, P4
+- Amended by: PR-17 on 2026-09-28, before acceptance, D32.9 (the page's Custom HTML
+  policy of D36; it qualifies the last paragraph of D32.2 and the one Player of D32.3)
+- Related: D13, D14, D23, D25, D27, D30, D31, D36,
+  [specification](../spike/vertical-spike.md) §5 P1, P3, P4
 
 ## Context
 
@@ -51,10 +53,13 @@ knows what a document can use.
 
 A Custom HTML element of a user's document runs user code, inside the same
 `allow-scripts`-only sandbox as every other (D23, D25.2); the page says that too.
+(Amended by PR-17, D32.9: only when the page trusts Custom HTML; by default it
+runs none.)
 
 ### D32.3 One Player; a new bus and editor per document
 
-The page keeps one Player. Before each `load` it sizes the canvas boxes for the
+The page keeps one Player (amended by PR-17, D32.9: one at a time; a change of
+the Custom HTML policy replaces it). Before each `load` it sizes the canvas boxes for the
 new document (the stage must have its height when the frame is laid out,
 D30.10). The bus and the drag editor are created anew for every document,
 because the editor fixes the composition width and the node it drags when it is
@@ -98,6 +103,32 @@ tool refuses, or when a JSON file and the manifest disagree. A schema change
 therefore forces the showcases to follow it, and a feature that is visible to a
 user lands with a showcase or an update of one.
 
+### D32.9 The page's Custom HTML policy (amendment of PR-17, implementing D36)
+
+Recorded at the project owner's request on 2026-09-28, describing what PR-16
+built.
+
+- Whether Custom HTML runs is the page's decision, never a document's (D25.10,
+  D36): nothing in a document can turn it on. The page starts with it disabled:
+  the checkbox "Run Custom HTML" is unchecked and has `autocomplete="off"`, so a
+  reload never restores it. Unchecked, every Player the page makes has
+  `{ mode: 'disabled' }`, and a Custom HTML element is an empty placeholder with
+  no frame (D23.10).
+- Checking it is the page's decision to run the code of every document it
+  loads, a showcase or a user's own. Only then does the last paragraph of D32.2
+  apply. Next to the checkbox the page says that the sandbox is not network
+  isolation (D36).
+- The policy holds for a Player's lifetime (D25.10), so changing it replaces the
+  Player in a controlled way: the page makes the new one first; if that fails it
+  keeps the old one and the old choice; otherwise it destroys the old one and
+  loads the same bus's document at the time shown, with its undo history and the
+  node the grip drags. "One Player" in D32.3 means one active instance at a
+  time; opening a document still reuses it.
+- A showcase whose document has Custom HTML says in its description that the
+  element runs only when "Run Custom HTML" is on.
+- Verification: `tests/repo/playground.test.ts`, "the Custom HTML policy of the
+  playground (D36)".
+
 ## Alternatives considered
 
 - **A `/showcases/` route to the source directory** — simpler, but it serves
@@ -121,3 +152,14 @@ user lands with a showcase or an update of one.
   routes of D32.7.
 - A manual check in Chromium loads every showcase, a document with a missing
   asset, and an invalid document, drags, runs a tool call, and undoes it.
+- `tests/repo/playground.test.ts`, "the Custom HTML policy of the playground
+  (D36)", for D32.9.
+
+Known limits at acceptance (2026-09-28), recorded as debt of phase two
+(`docs/roadmap/phase-2.md`), not blockers of this decision:
+
+- Loading a user's own JSON and showing its errors (D32.2) is checked by hand
+  only; no automated test drives that path of the page.
+- No test forbids time arithmetic in the page (D32.6); the rule is kept by
+  review and by the page importing the frame grid of `@kadrion/schema`.
+- No record of the manual Chromium check exists in the repository.

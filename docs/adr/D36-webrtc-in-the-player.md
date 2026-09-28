@@ -1,7 +1,7 @@
 # D36 — WebRTC and the network isolation of Custom HTML in the Player
 
 - Status: Accepted — by the project owner on 2026-09-24, with the corrections of PR-13
-- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request, the section Implementation
+- Amended by: PR-16 (D36) on 2026-09-27 at the owner's request, the section Implementation
 - Date: 2026-09-24
 - Supersedes: —
 - Related: D05, D23 (23.7, 23.9), D25, D28 (28.9, Measurements),
@@ -228,7 +228,7 @@ none of them in PR-13.
 
 ## Implementation
 
-PR-16 implements the decision, on 2026-09-25:
+PR-16 implements the decision, on 2026-09-27:
 
 - **Player API.** `createPlayer(container, options)`, whose `options` gain
   `customHtml?: PlayerCustomHtmlPolicy`, the type

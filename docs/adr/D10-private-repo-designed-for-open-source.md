@@ -1,6 +1,9 @@
 # D10 — The repository is private initially and designed for possible future open source
 
-- Status: Accepted
+- Status: Superseded by D37
+- Superseded: on 2026-09-28 by [D37](D37-publicly-visible-proprietary-repository.md), at the owner's
+  request (PR-17). The repository is publicly visible; the text below is kept as
+  it was accepted.
 - Recorded: 2026-09-21, from `AGENTS.md` at commit `250ae8f`
 - Related: D01
 

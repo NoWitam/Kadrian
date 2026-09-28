@@ -17,7 +17,8 @@ editor behavior, or Taskio integration in this task.
 3. Delegate an architecture review to `kadrion-architect` and use its findings
    to refine the plan.
 4. Present a concise execution plan. If the repository contains conflicting
-   work or a decision contradicts D01-D10, stop and ask the user. Otherwise
+   work or a decision contradicts the accepted decisions of `AGENTS.md`
+   (D01-D09 and D37; D10 is superseded by D37), stop and ask the user. Otherwise
    continue without requesting another confirmation.
 5. Implement only the PR-00 scope below.
 6. Run validation and report exact results.
@@ -58,13 +59,13 @@ Create or update:
 - `.editorconfig`, `.gitignore`, and appropriate package metadata,
 - a concise root `README.md`,
 - `docs/decisions/README.md`,
-- accepted ADR records for D01-D10,
+- accepted ADR records for D01-D10 (D10 has since been superseded by D37),
 - `docs/vertical-spike.md`,
 - `docs/development.md` with verified local commands.
 
 ADR files must record context, accepted decision, consequences, and status.
-They must preserve the exact intent of D01-D10 from `AGENTS.md` without adding
-new product decisions.
+They must preserve the exact intent of the decisions in `AGENTS.md` (D01-D09
+and D37; D10 is superseded by D37) without adding new product decisions.
 
 The vertical-spike document must define:
 

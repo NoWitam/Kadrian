@@ -2,7 +2,7 @@
 
 - Status: Accepted — by the project owner on 2026-09-22, in its wording of PR-05
 - Amended by: D27 (accepted 2026-09-22; the sentence on `font-src` in 25.2, and where 25.4's resolver loop and `data:` URLs live)
-- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request, 25.10 (the host's Custom HTML
+- Amended by: PR-16 (D36) on 2026-09-27 at the owner's request, 25.10 (the host's Custom HTML
   policy: the option of `createPlayer`, the key `customHtml` of the load message in 25.4, and
   the code `invalid-options` in 25.7)
 - Note on the fixture (owner, 2026-09-22): the placeholder hashes of D14 were temporary. They never verified,
@@ -198,7 +198,7 @@ local static server that serves only the built files it names. It holds no
 domain rule.
 
 **25.10 Amendment of PR-16 (D36): the host's Custom HTML policy.** Recorded at
-the project owner's request on 2026-09-25, implementing D36.
+the project owner's request on 2026-09-27, implementing D36.
 
 - `createPlayer(container, options)` takes `options.customHtml`:
   `{ mode: 'disabled' }` or `{ mode: 'trusted' }`. Absent means `disabled`;

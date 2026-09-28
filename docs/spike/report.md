@@ -193,7 +193,8 @@ Proposed in PR-10 and **accepted by the project owner on 2026-09-23**:
 Still open:
 
 - **Still Proposed from earlier:** [D32](../adr/D32-playground-showcases.md)
-  (playground showcases).
+  (playground showcases). (Accepted by the owner on 2026-09-28 with the
+  amendment D32.9, PR-17; see section 10.)
 - **The process question of PR-10 is settled.** `docs/adr/README.md` now
   allows an additive amendment to an Accepted ADR on the owner's explicit
   instruction. Such an amendment carries an "Amended by" line, and a change of
@@ -253,6 +254,9 @@ that commit). See section 9.
 | Q17 | Answered: `ValidatedComposition`                                                                                                                                                                               |
 
 ## 8. Recommended next phase
+
+(PR-17: kept as the recommendation of PR-10. The plan of the next phase is now
+[`docs/roadmap/phase-2.md`](../roadmap/phase-2.md); see section 10.)
 
 The first phase after the spike should keep the engine narrow and harden what
 the spike proved, rather than widen it:
@@ -341,3 +345,29 @@ closing Q14 and the protocol for analysing a failing gate on the runner:
 - what is forbidden, namely raising thresholds, touching golden frames, gating
   a cross-environment record, and counting a red or partly skipped run as
   evidence.
+
+## 10. Closure of the vertical spike (PR-17)
+
+The owner closed the vertical spike on 2026-09-28. All five proofs of §5 hold
+in the pinned environment, and Q14 is closed by the evidence of the run of
+PR-16 (section 9). All open questions of §11 are decided, answered, or closed.
+
+What the spike proved is a narrow path, not a product: one reference
+composition, one editor command (`SetNodePosition`), and one AI tool
+(`set_node_position`), measured at five golden timestamps in one pinned
+environment. It is a foundation for the engine, not a production-ready one.
+
+PR-17 settled the decisions that the spike left behind:
+
+- [D32](../adr/D32-playground-showcases.md) is accepted, with the amendment
+  D32.9 (the page's Custom HTML policy of D36).
+- [D37](../adr/D37-publicly-visible-proprietary-repository.md) supersedes D10:
+  the repository is publicly visible, and the code stays proprietary; no licence
+  is granted, and the packages stay private and unpublished.
+- D26 and D28 carry notes that update their implementation status; D21, D22,
+  D23, D25, D27, and D36 carry the actual date of PR-16, 2026-09-27.
+
+The next phase is authoring, and preparing the engine for integration with the
+Taskio editor. Its plan, the order of its pull requests, and the debts that the
+spike leaves are in [`docs/roadmap/phase-2.md`](../roadmap/phase-2.md); each
+pull request of it is approved separately.

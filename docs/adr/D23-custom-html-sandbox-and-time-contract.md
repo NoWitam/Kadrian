@@ -5,7 +5,7 @@
 - Supersedes: —
 - Amends: D22.3, the Custom HTML row (the placeholder is no longer empty)
 - Amended by: PR-07 on 2026-09-22 at the owner's request, 23.9 (a navigated element ends the render)
-- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request, 23.10 (the host's Custom HTML
+- Amended by: PR-16 (D36) on 2026-09-27 at the owner's request, 23.10 (the host's Custom HTML
   policy: 23.1, 23.4, and 23.8 hold for a trusted element; a disabled one has no frame)
 - Related: D05, D14, D16, D19, D20, D21, D22,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §7, and open questions
@@ -264,7 +264,7 @@ with `custom-html-navigated`; a conforming element sees exactly one `load` over
 a whole render).
 
 **23.10 Amendment of PR-16 (D36): the host's Custom HTML policy.** Recorded at
-the project owner's request on 2026-09-25, implementing D36 (accepted
+the project owner's request on 2026-09-27, implementing D36 (accepted
 2026-09-24). Whether the HTML of a document runs is the host's decision, never
 the document's (D16, D36):
 

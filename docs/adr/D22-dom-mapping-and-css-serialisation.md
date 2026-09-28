@@ -2,7 +2,7 @@
 
 - Status: Accepted — by the project owner on 2026-09-22
 - Amended by: D23 (accepted 2026-09-22) — the Custom HTML row of 22.3, as 22.3 anticipated
-- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request — the Custom HTML row of 22.3
+- Amended by: PR-16 (D36) on 2026-09-27 at the owner's request — the Custom HTML row of 22.3
   (through D23.8 and D23.10) depends on the host's Custom HTML policy; 22.4: the policy is
   checked before the asset URLs; 22.7: the code `invalid-options`
 - Date: 2026-09-22

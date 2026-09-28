@@ -1,7 +1,7 @@
 # D21 — The runtime build artifact
 
 - Status: Accepted — by the project owner on 2026-09-22
-- Amended by: PR-16 (D36) on 2026-09-25 at the owner's request, 21.4 (`mount` takes the host's
+- Amended by: PR-16 (D36) on 2026-09-27 at the owner's request, 21.4 (`mount` takes the host's
   Custom HTML policy)
 - Date: 2026-09-22
 - Supersedes: —

@@ -5,6 +5,8 @@
 - Date: 2026-09-22
 - Supersedes: —
 - Amended by: PR-07 on 2026-09-22 at the owner's request, 28.9 (network isolation of the reference run)
+- Implementation status updated by: PR-17 on 2026-09-28 at the owner's request, Measurements (the
+  pinned container has run since PR-07; these Windows numbers stay informative)
 - Related: D06, D12, D13, D14, D21, D23, D25, D26, D27, D29,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1–§6.3, §7, §8, and
   open questions Q3, Q9, and Q14
@@ -248,7 +250,10 @@ is Accepted with the amendment 28.9 as of 2026-09-22.
 From `node --run test:pinned` on the Windows development machine, 2026-09-22,
 Playwright Chromium 153.0.8010.12 (`PLAYWRIGHT_BROWSERS_PATH`, D26 evidence 4).
 **Informative only**: the pinned container has not run (D26 evidence 5), so
-none of this is evidence of P1 or P2.
+none of this is evidence of P1 or P2. (Implementation status updated by PR-17
+on 2026-09-28: the pinned container has run since the reference run of PR-07, which
+is the evidence of P1 and P2; the Windows measurements here stay informative
+only.)
 
 - **Out-of-process frames.** The sandboxed render page is a target of its own;
   the Custom HTML frame inside it shares that process (one out-of-process frame

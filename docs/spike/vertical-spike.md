@@ -1,6 +1,9 @@
 # Vertical spike specification
 
-- Status: Draft (written in PR-00; refined by the pull requests that implement it)
+- Status: Draft (written in PR-00; refined by the pull requests that implement it).
+  The vertical spike is complete (PR-17, 2026-09-28): see the closure in
+  [the report](report.md), section 10, and the plan of phase two in
+  [`docs/roadmap/phase-2.md`](../roadmap/phase-2.md).
 - Authority: `AGENTS.md` ("Current phase", "Reference spike", invariants) and the
   ADRs in [`docs/adr`](../adr/README.md)
 - Reading guide: statements taken from `AGENTS.md` are normative. Details this
@@ -466,8 +469,8 @@ The sequence is a proposal; reorder it when evidence says so.
 
 ## 11. Open questions
 
-This document decides none of these. Rows marked **Decided** or **Answered**
-say where the answer lives; every other row is still open. "Owner" names the
+This document decides none of these. Rows marked **Decided**, **Answered**, or
+**Closed** say where the answer lives; every other row is still open. "Owner" names the
 pull request that cannot land without an answer. Questions marked **ADR** constrain later work,
 so their answer is recorded as an ADR before dependent code lands.
 
