@@ -47,11 +47,9 @@ describe('createCommandBus (D30.9)', () => {
     bus.dispatch(move(120, 200));
     const undone = bus.undo();
     expect(json(bus.getDocument())).toBe(original);
-    expect(undone.inverse).toEqual({
-      type: 'SetNodePosition',
-      nodeId: TITLE,
-      position: { x: 120, y: 200 },
-    });
+    expect(undone.inverses).toEqual([
+      { type: 'SetNodePosition', nodeId: TITLE, position: { x: 120, y: 200 } },
+    ]);
     expect(bus.canUndo()).toBe(false);
     expect(bus.canRedo()).toBe(true);
   });

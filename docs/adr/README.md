@@ -45,6 +45,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D35](D35-schema-migration-policy.md)                      | How schema `0.x` changes after the spike: versions and forward migrations          | Accepted          |
 | [D36](D36-webrtc-in-the-player.md)                         | WebRTC and the network isolation of Custom HTML in the Player                      | Accepted          |
 | [D37](D37-publicly-visible-proprietary-repository.md)      | The repository is publicly visible, and the code stays proprietary                 | Accepted          |
+| [D38](D38-authoring-foundation.md)                         | Authoring foundation: command registry, transactions, events, and history limit    | Accepted          |
 
 ## Provenance of D01–D10
 

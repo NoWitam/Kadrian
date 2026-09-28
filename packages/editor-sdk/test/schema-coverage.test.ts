@@ -1,15 +1,15 @@
 /**
  * The bus must not keep a second copy of the schema's knowledge (D30.8). Which
- * node types carry a position is derived here from `compositionSchema` itself
- * and checked against what the bus actually accepts, so a node type the schema
- * gains later cannot silently stay `unsupported-node`.
+ * node types carry a position, an opacity, or a text is derived here from
+ * `compositionSchema` itself and checked against what the bus actually accepts,
+ * so a node type the schema gains later cannot silently stay `unsupported-node`.
  */
 import { compositionSchema } from '@kadrion/schema';
 import { describe, expect, it } from 'vitest';
 
 import { applyCommand, type Command } from '../src/index.js';
 
-import { codeOf, positionOf, reference } from './support.js';
+import { codeOf, nodeOf, positionOf, reference } from './support.js';
 
 /** Walks a JSON Schema by key, without claiming a type the schema does not have. */
 function at(value: unknown, ...path: readonly string[]): unknown {
@@ -34,13 +34,24 @@ const groupVariant = nodeVariants.find(
 );
 const childVariants = variantsOf(at(groupVariant, 'properties', 'children', 'items'));
 
-/** Node type → whether schema 0.1 gives that type a `position`. */
-const positioned = new Map<string, boolean>(
-  [...nodeVariants, ...childVariants].map((variant) => [
-    String(at(variant, 'properties', 'type', 'const')),
-    at(variant, 'properties', 'position') !== undefined,
-  ]),
-);
+/** Node type → whether schema 0.1 gives that type the field. */
+function carrying(field: string): Map<string, boolean> {
+  return new Map<string, boolean>(
+    [...nodeVariants, ...childVariants].map((variant) => [
+      String(at(variant, 'properties', 'type', 'const')),
+      at(variant, 'properties', field) !== undefined,
+    ]),
+  );
+}
+
+const positioned = carrying('position');
+const faded = carrying('opacity');
+const texted = carrying('text');
+
+/** One field of a node of a document, read back for an assertion. */
+function fieldOf(document: unknown, nodeId: string, field: string): unknown {
+  return (nodeOf(document, nodeId) as unknown as Record<string, unknown>)[field];
+}
 
 interface FixtureNode {
   readonly id: string;
@@ -100,6 +111,47 @@ describe('the node types the bus accepts (D30.8)', () => {
           x: 7,
           y: 9,
         });
+      } else {
+        expect(codeOf(() => applyCommand(document, command))).toBe('unsupported-node');
+      }
+    },
+  );
+
+  it('reads which node types carry an opacity and a text out of the schema (D38.2, D38.3)', () => {
+    expect([...faded.keys()].sort()).toEqual([...positioned.keys()].sort());
+    expect(
+      [...faded]
+        .filter(([, has]) => has)
+        .map(([type]) => type)
+        .sort(),
+    ).toEqual(['custom-html', 'group', 'image', 'text']);
+    expect([...texted].filter(([, has]) => has).map(([type]) => type)).toEqual(['text']);
+  });
+
+  it.each([...faded.keys()].sort())(
+    'sets the opacity of a node of type %s exactly when it has one',
+    (type) => {
+      const nodeId = nodesByType().get(type) ?? '';
+      const document = reference();
+      const command: Command = { type: 'SetNodeOpacity', nodeId, opacity: 0.125 };
+      if (faded.get(type) === true) {
+        expect(fieldOf(applyCommand(document, command).document, nodeId, 'opacity')).toBe(0.125);
+      } else {
+        expect(codeOf(() => applyCommand(document, command))).toBe('unsupported-node');
+      }
+    },
+  );
+
+  it.each([...texted.keys()].sort())(
+    'replaces the text of a node of type %s exactly when it has one',
+    (type) => {
+      const nodeId = nodesByType().get(type) ?? '';
+      const document = reference();
+      const command: Command = { type: 'SetTextContent', nodeId, text: 'Replaced\ntext' };
+      if (texted.get(type) === true) {
+        expect(fieldOf(applyCommand(document, command).document, nodeId, 'text')).toBe(
+          'Replaced\ntext',
+        );
       } else {
         expect(codeOf(() => applyCommand(document, command))).toBe('unsupported-node');
       }

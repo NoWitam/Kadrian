@@ -6,15 +6,27 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { COMMAND_TYPES, parseCommand, type Command } from '../src/index.js';
+import {
+  COMMAND_TYPES,
+  parseCommand,
+  type Command,
+  type SetNodePositionCommand,
+} from '../src/index.js';
 
 import { codeOf, errorOf } from './support.js';
 
 const wellFormed = { type: 'SetNodePosition', nodeId: 'node-title', position: { x: 12, y: 34 } };
 
+/** `parseCommand`, narrowed to the position command these cases are about. */
+function parsePosition(value: unknown): SetNodePositionCommand {
+  const command = parseCommand(value);
+  if (command.type !== 'SetNodePosition') throw new Error(`Parsed a ${command.type}.`);
+  return command;
+}
+
 describe('parseCommand (D30.3)', () => {
-  it('knows exactly the one command of the spike (§9)', () => {
-    expect(COMMAND_TYPES).toEqual(['SetNodePosition']);
+  it('knows exactly the commands of its closed registry, in a fixed order (D38.1)', () => {
+    expect(COMMAND_TYPES).toEqual(['SetNodePosition', 'SetNodeOpacity', 'SetTextContent']);
   });
 
   it('accepts a well-formed command and returns it unchanged', () => {
@@ -22,7 +34,7 @@ describe('parseCommand (D30.3)', () => {
   });
 
   it('freezes the command and its position, so a kept reference cannot reach the history', () => {
-    const command = parseCommand(wellFormed);
+    const command = parsePosition(wellFormed);
     expect(Object.isFrozen(command)).toBe(true);
     expect(Object.isFrozen(command.position)).toBe(true);
   });
@@ -42,11 +54,13 @@ describe('parseCommand (D30.3)', () => {
     ['rounds the other negative half away from zero', -2.6, -3],
     ['keeps an integer', -1_000_000, -1_000_000],
   ])('%s: %d becomes %d', (_, given, expected) => {
-    expect(parseCommand({ ...wellFormed, position: { x: given, y: 0 } }).position.x).toBe(expected);
+    expect(parsePosition({ ...wellFormed, position: { x: given, y: 0 } }).position.x).toBe(
+      expected,
+    );
   });
 
   it('normalises -0 to 0, which -0 does not survive as under Object.is', () => {
-    const { position } = parseCommand({ ...wellFormed, position: { x: -0, y: -0.4 } });
+    const { position } = parsePosition({ ...wellFormed, position: { x: -0, y: -0.4 } });
     expect(Object.is(position.x, 0)).toBe(true);
     expect(Object.is(position.y, 0)).toBe(true);
   });

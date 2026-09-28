@@ -167,8 +167,9 @@ function parsed(args: unknown): { ok: true; x: number; y: number } | { ok: false
       ? { type: 'SetNodePosition', ...args }
       : args;
   try {
-    const { position } = parseCommand(command);
-    return { ok: true, x: position.x, y: position.y };
+    const result = parseCommand(command);
+    if (result.type !== 'SetNodePosition') throw new Error(`Parsed a ${result.type}.`);
+    return { ok: true, x: result.position.x, y: result.position.y };
   } catch (reason) {
     if (reason instanceof EditorError) return { ok: false, code: reason.code };
     throw reason;

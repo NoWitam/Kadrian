@@ -107,6 +107,8 @@ describe('executeSetNodePosition on the host bus (D31.3, D31.4)', () => {
       canRedo: refuse,
       undo: refuse,
       redo: refuse,
+      dispatchTransaction: refuse,
+      subscribe: refuse,
     });
     const result = executeSetNodePosition(onlyDispatch, toolArgs(190, 360));
     expect(result.document).toBe(real.getDocument());

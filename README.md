@@ -297,7 +297,32 @@ const player = await createPlayer(container, {
 ```ts
 import { createCommandBus } from '@kadrion/editor-sdk';
 
-const bus = createCommandBus(documentJson); // throws an EditorError if it is invalid
+// The host's own error reporting; here it only logs.
+function reportHostError(error: unknown): void {
+  console.error(error);
+}
+
+// A PlayerError is checked by its code, not by instanceof (D25.7).
+function isSuperseded(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && 'code' in error && error.code === 'superseded'
+  );
+}
+
+// Throws an EditorError if the document is invalid. Both options are optional.
+const bus = createCommandBus(documentJson, {
+  historyLimit: 100, // undo reaches this many operations; 0 keeps no history
+  onListenerError: (error) => reportHostError(error), // needed by subscribe; must not throw
+});
+
+// Subscribe before the first edit: one frozen change per committed operation,
+// delivered after the commit.
+const unsubscribe = bus.subscribe((change) => {
+  player.load(change.document, resolveAsset).catch((error: unknown) => {
+    // Expected when a newer load replaces this one, e.g. after undo and redo in a row.
+    if (!isSuperseded(error)) reportHostError(error);
+  });
+});
 
 const result = bus.dispatch({
   type: 'SetNodePosition',
@@ -307,16 +332,29 @@ const result = bus.dispatch({
 result.document; // the edited document, validated in full
 result.inverse; // the command that undoes it, or null when nothing changed
 
-bus.undo();
+// Several commands as one operation: all or none, one undo step.
+bus.dispatchTransaction([
+  { type: 'SetNodeOpacity', nodeId: 'node-title', opacity: 0.5 },
+  { type: 'SetTextContent', nodeId: 'node-title', text: 'Hello' },
+]);
+
+bus.undo(); // undoes the whole transaction
 bus.redo();
 bus.canUndo();
-await player.load(bus.getDocument(), resolveAsset);
+unsubscribe();
 ```
 
-- `SetNodePosition` sets the base position of one node, in composition pixels.
-  It is the only command so far (`COMMAND_TYPES`).
-- A refused command throws an `EditorError` and leaves the document and the
-  history unchanged.
+- The commands are `SetNodePosition` (the base position, in composition
+  pixels), `SetNodeOpacity` (the base opacity, from 0 to 1), and
+  `SetTextContent` (the text of a text node, exactly as given); `COMMAND_TYPES`
+  lists them.
+- A refused command or transaction throws an `EditorError` and leaves the
+  document and the history unchanged. A command that changes nothing writes no
+  history and delivers no change.
+- A listener's error goes to `onListenerError` and never reaches the caller of
+  `dispatch`. While a change is being delivered, a listener cannot change the
+  document: `dispatch`, `dispatchTransaction`, `undo`, and `redo` throw `busy`.
+- The bus is defined by D30 and D38.
 
 ### 6. Let a model edit through the same bus
 

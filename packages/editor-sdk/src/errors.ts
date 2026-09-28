@@ -3,16 +3,24 @@ export type EditorErrorCode =
   | 'invalid-document'
   /** No command of that `type` exists (D30.8). */
   | 'unknown-command'
-  /** The payload is not a well-formed command of its type (D30.3). */
+  /**
+   * The payload is not a well-formed command of its type (D30.3), a transaction
+   * is not a non-empty array of commands, or an option of the bus is invalid (D38.10).
+   */
   | 'invalid-argument'
   /** No node of the document carries that ID (D16). */
   | 'unknown-node'
-  /** The node has no position; a background node is the only one in schema 0.1 (D30.8). */
+  /**
+   * The node lacks the field the command edits: a background has no position or
+   * opacity, and only a text node has a text (D30.8, D38.10).
+   */
   | 'unsupported-node'
   /** The edited document does not validate; `details` carry the validation errors (D30.6). */
   | 'invalid-result'
   | 'nothing-to-undo'
-  | 'nothing-to-redo';
+  | 'nothing-to-redo'
+  /** A listener called a mutating method of the bus while a change was being delivered (D38.8). */
+  | 'busy';
 
 /**
  * A typed failure of the command bus (D30.8). Check `code` instead of

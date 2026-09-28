@@ -7,6 +7,9 @@
   let the AI tool call `applyCommand`; it dispatches on the host's bus (D31)
 - Amended by: PR-10 on 2026-09-23 at the owner's request, D30.13 (the bus is a
   frozen facade)
+- Amended by: PR-18 (D38) on 2026-09-28 at the owner's request, D30.1, D30.4,
+  D30.8, D30.9, and D30.13 (a closed registry of three commands, transactions,
+  a bounded history, and changes delivered to listeners)
 - Related: D02, D09, D12, D15, D16, D17, D19, D24, D25,
   [specification](../spike/vertical-spike.md) §5 P3, §5 P4, §9, and open
   question Q16
@@ -66,6 +69,10 @@ for a model.
 A relative `MoveNode { dx, dy }` was rejected: its result depends on the current
 document, so a repeated or reordered call silently produces a different
 document.
+
+Amended by: PR-18 (D38). The union now has three members, `SetNodePosition`,
+`SetNodeOpacity`, and `SetTextContent`, known from a closed registry (D38.1–D38.3).
+Each of them is absolute and idempotent in the sense of this section.
 
 ### D30.2 The command sets the base position, not the rendered one
 
@@ -131,6 +138,12 @@ finds that the node already holds the position the command asks for, the
 function returns after step 3 with `inverse: null` and **the document it was
 given**, unchanged and not revalidated. Nothing was built, so there is nothing
 to validate.
+
+Amended by: PR-18 (D38). The order and the short circuit hold for every command
+of the registry: step 3 reads the previous value of the field the command edits
+— a position, an opacity, or a text — from the entry of that command (D38.1). A
+transaction applies this function to each of its commands in turn, so every
+intermediate document is validated in full as well (D38.4, D38.5).
 
 ### D30.5 The inverse is a command, not a patch
 
@@ -201,6 +214,13 @@ test derives that from `compositionSchema` rather than trusting it. Two nodes
 sharing an ID would make the search order observable; `validateComposition`
 refuses such a document, which is what makes `ValidatedComposition` enough.
 
+Amended by: PR-18 (D38). The table gains `busy`: a listener called a mutating
+method while a change was being delivered (D38.8). `invalid-argument` also
+covers an invalid transaction and an invalid or unknown option of the bus, and
+`unsupported-node` means that the node lacks the field the command edits: a
+position or an opacity (the background) or a text (every node but a text node).
+The rule of field presence above applies to every command (D38.10).
+
 ### D30.9 The history belongs to the host, not to the document
 
 `createCommandBus(document)` keeps an undo and a redo stack in memory. The
@@ -232,6 +252,21 @@ validated a moment ago, on a node that no command can remove, so an undo cannot
 fail. The order is kept for the command that can fail, not for the one that
 exists, and the test grows a failing-undo case in the pull request that adds a
 command which changes whether a node exists or what a value may be.
+
+Amended by: PR-18 (D38). A history entry is now a **list** of inverse commands,
+one list per operation, a transaction counting as one entry (D38.4, D38.6). Read
+rules 1–4 with lists: a dispatch or a transaction pushes its list of inverses,
+in the order undo applies them; `undo` applies the top list in order; the list
+of inverses that `undo` returns (`inverses` of its `TransactionResult`) goes on
+the redo stack; `redo` works the same way in the other direction. The history
+keeps at most `historyLimit` entries, 100 by default, the oldest dropped
+first (D38.7). Rules 1–7 hold for transactions, and rule 6 holds for undo and
+redo too: a failed undo or redo changes neither the document nor either stack
+and delivers no change. `SetNodeOpacity` and `SetTextContent` restore values that
+validated a moment ago as well, so the failing-undo case above still has no
+natural path; PR-18 adds a property test over seeded sequences instead, and the
+concrete failing-undo test moves to PR-19, whose commands change whether a node
+exists (D38.7).
 
 ### D30.12 `applyCommand` is public, and a host that keeps a bus uses `dispatch`
 
@@ -320,6 +355,12 @@ precedent of D23.9 and D28.9, which were also amendments requested by the owner
 and carry an "Amended by" line. The `CommandBus` interface keeps its members as
 they are, not `readonly`: the owner ruled out signature changes. So TypeScript
 still accepts `bus.dispatch = …`, and the freeze refuses it at run time.
+
+Amended by: PR-18 (D38). The facade gains `dispatchTransaction` and `subscribe`,
+and `undo` and `redo` return a `TransactionResult`, by the owner's decision of
+2026-09-28; `dispatch` keeps its signature. The facade stays frozen, and its
+members stay non-`readonly`. The closure also holds the list of subscriptions and
+the guard of D38.8, both mutable on purpose, like the stacks.
 
 ## Alternatives considered
 

@@ -3,6 +3,8 @@
 - Status: Accepted — by the project owner on 2026-09-23, without a change of substance
 - Date: 2026-09-23
 - Supersedes: —
+- Amended by: PR-18 (D38) on 2026-09-28 at the owner's request, a note under
+  Consequences (the commands of PR-18 get no tool yet)
 - Related: D09, D12, D15, D17, D19, D30,
   [specification](../spike/vertical-spike.md) §5 P4 and §9
 
@@ -227,6 +229,16 @@ hand-written rows whose normalised coordinates are stated, not recomputed.
 - A second command, when one arrives, brings its own argument schema in
   `editor-sdk`, its own tool here, and the failing-undo test that D30.9 defers.
 - Schema 0.1 is untouched.
+
+Note, amended by: PR-18 (D38). The second and third commands, `SetNodeOpacity`
+and `SetTextContent`, arrived in PR-18 with their argument schemas in
+`editor-sdk` (D38.11), but:
+
+1. they get no AI tool yet; `ai-sdk` is unchanged and still exports
+   `set_node_position` alone;
+2. generating tools from the command registry of D38.1 belongs to PR-24;
+3. the concrete failing-undo test moves to PR-19, whose commands change whether
+   a node exists (D38.7).
 
 ## Verification
 

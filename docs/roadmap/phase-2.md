@@ -77,11 +77,14 @@ text styles.
   react to every change.
 - **Scope:** transactions (one history entry, all or nothing); events or
   subscriptions for every change; a history limit; a registry of commands;
-  `SetNodeOpacity`; `SetTextContent`; the failing-undo test that D30.9 deferred.
-  No schema change, no UI.
-- **Packages and documents:** `@kadrion/editor-sdk`, `tests/app`, README.
+  `SetNodeOpacity`; `SetTextContent`. No schema change, no UI. (Updated by
+  PR-18: the failing-undo test that D30.9 deferred moved to PR-19, because no
+  command of PR-18 can make an undo fail; PR-18 adds a property test of the
+  history instead, D38.7.)
+- **Packages and documents:** `@kadrion/editor-sdk`, README. (Updated by
+  PR-18: `tests/app` needed no change.)
 - **Decisions:** a new ADR extending D30 (transactions, events, registry,
-  history limit).
+  history limit): D38, accepted on 2026-09-28.
 - **Acceptance:** a transaction that fails in the middle leaves the document and
   the history unchanged; undo and redo restore it byte for byte; events are
   deterministic and read no clock; every result is fully validated.
@@ -97,7 +100,8 @@ text styles.
   for the other visual properties of schema `0.1` and for the asset reference
   of an image (Taskio priorities 2 and 4); a policy
   for node identifiers (stable, unique in the document, never reused within a
-  history); exact inverses; checks of every reference (animations, assets).
+  history); exact inverses; checks of every reference (animations, assets);
+  the concrete failing-undo test that D30.9 deferred (moved from PR-18, D38.7).
 - **Packages and documents:** `@kadrion/editor-sdk`, tests, README.
 - **Decisions:** an ADR on node identifiers and structural commands.
 - **Acceptance:** the inverse restores the document byte for byte; no command
@@ -219,7 +223,8 @@ option E) get an ADR when a need appears; nothing here implements them.
 - **D32:** loading a user's own JSON and showing its errors is checked by hand
   only; no test forbids time arithmetic in the playground; no record of the
   manual Chromium check exists (D32, Verification).
-- **D30.9:** the failing-undo test waits for the second command (PR-18).
+- **D30.9:** the failing-undo test waits for the first structural command
+  (PR-19; moved from PR-18 by D38.7).
 - **Player:** each `load` remounts the page and seeks to 0; the Player has no
   events and plays no audio (PR-23, later).
 - **Producer and export:** no job model or cancellation; FFmpeg runs with

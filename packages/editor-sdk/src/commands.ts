@@ -1,10 +1,11 @@
 /**
- * The command union of schema 0.1 and its one parser (D30.1, D30.3). A command
- * is a plain JSON value, so it survives the transport between a host, the UI,
- * and an AI tool call; `parseCommand` is the only way one comes into existence,
- * which is what makes the UI and the AI tool of D31 normalise identically.
- * The JSON Schema of the arguments lives here too, next to the parser it must
- * agree with, so the AI tool contract wraps it instead of restating it (D31.2).
+ * The commands of schema 0.1, their argument schemas, and the parsers of their
+ * fields (D30.1, D30.3, D38.2, D38.3). A command is a plain JSON value, so it
+ * survives the transport between a host, the UI, and an AI tool call. The
+ * JSON Schema of each command's arguments lives here, next to the parser it
+ * must agree with, so an AI tool contract wraps it instead of restating it
+ * (D31.2). `parseCommand` (in `registry.ts`) is the only way a command comes
+ * into existence; the parsers here read the fields of one command type.
  */
 import { EditorError } from './errors.js';
 
@@ -24,21 +25,41 @@ export interface SetNodePositionCommand extends SetNodePositionArguments {
   readonly type: 'SetNodePosition';
 }
 
-export type Command = SetNodePositionCommand;
+/** What a caller states for `SetNodeOpacity` (D38.2). */
+export interface SetNodeOpacityArguments {
+  readonly nodeId: string;
+  readonly opacity: number;
+}
 
-/**
- * Every command type this build knows. Schema 0.1 needs exactly one (§9). The
- * list is frozen: a caller that pushed a name onto it would make `parseCommand`
- * accept a type the build does not know (D31.8).
- */
-export const COMMAND_TYPES: readonly Command['type'][] = Object.freeze([
-  'SetNodePosition',
-] as const);
+/** Replaces the node's base opacity, from 0 to 1 inclusive; an opacity animation multiplies it (D16). */
+export interface SetNodeOpacityCommand extends SetNodeOpacityArguments {
+  readonly type: 'SetNodeOpacity';
+}
+
+/** What a caller states for `SetTextContent` (D38.3). */
+export interface SetTextContentArguments {
+  readonly nodeId: string;
+  readonly text: string;
+}
+
+/** Replaces the text of a text node, exactly as given; line breaks are kept. */
+export interface SetTextContentCommand extends SetTextContentArguments {
+  readonly type: 'SetTextContent';
+}
+
+export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
   | { readonly type: 'string'; readonly description: string; readonly minLength: number }
+  | { readonly type: 'string'; readonly description: string }
   | { readonly type: 'number'; readonly description: string }
+  | {
+      readonly type: 'number';
+      readonly description: string;
+      readonly minimum: number;
+      readonly maximum: number;
+    }
   | ClosedObjectSchema<string>;
 
 /** A JSON Schema of a JSON object with exactly the fields `K`, all of them required. */
@@ -60,8 +81,14 @@ export interface SetNodePositionArgumentsSchema extends ClosedObjectSchema<
   };
 }
 
-/** Freezes a JSON value and everything in it, so no caller can edit a shared schema. */
-function deepFreeze<T>(value: T): T {
+/** The argument schema of `SetNodeOpacity`, typed by the fields of its arguments. */
+export type SetNodeOpacityArgumentsSchema = ClosedObjectSchema<keyof SetNodeOpacityArguments>;
+
+/** The argument schema of `SetTextContent`, typed by the fields of its arguments. */
+export type SetTextContentArgumentsSchema = ClosedObjectSchema<keyof SetTextContentArguments>;
+
+/** Freezes a JSON value and everything in it, so no caller can edit a shared value. */
+export function deepFreeze<T>(value: T): T {
   if (typeof value === 'object' && value !== null) {
     for (const item of Object.values(value)) deepFreeze(item);
     Object.freeze(value);
@@ -107,12 +134,63 @@ export const setNodePositionArgumentsSchema: SetNodePositionArgumentsSchema = de
   additionalProperties: false,
 });
 
-function isPlainObject(value: unknown): value is Readonly<Record<string, unknown>> {
+/**
+ * The JSON Schema of the arguments of `SetNodeOpacity` (D38.2). The range 0 to
+ * 1 inclusive is part of the command's public contract, so the schema states it
+ * and `parseCommand` refuses a value outside it as `invalid-argument`; a test
+ * demands the same verdict from both on one corpus.
+ */
+export const setNodeOpacityArgumentsSchema: SetNodeOpacityArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: "Sets one node's base opacity.",
+  properties: {
+    nodeId: {
+      type: 'string',
+      description:
+        'The stable ID of the node. A node without an opacity, such as the background, is refused.',
+      minLength: 1,
+    },
+    opacity: {
+      type: 'number',
+      description:
+        'The base opacity, from 0 (transparent) to 1 (opaque) inclusive; a fraction is kept as it is, and -0 becomes 0. An opacity animation multiplies it.',
+      minimum: 0,
+      maximum: 1,
+    },
+  },
+  required: ['nodeId', 'opacity'],
+  additionalProperties: false,
+});
+
+/**
+ * The JSON Schema of the arguments of `SetTextContent` (D38.3). Any string is a
+ * text, the empty one included: schema 0.1 sets no limit, so neither does this.
+ */
+export const setTextContentArgumentsSchema: SetTextContentArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces the text of one text node.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: 'The stable ID of a text node. Any other node is refused.',
+      minLength: 1,
+    },
+    text: {
+      type: 'string',
+      description:
+        'The new text, exactly as given: nothing is trimmed or normalised, and line breaks are kept.',
+    },
+  },
+  required: ['nodeId', 'text'],
+  additionalProperties: false,
+});
+
+export function isPlainObject(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /** Rejects anything that is not an object with exactly `fields` as its own keys. */
-function fieldsOf(
+export function fieldsOf(
   value: unknown,
   fields: readonly string[],
   what: string,
@@ -129,6 +207,14 @@ function fieldsOf(
     );
   }
   return value;
+}
+
+function nodeIdOf(fields: Readonly<Record<string, unknown>>): string {
+  const nodeId: unknown = fields['nodeId'];
+  if (typeof nodeId !== 'string' || nodeId === '') {
+    throw new EditorError('invalid-argument', '`nodeId` must be a non-empty string.');
+  }
+  return nodeId;
 }
 
 /**
@@ -158,32 +244,43 @@ function parsePosition(value: unknown, what: string): CommandPosition {
   });
 }
 
-/**
- * The single entry into a typed command (D30.3). Rejects a payload that is not
- * a closed object of the command's fields, a type it does not know, and a
- * coordinate that is not finite; normalises the coordinates and freezes the
- * result, so a caller that keeps the object cannot reach into the history
- * afterwards. Parsing an already-parsed command returns an equal command.
- */
-export function parseCommand(value: unknown): Command {
-  if (!isPlainObject(value)) {
-    throw new EditorError('invalid-argument', 'A command is not an object.');
-  }
-  const type: unknown = value['type'];
-  if (typeof type !== 'string') {
-    throw new EditorError('invalid-argument', 'A command has no string `type`.');
-  }
-  if (!COMMAND_TYPES.includes(type as Command['type'])) {
-    throw new EditorError('unknown-command', `This build knows no command \`${type}\`.`);
-  }
-  const fields = fieldsOf(value, ['type', 'nodeId', 'position'], `The command \`${type}\``);
-  const nodeId: unknown = fields['nodeId'];
-  if (typeof nodeId !== 'string' || nodeId === '') {
-    throw new EditorError('invalid-argument', '`nodeId` must be a non-empty string.');
-  }
+/** The fields of a `SetNodePosition` (D30.3): closed, a non-empty ID, integer coordinates. */
+export function parseSetNodePosition(value: unknown): SetNodePositionCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'position'], 'The command `SetNodePosition`');
   return Object.freeze({
     type: 'SetNodePosition',
-    nodeId,
+    nodeId: nodeIdOf(fields),
     position: parsePosition(fields['position'], '`position`'),
   });
+}
+
+/**
+ * The fields of a `SetNodeOpacity` (D38.2): a finite number from 0 to 1
+ * inclusive. Nothing is rounded or clamped; -0 becomes 0, for the reason given
+ * at `integerPixels`.
+ */
+export function parseSetNodeOpacity(value: unknown): SetNodeOpacityCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'opacity'], 'The command `SetNodeOpacity`');
+  const opacity: unknown = fields['opacity'];
+  if (typeof opacity !== 'number' || !Number.isFinite(opacity) || opacity < 0 || opacity > 1) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`opacity\` must be a finite number from 0 to 1, not ${typeof opacity === 'number' ? String(opacity) : typeof opacity}.`,
+    );
+  }
+  return Object.freeze({
+    type: 'SetNodeOpacity',
+    nodeId: nodeIdOf(fields),
+    opacity: opacity === 0 ? 0 : opacity,
+  });
+}
+
+/** The fields of a `SetTextContent` (D38.3): any string, taken exactly as given. */
+export function parseSetTextContent(value: unknown): SetTextContentCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'text'], 'The command `SetTextContent`');
+  const text: unknown = fields['text'];
+  if (typeof text !== 'string') {
+    throw new EditorError('invalid-argument', `\`text\` must be a string, not ${typeof text}.`);
+  }
+  return Object.freeze({ type: 'SetTextContent', nodeId: nodeIdOf(fields), text });
 }
