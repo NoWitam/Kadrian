@@ -136,7 +136,7 @@ const CASES: readonly Case[] = [
 
 /** Every place in the arguments the schema describes, found by walking it. */
 function slotsOf(node: ArgumentSchema, path: readonly string[] = []): (readonly string[])[] {
-  if (node.type !== 'object') return [path];
+  if (!('properties' in node)) return [path];
   return [
     path,
     ...Object.entries(node.properties).flatMap(([name, child]) => slotsOf(child, [...path, name])),

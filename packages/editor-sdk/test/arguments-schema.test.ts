@@ -56,7 +56,7 @@ type Path = readonly string[];
 
 /** Every place in the arguments the schema describes, found by walking it. */
 function slotsOf(node: ArgumentSchema, path: Path = []): Path[] {
-  if (node.type !== 'object') return [path];
+  if (!('properties' in node)) return [path];
   return [
     path,
     ...Object.entries(node.properties).flatMap(([name, child]) => slotsOf(child, [...path, name])),
@@ -65,7 +65,7 @@ function slotsOf(node: ArgumentSchema, path: Path = []): Path[] {
 
 /** Every object the schema describes, with its property names. */
 function objectsOf(node: ArgumentSchema, path: Path = []): { path: Path; names: string[] }[] {
-  if (node.type !== 'object') return [];
+  if (!('properties' in node)) return [];
   return [
     { path, names: Object.keys(node.properties) },
     ...Object.entries(node.properties).flatMap(([name, child]) =>
@@ -207,12 +207,12 @@ describe('the argument schema of SetNodePosition (D31.2)', () => {
     for (const { path, names } of objectsOf(schema)) {
       let node: ArgumentSchema = schema;
       for (const key of path) {
-        if (node.type !== 'object') throw new Error(`Not an object at ${path.join('.')}.`);
+        if (!('properties' in node)) throw new Error(`Not an object at ${path.join('.')}.`);
         const child: ArgumentSchema | undefined = node.properties[key];
         if (child === undefined) throw new Error(`No property ${key}.`);
         node = child;
       }
-      if (node.type !== 'object') throw new Error('Not an object.');
+      if (!('properties' in node)) throw new Error('Not an object.');
       expect(node.additionalProperties, path.join('.')).toBe(false);
       expect([...node.required].sort(), path.join('.')).toEqual([...names].sort());
     }

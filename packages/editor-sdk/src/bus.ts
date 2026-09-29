@@ -7,7 +7,7 @@
  */
 import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
 
-import { applyCommand, type CommandResult } from './apply.js';
+import { executeCommand, type CommandResult } from './apply.js';
 import { isPlainObject, type Command } from './commands.js';
 import { EditorError } from './errors.js';
 import { parseCommand } from './registry.js';
@@ -24,6 +24,11 @@ export interface TransactionResult {
    * when nothing changed (D38.6).
    */
   readonly inverses: readonly Command[];
+  /**
+   * The IDs the operation created that still exist in `document`, each once, in
+   * the order they were last created (D39.4). Always present; often empty.
+   */
+  readonly createdIds: readonly string[];
 }
 
 /** One change of the document, delivered to every listener after it is committed (D38.8). */
@@ -33,6 +38,8 @@ export interface BusChange {
   readonly document: ValidatedComposition;
   readonly commands: readonly Command[];
   readonly inverses: readonly Command[];
+  /** As in `TransactionResult` (D39.4). */
+  readonly createdIds: readonly string[];
   readonly canUndo: boolean;
   readonly canRedo: boolean;
 }
@@ -96,6 +103,18 @@ function settingsOf(options: unknown): Settings {
   if (!isPlainObject(options)) {
     throw new EditorError('invalid-argument', 'The options of the command bus are not an object.');
   }
+  // An option is an own property; one that only an ancestor supplies would be
+  // read silently, so it is refused instead (D39.9).
+  const inherited: string[] = [];
+  for (const key in options) {
+    if (!Object.prototype.hasOwnProperty.call(options, key)) inherited.push(key);
+  }
+  if (inherited.length > 0) {
+    throw new EditorError(
+      'invalid-argument',
+      `The options of the command bus inherit ${inherited.map((key) => `\`${key}\``).join(', ')}; pass own properties only.`,
+    );
+  }
   const unknown = Object.keys(options).filter((key) => !OPTIONS.includes(key));
   if (unknown.length > 0) {
     throw new EditorError(
@@ -103,8 +122,10 @@ function settingsOf(options: unknown): Settings {
       `The command bus has no option ${unknown.map((key) => `\`${key}\``).join(', ')}.`,
     );
   }
-  const historyLimit: unknown = options['historyLimit'];
-  const onListenerError: unknown = options['onListenerError'];
+  const own = (key: string): unknown =>
+    Object.prototype.hasOwnProperty.call(options, key) ? options[key] : undefined;
+  const historyLimit = own('historyLimit');
+  const onListenerError = own('onListenerError');
   if (
     historyLimit !== undefined &&
     (typeof historyLimit !== 'number' || !Number.isSafeInteger(historyLimit) || historyLimit < 0)
@@ -196,7 +217,7 @@ export function createCommandBus(document: unknown, options?: CommandBusOptions)
 
   /**
    * Applies parsed commands one by one to a candidate document, each through
-   * `applyCommand` and so through the full `validateComposition` (D38.5).
+   * `executeCommand` and so through the full `validateComposition` (D38.5).
    * Nothing is published here: a failure throws before the caller touches the
    * current document, a stack, or a listener, which keeps rule 6 of D30.9 true
    * for every operation.
@@ -204,12 +225,17 @@ export function createCommandBus(document: unknown, options?: CommandBusOptions)
   function run(commands: readonly Command[], located: boolean): TransactionResult {
     let candidate = current;
     const inverses: Command[] = [];
+    // The net effect on IDs (D39.4): a removed ID leaves the list, a created one
+    // moves to its end. No document is compared; each command says what it did.
+    let created: readonly string[] = [];
     commands.forEach((command, at) => {
       try {
-        const result = applyCommand(candidate, command);
+        const result = executeCommand(candidate, command);
         candidate = result.document;
         // Undo applies the inverses last first (D38.6).
         if (result.inverse !== null) inverses.unshift(result.inverse);
+        const gone = new Set([...result.removedIds, ...result.createdIds]);
+        created = [...created.filter((id) => !gone.has(id)), ...result.createdIds];
       } catch (error) {
         throw located ? inTransaction(error, at) : error;
       }
@@ -218,6 +244,7 @@ export function createCommandBus(document: unknown, options?: CommandBusOptions)
       document: candidate,
       commands: Object.freeze([...commands]),
       inverses: Object.freeze(inverses),
+      createdIds: Object.freeze([...created]),
     });
   }
 
@@ -241,6 +268,7 @@ export function createCommandBus(document: unknown, options?: CommandBusOptions)
       document: result.document,
       commands: result.commands,
       inverses: result.inverses,
+      createdIds: result.createdIds,
       canUndo: undoable.length > 0,
       canRedo: redoable.length > 0,
     });
@@ -306,7 +334,11 @@ export function createCommandBus(document: unknown, options?: CommandBusOptions)
       idle();
       const result = run([parseCommand(command)], false);
       commit('dispatch', result);
-      return { document: result.document, inverse: result.inverses[0] ?? null };
+      return Object.freeze({
+        document: result.document,
+        inverse: result.inverses[0] ?? null,
+        createdIds: result.createdIds,
+      });
     },
     dispatchTransaction(commands) {
       idle();

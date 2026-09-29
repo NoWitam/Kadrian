@@ -68,6 +68,137 @@ function differs(rebuilt: readonly unknown[], original: readonly unknown[]): boo
 }
 
 /**
+ * Where a list of nodes lives: the `nodes` of a scene, or the `children` of a
+ * group in that scene (D16.4). Groups do not nest, so two indexes suffice.
+ */
+export interface ListAddress {
+  readonly sceneIndex: number;
+  /** The index of the group in the scene's `nodes`, or `null` for the scene's own list. */
+  readonly groupIndex: number | null;
+}
+
+/** A node, the list that holds it, and its place there. */
+export interface NodeLocation {
+  readonly node: DocumentObject;
+  readonly address: ListAddress;
+  /** The ID of the list's owner: the scene or the group. */
+  readonly parentId: string;
+  readonly list: readonly unknown[];
+  readonly index: number;
+}
+
+function idOf(value: DocumentObject): string {
+  const id = value['id'];
+  return typeof id === 'string' ? id : '';
+}
+
+/** The node with that ID and where it lives, searched as `findNode` searches. */
+export function locateNode(document: object, nodeId: string): NodeLocation | null {
+  const scenes = asArray(fieldsOf(document)['scenes']) ?? [];
+  for (const [sceneIndex, scene] of scenes.entries()) {
+    if (!isObject(scene)) continue;
+    const nodes = asArray(scene['nodes']) ?? [];
+    for (const [index, node] of nodes.entries()) {
+      if (!isObject(node)) continue;
+      if (node['id'] === nodeId) {
+        const address = { sceneIndex, groupIndex: null };
+        return { node, address, parentId: idOf(scene), list: nodes, index };
+      }
+      const children = asArray(node['children']) ?? [];
+      for (const [childIndex, child] of children.entries()) {
+        if (isObject(child) && child['id'] === nodeId) {
+          const address = { sceneIndex, groupIndex: index };
+          return { node: child, address, parentId: idOf(node), list: children, index: childIndex };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/** A list that can take nodes: the scene with that ID, or a node with a `children` array. */
+export type ParentLookup =
+  | { readonly kind: 'list'; readonly address: ListAddress; readonly list: readonly unknown[] }
+  | { readonly kind: 'no-children' }
+  | { readonly kind: 'unknown' };
+
+export function findParent(document: object, parentId: string): ParentLookup {
+  const scenes = asArray(fieldsOf(document)['scenes']) ?? [];
+  for (const [sceneIndex, scene] of scenes.entries()) {
+    if (isObject(scene) && scene['id'] === parentId) {
+      const address = { sceneIndex, groupIndex: null };
+      return { kind: 'list', address, list: asArray(scene['nodes']) ?? [] };
+    }
+  }
+  const location = locateNode(document, parentId);
+  if (location === null) return { kind: 'unknown' };
+  const children = asArray(location.node['children']);
+  // Whether a node takes children is read from the node, not from its type (D30.8).
+  if (children === null || location.address.groupIndex !== null) return { kind: 'no-children' };
+  const address = { sceneIndex: location.address.sceneIndex, groupIndex: location.index };
+  return { kind: 'list', address, list: children };
+}
+
+/**
+ * The document with the list at `address` replaced by `list`. Every ancestor on
+ * the path — the root, `scenes`, the scene, and for a group its list and the
+ * group — is a new object; everything else keeps its identity (D30.7).
+ */
+export function replaceList(
+  document: object,
+  address: ListAddress,
+  list: readonly unknown[],
+): DocumentObject {
+  const root = fieldsOf(document);
+  const scenes = asArray(root['scenes']) ?? [];
+  const scene = scenes[address.sceneIndex];
+  if (!isObject(scene)) return root;
+  let nodes: readonly unknown[] = list;
+  if (address.groupIndex !== null) {
+    const sceneNodes = asArray(scene['nodes']) ?? [];
+    const group = sceneNodes[address.groupIndex];
+    if (!isObject(group)) return root;
+    const at = address.groupIndex;
+    nodes = sceneNodes.map((node, index) => (index === at ? { ...group, children: list } : node));
+  }
+  const editedScene = { ...scene, nodes };
+  return {
+    ...root,
+    scenes: scenes.map((item, index) => (index === address.sceneIndex ? editedScene : item)),
+  };
+}
+
+/** Every string `id` anywhere in the document, whatever the entity (D16.3). */
+export function idsIn(value: unknown, into: Set<string> = new Set()): Set<string> {
+  if (Array.isArray(value)) {
+    for (const item of value as readonly unknown[]) idsIn(item, into);
+  } else if (isObject(value)) {
+    for (const [name, child] of Object.entries(value)) {
+      if (name === 'id' && typeof child === 'string') into.add(child);
+      else idsIn(child, into);
+    }
+  }
+  return into;
+}
+
+/**
+ * The IDs a node's subtree carries, in the order D39.4 fixes: the node IDs in
+ * preorder (the node, then its children in array order), then the animation IDs
+ * grouped by owner in that same preorder, each owner's in array order. Reads
+ * only a string `id` of the node, of the items of `children`, and of the items
+ * of `animations`, and only where those are arrays of objects: any other shape
+ * is left to the full validation (D39.3).
+ */
+export function subtreeIds(node: DocumentObject): readonly string[] {
+  const owners = [node, ...objectsIn(node['children'])];
+  const nodeIds = owners.map((owner) => owner['id']);
+  const animationIds = owners.flatMap((owner) =>
+    objectsIn(owner['animations']).map((animation) => animation['id']),
+  );
+  return [...nodeIds, ...animationIds].filter((id): id is string => typeof id === 'string');
+}
+
+/**
  * The document with `replacement` in the place of the node with that ID, or
  * the document itself when it has no such node.
  */

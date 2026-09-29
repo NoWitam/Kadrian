@@ -6,41 +6,43 @@
 import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
 
 import type { Command } from './commands.js';
-import { findNode, replaceNode } from './document.js';
+import { fieldsOf } from './document.js';
 import { EditorError } from './errors.js';
-import { editNode, parseCommand } from './registry.js';
+import { editDocument, parseCommand } from './registry.js';
 
 export interface CommandResult {
   /** The edited document, accepted by the full `validateComposition` (D30.6). */
   readonly document: ValidatedComposition;
   /** The command that undoes this one, or `null` when nothing changed (D30.5, D30.9). */
   readonly inverse: Command | null;
+  /**
+   * The IDs the command created, in the order of D39.4: the node IDs in
+   * preorder, then the animation IDs grouped by owner. Always present, and
+   * empty for a command that creates nothing.
+   */
+  readonly createdIds: readonly string[];
+}
+
+/** A result with what the bus needs besides: the IDs the command removed (D39.4). */
+export interface Execution extends CommandResult {
+  readonly removedIds: readonly string[];
 }
 
 /**
- * Applies a command in the order D30.4 fixes: parse, find, read the previous
- * value from the input document, rebuild immutably, validate the result in
- * full, and only then return. Any failure throws an `EditorError` and leaves
- * the input document exactly as it was. What differs between command types —
- * which field is read and written — comes from the closed registry (D38.1);
- * the order is the same for every one of them.
- *
- * The argument is typed, but it is parsed all the same: the type is structural,
- * so a caller can write a literal, and parsing at every entry point is what
- * guarantees that the UI and the AI tool of D31 normalise their values
- * identically (D30.3).
+ * Applies a command in the order D30.4 fixes: parse, edit the document through
+ * the command's entry (D39.9), validate the result in full, and only then
+ * return it with the inverse read from the concrete document. Any failure throws
+ * an `EditorError` and leaves the input document exactly as it was; a candidate
+ * and an inverse prepared for it are discarded (D39.5).
  */
-export function applyCommand(document: ValidatedComposition, command: Command): CommandResult {
+export function executeCommand(document: ValidatedComposition, command: Command): Execution {
   const parsed = parseCommand(command);
-  const node = findNode(document, parsed.nodeId);
-  if (node === null) {
-    throw new EditorError('unknown-node', `The document has no node \`${parsed.nodeId}\`.`);
-  }
-  const edit = editNode(node, parsed);
+  const edit = editDocument(fieldsOf(document), parsed);
   // A command that changes no value leaves the document and writes no history (D30.9).
-  if (edit === null) return { document, inverse: null };
-  const edited = replaceNode(document, parsed.nodeId, edit.node);
-  const result = validateComposition(edited);
+  if (edit === null) {
+    return { document, inverse: null, createdIds: Object.freeze([]), removedIds: [] };
+  }
+  const result = validateComposition(edit.document);
   if (!result.ok) {
     throw new EditorError(
       'invalid-result',
@@ -48,5 +50,23 @@ export function applyCommand(document: ValidatedComposition, command: Command): 
       result.errors.map(({ path, message }) => `${path}: ${message}`),
     );
   }
-  return { document: result.composition, inverse: edit.inverse };
+  return {
+    document: result.composition,
+    inverse: edit.invert(),
+    createdIds: Object.freeze([...edit.createdIds]),
+    removedIds: edit.removedIds,
+  };
+}
+
+/**
+ * Applies one command to one document and returns the frozen result (D39.9).
+ *
+ * The argument is typed, but it is parsed all the same: the type is structural,
+ * so a caller can write a literal, and parsing at every entry point is what
+ * guarantees that the UI and the AI tool of D31 normalise their values
+ * identically (D30.3).
+ */
+export function applyCommand(document: ValidatedComposition, command: Command): CommandResult {
+  const { inverse, createdIds, document: edited } = executeCommand(document, command);
+  return Object.freeze({ document: edited, inverse, createdIds });
 }

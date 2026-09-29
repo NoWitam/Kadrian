@@ -121,7 +121,11 @@ describe('executeSetNodePosition on the host bus (D31.3, D31.4)', () => {
     const bus = createCommandBus(referenceComposition);
     const before = bus.getDocument();
     const result = executeSetNodePosition(bus, toolArgs(START.x, START.y));
-    expect(result).toEqual({ document: before, inverse: null });
+    expect(result).toEqual({
+      document: before,
+      inverse: null,
+      createdIds: [],
+    });
     expect(result.document).toBe(before);
     expect(bus.canUndo()).toBe(false);
   });

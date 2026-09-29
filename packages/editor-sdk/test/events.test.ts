@@ -114,10 +114,12 @@ describe('the changes (D38.8)', () => {
         'canRedo',
         'canUndo',
         'commands',
+        'createdIds',
         'document',
         'inverses',
         'kind',
       ]);
+      expect(Object.isFrozen(change.createdIds)).toBe(true);
     }
   });
 

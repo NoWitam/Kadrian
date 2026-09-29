@@ -10,6 +10,9 @@
 - Amended by: PR-18 (D38) on 2026-09-28 at the owner's request, D30.1, D30.4,
   D30.8, D30.9, and D30.13 (a closed registry of three commands, transactions,
   a bounded history, and changes delivered to listeners)
+- Amended by: PR-19a (D39) on 2026-09-29 at the owner's request, D30.1, D30.4,
+  D30.5, D30.8, D30.9, and D30.13 (structural commands, `createdIds`, and the
+  failing-undo obligation replaced)
 - Related: D02, D09, D12, D15, D16, D17, D19, D24, D25,
   [specification](../spike/vertical-spike.md) §5 P3, §5 P4, §9, and open
   question Q16
@@ -73,6 +76,12 @@ document.
 Amended by: PR-18 (D38). The union now has three members, `SetNodePosition`,
 `SetNodeOpacity`, and `SetTextContent`, known from a closed registry (D38.1–D38.3).
 Each of them is absolute and idempotent in the sense of this section.
+
+Amended by: PR-19a (D39). The union also holds `AddNode`, `RemoveNode`,
+`DuplicateNode`, and `ReorderNode`, which change which nodes exist and their
+order (D39.1). `ReorderNode` is absolute and idempotent in the sense of this
+section; `AddNode` and `DuplicateNode` fail the second time with `id-in-use`,
+and `RemoveNode` with `unknown-node`, which is what a retry must see.
 
 ### D30.2 The command sets the base position, not the rendered one
 
@@ -145,6 +154,15 @@ of the registry: step 3 reads the previous value of the field the command edits
 transaction applies this function to each of its commands in turn, so every
 intermediate document is validated in full as well (D38.4, D38.5).
 
+Amended by: PR-19a (D39). A command now edits the document through its entry of
+the registry, which finds what it needs — a node, a parent list — itself
+(D39.9). The order stays: parse, edit, validate in full, and only then return
+the result. The inverse is read from the concrete document the command was
+applied to; an entry may prepare it while building the candidate, but it is
+not returned or recorded before the validation succeeded, and it is discarded
+with the candidate when the validation fails (D39.5).
+`CommandResult` gains `createdIds` (D39.4) and is frozen.
+
 ### D30.5 The inverse is a command, not a patch
 
 The inverse is a ready `SetNodePosition` carrying the node's previous position.
@@ -156,6 +174,12 @@ byte, including the order of its keys (D30.7).
 Neither JSON Patch nor a snapshot of the node was chosen: the first adds
 stringly-typed paths and a second, weaker contract next to the typed command;
 the second stores more than the command changed and hides the edit's scope.
+
+Amended by: PR-19a (D39). The inverse of `RemoveNode` is an `AddNode` that
+carries a frozen snapshot of the removed subtree. The rejection above holds for
+field edits, where a snapshot would store more than the command changed; for a
+structural command the subtree is exactly what the command changed, and the
+inverse is still a typed command (D39.5).
 
 ### D30.6 The result is validated in full
 
@@ -221,6 +245,13 @@ covers an invalid transaction and an invalid or unknown option of the bus, and
 position or an opacity (the background) or a text (every node but a text node).
 The rule of field presence above applies to every command (D38.10).
 
+Amended by: PR-19a (D39). The table gains `unknown-parent` (a `parentId` that is
+neither the scene nor a node), `index-out-of-range` (an index outside the list
+in this document), and `id-in-use` (an ID the command would add is used or
+added twice; the details list them, sorted). `unknown-node` also covers an ID
+that names an animation, the scene, an asset, or a clip, and `unsupported-node`
+a parent without `children`, read from the node (D39.8).
+
 ### D30.9 The history belongs to the host, not to the document
 
 `createCommandBus(document)` keeps an undo and a redo stack in memory. The
@@ -267,6 +298,17 @@ validated a moment ago as well, so the failing-undo case above still has no
 natural path; PR-18 adds a property test over seeded sequences instead, and the
 concrete failing-undo test moves to PR-19, whose commands change whether a node
 exists (D38.7).
+
+Amended by: PR-19a (D39). The failing-undo case this section expected from "the
+pull request that adds a command which changes whether a node exists" has no
+natural path with the structural commands either: the history is linear and
+owned by the bus, every inverse was built from and validated with the document
+it undoes, and the structural commands are symmetric. The obligation is
+replaced by a property test with the structural commands and full undo and
+redo, a stateless test of an inverse applied to a diverged document, and the
+`busy` test of an undo during delivery (D39.6). No test of a production failure
+of `bus.undo()` exists, because no such path exists; the code order of rule 6
+stays.
 
 ### D30.12 `applyCommand` is public, and a host that keeps a bus uses `dispatch`
 
@@ -361,6 +403,10 @@ and `undo` and `redo` return a `TransactionResult`, by the owner's decision of
 2026-09-28; `dispatch` keeps its signature. The facade stays frozen, and its
 members stay non-`readonly`. The closure also holds the list of subscriptions and
 the guard of D38.8, both mutable on purpose, like the stacks.
+
+Amended by: PR-19a (D39). The results the facade returns are frozen:
+`dispatch` returns a frozen `CommandResult` with `createdIds` (D39.4, D39.9).
+No member of the facade changes.
 
 ## Alternatives considered
 

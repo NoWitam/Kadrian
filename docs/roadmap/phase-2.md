@@ -31,19 +31,20 @@ In product order:
 9. performing the same operations through AI.
 
 Where each priority lands (owner, 2026-09-28). The mapping approves no scope:
-PR-19 and PR-21 still need their own plan and decisions.
+PR-19 and PR-21 still need their own plan and decisions. (Updated by PR-19a:
+the owner split PR-19 into PR-19a and PR-19b on 2026-09-29.)
 
-| Priority                                       | Pull request                                              |
-| ---------------------------------------------- | --------------------------------------------------------- |
-| 1. add, remove, duplicate                      | PR-19                                                     |
-| 2. the other visual properties of schema `0.1` | PR-19 (PR-18 has opacity only)                            |
-| 3. text                                        | PR-18                                                     |
-| 4. the asset of an image                       | PR-19; its `fit` is a candidate for schema `0.2` in PR-21 |
-| 5. layer order                                 | PR-19                                                     |
-| 6. `startUs` and `durationUs`                  | PR-21                                                     |
-| 7. animations and keyframes                    | PR-20                                                     |
-| 8. atomic changes, undo, redo, events          | PR-18                                                     |
-| 9. the same through AI                         | PR-24                                                     |
+| Priority                                       | Pull request                                               |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| 1. add, remove, duplicate                      | PR-19a                                                     |
+| 2. the other visual properties of schema `0.1` | PR-19b (PR-18 has opacity only)                            |
+| 3. text                                        | PR-18                                                      |
+| 4. the asset of an image                       | PR-19b; its `fit` is a candidate for schema `0.2` in PR-21 |
+| 5. layer order                                 | PR-19a                                                     |
+| 6. `startUs` and `durationUs`                  | PR-21                                                      |
+| 7. animations and keyframes                    | PR-20                                                      |
+| 8. atomic changes, undo, redo, events          | PR-18                                                      |
+| 9. the same through AI                         | PR-24                                                      |
 
 Outside the first scope unless a later decision says otherwise: grouping of
 elements, multi-select, several scenes, advanced audio, Canvas/WebGL, and rich
@@ -80,7 +81,7 @@ text styles.
   `SetNodeOpacity`; `SetTextContent`. No schema change, no UI. (Updated by
   PR-18: the failing-undo test that D30.9 deferred moved to PR-19, because no
   command of PR-18 can make an undo fail; PR-18 adds a property test of the
-  history instead, D38.7.)
+  history instead, D38.7. Resolved by PR-19a: D39.6.)
 - **Packages and documents:** `@kadrion/editor-sdk`, README. (Updated by
   PR-18: `tests/app` needed no change.)
 - **Decisions:** a new ADR extending D30 (transactions, events, registry,
@@ -93,23 +94,42 @@ text styles.
 - **Impact:** none on Q14, the runtime hash, parity, or golden frames.
 - **Not included:** structural commands, schema changes, AI tools, UI.
 
-### PR-19 — Structural commands
+### PR-19a — Document structure
 
+- Status: split from PR-19 by the owner on 2026-09-29; decisions in D39
+  (accepted on 2026-09-29).
 - **Goal:** the editor can add, remove, duplicate, and reorder elements.
-- **Scope:** `AddNode`, `RemoveNode`, `DuplicateNode`, `ReorderNode`; commands
-  for the other visual properties of schema `0.1` and for the asset reference
-  of an image (Taskio priorities 2 and 4); a policy
-  for node identifiers (stable, unique in the document, never reused within a
-  history); exact inverses; checks of every reference (animations, assets);
-  the concrete failing-undo test that D30.9 deferred (moved from PR-18, D38.7).
-- **Packages and documents:** `@kadrion/editor-sdk`, tests, README.
-- **Decisions:** an ADR on node identifiers and structural commands.
+- **Scope:** `AddNode`, `RemoveNode`, `DuplicateNode`, `ReorderNode`; the node
+  identifier policy (the host supplies every ID of an added node and the ID of
+  a copy; the other IDs of a copy derive injectively from it; Kadrion
+  guarantees uniqueness in the current document and detects every collision,
+  and reuse across the history is the host's responsibility); the animations
+  and subtrees that removal, duplication, and undo carry; `createdIds` on every
+  result; property tests with the structural commands; the failing-undo
+  obligation that D30.9 deferred, resolved by D39.6; the PR-18 review nits.
+- **Packages and documents:** `@kadrion/editor-sdk`, `tests/app`, README, D39.
 - **Acceptance:** the inverse restores the document byte for byte; no command
-  leaves a dangling reference; reordering is the only way to change layer
-  order.
-- **Tests:** unit and differential tests, reference checks, mutation tests.
+  leaves a dangling reference; `ReorderNode` is the only command that moves an
+  existing node within a list.
+- **Tests:** unit and differential tests, reference checks, a property test,
+  mutation tests.
 - **Impact:** none on Q14, the runtime hash, parity, or golden frames.
-- **Not included:** new node types, nested groups, multi-select.
+- **Not included:** new node types, nested groups, reparenting, multi-select,
+  the commands of PR-19b.
+
+### PR-19b — Properties and assets
+
+- Status: described by the owner on 2026-09-29; needs its own plan, approval,
+  and ADR.
+- **Goal:** the editor can change the remaining visual properties of schema
+  `0.1` and the assets of images and texts (Taskio priorities 2 and 4).
+- **Scope:** `SetNodeScale`, `SetNodeSize`, `SetNodeColor`, `SetTextFontSize`,
+  `SetTextFont`, `SetImageAsset`, `AddAsset`, `RemoveAsset`. `SetImageAsset` and
+  `SetTextFont` point only at an existing asset of the matching type.
+  `RemoveAsset` refuses, atomically, an asset referenced anywhere in the
+  document, not only by images; its plan first inventories every asset
+  reference of schema `0.1`.
+- **Not included:** `fit` of an image (a candidate for schema `0.2`, PR-21).
 
 ### PR-20 — Authoring animations
 
@@ -223,8 +243,8 @@ option E) get an ADR when a need appears; nothing here implements them.
 - **D32:** loading a user's own JSON and showing its errors is checked by hand
   only; no test forbids time arithmetic in the playground; no record of the
   manual Chromium check exists (D32, Verification).
-- **D30.9:** the failing-undo test waits for the first structural command
-  (PR-19; moved from PR-18 by D38.7).
+- **D30.9:** closed by PR-19a: no natural failure of `bus.undo()` exists, and
+  D39.6 states what replaces the concrete test.
 - **Player:** each `load` remounts the page and seeks to 0; the Player has no
   events and plays no audio (PR-23, later).
 - **Producer and export:** no job model or cancellation; FFmpeg runs with

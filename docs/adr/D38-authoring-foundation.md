@@ -5,6 +5,9 @@
 - Supersedes: —
 - Amends: D30 (D30.1, D30.4, D30.8, D30.9, D30.13), each with an
   `Amended by: PR-18 (D38)` line; D31 receives a note
+- Amended by: PR-19a (D39) on 2026-09-29 at the owner's request, D38.1, D38.4,
+  D38.6, D38.7, and D38.8 (the registry edits the document, `createdIds`, own
+  options, and the failing-undo obligation resolved)
 - Related: D02, D09, D15, D16, D19, D30, D31, D32,
   [roadmap of phase two](../roadmap/phase-2.md) PR-18
 
@@ -56,6 +59,12 @@ add, replace, or remove a command from outside the package.
 codes: a payload that is not an object or has no string `type` is
 `invalid-argument`, a type the registry does not know is `unknown-command`, and
 fields that are not exactly those of that command are `invalid-argument`.
+
+Amended by: PR-19a (D39). An entry now edits the document, not one node; its
+inverse is returned only after the result validated, even when the entry
+prepared it while building the candidate (D39.5, D39.9). `COMMAND_TYPES`
+lists, in this order: `SetNodePosition`, `SetNodeOpacity`, `SetTextContent`,
+`AddNode`, `RemoveNode`, `DuplicateNode`, `ReorderNode`.
 
 ### D38.2 `SetNodeOpacity`
 
@@ -126,6 +135,11 @@ command type opens a transaction.
 `dispatch` is a transaction of one command that keeps its own signature,
 its `CommandResult`, and messages without a prefix.
 
+Amended by: PR-19a (D39). `TransactionResult` gains `createdIds`: the IDs the
+operation created that still exist in its result, each once, in the order they
+were last created (D39.4). An index in a structural command refers to the
+document the earlier commands left (D39.2).
+
 ### D38.5 Every command is validated in full
 
 Each command of a transaction goes through `applyCommand`, and so through the
@@ -146,6 +160,10 @@ it yields, in turn, the list that redo applies.
 `undo()` and `redo()` return a `TransactionResult` as well: `commands` is the
 entry they applied and `inverses` the entry they recorded for the other
 direction.
+
+Amended by: PR-19a (D39). The `TransactionResult` of an undo or a redo reports
+in `createdIds` what that undo or redo created: undoing a `RemoveNode` restores
+its subtree, undoing an `AddNode` creates nothing (D39.4).
 
 ### D38.7 A bounded history
 
@@ -179,6 +197,13 @@ this ADR checks that over long seeded sequences. The first command that can
 change whether a node exists (PR-19) owns a concrete failing-undo test. The bus
 has no test backdoor, and mutating a document the bus returned stays undefined
 behaviour (D30.7) rather than a way to produce one.
+
+Amended by: PR-19a (D39). The concrete failing-undo test this section left to
+PR-19 is replaced by D39.6: with the structural commands a natural failure of an
+undo or a redo is still unreachable, and a property test, a stateless test of a
+diverged inverse, and the `busy` test stand in its place. An option is an own
+property: one that only an ancestor supplies is refused as `invalid-argument`
+(D39.9).
 
 ### D38.8 Changes and listeners
 
@@ -220,6 +245,9 @@ type BusChange = {
   and `redo` fail with `busy` and change nothing. Reading the bus and
   subscribing stay allowed. The guard ends with the delivery, also when a
   listener threw.
+
+Amended by: PR-19a (D39). `BusChange` gains `createdIds`, as in
+`TransactionResult`, frozen like the rest of the change (D39.4).
 
 ### D38.9 No-ops
 

@@ -5,6 +5,9 @@
 - Supersedes: —
 - Amended by: PR-18 (D38) on 2026-09-28 at the owner's request, a note under
   Consequences (the commands of PR-18 get no tool yet)
+- Amended by: PR-19a (D39) on 2026-09-29 at the owner's request, a note under
+  Consequences (structural commands without tools; the failing-undo obligation
+  replaced)
 - Related: D09, D12, D15, D17, D19, D30,
   [specification](../spike/vertical-spike.md) §5 P4 and §9
 
@@ -239,6 +242,18 @@ and `SetTextContent`, arrived in PR-18 with their argument schemas in
 2. generating tools from the command registry of D38.1 belongs to PR-24;
 3. the concrete failing-undo test moves to PR-19, whose commands change whether
    a node exists (D38.7).
+
+Note, amended by: PR-19a (D39). The structural commands `AddNode`,
+`RemoveNode`, `DuplicateNode`, and `ReorderNode` arrived with their argument
+schemas in `editor-sdk` (D39.1), and:
+
+1. they get no AI tool yet; generating tools from the registry still belongs to
+   PR-24;
+2. the concrete failing-undo test that point 3 above moved to PR-19 is replaced
+   by what D39.6 states, because no natural failure of `bus.undo()` exists;
+3. the `CommandResult` that `executeSetNodePosition` returns from `dispatch`
+   (D31.4) now also carries `createdIds`, always empty for `SetNodePosition`,
+   and is frozen (D39.4, D39.9).
 
 ## Verification
 

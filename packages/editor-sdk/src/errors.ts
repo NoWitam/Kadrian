@@ -20,7 +20,13 @@ export type EditorErrorCode =
   | 'nothing-to-undo'
   | 'nothing-to-redo'
   /** A listener called a mutating method of the bus while a change was being delivered (D38.8). */
-  | 'busy';
+  | 'busy'
+  /** `parentId` names neither the scene nor a node of the document (D39.8). */
+  | 'unknown-parent'
+  /** The index lies outside the list it refers to in this document (D39.8). */
+  | 'index-out-of-range'
+  /** An ID the command would add is already used, or would be added twice; `details` list them sorted (D39.3). */
+  | 'id-in-use';
 
 /**
  * A typed failure of the command bus (D30.8). Check `code` instead of

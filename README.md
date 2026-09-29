@@ -319,7 +319,9 @@ const bus = createCommandBus(documentJson, {
 // delivered after the commit.
 const unsubscribe = bus.subscribe((change) => {
   player.load(change.document, resolveAsset).catch((error: unknown) => {
-    // Expected when a newer load replaces this one, e.g. after undo and redo in a row.
+    // player.load() may be rejected. It is rejected with the code `superseded`
+    // when a newer load replaces this one, e.g. after undo and redo in a row;
+    // that one is expected, and every other rejection goes to the host.
     if (!isSuperseded(error)) reportHostError(error);
   });
 });
@@ -341,20 +343,38 @@ bus.dispatchTransaction([
 bus.undo(); // undoes the whole transaction
 bus.redo();
 bus.canUndo();
+
+// Structure: add a complete node (every ID chosen by the host), duplicate it
+// under a new ID, move it, remove it. Each result names the IDs it created.
+bus.dispatch({ type: 'AddNode', parentId: 'scene-main', index: 2, node: captionNode });
+const copy = bus.dispatch({ type: 'DuplicateNode', nodeId: 'caption', newNodeId: 'caption-2' });
+copy.createdIds; // ['caption-2', 'caption-2-a-opacity'] for a caption with an opacity animation
+bus.dispatch({ type: 'ReorderNode', nodeId: 'caption-2', index: 0 }); // to the bottom layer
+bus.dispatch({ type: 'RemoveNode', nodeId: 'caption' }); // with its animations
 unsubscribe();
 ```
 
-- The commands are `SetNodePosition` (the base position, in composition
+- The field commands are `SetNodePosition` (the base position, in composition
   pixels), `SetNodeOpacity` (the base opacity, from 0 to 1), and
-  `SetTextContent` (the text of a text node, exactly as given); `COMMAND_TYPES`
-  lists them.
+  `SetTextContent` (the text of a text node, exactly as given).
+- The structural commands are `AddNode`, `RemoveNode`, `DuplicateNode`, and
+  `ReorderNode`. They work on whole subtrees: a node carries its animations,
+  and a group its children. `AddNode` takes a complete node whose IDs the host
+  chooses; `DuplicateNode` takes the ID of the copy, and the other IDs derive
+  from it: `<id>-c<i>` for the child at index i, `<id>-a-<property>` for an
+  animation of the copy, and `<id>-c<i>-a-<property>` for an animation of a
+  child. An ID already in the document is refused as `id-in-use`; never reusing
+  an ID across the history is up to the host. `COMMAND_TYPES` lists every
+  command.
+- Every result and change carries `createdIds`: the IDs the operation created
+  that still exist afterwards.
 - A refused command or transaction throws an `EditorError` and leaves the
   document and the history unchanged. A command that changes nothing writes no
   history and delivers no change.
 - A listener's error goes to `onListenerError` and never reaches the caller of
   `dispatch`. While a change is being delivered, a listener cannot change the
   document: `dispatch`, `dispatchTransaction`, `undo`, and `redo` throw `busy`.
-- The bus is defined by D30 and D38.
+- The bus is defined by D30, D38, and D39.
 
 ### 6. Let a model edit through the same bus
 

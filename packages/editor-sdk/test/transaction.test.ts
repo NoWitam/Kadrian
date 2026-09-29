@@ -231,10 +231,12 @@ describe('dispatchTransaction (D38.4)', () => {
 });
 
 describe('dispatch keeps its contract (D30.9)', () => {
-  it('returns a CommandResult and reports failures without a transaction prefix', () => {
+  it('returns a frozen CommandResult and reports failures without a transaction prefix', () => {
     const bus = createCommandBus(referenceComposition);
     const result = bus.dispatch(fade(0.5));
-    expect(Object.keys(result).sort()).toEqual(['document', 'inverse']);
+    expect(Object.keys(result).sort()).toEqual(['createdIds', 'document', 'inverse']);
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(result.createdIds).toEqual([]);
     expect(result.inverse).toEqual(fade(0.75));
     expect(errorOf(() => bus.dispatch(fade(2))).message).toBe(
       '`opacity` must be a finite number from 0 to 1, not 2.',
