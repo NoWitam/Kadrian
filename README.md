@@ -366,6 +366,15 @@ unsubscribe();
   child. An ID already in the document is refused as `id-in-use`; never reusing
   an ID across the history is up to the host. `COMMAND_TYPES` lists every
   command.
+- The property and asset commands are `SetNodeScale`, `SetNodeSize`,
+  `SetNodeColor`, `SetTextFontSize`, `SetTextFont`, `SetImageAsset`, `AddAsset`,
+  and `RemoveAsset`. Sizes are rounded like positions, and a colour is stored
+  in lower case. An image or a text may point only at an asset of the
+  document of the right type (`unknown-asset`, `asset-type-mismatch`), and an
+  asset that is still used cannot be removed (`asset-in-use`, with its users).
+- After `AddAsset`, the host must supply the new asset's bytes whenever the
+  document is loaded, even while nothing uses it; after `RemoveAsset`, a host
+  that passes asset URLs must stop passing the removed asset's URL.
 - Every result and change carries `createdIds`: the IDs the operation created
   that still exist afterwards.
 - A refused command or transaction throws an `EditorError` and leaves the
@@ -374,7 +383,7 @@ unsubscribe();
 - A listener's error goes to `onListenerError` and never reaches the caller of
   `dispatch`. While a change is being delivered, a listener cannot change the
   document: `dispatch`, `dispatchTransaction`, `undo`, and `redo` throw `busy`.
-- The bus is defined by D30, D38, and D39.
+- The bus is defined by D30, D38, D39, and D40.
 
 ### 6. Let a model edit through the same bus
 

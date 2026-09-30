@@ -44,10 +44,15 @@ export function executeCommand(document: ValidatedComposition, command: Command)
   }
   const result = validateComposition(edit.document);
   if (!result.ok) {
-    throw new EditorError(
-      'invalid-result',
-      `The command \`${parsed.type}\` would produce a document the schema rejects.`,
-      result.errors.map(({ path, message }) => `${path}: ${message}`),
+    // An entry may know what the errors mean for its command, such as the uses of
+    // a removed asset (D40.4); every other failure is `invalid-result`.
+    throw (
+      edit.refine?.(result.errors) ??
+      new EditorError(
+        'invalid-result',
+        `The command \`${parsed.type}\` would produce a document the schema rejects.`,
+        result.errors.map(({ path, message }) => `${path}: ${message}`),
+      )
     );
   }
   return {

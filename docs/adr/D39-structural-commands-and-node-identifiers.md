@@ -6,6 +6,8 @@
 - Amends: D30 (D30.1, D30.4, D30.5, D30.8, D30.9, D30.13), D38 (D38.1, D38.4,
   D38.6, D38.7, D38.8), each with an `Amended by: PR-19a (D39)` line; D31
   receives a note
+- Amended by: PR-19b (D40) on 2026-09-29 at the owner's request, D39.4 and D39.9
+  (asset IDs in `createdIds`; the registry and its `refine` step)
 - Related: D02, D05, D09, D16, D23, D27, D30, D31, D36, D38,
   [roadmap of phase two](../roadmap/phase-2.md) PR-19a and PR-19b
 
@@ -150,6 +152,10 @@ present and frozen, empty when nothing was created.
 - An undo or a redo reports what it created itself: undoing a `RemoveNode`
   reports the restored subtree, undoing an `AddNode` reports nothing.
 
+Amended by: PR-19b (D40). An asset's ID counts like a node's: `AddAsset`
+creates it, `RemoveAsset` removes it, and the net rule above applies to them in
+the same list (D40.3).
+
 ### D39.5 Snapshots and inverses
 
 - An inverse is read from the concrete document the command is applied to, not
@@ -265,6 +271,12 @@ failure decides the code:
 - `CommandResult` is frozen like `TransactionResult`.
 - An option of the bus is an own property. An option that only an ancestor
   supplies is refused as `invalid-argument` instead of being read silently.
+
+Amended by: PR-19b (D40). `COMMAND_TYPES` continues with the eight commands of
+D40.6. An entry may also say what a failed validation of its candidate means for
+its command, through a `refine` step that `executeCommand` asks before it
+reports `invalid-result`; only `RemoveAsset` has one, which turns the uses of
+the removed asset into `asset-in-use` (D40.4).
 
 ### D39.10 What this ADR does not decide
 

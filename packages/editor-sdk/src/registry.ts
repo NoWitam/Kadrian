@@ -14,28 +14,40 @@ import {
   copyNode,
   deepFreeze,
   isPlainObject,
+  parseAddAsset,
   parseAddNode,
   parseDuplicateNode,
+  parseRemoveAsset,
   parseRemoveNode,
   parseReorderNode,
+  parseSetImageAsset,
+  parseSetNodeColor,
   parseSetNodeOpacity,
   parseSetNodePosition,
+  parseSetNodeScale,
+  parseSetNodeSize,
   parseSetTextContent,
+  parseSetTextFont,
+  parseSetTextFontSize,
   type Command,
   type CommandPosition,
   type NodeData,
 } from './commands.js';
 import {
+  assetUsers,
+  assetsOf,
   findNode,
   findParent,
   idsIn,
   isObject,
   locateNode,
+  replaceAssets,
   replaceList,
   replaceNode,
   subtreeIds,
   type DocumentObject,
   type NodeLocation,
+  type ValidationFinding,
 } from './document.js';
 import { EditorError } from './errors.js';
 
@@ -55,6 +67,12 @@ export interface DocumentEdit {
   readonly createdIds: readonly string[];
   /** The IDs this command removed, with the whole subtree (D39.4). */
   readonly removedIds: readonly string[];
+  /**
+   * Reads the errors of a failed validation of `document` and returns the
+   * failure they mean for this command, or `null` for `invalid-result`. Only
+   * `RemoveAsset` has one: the uses of the removed asset (D40.4).
+   */
+  readonly refine?: (errors: readonly ValidationFinding[]) => EditorError | null;
 }
 
 /** How one command type reads its fields and edits a document. */
@@ -185,6 +203,51 @@ function duplicated(source: DocumentObject, newNodeId: string): NodeData {
       return renamedAnimations({ ...child, id: childId }, childId);
     }),
   });
+}
+
+/** The number a node holds in `field`, or `unsupported-node` (D30.8). */
+function numberField(node: DocumentObject, field: string, nodeId: string): number {
+  const value: unknown = node[field];
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new EditorError('unsupported-node', `The node \`${nodeId}\` has no ${field}.`);
+  }
+  return value;
+}
+
+/** The string a node holds in `field`, or `unsupported-node` (D30.8). */
+function stringField(node: DocumentObject, field: string, nodeId: string): string {
+  const value: unknown = node[field];
+  if (typeof value !== 'string') {
+    throw new EditorError('unsupported-node', `The node \`${nodeId}\` has no ${field}.`);
+  }
+  return value;
+}
+
+/** Where an asset with that ID is in `assets`, looked up there alone (D40.2), or `null`. */
+function locateAsset(
+  document: DocumentObject,
+  assetId: string,
+): { readonly asset: DocumentObject; readonly index: number } | null {
+  const assets = assetsOf(document);
+  const index = assets.findIndex((asset) => isObject(asset) && asset['id'] === assetId);
+  const asset = assets[index];
+  return isObject(asset) ? { asset, index } : null;
+}
+
+function unknownAsset(assetId: string): EditorError {
+  return new EditorError('unknown-asset', `The document declares no asset \`${assetId}\`.`);
+}
+
+/** Checks that an asset exists in `assets` and is of the type the field expects (D40.2). */
+function requireAsset(document: DocumentObject, assetId: string, type: string): void {
+  const found = locateAsset(document, assetId);
+  if (found === null) throw unknownAsset(assetId);
+  if (found.asset['type'] !== type) {
+    throw new EditorError(
+      'asset-type-mismatch',
+      `The asset \`${assetId}\` is of type ${String(found.asset['type'])}, not ${type}.`,
+    );
+  }
 }
 
 // The type argument makes the literal itself a `Definitions`: a missing entry and
@@ -353,6 +416,135 @@ const DEFINITIONS = deepFreeze<Definitions>({
           parseReorderNode({ type: 'ReorderNode', nodeId: command.nodeId, index: location.index }),
         createdIds: [],
         removedIds: [],
+      };
+    },
+  },
+  SetNodeScale: {
+    parse: parseSetNodeScale,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const scale = node['scale'];
+        if (!isObject(scale)) {
+          throw new EditorError('unsupported-node', `The node \`${command.nodeId}\` has no scale.`);
+        }
+        const previous = {
+          x: numberField(scale, 'x', command.nodeId),
+          y: numberField(scale, 'y', command.nodeId),
+        };
+        if (previous.x === command.scale.x && previous.y === command.scale.y) return null;
+        return {
+          node: { ...node, scale: { ...scale, x: command.scale.x, y: command.scale.y } },
+          inverse: parseSetNodeScale({ ...command, scale: previous }),
+        };
+      }),
+  },
+  SetNodeSize: {
+    parse: parseSetNodeSize,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const width = numberField(node, 'width', command.nodeId);
+        const height = numberField(node, 'height', command.nodeId);
+        if (width === command.width && height === command.height) return null;
+        return {
+          node: { ...node, width: command.width, height: command.height },
+          inverse: parseSetNodeSize({ ...command, width, height }),
+        };
+      }),
+  },
+  SetNodeColor: {
+    parse: parseSetNodeColor,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const color = stringField(node, 'color', command.nodeId);
+        // The parser lowercased the colour: the comparison is after it (D40.1).
+        if (color === command.color) return null;
+        return {
+          node: { ...node, color: command.color },
+          inverse: parseSetNodeColor({ ...command, color }),
+        };
+      }),
+  },
+  SetTextFontSize: {
+    parse: parseSetTextFontSize,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const fontSize = numberField(node, 'fontSize', command.nodeId);
+        if (fontSize === command.fontSize) return null;
+        return {
+          node: { ...node, fontSize: command.fontSize },
+          inverse: parseSetTextFontSize({ ...command, fontSize }),
+        };
+      }),
+  },
+  SetTextFont: {
+    parse: parseSetTextFont,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const fontAssetId = stringField(node, 'fontAssetId', command.nodeId);
+        requireAsset(document, command.fontAssetId, 'font');
+        if (fontAssetId === command.fontAssetId) return null;
+        return {
+          node: { ...node, fontAssetId: command.fontAssetId },
+          inverse: parseSetTextFont({ ...command, fontAssetId }),
+        };
+      }),
+  },
+  SetImageAsset: {
+    parse: parseSetImageAsset,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const assetId = stringField(node, 'assetId', command.nodeId);
+        requireAsset(document, command.assetId, 'image');
+        if (assetId === command.assetId) return null;
+        return {
+          node: { ...node, assetId: command.assetId },
+          inverse: parseSetImageAsset({ ...command, assetId }),
+        };
+      }),
+  },
+  AddAsset: {
+    parse: parseAddAsset,
+    edit(document, command) {
+      const assets = assetsOf(document);
+      if (command.index > assets.length) {
+        throw outOfRange(command.index, assets.length, 'the assets');
+      }
+      const createdIds = [command.asset.id];
+      refuseTaken(document, createdIds);
+      return {
+        document: replaceAssets(document, inserted(assets, command.index, command.asset)),
+        invert: () => parseRemoveAsset({ type: 'RemoveAsset', assetId: command.asset.id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveAsset: {
+    parse: parseRemoveAsset,
+    edit(document, command) {
+      const found = locateAsset(document, command.assetId);
+      if (found === null) throw unknownAsset(command.assetId);
+      // A frozen copy of the asset at its index, so undo restores the same bytes (D40.3).
+      const inverse = parseAddAsset({ type: 'AddAsset', asset: found.asset, index: found.index });
+      const candidate = replaceAssets(
+        document,
+        assetsOf(document).filter((_, at) => at !== found.index),
+      );
+      return {
+        document: candidate,
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [command.assetId],
+        // The validator finds every use; no list of reference fields here (D40.4).
+        refine(errors) {
+          const users = assetUsers(candidate, errors, command.assetId);
+          if (users === null) return null;
+          return new EditorError(
+            'asset-in-use',
+            `The asset \`${command.assetId}\` is still used; nothing was removed.`,
+            users,
+          );
+        },
       };
     },
   },

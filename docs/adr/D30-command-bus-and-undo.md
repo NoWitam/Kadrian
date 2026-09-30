@@ -13,6 +13,8 @@
 - Amended by: PR-19a (D39) on 2026-09-29 at the owner's request, D30.1, D30.4,
   D30.5, D30.8, D30.9, and D30.13 (structural commands, `createdIds`, and the
   failing-undo obligation replaced)
+- Amended by: PR-19b (D40) on 2026-09-29 at the owner's request, D30.8
+  (the error codes of the asset commands)
 - Related: D02, D09, D12, D15, D16, D17, D19, D24, D25,
   [specification](../spike/vertical-spike.md) §5 P3, §5 P4, §9, and open
   question Q16
@@ -251,6 +253,13 @@ in this document), and `id-in-use` (an ID the command would add is used or
 added twice; the details list them, sorted). `unknown-node` also covers an ID
 that names an animation, the scene, an asset, or a clip, and `unsupported-node`
 a parent without `children`, read from the node (D39.8).
+
+Amended by: PR-19b (D40). The table gains `unknown-asset` (the ID is not an
+asset of the document), `asset-type-mismatch` (the asset is not of the type the
+field expects), and `asset-in-use` (an asset that is still used cannot be
+removed; the details name its users). `unsupported-node` also covers a node
+without the scale, size, colour, font size, font, or image asset a command of
+D40 edits (D40.1, D40.2).
 
 ### D30.9 The history belongs to the host, not to the document
 

@@ -119,8 +119,8 @@ text styles.
 
 ### PR-19b — Properties and assets
 
-- Status: described by the owner on 2026-09-29; needs its own plan, approval,
-  and ADR.
+- Status: planned and approved by the owner on 2026-09-29; decisions in D40
+  (accepted on 2026-09-29).
 - **Goal:** the editor can change the remaining visual properties of schema
   `0.1` and the assets of images and texts (Taskio priorities 2 and 4).
 - **Scope:** `SetNodeScale`, `SetNodeSize`, `SetNodeColor`, `SetTextFontSize`,
@@ -128,7 +128,8 @@ text styles.
   `SetTextFont` point only at an existing asset of the matching type.
   `RemoveAsset` refuses, atomically, an asset referenced anywhere in the
   document, not only by images; its plan first inventories every asset
-  reference of schema `0.1`.
+  reference of schema `0.1` (D40, Context), and the uses are found by the
+  validator rather than by a list of fields (D40.4).
 - **Not included:** `fit` of an image (a candidate for schema `0.2`, PR-21).
 
 ### PR-20 — Authoring animations

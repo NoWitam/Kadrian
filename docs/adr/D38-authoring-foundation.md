@@ -8,6 +8,8 @@
 - Amended by: PR-19a (D39) on 2026-09-29 at the owner's request, D38.1, D38.4,
   D38.6, D38.7, and D38.8 (the registry edits the document, `createdIds`, own
   options, and the failing-undo obligation resolved)
+- Amended by: PR-19b (D40) on 2026-09-29 at the owner's request, D38.1
+  (the order of `COMMAND_TYPES`)
 - Related: D02, D09, D15, D16, D19, D30, D31, D32,
   [roadmap of phase two](../roadmap/phase-2.md) PR-18
 
@@ -65,6 +67,10 @@ inverse is returned only after the result validated, even when the entry
 prepared it while building the candidate (D39.5, D39.9). `COMMAND_TYPES`
 lists, in this order: `SetNodePosition`, `SetNodeOpacity`, `SetTextContent`,
 `AddNode`, `RemoveNode`, `DuplicateNode`, `ReorderNode`.
+
+Amended by: PR-19b (D40). `COMMAND_TYPES` continues, after `ReorderNode`,
+with `SetNodeScale`, `SetNodeSize`, `SetNodeColor`, `SetTextFontSize`,
+`SetTextFont`, `SetImageAsset`, `AddAsset`, `RemoveAsset` (D40.6).
 
 ### D38.2 `SetNodeOpacity`
 

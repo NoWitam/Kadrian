@@ -7,7 +7,7 @@
  * (D31.2). `parseCommand` (in `registry.ts`) is the only way a command comes
  * into existence; the parsers here read the fields of one command type.
  */
-import { compositionSchema } from '@kadrion/schema';
+import { compositionSchema, type Asset } from '@kadrion/schema';
 
 import { EditorError } from './errors.js';
 
@@ -104,6 +104,111 @@ export interface ReorderNodeCommand extends ReorderNodeArguments {
   readonly type: 'ReorderNode';
 }
 
+/** A scale as the document stores it: two factors from 0 to 1000 (D15, D40.1). */
+export interface CommandScale {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** What a caller states for `SetNodeScale` (D40.1). */
+export interface SetNodeScaleArguments {
+  readonly nodeId: string;
+  readonly scale: CommandScale;
+}
+
+/** Replaces the node's base scale; a scale animation multiplies it (D16.6). */
+export interface SetNodeScaleCommand extends SetNodeScaleArguments {
+  readonly type: 'SetNodeScale';
+}
+
+/** What a caller states for `SetNodeSize` (D40.1). */
+export interface SetNodeSizeArguments {
+  readonly nodeId: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Replaces the size of an image or a Custom HTML element, in composition pixels (D40.1). */
+export interface SetNodeSizeCommand extends SetNodeSizeArguments {
+  readonly type: 'SetNodeSize';
+}
+
+/** What a caller states for `SetNodeColor` (D40.1). */
+export interface SetNodeColorArguments {
+  readonly nodeId: string;
+  readonly color: string;
+}
+
+/** Replaces the colour of a text or a background, stored in lower case (D40.1). */
+export interface SetNodeColorCommand extends SetNodeColorArguments {
+  readonly type: 'SetNodeColor';
+}
+
+/** What a caller states for `SetTextFontSize` (D40.1). */
+export interface SetTextFontSizeArguments {
+  readonly nodeId: string;
+  readonly fontSize: number;
+}
+
+/** Replaces the font size of a text, in composition pixels (D40.1). */
+export interface SetTextFontSizeCommand extends SetTextFontSizeArguments {
+  readonly type: 'SetTextFontSize';
+}
+
+/** What a caller states for `SetTextFont` (D40.2). */
+export interface SetTextFontArguments {
+  readonly nodeId: string;
+  readonly fontAssetId: string;
+}
+
+/** Points a text at another font asset of the document (D40.2). */
+export interface SetTextFontCommand extends SetTextFontArguments {
+  readonly type: 'SetTextFont';
+}
+
+/** What a caller states for `SetImageAsset` (D40.2). */
+export interface SetImageAssetArguments {
+  readonly nodeId: string;
+  readonly assetId: string;
+}
+
+/** Points an image at another image asset of the document (D40.2). */
+export interface SetImageAssetCommand extends SetImageAssetArguments {
+  readonly type: 'SetImageAsset';
+}
+
+/** The type of an asset, as the document's schema lists it (D40.3). */
+export type AssetType = Asset['type'];
+
+/** An asset as a command carries it: the document's own shape, copied and frozen (D40.3). */
+export interface AssetData {
+  readonly id: string;
+  readonly type: AssetType;
+  readonly contentHash: string;
+}
+
+/** What a caller states for `AddAsset` (D40.3). */
+export interface AddAssetArguments {
+  readonly asset: AssetData;
+  /** The asset's index in `assets` after the insertion, from 0 to the length. */
+  readonly index: number;
+}
+
+/** Declares an asset, pinned by its content hash (D14, D40.3). */
+export interface AddAssetCommand extends AddAssetArguments {
+  readonly type: 'AddAsset';
+}
+
+/** What a caller states for `RemoveAsset` (D40.3). */
+export interface RemoveAssetArguments {
+  readonly assetId: string;
+}
+
+/** Removes an asset that nothing uses (D40.3, D40.4). */
+export interface RemoveAssetCommand extends RemoveAssetArguments {
+  readonly type: 'RemoveAsset';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -111,12 +216,21 @@ export type Command =
   | AddNodeCommand
   | RemoveNodeCommand
   | DuplicateNodeCommand
-  | ReorderNodeCommand;
+  | ReorderNodeCommand
+  | SetNodeScaleCommand
+  | SetNodeSizeCommand
+  | SetNodeColorCommand
+  | SetTextFontSizeCommand
+  | SetTextFontCommand
+  | SetImageAssetCommand
+  | AddAssetCommand
+  | RemoveAssetCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
   | { readonly type: 'string'; readonly description: string; readonly minLength: number }
   | { readonly type: 'string'; readonly description: string; readonly pattern: string }
+  | { readonly type: 'string'; readonly description: string; readonly enum: readonly string[] }
   | { readonly type: 'string'; readonly description: string }
   | { readonly type: 'number'; readonly description: string }
   | {
@@ -182,6 +296,14 @@ export interface AddNodeArgumentsSchema {
 export type RemoveNodeArgumentsSchema = ClosedObjectSchema<keyof RemoveNodeArguments>;
 export type DuplicateNodeArgumentsSchema = ClosedObjectSchema<keyof DuplicateNodeArguments>;
 export type ReorderNodeArgumentsSchema = ClosedObjectSchema<keyof ReorderNodeArguments>;
+export type SetNodeScaleArgumentsSchema = ClosedObjectSchema<keyof SetNodeScaleArguments>;
+export type SetNodeSizeArgumentsSchema = ClosedObjectSchema<keyof SetNodeSizeArguments>;
+export type SetNodeColorArgumentsSchema = ClosedObjectSchema<keyof SetNodeColorArguments>;
+export type SetTextFontSizeArgumentsSchema = ClosedObjectSchema<keyof SetTextFontSizeArguments>;
+export type SetTextFontArgumentsSchema = ClosedObjectSchema<keyof SetTextFontArguments>;
+export type SetImageAssetArgumentsSchema = ClosedObjectSchema<keyof SetImageAssetArguments>;
+export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
+export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
 
 /** Freezes a JSON value and everything in it, so no caller can edit a shared value. */
 export function deepFreeze<T>(value: T): T {
@@ -292,6 +414,17 @@ const NODE_ID = 'The stable ID of the node.';
 
 const INDEX_BOUNDS = { minimum: 0, maximum: Number.MAX_SAFE_INTEGER } as const;
 
+/** The document's own shape of an asset, read from its schema (D16.3, D30.8, D40.3). */
+const ASSET = compositionSchema.properties.assets.items.properties;
+const ASSET_TYPES: readonly string[] = ASSET.type.enum;
+const HASH_PATTERN: string = ASSET.contentHash.pattern;
+
+/**
+ * A colour as a command accepts it: six hexadecimal digits after `#`, in either
+ * case. The document stores lower case only; the parser lowercases (D40.1).
+ */
+const COLOR_INPUT = '^#[0-9A-Fa-f]{6}$';
+
 /**
  * The JSON Schema of the arguments of `AddNode` (D39.1). `node` is an object and
  * nothing more: its shape is the document's schema, which the full validation
@@ -365,6 +498,184 @@ export const reorderNodeArgumentsSchema: ReorderNodeArgumentsSchema = deepFreeze
     },
   },
   required: ['nodeId', 'index'],
+  additionalProperties: false,
+});
+
+const PIXELS =
+  'in composition pixels. A fraction is rounded to an integer, halves towards +Infinity, and -0 becomes 0; the document takes 1 to 1 000 000, and a rounded value outside that range is refused.';
+
+const SCALE_FACTOR = {
+  type: 'number',
+  description: 'A factor from 0 to 1000 inclusive, kept as it is; -0 becomes 0.',
+  minimum: 0,
+  maximum: 1000,
+} as const;
+
+/** The JSON Schema of the arguments of `SetNodeScale` (D40.1). */
+export const setNodeScaleArgumentsSchema: SetNodeScaleArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: "Sets one node's base scale.",
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} A node without a scale, such as the background, is refused.`,
+      minLength: 1,
+    },
+    scale: {
+      type: 'object',
+      description:
+        "The node's new base scale about its own origin. A scale animation multiplies it.",
+      properties: { x: SCALE_FACTOR, y: SCALE_FACTOR },
+      required: ['x', 'y'],
+      additionalProperties: false,
+    },
+  },
+  required: ['nodeId', 'scale'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetNodeSize` (D40.1): numbers, since the parser rounds. */
+export const setNodeSizeArgumentsSchema: SetNodeSizeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets the size of an image or a Custom HTML element.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only images and Custom HTML elements have a size.`,
+      minLength: 1,
+    },
+    width: { type: 'number', description: `The width, ${PIXELS}` },
+    height: { type: 'number', description: `The height, ${PIXELS}` },
+  },
+  required: ['nodeId', 'width', 'height'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetNodeColor` (D40.1): either case, since the parser lowercases. */
+export const setNodeColorArgumentsSchema: SetNodeColorArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets the colour of a text or a background.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only texts and backgrounds have a colour.`,
+      minLength: 1,
+    },
+    color: {
+      type: 'string',
+      description:
+        'An sRGB colour as `#` and six hexadecimal digits, in either case; it is stored in lower case. Short forms, names, and alpha are refused.',
+      pattern: COLOR_INPUT,
+    },
+  },
+  required: ['nodeId', 'color'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetTextFontSize` (D40.1): a number, since the parser rounds. */
+export const setTextFontSizeArgumentsSchema: SetTextFontSizeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets the font size of a text.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only texts have a font size.`,
+      minLength: 1,
+    },
+    fontSize: { type: 'number', description: `The font size, ${PIXELS}` },
+  },
+  required: ['nodeId', 'fontSize'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetTextFont` (D40.2). */
+export const setTextFontArgumentsSchema: SetTextFontArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Points a text at another font asset of the document.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only texts have a font.`,
+      minLength: 1,
+    },
+    fontAssetId: {
+      type: 'string',
+      description: 'The ID of a font asset the document declares.',
+      minLength: 1,
+    },
+  },
+  required: ['nodeId', 'fontAssetId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetImageAsset` (D40.2). */
+export const setImageAssetArgumentsSchema: SetImageAssetArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Points an image at another image asset of the document; its size stays.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only images have an image asset.`,
+      minLength: 1,
+    },
+    assetId: {
+      type: 'string',
+      description: 'The ID of an image asset the document declares.',
+      minLength: 1,
+    },
+  },
+  required: ['nodeId', 'assetId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `AddAsset` (D40.3): the asset in the document's own form. */
+export const addAssetArgumentsSchema: AddAssetArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Declares an asset, pinned by the hash of its exact bytes. The host must then supply those bytes whenever the document is loaded, even while nothing uses the asset.',
+  properties: {
+    asset: {
+      type: 'object',
+      description: 'The asset as the document stores it.',
+      properties: {
+        id: {
+          type: 'string',
+          description: 'The ID of the asset, unused in the document.',
+          pattern: ID_PATTERN,
+        },
+        type: { type: 'string', description: 'The kind of the asset.', enum: ASSET_TYPES },
+        contentHash: {
+          type: 'string',
+          description: 'The algorithm, a colon, and the lower-case hex digest of the exact bytes.',
+          pattern: HASH_PATTERN,
+        },
+      },
+      required: ['id', 'type', 'contentHash'],
+      additionalProperties: false,
+    },
+    index: {
+      type: 'integer',
+      description:
+        "The asset's index in the document's assets after the insertion, from 0 to their number.",
+      ...INDEX_BOUNDS,
+    },
+  },
+  required: ['asset', 'index'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveAsset` (D40.3). */
+export const removeAssetArgumentsSchema: RemoveAssetArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Removes an asset that nothing uses; an asset in use is refused with its users.',
+  properties: {
+    assetId: {
+      type: 'string',
+      description: 'The ID of an asset the document declares.',
+      minLength: 1,
+    },
+  },
+  required: ['assetId'],
   additionalProperties: false,
 });
 
@@ -586,4 +897,141 @@ export function parseReorderNode(value: unknown): ReorderNodeCommand {
 /** A mutable copy of a node of a validated document, for a command to rename (D39.3). */
 export function copyNode(node: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return copyData(node, '`node`', []) as Record<string, unknown>;
+}
+
+/** A scale factor as the document takes it: finite, from 0 to 1000; -0 becomes 0 (D40.1). */
+function scaleFactor(value: unknown, what: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1000) {
+    throw new EditorError(
+      'invalid-argument',
+      `${what} must be a finite number from 0 to 1000, not ${typeof value === 'number' ? String(value) : typeof value}.`,
+    );
+  }
+  return value === 0 ? 0 : value;
+}
+
+/** The fields of a `SetNodeScale` (D40.1): both factors, checked, never rounded. */
+export function parseSetNodeScale(value: unknown): SetNodeScaleCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'scale'], 'The command `SetNodeScale`');
+  const nodeId = nodeIdOf(fields);
+  const scale = fieldsOf(fields['scale'], ['x', 'y'], '`scale`');
+  return Object.freeze({
+    type: 'SetNodeScale',
+    nodeId,
+    scale: Object.freeze({
+      x: scaleFactor(scale['x'], '`scale`.x'),
+      y: scaleFactor(scale['y'], '`scale`.y'),
+    }),
+  });
+}
+
+/** The fields of a `SetNodeSize` (D40.1): rounded like a position (D15), not clamped. */
+export function parseSetNodeSize(value: unknown): SetNodeSizeCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'width', 'height'],
+    'The command `SetNodeSize`',
+  );
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetNodeSize',
+    nodeId,
+    width: integerPixels(fields['width'], '`width`'),
+    height: integerPixels(fields['height'], '`height`'),
+  });
+}
+
+/** The fields of a `SetNodeColor` (D40.1): six hex digits in either case, stored in lower case. */
+export function parseSetNodeColor(value: unknown): SetNodeColorCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'color'], 'The command `SetNodeColor`');
+  const nodeId = nodeIdOf(fields);
+  const color: unknown = fields['color'];
+  if (typeof color !== 'string' || !new RegExp(COLOR_INPUT).test(color)) {
+    throw new EditorError(
+      'invalid-argument',
+      '`color` must be `#` and six hexadecimal digits, such as #1a2b3c.',
+    );
+  }
+  return Object.freeze({ type: 'SetNodeColor', nodeId, color: color.toLowerCase() });
+}
+
+/** The fields of a `SetTextFontSize` (D40.1): rounded like a position (D15), not clamped. */
+export function parseSetTextFontSize(value: unknown): SetTextFontSizeCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'fontSize'], 'The command `SetTextFontSize`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetTextFontSize',
+    nodeId,
+    fontSize: integerPixels(fields['fontSize'], '`fontSize`'),
+  });
+}
+
+/** The fields of a `SetTextFont` (D40.2): the asset is looked up when the command applies. */
+export function parseSetTextFont(value: unknown): SetTextFontCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'fontAssetId'], 'The command `SetTextFont`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetTextFont',
+    nodeId,
+    fontAssetId: nodeIdOf(fields, 'fontAssetId'),
+  });
+}
+
+/** The fields of a `SetImageAsset` (D40.2): the asset is looked up when the command applies. */
+export function parseSetImageAsset(value: unknown): SetImageAssetCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'assetId'], 'The command `SetImageAsset`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({ type: 'SetImageAsset', nodeId, assetId: nodeIdOf(fields, 'assetId') });
+}
+
+/**
+ * Checks, field by field, that a copied asset has the document's own form — an
+ * ID, a type, and a hash as the schema states them — and tells the compiler so;
+ * the check at run time is what makes the narrower type true (D40.3).
+ */
+function assertAsset(
+  asset: Readonly<Record<string, unknown>>,
+): asserts asset is Readonly<Record<string, unknown>> & AssetData {
+  const id: unknown = asset['id'];
+  const type: unknown = asset['type'];
+  const contentHash: unknown = asset['contentHash'];
+  if (typeof id !== 'string' || !new RegExp(ID_PATTERN).test(id)) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`asset\`.id must be an ID of the form ${ID_PATTERN}.`,
+    );
+  }
+  if (typeof type !== 'string' || !ASSET_TYPES.includes(type)) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`asset\`.type must be one of ${ASSET_TYPES.join(', ')}.`,
+    );
+  }
+  if (typeof contentHash !== 'string' || !new RegExp(HASH_PATTERN).test(contentHash)) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`asset\`.contentHash must be of the form ${HASH_PATTERN}.`,
+    );
+  }
+}
+
+/**
+ * The fields of an `AddAsset` (D40.3): an asset of the document's own form and an
+ * index. The asset is copied with its keys in their order, each value read once,
+ * then checked and frozen, so undoing its removal restores the same bytes and
+ * the caller's object never reaches the history.
+ */
+export function parseAddAsset(value: unknown): AddAssetCommand {
+  const fields = fieldsOf(value, ['type', 'asset', 'index'], 'The command `AddAsset`');
+  const given = fieldsOf(fields['asset'], ['id', 'type', 'contentHash'], '`asset`');
+  const copy = Object.fromEntries(Object.keys(given).map((key) => [key, given[key]]));
+  assertAsset(copy);
+  const index = indexOf(fields);
+  return Object.freeze({ type: 'AddAsset', asset: Object.freeze(copy), index });
+}
+
+/** The fields of a `RemoveAsset` (D40.3). */
+export function parseRemoveAsset(value: unknown): RemoveAssetCommand {
+  const fields = fieldsOf(value, ['type', 'assetId'], 'The command `RemoveAsset`');
+  return Object.freeze({ type: 'RemoveAsset', assetId: nodeIdOf(fields, 'assetId') });
 }

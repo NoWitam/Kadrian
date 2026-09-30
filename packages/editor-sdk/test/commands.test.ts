@@ -25,7 +25,7 @@ function parsePosition(value: unknown): SetNodePositionCommand {
 }
 
 describe('parseCommand (D30.3)', () => {
-  it('knows exactly the commands of its closed registry, in a fixed order (D38.1, D39.9)', () => {
+  it('knows exactly the commands of its closed registry, in a fixed order (D38.1, D39.9, D40.6)', () => {
     expect(COMMAND_TYPES).toEqual([
       'SetNodePosition',
       'SetNodeOpacity',
@@ -34,6 +34,14 @@ describe('parseCommand (D30.3)', () => {
       'RemoveNode',
       'DuplicateNode',
       'ReorderNode',
+      'SetNodeScale',
+      'SetNodeSize',
+      'SetNodeColor',
+      'SetTextFontSize',
+      'SetTextFont',
+      'SetImageAsset',
+      'AddAsset',
+      'RemoveAsset',
     ]);
   });
 

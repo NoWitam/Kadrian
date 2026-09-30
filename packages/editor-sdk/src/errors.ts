@@ -26,7 +26,13 @@ export type EditorErrorCode =
   /** The index lies outside the list it refers to in this document (D39.8). */
   | 'index-out-of-range'
   /** An ID the command would add is already used, or would be added twice; `details` list them sorted (D39.3). */
-  | 'id-in-use';
+  | 'id-in-use'
+  /** No asset of the document carries that ID; nodes, clips, and the scene are not assets (D40.2). */
+  | 'unknown-asset'
+  /** The asset exists but is not of the type the field expects (D40.2). */
+  | 'asset-type-mismatch'
+  /** The asset is still used; `details` list the IDs of its users, sorted (D40.4). */
+  | 'asset-in-use';
 
 /**
  * A typed failure of the command bus (D30.8). Check `code` instead of

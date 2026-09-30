@@ -225,3 +225,70 @@ export function replaceNode(
   });
   return differs(edited, scenes) ? { ...root, scenes: edited } : root;
 }
+
+/** The document's assets, in their order. */
+export function assetsOf(document: object): readonly unknown[] {
+  return asArray(fieldsOf(document)['assets']) ?? [];
+}
+
+/** The document with `assets` in place of its assets; everything else keeps its identity (D30.7). */
+export function replaceAssets(document: object, assets: readonly unknown[]): DocumentObject {
+  return { ...fieldsOf(document), assets };
+}
+
+/** The reference tokens of an RFC 6901 JSON Pointer, or `null` when it is not one. */
+function tokensOf(path: string): string[] | null {
+  if (!path.startsWith('/')) return null;
+  return path
+    .slice(1)
+    .split('/')
+    .map((token) => token.replaceAll('~1', '/').replaceAll('~0', '~'));
+}
+
+/** The object that holds the field a pointer names, and the field's value, or `null`. */
+function fieldAt(document: object, path: string): { owner: DocumentObject; value: unknown } | null {
+  const tokens = tokensOf(path);
+  const name = tokens?.at(-1);
+  if (tokens === null || name === undefined) return null;
+  let current: unknown = document;
+  for (const token of tokens.slice(0, -1)) {
+    if (Array.isArray(current)) current = (current as readonly unknown[])[Number(token)];
+    else if (isObject(current) && Object.prototype.hasOwnProperty.call(current, token)) {
+      current = current[token];
+    } else return null;
+  }
+  if (!isObject(current) || !Object.prototype.hasOwnProperty.call(current, name)) return null;
+  return { owner: current, value: current[name] };
+}
+
+/** The structured part of a validation error that this module reads: its code and its path. */
+export interface ValidationFinding {
+  readonly code: string;
+  readonly path: string;
+}
+
+/**
+ * The users of an asset that a document no longer declares, read from the
+ * validation of that document alone (D40.4): each error of the code
+ * `unresolved-asset-reference` whose path holds `assetId` names a user, the
+ * object that holds the field, by its `id`. Returns the users' IDs, each once and
+ * sorted, when every error is such a use; `null` when any error is something
+ * else, or a use whose holder has no ID. Knows no field name: a reference field
+ * the validator checks is found whatever it is called.
+ */
+export function assetUsers(
+  document: object,
+  errors: readonly ValidationFinding[],
+  assetId: string,
+): readonly string[] | null {
+  const users = new Set<string>();
+  for (const { code, path } of errors) {
+    if (code !== 'unresolved-asset-reference') return null;
+    const field = fieldAt(document, path);
+    if (field?.value !== assetId) return null;
+    const user = field.owner['id'];
+    if (typeof user !== 'string') return null;
+    users.add(user);
+  }
+  return users.size === 0 ? null : [...users].sort();
+}
