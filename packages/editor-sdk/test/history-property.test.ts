@@ -11,8 +11,10 @@
  * its own copy of the document and decides from that copy alone whether the
  * command fails and with which code (a malformed payload, a missing node or
  * parent, a field the node lacks, a value out of range, an index past the list,
- * an ID in use, a node the parent does not take), changes nothing, or changes
- * the document — and which IDs the operation, its undo, and its redo create.
+ * an ID in use, a node the parent does not take, a missing animation or
+ * keyframe, an occupied time, a property animated already or of another
+ * command, a removal below the minimum), changes nothing, or changes the
+ * document — and which IDs the operation, its undo, and its redo create.
  * What the bus reports is checked against the model, never used to drive it.
  *
  * No sequence makes `bus.undo()` fail: the history is linear and owned by the
@@ -108,6 +110,82 @@ const CARRIERS = {
   image: ['node-image'],
 } as const;
 
+/** Animation IDs the commands of D41 name: the fixture's, some the sequence may create, and others. */
+const ANIMATION_IDS = [
+  'anim-title-opacity',
+  'anim-group-position',
+  'anim-image-scale',
+  'anim-title-opacity',
+  'anim-group-position',
+  'anim-image-scale',
+  'k1',
+  'k2',
+  'n1-anim',
+  'd1-a-opacity',
+  'node-title',
+  'anim-missing',
+];
+/** The reference animation of each property, which a typed command names most of the time. */
+const TYPED = {
+  opacity: 'anim-title-opacity',
+  position: 'anim-group-position',
+  scale: 'anim-image-scale',
+} as const;
+/** Nodes an animation may be added to; the background has no animations. */
+const ANIMATED = [
+  'node-title',
+  'node-caption',
+  'node-group',
+  'node-image',
+  'node-custom-html',
+  'node-background',
+  'n1',
+  'node-missing',
+];
+/** New animation IDs: two fresh ones, and two in use by an animation and by a node. */
+const NEW_ANIMATION_IDS = ['k1', 'k2', 'k1', 'anim-title-opacity', 'node-title'];
+/** Keyframe times: the fixture's, some new, one past the duration, -0, and a fraction. */
+const TIMES = [0, 0, 7_500_000, 2_500_000, 10_000_000, 1_000_000, 5_000_000, 20_000_000, -0, 0.5];
+const PROPERTIES = ['opacity', 'position', 'scale'] as const;
+type Property = (typeof PROPERTIES)[number];
+/** Two values of each property, in the order of their keyframes. */
+const VALUES: Readonly<Record<Property, readonly [unknown, unknown]>> = {
+  opacity: [0, 1],
+  position: [
+    { x: 0, y: 0 },
+    { x: 10, y: -10 },
+  ],
+  scale: [
+    { x: 1, y: 1 },
+    { x: 2, y: 0.5 },
+  ],
+};
+
+/** An animation a command may add: valid most of the time, and with a defect the rest. */
+function newAnimation(next: () => number): Json {
+  const property = pick(next, PROPERTIES);
+  const [from, to] = VALUES[property];
+  const roll = next();
+  const keyframes =
+    roll < 0.1
+      ? [{ timeUs: 0, value: from }]
+      : roll < 0.2
+        ? [
+            { timeUs: 0, value: VALUES[property === 'opacity' ? 'scale' : 'opacity'][0] },
+            { timeUs: 1_000_000, value: to },
+          ]
+        : [
+            { timeUs: 0, value: from },
+            { timeUs: 1_000_000, value: to },
+          ];
+  return { id: pick(next, NEW_ANIMATION_IDS), property, interpolation: 'linear', keyframes };
+}
+
+/** The animation of a typed command: one of its property most of the time. */
+function typedAnimation(next: () => number, property: Property): string {
+  return next() < 0.6 ? TYPED[property] : pick(next, ANIMATION_IDS);
+}
+
 /** A carrier of the field most of the time, and any node the rest of it. */
 function carrier(next: () => number, kind: keyof typeof CARRIERS, nodeId: string): string {
   return next() < 0.7 ? pick(next, CARRIERS[kind]) : nodeId;
@@ -168,30 +246,34 @@ function newNode(next: () => number, id: string): Json {
   };
 }
 
-/** One generated payload: every command type, and some that are not commands at all. */
+/**
+ * One generated payload: every command type, and some that are not commands at
+ * all. The runs focused on animations below exercise the commands of D41 more
+ * densely, with the same model.
+ */
 function command(next: () => number): unknown {
   if (next() < 0.08) return pick(next, FAILING);
   const nodeId = pick(next, NODE_IDS);
-  switch (
-    pick(next, [
-      'position',
-      'opacity',
-      'text',
-      'add',
-      'add',
-      'remove',
-      'duplicate',
-      'reorder',
-      'scale',
-      'size',
-      'color',
-      'fontSize',
-      'font',
-      'image',
-      'addAsset',
-      'removeAsset',
-    ] as const)
-  ) {
+  const kind = pick(next, [
+    'position',
+    'opacity',
+    'text',
+    'add',
+    'add',
+    'remove',
+    'duplicate',
+    'reorder',
+    'scale',
+    'size',
+    'color',
+    'fontSize',
+    'font',
+    'image',
+    'addAsset',
+    'removeAsset',
+    ...ANIMATION_KINDS,
+  ] as const);
+  switch (kind) {
     case 'position':
       return {
         type: 'SetNodePosition',
@@ -260,7 +342,101 @@ function command(next: () => number): unknown {
       };
     case 'removeAsset':
       return { type: 'RemoveAsset', assetId: pick(next, ASSET_IDS) };
+    case 'addAnimation':
+    case 'removeAnimation':
+    case 'opacityKeyframe':
+    case 'positionKeyframe':
+    case 'scaleKeyframe':
+    case 'addKeyframe':
+    case 'removeKeyframe':
+    case 'moveKeyframe':
+      return animationCommand(next, kind);
   }
+}
+
+/** The commands of D41, by the generator's name for them; an animation's addition weighs double. */
+const ANIMATION_KINDS = [
+  'addAnimation',
+  'addAnimation',
+  'removeAnimation',
+  'opacityKeyframe',
+  'positionKeyframe',
+  'scaleKeyframe',
+  'addKeyframe',
+  'removeKeyframe',
+  'moveKeyframe',
+] as const;
+
+/** A payload of one of the commands of D41 (D41.1): of the kind given, or of any. */
+function animationCommand(
+  next: () => number,
+  kind: (typeof ANIMATION_KINDS)[number] = pick(next, ANIMATION_KINDS),
+): unknown {
+  switch (kind) {
+    case 'addAnimation':
+      return {
+        type: 'AddAnimation',
+        nodeId: pick(next, ANIMATED),
+        index: Math.floor(next() * 3),
+        animation: newAnimation(next),
+      };
+    case 'removeAnimation':
+      return { type: 'RemoveAnimation', animationId: pick(next, ANIMATION_IDS) };
+    case 'opacityKeyframe':
+      return {
+        type: 'SetOpacityKeyframe',
+        animationId: typedAnimation(next, 'opacity'),
+        timeUs: pick(next, TIMES),
+        opacity: pick(next, OPACITIES),
+      };
+    case 'positionKeyframe':
+      return {
+        type: 'SetPositionKeyframe',
+        animationId: typedAnimation(next, 'position'),
+        timeUs: pick(next, TIMES),
+        offset: { x: pick(next, [...COORDINATES, 2_000_000]), y: pick(next, COORDINATES) },
+      };
+    case 'scaleKeyframe':
+      return {
+        type: 'SetScaleKeyframe',
+        animationId: typedAnimation(next, 'scale'),
+        timeUs: pick(next, TIMES),
+        factor: { x: pick(next, FACTORS), y: pick(next, FACTORS) },
+      };
+    case 'addKeyframe': {
+      const timeUs = pick(next, TIMES);
+      const value = pick(next, [0.5, { x: 3, y: 4 }]);
+      // The keys in either order, and sometimes a field the schema does not know.
+      const keyframe =
+        next() < 0.5
+          ? { timeUs, value }
+          : next() < 0.8
+            ? { value, timeUs }
+            : { timeUs, value, easing: 'in' };
+      return { type: 'AddKeyframe', animationId: pick(next, ANIMATION_IDS), keyframe };
+    }
+    case 'removeKeyframe':
+      return {
+        type: 'RemoveKeyframe',
+        animationId: pick(next, ANIMATION_IDS),
+        timeUs: pick(next, TIMES),
+      };
+    case 'moveKeyframe':
+      return {
+        type: 'MoveKeyframe',
+        animationId: pick(next, ANIMATION_IDS),
+        timeUs: pick(next, TIMES),
+        toTimeUs: pick(next, TIMES),
+      };
+  }
+}
+
+/**
+ * A payload of a run focused on animations: mostly the commands of D41, with the
+ * node and asset commands that add, remove, and copy animated nodes among them.
+ */
+function animationFocused(next: () => number): unknown {
+  return next() < 0.75 ? animationCommand(next) : command(next);
 }
 
 // ---------------------------------------------------------------- the model
@@ -334,6 +510,115 @@ function stored(value: number): number {
   return value === 0 ? 0 : value;
 }
 
+/** A keyframe time: a safe integer from 0 (D04, D41.2); never rounded. */
+function isTime(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+}
+
+/** The fewest keyframes of an animation in schema 0.1 (D16.6), written out here. */
+const MINIMUM_KEYFRAMES = 2;
+
+interface AnimationPlace {
+  readonly animation: Json & { keyframes: Json[] };
+  readonly list: Json[];
+  readonly index: number;
+}
+
+/** An animation of a node of the scene or of a group child, by its ID (D41.2). */
+function animationPlace(document: Json, animationId: string): AnimationPlace | null {
+  for (const node of sceneOf(document).nodes) {
+    for (const owner of [node, ...((node['children'] as Json[] | undefined) ?? [])]) {
+      const list = owner['animations'] as Json[] | undefined;
+      const index = list?.findIndex(({ id }) => id === animationId) ?? -1;
+      if (list !== undefined && index >= 0) {
+        return { animation: list[index] as AnimationPlace['animation'], list, index };
+      }
+    }
+  }
+  return null;
+}
+
+function hasKeys(value: Json, keys: readonly string[]): boolean {
+  const own = Object.keys(value);
+  return own.length === keys.length && keys.every((key) => own.includes(key));
+}
+
+/** Whether schema 0.1 takes the value for the property (D16.6, D18.4). */
+function isValue(property: unknown, value: unknown): boolean {
+  if (property === 'opacity') return typeof value === 'number' && value >= 0 && value <= 1;
+  if (typeof value !== 'object' || value === null || !hasKeys(value as Json, ['x', 'y'])) {
+    return false;
+  }
+  const { x, y } = value as { x: unknown; y: unknown };
+  if (property === 'position') {
+    return [x, y].every((c) => Number.isInteger(c) && Math.abs(c as number) <= 1_000_000);
+  }
+  return [x, y].every((f) => typeof f === 'number' && f >= 0 && f <= 1000);
+}
+
+/** Whether schema 0.1 takes the keyframe for the property: its time, its value, nothing else. */
+function isKeyframe(property: unknown, keyframe: Json): boolean {
+  return (
+    hasKeys(keyframe, ['timeUs', 'value']) &&
+    isTime(keyframe['timeUs']) &&
+    isValue(property, keyframe['value'])
+  );
+}
+
+/** Whether schema 0.1 takes the animation: its four fields, and keyframes enough, ascending. */
+function isAnimation(animation: Json): boolean {
+  const keyframes = animation['keyframes'];
+  return (
+    hasKeys(animation, ['id', 'property', 'interpolation', 'keyframes']) &&
+    /^[A-Za-z0-9_-]+$/.test(String(animation['id'])) &&
+    ['opacity', 'position', 'scale'].includes(String(animation['property'])) &&
+    animation['interpolation'] === 'linear' &&
+    Array.isArray(keyframes) &&
+    keyframes.length >= MINIMUM_KEYFRAMES &&
+    (keyframes as Json[]).every(
+      (keyframe, at) =>
+        isKeyframe(animation['property'], keyframe) &&
+        (at === 0 ||
+          (keyframe['timeUs'] as number) > ((keyframes as Json[])[at - 1]?.['timeUs'] as number)),
+    )
+  );
+}
+
+/** Whether a stored value already is the command's, whatever the order of its keys (D38.9). */
+function sameValue(stored: unknown, value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return stored === value;
+  if (typeof stored !== 'object' || stored === null) return false;
+  const [a, b] = [stored as Json, value as Json];
+  return a['x'] === b['x'] && a['y'] === b['y'];
+}
+
+/** Inserts a keyframe before the first with a later time (D41.2). */
+function placeKeyframe(keyframes: Json[], keyframe: Json): void {
+  const later = keyframes.findIndex(
+    ({ timeUs }) => (timeUs as number) > (keyframe['timeUs'] as number),
+  );
+  keyframes.splice(later < 0 ? keyframes.length : later, 0, keyframe);
+}
+
+/** The value a typed command writes, normalised as its parser does (D41.3). */
+function typedValue(command: Json): { readonly property: Property; readonly value: unknown } {
+  switch (command['type']) {
+    case 'SetOpacityKeyframe':
+      return { property: 'opacity', value: stored(command['opacity'] as number) };
+    case 'SetPositionKeyframe': {
+      const { x, y } = command['offset'] as { x: number; y: number };
+      return {
+        property: 'position',
+        value: { x: stored(Math.round(x)), y: stored(Math.round(y)) },
+      };
+    }
+    default: {
+      const { x, y } = command['factor'] as { x: number; y: number };
+      return { property: 'scale', value: { x: stored(x), y: stored(y) } };
+    }
+  }
+}
+
 /** What one command did to the model's document. */
 interface Effect {
   readonly created: string[];
@@ -342,9 +627,11 @@ interface Effect {
 }
 
 /**
- * A command that must fail, the code it fails with, and — for `id-in-use` and
- * `asset-in-use` — the details the contract fixes: the IDs, each once, sorted by
- * code units (D39.3, D40.4). `null` where the contract fixes no details.
+ * A command that must fail, the code it fails with, and the details the contract
+ * fixes: for `id-in-use` and `asset-in-use` the IDs, each once, sorted by code
+ * units (D39.3, D40.4); for `too-few-keyframes` the animation and for
+ * `duplicate-animation-target` the animation that animates the property; none
+ * for the other codes of D41 (D41.5). `null` where the contract fixes no details.
  */
 class Refused {
   readonly code: string;
@@ -402,6 +689,27 @@ function parseCode(payload: unknown): string | null {
         ? null
         : 'invalid-argument';
     }
+    case 'AddAnimation':
+      return isIndex(command['index'] as number) ? null : 'invalid-argument';
+    case 'RemoveAnimation':
+      return null;
+    case 'SetOpacityKeyframe': {
+      const opacity = command['opacity'] as number;
+      return isTime(command['timeUs']) && opacity >= 0 && opacity <= 1 ? null : 'invalid-argument';
+    }
+    case 'SetScaleKeyframe': {
+      const { x, y } = command['factor'] as { x: number; y: number };
+      return isTime(command['timeUs']) && [x, y].every((factor) => factor >= 0 && factor <= 1000)
+        ? null
+        : 'invalid-argument';
+    }
+    case 'SetPositionKeyframe':
+    case 'RemoveKeyframe':
+      return isTime(command['timeUs']) ? null : 'invalid-argument';
+    case 'AddKeyframe':
+      return isTime((command['keyframe'] as Json)['timeUs']) ? null : 'invalid-argument';
+    case 'MoveKeyframe':
+      return isTime(command['timeUs']) && isTime(command['toTimeUs']) ? null : 'invalid-argument';
     default:
       return typeof command['type'] === 'string' ? 'unknown-command' : 'invalid-argument';
   }
@@ -606,6 +914,98 @@ function apply(document: Json, command: Json): Effect | Refused {
       assets.splice(index, 1);
       return { created: [], removed: [assetId], changed: true };
     }
+    case 'AddAnimation': {
+      const target = place(document, nodeId)?.node;
+      if (target === undefined) return new Refused('unknown-node');
+      const list = target['animations'] as Json[] | undefined;
+      if (list === undefined) return new Refused('unsupported-node');
+      const index = command['index'] as number;
+      if (index > list.length) return new Refused('index-out-of-range');
+      const animation = structuredClone(command['animation']) as Json;
+      const id = animation['id'] as string;
+      if (everyId(document).has(id)) return new Refused('id-in-use', [id]);
+      const holder = list.find(({ property }) => property === animation['property']);
+      if (holder !== undefined) {
+        return new Refused('duplicate-animation-target', [holder['id'] as string]);
+      }
+      if (!isAnimation(animation)) return new Refused('invalid-result');
+      list.splice(index, 0, animation);
+      return { created: [id], removed: [], changed: true };
+    }
+    case 'RemoveAnimation': {
+      const animationId = command['animationId'] as string;
+      const found = animationPlace(document, animationId);
+      if (found === null) return new Refused('unknown-animation', []);
+      found.list.splice(found.index, 1);
+      return { created: [], removed: [animationId], changed: true };
+    }
+    case 'SetOpacityKeyframe':
+    case 'SetPositionKeyframe':
+    case 'SetScaleKeyframe': {
+      const found = animationPlace(document, command['animationId'] as string);
+      if (found === null) return new Refused('unknown-animation', []);
+      const { property, value } = typedValue(command);
+      if (found.animation['property'] !== property) {
+        return new Refused('animation-property-mismatch', []);
+      }
+      const timeUs = stored(command['timeUs'] as number);
+      const keyframe = found.animation.keyframes.find((item) => item['timeUs'] === timeUs);
+      if (keyframe !== undefined && sameValue(keyframe['value'], value)) return none;
+      if (!isValue(property, value)) return new Refused('invalid-result');
+      if (keyframe === undefined) {
+        placeKeyframe(found.animation.keyframes, { timeUs, value });
+      } else if (typeof value === 'object' && value !== null) {
+        // Written into the stored object, whose keys keep their order (D41.3).
+        Object.assign(keyframe['value'] as Json, value);
+      } else {
+        keyframe['value'] = value;
+      }
+      return changed;
+    }
+    case 'AddKeyframe': {
+      const found = animationPlace(document, command['animationId'] as string);
+      if (found === null) return new Refused('unknown-animation', []);
+      const keyframe = structuredClone(command['keyframe']) as Json;
+      keyframe['timeUs'] = stored(keyframe['timeUs'] as number);
+      const { keyframes } = found.animation;
+      if (keyframes.some(({ timeUs }) => timeUs === keyframe['timeUs'])) {
+        return new Refused('keyframe-exists', []);
+      }
+      if (!isKeyframe(found.animation['property'], keyframe)) return new Refused('invalid-result');
+      placeKeyframe(keyframes, keyframe);
+      return changed;
+    }
+    case 'RemoveKeyframe': {
+      const animationId = command['animationId'] as string;
+      const found = animationPlace(document, animationId);
+      if (found === null) return new Refused('unknown-animation', []);
+      const { keyframes } = found.animation;
+      const at = keyframes.findIndex(
+        ({ timeUs }) => timeUs === stored(command['timeUs'] as number),
+      );
+      if (at < 0) return new Refused('unknown-keyframe', []);
+      if (keyframes.length - 1 < MINIMUM_KEYFRAMES) {
+        return new Refused('too-few-keyframes', [animationId]);
+      }
+      keyframes.splice(at, 1);
+      return changed;
+    }
+    case 'MoveKeyframe': {
+      const found = animationPlace(document, command['animationId'] as string);
+      if (found === null) return new Refused('unknown-animation', []);
+      const { keyframes } = found.animation;
+      const from = stored(command['timeUs'] as number);
+      const to = stored(command['toTimeUs'] as number);
+      const at = keyframes.findIndex(({ timeUs }) => timeUs === from);
+      if (at < 0) return new Refused('unknown-keyframe', []);
+      if (from === to) return none;
+      if (keyframes.some(({ timeUs }) => timeUs === to)) return new Refused('keyframe-exists', []);
+      const [keyframe] = keyframes.splice(at, 1);
+      if (keyframe === undefined) throw new Error('The model lost a keyframe.');
+      keyframe['timeUs'] = to;
+      placeKeyframe(keyframes, keyframe);
+      return changed;
+    }
     default:
       throw new Error('The generator made a command the model does not know.');
   }
@@ -708,7 +1108,12 @@ function bump(map: Map<string, number>, key: string): void {
   map.set(key, (map.get(key) ?? 0) + 1);
 }
 
-function run(seed: number, historyLimit: number, steps: number): Coverage {
+function run(
+  seed: number,
+  historyLimit: number,
+  steps: number,
+  generate: (next: () => number) => unknown,
+): Coverage {
   const next = random(seed);
   const changes: BusChange[] = [];
   const listenerErrors: unknown[] = [];
@@ -737,8 +1142,8 @@ function run(seed: number, historyLimit: number, steps: number): Coverage {
     if (operation === 'dispatch' || operation === 'transaction') {
       const payloads =
         operation === 'dispatch'
-          ? [command(next)]
-          : Array.from({ length: 1 + Math.floor(next() * 2) }, () => command(next));
+          ? [generate(next)]
+          : Array.from({ length: 1 + Math.floor(next() * 2) }, () => generate(next));
       const prediction = predict(state.current, payloads);
       const reported: { changed?: boolean; created?: readonly string[] } = {};
       const failure = attempt(() => {
@@ -834,18 +1239,24 @@ const SEEDS: readonly (readonly [number, number])[] = [
   [5, 0],
   [6, 100],
 ];
+/** The runs focused on the commands of D41, with the same model and the same premises. */
+const ANIMATION_SEEDS: readonly (readonly [number, number])[] = [
+  [7, 100],
+  [8, 3],
+];
 const STEPS = 600;
 const runs = new Map<number, Coverage>();
 
 function runOnce(seed: number, historyLimit: number): Coverage {
   const known = runs.get(seed);
   if (known !== undefined) return known;
-  const coverage = run(seed, historyLimit, STEPS);
+  const focused = ANIMATION_SEEDS.some(([animationSeed]) => animationSeed === seed);
+  const coverage = run(seed, historyLimit, STEPS, focused ? animationFocused : command);
   runs.set(seed, coverage);
   return coverage;
 }
 
-const NEW_COMMANDS = [
+const D40_COMMANDS = [
   'SetNodeScale',
   'SetNodeSize',
   'SetNodeColor',
@@ -855,26 +1266,74 @@ const NEW_COMMANDS = [
   'AddAsset',
   'RemoveAsset',
 ];
-const NEW_CODES = ['unknown-asset', 'asset-type-mismatch', 'asset-in-use'];
+const D40_CODES = ['unknown-asset', 'asset-type-mismatch', 'asset-in-use'];
+const D41_COMMANDS = [
+  'AddAnimation',
+  'RemoveAnimation',
+  'SetOpacityKeyframe',
+  'SetPositionKeyframe',
+  'SetScaleKeyframe',
+  'AddKeyframe',
+  'RemoveKeyframe',
+  'MoveKeyframe',
+];
+const D41_CODES = [
+  'unknown-animation',
+  'unknown-keyframe',
+  'keyframe-exists',
+  'too-few-keyframes',
+  'animation-property-mismatch',
+  'duplicate-animation-target',
+];
 
-describe('the history against a model of snapshots (D38, D39, D40)', () => {
+describe('the history against a model of snapshots (D38, D39, D40, D41)', () => {
   it.each(SEEDS)('replays seed %d with historyLimit %d', (seed, historyLimit) => {
     runOnce(seed, historyLimit);
   });
 
-  it('applies every command of D40 with a real change, and meets every new code', () => {
-    // Over the seeded runs together: the random exploration stays, and this
-    // proves it still reaches every command and every failure it must test.
+  it.each(ANIMATION_SEEDS)(
+    'replays seed %d with historyLimit %d, focused on animations (D41)',
+    (seed, historyLimit) => {
+      runOnce(seed, historyLimit);
+    },
+  );
+
+  /** What a set of seeded runs exercised together: real changes by command, failures by code. */
+  function coverageOver(
+    seeds: readonly (readonly [number, number])[],
+  ): Pick<Coverage, 'applied' | 'codes'> {
     const applied = new Map<string, number>();
     const codes = new Map<string, number>();
-    for (const [seed, historyLimit] of SEEDS) {
+    for (const [seed, historyLimit] of seeds) {
       const coverage = runOnce(seed, historyLimit);
       for (const [type, count] of coverage.applied)
         applied.set(type, (applied.get(type) ?? 0) + count);
       for (const [code, count] of coverage.codes) codes.set(code, (codes.get(code) ?? 0) + count);
     }
-    for (const type of NEW_COMMANDS) expect(applied.get(type) ?? 0, type).toBeGreaterThan(0);
-    for (const code of NEW_CODES) expect(codes.get(code) ?? 0, code).toBeGreaterThan(0);
+    return { applied, codes };
+  }
+
+  it('applies every command of D40 with a real change, and meets every code it adds, over the seeds 1 to 6', () => {
+    // Over the mixed runs alone, as before the runs focused on animations
+    // existed: those must not be what reaches the commands of D40.
+    const { applied, codes } = coverageOver(SEEDS);
+    for (const type of D40_COMMANDS) expect(applied.get(type) ?? 0, type).toBeGreaterThan(0);
+    for (const code of D40_CODES) expect(codes.get(code) ?? 0, code).toBeGreaterThan(0);
+  });
+
+  it('applies every command of D41 with a real change, and meets every code it adds', () => {
+    // Over the seeded runs together: the random exploration stays, and this
+    // proves it still reaches every command and every failure it must test.
+    const { applied, codes } = coverageOver([...SEEDS, ...ANIMATION_SEEDS]);
+    for (const type of D41_COMMANDS) expect(applied.get(type) ?? 0, type).toBeGreaterThan(0);
+    for (const code of D41_CODES) expect(codes.get(code) ?? 0, code).toBeGreaterThan(0);
+  });
+
+  it('reaches every command and code of D41 in the runs focused on animations alone', () => {
+    // So the coverage above does not rest on the mixed runs alone.
+    const { applied, codes } = coverageOver(ANIMATION_SEEDS);
+    for (const type of D41_COMMANDS) expect(applied.get(type) ?? 0, type).toBeGreaterThan(0);
+    for (const code of D41_CODES) expect(codes.get(code) ?? 0, code).toBeGreaterThan(0);
   });
 
   it('unwinds a whole sequence to the original bytes and redoes it again', () => {

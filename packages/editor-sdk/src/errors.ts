@@ -12,7 +12,10 @@ export type EditorErrorCode =
   | 'unknown-node'
   /**
    * The node lacks the field the command edits: a background has no position or
-   * opacity, and only a text node has a text (D30.8, D38.10).
+   * opacity, and only a text node has a text (D30.8, D38.10). The same holds for
+   * a parent without `children` (D39.8), a node without the scale, size, colour,
+   * font size, font, or image asset a command of D40 edits (D40.1, D40.2), and a
+   * node without `animations` (D41.6).
    */
   | 'unsupported-node'
   /** The edited document does not validate; `details` carry the validation errors (D30.6). */
@@ -32,7 +35,19 @@ export type EditorErrorCode =
   /** The asset exists but is not of the type the field expects (D40.2). */
   | 'asset-type-mismatch'
   /** The asset is still used; `details` list the IDs of its users, sorted (D40.4). */
-  | 'asset-in-use';
+  | 'asset-in-use'
+  /** No animation of the document has that ID; `details` are empty (D41.5). */
+  | 'unknown-animation'
+  /** The animation has no keyframe at that time; `details` are empty (D41.5). */
+  | 'unknown-keyframe'
+  /** The animation already has a keyframe at the time to fill; `details` are empty (D41.5). */
+  | 'keyframe-exists'
+  /** The removal would leave fewer keyframes than the schema allows; `details` hold the animation's ID (D41.4). */
+  | 'too-few-keyframes'
+  /** A typed keyframe command names an animation of another property; `details` are empty (D41.5). */
+  | 'animation-property-mismatch'
+  /** The node already animates that property; `details` hold the ID of the animation that does (D41.5). */
+  | 'duplicate-animation-target';
 
 /**
  * A typed failure of the command bus (D30.8). Check `code` instead of

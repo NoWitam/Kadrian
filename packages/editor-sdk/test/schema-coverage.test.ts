@@ -7,6 +7,7 @@
 import { compositionSchema } from '@kadrion/schema';
 import { describe, expect, it } from 'vitest';
 
+import { keyframeMinimum, keyframeTimeBounds } from '../src/animations.js';
 import { applyCommand, type Command } from '../src/index.js';
 
 import { codeOf, nodeOf, positionOf, reference, validated } from './support.js';
@@ -252,4 +253,279 @@ describe('the node types the commands of D40 accept (D30.8)', () => {
       },
     );
   }
+});
+
+/** The animation shapes of schema 0.1, by node type, read here independently of `animations.ts`. */
+function animationShapes(): { readonly type: string; readonly shapes: readonly unknown[] }[] {
+  return [...nodeVariants, ...childVariants].map((variant) => ({
+    type: String(at(variant, 'properties', 'type', 'const')),
+    shapes: variantsOf(at(variant, 'properties', 'animations', 'items')),
+  }));
+}
+
+describe('what the animation commands read from the schema (D41.2, D41.4)', () => {
+  it('reads the minimum number of keyframes of each property from the schema', () => {
+    const minimums = new Map<string, unknown>();
+    for (const { shapes } of animationShapes()) {
+      for (const shape of shapes) {
+        const property = String(at(shape, 'properties', 'property', 'const'));
+        const minimum = at(shape, 'properties', 'keyframes', 'minItems');
+        expect(minimums.get(property) ?? minimum, property).toBe(minimum);
+        minimums.set(property, minimum);
+      }
+    }
+    expect([...minimums.keys()].sort()).toEqual(['opacity', 'position', 'scale']);
+    for (const [property, minimum] of minimums) {
+      expect(keyframeMinimum(compositionSchema, property), property).toBe(minimum);
+    }
+    // The fact of schema 0.1 the commands are tested against (D16.6).
+    expect(new Set(minimums.values())).toEqual(new Set([2]));
+  });
+
+  it('reads the bounds of a keyframe time from the schema', () => {
+    for (const { shapes } of animationShapes()) {
+      for (const shape of shapes) {
+        const time = at(shape, 'properties', 'keyframes', 'items', 'properties', 'timeUs');
+        expect(keyframeTimeBounds(compositionSchema)).toEqual({
+          minimum: at(time, 'minimum'),
+          maximum: at(time, 'maximum'),
+        });
+      }
+    }
+    expect(keyframeTimeBounds(compositionSchema)).toEqual({
+      minimum: 0,
+      maximum: Number.MAX_SAFE_INTEGER,
+    });
+  });
+
+  it('refuses exactly the removal that would go below the minimum of the schema', () => {
+    const minimum = keyframeMinimum(compositionSchema, 'opacity');
+    let document = reference();
+    const count = (): number =>
+      (nodeOf(document, 'node-title').animations as { keyframes: unknown[] }[])[0]?.keyframes
+        .length ?? 0;
+    for (let at = count(); at <= minimum; at += 1) {
+      const add: Command = {
+        type: 'AddKeyframe',
+        animationId: 'anim-title-opacity',
+        keyframe: { timeUs: 8_000_000 + at, value: 0.5 },
+      };
+      document = applyCommand(document, add).document;
+    }
+    expect(count()).toBe(minimum + 1);
+    const remove = (timeUs: number): Command => ({
+      type: 'RemoveKeyframe',
+      animationId: 'anim-title-opacity',
+      timeUs,
+    });
+    document = applyCommand(document, remove(0)).document;
+    expect(count()).toBe(minimum);
+    expect(codeOf(() => applyCommand(document, remove(7_500_000)))).toBe('too-few-keyframes');
+  });
+
+  it.each(animationShapes().map(({ type, shapes }) => [type, shapes.length > 0] as const))(
+    'adds an animation to a node of type %s exactly when the schema gives it animations',
+    (type, animated) => {
+      const nodeId = nodesByType().get(type) ?? '';
+      const animationIds = (
+        (nodeOf(reference(), nodeId).animations as { property: string }[] | undefined) ?? []
+      ).map(({ property }) => property);
+      const property = ['opacity', 'position', 'scale'].find(
+        (name) => !animationIds.includes(name),
+      );
+      const command: Command = {
+        type: 'AddAnimation',
+        nodeId,
+        index: 0,
+        animation: {
+          id: 'anim-new',
+          property: property ?? 'opacity',
+          interpolation: 'linear',
+          keyframes: [
+            { timeUs: 0, value: property === 'opacity' ? 0 : { x: 1, y: 1 } },
+            { timeUs: 1, value: property === 'opacity' ? 1 : { x: 2, y: 2 } },
+          ],
+        },
+      };
+      if (animated) {
+        expect(applyCommand(reference(), command).createdIds).toEqual(['anim-new']);
+      } else {
+        expect(codeOf(() => applyCommand(reference(), command))).toBe('unsupported-node');
+      }
+    },
+  );
+});
+
+describe('the seam of the schema metadata (D41.4)', () => {
+  /** The composition schema with other metadata: opacity takes three keyframes, times end at 10. */
+  function alternative(): unknown {
+    const schema = structuredClone(compositionSchema) as unknown;
+    for (const variant of [
+      ...variantsOf(at(schema, 'properties', 'scenes', 'items', 'properties', 'nodes', 'items')),
+    ]) {
+      const shapes = [
+        ...variantsOf(at(variant, 'properties', 'animations', 'items')),
+        ...variantsOf(at(variant, 'properties', 'children', 'items')).flatMap((child) =>
+          variantsOf(at(child, 'properties', 'animations', 'items')),
+        ),
+      ];
+      for (const shape of shapes) {
+        const keyframes = at(shape, 'properties', 'keyframes') as Record<string, unknown>;
+        if (at(shape, 'properties', 'property', 'const') === 'opacity') keyframes['minItems'] = 3;
+        const time = at(keyframes, 'items', 'properties', 'timeUs') as Record<string, unknown>;
+        time['maximum'] = 10;
+      }
+    }
+    return schema;
+  }
+
+  it('returns the minimum the given metadata states, not a number of its own', () => {
+    const schema = alternative();
+    expect(keyframeMinimum(schema, 'opacity')).toBe(3);
+    expect(keyframeMinimum(schema, 'scale')).toBe(2);
+    expect(keyframeTimeBounds(schema)).toEqual({ minimum: 0, maximum: 10 });
+  });
+
+  it('refuses metadata that states no minimum or no bounds instead of guessing', () => {
+    expect(() => keyframeMinimum(compositionSchema, 'rotation')).toThrow(/rotation/);
+    expect(() => keyframeMinimum({}, 'opacity')).toThrow(Error);
+    expect(() => keyframeTimeBounds({})).toThrow(Error);
+  });
+});
+
+describe('the animation shapes of group children are read too (D41.4)', () => {
+  function shape(property: string, minItems: number, minimum: number, maximum: number): unknown {
+    return {
+      properties: {
+        property: { const: property },
+        keyframes: { minItems, items: { properties: { timeUs: { minimum, maximum } } } },
+      },
+    };
+  }
+
+  /** Metadata whose scene-level node states `top` and whose group child states `nested`. */
+  function metadata(top: readonly unknown[], nested: readonly unknown[]): unknown {
+    const child = { properties: { animations: { items: { oneOf: nested } } } };
+    const group = {
+      properties: {
+        ...(top.length > 0 ? { animations: { items: { oneOf: top } } } : {}),
+        children: { items: { oneOf: [child] } },
+      },
+    };
+    return {
+      properties: { scenes: { items: { properties: { nodes: { items: { oneOf: [group] } } } } } },
+    };
+  }
+
+  /** The composition schema as separate objects, with one edit of the children's opacity shape. */
+  function withChildren(edit: (keyframes: Record<string, unknown>) => void): unknown {
+    const schema = JSON.parse(JSON.stringify(compositionSchema)) as unknown;
+    for (const child of variantsOf(at(groupOf(schema), 'properties', 'children', 'items'))) {
+      for (const item of variantsOf(at(child, 'properties', 'animations', 'items'))) {
+        if (at(item, 'properties', 'property', 'const') !== 'opacity') continue;
+        edit(at(item, 'properties', 'keyframes') as Record<string, unknown>);
+      }
+    }
+    return schema;
+  }
+
+  function groupOf(schema: unknown): unknown {
+    return variantsOf(
+      at(schema, 'properties', 'scenes', 'items', 'properties', 'nodes', 'items'),
+    ).find((variant) => at(variant, 'properties', 'type', 'const') === 'group');
+  }
+
+  it('finds a shape only a group child states', () => {
+    const schema = metadata([], [shape('opacity', 4, 1, 9)]);
+    expect(keyframeMinimum(schema, 'opacity')).toBe(4);
+    expect(keyframeTimeBounds(schema)).toEqual({ minimum: 1, maximum: 9 });
+  });
+
+  it('accepts shapes of a node and of a child that agree', () => {
+    const schema = metadata([shape('scale', 3, 0, 5)], [shape('scale', 3, 0, 5)]);
+    expect(keyframeMinimum(schema, 'scale')).toBe(3);
+    expect(keyframeTimeBounds(schema)).toEqual({ minimum: 0, maximum: 5 });
+  });
+
+  it('refuses shapes of a node and of a child that disagree, instead of taking the first', () => {
+    expect(() =>
+      keyframeMinimum(metadata([shape('scale', 2, 0, 5)], [shape('scale', 3, 0, 5)]), 'scale'),
+    ).toThrow(/disagree/);
+    expect(() =>
+      keyframeTimeBounds(metadata([shape('scale', 2, 0, 5)], [shape('scale', 2, 0, 6)])),
+    ).toThrow(/disagree/);
+  });
+
+  it('refuses a shape that states no minimum or no bound, instead of asking the others', () => {
+    const silent = { properties: { property: { const: 'scale' }, keyframes: { items: {} } } };
+    const half = {
+      properties: {
+        property: { const: 'scale' },
+        keyframes: { minItems: 3, items: { properties: { timeUs: { minimum: 0 } } } },
+      },
+    };
+    // The other shape states 3 and 0 to 5; taking them would be the silent choice.
+    for (const schema of [
+      metadata([silent], [shape('scale', 3, 0, 5)]),
+      metadata([shape('scale', 3, 0, 5)], [silent]),
+    ]) {
+      expect(() => keyframeMinimum(schema, 'scale')).toThrow(/states no minimum/);
+      expect(() => keyframeTimeBounds(schema)).toThrow(/states no bounds/);
+    }
+    const partial = metadata([shape('scale', 3, 0, 5)], [half]);
+    expect(keyframeMinimum(partial, 'scale')).toBe(3);
+    expect(() => keyframeTimeBounds(partial)).toThrow(/states no bounds/);
+    // A shape of another property does not matter for the minimum asked.
+    expect(keyframeMinimum(metadata([silent], [shape('opacity', 4, 0, 5)]), 'opacity')).toBe(4);
+  });
+
+  it('refuses a shape whose time states a maximum and no minimum', () => {
+    const upperOnly = {
+      properties: {
+        property: { const: 'scale' },
+        keyframes: { minItems: 3, items: { properties: { timeUs: { maximum: 5 } } } },
+      },
+    };
+    // Alone, and beside a shape like it: nothing disagrees, so only the missing
+    // minimum can be what is refused.
+    expect(() => keyframeTimeBounds(metadata([], [upperOnly]))).toThrow(/states no bounds/);
+    expect(() => keyframeTimeBounds(metadata([upperOnly], [upperOnly]))).toThrow(
+      /states no bounds/,
+    );
+    // The premise: with its minimum the same shape is read, and its other value is untouched.
+    expect(keyframeTimeBounds(metadata([], [shape('scale', 3, 0, 5)]))).toEqual({
+      minimum: 0,
+      maximum: 5,
+    });
+    expect(keyframeMinimum(metadata([], [upperOnly]), 'scale')).toBe(3);
+  });
+
+  it('reads the children of the real schema: an edit of their shapes alone is noticed', () => {
+    const minimum = withChildren((keyframes) => {
+      keyframes['minItems'] = 5;
+    });
+    expect(() => keyframeMinimum(minimum, 'opacity')).toThrow(/disagree/);
+    expect(keyframeMinimum(minimum, 'scale')).toBe(2);
+    const bounds = withChildren((keyframes) => {
+      (at(keyframes, 'items', 'properties', 'timeUs') as Record<string, unknown>)['maximum'] = 7;
+    });
+    expect(() => keyframeTimeBounds(bounds)).toThrow(/disagree/);
+    // A child shape of the real schema that loses its minimum is an error too:
+    // the validator would then take any number of keyframes there.
+    const lost = withChildren((keyframes) => {
+      Reflect.deleteProperty(keyframes, 'minItems');
+    });
+    expect(() => keyframeMinimum(lost, 'opacity')).toThrow(/states no minimum/);
+  });
+
+  it('keeps what schema 0.1 states: its nodes and its children agree', () => {
+    expect(childVariants.length).toBeGreaterThan(0);
+    for (const property of ['opacity', 'position', 'scale']) {
+      expect(keyframeMinimum(compositionSchema, property), property).toBe(2);
+    }
+    expect(keyframeTimeBounds(compositionSchema)).toEqual({
+      minimum: 0,
+      maximum: Number.MAX_SAFE_INTEGER,
+    });
+  });
 });

@@ -10,14 +10,22 @@
  * D30.4 for every command alike — validating the result in full, and only then
  * returning it with its inverse.
  */
+import { compositionSchema } from '@kadrion/schema';
+
+import { keyframeMinimum } from './animations.js';
 import {
   copyNode,
   deepFreeze,
   isPlainObject,
+  parseAddAnimation,
   parseAddAsset,
+  parseAddKeyframe,
   parseAddNode,
   parseDuplicateNode,
+  parseMoveKeyframe,
+  parseRemoveAnimation,
   parseRemoveAsset,
+  parseRemoveKeyframe,
   parseRemoveNode,
   parseReorderNode,
   parseSetImageAsset,
@@ -26,6 +34,9 @@ import {
   parseSetNodePosition,
   parseSetNodeScale,
   parseSetNodeSize,
+  parseSetOpacityKeyframe,
+  parseSetPositionKeyframe,
+  parseSetScaleKeyframe,
   parseSetTextContent,
   parseSetTextFont,
   parseSetTextFontSize,
@@ -40,11 +51,17 @@ import {
   findParent,
   idsIn,
   isObject,
+  keyframeIndex,
+  keyframesOf,
+  locateAnimation,
   locateNode,
+  placedByTime,
+  replaceAnimation,
   replaceAssets,
   replaceList,
   replaceNode,
   subtreeIds,
+  type AnimationLocation,
   type DocumentObject,
   type NodeLocation,
   type ValidationFinding,
@@ -248,6 +265,126 @@ function requireAsset(document: DocumentObject, assetId: string, type: string): 
       `The asset \`${assetId}\` is of type ${String(found.asset['type'])}, not ${type}.`,
     );
   }
+}
+
+/** The animation with that ID, or `unknown-animation` (D41.2). */
+function locatedAnimation(document: DocumentObject, animationId: string): AnimationLocation {
+  const location = locateAnimation(document, animationId);
+  if (location === null) {
+    throw new EditorError('unknown-animation', `The document has no animation \`${animationId}\`.`);
+  }
+  return location;
+}
+
+/** The animation at `location`, which must animate `property` (D41.5). */
+function requireProperty(location: AnimationLocation, animationId: string, property: string): void {
+  const actual: unknown = location.animation['property'];
+  if (actual !== property) {
+    throw new EditorError(
+      'animation-property-mismatch',
+      `The animation \`${animationId}\` animates ${String(actual)}, not ${property}.`,
+    );
+  }
+}
+
+function unknownKeyframe(animationId: string, timeUs: number): EditorError {
+  return new EditorError(
+    'unknown-keyframe',
+    `The animation \`${animationId}\` has no keyframe at ${String(timeUs)} µs.`,
+  );
+}
+
+function keyframeExists(animationId: string, timeUs: number): EditorError {
+  return new EditorError(
+    'keyframe-exists',
+    `The animation \`${animationId}\` already has a keyframe at ${String(timeUs)} µs.`,
+  );
+}
+
+/** The document with the animation at `location` holding `keyframes` instead. */
+function withKeyframes(
+  document: DocumentObject,
+  location: AnimationLocation,
+  keyframes: readonly unknown[],
+): DocumentObject {
+  return replaceAnimation(document, location, { ...location.animation, keyframes });
+}
+
+/** How a typed keyframe command reads and writes its value (D41.3). */
+interface KeyframeValue {
+  /** Whether the stored value already is the command's, compared after the normalisation. */
+  readonly equals: (stored: unknown) => boolean;
+  /** The stored value with the command's written into it, its keys in their order. */
+  readonly merged: (stored: unknown) => unknown;
+  /** The value of a keyframe the command inserts. */
+  readonly fresh: unknown;
+  /** The same command with the stored value: the inverse of a replacement. */
+  readonly previous: (stored: unknown) => Command;
+}
+
+/** The object value `{ x, y }` of a position or scale keyframe (D41.3). */
+function pairValue(
+  pair: { readonly x: number; readonly y: number },
+  previous: (stored: { readonly x: number; readonly y: number }) => Command,
+): KeyframeValue {
+  const read = (stored: unknown): { x: unknown; y: unknown } =>
+    isObject(stored) ? { x: stored['x'], y: stored['y'] } : { x: undefined, y: undefined };
+  return {
+    equals: (stored) => {
+      const { x, y } = read(stored);
+      return x === pair.x && y === pair.y;
+    },
+    // The stored object is spread and x and y written into it, so a stored
+    // `{ y, x }` stays `{ y, x }`; the parsed `{ x, y }` is never written (D41.3).
+    merged: (stored) =>
+      isObject(stored) ? { ...stored, x: pair.x, y: pair.y } : { x: pair.x, y: pair.y },
+    fresh: { x: pair.x, y: pair.y },
+    previous: (stored) => {
+      const { x, y } = read(stored);
+      return previous({ x: Number(x), y: Number(y) });
+    },
+  };
+}
+
+/**
+ * Sets, or inserts, the keyframe at `timeUs` of an animation of `property`
+ * (D41.1). A replacement spreads the stored keyframe and merges into its value;
+ * an insertion writes a new `{ timeUs, value }` at the place its time gives it.
+ */
+function setKeyframe(
+  document: DocumentObject,
+  animationId: string,
+  property: string,
+  timeUs: number,
+  value: KeyframeValue,
+): DocumentEdit | null {
+  const location = locatedAnimation(document, animationId);
+  requireProperty(location, animationId, property);
+  const keyframes = keyframesOf(location.animation);
+  const at = keyframeIndex(keyframes, timeUs);
+  const stored = keyframes[at];
+  if (isObject(stored)) {
+    const previous = stored['value'];
+    if (value.equals(previous)) return null;
+    const replaced = { ...stored, value: value.merged(previous) };
+    return {
+      document: withKeyframes(
+        document,
+        location,
+        keyframes.map((keyframe, index) => (index === at ? replaced : keyframe)),
+      ),
+      invert: () => value.previous(previous),
+      createdIds: [],
+      removedIds: [],
+    };
+  }
+  const inserted = { timeUs, value: value.fresh };
+  return {
+    document: withKeyframes(document, location, placedByTime(keyframes, inserted, timeUs)),
+    invert: () => parseRemoveKeyframe({ type: 'RemoveKeyframe', animationId, timeUs }),
+    createdIds: [],
+    removedIds: [],
+  };
 }
 
 // The type argument makes the literal itself a `Definitions`: a missing entry and
@@ -545,6 +682,186 @@ const DEFINITIONS = deepFreeze<Definitions>({
             users,
           );
         },
+      };
+    },
+  },
+  AddAnimation: {
+    parse: parseAddAnimation,
+    edit(document, command) {
+      const location = locateNode(document, command.nodeId);
+      if (location === null) throw unknownNode(command.nodeId);
+      const animations: unknown = location.node['animations'];
+      // Whether a node has animations is read from the node (D30.8).
+      if (!Array.isArray(animations)) {
+        throw new EditorError(
+          'unsupported-node',
+          `The node \`${command.nodeId}\` has no animations.`,
+        );
+      }
+      const list = animations as readonly unknown[];
+      if (command.index > list.length) {
+        throw outOfRange(command.index, list.length, `the animations of \`${command.nodeId}\``);
+      }
+      // The ID and the property are read only where they are strings; every other
+      // malformation is the validator's (D41.3).
+      const id: unknown = command.animation['id'];
+      const createdIds = typeof id === 'string' ? [id] : [];
+      refuseTaken(document, createdIds);
+      const property: unknown = command.animation['property'];
+      const existing = list.find(
+        (animation) =>
+          typeof property === 'string' && isObject(animation) && animation['property'] === property,
+      );
+      if (isObject(existing)) {
+        throw new EditorError(
+          'duplicate-animation-target',
+          `The node \`${command.nodeId}\` animates ${String(property)} already.`,
+          [String(existing['id'])],
+        );
+      }
+      return {
+        document: replaceNode(document, command.nodeId, {
+          ...location.node,
+          animations: inserted(list, command.index, command.animation),
+        }),
+        // The animation validated by now, so its `id` is an ID of the document's form.
+        invert: () => parseRemoveAnimation({ type: 'RemoveAnimation', animationId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveAnimation: {
+    parse: parseRemoveAnimation,
+    edit(document, command) {
+      const location = locatedAnimation(document, command.animationId);
+      // A frozen copy of the whole animation at its node and index (D41.1).
+      const inverse = parseAddAnimation({
+        type: 'AddAnimation',
+        nodeId: location.ownerId,
+        index: location.index,
+        animation: location.animation,
+      });
+      return {
+        document: replaceAnimation(document, location, null),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [command.animationId],
+      };
+    },
+  },
+  SetOpacityKeyframe: {
+    parse: parseSetOpacityKeyframe,
+    edit: (document, command) =>
+      setKeyframe(document, command.animationId, 'opacity', command.timeUs, {
+        equals: (stored) => stored === command.opacity,
+        merged: () => command.opacity,
+        fresh: command.opacity,
+        previous: (stored) => parseSetOpacityKeyframe({ ...command, opacity: stored }),
+      }),
+  },
+  SetPositionKeyframe: {
+    parse: parseSetPositionKeyframe,
+    edit: (document, command) =>
+      setKeyframe(
+        document,
+        command.animationId,
+        'position',
+        command.timeUs,
+        pairValue(command.offset, (offset) => parseSetPositionKeyframe({ ...command, offset })),
+      ),
+  },
+  SetScaleKeyframe: {
+    parse: parseSetScaleKeyframe,
+    edit: (document, command) =>
+      setKeyframe(
+        document,
+        command.animationId,
+        'scale',
+        command.timeUs,
+        pairValue(command.factor, (factor) => parseSetScaleKeyframe({ ...command, factor })),
+      ),
+  },
+  AddKeyframe: {
+    parse: parseAddKeyframe,
+    edit(document, command) {
+      const location = locatedAnimation(document, command.animationId);
+      const timeUs = Number(command.keyframe['timeUs']);
+      const keyframes = keyframesOf(location.animation);
+      if (keyframeIndex(keyframes, timeUs) >= 0) throw keyframeExists(command.animationId, timeUs);
+      return {
+        document: withKeyframes(
+          document,
+          location,
+          placedByTime(keyframes, command.keyframe, timeUs),
+        ),
+        invert: () =>
+          parseRemoveKeyframe({ type: 'RemoveKeyframe', animationId: command.animationId, timeUs }),
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  RemoveKeyframe: {
+    parse: parseRemoveKeyframe,
+    edit(document, command) {
+      const location = locatedAnimation(document, command.animationId);
+      const keyframes = keyframesOf(location.animation);
+      const at = keyframeIndex(keyframes, command.timeUs);
+      if (at < 0) throw unknownKeyframe(command.animationId, command.timeUs);
+      // The minimum is the schema's, read for the animation's property (D41.4).
+      const minimum = keyframeMinimum(compositionSchema, String(location.animation['property']));
+      if (keyframes.length - 1 < minimum) {
+        throw new EditorError(
+          'too-few-keyframes',
+          `The animation \`${command.animationId}\` would keep fewer than ${String(minimum)} keyframes; remove the animation instead.`,
+          [command.animationId],
+        );
+      }
+      // The exact keyframe, whatever the order of its keys, restores it (D41.3).
+      const inverse = parseAddKeyframe({
+        type: 'AddKeyframe',
+        animationId: command.animationId,
+        keyframe: keyframes[at],
+      });
+      return {
+        document: withKeyframes(
+          document,
+          location,
+          keyframes.filter((_, index) => index !== at),
+        ),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  MoveKeyframe: {
+    parse: parseMoveKeyframe,
+    edit(document, command) {
+      const location = locatedAnimation(document, command.animationId);
+      const keyframes = keyframesOf(location.animation);
+      const at = keyframeIndex(keyframes, command.timeUs);
+      const keyframe = keyframes[at];
+      if (!isObject(keyframe)) throw unknownKeyframe(command.animationId, command.timeUs);
+      if (command.toTimeUs === command.timeUs) return null;
+      if (keyframeIndex(keyframes, command.toTimeUs) >= 0) {
+        throw keyframeExists(command.animationId, command.toTimeUs);
+      }
+      // A new keyframe object with its keys in their order; its value keeps its identity.
+      const moved = { ...keyframe, timeUs: command.toTimeUs };
+      const rest = keyframes.filter((_, index) => index !== at);
+      return {
+        document: withKeyframes(document, location, placedByTime(rest, moved, command.toTimeUs)),
+        invert: () =>
+          parseMoveKeyframe({
+            type: 'MoveKeyframe',
+            animationId: command.animationId,
+            timeUs: command.toTimeUs,
+            toTimeUs: command.timeUs,
+          }),
+        createdIds: [],
+        removedIds: [],
       };
     },
   },

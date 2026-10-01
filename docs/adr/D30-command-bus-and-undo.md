@@ -15,6 +15,8 @@
   failing-undo obligation replaced)
 - Amended by: PR-19b (D40) on 2026-09-29 at the owner's request, D30.8
   (the error codes of the asset commands)
+- Amended by: PR-20 (D41) on 2026-10-01 at the owner's request, D30.8
+  (the error codes of the animation and keyframe commands)
 - Related: D02, D09, D12, D15, D16, D17, D19, D24, D25,
   [specification](../spike/vertical-spike.md) §5 P3, §5 P4, §9, and open
   question Q16
@@ -260,6 +262,15 @@ field expects), and `asset-in-use` (an asset that is still used cannot be
 removed; the details name its users). `unsupported-node` also covers a node
 without the scale, size, colour, font size, font, or image asset a command of
 D40 edits (D40.1, D40.2).
+
+Amended by: PR-20 (D41). The table gains `unknown-animation` (no animation of
+the document has the ID), `unknown-keyframe` (the animation has no keyframe at
+the time), `keyframe-exists` (the time to fill is taken), `too-few-keyframes`
+(a removal would leave fewer keyframes than the schema allows; the details name
+the animation), `animation-property-mismatch` (a typed keyframe command names
+an animation of another property), and `duplicate-animation-target` (the node
+animates the property already; the details name the animation that does).
+`unsupported-node` also covers a node without `animations` (D41.6).
 
 ### D30.9 The history belongs to the host, not to the document
 

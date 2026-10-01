@@ -10,6 +10,8 @@
   options, and the failing-undo obligation resolved)
 - Amended by: PR-19b (D40) on 2026-09-29 at the owner's request, D38.1
   (the order of `COMMAND_TYPES`)
+- Amended by: PR-20 (D41) on 2026-10-01 at the owner's request, D38.1
+  (the order of `COMMAND_TYPES`)
 - Related: D02, D09, D15, D16, D19, D30, D31, D32,
   [roadmap of phase two](../roadmap/phase-2.md) PR-18
 
@@ -71,6 +73,10 @@ lists, in this order: `SetNodePosition`, `SetNodeOpacity`, `SetTextContent`,
 Amended by: PR-19b (D40). `COMMAND_TYPES` continues, after `ReorderNode`,
 with `SetNodeScale`, `SetNodeSize`, `SetNodeColor`, `SetTextFontSize`,
 `SetTextFont`, `SetImageAsset`, `AddAsset`, `RemoveAsset` (D40.6).
+
+Amended by: PR-20 (D41). `COMMAND_TYPES` continues, after `RemoveAsset`, with
+`AddAnimation`, `RemoveAnimation`, `SetOpacityKeyframe`, `SetPositionKeyframe`,
+`SetScaleKeyframe`, `AddKeyframe`, `RemoveKeyframe`, `MoveKeyframe` (D41.1).
 
 ### D38.2 `SetNodeOpacity`
 

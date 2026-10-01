@@ -134,6 +134,8 @@ text styles.
 
 ### PR-20 — Authoring animations
 
+- Status: planned and approved by the owner on 2026-09-30; decisions in D41
+  (accepted on 2026-10-01).
 - **Goal:** the editor can create and edit animations and keyframes in today's
   model.
 - **Scope:** create, read, update, and delete animations and keyframes within the
@@ -141,7 +143,8 @@ text styles.
   `0.1`); an explicit behaviour for every removal of a keyframe, including one
   that would leave fewer keyframes than the validator allows; every invariant
   of the validator kept.
-- **Packages and documents:** `@kadrion/editor-sdk`, tests.
+- **Packages and documents:** `@kadrion/editor-sdk`, its tests, `tests/repo`,
+  README, D41.
 - **Decisions:** an ADR on authoring animations.
 - **Acceptance:** exact inverses; no command produces a document that the
   validator refuses.

@@ -48,6 +48,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D38](D38-authoring-foundation.md)                         | Authoring foundation: command registry, transactions, events, and history limit    | Accepted          |
 | [D39](D39-structural-commands-and-node-identifiers.md)     | Structural commands and node identifiers                                           | Accepted          |
 | [D40](D40-property-and-asset-commands.md)                  | Property and asset commands                                                        | Accepted          |
+| [D41](D41-authoring-animations-and-keyframes.md)           | Authoring animations and keyframes                                                 | Accepted          |
 
 ## Provenance of D01–D10
 

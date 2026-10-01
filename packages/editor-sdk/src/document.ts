@@ -292,3 +292,78 @@ export function assetUsers(
   }
   return users.size === 0 ? null : [...users].sort();
 }
+
+/** An animation, the node that holds it, and its place in that node's `animations`. */
+export interface AnimationLocation {
+  readonly animation: DocumentObject;
+  readonly owner: DocumentObject;
+  readonly ownerId: string;
+  readonly animations: readonly unknown[];
+  readonly index: number;
+}
+
+/**
+ * The animation with that ID, looked up in the `animations` of the nodes only —
+ * those of the scene and of the groups' children (D41.2) — or `null`.
+ */
+export function locateAnimation(document: object, animationId: string): AnimationLocation | null {
+  for (const scene of objectsIn(fieldsOf(document)['scenes'])) {
+    for (const node of objectsIn(scene['nodes'])) {
+      for (const owner of [node, ...objectsIn(node['children'])]) {
+        const animations = asArray(owner['animations']);
+        if (animations === null) continue;
+        const index = animations.findIndex(
+          (animation) => isObject(animation) && animation['id'] === animationId,
+        );
+        const animation = animations[index];
+        if (isObject(animation)) {
+          return { animation, owner, ownerId: idOf(owner), animations, index };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/** The keyframes of an animation, as the document holds them. */
+export function keyframesOf(animation: DocumentObject): readonly unknown[] {
+  return asArray(animation['keyframes']) ?? [];
+}
+
+/** Where the keyframe at `timeUs` is, or -1. */
+export function keyframeIndex(keyframes: readonly unknown[], timeUs: number): number {
+  return keyframes.findIndex((keyframe) => isObject(keyframe) && keyframe['timeUs'] === timeUs);
+}
+
+/**
+ * The keyframes with `keyframe` placed by its time: before the first keyframe
+ * with a later time, or last (D41.2). The array order follows from the times.
+ */
+export function placedByTime(
+  keyframes: readonly unknown[],
+  keyframe: unknown,
+  timeUs: number,
+): readonly unknown[] {
+  const later = keyframes.findIndex(
+    (other) => isObject(other) && typeof other['timeUs'] === 'number' && other['timeUs'] > timeUs,
+  );
+  const at = later < 0 ? keyframes.length : later;
+  return [...keyframes.slice(0, at), keyframe, ...keyframes.slice(at)];
+}
+
+/**
+ * The document with `animation` in the place of the animation at `location`, or
+ * without it when `animation` is `null`. The path to it is rebuilt; everything
+ * else keeps its identity (D30.7).
+ */
+export function replaceAnimation(
+  document: object,
+  location: AnimationLocation,
+  animation: DocumentObject | null,
+): DocumentObject {
+  const animations =
+    animation === null
+      ? location.animations.filter((_, at) => at !== location.index)
+      : location.animations.map((item, at) => (at === location.index ? animation : item));
+  return replaceNode(document, location.ownerId, { ...location.owner, animations });
+}

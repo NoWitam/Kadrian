@@ -294,6 +294,9 @@ const player = await createPlayer(container, {
 
 ### 5. Edit through the command bus
 
+Here `documentJson` is the document of section 1, and `captionNode` is a
+complete text node with the ID `caption` and one position animation.
+
 ```ts
 import { createCommandBus } from '@kadrion/editor-sdk';
 
@@ -348,9 +351,27 @@ bus.canUndo();
 // under a new ID, move it, remove it. Each result names the IDs it created.
 bus.dispatch({ type: 'AddNode', parentId: 'scene-main', index: 2, node: captionNode });
 const copy = bus.dispatch({ type: 'DuplicateNode', nodeId: 'caption', newNodeId: 'caption-2' });
-copy.createdIds; // ['caption-2', 'caption-2-a-opacity'] for a caption with an opacity animation
+copy.createdIds; // ['caption-2', 'caption-2-a-position'] for a caption with a position animation
 bus.dispatch({ type: 'ReorderNode', nodeId: 'caption-2', index: 0 }); // to the bottom layer
 bus.dispatch({ type: 'RemoveNode', nodeId: 'caption' }); // with its animations
+
+// Animations: add a complete one (its ID chosen by the host) to a node that does
+// not animate that property yet, then edit its keyframes, each addressed by its
+// animation and its time in microseconds.
+const fadeIn = {
+  id: 'fade-in',
+  property: 'opacity',
+  interpolation: 'linear',
+  keyframes: [
+    { timeUs: 0, value: 0 },
+    { timeUs: 1_000_000, value: 1 },
+  ],
+};
+bus.dispatch({ type: 'AddAnimation', nodeId: 'caption-2', index: 1, animation: fadeIn });
+bus.dispatch({ type: 'SetOpacityKeyframe', animationId: 'fade-in', timeUs: 500_000, opacity: 0.5 });
+bus.dispatch({ type: 'MoveKeyframe', animationId: 'fade-in', timeUs: 500_000, toTimeUs: 750_000 });
+bus.dispatch({ type: 'RemoveKeyframe', animationId: 'fade-in', timeUs: 750_000 });
+bus.dispatch({ type: 'RemoveAnimation', animationId: 'fade-in' });
 unsubscribe();
 ```
 
@@ -372,6 +393,20 @@ unsubscribe();
   in lower case. An image or a text may point only at an asset of the
   document of the right type (`unknown-asset`, `asset-type-mismatch`), and an
   asset that is still used cannot be removed (`asset-in-use`, with its users).
+- The animation commands are `AddAnimation`, `RemoveAnimation`,
+  `SetOpacityKeyframe`, `SetPositionKeyframe`, `SetScaleKeyframe`,
+  `AddKeyframe`, `RemoveKeyframe`, and `MoveKeyframe`. A keyframe has no ID: it
+  is addressed by its time, and the keyframes stay in the order of their times.
+  A typed command sets the value at a time, or inserts a keyframe there, and
+  applies only to an animation of its property (`animation-property-mismatch`);
+  `AddKeyframe` takes a keyframe as exact data. Times are integer microseconds,
+  never rounded, and may lie after the end of the composition. A node animates
+  each property once (`duplicate-animation-target`), `AddKeyframe` or a move
+  onto a taken time is refused (`keyframe-exists`), and a removal that would
+  leave an animation fewer keyframes than the schema allows is refused
+  (`too-few-keyframes`): remove the whole animation instead, or, to replace
+  every keyframe in a transaction, insert the new ones before removing the old.
+  Animations are read from `getDocument()`.
 - After `AddAsset`, the host must supply the new asset's bytes whenever the
   document is loaded, even while nothing uses it; after `RemoveAsset`, a host
   that passes asset URLs must stop passing the removed asset's URL.
@@ -383,7 +418,7 @@ unsubscribe();
 - A listener's error goes to `onListenerError` and never reaches the caller of
   `dispatch`. While a change is being delivered, a listener cannot change the
   document: `dispatch`, `dispatchTransaction`, `undo`, and `redo` throw `busy`.
-- The bus is defined by D30, D38, D39, and D40.
+- The bus is defined by D30, D38, D39, D40, and D41.
 
 ### 6. Let a model edit through the same bus
 
@@ -529,3 +564,5 @@ tests/
   ESLint configuration and asserts the rejection.
 - The decisions that `AGENTS.md` lists (D01–D09 and D37, which superseded D10)
   stay `Accepted`, and their quotations stay verbatim with `AGENTS.md`.
+- The calls to the bus in the example of section 5 run, in the order written,
+  against the document of section 1.

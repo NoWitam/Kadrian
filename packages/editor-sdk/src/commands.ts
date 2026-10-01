@@ -9,6 +9,7 @@
  */
 import { compositionSchema, type Asset } from '@kadrion/schema';
 
+import { keyframeTimeBounds } from './animations.js';
 import { EditorError } from './errors.js';
 
 export interface CommandPosition {
@@ -209,6 +210,101 @@ export interface RemoveAssetCommand extends RemoveAssetArguments {
   readonly type: 'RemoveAsset';
 }
 
+/** What a caller states for `AddAnimation` (D41.1). */
+export interface AddAnimationArguments {
+  readonly nodeId: string;
+  /** The animation's index in the node's `animations` after the insertion, from 0 to the length. */
+  readonly index: number;
+  /** The complete animation, with its ID and its keyframes, as exact data (D41.3). */
+  readonly animation: NodeData;
+}
+
+/** Inserts a complete animation into a node's `animations` (D41.1). */
+export interface AddAnimationCommand extends AddAnimationArguments {
+  readonly type: 'AddAnimation';
+}
+
+/** What a caller states for `RemoveAnimation` (D41.1). */
+export interface RemoveAnimationArguments {
+  readonly animationId: string;
+}
+
+/** Removes one animation (D41.1). */
+export interface RemoveAnimationCommand extends RemoveAnimationArguments {
+  readonly type: 'RemoveAnimation';
+}
+
+/** What a caller states for `SetOpacityKeyframe` (D41.1). */
+export interface SetOpacityKeyframeArguments {
+  readonly animationId: string;
+  readonly timeUs: number;
+  readonly opacity: number;
+}
+
+/** Sets, or inserts, the keyframe at a time of an opacity animation (D41.1). */
+export interface SetOpacityKeyframeCommand extends SetOpacityKeyframeArguments {
+  readonly type: 'SetOpacityKeyframe';
+}
+
+/** What a caller states for `SetPositionKeyframe` (D41.1). */
+export interface SetPositionKeyframeArguments {
+  readonly animationId: string;
+  readonly timeUs: number;
+  readonly offset: CommandPosition;
+}
+
+/** Sets, or inserts, the keyframe at a time of a position animation (D41.1). */
+export interface SetPositionKeyframeCommand extends SetPositionKeyframeArguments {
+  readonly type: 'SetPositionKeyframe';
+}
+
+/** What a caller states for `SetScaleKeyframe` (D41.1). */
+export interface SetScaleKeyframeArguments {
+  readonly animationId: string;
+  readonly timeUs: number;
+  readonly factor: CommandScale;
+}
+
+/** Sets, or inserts, the keyframe at a time of a scale animation (D41.1). */
+export interface SetScaleKeyframeCommand extends SetScaleKeyframeArguments {
+  readonly type: 'SetScaleKeyframe';
+}
+
+/** What a caller states for `AddKeyframe` (D41.1). */
+export interface AddKeyframeArguments {
+  readonly animationId: string;
+  /** The keyframe as exact data; its `timeUs` is checked, the rest is the validator's (D41.3). */
+  readonly keyframe: NodeData;
+}
+
+/** Inserts a keyframe given as exact data, at the place its time gives it (D41.1). */
+export interface AddKeyframeCommand extends AddKeyframeArguments {
+  readonly type: 'AddKeyframe';
+}
+
+/** What a caller states for `RemoveKeyframe` (D41.1). */
+export interface RemoveKeyframeArguments {
+  readonly animationId: string;
+  readonly timeUs: number;
+}
+
+/** Removes the keyframe at a time; refused below the schema's minimum (D41.4). */
+export interface RemoveKeyframeCommand extends RemoveKeyframeArguments {
+  readonly type: 'RemoveKeyframe';
+}
+
+/** What a caller states for `MoveKeyframe` (D41.1). */
+export interface MoveKeyframeArguments {
+  readonly animationId: string;
+  readonly timeUs: number;
+  readonly toTimeUs: number;
+}
+
+/** Gives the keyframe at a time another, free time (D41.1). */
+export interface MoveKeyframeCommand extends MoveKeyframeArguments {
+  readonly type: 'MoveKeyframe';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -224,7 +320,15 @@ export type Command =
   | SetTextFontCommand
   | SetImageAssetCommand
   | AddAssetCommand
-  | RemoveAssetCommand;
+  | RemoveAssetCommand
+  | AddAnimationCommand
+  | RemoveAnimationCommand
+  | SetOpacityKeyframeCommand
+  | SetPositionKeyframeCommand
+  | SetScaleKeyframeCommand
+  | AddKeyframeCommand
+  | RemoveKeyframeCommand
+  | MoveKeyframeCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -304,6 +408,53 @@ export type SetTextFontArgumentsSchema = ClosedObjectSchema<keyof SetTextFontArg
 export type SetImageAssetArgumentsSchema = ClosedObjectSchema<keyof SetImageAssetArguments>;
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
+
+/** The argument schema of `AddAnimation`: closed, with `animation` an open object (D41.3). */
+export interface AddAnimationArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly index: ArgumentSchema;
+    readonly animation: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddAnimationArguments)[];
+  readonly additionalProperties: false;
+}
+
+/**
+ * The JSON Schema of a keyframe given as exact data: an object whose `timeUs` is
+ * the one field the command reads; every other field is the validator's (D41.3).
+ */
+export interface KeyframePayloadSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: { readonly timeUs: ArgumentSchema };
+  readonly required: readonly ['timeUs'];
+}
+
+/** The argument schema of `AddKeyframe`: closed, with `keyframe` open but for its time (D41.3). */
+export interface AddKeyframeArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly animationId: ArgumentSchema;
+    readonly keyframe: KeyframePayloadSchema;
+  };
+  readonly required: readonly (keyof AddKeyframeArguments)[];
+  readonly additionalProperties: false;
+}
+
+export type RemoveAnimationArgumentsSchema = ClosedObjectSchema<keyof RemoveAnimationArguments>;
+export type SetOpacityKeyframeArgumentsSchema = ClosedObjectSchema<
+  keyof SetOpacityKeyframeArguments
+>;
+export type SetPositionKeyframeArgumentsSchema = ClosedObjectSchema<
+  keyof SetPositionKeyframeArguments
+>;
+export type SetScaleKeyframeArgumentsSchema = ClosedObjectSchema<keyof SetScaleKeyframeArguments>;
+export type RemoveKeyframeArgumentsSchema = ClosedObjectSchema<keyof RemoveKeyframeArguments>;
+export type MoveKeyframeArgumentsSchema = ClosedObjectSchema<keyof MoveKeyframeArguments>;
 
 /** Freezes a JSON value and everything in it, so no caller can edit a shared value. */
 export function deepFreeze<T>(value: T): T {
@@ -424,6 +575,186 @@ const HASH_PATTERN: string = ASSET.contentHash.pattern;
  * case. The document stores lower case only; the parser lowercases (D40.1).
  */
 const COLOR_INPUT = '^#[0-9A-Fa-f]{6}$';
+
+/** The bounds of a keyframe's time, read from the schema (D41.2). */
+const KEYFRAME_TIME = keyframeTimeBounds(compositionSchema);
+
+const ANIMATION_ID = 'The ID of an animation of the document.';
+
+const TIME = {
+  type: 'integer',
+  description:
+    'A composition time in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.',
+  minimum: KEYFRAME_TIME.minimum,
+  maximum: KEYFRAME_TIME.maximum,
+} as const;
+
+/** The JSON Schema of the arguments of `AddAnimation` (D41.1, D41.3). */
+export const addAnimationArgumentsSchema: AddAnimationArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: "Inserts a complete animation into a node's animations.",
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: 'The stable ID of the node. The background has no animations.',
+      minLength: 1,
+    },
+    index: {
+      type: 'integer',
+      description: "The animation's index in the node's animations after the insertion.",
+      minimum: 0,
+      maximum: Number.MAX_SAFE_INTEGER,
+    },
+    animation: {
+      type: 'object',
+      description:
+        'The complete animation as the document stores it: its ID, unused in the document; its property, which the node must not animate already; its interpolation; and its keyframes.',
+    },
+  },
+  required: ['nodeId', 'index', 'animation'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveAnimation` (D41.1). */
+export const removeAnimationArgumentsSchema: RemoveAnimationArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Removes one animation with all its keyframes.',
+  properties: { animationId: { type: 'string', description: ANIMATION_ID, minLength: 1 } },
+  required: ['animationId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetOpacityKeyframe` (D41.1, D41.3). */
+export const setOpacityKeyframeArgumentsSchema: SetOpacityKeyframeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Sets the keyframe at a time of an opacity animation, inserting it when none is there.',
+  properties: {
+    animationId: {
+      type: 'string',
+      description: `${ANIMATION_ID} It must animate opacity.`,
+      minLength: 1,
+    },
+    timeUs: TIME,
+    opacity: {
+      type: 'number',
+      description: 'The opacity factor, from 0 to 1 inclusive, kept as it is; -0 becomes 0.',
+      minimum: 0,
+      maximum: 1,
+    },
+  },
+  required: ['animationId', 'timeUs', 'opacity'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetPositionKeyframe` (D41.1, D41.3). */
+export const setPositionKeyframeArgumentsSchema: SetPositionKeyframeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Sets the keyframe at a time of a position animation, inserting it when none is there.',
+  properties: {
+    animationId: {
+      type: 'string',
+      description: `${ANIMATION_ID} It must animate position.`,
+      minLength: 1,
+    },
+    timeUs: TIME,
+    offset: {
+      type: 'object',
+      description:
+        "The offset added to the node's base position, in composition pixels; each coordinate is rounded to an integer, halves towards +Infinity, and -0 becomes 0.",
+      properties: {
+        x: { type: 'number', description: 'The horizontal offset.' },
+        y: { type: 'number', description: 'The vertical offset.' },
+      },
+      required: ['x', 'y'],
+      additionalProperties: false,
+    },
+  },
+  required: ['animationId', 'timeUs', 'offset'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetScaleKeyframe` (D41.1, D41.3). */
+export const setScaleKeyframeArgumentsSchema: SetScaleKeyframeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets the keyframe at a time of a scale animation, inserting it when none is there.',
+  properties: {
+    animationId: {
+      type: 'string',
+      description: `${ANIMATION_ID} It must animate scale.`,
+      minLength: 1,
+    },
+    timeUs: TIME,
+    factor: {
+      type: 'object',
+      description: "The factors multiplied with the node's base scale.",
+      properties: {
+        x: {
+          type: 'number',
+          description: 'A factor from 0 to 1000 inclusive; -0 becomes 0.',
+          minimum: 0,
+          maximum: 1000,
+        },
+        y: {
+          type: 'number',
+          description: 'A factor from 0 to 1000 inclusive; -0 becomes 0.',
+          minimum: 0,
+          maximum: 1000,
+        },
+      },
+      required: ['x', 'y'],
+      additionalProperties: false,
+    },
+  },
+  required: ['animationId', 'timeUs', 'factor'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `AddKeyframe` (D41.1, D41.3). */
+export const addKeyframeArgumentsSchema: AddKeyframeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Inserts a keyframe given as exact data at the place its time gives it; its value is judged by the document.',
+  properties: {
+    animationId: { type: 'string', description: ANIMATION_ID, minLength: 1 },
+    keyframe: {
+      type: 'object',
+      description:
+        'The keyframe as the document stores it: its time, which must be free, and its value.',
+      properties: { timeUs: TIME },
+      required: ['timeUs'],
+    },
+  },
+  required: ['animationId', 'keyframe'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveKeyframe` (D41.1, D41.4). */
+export const removeKeyframeArgumentsSchema: RemoveKeyframeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Removes the keyframe at a time; refused when the animation would keep fewer keyframes than the document allows.',
+  properties: {
+    animationId: { type: 'string', description: ANIMATION_ID, minLength: 1 },
+    timeUs: TIME,
+  },
+  required: ['animationId', 'timeUs'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `MoveKeyframe` (D41.1). */
+export const moveKeyframeArgumentsSchema: MoveKeyframeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Gives the keyframe at a time another time, which must be free.',
+  properties: {
+    animationId: { type: 'string', description: ANIMATION_ID, minLength: 1 },
+    timeUs: TIME,
+    toTimeUs: TIME,
+  },
+  required: ['animationId', 'timeUs', 'toTimeUs'],
+  additionalProperties: false,
+});
 
 /**
  * The JSON Schema of the arguments of `AddNode` (D39.1). `node` is an object and
@@ -736,7 +1067,7 @@ function isDataObject(value: object): boolean {
 function notDataOf(path: string, what: string): never {
   throw new EditorError(
     'invalid-argument',
-    `${path} holds ${what}; a node is composition data, which JSON can carry.`,
+    `${path} holds ${what}; it must be composition data, which JSON can carry.`,
   );
 }
 
@@ -1034,4 +1365,154 @@ export function parseAddAsset(value: unknown): AddAssetCommand {
 export function parseRemoveAsset(value: unknown): RemoveAssetCommand {
   const fields = fieldsOf(value, ['type', 'assetId'], 'The command `RemoveAsset`');
   return Object.freeze({ type: 'RemoveAsset', assetId: nodeIdOf(fields, 'assetId') });
+}
+
+/** A time a command takes: a safe integer within the schema's bounds, never rounded; -0 becomes 0 (D41.2). */
+function timeOf(value: unknown, what: string): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isSafeInteger(value) ||
+    value < KEYFRAME_TIME.minimum ||
+    value > KEYFRAME_TIME.maximum
+  ) {
+    throw new EditorError(
+      'invalid-argument',
+      `${what} must be an integer number of microseconds from ${String(KEYFRAME_TIME.minimum)} to ${String(KEYFRAME_TIME.maximum)}, not ${typeof value === 'number' ? String(value) : typeof value}.`,
+    );
+  }
+  return value === 0 ? 0 : value;
+}
+
+/** An opacity factor: finite, from 0 to 1, never rounded; -0 becomes 0 (D38.2, D41.3). */
+function opacityFactor(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`opacity\` must be a finite number from 0 to 1, not ${typeof value === 'number' ? String(value) : typeof value}.`,
+    );
+  }
+  return value === 0 ? 0 : value;
+}
+
+/** The fields of an `AddAnimation` (D41.1): the animation copied as exact data (D41.3). */
+export function parseAddAnimation(value: unknown): AddAnimationCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'index', 'animation'],
+    'The command `AddAnimation`',
+  );
+  const nodeId = nodeIdOf(fields);
+  const index = indexOf(fields);
+  const animation: unknown = fields['animation'];
+  if (!isPlainObject(animation) || !isDataObject(animation)) {
+    throw new EditorError('invalid-argument', '`animation` must be an object.');
+  }
+  const copy = deepFreeze(copyData(animation, '`animation`', []) as NodeData);
+  return Object.freeze({ type: 'AddAnimation', nodeId, index, animation: copy });
+}
+
+/** The fields of a `RemoveAnimation` (D41.1). */
+export function parseRemoveAnimation(value: unknown): RemoveAnimationCommand {
+  const fields = fieldsOf(value, ['type', 'animationId'], 'The command `RemoveAnimation`');
+  return Object.freeze({ type: 'RemoveAnimation', animationId: nodeIdOf(fields, 'animationId') });
+}
+
+/** The fields of a `SetOpacityKeyframe` (D41.1, D41.3). */
+export function parseSetOpacityKeyframe(value: unknown): SetOpacityKeyframeCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'animationId', 'timeUs', 'opacity'],
+    'The command `SetOpacityKeyframe`',
+  );
+  return Object.freeze({
+    type: 'SetOpacityKeyframe',
+    animationId: nodeIdOf(fields, 'animationId'),
+    timeUs: timeOf(fields['timeUs'], '`timeUs`'),
+    opacity: opacityFactor(fields['opacity']),
+  });
+}
+
+/** The fields of a `SetPositionKeyframe` (D41.1, D41.3): the offset rounded like a position (D15). */
+export function parseSetPositionKeyframe(value: unknown): SetPositionKeyframeCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'animationId', 'timeUs', 'offset'],
+    'The command `SetPositionKeyframe`',
+  );
+  const animationId = nodeIdOf(fields, 'animationId');
+  const timeUs = timeOf(fields['timeUs'], '`timeUs`');
+  const offset = fieldsOf(fields['offset'], ['x', 'y'], '`offset`');
+  return Object.freeze({
+    type: 'SetPositionKeyframe',
+    animationId,
+    timeUs,
+    offset: Object.freeze({
+      x: integerPixels(offset['x'], '`offset`.x'),
+      y: integerPixels(offset['y'], '`offset`.y'),
+    }),
+  });
+}
+
+/** The fields of a `SetScaleKeyframe` (D41.1, D41.3): factors checked as a scale's (D40.1). */
+export function parseSetScaleKeyframe(value: unknown): SetScaleKeyframeCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'animationId', 'timeUs', 'factor'],
+    'The command `SetScaleKeyframe`',
+  );
+  const animationId = nodeIdOf(fields, 'animationId');
+  const timeUs = timeOf(fields['timeUs'], '`timeUs`');
+  const factor = fieldsOf(fields['factor'], ['x', 'y'], '`factor`');
+  return Object.freeze({
+    type: 'SetScaleKeyframe',
+    animationId,
+    timeUs,
+    factor: Object.freeze({
+      x: scaleFactor(factor['x'], '`factor`.x'),
+      y: scaleFactor(factor['y'], '`factor`.y'),
+    }),
+  });
+}
+
+/**
+ * The fields of an `AddKeyframe` (D41.1, D41.3): the keyframe copied as exact
+ * data, every field kept for the validator; only its time is read and checked,
+ * because it places the keyframe, and a -0 time becomes 0.
+ */
+export function parseAddKeyframe(value: unknown): AddKeyframeCommand {
+  const fields = fieldsOf(value, ['type', 'animationId', 'keyframe'], 'The command `AddKeyframe`');
+  const animationId = nodeIdOf(fields, 'animationId');
+  const keyframe: unknown = fields['keyframe'];
+  if (!isPlainObject(keyframe) || !isDataObject(keyframe)) {
+    throw new EditorError('invalid-argument', '`keyframe` must be an object.');
+  }
+  const copy = copyData(keyframe, '`keyframe`', []) as Record<string, unknown>;
+  const timeUs = timeOf(copy['timeUs'], '`keyframe`.timeUs');
+  copy['timeUs'] = timeUs;
+  return Object.freeze({ type: 'AddKeyframe', animationId, keyframe: deepFreeze(copy) });
+}
+
+/** The fields of a `RemoveKeyframe` (D41.1). */
+export function parseRemoveKeyframe(value: unknown): RemoveKeyframeCommand {
+  const fields = fieldsOf(value, ['type', 'animationId', 'timeUs'], 'The command `RemoveKeyframe`');
+  return Object.freeze({
+    type: 'RemoveKeyframe',
+    animationId: nodeIdOf(fields, 'animationId'),
+    timeUs: timeOf(fields['timeUs'], '`timeUs`'),
+  });
+}
+
+/** The fields of a `MoveKeyframe` (D41.1). */
+export function parseMoveKeyframe(value: unknown): MoveKeyframeCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'animationId', 'timeUs', 'toTimeUs'],
+    'The command `MoveKeyframe`',
+  );
+  return Object.freeze({
+    type: 'MoveKeyframe',
+    animationId: nodeIdOf(fields, 'animationId'),
+    timeUs: timeOf(fields['timeUs'], '`timeUs`'),
+    toTimeUs: timeOf(fields['toTimeUs'], '`toTimeUs`'),
+  });
 }
