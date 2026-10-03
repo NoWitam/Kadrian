@@ -3,7 +3,9 @@
 - Status: Accepted — by the project owner on 2026-10-03, after the reviews of
   the implementation and the pinned measurements of D42.5 and D42.6, taken
   locally on that day; the decisions are the owner's of 2026-10-01 and
-  2026-10-02. The CI evidence that Q14 waits for is still to come
+  2026-10-02. The CI run of the commit, run 37151313481, passed on 2026-10-03
+  and supplied the validated evidence; the documentation commit that follows it
+  closes Q14 again ([the first CI run](../ci/first-run.md))
 - Date: 2026-10-03
 - Supersedes: —
 - Amends: D16 (16.2, 16.5), D18 (new 18.6), D19 (19.4), D22 (22.2, 22.4), D24
@@ -183,8 +185,9 @@ These are rows of the pinned suites. They ran in the controlled bootstrap of
 reference run and in the full second run with its repeat. That is five complete
 passes of the pinned suite, 104 tests in seven files each, and every row below
 passed in each of them. It is a local measurement in one environment, not the
-CI evidence that Q14 waits for. None of the rows writes a report file: the list
-of files of the CI artifact is unchanged.
+CI evidence of Q14: that is the run of the commit on a GitHub runner, in which
+the same rows passed. None of the rows writes a report file: the list of files
+of the CI artifact is unchanged.
 
 In `tests/pinned/producer.pinned.test.ts`:
 

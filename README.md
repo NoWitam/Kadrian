@@ -13,9 +13,9 @@ Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
 of the Player and the Producer is measured and gated
 ([`docs/spike/report.md`](docs/spike/report.md)). The workflow runs on a
-GitHub runner in the pinned image. Q14 is open again: PR-21 (D42, schema `0.2`)
-changes the schema, the runtime build, and the golden manifest that its evidence
-was checked against, so Q14 waits for a green run of a commit with PR-21
+GitHub runner in the pinned image, and Q14 is closed: the run 37151313481 of
+the validated PR-21 commit 8b2b18e met every criterion, with its evidence in
+[`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
 ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 repository is publicly visible, but the project is not open source: no licence
 is granted, and the packages are private and unpublished (D37). The APIs below

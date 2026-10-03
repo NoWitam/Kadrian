@@ -163,7 +163,9 @@ text styles.
 
 - Status: planned and approved by the owner on 2026-10-01 and 2026-10-02;
   decisions in D42, accepted by the owner on 2026-10-03. Implemented, and
-  measured in the controlled pinned bootstrap of 2026-10-03; Q14 is open. Its
+  measured in the controlled pinned bootstrap of 2026-10-03; run 37151313481
+  of its commit supplied the validated CI evidence, and the documentation
+  commit that follows it closed Q14 again on 2026-10-03. Its
   scope is the lifetime of a node and the first migration; the `fit` of an
   image is not part of it.
 - **Goal:** elements have a lifetime on the timeline, and a document of schema
@@ -199,9 +201,12 @@ text styles.
   a unit test of the Player while the development machine was under other
   load. Each further attempt had the owner's consent, and no source, test, or
   timeout was changed between them.
-- **Remaining:** a green CI run of the commit, and the documentation commit
-  with its evidence, which close Q14 by the procedure of
-  [the first CI run](../ci/first-run.md). Until then Q14 is open.
+- **CI and Q14:** run 37151313481 of the commit `8b2b18e` passed every step
+  on a GitHub runner and supplied the validated evidence,
+  `docs/ci/q14-evidence.json`. The documentation commit that follows it adds
+  that evidence, updates the documents that state the status of Q14, and closed
+  Q14 again on 2026-10-03 by the procedure of
+  [the first CI run](../ci/first-run.md).
 - **Not included:** saving and loading old files in a host (PR-22); the `fit`
   of an image.
 
