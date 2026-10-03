@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.1",
+  "schemaVersion": "0.2",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -18,11 +18,15 @@
         {
           "id": "node-background",
           "type": "background",
+          "startUs": 0,
+          "durationUs": 8000000,
           "color": "#0b1020"
         },
         {
           "id": "node-title",
           "type": "text",
+          "startUs": 0,
+          "durationUs": 8000000,
           "position": {
             "x": 90,
             "y": 140
@@ -41,6 +45,8 @@
         {
           "id": "node-dial",
           "type": "custom-html",
+          "startUs": 0,
+          "durationUs": 8000000,
           "position": {
             "x": 90,
             "y": 520

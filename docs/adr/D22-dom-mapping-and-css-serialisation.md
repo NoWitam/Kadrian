@@ -5,6 +5,8 @@
 - Amended by: PR-16 (D36) on 2026-09-27 at the owner's request — the Custom HTML row of 22.3
   (through D23.8 and D23.10) depends on the host's Custom HTML policy; 22.4: the policy is
   checked before the asset URLs; 22.7: the code `invalid-options`
+- Amended by: PR-21 (D42) on 2026-10-03 at the owner's request — 22.2 and 22.4:
+  `renderState` also writes the visibility of every node
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
@@ -55,6 +57,12 @@ of the group element, so they live in its scaled space, and the group's opacity
 applies to the composited group (D15, D18.5). Nothing sets `z-index`: absolutely
 positioned siblings paint in DOM order, which is the array order (D16.4).
 
+Amended by: PR-21 (D42). Every node, the background included, additionally gets
+`visibility: hidden` while it is inactive and carries no `visibility`
+declaration while it is active (D42.4). `visible` is never written: the property
+inherits, so an inactive group hides its children. A tree whose nodes are all
+active is exactly the tree of this section.
+
 **22.3 Elements.** `mountComposition` replaces the content of the host's `root`
 element with this tree; `W` and `H` are the canvas size.
 
@@ -99,6 +107,11 @@ elements; no meaning lives in them that the document does not hold (`AGENTS.md`)
 - A document whose static properties changed must be mounted again:
   `renderState` only checks IDs, order, and hierarchy. That is a host contract,
   and PR-08 (editing) relies on it.
+
+Amended by: PR-21 (D42). After the same check, `renderState` also sets or
+removes the `visibility` declaration of every node on every call, so the tree
+still depends on the mounted document and the last state only. A mismatch still
+throws before anything, a visibility included, is written.
 
 **22.5 Asset URLs.** Until the resolver of D14 exists, the host passes a plain
 object that maps an asset `id` to the URL of bytes it has already verified,

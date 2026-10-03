@@ -1,6 +1,8 @@
 # D24 — The schema joins the determinism guardrail, with one named exception
 
 - Status: Accepted — by the project owner on 2026-09-22
+- Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, 24.2
+  (the frozen schema of an earlier version)
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D17, D19, D20, D21, D22.8, D23,
@@ -39,6 +41,13 @@ source.
 **24.2 Precondition.** `compositionSchema` and every object reachable from it
 are frozen when the module loads. A schema object that the memo remembers can
 therefore never change, and re-checking it would give the same verdict.
+
+Amended by: PR-21 (D42). The same holds for the schema of every earlier version
+that `@kadrion/schema` keeps as data (D35.4): `compositionSchemaV01` and every
+object reachable from it are frozen when their module loads, because the memo
+remembers their objects too once `migrateComposition` validates against them.
+That module is under this guardrail like every source of the package, although
+it is no part of the runtime build (D42.8).
 
 **24.3 The exception.** Exactly one declaration is exempt from the module-state
 rules and from the ban on weak collections: in

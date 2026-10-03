@@ -286,6 +286,7 @@ describe('the arithmetic rule (D18)', () => {
     expect(stateNode(evaluateComposition(document, 2), 'node-title')).toStrictEqual({
       id: 'node-title',
       type: 'text',
+      active: true,
       position: { x: 3 + (1 + ((2 - 1) * 2) / 3), y: 3 + (2 + ((1 - 2) * 2) / 3) },
       scale: { x: 3 * (0.25 + ((0.75 - 0.25) * 2) / 3), y: 3 * (0.75 + ((0.25 - 0.75) * 2) / 3) },
       opacity: 0.3 * (0.2 + ((0.8 - 0.2) * 2) / 3),
@@ -309,6 +310,7 @@ describe('sampling (D16.6, D18)', () => {
     expect(stateNode(evaluateComposition(document, 500_000), 'node-image')).toStrictEqual({
       id: 'node-image',
       type: 'image',
+      active: true,
       position: { x: 100 + 10, y: 200 + 0 },
       scale: { x: 3 * 3, y: 0.5 * 4 },
       opacity: 0.5 * 0.75,
@@ -391,6 +393,7 @@ describe('sampling (D16.6, D18)', () => {
     expect(states[0]).toStrictEqual({
       id: 'node-title',
       type: 'text',
+      active: true,
       position: { x: 90 + 2, y: 160 + 3.5 },
       scale: { x: 1 * 1.5, y: 1 * 1.5 },
       opacity: 0.75 * 0.5,

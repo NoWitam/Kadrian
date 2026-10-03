@@ -1,6 +1,9 @@
 # D16 — Composition document conventions for schema 0.1
 
 - Status: Accepted — by the project owner on 2026-09-21
+- Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, 16.2
+  and 16.5 (schema `0.2`: every node has a lifetime; this ADR's rules are those
+  of `0.1` and hold for `0.2` except as amended)
 - Date: 2026-09-21
 - Related: D02, D04, D05, D09, D13, D14, D15, D17,
   [specification](../spike/vertical-spike.md) §3 and open questions Q11, Q13,
@@ -31,6 +34,12 @@ nodes, so groups do not nest; `interpolation` is `linear` only (Q11); Custom
 HTML content is an inline string (Q13) and declares no capabilities, because
 none exists yet.
 
+Amended by: PR-21 (D42). Schema `0.2` accepts what `0.1` accepts plus the
+lifetime of every node, `startUs` and `durationUs`, required like every field
+(16.1). A document of `0.1` is no document of `0.2`: it is carried forward by
+`migrateComposition` (D35, D42.7). The other limits of this section are
+unchanged.
+
 **16.3 One ID namespace.** IDs match `^[A-Za-z0-9_-]+$` and are unique across
 the whole document, whatever the kind of entity. Commands and AI tools can
 address anything by a bare ID. Every occurrence of an ID after the first is
@@ -45,6 +54,12 @@ document order is the truth; DOM order is derived from it.
 **16.5 Time base.** The single scene spans the composition, so every time in
 the document is composition time. Nothing at or after `durationUs` is ever
 sampled: keyframes and clips may extend past the end and are cut there.
+
+Amended by: PR-21 (D42). The time base is unchanged in schema `0.2`: a node's
+lifetime is composition time too, for a child of a group as for any node, and a
+keyframe's `timeUs` stays composition time. A lifetime may extend past the end
+and is cut there, like a keyframe and a clip, and it may begin at or after the
+end (D42.2). What is new is that a node is shown only while it is active.
 
 **16.6 Animation semantics.** An animation modifies its node's base value; it
 never replaces it. Position keyframe values are offsets added to `position`;

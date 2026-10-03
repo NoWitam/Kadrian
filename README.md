@@ -7,15 +7,15 @@ end-user application, and it does not depend on any consumer product.
 **Status: phase two.** The vertical spike is complete
 ([`docs/spike/report.md`](docs/spike/report.md), section 10); the current
 phase is authoring and the preparation for the Taskio editor
-([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)). Schema `0.1`, the evaluation core, the DOM
+([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)). Schema `0.2` with its forward migration from `0.1`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
 of the Player and the Producer is measured and gated
 ([`docs/spike/report.md`](docs/spike/report.md)). The workflow runs on a
-GitHub runner in the pinned image, and Q14 is closed: the run 36350016065 of
-the validated PR-16 commit 531ab79 met every criterion, with its evidence in
-[`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
+GitHub runner in the pinned image. Q14 is open again: PR-21 (D42, schema `0.2`)
+changes the schema, the runtime build, and the golden manifest that its evidence
+was checked against, so Q14 waits for a green run of a commit with PR-21
 ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 repository is publicly visible, but the project is not open source: no licence
 is granted, and the packages are private and unpublished (D37). The APIs below
@@ -33,8 +33,8 @@ are those of the spike and may still change.
   its evidence and its limits
 - [`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md) — the plan of phase
   two: authoring and the integration contract for the Taskio editor
-- [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, the
-  evidence that closes Q14, and how Q14 reopens
+- [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, and how
+  Q14 closes and reopens
 - [`docs/architecture/package-boundaries.json`](docs/architecture/package-boundaries.json)
   — machine-checked package dependency map (see D12)
 
@@ -140,13 +140,13 @@ are complete, working examples of everything below.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.1`
+A composition is a JSON document of schema `0.2`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.1",
+  "schemaVersion": "0.2",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -162,10 +162,18 @@ Unknown fields are errors. This one shows a text that fades in:
     {
       "id": "scene-main",
       "nodes": [
-        { "id": "node-background", "type": "background", "color": "#101828" },
+        {
+          "id": "node-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 3000000,
+          "color": "#101828"
+        },
         {
           "id": "node-title",
           "type": "text",
+          "startUs": 0,
+          "durationUs": 3000000,
           "position": { "x": 90, "y": 140 },
           "scale": { "x": 1, "y": 1 },
           "opacity": 1,
@@ -194,8 +202,16 @@ Unknown fields are errors. This one shows a text that fades in:
 
 - **Nodes:** `background`, `text`, `image`, `group`, and `custom-html`. Array
   order is the z-order.
-- **Animations:** `opacity`, `position`, and `scale`, with linear keyframes.
-- **Clips:** an audio track; schema `0.1` allows at most one.
+- **Lifetimes:** every node has `startUs` and `durationUs`, in composition
+  time, and is shown at `t` while `startUs <= t < startUs + durationUs`. A
+  child of a group is shown only while its group is shown too. A lifetime may
+  reach past the end of the composition, where it is cut. The render page
+  declares a white background for the pixels no node covers (D42.5); that the
+  pixels are white in the Producer and in the Player is measured in the pinned
+  environment (D42.6).
+- **Animations:** `opacity`, `position`, and `scale`, with linear keyframes, on
+  composition time: a lifetime does not shift them.
+- **Clips:** an audio track; the schema allows at most one.
 - **Assets:** images, fonts, and audio, by ID and `contentHash`.
 
 The font above is the one of `@kadrion/test-fixtures`. For every field, see the
@@ -221,13 +237,42 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
+`validateComposition` accepts schema `0.2` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.2` document, and none of them
+upgrades an older one. The validator's verdict on an older document is
+`unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
+its own `invalid-document` error, with that verdict in the details. A host that
+holds a document of schema `0.1` carries it forward itself, once, and stores the
+result as a new version:
+
+```ts
+import { migrateComposition } from '@kadrion/schema/migrate';
+
+const migrated = migrateComposition(JSON.parse(text));
+if (migrated.ok) {
+  migrated.composition; // a new, validated 0.2 document; the input is untouched
+  migrated.versions; // ['0.1', '0.2'], or ['0.2'] for a document that was current
+} else {
+  migrated.version; // the version the errors belong to, or null when none is known
+  for (const error of migrated.errors) console.error(error.code, error.path, error.message);
+}
+```
+
+- The step from `0.1` gives every node `startUs: 0` and the `durationUs` of the
+  composition, so every node stays shown for the whole composition. Lengthening
+  the composition later does not lengthen these lifetimes.
+- It changes nothing else: IDs, the order of arrays and of keys, and every other
+  value stay as they are.
+- A document without a known `schemaVersion` is refused with
+  `unsupported-schema-version` (D35, D42).
+
 ### 3. Evaluate a frame
 
 ```ts
 import { evaluateComposition } from '@kadrion/runtime';
 
 const state = evaluateComposition(composition, 2_500_000);
-// state.scenes[0].nodes: the resolved position, scale, and opacity of every node
+// state.scenes[0].nodes: whether each node is active, and its resolved position, scale, and opacity
 ```
 
 The evaluation is pure: no DOM, no clock, no assets. A time that is not an
@@ -372,6 +417,14 @@ bus.dispatch({ type: 'SetOpacityKeyframe', animationId: 'fade-in', timeUs: 500_0
 bus.dispatch({ type: 'MoveKeyframe', animationId: 'fade-in', timeUs: 500_000, toTimeUs: 750_000 });
 bus.dispatch({ type: 'RemoveKeyframe', animationId: 'fade-in', timeUs: 750_000 });
 bus.dispatch({ type: 'RemoveAnimation', animationId: 'fade-in' });
+
+// Lifetime: when a node is shown, in composition time. It moves no keyframe.
+bus.dispatch({
+  type: 'SetNodeLifetime',
+  nodeId: 'caption-2',
+  startUs: 1_000_000,
+  durationUs: 1_500_000,
+});
 unsubscribe();
 ```
 
@@ -407,6 +460,11 @@ unsubscribe();
   (`too-few-keyframes`): remove the whole animation instead, or, to replace
   every keyframe in a transaction, insert the new ones before removing the old.
   Animations are read from `getDocument()`.
+- `SetNodeLifetime` sets `startUs` and `durationUs` of any node, the background
+  and a child of a group included. Both are integer microseconds, never rounded,
+  and the duration is at least 1. It changes when the node is shown and nothing
+  else: the node's keyframes keep their composition times. A node added with
+  `AddNode` carries its lifetime like every other field.
 - After `AddAsset`, the host must supply the new asset's bytes whenever the
   document is loaded, even while nothing uses it; after `RemoveAsset`, a host
   that passes asset URLs must stop passing the removed asset's URL.
@@ -418,7 +476,7 @@ unsubscribe();
 - A listener's error goes to `onListenerError` and never reaches the caller of
   `dispatch`. While a change is being delivered, a listener cannot change the
   document: `dispatch`, `dispatchTransaction`, `undo`, and `redo` throw `busy`.
-- The bus is defined by D30, D38, D39, D40, and D41.
+- The bus is defined by D30, D38, D39, D40, D41, and D42.
 
 ### 6. Let a model edit through the same bus
 
@@ -483,7 +541,7 @@ const { outputPath, manifest, stats } = await exportMp4({
 ```
 
 - The export streams the frames to FFmpeg and writes no intermediate frames. It
-  encodes H.264 video, and muxes the audio clip; schema `0.1` allows at most one
+  encodes H.264 video, and muxes the audio clip; the schema allows at most one
   (D16, D29).
 - The FFmpeg paths must be absolute and name the pinned build. `PATH` is never
   searched, and the executables are verified by their SHA-256.
@@ -566,3 +624,7 @@ tests/
   stay `Accepted`, and their quotations stay verbatim with `AGENTS.md`.
 - The calls to the bus in the example of section 5 run, in the order written,
   against the document of section 1.
+- The main entry of `@kadrion/schema` reaches no historical schema and no
+  migration step, and no source of a package or of an application imports
+  `@kadrion/schema/migrate`: the migration is outside the runtime build, and
+  migrating is the host's act (D42).

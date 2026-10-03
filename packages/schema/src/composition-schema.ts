@@ -1,10 +1,11 @@
 /**
- * Composition schema 0.1: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.2: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
  * It accepts the reference composition and nothing beyond it (D16): no optional
- * fields, no defaults, no unknown fields.
+ * fields, no defaults, no unknown fields. 0.2 is 0.1 plus the lifetime of every
+ * node (D42.1); the schema of 0.1 is kept as data in `v0-1` (D35.4).
  */
 import {
   closedObject,
@@ -15,7 +16,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.1';
+export const SCHEMA_VERSION = '0.2';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -98,7 +99,7 @@ const scale = closedObject("Scale about the node's own origin, applied after the
 
 const interpolation = {
   type: 'string',
-  description: 'How values between two keyframes are computed. Schema 0.1 knows linear only.',
+  description: 'How values between two keyframes are computed. The schema knows linear only.',
   enum: ['linear'],
 } as const satisfies StringSchema;
 
@@ -151,15 +152,35 @@ const animations = {
 
 const transform = { position, scale, opacity, animations } as const;
 
+/**
+ * The lifetime of a node, in composition time (D42.1, D42.2): it is active at
+ * `t` when `t >= startUs` and `t - startUs < durationUs`. Every node has one,
+ * directly after its `type`.
+ */
+const lifetime = {
+  startUs: {
+    ...timeUs,
+    description:
+      'Composition time, in integer microseconds, from which the node is active (D42.2). It may lie at or after the end of the composition.',
+  },
+  durationUs: {
+    ...durationUs,
+    description:
+      'How long the node is active, in integer microseconds, from startUs (D42.2). Whatever lies past the end of the composition is cut.',
+  },
+} as const;
+
 export const backgroundNodeSchema = closedObject('Solid fill that covers the whole canvas.', {
   id,
   type: { type: 'string', const: 'background' },
+  ...lifetime,
   color,
 });
 
 export const imageNodeSchema = closedObject('An image asset stretched to the box of the node.', {
   id,
   type: { type: 'string', const: 'image' },
+  ...lifetime,
   ...transform,
   assetId: assetReference,
   width: length,
@@ -169,6 +190,7 @@ export const imageNodeSchema = closedObject('An image asset stretched to the box
 export const textNodeSchema = closedObject('One run of text; line breaks are preserved.', {
   id,
   type: { type: 'string', const: 'text' },
+  ...lifetime,
   ...transform,
   text: { type: 'string' },
   fontAssetId: assetReference,
@@ -177,10 +199,11 @@ export const textNodeSchema = closedObject('One run of text; line breaks are pre
 });
 
 export const customHtmlNodeSchema = closedObject(
-  'Isolated, capability-limited HTML element (D05). Schema 0.1 defines no capability.',
+  'Isolated, capability-limited HTML element (D05). The schema defines no capability.',
   {
     id,
     type: { type: 'string', const: 'custom-html' },
+    ...lifetime,
     ...transform,
     width: length,
     height: length,
@@ -189,10 +212,11 @@ export const customHtmlNodeSchema = closedObject(
 );
 
 export const groupNodeSchema = closedObject(
-  "Children follow the group's transform. Groups do not nest in schema 0.1 (D16).",
+  "Children follow the group's transform; a child is shown only while its group is active too (D42.4). Groups do not nest (D16).",
   {
     id,
     type: { type: 'string', const: 'group' },
+    ...lifetime,
     ...transform,
     children: {
       type: 'array',
@@ -212,14 +236,17 @@ export const sceneNodeSchema = {
   ],
 } as const satisfies UnionSchema;
 
-export const sceneSchema = closedObject('The single scene spans the whole composition (D16).', {
-  id,
-  nodes: {
-    type: 'array',
-    description: 'Array order is the z-order; the first node is at the bottom.',
-    items: sceneNodeSchema,
+export const sceneSchema = closedObject(
+  'The single scene spans the whole composition (D16); its nodes have lifetimes of their own (D42).',
+  {
+    id,
+    nodes: {
+      type: 'array',
+      description: 'Array order is the z-order; the first node is at the bottom.',
+      items: sceneNodeSchema,
+    },
   },
-});
+);
 
 export const assetSchema = closedObject(
   'Pinned by content hash; the host resolves the bytes and the engine verifies them (D14).',
@@ -260,7 +287,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.1',
+  title: 'Kadrion composition 0.2',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,
@@ -276,7 +303,7 @@ export const compositionSchema = deepFreeze({
     scenes: { type: 'array', minItems: 1, maxItems: 1, items: sceneSchema },
     clips: {
       type: 'array',
-      description: 'At most one audio clip, because mixing is undefined in schema 0.1 (D16).',
+      description: 'At most one audio clip, because mixing is undefined (D16).',
       maxItems: 1,
       items: audioClipSchema,
     },

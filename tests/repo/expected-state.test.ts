@@ -109,7 +109,10 @@ describe.each(expected.golden)('expected state at $timeUs', ({ timeUs, derivatio
     for (const node of stateNodes) {
       const transform = node.type === 'background' ? [] : PROPERTIES;
       const children = node.type === 'group' ? ['children'] : [];
-      expect(Object.keys(node).sort()).toEqual(['id', 'type', ...transform, ...children].sort());
+      // Every node state says whether the node is active, the background's too (D42.3).
+      expect(Object.keys(node).sort()).toEqual(
+        ['id', 'type', 'active', ...transform, ...children].sort(),
+      );
     }
   });
 

@@ -443,3 +443,69 @@ describe('P1: the Player in Chromium (D25)', () => {
     }
   });
 });
+
+describe('the clear colour of the render page in the Player (D42.5)', () => {
+  /** Never active on a rendered frame: after every frame time, and off the frame grid. */
+  const NEVER = { startUs: 9_990_000, durationUs: 1 } as const;
+  const HOST_COLOUR = 'rgb(255, 0, 255)';
+
+  it('shows opaque white where no node is active, over a host page of another colour', async () => {
+    // The reference composition without its Custom HTML element, and every node
+    // that is left, the children of the group included, outside its lifetime: no
+    // node covers any pixel. This check is about the page's background alone; a
+    // hidden Custom HTML frame is the subject of the Producer rows of D42.6.
+    const nothing = variant((draft) => {
+      for (const scene of draft.scenes) {
+        scene.nodes = scene.nodes.filter((node) => node.id !== 'node-custom-html');
+        for (const node of scene.nodes) {
+          for (const each of [node, ...(node.children ?? [])]) {
+            each['startUs'] = NEVER.startUs;
+            each['durationUs'] = NEVER.durationUs;
+          }
+        }
+      }
+    });
+    const player = await openPlayer(JSON.stringify(nothing.document));
+    try {
+      // The control of that: the render page holds no frame of an element.
+      expect(player.renderFrame.childFrames()).toHaveLength(0);
+      // The host's own page lies behind the Player's frame, in a colour that is
+      // neither white nor any colour of the fixture.
+      const host = await player.page.evaluate((colour) => {
+        document.documentElement.style.setProperty('background-color', colour);
+        document.body.style.setProperty('background-color', colour);
+        return getComputedStyle(document.documentElement).backgroundColor;
+      }, HOST_COLOUR);
+      expect(host).toBe(HOST_COLOUR);
+      const page = await player.renderFrame.evaluate(
+        () => getComputedStyle(document.documentElement).backgroundColor,
+      );
+      expect(page).toBe('rgb(255, 255, 255)');
+
+      const frame = decodePng(await seekAndCapture(player, 0));
+      expect(frame.width).toBe(WIDTH);
+      expect(frame.height).toBe(HEIGHT);
+      expect(frame.data).toHaveLength(WIDTH * HEIGHT * 4);
+      // Every channel of every pixel, alpha included: nothing of the host shows.
+      expect(frame.data.every((byte) => byte === 255)).toBe(true);
+
+      // The premise: it is the page's own background that hides the host. With
+      // that one declaration overridden in the page, the host's colour shows.
+      await player.renderFrame.evaluate(() => {
+        document.documentElement.style.setProperty('background-color', 'transparent');
+      });
+      await awaitPresented(player.page, 5_000);
+      const through = decodePng(await captureFrame(player.page, WIDTH, HEIGHT));
+      for (const [x, y] of [
+        [0, 0],
+        [WIDTH - 1, HEIGHT - 1],
+        [WIDTH / 2, HEIGHT / 2],
+      ] as const) {
+        expect(pixel(through, x, y), `${String(x)},${String(y)}`).toEqual([255, 0, 255]);
+      }
+      expect(player.unexpected).toEqual([]);
+    } finally {
+      await closePlayer(player);
+    }
+  });
+});

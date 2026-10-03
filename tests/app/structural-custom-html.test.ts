@@ -23,6 +23,8 @@ const MARK = 'data-kadrion-custom-html';
 const html = {
   id: 'html-added',
   type: 'custom-html',
+  startUs: 0,
+  durationUs: 10_000_000,
   position: { x: 90, y: 1500 },
   scale: { x: 1, y: 1 },
   opacity: 1,

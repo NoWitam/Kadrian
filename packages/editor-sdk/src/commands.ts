@@ -1,5 +1,5 @@
 /**
- * The commands of schema 0.1, their argument schemas, and the parsers of their
+ * The commands of the schema, their argument schemas, and the parsers of their
  * fields (D30.1, D30.3, D38.2, D38.3). A command is a plain JSON value, so it
  * survives the transport between a host, the UI, and an AI tool call. The
  * JSON Schema of each command's arguments lives here, next to the parser it
@@ -10,6 +10,7 @@
 import { compositionSchema, type Asset } from '@kadrion/schema';
 
 import { keyframeTimeBounds } from './animations.js';
+import { lifetimeBounds, type Bounds } from './lifetimes.js';
 import { EditorError } from './errors.js';
 
 export interface CommandPosition {
@@ -305,6 +306,23 @@ export interface MoveKeyframeCommand extends MoveKeyframeArguments {
   readonly type: 'MoveKeyframe';
 }
 
+/** The arguments of `SetNodeLifetime`, in composition time (D42.10). */
+export interface SetNodeLifetimeArguments {
+  readonly nodeId: string;
+  /** From when the node is active, in integer microseconds. */
+  readonly startUs: number;
+  /** For how long, in integer microseconds, at least 1. */
+  readonly durationUs: number;
+}
+
+/**
+ * Sets the lifetime of a node: when it is shown (D42.2, D42.10). It moves no
+ * keyframe; an animation keeps its composition times.
+ */
+export interface SetNodeLifetimeCommand extends SetNodeLifetimeArguments {
+  readonly type: 'SetNodeLifetime';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -328,7 +346,8 @@ export type Command =
   | SetScaleKeyframeCommand
   | AddKeyframeCommand
   | RemoveKeyframeCommand
-  | MoveKeyframeCommand;
+  | MoveKeyframeCommand
+  | SetNodeLifetimeCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -455,6 +474,7 @@ export type SetPositionKeyframeArgumentsSchema = ClosedObjectSchema<
 export type SetScaleKeyframeArgumentsSchema = ClosedObjectSchema<keyof SetScaleKeyframeArguments>;
 export type RemoveKeyframeArgumentsSchema = ClosedObjectSchema<keyof RemoveKeyframeArguments>;
 export type MoveKeyframeArgumentsSchema = ClosedObjectSchema<keyof MoveKeyframeArguments>;
+export type SetNodeLifetimeArgumentsSchema = ClosedObjectSchema<keyof SetNodeLifetimeArguments>;
 
 /** Freezes a JSON value and everything in it, so no caller can edit a shared value. */
 export function deepFreeze<T>(value: T): T {
@@ -533,7 +553,7 @@ export const setNodeOpacityArgumentsSchema: SetNodeOpacityArgumentsSchema = deep
 
 /**
  * The JSON Schema of the arguments of `SetTextContent` (D38.3). Any string is a
- * text, the empty one included: schema 0.1 sets no limit, so neither does this.
+ * text, the empty one included: schema 0.2 sets no limit, so neither does this.
  */
 export const setTextContentArgumentsSchema: SetTextContentArgumentsSchema = deepFreeze({
   type: 'object',
@@ -578,6 +598,8 @@ const COLOR_INPUT = '^#[0-9A-Fa-f]{6}$';
 
 /** The bounds of a keyframe's time, read from the schema (D41.2). */
 const KEYFRAME_TIME = keyframeTimeBounds(compositionSchema);
+/** The bounds of a node's lifetime, read from the schema once, when the module loads (D42.10). */
+const LIFETIME = lifetimeBounds(compositionSchema);
 
 const ANIMATION_ID = 'The ID of an animation of the document.';
 
@@ -753,6 +775,36 @@ export const moveKeyframeArgumentsSchema: MoveKeyframeArgumentsSchema = deepFree
     toTimeUs: TIME,
   },
   required: ['animationId', 'timeUs', 'toTimeUs'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetNodeLifetime` (D42.10). */
+export const setNodeLifetimeArgumentsSchema: SetNodeLifetimeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Sets when a node is shown: from startUs, for durationUs, in composition time. It moves no keyframe of the node.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: 'The stable ID of the node. Every node has a lifetime, the background included.',
+      minLength: 1,
+    },
+    startUs: {
+      type: 'integer',
+      description:
+        'The composition time from which the node is active, in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.',
+      minimum: LIFETIME.startUs.minimum,
+      maximum: LIFETIME.startUs.maximum,
+    },
+    durationUs: {
+      type: 'integer',
+      description:
+        'How long the node is active, in integer microseconds, at least 1; whatever lies past the end of the composition is cut, and it is never rounded.',
+      minimum: LIFETIME.durationUs.minimum,
+      maximum: LIFETIME.durationUs.maximum,
+    },
+  },
+  required: ['nodeId', 'startUs', 'durationUs'],
   additionalProperties: false,
 });
 
@@ -1499,6 +1551,40 @@ export function parseRemoveKeyframe(value: unknown): RemoveKeyframeCommand {
     type: 'RemoveKeyframe',
     animationId: nodeIdOf(fields, 'animationId'),
     timeUs: timeOf(fields['timeUs'], '`timeUs`'),
+  });
+}
+
+/**
+ * A safe integer within `bounds`, never rounded; -0 becomes 0 (D42.10). The
+ * bounds are the schema's, so a value this accepts cannot break the document.
+ */
+function integerWithin(value: unknown, bounds: Bounds, what: string): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isSafeInteger(value) ||
+    value < bounds.minimum ||
+    value > bounds.maximum
+  ) {
+    throw new EditorError(
+      'invalid-argument',
+      `${what} must be an integer number of microseconds from ${String(bounds.minimum)} to ${String(bounds.maximum)}, not ${typeof value === 'number' ? String(value) : typeof value}.`,
+    );
+  }
+  return value === 0 ? 0 : value;
+}
+
+/** The fields of a `SetNodeLifetime` (D42.10). No rule concerns the sum of the two times. */
+export function parseSetNodeLifetime(value: unknown): SetNodeLifetimeCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'startUs', 'durationUs'],
+    'The command `SetNodeLifetime`',
+  );
+  return Object.freeze({
+    type: 'SetNodeLifetime',
+    nodeId: nodeIdOf(fields),
+    startUs: integerWithin(fields['startUs'], LIFETIME.startUs, '`startUs`'),
+    durationUs: integerWithin(fields['durationUs'], LIFETIME.durationUs, '`durationUs`'),
   });
 }
 

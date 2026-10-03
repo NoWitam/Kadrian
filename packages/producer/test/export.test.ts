@@ -729,7 +729,7 @@ describe('the export on a fake frame loop and encoder (D29.3)', () => {
       `probe ${String(AUDIO_BYTES.length)}`,
       'browser',
       'spawn audio=true',
-      'load 0.1',
+      'load 0.2',
       `count ${result.outputPath}`,
       `timestamps ${result.outputPath}`,
       'close',
@@ -824,7 +824,7 @@ describe('the export on a fake frame loop and encoder (D29.3)', () => {
 
   it.each([
     ['preset-unsupported', { preset: '4k' }, {}],
-    ['invalid-document', { document: { schemaVersion: '0.1' } }, {}],
+    ['invalid-document', { document: { schemaVersion: '0.2' } }, {}],
     ['asset-missing', { resolveAsset: () => null }, {}],
     ['ffmpeg-missing', {}, { toolsFail: 'ffmpeg-missing' }],
     ['audio-invalid', {}, { probe: { ...WAV_PROBE, samples: 479_999n } }],
@@ -1015,7 +1015,7 @@ describe('the documents of the Custom HTML frames (D29.7)', () => {
     expect(customHtmlNodes(none)).toBe(0);
   });
 
-  it('counts an element inside a group, which schema 0.1 cannot express yet', () => {
+  it('counts an element inside a group, which schema 0.2 cannot express yet', () => {
     // Groups hold image and text nodes only (D16), so this document is forged on
     // purpose: the count must not depend on where an element sits in the tree.
     const nested = {

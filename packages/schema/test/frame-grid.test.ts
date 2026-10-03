@@ -63,7 +63,7 @@ describe('frame grid of the reference composition (D13)', () => {
   });
 });
 
-describe('frame grid for every frame rate that schema 0.1 accepts', () => {
+describe('frame grid for every frame rate that schema 0.2 accepts', () => {
   const rates = Array.from({ length: 120 }, (_, index) => index + 1);
 
   it.each([1, 24, 25, 30, 50, 60, 120])('holds all properties at %i fps', (fps) => {

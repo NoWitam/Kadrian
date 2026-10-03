@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.1",
+  "schemaVersion": "0.2",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -28,11 +28,15 @@
         {
           "id": "node-background",
           "type": "background",
+          "startUs": 0,
+          "durationUs": 10000000,
           "color": "#0b1020"
         },
         {
           "id": "node-group",
           "type": "group",
+          "startUs": 0,
+          "durationUs": 10000000,
           "position": { "x": 60, "y": 420 },
           "scale": { "x": 1, "y": 1 },
           "opacity": 1,
@@ -51,6 +55,8 @@
             {
               "id": "node-image",
               "type": "image",
+              "startUs": 0,
+              "durationUs": 10000000,
               "position": { "x": 0, "y": 0 },
               "scale": { "x": 1.25, "y": 1.25 },
               "opacity": 1,
@@ -72,6 +78,8 @@
             {
               "id": "node-caption",
               "type": "text",
+              "startUs": 0,
+              "durationUs": 10000000,
               "position": { "x": 0, "y": 720 },
               "scale": { "x": 1, "y": 1 },
               "opacity": 1,
@@ -86,6 +94,8 @@
         {
           "id": "node-title",
           "type": "text",
+          "startUs": 0,
+          "durationUs": 10000000,
           "position": { "x": 90, "y": 160 },
           "scale": { "x": 1, "y": 1 },
           "opacity": 0.75,
@@ -108,6 +118,8 @@
         {
           "id": "node-custom-html",
           "type": "custom-html",
+          "startUs": 0,
+          "durationUs": 10000000,
           "position": { "x": 90, "y": 1760 },
           "scale": { "x": 1, "y": 1 },
           "opacity": 1,

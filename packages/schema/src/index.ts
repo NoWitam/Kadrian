@@ -1,8 +1,10 @@
 /**
  * @kadrion/schema — JSON Schema, TypeScript types, validation, migrations.
  *
- * Schema 0.1, as decided by D13–D17. There is no migration framework yet,
- * because 0.1 is the first version.
+ * Schema 0.2, as decided by D13–D17 and D42: the one version this build
+ * validates (D35.1). The schema of 0.1 and the forward migration live behind the
+ * entry point `@kadrion/schema/migrate`, so that the render page, which imports
+ * this entry only, carries neither (D21, D42.8).
  */
 export { compositionSchema, SCHEMA_VERSION } from './composition-schema.js';
 export type { ValidationError, ValidationErrorCode, ValidationResult } from './errors.js';

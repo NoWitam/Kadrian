@@ -5,7 +5,10 @@ import { validateSemantics } from './validate-semantics.js';
 import { validateStructure } from './validate-structure.js';
 
 /**
- * Validates parsed JSON against schema 0.1 (D17). Validation runs in three
+ * Validates parsed JSON against schema 0.2, the one current version (D17,
+ * D35.1). A document of an earlier version is refused at the gate; a host
+ * carries it forward first with `migrateComposition` of
+ * `@kadrion/schema/migrate`, explicitly (D35.3, D42.9). Validation runs in three
  * phases and stops after the first phase that reports errors:
  *
  * 1. the `schemaVersion` gate, so that a document of another version yields one

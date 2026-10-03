@@ -1,5 +1,5 @@
 /**
- * The subset of JSON Schema (draft 2020-12) that schema 0.1 is written in, and
+ * The subset of JSON Schema (draft 2020-12) that the schema is written in, and
  * the type-level derivation of document types from it (D17).
  *
  * The subset is deliberately closed. Objects reject unknown fields and require

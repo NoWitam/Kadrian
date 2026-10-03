@@ -10,6 +10,8 @@
   (asset IDs in `createdIds`; the registry and its `refine` step)
 - Amended by: PR-20 (D41) on 2026-10-01 at the owner's request, D39.4
   and D39.9 (animation IDs in `createdIds`; the commands of D41 in the registry)
+- Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, D39.9
+  (`SetNodeLifetime` in the registry)
 - Related: D02, D05, D09, D16, D23, D27, D30, D31, D36, D38,
   [roadmap of phase two](../roadmap/phase-2.md) PR-19a and PR-19b
 
@@ -287,6 +289,11 @@ the removed asset into `asset-in-use` (D40.4).
 Amended by: PR-20 (D41). `COMMAND_TYPES` continues with the eight commands of
 D41.1. None of them has a `refine` step: each of their codes is decided before
 the validation (D41.6).
+
+Amended by: PR-21 (D42). `COMMAND_TYPES` continues with `SetNodeLifetime`
+(D42.10). A node that a command adds carries its lifetime like every field of
+schema `0.2`: the host supplies it, and the validator requires it. A copy made
+by `DuplicateNode` has the lifetime of its source.
 
 ### D39.10 What this ADR does not decide
 

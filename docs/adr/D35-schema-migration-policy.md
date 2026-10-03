@@ -1,6 +1,8 @@
 # D35 — How schema `0.x` changes after the spike: versions and forward migrations
 
 - Status: Accepted — by the project owner on 2026-09-23, with the refinements written into 35.1, 35.2, and 35.7
+- Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, 35.2–35.5 and 35.8
+  (the first step, `0.1 → 0.2`, and the framework built with it)
 - Date: 2026-09-23
 - Supersedes: —
 - Related: D02, D16, D17, D24,
@@ -70,6 +72,11 @@ pure function per step, for example `0.1 → 0.2`. Such a function:
 A relaxation is a step whose only change is the version string. There are no
 backward migrations.
 
+Amended by: PR-21 (D42). "Returns a new document" means that the result shares
+no object with the input at any depth, and that every value is carried as it is,
+a `-0` included (D42.7). The step `0.1 → 0.2` is total over valid documents, so
+the typed error of the last point has no case yet.
+
 **35.3 Migration is explicit, never part of validation.** A new function,
 `migrateComposition(input)`, works in this order:
 
@@ -83,9 +90,29 @@ upgraded without anyone asking. The composition hash of a migrated document is
 the hash of the result, and a host that stores versions (D02) stores the result
 as a new version.
 
+Amended by: PR-21 (D42). `migrateComposition` is exported from
+`@kadrion/schema/migrate`, an entry point of its own, so that no historical
+schema and no step is part of the runtime build. For passive data, the input
+boundary of `validateComposition`, it never throws; an accessor or a Proxy that
+throws is outside that guarantee. D42.8 states its result, which reports the
+version each error belongs to and the versions the document went through. The
+output of a step is validated under the version it reaches before another step
+reads it, since a step accepts only a valid document of its own version (35.2). A document without an own `schemaVersion` that is a
+known string has no version to be validated under and gets
+`unsupported-schema-version`. The validation of step 3 always runs, also for a
+document that was current already, whose result is a detached copy like any
+other.
+
 **35.4 Old schemas are kept as data.** Each earlier version's JSON Schema stays
 in `@kadrion/schema` as frozen data under D24. Version N's migration validates
 against it, not against a reconstruction.
+
+Amended by: PR-21 (D42). What is kept is the whole validation of the version:
+its frozen schema and its semantic rules. While a later version has the same
+semantic rules, the code is shared, and the frozen negative corpus of the
+earlier version pins what they were; a version that changes a rule gets its own
+function. The validation of an earlier version never yields a
+`ValidatedComposition`.
 
 **35.5 Evidence before code.** Each step brings the following, and they land
 before the migration they test:
@@ -96,6 +123,16 @@ before the migration they test:
 The golden frames and the parity record of D33 are expected to stay
 pixel-identical unless the ADR for that change says pixels change. In that case
 they are regenerated and reviewed like code.
+
+Amended by: PR-21 (D42). A new version changes the golden manifest even when no
+pixel changes: `render.schemaVersion`, and `render.compositionHash`, since the
+reference composition is a document of the new version, beside
+`render.runtime.contentHash`. "Pixel-identical" is about the frame files, which
+must stay byte for byte; the manifest may differ in exactly those fields. The
+parity record of the Player and the Producer names the runtime build and the
+reference document too, so it is measured again in the pinned environment for
+the new version; it is never edited by hand. An expected document of a step is
+written by hand, never produced by the step.
 
 **35.6 Nothing speculative.** The first pull request of the next phase that
 changes the schema implements 35.2–35.5 together with its own first step.
@@ -112,6 +149,9 @@ document may contain nor its meaning needs no bump. Examples:
 **35.8 In force.** The project owner accepted this policy on 2026-09-23. It
 applies from then on. The migration framework is still built only with the
 first real schema change (35.6).
+
+Amended by: PR-21 (D42). PR-21 is that change: it builds 35.2–35.5 together with
+the step `0.1 → 0.2`.
 
 ## Alternatives considered
 

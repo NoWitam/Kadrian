@@ -26,7 +26,7 @@ describe('the render page (D25.2)', () => {
       [
         '<!doctype html><html><head><meta charset="utf-8">',
         `<meta http-equiv="Content-Security-Policy" content="${POLICY}">`,
-        '<style>html,body{margin:0;padding:0;overflow:hidden}</style>',
+        '<style>html,body{margin:0;padding:0;overflow:hidden}html{background-color:#ffffff}</style>',
         '</head><body><div id="kadrion-root"></div>',
         '<script>var a = 1;</script><script>var b = 2;</script>',
         '</body></html>',

@@ -4,7 +4,9 @@
  * tool contract cannot acquire a second path into the document.
  */
 import { describe, expect, it } from 'vitest';
-import { referenceComposition } from '@kadrion/test-fixtures';
+import { validateComposition } from '@kadrion/schema';
+import { migrateComposition } from '@kadrion/schema/migrate';
+import { referenceComposition, referenceCompositionV01 } from '@kadrion/test-fixtures';
 
 import { createCommandBus, type Command } from '../src/index.js';
 
@@ -26,7 +28,7 @@ describe('createCommandBus (D30.9)', () => {
   });
 
   it('refuses a document that is not a composition', () => {
-    expect(codeOf(() => createCommandBus({ schemaVersion: '0.1' }))).toBe('invalid-document');
+    expect(codeOf(() => createCommandBus({ schemaVersion: '0.2' }))).toBe('invalid-document');
     expect(codeOf(() => createCommandBus(null))).toBe('invalid-document');
     expect(errorOf(() => createCommandBus({ schemaVersion: '0.9' })).details.join('\n')).toContain(
       'schemaVersion',
@@ -207,5 +209,41 @@ describe('createCommandBus (D30.9)', () => {
     );
     bus.dispatch(fromTool);
     expect(positionOf(bus.getDocument(), TITLE)).toEqual({ x: 120, y: 200 });
+  });
+});
+
+describe('a document of schema 0.1 at the bus (D42.9)', () => {
+  it('is refused: the bus requires the current version and never migrates', () => {
+    // A complete document, valid under the frozen schema of 0.1: nothing but its
+    // version is wrong, and the validator's verdict is its one error.
+    const verdict = validateComposition(referenceCompositionV01);
+    expect(verdict.ok ? [] : verdict.errors.map(({ code, path }) => ({ code, path }))).toEqual([
+      { code: 'unsupported-schema-version', path: '/schemaVersion' },
+    ]);
+    const error = errorOf(() => createCommandBus(referenceCompositionV01));
+    expect(error.code).toBe('invalid-document');
+    expect(error.details).toHaveLength(1);
+    expect(error.details[0]).toMatch(/^\/schemaVersion: Unsupported schemaVersion "0\.1"/);
+  });
+
+  it('accepts the same document once the host has migrated it explicitly', () => {
+    const migrated = migrateComposition(referenceCompositionV01);
+    if (!migrated.ok) throw new Error('The reference of 0.1 did not migrate.');
+    expect(migrated.versions).toEqual(['0.1', '0.2']);
+    const bus = createCommandBus(migrated.composition);
+    expect(json(bus.getDocument())).toBe(json(referenceComposition));
+    // And it is a document the bus can edit like any other.
+    const result = bus.dispatch({
+      type: 'SetNodeLifetime',
+      nodeId: 'node-title',
+      startUs: 1_000_000,
+      durationUs: 2_000_000,
+    });
+    expect(result.inverse).toEqual({
+      type: 'SetNodeLifetime',
+      nodeId: 'node-title',
+      startUs: 0,
+      durationUs: 10_000_000,
+    });
   });
 });

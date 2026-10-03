@@ -24,10 +24,66 @@
     "expectedErrors": [{ "code": "unknown-field", "path": "/scenes/0/nodes/3/capabilities" }]
   },
   {
+    "name": "schema-version-older",
+    "description": "The version before this one is refused at the gate, never upgraded by the validator: a host migrates it explicitly (D35.3, D42.9).",
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.1" }],
+    "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
+  },
+  {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.2" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.3" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
+  },
+  {
+    "name": "lifetime-start-missing",
+    "description": "Every node has a lifetime; there is no default (D16.1, D42.1).",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/2/startUs" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/2/startUs" }]
+  },
+  {
+    "name": "lifetime-duration-missing-on-background",
+    "description": "The background has a lifetime like every node (D42.1).",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/0/durationUs" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/0/durationUs" }]
+  },
+  {
+    "name": "lifetime-missing-on-group-child",
+    "description": "A child of a group has a lifetime of its own (D42.1).",
+    "patch": [
+      { "op": "remove", "path": "/scenes/0/nodes/1/children/1/startUs" },
+      { "op": "remove", "path": "/scenes/0/nodes/1/children/1/durationUs" }
+    ],
+    "expectedErrors": [
+      { "code": "missing-field", "path": "/scenes/0/nodes/1/children/1/startUs" },
+      { "code": "missing-field", "path": "/scenes/0/nodes/1/children/1/durationUs" }
+    ]
+  },
+  {
+    "name": "lifetime-duration-zero",
+    "description": "A lifetime lasts at least one microsecond: a node that is never active by its duration does not exist (D42.1).",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/3/durationUs", "value": 0 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/3/durationUs" }]
+  },
+  {
+    "name": "lifetime-start-negative",
+    "description": "A lifetime begins at a composition time, which is never negative (D04, D42.1).",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/1/startUs", "value": -1 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/1/startUs" }]
+  },
+  {
+    "name": "lifetime-start-fractional",
+    "description": "A lifetime is in integer microseconds (D04).",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/1/children/0/startUs", "value": 0.5 }],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/scenes/0/nodes/1/children/0/startUs" }]
+  },
+  {
+    "name": "lifetime-duration-above-safe-integer",
+    "description": "A duration is a safe integer on its own; no rule concerns its sum with the start (D42.1).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 9007199254740992 }
+    ],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/2/durationUs" }]
   },
   {
     "name": "schema-version-not-a-string",

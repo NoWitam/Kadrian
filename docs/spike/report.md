@@ -96,12 +96,12 @@ shifted golden frame is pixels only.
 - Image: `mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27` (linux/amd64), run with `--network none` (interfaces: lo; loopback only: true).
 - Chromium: Playwright `1.63.0`, revision `1243`, reported version `153.0.8010.12`, channel `chromium`, arguments `--force-color-profile=srgb --disable-lcd-text --hide-scrollbars --mute-audio`.
 - Context: viewport {"width":1080,"height":1920}, device scale factor 1, locale `en-US`, time zone `UTC`; Node `v24.20.0`.
-- Runtime build: `sha256:e2d663bb00f96388aa72487a30ec3c3898ea9294a209a56f17c3b0258efb07e8`.
-- Document (composition hash): `sha256:fa3c3c3051acb473d8941c2286ea69df935ae6ee5d502ceeeebb9eeacabf0312`.
-- Player dist tree (D33.10): `sha256:f35d0ca61bc58f51796a5aff6f142ee22d057a46cde1eb2f1db339295bb8cec8`, 29 files, the manifest in the record.
-- Golden manifest: `packages/test-fixtures/src/golden-frames/reference.golden-frames.json`, `sha256:bc2b51f28ce5de78d4a4377513dd51d6aac33212f265ce0a621e335708d33708`.
+- Runtime build: `sha256:213ddb1975d9d0926765f206e3dd9d2216824ee5e85b354074f06b6ce9b9017c`.
+- Document (composition hash): `sha256:e8a67aa6fd349827481725669b24905ff011cae657e94ead668eb965ee93700b`.
+- Player dist tree (D33.10): `sha256:eb2cb2b72a6f3f2de7be0b857a530ca94c048edc1166a3e9a06c6edbbb67daef`, 29 files, the manifest in the record.
+- Golden manifest: `packages/test-fixtures/src/golden-frames/reference.golden-frames.json`, `sha256:9da3800c9dd7806d3151b3d49237fb8c207d976735da42d0ecafebe2c22ab4be`.
 - Record: version 2, `gate: true`, thresholds `{"differingPixels":0,"maxChannelDifference":0}` (D34.1).
-- Source: the first `test:pinned` pass of `pinned-run.sh reference` (PR-16, the second of two runs; the first only bootstrapped the new runtime hash), copied out before `goldens:update` (D33.6). PR-16 changed the runtime build and the Player (D36); the golden PNG files stayed byte for byte, and only `render.runtime.contentHash` of the golden manifest changed. The environment equals the golden frames' environment on every field that affects pixels, and the record is current with the build (checked by `check`).
+- Source: the pinned bootstrap of PR-21 (2026-10-03), in this order. One isolated `goldens:update` first generated the golden frames for the new build: the five PNG files came out byte for byte as committed, and the manifest changed in `render.schemaVersion`, `render.compositionHash`, and `render.runtime.contentHash` only; that manifest was accepted by the owner and copied into the tree. `pinned-run.sh reference` then ran its first `test:pinned` pass against those frames of the tree, and the record of that pass was copied out before the pipeline's own `goldens:update` wrote the frames again (D33.6); that regeneration, and the one of `repeat`, produced the same six files byte for byte. The record kept here is the one of the first reference run that passed, in which `tests/repo/parity-record.test.ts` and `tests/repo/q14.test.ts` were held aside in the Docker volume because both read this record; the full second run, with nothing held aside, measured the same record, and so did every later pass: the raw files are byte-identical. The file in the repository is that record in the repository's Prettier formatting, which differs from the raw bytes in white space only: the same data in the same key order. PR-21 (D42) changed the schema version, the reference document, the runtime build, and the Player's dist tree. The environment equals the golden frames' environment on every field that affects pixels, and the record is current with the build (checked by `check`).
 
 ### Numbers
 
@@ -215,10 +215,10 @@ pinned Chromium only. PR-16 implements the decision (D36, Implementation):
 - the Producer states `trusted` and keeps `--network none`;
 - D21.4, D22.3, D22.4, D23, D25, and D27.1 carry the amendment of PR-16.
 
-Closed since: CI runs on a remote GitHub runner in the pinned image (Q14,
-closed on 2026-09-25, reopened by the commit of PR-16 (`531ab79`,
-2026-09-27), and closed again on 2026-09-27 by the evidence of the run of
-that commit). See section 9.
+Reopened: CI runs on a remote GitHub runner in the pinned image (Q14, closed
+on 2026-09-25, reopened by the commit of PR-16 (`531ab79`, 2026-09-27), closed
+again on 2026-09-27 by the evidence of the run of that commit, and reopened by
+PR-21 on 2026-10-02). See section 9.
 
 ## 6. D31 and the amendment D30.13
 
@@ -233,25 +233,25 @@ that commit). See section 9.
 
 ## 7. Open questions of §11
 
-| #   | Status after the spike                                                                                                                                                                                         |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q1  | Decided by D13                                                                                                                                                                                                 |
-| Q2  | Answered, D29.5                                                                                                                                                                                                |
-| Q3  | Answered, D26 and D28                                                                                                                                                                                          |
-| Q4  | Answered, D29.1–29.2                                                                                                                                                                                           |
-| Q5  | Answered, D27                                                                                                                                                                                                  |
-| Q6  | Decided by D14                                                                                                                                                                                                 |
-| Q7  | Answered, D29.6                                                                                                                                                                                                |
-| Q8  | Answered by measurement: no LFS                                                                                                                                                                                |
-| Q9  | **Decided** by D33 and D34 (accepted 2026-09-23); gated in the pinned environment since PR-11                                                                                                                  |
-| Q10 | Decided by D15                                                                                                                                                                                                 |
-| Q11 | Decided by D16                                                                                                                                                                                                 |
-| Q12 | Decided by D21                                                                                                                                                                                                 |
-| Q13 | Decided by D16                                                                                                                                                                                                 |
-| Q14 | **Closed**: the run 36350016065 of the PR-16 commit 531ab79 met all eight criteria; the evidence is docs/ci/q14-evidence.json (section 9). Closed before by the run 36072703155 of PR-15 and reopened by PR-16 |
-| Q15 | Decided by D20                                                                                                                                                                                                 |
-| Q16 | **Decided** by D35 (accepted 2026-09-23, with the refinements of the owner); in force from then on                                                                                                             |
-| Q17 | Answered: `ValidatedComposition`                                                                                                                                                                               |
+| #   | Status after the spike                                                                                                                                                                                                                                             |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Q1  | Decided by D13                                                                                                                                                                                                                                                     |
+| Q2  | Answered, D29.5                                                                                                                                                                                                                                                    |
+| Q3  | Answered, D26 and D28                                                                                                                                                                                                                                              |
+| Q4  | Answered, D29.1–29.2                                                                                                                                                                                                                                               |
+| Q5  | Answered, D27                                                                                                                                                                                                                                                      |
+| Q6  | Decided by D14                                                                                                                                                                                                                                                     |
+| Q7  | Answered, D29.6                                                                                                                                                                                                                                                    |
+| Q8  | Answered by measurement: no LFS                                                                                                                                                                                                                                    |
+| Q9  | **Decided** by D33 and D34 (accepted 2026-09-23); gated in the pinned environment since PR-11                                                                                                                                                                      |
+| Q10 | Decided by D15                                                                                                                                                                                                                                                     |
+| Q11 | Decided by D16                                                                                                                                                                                                                                                     |
+| Q12 | Decided by D21                                                                                                                                                                                                                                                     |
+| Q13 | Decided by D16                                                                                                                                                                                                                                                     |
+| Q14 | **Open**: closed on 2026-09-27 by the run 36350016065 of the PR-16 commit 531ab79, and reopened by PR-21, whose schema 0.2 changes the runtime build and the golden manifest (section 9). Closed before that by the run 36072703155 of PR-15 and reopened by PR-16 |
+| Q15 | Decided by D20                                                                                                                                                                                                                                                     |
+| Q16 | **Decided** by D35 (accepted 2026-09-23, with the refinements of the owner); in force from then on                                                                                                                                                                 |
+| Q17 | Answered: `ValidatedComposition`                                                                                                                                                                                                                                   |
 
 ## 8. Recommended next phase
 
@@ -261,10 +261,11 @@ that commit). See section 9.
 The first phase after the spike should keep the engine narrow and harden what
 the spike proved, rather than widen it:
 
-1. **Keep CI green (Q14 closed on 2026-09-27).** The run of the PR-16 commit
-   closed Q14 again (section 9). A later red run is a regression to analyse
-   first, and a change to what the evidence is checked against reopens Q14 in
-   the commit that makes it (docs/ci/first-run.md).
+1. **Close Q14 again.** The run of the PR-16 commit closed it on 2026-09-27,
+   and PR-21 reopened it (section 9): a green run of a commit with PR-21 and a
+   documentation commit with its evidence close it (docs/ci/first-run.md). A
+   later red run is a regression to analyse first, and a change to what the
+   evidence is checked against reopens Q14 in the commit that makes it.
 2. **D36 is implemented** (section 5, PR-16): Custom HTML in the Player is a
    host opt-in and disabled by default. What stays open is a measurement in
    other browsers before any of them may count as isolating (D36, option E).
@@ -275,26 +276,36 @@ the spike proved, rather than widen it:
 Taskio integration, a timeline UI, and a language model stay outside the next
 phase until these hold.
 
-## 9. CI status after the evidence of PR-16 (Q14)
+## 9. CI status after PR-21 (Q14)
 
-**Q14 is closed.** On 2026-09-27:
+**Q14 is open.** On 2026-10-02:
 
-- The evidence is `docs/ci/q14-evidence.json`, of the run
+- PR-21 implements D42, schema `0.2`. The schema, the runtime, and the DOM
+  renderer change, so the runtime build changes, and the reference composition
+  is a `0.2` document. The golden-frame manifest therefore gets a new
+  `render.schemaVersion`, `render.compositionHash`, and
+  `render.runtime.contentHash`; the golden PNG files must stay byte for byte.
+  The evidence is checked against that manifest and no longer validates, so
+  PR-21 deleted `docs/ci/q14-evidence.json` and reopened Q14
+  (docs/ci/first-run.md).
+- Q14 closes again only on the evidence of a green run on a GitHub runner of a
+  reviewed commit that contains PR-21, with its artifact, added by a later
+  documentation commit. No evidence was written locally.
+- History: Q14 was closed on 2026-09-27 by the evidence of the run
   https://github.com/NoWitam/Kadrian/actions/runs/36350016065 (run ID
   `36350016065`, attempt 1, event `push`) of the validated commit
   `531ab79f5e4189c4a551bca2f9b0f780f4263af4` (PR-16), which passed every step.
-- Its artifact `10941847963` was downloaded from GitHub by the owner by hand.
-  The SHA-256 of the ZIP, computed during the verification, equals the digest
-  the GitHub API publishes. The validator of that commit found no problem,
-  and all eight criteria of docs/ci/first-run.md passed, with the D36 test
-  of the Player in the pinned Chromium among the passed tests.
-- The commit that closes Q14 is a later documentation commit; the evidence is
-  of the validated commit.
-- Why Q14 was reopened: PR-16 (D36) changed the runtime build, so the
-  golden-frame manifest got a new `render.runtime.contentHash` (the golden
-  PNG files are unchanged); the evidence of PR-15, checked against that
-  manifest, no longer validated, so PR-16 deleted it and reopened Q14.
-- History: Q14 was first closed on 2026-09-25 by the evidence of the run
+  Its artifact `10941847963` was downloaded from GitHub by the owner by hand;
+  the SHA-256 of the ZIP equals the digest the GitHub API publishes. The
+  validator of that commit found no problem, and all eight criteria of
+  docs/ci/first-run.md passed, with the D36 test of the Player in the pinned
+  Chromium among the passed tests. A later documentation commit added that
+  evidence; the file stays in the Git history.
+- Before that, PR-16 (D36) had reopened Q14: it changed the runtime build, so
+  the golden-frame manifest got a new `render.runtime.contentHash` (the golden
+  PNG files were unchanged), and the evidence of PR-15, checked against that
+  manifest, no longer validated.
+- Q14 was first closed on 2026-09-25 by the evidence of the run
   https://github.com/NoWitam/Kadrian/actions/runs/36072703155 (run ID
   `36072703155`, attempt 1, event `push`) of the validated commit
   `4f4d4675c09d73d33916885961d1568f73a36c80` (PR-15), which passed every step.
@@ -316,7 +327,7 @@ phase until these hold.
 - Local tests, including the pinned container runs, do not replace a run on a
   GitHub runner.
 - What closed means, and which changes reopen Q14 in the commit that makes
-  them, as PR-16 did: see docs/ci/first-run.md.
+  them, as PR-16 and PR-21 did: see docs/ci/first-run.md.
 
 The cause: the pinned Playwright image has no `xz`, so `tar -xJf` could not
 decompress the FFmpeg archive. PR-14 decompresses with `xz` where it runs and
@@ -348,9 +359,26 @@ closing Q14 and the protocol for analysing a failing gate on the runner:
 
 ## 10. Closure of the vertical spike (PR-17)
 
-The owner closed the vertical spike on 2026-09-28. All five proofs of §5 hold
-in the pinned environment, and Q14 is closed by the evidence of the run of
-PR-16 (section 9). All open questions of §11 are decided, answered, or closed.
+The owner closed the vertical spike on 2026-09-28. At that time all five proofs
+of §5 held in the pinned environment, Q14 was closed by the evidence of the run
+of PR-16, and every open question of §11 was decided, answered, or closed.
+
+That is no longer the whole state. Since PR-21 (D42, schema `0.2`):
+
+- Q14 is open again (section 9);
+- the measured artifacts in the repository — the golden manifest and the
+  parity record of section 3 — were measured again for the build of PR-21 in
+  the controlled pinned bootstrap of 2026-10-03, locally: the five golden PNG
+  files stayed byte for byte, the manifest changed in `render.schemaVersion`,
+  `render.compositionHash`, and `render.runtime.contentHash` only, and parity
+  is zero differing pixels at every golden timestamp;
+- the pinned measurements of D42.6, the clear colour of the render page in the
+  Producer and in the Player among them, ran in that bootstrap and passed.
+
+The first of these is a status: Q14 is open, and it closes only on the evidence
+of a CI run (docs/ci/first-run.md). The other two are local measurements in the
+pinned image: they are not that evidence, and nothing in this report presents
+them as such.
 
 What the spike proved is a narrow path, not a product: one reference
 composition, one editor command (`SetNodePosition`), and one AI tool

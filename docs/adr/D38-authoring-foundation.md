@@ -12,6 +12,8 @@
   (the order of `COMMAND_TYPES`)
 - Amended by: PR-20 (D41) on 2026-10-01 at the owner's request, D38.1
   (the order of `COMMAND_TYPES`)
+- Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, D38.1
+  (the order of `COMMAND_TYPES`)
 - Related: D02, D09, D15, D16, D19, D30, D31, D32,
   [roadmap of phase two](../roadmap/phase-2.md) PR-18
 
@@ -77,6 +79,9 @@ with `SetNodeScale`, `SetNodeSize`, `SetNodeColor`, `SetTextFontSize`,
 Amended by: PR-20 (D41). `COMMAND_TYPES` continues, after `RemoveAsset`, with
 `AddAnimation`, `RemoveAnimation`, `SetOpacityKeyframe`, `SetPositionKeyframe`,
 `SetScaleKeyframe`, `AddKeyframe`, `RemoveKeyframe`, `MoveKeyframe` (D41.1).
+
+Amended by: PR-21 (D42). `COMMAND_TYPES` continues, after `MoveKeyframe`, with
+`SetNodeLifetime` (D42.10).
 
 ### D38.2 `SetNodeOpacity`
 

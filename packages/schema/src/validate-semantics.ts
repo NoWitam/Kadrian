@@ -2,9 +2,18 @@
  * Rules that JSON Schema cannot express (D16, D17). Runs only on a structurally
  * valid document. Errors are ordered by rule and then by position; the order
  * never depends on the key order of the input.
+ *
+ * The rules are those of schema 0.1 and 0.2 alike: a lifetime adds none (D42.1).
+ * `migrateComposition` applies them to a document of 0.1 too (D35.4), which is
+ * why the document type is either version's; the negative corpus of 0.1 is kept
+ * and pins what they were. A rule that a later version changes gets its own
+ * function, never a branch here.
  */
 import { pointer, type ValidationError } from './errors.js';
 import type { Asset, Composition, NodeAnimation } from './types.js';
+// A type only: it is erased when the module is built, so the main entry reaches no
+// historical module at run time (D42.8; `migration-entry.test.ts` walks the built output).
+import type { CompositionV01 } from './v0-1/composition-schema.js';
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -67,7 +76,7 @@ function checkAnimations(
   });
 }
 
-export function validateSemantics(composition: Composition): ValidationError[] {
+export function validateSemantics(composition: Composition | CompositionV01): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
 

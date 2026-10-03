@@ -15,6 +15,7 @@ export type {
   GroupNodeState,
   LeafNodeState,
   LeafNodeType,
+  LifetimeState,
   NodeState,
   SceneState,
   TransformState,

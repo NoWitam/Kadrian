@@ -61,6 +61,8 @@ function textNode(id: string, animationId?: string): Record<string, unknown> {
   return {
     id,
     type: 'text',
+    startUs: 0,
+    durationUs: 10_000_000,
     position: { x: 10, y: 20 },
     scale: { x: 1, y: 1 },
     opacity: 1,
@@ -168,6 +170,8 @@ describe('AddNode (D39.1)', () => {
     const group = {
       id: 'g2',
       type: 'group',
+      startUs: 0,
+      durationUs: 10_000_000,
       position: { x: 0, y: 0 },
       scale: { x: 1, y: 1 },
       opacity: 1,

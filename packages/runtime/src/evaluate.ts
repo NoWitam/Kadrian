@@ -47,22 +47,45 @@ function evaluateTransform(node: TransformedNode, timeUs: number): TransformStat
   return { position, scale, opacity };
 }
 
+/**
+ * Whether the lifetime of a node contains `timeUs` (D42.2): the half-open
+ * interval from `startUs`, `durationUs` long. The comparison subtracts and
+ * never adds: `timeUs` and `startUs` are non-negative safe integers, so their
+ * difference is exact, while `startUs + durationUs` may leave the safe range.
+ */
+function isActive(
+  node: { readonly startUs: number; readonly durationUs: number },
+  timeUs: number,
+): boolean {
+  return timeUs >= node.startUs && timeUs - node.startUs < node.durationUs;
+}
+
 function evaluateLeaf<Type extends LeafNodeType>(
   node: TransformedNode & { readonly type: Type },
   timeUs: number,
 ): LeafNodeState<Type> {
-  return { id: node.id, type: node.type, ...evaluateTransform(node, timeUs) };
+  return {
+    id: node.id,
+    type: node.type,
+    active: isActive(node, timeUs),
+    ...evaluateTransform(node, timeUs),
+  };
 }
 
-/** Children keep their local values: nothing of the group is folded into them (D15). */
+/**
+ * Children keep their local values: nothing of the group is folded into them
+ * (D15), their `active` included (D42.3). An inactive node is evaluated like any
+ * other, so the state still mirrors the document.
+ */
 function evaluateNode(node: SceneNode, timeUs: number): NodeState {
   switch (node.type) {
     case 'background':
-      return { id: node.id, type: node.type };
+      return { id: node.id, type: node.type, active: isActive(node, timeUs) };
     case 'group':
       return {
         id: node.id,
         type: node.type,
+        active: isActive(node, timeUs),
         ...evaluateTransform(node, timeUs),
         children: node.children.map((child) => evaluateLeaf(child, timeUs)),
       };

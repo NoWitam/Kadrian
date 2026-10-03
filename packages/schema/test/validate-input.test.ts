@@ -39,11 +39,11 @@ describe('validateComposition with input that is not JSON data', () => {
   it.each([
     ['null', null],
     ['undefined', undefined],
-    ['a string', '{"schemaVersion":"0.1"}'],
+    ['a string', '{"schemaVersion":"0.2"}'],
     ['a number', 1],
     ['an array', [referenceComposition]],
     ['a function', () => referenceComposition],
-    ['a Map', new Map(Object.entries({ schemaVersion: '0.1' }))],
+    ['a Map', new Map(Object.entries({ schemaVersion: '0.2' }))],
   ])('rejects %s as the document', (_name, document) => {
     expect(errorsOf(document)).toEqual([{ code: 'invalid-type', path: '' }]);
   });

@@ -1,6 +1,8 @@
 # D19 — Evaluation API and state shape
 
 - Status: Accepted — by the project owner on 2026-09-22
+- Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, 19.4
+  (`active` in every node state)
 - Date: 2026-09-21
 - Supersedes: —
 - Related: D03, D12, D14, D15, D16, D17, D18,
@@ -79,6 +81,14 @@ the hierarchy of the document (D16.4). A node state is `{ id, type }`, plus
 text, asset references, sizes, inline HTML — stay in the document; a renderer
 walks the document and the state side by side. The state is built from fresh
 objects and is not frozen.
+
+Amended by: PR-21 (D42). A node state is `{ id, type, active }`, plus the
+transform and the children as before: `active` says whether the node's own
+lifetime contains `timeUs` (D18.6, D42.3). The background has it too. It is
+local: a child's `active` does not depend on its group's. No node is left out
+of the state, and an inactive node's transform is evaluated like any other. The
+type of the field is exported as `LifetimeState`, which every node state type
+extends.
 
 ## Alternatives considered
 

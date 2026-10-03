@@ -30,6 +30,7 @@ import {
   parseReorderNode,
   parseSetImageAsset,
   parseSetNodeColor,
+  parseSetNodeLifetime,
   parseSetNodeOpacity,
   parseSetNodePosition,
   parseSetNodeScale,
@@ -864,6 +865,21 @@ const DEFINITIONS = deepFreeze<Definitions>({
         removedIds: [],
       };
     },
+  },
+  SetNodeLifetime: {
+    parse: parseSetNodeLifetime,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        // Read from the node (D30.8): every node of schema 0.2 has both fields.
+        const startUs = numberField(node, 'startUs', command.nodeId);
+        const durationUs = numberField(node, 'durationUs', command.nodeId);
+        if (startUs === command.startUs && durationUs === command.durationUs) return null;
+        return {
+          // The two keys keep their places, and every other value its identity (D42.10).
+          node: { ...node, startUs: command.startUs, durationUs: command.durationUs },
+          inverse: parseSetNodeLifetime({ ...command, startUs, durationUs }),
+        };
+      }),
   },
 });
 

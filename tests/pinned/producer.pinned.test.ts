@@ -2,7 +2,8 @@
  * P2 in Chromium (D26, D28): the Producer renders the five golden timestamps of
  * the reference composition to PNG. Repeatability, order independence, and
  * clock independence (§6.1), the typed errors before the first frame, the
- * rendered tree and the fonts, and pixel checks that need no golden file.
+ * rendered tree and the fonts, pixel checks that need no golden file, and the
+ * lifetime of a node in pixels (D42.6).
  * Golden frames are compared only in the pinned environment (D26.2); anywhere
  * else this file proves nothing about P2 and says so.
  */
@@ -29,6 +30,7 @@ import { validateComposition } from '@kadrion/schema';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  BAR,
   customHtmlNode,
   decodePng,
   difference,
@@ -53,6 +55,8 @@ import {
   variant,
   WIDTH,
   writeReport,
+  type Draft,
+  type DraftNode,
 } from './support.js';
 
 const times = goldenTimestamps.map(({ timeUs }) => timeUs);
@@ -115,7 +119,7 @@ describe('P2: the five golden timestamps (D28.4, D28.7)', () => {
     const { manifest } = baseline;
     expect(manifest).toMatchObject({
       manifestVersion: 2,
-      schemaVersion: '0.1',
+      schemaVersion: '0.2',
       preset: { name: 'frames-png', width: 1080, height: 1920, fps: 30, deviceScaleFactor: 1 },
       durationUs: 10_000_000,
       frameCount: 300,
@@ -559,5 +563,255 @@ describe('the presentation barrier (D25, D28.5)', () => {
       `Presentation barrier: ${String(stale)} of ${String(rows.length)} captures without it were stale.`,
     );
     for (const row of rows) expect(row.withBarrier).toBe(row.expected);
+  });
+});
+
+describe('the lifetime of a node in pixels (D42.4, D42.5, D42.6)', () => {
+  /**
+   * A lifetime that begins after every time these tests render at, at a time
+   * that is not on the frame grid: the node is never active on a rendered frame.
+   */
+  const NEVER = { startUs: 9_990_000, durationUs: 1 } as const;
+  /**
+   * Every node of the reference composition but its Custom HTML element. A
+   * hidden Custom HTML frame is the pending assumption of D42.4, and only the
+   * rows of "a Custom HTML element with a lifetime" below carry it: no other row
+   * hides one.
+   */
+  const OTHER_NODES = ['node-background', 'node-group', 'node-image', 'node-caption', 'node-title'];
+  /** A golden timestamp, on the frame grid: frame 75 at 30 fps. */
+  const T = 2_500_000;
+
+  function nodeOf(draft: Draft, id: string): DraftNode {
+    for (const node of draft.scenes[0]?.nodes ?? []) {
+      if (node.id === id) return node;
+      const child = node.children?.find((candidate) => candidate.id === id);
+      if (child !== undefined) return child;
+    }
+    throw new Error(`The reference composition has no node ${id}.`);
+  }
+
+  /** The reference composition with the lifetime of some nodes replaced. */
+  function living(lifetimes: Readonly<Record<string, { startUs: number; durationUs: number }>>) {
+    return variant((draft) => {
+      for (const [id, { startUs, durationUs }] of Object.entries(lifetimes)) {
+        const node = nodeOf(draft, id);
+        node['startUs'] = startUs;
+        node['durationUs'] = durationUs;
+      }
+    });
+  }
+
+  /** The reference composition without one node, wherever it is. */
+  function without(id: string) {
+    return variant((draft) => {
+      for (const scene of draft.scenes) {
+        scene.nodes = scene.nodes.filter((node) => node.id !== id);
+        for (const node of scene.nodes) {
+          if (node.children !== undefined) {
+            node.children = node.children.filter((child) => child.id !== id);
+          }
+        }
+      }
+    });
+  }
+
+  /** One time of a document, rendered alone in a page of its own: a fresh render. */
+  async function fresh(document: ReturnType<typeof variant>, timeUs: number): Promise<Uint8Array> {
+    const result = await renderFrames({ ...document, timesUs: [timeUs], chromium });
+    const png = result.frames[0]?.png;
+    if (png === undefined) throw new Error(`No frame at ${String(timeUs)}.`);
+    return png;
+  }
+
+  /** How many pixels of a region are not opaque white, alpha included. */
+  function notWhite(
+    png: Uint8Array,
+    region: { x0: number; y0: number; x1: number; y1: number },
+  ): number {
+    const image = decodePng(png);
+    let count = 0;
+    for (let y = Math.ceil(region.y0); y < Math.floor(region.y1); y += 1) {
+      for (let x = Math.ceil(region.x0); x < Math.floor(region.x1); x += 1) {
+        const at = (y * image.width + x) * 4;
+        const white = [0, 1, 2, 3].every((channel) => image.data[at + channel] === 255);
+        if (!white) count += 1;
+      }
+    }
+    return count;
+  }
+
+  const WHOLE = { x0: 0, y0: 0, x1: WIDTH, y1: HEIGHT };
+
+  it('hides an inactive background alone: an uncovered region is white and the other nodes are drawn', async () => {
+    // A controlled scene: the reference composition with its title in a colour
+    // that shows on white. The title of the fixture is white, and would be
+    // invisible on the clear colour whether it was drawn or not.
+    const TITLE_COLOUR = '#b42318';
+    const scene = (lifetimes: Parameters<typeof living>[0] = {}) => {
+      const { document } = living(lifetimes);
+      nodeOf(document as Draft, 'node-title')['color'] = TITLE_COLOUR;
+      return { ...living({}), document };
+    };
+    const absentBackground = (() => {
+      const { document } = without('node-background');
+      nodeOf(document as Draft, 'node-title')['color'] = TITLE_COLOUR;
+      return { ...living({}), document };
+    })();
+
+    const inactive = await fresh(scene({ 'node-background': NEVER }), T);
+    const absent = await fresh(absentBackground, T);
+    const always = await fresh(scene(), T);
+    expect(samePixels(inactive, absent), pixelReport('background', inactive, absent)).toBe(true);
+    // The premise: the background was there to hide.
+    expect(samePixels(inactive, always)).toBe(false);
+
+    // A region no node of the reference composition covers: the band above the
+    // title, whose box begins at y = 160 (the group is at y >= 420 and the
+    // Custom HTML element at y = 1760). With the background shown every pixel
+    // of it is the background's colour; with the background hidden every pixel
+    // of it is the page's clear colour, opaque white, alpha included (D42.5).
+    const band = { x0: 0, y0: 0, x1: WIDTH, y1: 120 };
+    expect(notWhite(always, band)).toBe(WIDTH * 120);
+    expect(notWhite(inactive, band)).toBe(0);
+
+    // The remaining active nodes are drawn. The Custom HTML element shows the bar
+    // of this time, and, being opaque, the same pixels as over the background.
+    const [shown, reference] = [decodePng(inactive), decodePng(always)];
+    expect(measuredBar(shown)).toBe(expectedBar(T));
+    for (let x = BAR.x; x < BAR.x + BAR.width; x += 50) {
+      expect(pixel(shown, x, BAR.y + 20), String(x)).toEqual(pixel(reference, x, BAR.y + 20));
+    }
+    // The image and the title are there: their boxes are not white.
+    expect(notWhite(inactive, imageBox(T))).toBeGreaterThan(1000);
+    expect(notWhite(inactive, { x0: 90, y0: 160, x1: WIDTH, y1: 340 })).toBeGreaterThan(1000);
+    // And each node is really the one shown: hidden as well, the frame differs.
+    // The Custom HTML element is not hidden here: that it is drawn is shown by
+    // its bar above, and hiding one is the subject of the dedicated rows below.
+    for (const id of OTHER_NODES.filter((other) => other !== 'node-background')) {
+      const gone = await fresh(scene({ 'node-background': NEVER, [id]: NEVER }), T);
+      expect(samePixels(inactive, gone), id).toBe(false);
+    }
+  });
+
+  it('hides the children of an inactive group although they are active themselves', async () => {
+    const inactive = await fresh(living({ 'node-group': NEVER }), T);
+    const absent = await fresh(without('node-group'), T);
+    expect(samePixels(inactive, absent), pixelReport('group', inactive, absent)).toBe(true);
+    // The premise: the group and its children were there to hide.
+    expect(samePixels(inactive, await fresh(living({}), T))).toBe(false);
+  });
+
+  it('hides an inactive child of an active group, and nothing else of the group', async () => {
+    const inactive = await fresh(living({ 'node-image': NEVER }), T);
+    const absent = await fresh(without('node-image'), T);
+    expect(samePixels(inactive, absent), pixelReport('child', inactive, absent)).toBe(true);
+    expect(samePixels(inactive, await fresh(living({}), T))).toBe(false);
+    // The premise: the caption, the other child, is still shown.
+    expect(samePixels(inactive, await fresh(without('node-group'), T))).toBe(false);
+  });
+
+  /**
+   * The boundaries of the interval in rendered pixels. The Producer renders
+   * times on the frame grid only, so the frame time T stays where it is and the
+   * lifetime is placed around it: each row makes T one exact microsecond of the
+   * interval. The arithmetic of every microsecond is proven in
+   * `packages/runtime/test/lifetime.test.ts`; this proves that the renderer
+   * shows and hides by it.
+   */
+  it.each([
+    ['one microsecond before the start', { startUs: T + 1, durationUs: 1_000_000 }, false],
+    ['the start', { startUs: T, durationUs: 1_000_000 }, true],
+    ['the last microsecond', { startUs: 0, durationUs: T + 1 }, true],
+    ['the end', { startUs: 0, durationUs: T }, false],
+    ['a lifetime of that one microsecond', { startUs: T, durationUs: 1 }, true],
+  ])('renders a frame whose time is %s of the lifetime', async (_, lifetime, shown) => {
+    const timed = await fresh(living({ 'node-title': lifetime }), T);
+    const always = await fresh(living({}), T);
+    const absent = await fresh(without('node-title'), T);
+    // The premise: the title is visible where it is shown.
+    expect(samePixels(always, absent)).toBe(false);
+    const expected = shown ? always : absent;
+    expect(samePixels(timed, expected), pixelReport('title', timed, expected)).toBe(true);
+  });
+
+  it('clears to opaque white when no node is active (D42.5)', async () => {
+    // The reference composition without its Custom HTML element, and every node
+    // that is left outside its lifetime: this row is about the clear colour of
+    // the page alone, and has no hidden frame to wait for.
+    const { document } = without('node-custom-html');
+    for (const id of OTHER_NODES) Object.assign(nodeOf(document as Draft, id), NEVER);
+    const nothing = { ...living({}), document };
+    const frame = await fresh(nothing, 0);
+    const decoded = decodePng(frame);
+    expect(decoded.width).toBe(WIDTH);
+    expect(decoded.height).toBe(HEIGHT);
+    expect(decoded.data).toHaveLength(WIDTH * HEIGHT * 4);
+    // Every channel of every pixel, alpha included.
+    expect(decoded.data.every((byte) => byte === 255)).toBe(true);
+    expect(notWhite(frame, WHOLE)).toBe(0);
+    // The premise: the reference frame is not white. (Not every pixel of it: the
+    // image of the fixture has a white border.)
+    expect(notWhite(frameAt(baseline, 0), WHOLE)).toBeGreaterThan((WIDTH * HEIGHT) / 2);
+  });
+
+  /**
+   * The measurement D42.4 waits for, and the only rows that hide a Custom HTML
+   * frame: while it is hidden the element still receives and acknowledges every
+   * time (D23.4) and the presentation barrier still completes in its frame
+   * (D28.5), with the Producer's own timeouts; and the first frame it is shown
+   * on paints the time of that frame, whichever way the times are walked. Every
+   * frame of one page is compared with a fresh render of that time alone.
+   */
+  describe('a Custom HTML element with a lifetime', () => {
+    const START = 5_000_000;
+    const TIMES = [0, 2_500_000, 5_000_000, 7_500_000];
+    const expected = new Map<number, Uint8Array>();
+
+    beforeAll(async () => {
+      for (const timeUs of TIMES) {
+        const document = timeUs >= START ? living({}) : without('node-custom-html');
+        expected.set(timeUs, await fresh(document, timeUs));
+      }
+    });
+
+    it('is visible where it is shown: the premise of the rows below', async () => {
+      for (const timeUs of [0, 2_500_000]) {
+        const shown = await fresh(living({}), timeUs);
+        expect(samePixels(shown, expected.get(timeUs) ?? shown), String(timeUs)).toBe(false);
+      }
+    });
+
+    it.each([
+      ['outside, then inside', [0, 2_500_000, 5_000_000, 7_500_000]],
+      ['inside, then outside', [7_500_000, 5_000_000, 2_500_000, 0]],
+      ['in and out', [5_000_000, 0, 7_500_000, 2_500_000, 5_000_000]],
+    ])('renders every frame like a fresh render of its time: %s', async (_, order) => {
+      const timed = living({ 'node-custom-html': { startUs: START, durationUs: 5_000_000 } });
+      const result = await renderFrames({ ...timed, timesUs: order, chromium });
+      expect(result.frames.map(({ timeUs }) => timeUs)).toEqual(order);
+      for (const { timeUs, png } of result.frames) {
+        const wanted = expected.get(timeUs);
+        if (wanted === undefined) throw new Error(`No expected frame at ${String(timeUs)}.`);
+        expect(samePixels(png, wanted), pixelReport(String(timeUs), png, wanted)).toBe(true);
+        // Shown, the bar has the width of this frame's time, not of an earlier one.
+        if (timeUs >= START) {
+          expect(measuredBar(decodePng(png)), String(timeUs)).toBe(expectedBar(timeUs));
+        }
+      }
+    });
+  });
+
+  it('renders a migrated reference composition like the reference composition', async () => {
+    const { migrateComposition } = await import('@kadrion/schema/migrate');
+    const { referenceCompositionV01 } = await import('@kadrion/test-fixtures');
+    const migrated = migrateComposition(referenceCompositionV01);
+    if (!migrated.ok) throw new Error('The reference of 0.1 did not migrate.');
+    const result = await render(times, migrated.composition);
+    for (const { timeUs, png } of result.frames) {
+      const expected = frameAt(baseline, timeUs);
+      expect(samePixels(png, expected), pixelReport(String(timeUs), png, expected)).toBe(true);
+    }
+    expect(result.manifest.compositionHash).toBe(baseline.manifest.compositionHash);
   });
 });

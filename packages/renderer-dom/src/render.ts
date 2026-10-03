@@ -3,18 +3,16 @@
  * found again through its addressing attributes; nothing is remembered between
  * calls, so the result depends on the mounted document and the state only.
  */
-import type { CompositionState, GroupNodeState, LeafNodeState, NodeState } from '@kadrion/runtime';
+import type { CompositionState, NodeState } from '@kadrion/runtime';
 
 import { cssNumber, cssTransform } from './css.js';
 import { RenderError, unsupportedNode } from './errors.js';
 import { NODE_ATTRIBUTE, SCENE_ATTRIBUTE, STAGE_ATTRIBUTE } from './mount.js';
 
-type TransformedState = GroupNodeState | LeafNodeState;
-
-/** A transformed node of the state together with the element that was mounted for it. */
+/** A node of the state together with the element that was mounted for it. */
 export interface MountedNode {
   readonly element: HTMLElement;
-  readonly state: TransformedState;
+  readonly state: NodeState;
 }
 
 function mismatch(message: string): never {
@@ -38,6 +36,8 @@ function matchChildren(parent: Element, attribute: string, ids: readonly string[
 function plan(element: HTMLElement, state: NodeState, writes: MountedNode[]): void {
   switch (state.type) {
     case 'background':
+      // No transform, but a lifetime like every node (D42.1).
+      writes.push({ element, state });
       return;
     case 'group': {
       writes.push({ element, state });
@@ -61,8 +61,8 @@ function plan(element: HTMLElement, state: NodeState, writes: MountedNode[]): vo
 /**
  * Checks that `root` holds the tree that `mountComposition` built for the
  * scenes and nodes of `state` — the same IDs, in the same order and hierarchy —
- * and returns every transformed node with its element, in document order. A
- * mismatch throws a `RenderError`; nothing is written.
+ * and returns every node with its element, in document order. A mismatch throws
+ * a `RenderError`; nothing is written.
  */
 export function mountedNodes(root: Element, state: CompositionState): MountedNode[] {
   const stage = root.firstElementChild;
@@ -92,14 +92,25 @@ export function mountedNodes(root: Element, state: CompositionState): MountedNod
 /**
  * Renders `state` into the tree that `mountComposition` built in `root`. The
  * whole structure is checked first (`mountedNodes`), and only then are
- * `transform` and `opacity` of every transformed node written. A mismatch throws
- * a `RenderError` before anything is written, so the DOM never shows two
- * instants at once. The frame of a Custom HTML element is not touched: its time
- * is pushed by `synchronizeCustomHtml` (D23.4).
+ * `transform` and `opacity` of every transformed node, and the visibility of
+ * every node, written. A mismatch throws a `RenderError` before anything is
+ * written, so the DOM never shows two instants at once. The frame of a Custom
+ * HTML element is not touched: its time is pushed by `synchronizeCustomHtml`
+ * (D23.4).
+ *
+ * An inactive node gets `visibility: hidden`; an active one loses the
+ * declaration (D42.4). `visible` is never written: the property inherits, so a
+ * hidden group hides its children whatever their own state says, and a tree
+ * whose nodes are all active carries no declaration at all. Both branches write
+ * on every call, so nothing depends on what an earlier call left.
  */
 export function renderState(root: Element, state: CompositionState): void {
   for (const { element, state: node } of mountedNodes(root, state)) {
-    element.style.setProperty('transform', cssTransform(node));
-    element.style.setProperty('opacity', cssNumber(node.opacity));
+    if (node.type !== 'background') {
+      element.style.setProperty('transform', cssTransform(node));
+      element.style.setProperty('opacity', cssNumber(node.opacity));
+    }
+    if (node.active) element.style.removeProperty('visibility');
+    else element.style.setProperty('visibility', 'hidden');
   }
 }

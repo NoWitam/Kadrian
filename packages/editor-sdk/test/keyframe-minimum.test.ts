@@ -1,11 +1,11 @@
 /**
  * The seam of D41.4 at the bus: the minimum number of keyframes is the one
  * `compositionSchema` states, read where `RemoveKeyframe` runs, not a number of
- * `editor-sdk`. Schema `0.1` states 2 for every property, so a bus that wrote
+ * `editor-sdk`. Schema `0.2` states 2 for every property, so a bus that wrote
  * out 2 would pass every other test; here the module `@kadrion/schema` hands the
  * SDK other metadata — opacity takes three keyframes — while its validator stays
  * the real one, which accepts two. Only the SDK's reading can then refuse a
- * removal that leaves two. Neither schema 0.1 nor the public API changes; the
+ * removal that leaves two. Neither schema 0.2 nor the public API changes; the
  * mock is local to this file.
  */
 import { referenceComposition } from '@kadrion/test-fixtures';

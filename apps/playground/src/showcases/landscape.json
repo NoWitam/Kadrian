@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.1",
+  "schemaVersion": "0.2",
   "width": 1920,
   "height": 1080,
   "fps": 24,
@@ -25,10 +25,18 @@
     {
       "id": "scene-main",
       "nodes": [
-        { "id": "node-background", "type": "background", "color": "#0c111d" },
+        {
+          "id": "node-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "color": "#0c111d"
+        },
         {
           "id": "node-image",
           "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
           "position": { "x": 120, "y": 240 },
           "scale": { "x": 1, "y": 1 },
           "opacity": 1,
@@ -50,6 +58,8 @@
         {
           "id": "node-title",
           "type": "text",
+          "startUs": 0,
+          "durationUs": 5000000,
           "position": { "x": 860, "y": 360 },
           "scale": { "x": 1, "y": 1 },
           "opacity": 1,
@@ -72,6 +82,8 @@
         {
           "id": "node-subtitle",
           "type": "text",
+          "startUs": 0,
+          "durationUs": 5000000,
           "position": { "x": 860, "y": 620 },
           "scale": { "x": 1, "y": 1 },
           "opacity": 1,

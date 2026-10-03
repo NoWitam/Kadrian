@@ -38,14 +38,20 @@ type ExpectedNodeAnimation =
   | ExpectedAnimation<'position', Vec2>
   | ExpectedAnimation<'scale', Vec2>;
 
-interface ExpectedTransform {
+/** The lifetime every node of schema 0.2 has (D42.1). */
+interface ExpectedLifetime {
+  readonly startUs: number;
+  readonly durationUs: number;
+}
+
+interface ExpectedTransform extends ExpectedLifetime {
   readonly position: Vec2;
   readonly scale: Vec2;
   readonly opacity: number;
   readonly animations: readonly ExpectedNodeAnimation[];
 }
 
-interface ExpectedBackgroundNode {
+interface ExpectedBackgroundNode extends ExpectedLifetime {
   readonly id: string;
   readonly type: 'background';
   readonly color: string;
@@ -109,7 +115,7 @@ interface ExpectedAudioClip {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.1';
+  readonly schemaVersion: '0.2';
   readonly width: number;
   readonly height: number;
   readonly fps: number;

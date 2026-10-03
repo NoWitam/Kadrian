@@ -208,7 +208,14 @@ const TEXTS = ['', 'Kadrion', 'Deterministic by design', 'A\nB'];
 
 /** A new node a command may add: a text node, animated or not, or a Custom HTML element. */
 function newNode(next: () => number, id: string): Json {
-  const base = { position: { x: 5, y: 5 }, scale: { x: 1, y: 1 }, opacity: 1 };
+  // A lifetime of the whole composition: fixed values, so the seeded stream is as it was.
+  const base = {
+    startUs: 0,
+    durationUs: 10_000_000,
+    position: { x: 5, y: 5 },
+    scale: { x: 1, y: 1 },
+    opacity: 1,
+  };
   if (next() < 0.25) {
     return {
       id,
@@ -431,6 +438,28 @@ function animationCommand(
   }
 }
 
+/** Starts and durations of a lifetime: valid ones, the reference's own, and malformed ones. */
+const STARTS = [0, 0, 1_000_000, 4_000_000, 10_000_000, 20_000_000, -0, 0.5, -1];
+const DURATIONS = [10_000_000, 10_000_000, 1, 2_000_000, Number.MAX_SAFE_INTEGER, 0, 1.5];
+
+/** A `SetNodeLifetime` for any node the sequence may hold, or for an ID that is no node (D42.10). */
+function lifetimeCommand(next: () => number): unknown {
+  return {
+    type: 'SetNodeLifetime',
+    nodeId: pick(next, NODE_IDS),
+    startUs: pick(next, STARTS),
+    durationUs: pick(next, DURATIONS),
+  };
+}
+
+/**
+ * A payload of a run focused on lifetimes: `SetNodeLifetime` among the node
+ * commands that add, remove, and copy the nodes it times.
+ */
+function lifetimeFocused(next: () => number): unknown {
+  return next() < 0.4 ? lifetimeCommand(next) : command(next);
+}
+
 /**
  * A payload of a run focused on animations: mostly the commands of D41, with the
  * node and asset commands that add, remove, and copy animated nodes among them.
@@ -515,7 +544,7 @@ function isTime(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 
-/** The fewest keyframes of an animation in schema 0.1 (D16.6), written out here. */
+/** The fewest keyframes of an animation in schema 0.2 (D16.6), written out here. */
 const MINIMUM_KEYFRAMES = 2;
 
 interface AnimationPlace {
@@ -543,7 +572,7 @@ function hasKeys(value: Json, keys: readonly string[]): boolean {
   return own.length === keys.length && keys.every((key) => own.includes(key));
 }
 
-/** Whether schema 0.1 takes the value for the property (D16.6, D18.4). */
+/** Whether schema 0.2 takes the value for the property (D16.6, D18.4). */
 function isValue(property: unknown, value: unknown): boolean {
   if (property === 'opacity') return typeof value === 'number' && value >= 0 && value <= 1;
   if (typeof value !== 'object' || value === null || !hasKeys(value as Json, ['x', 'y'])) {
@@ -556,7 +585,7 @@ function isValue(property: unknown, value: unknown): boolean {
   return [x, y].every((f) => typeof f === 'number' && f >= 0 && f <= 1000);
 }
 
-/** Whether schema 0.1 takes the keyframe for the property: its time, its value, nothing else. */
+/** Whether schema 0.2 takes the keyframe for the property: its time, its value, nothing else. */
 function isKeyframe(property: unknown, keyframe: Json): boolean {
   return (
     hasKeys(keyframe, ['timeUs', 'value']) &&
@@ -565,7 +594,7 @@ function isKeyframe(property: unknown, keyframe: Json): boolean {
   );
 }
 
-/** Whether schema 0.1 takes the animation: its four fields, and keyframes enough, ascending. */
+/** Whether schema 0.2 takes the animation: its four fields, and keyframes enough, ascending. */
 function isAnimation(animation: Json): boolean {
   const keyframes = animation['keyframes'];
   return (
@@ -710,6 +739,13 @@ function parseCode(payload: unknown): string | null {
       return isTime((command['keyframe'] as Json)['timeUs']) ? null : 'invalid-argument';
     case 'MoveKeyframe':
       return isTime(command['timeUs']) && isTime(command['toTimeUs']) ? null : 'invalid-argument';
+    case 'SetNodeLifetime':
+      // A start is a time; a duration is one too, but never 0 (D42.1).
+      return isTime(command['startUs']) &&
+        isTime(command['durationUs']) &&
+        command['durationUs'] >= 1
+        ? null
+        : 'invalid-argument';
     default:
       return typeof command['type'] === 'string' ? 'unknown-command' : 'invalid-argument';
   }
@@ -899,7 +935,7 @@ function apply(document: Json, command: Json): Effect | Refused {
       const assetId = command['assetId'] as string;
       const index = assets.findIndex(({ id }) => id === assetId);
       if (index < 0) return new Refused('unknown-asset');
-      // The model knows the three reference fields of schema 0.1 explicitly; the
+      // The model knows the three reference fields of schema 0.2 explicitly; the
       // implementation asks the validator instead (D40.4), so each checks the other.
       const users = [
         ...sceneOf(document).nodes.flatMap((node) => [
@@ -1006,6 +1042,18 @@ function apply(document: Json, command: Json): Effect | Refused {
       placeKeyframe(keyframes, keyframe);
       return changed;
     }
+    case 'SetNodeLifetime': {
+      // Every node has a lifetime, the background and a group's children too (D42.1).
+      const target = place(document, nodeId)?.node;
+      if (target === undefined) return new Refused('unknown-node');
+      const startUs = stored(command['startUs'] as number);
+      const durationUs = command['durationUs'] as number;
+      if (target['startUs'] === startUs && target['durationUs'] === durationUs) return none;
+      // Written into the node, whose keys keep their order (D42.10).
+      target['startUs'] = startUs;
+      target['durationUs'] = durationUs;
+      return changed;
+    }
     default:
       throw new Error('The generator made a command the model does not know.');
   }
@@ -1102,6 +1150,13 @@ interface Coverage {
   readonly applied: ReadonlyMap<string, number>;
   /** Predicted and observed failures, by code. */
   readonly codes: ReadonlyMap<string, number>;
+  /**
+   * What each single dispatch came to, as `<command type>:<outcome>`, where the
+   * outcome is `changed`, `noop`, or the error code. It counts one command by
+   * itself: a transaction, whose failure belongs to one of several commands, is
+   * not counted here.
+   */
+  readonly outcomes: ReadonlyMap<string, number>;
 }
 
 function bump(map: Map<string, number>, key: string): void {
@@ -1127,6 +1182,7 @@ function run(
   const counts = { committed: 0, structural: 0, noop: 0, failed: 0, undo: 0, redo: 0 };
   const codes = new Map<string, number>();
   const applied = new Map<string, number>();
+  const outcomes = new Map<string, number>();
 
   /** Records an entry on a stack of the model, the oldest dropped first (D38.7). */
   function record(stack: Entry[], entry: Entry): void {
@@ -1145,6 +1201,13 @@ function run(
           ? [generate(next)]
           : Array.from({ length: 1 + Math.floor(next() * 2) }, () => generate(next));
       const prediction = predict(state.current, payloads);
+      const [single] = payloads;
+      if (operation === 'dispatch' && typeof single === 'object' && single !== null) {
+        const type: unknown = (single as Json)['type'];
+        // The model's verdict on this one command; the bus is checked against it below.
+        const outcome = prediction.code ?? (prediction.changed ? 'changed' : 'noop');
+        if (typeof type === 'string') bump(outcomes, `${type}:${outcome}`);
+      }
       const reported: { changed?: boolean; created?: readonly string[] } = {};
       const failure = attempt(() => {
         const result =
@@ -1227,7 +1290,7 @@ function run(
     expect(counts.undo).toBeGreaterThan(steps / 20);
     expect(counts.redo).toBeGreaterThan(steps / 20);
   }
-  return { counts, applied, codes };
+  return { counts, applied, codes, outcomes };
 }
 
 /** The seeded runs, each run once and shared by the tests that read it. */
@@ -1244,14 +1307,22 @@ const ANIMATION_SEEDS: readonly (readonly [number, number])[] = [
   [7, 100],
   [8, 3],
 ];
+/** The run focused on `SetNodeLifetime` (D42.10), with the same model and the same premises. */
+const LIFETIME_SEEDS: readonly (readonly [number, number])[] = [[9, 100]];
 const STEPS = 600;
 const runs = new Map<number, Coverage>();
 
 function runOnce(seed: number, historyLimit: number): Coverage {
   const known = runs.get(seed);
   if (known !== undefined) return known;
-  const focused = ANIMATION_SEEDS.some(([animationSeed]) => animationSeed === seed);
-  const coverage = run(seed, historyLimit, STEPS, focused ? animationFocused : command);
+  const focused = (seeds: readonly (readonly [number, number])[]): boolean =>
+    seeds.some(([focusedSeed]) => focusedSeed === seed);
+  const generate = focused(ANIMATION_SEEDS)
+    ? animationFocused
+    : focused(LIFETIME_SEEDS)
+      ? lifetimeFocused
+      : command;
+  const coverage = run(seed, historyLimit, STEPS, generate);
   runs.set(seed, coverage);
   return coverage;
 }
@@ -1286,7 +1357,7 @@ const D41_CODES = [
   'duplicate-animation-target',
 ];
 
-describe('the history against a model of snapshots (D38, D39, D40, D41)', () => {
+describe('the history against a model of snapshots (D38, D39, D40, D41, D42)', () => {
   it.each(SEEDS)('replays seed %d with historyLimit %d', (seed, historyLimit) => {
     runOnce(seed, historyLimit);
   });
@@ -1301,17 +1372,46 @@ describe('the history against a model of snapshots (D38, D39, D40, D41)', () => 
   /** What a set of seeded runs exercised together: real changes by command, failures by code. */
   function coverageOver(
     seeds: readonly (readonly [number, number])[],
-  ): Pick<Coverage, 'applied' | 'codes'> {
+  ): Pick<Coverage, 'applied' | 'codes' | 'outcomes'> {
     const applied = new Map<string, number>();
     const codes = new Map<string, number>();
+    const outcomes = new Map<string, number>();
     for (const [seed, historyLimit] of seeds) {
       const coverage = runOnce(seed, historyLimit);
       for (const [type, count] of coverage.applied)
         applied.set(type, (applied.get(type) ?? 0) + count);
       for (const [code, count] of coverage.codes) codes.set(code, (codes.get(code) ?? 0) + count);
+      for (const [outcome, count] of coverage.outcomes)
+        outcomes.set(outcome, (outcomes.get(outcome) ?? 0) + count);
     }
-    return { applied, codes };
+    return { applied, codes, outcomes };
   }
+
+  it.each(LIFETIME_SEEDS)(
+    'replays seed %d with historyLimit %d, focused on lifetimes (D42)',
+    (seed, historyLimit) => {
+      runOnce(seed, historyLimit);
+    },
+  );
+
+  it('applies SetNodeLifetime with a real change, a no-op, and each of its reachable errors, counted for that command alone', () => {
+    const { applied, outcomes } = coverageOver(LIFETIME_SEEDS);
+    const of = (outcome: string): number => outcomes.get(`SetNodeLifetime:${outcome}`) ?? 0;
+    expect(applied.get('SetNodeLifetime') ?? 0).toBeGreaterThan(10);
+    // Single dispatches of this command, by what the model says each came to:
+    // no occurrence of another command counts here.
+    expect(of('changed')).toBeGreaterThan(5);
+    expect(of('noop')).toBeGreaterThan(0);
+    // Its two reachable errors (D42.10): a malformed time, and an ID that is no node.
+    expect(of('invalid-argument')).toBeGreaterThan(0);
+    expect(of('unknown-node')).toBeGreaterThan(0);
+    // And no other: unsupported-node and invalid-result cannot occur for it.
+    const reached = [...outcomes.keys()]
+      .filter((key) => key.startsWith('SetNodeLifetime:'))
+      .map((key) => key.slice('SetNodeLifetime:'.length))
+      .sort();
+    expect(reached).toEqual(['changed', 'invalid-argument', 'noop', 'unknown-node']);
+  });
 
   it('applies every command of D40 with a real change, and meets every code it adds, over the seeds 1 to 6', () => {
     // Over the mixed runs alone, as before the runs focused on animations

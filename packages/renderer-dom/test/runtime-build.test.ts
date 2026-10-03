@@ -109,6 +109,27 @@ describe('runtime build artifact (D21)', () => {
       expect(path).toMatch(/^packages\/(renderer-dom|runtime|schema)\/dist\/[a-z-]+\.js$/);
     }
   });
+
+  it('holds the current schema and neither a historical schema nor a migration (D42.8)', () => {
+    const text = artifactOnDisk.toString('utf8');
+    const modules = [...text.matchAll(/^ {2}\/\/ (\S+)$/gm)].map((match) => match[1] ?? '');
+    // The premise: the schema is in the artifact, with its title as written.
+    expect(modules).toContain('packages/schema/dist/composition-schema.js');
+    expect(text).toContain('Kadrion composition 0.2');
+    // The page imports the main entry of `@kadrion/schema` only; the migration
+    // entry and what only it reaches are no part of the runtime build.
+    expect(modules.filter((path) => /migrat|v0-1|detached|step-/.test(path))).toEqual([]);
+    expect(text).not.toContain('Kadrion composition 0.1');
+    for (const name of [
+      'migrateComposition',
+      'migrateThrough',
+      'step01To02',
+      'compositionSchemaV01',
+    ]) {
+      expect(text, name).not.toContain(name);
+    }
+    expect(text).not.toContain('can carry forward');
+  });
 });
 
 interface PageApi {

@@ -52,6 +52,8 @@ function literal(source: string, names: Readonly<Record<string, unknown>>): unkn
 const captionNode = {
   id: 'caption',
   type: 'text',
+  startUs: 0,
+  durationUs: 3_000_000,
   position: { x: 90, y: 400 },
   scale: { x: 1, y: 1 },
   opacity: 1,
@@ -136,11 +138,15 @@ describe('the command-bus example of the README', () => {
       'MoveKeyframe',
       'RemoveKeyframe',
       'RemoveAnimation',
+      'SetNodeLifetime',
     ]);
     // What the comment after DuplicateNode says the copy created.
     expect(code).toContain("copy.createdIds; // ['caption-2', 'caption-2-a-position']");
     expect(copied).toEqual(['caption-2', 'caption-2-a-position']);
     expect(bus.canUndo()).toBe(true);
+    // The last call of the example: the lifetime it set is in the document.
+    const copy = bus.getDocument().scenes[0]?.nodes.find(({ id }) => id === 'caption-2');
+    expect([copy?.startUs, copy?.durationUs]).toEqual([1_000_000, 1_500_000]);
   });
 
   it('really needs a node that does not animate opacity yet', () => {

@@ -52,7 +52,9 @@ export function renderPageDocument(scripts: readonly string[]): string {
   return [
     '<!doctype html><html><head><meta charset="utf-8">',
     `<meta http-equiv="Content-Security-Policy" content="${RENDER_PAGE_POLICY}">`,
-    '<style>html,body{margin:0;padding:0;overflow:hidden}</style>',
+    // The clear colour is the page's own (D42.5): a pixel that no active node covers is
+    // opaque white in every host, never whatever lies behind the frame.
+    '<style>html,body{margin:0;padding:0;overflow:hidden}html{background-color:#ffffff}</style>',
     `</head><body><div id="${RENDER_ROOT_ID}"></div>`,
     ...scripts.map((script) => `<script>${script}</script>`),
     '</body></html>',

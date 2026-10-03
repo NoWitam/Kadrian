@@ -13,7 +13,7 @@ function validReference(): Composition {
   const result = validateComposition(referenceComposition);
   if (!result.ok) {
     const errors = JSON.stringify(result.errors, null, 2);
-    throw new Error(`The reference composition does not validate against schema 0.1: ${errors}`);
+    throw new Error(`The reference composition does not validate against schema 0.2: ${errors}`);
   }
   return result.composition;
 }
@@ -31,7 +31,7 @@ const nodeById = (id: string): SceneNode | undefined => nodes.find((node) => nod
 const entry = (key: string, value: string): [string, string] => [key, value];
 
 describe('reference composition', () => {
-  it('validates against schema 0.1', () => {
+  it('validates against schema 0.2', () => {
     expect(validateComposition(referenceComposition)).toEqual({
       ok: true,
       composition: referenceComposition,
@@ -40,7 +40,7 @@ describe('reference composition', () => {
 
   it('has the fixed parameters of specification §3.1', () => {
     expect(composition).toMatchObject({
-      schemaVersion: '0.1',
+      schemaVersion: '0.2',
       width: 1080,
       height: 1920,
       fps: 30,

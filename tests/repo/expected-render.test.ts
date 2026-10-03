@@ -274,7 +274,7 @@ describe('Custom HTML element of the reference composition (D23)', () => {
   });
 
   // The fixture element must be a conforming element of D23.3. It is data of
-  // schema 0.1, so the text itself is pinned, not a paraphrase; what it does is
+  // schema 0.2, so the text itself is pinned, not a paraphrase; what it does is
   // run in packages/renderer-dom/test/custom-html-element.test.ts.
   it('accepts kadrion:time from its parent only, strictly, and answers its parent only', () => {
     const html = customHtmlNodes[0]?.html ?? '';

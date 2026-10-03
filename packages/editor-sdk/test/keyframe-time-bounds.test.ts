@@ -6,7 +6,7 @@
  * so here the module `@kadrion/schema` hands the SDK other metadata — times from
  * 5 to 20 000 000 — and every time-bearing argument must follow it.
  *
- * Neither schema `0.1` nor the public API changes. The mock is set up for the
+ * Neither schema `0.2` nor the public API changes. The mock is set up for the
  * first block only and taken down after it; the last block loads the SDK again
  * and shows that the real bounds are back.
  */
@@ -160,7 +160,7 @@ describe('the bounds of a command time are the schema’s (D41.2)', () => {
 });
 
 describe('after the altered metadata (D41.2)', () => {
-  it('loads the SDK with the bounds of schema 0.1 again', async () => {
+  it('loads the SDK with the bounds of schema 0.2 again', async () => {
     const [sdk, schema, animations] = await Promise.all([
       import('../src/index.js'),
       import('@kadrion/schema'),

@@ -35,7 +35,7 @@ const groupVariant = nodeVariants.find(
 );
 const childVariants = variantsOf(at(groupVariant, 'properties', 'children', 'items'));
 
-/** Node type → whether schema 0.1 gives that type the field. */
+/** Node type → whether schema 0.2 gives that type the field. */
 function carrying(field: string): Map<string, boolean> {
   return new Map<string, boolean>(
     [...nodeVariants, ...childVariants].map((variant) => [
@@ -74,7 +74,7 @@ function nodesByType(): Map<string, string> {
 }
 
 describe('the node types the bus accepts (D30.8)', () => {
-  it('reads every node type of schema 0.1 out of the schema itself', () => {
+  it('reads every node type of schema 0.2 out of the schema itself', () => {
     expect([...positioned.keys()].sort()).toEqual([
       'background',
       'custom-html',
@@ -255,7 +255,7 @@ describe('the node types the commands of D40 accept (D30.8)', () => {
   }
 });
 
-/** The animation shapes of schema 0.1, by node type, read here independently of `animations.ts`. */
+/** The animation shapes of schema 0.2, by node type, read here independently of `animations.ts`. */
 function animationShapes(): { readonly type: string; readonly shapes: readonly unknown[] }[] {
   return [...nodeVariants, ...childVariants].map((variant) => ({
     type: String(at(variant, 'properties', 'type', 'const')),
@@ -278,7 +278,7 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
     for (const [property, minimum] of minimums) {
       expect(keyframeMinimum(compositionSchema, property), property).toBe(minimum);
     }
-    // The fact of schema 0.1 the commands are tested against (D16.6).
+    // The fact of schema 0.2 the commands are tested against (D16.6).
     expect(new Set(minimums.values())).toEqual(new Set([2]));
   });
 
@@ -518,7 +518,7 @@ describe('the animation shapes of group children are read too (D41.4)', () => {
     expect(() => keyframeMinimum(lost, 'opacity')).toThrow(/states no minimum/);
   });
 
-  it('keeps what schema 0.1 states: its nodes and its children agree', () => {
+  it('keeps what schema 0.2 states: its nodes and its children agree', () => {
     expect(childVariants.length).toBeGreaterThan(0);
     for (const property of ['opacity', 'position', 'scale']) {
       expect(keyframeMinimum(compositionSchema, property), property).toBe(2);

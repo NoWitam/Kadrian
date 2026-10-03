@@ -34,17 +34,17 @@ Where each priority lands (owner, 2026-09-28). The mapping approves no scope:
 PR-19 and PR-21 still need their own plan and decisions. (Updated by PR-19a:
 the owner split PR-19 into PR-19a and PR-19b on 2026-09-29.)
 
-| Priority                                       | Pull request                                               |
-| ---------------------------------------------- | ---------------------------------------------------------- |
-| 1. add, remove, duplicate                      | PR-19a                                                     |
-| 2. the other visual properties of schema `0.1` | PR-19b (PR-18 has opacity only)                            |
-| 3. text                                        | PR-18                                                      |
-| 4. the asset of an image                       | PR-19b; its `fit` is a candidate for schema `0.2` in PR-21 |
-| 5. layer order                                 | PR-19a                                                     |
-| 6. `startUs` and `durationUs`                  | PR-21                                                      |
-| 7. animations and keyframes                    | PR-20                                                      |
-| 8. atomic changes, undo, redo, events          | PR-18                                                      |
-| 9. the same through AI                         | PR-24                                                      |
+| Priority                                       | Pull request                                             |
+| ---------------------------------------------- | -------------------------------------------------------- |
+| 1. add, remove, duplicate                      | PR-19a                                                   |
+| 2. the other visual properties of schema `0.1` | PR-19b (PR-18 has opacity only)                          |
+| 3. text                                        | PR-18                                                    |
+| 4. the asset of an image                       | PR-19b; its `fit` needs a schema change, not yet planned |
+| 5. layer order                                 | PR-19a                                                   |
+| 6. `startUs` and `durationUs`                  | PR-21                                                    |
+| 7. animations and keyframes                    | PR-20                                                    |
+| 8. atomic changes, undo, redo, events          | PR-18                                                    |
+| 9. the same through AI                         | PR-24                                                    |
 
 Outside the first scope unless a later decision says otherwise: grouping of
 elements, multi-select, several scenes, advanced audio, Canvas/WebGL, and rich
@@ -65,6 +65,12 @@ text styles.
   stop unless every PNG is byte-identical and only that hash changed (or, for a
   deliberate visual change, stop and present the analysis first), and
   re-measure the parity record in the pinned environment only.
+  Amended by PR-21 (D42, the owner on 2026-10-02): a pull request that changes
+  the schema version changes three fields of the golden manifest and no other:
+  `render.schemaVersion`, `render.compositionHash`, and
+  `render.runtime.contentHash`. The bootstrap then stops unless every PNG is
+  byte-identical, the manifest differs in exactly those three fields, and each
+  of the three equals the value predicted on the host before the run.
 - A change of the Player's dist tree needs a parity record measured again in
   the pinned environment; it does not by itself reopen Q14.
 - Changes confined to `editor-sdk`, `ai-sdk`, or documentation touch neither
@@ -130,7 +136,8 @@ text styles.
   document, not only by images; its plan first inventories every asset
   reference of schema `0.1` (D40, Context), and the uses are found by the
   validator rather than by a list of fields (D40.4).
-- **Not included:** `fit` of an image (a candidate for schema `0.2`, PR-21).
+- **Not included:** `fit` of an image (it needs a schema change; PR-21 does
+  not include it, and no pull request is planned for it yet).
 
 ### PR-20 — Authoring animations
 
@@ -154,13 +161,18 @@ text styles.
 
 ### PR-21 — Schema `0.2` and migration
 
-- **Goal:** elements have a lifetime on the timeline, and old documents still
-  load.
+- Status: planned and approved by the owner on 2026-10-01 and 2026-10-02;
+  decisions in D42, accepted by the owner on 2026-10-03. Implemented, and
+  measured in the controlled pinned bootstrap of 2026-10-03; Q14 is open. Its
+  scope is the lifetime of a node and the first migration; the `fit` of an
+  image is not part of it.
+- **Goal:** elements have a lifetime on the timeline, and a document of schema
+  `0.1` can be carried forward by an explicit migration that the host calls.
+  No entry point loads an old document by itself (D42.9).
 - **Scope:** the migration framework that D35.6 requires with the first schema
-  change; `startUs` and `durationUs` as the lifetime of an element; only the
-  further fields that the first editor really needs (a candidate: the `fit` of
-  an image). No several scenes, no
-  Canvas/WebGL, no set of speculative properties.
+  change; `startUs` and `durationUs` as the lifetime of an element, and no
+  further field. No `fit` of an image, no several scenes, no Canvas/WebGL, no
+  set of speculative properties.
 - **Packages and documents:** `@kadrion/schema`, `@kadrion/runtime`,
   `@kadrion/renderer-dom`, `@kadrion/editor-sdk`, fixtures, D35 and a new ADR.
 - **Decisions:** an ADR on schema `0.2` under D35.
@@ -172,7 +184,26 @@ text styles.
 - **Impact:** the runtime hash changes, so Q14 reopens and the controlled
   bootstrap applies; golden frames change only through `goldens:update` in the
   pinned container, with the owner's consent.
-- **Not included:** saving and loading old files in a host (PR-22).
+- **Bootstrap (2026-10-03, locally, in the pinned image):** `goldens:update`
+  in the isolated container left the five PNG files byte-identical and changed
+  exactly `render.schemaVersion`, `render.compositionHash`, and
+  `render.runtime.contentHash`, each to the value predicted on the host. The
+  first reference run had `tests/repo/parity-record.test.ts` and
+  `tests/repo/q14.test.ts` held aside in the Docker volume only, because both
+  read the parity record that this run first had to measure. The second run,
+  from a fresh volume with nothing held aside, and its repeat passed in full:
+  78 test files in `check`, and 104 pinned tests in seven files in every pass,
+  the rows of D42.6 and the Player's clear colour among them. Three earlier
+  attempts of the first run stopped at `check`, before any pinned test: one
+  because `q14.test.ts` had not been held aside, and two on the 5 s timeout of
+  a unit test of the Player while the development machine was under other
+  load. Each further attempt had the owner's consent, and no source, test, or
+  timeout was changed between them.
+- **Remaining:** a green CI run of the commit, and the documentation commit
+  with its evidence, which close Q14 by the procedure of
+  [the first CI run](../ci/first-run.md). Until then Q14 is open.
+- **Not included:** saving and loading old files in a host (PR-22); the `fit`
+  of an image.
 
 ### PR-22 — Saving and compatibility
 
@@ -253,8 +284,14 @@ option E) get an ADR when a need appears; nothing here implements them.
   events and plays no audio (PR-23, later).
 - **Producer and export:** no job model or cancellation; FFmpeg runs with
   `-threads 1` (PR-25).
-- **Schema:** one scene, no lifetime of elements, no migration framework yet
-  (PR-21).
+- **Producer, audio plan:** `audioPlan` in `packages/producer/src/encode.ts`
+  adds a clip's `startUs` and `durationUs` before it converts the sum to
+  samples, and `samplesAt` throws an untyped `RangeError` for a number that is
+  no safe integer; a valid document whose sum exceeds 2^53 − 1 would therefore
+  fail the export with an untyped error. Identified by reading the code during
+  PR-21, not reproduced at run time; its repair is outside PR-21.
+- **Schema:** one scene; no `fit` of an image. (The lifetime of elements and
+  the migration framework are PR-21, D42.)
 - **Custom HTML:** the Player provides no network isolation in a user's
   browser; only Chromium was measured (D36).
 - **CI evidence:** the artifact of a run is downloaded by hand for the Q14

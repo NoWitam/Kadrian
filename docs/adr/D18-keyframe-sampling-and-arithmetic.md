@@ -1,6 +1,8 @@
 # D18 — Keyframe sampling and evaluation arithmetic
 
 - Status: Accepted — by the project owner on 2026-09-22
+- Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, a new
+  18.6 (the lifetime of a node)
 - Date: 2026-09-21
 - Supersedes: —
 - Related: D04, D13, D15, D16, D19, [specification](../spike/vertical-spike.md)
@@ -71,6 +73,17 @@ untouched.
 **18.5 Local values.** Evaluated values are local to the parent of their node.
 Nothing of a group is folded into its children, because a group is composited
 before its opacity applies (D15).
+
+**18.6 Lifetime.** Amended by: PR-21 (D42). A node is active at `timeUs` exactly
+when `timeUs >= startUs` and `timeUs - startUs < durationUs`. The code computes
+it by this subtraction: both operands are non-negative safe integers, so the
+difference is exact, and no sum of `startUs` and `durationUs`, which need not be
+a safe integer, is formed. That is a rule of the implementation, kept by review:
+on the supported domain a comparison with the sum gives the same verdict, so no
+test of the state distinguishes the two (D42.2). The time domain of
+18.1 and the sampling of 18.2 are unchanged: an animation is sampled on
+composition time whether or not its node is active, and `active` is local like
+every value (18.5).
 
 Why multiply-first. Any fixed sequence of `+ - * /` is equally reproducible, so
 reproducibility demands _a_ rule, not this one. The choice rests on secondary

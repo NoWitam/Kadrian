@@ -290,6 +290,8 @@ describe('RemoveAsset (D40.3, D40.4)', () => {
           node: {
             id: 'top-image',
             type: 'image',
+            startUs: 0,
+            durationUs: 10_000_000,
             position: { x: 0, y: 0 },
             scale: { x: 1, y: 1 },
             opacity: 1,
@@ -387,12 +389,12 @@ describe('RemoveAsset (D40.3, D40.4)', () => {
 });
 
 describe('finding the users of an asset through the validator (D40.4)', () => {
-  // A document that schema 0.1 does not know: a poster field on a node, a field
+  // A document that schema 0.2 does not know: a poster field on a node, a field
   // at the root, and escaped keys. The mapping knows no field name, so a
   // reference a future validator checks needs no list in `editor-sdk`. It is
   // tested here in isolation, with the errors written out, because no validator
   // can report such a field yet; its use through RemoveAsset is covered above
-  // by the five users of schema 0.1.
+  // by the five users of schema 0.2.
   const document = {
     scenes: [{ id: 'scene', nodes: [{ id: 'video', posterAssetId: 'a' }] }],
     extras: { id: 'extra', 'thumb/ref': 'a', other: 'b' },
