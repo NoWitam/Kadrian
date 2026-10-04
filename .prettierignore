@@ -9,4 +9,7 @@ pnpm-lock.yaml
 dist/
 # Golden frames and their manifest are written by node --run goldens:update (D26.5).
 packages/test-fixtures/src/golden-frames/
+# The documents of the compatibility corpus are frozen byte for byte (D43.6): a
+# formatter must not ask for other bytes. The manifest beside them is formatted.
+packages/test-fixtures/src/compatibility/v*-*/
 coverage/

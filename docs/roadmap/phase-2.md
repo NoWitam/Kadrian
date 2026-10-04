@@ -212,6 +212,12 @@ text styles.
 
 ### PR-22 — Saving and compatibility
 
+- Status: planned and approved by the owner on 2026-10-04; decisions in D43,
+  accepted by the owner on 2026-10-04. Implemented. The saved format
+  is the composition as JSON text, without an envelope; the explicit host APIs
+  `parseComposition` and `serializeComposition` live behind
+  `@kadrion/schema/migrate`; the command bus is unchanged, and a `migrate`
+  command of the CLI is deferred.
 - **Goal:** a host can save a document and load it again in a later version.
 - **Scope:** the saved format; negotiating the version; migration on load; a
   corpus of documents of every version that must keep loading.
@@ -221,7 +227,14 @@ text styles.
   future version is a clear error, never a guess.
 - **Tests:** the compatibility corpus and its mutation tests.
 - **Impact:** none on the runtime hash unless the schema package changes; then
-  as in PR-21.
+  as in PR-21. As implemented, the change stays behind the migration entry of
+  the schema and behind a corpus entry of the fixtures. Two kinds of evidence,
+  which are not the same: `check` validates compatibility — every corpus
+  document loads as its expected one, and the committed parity record is
+  current with the runtime artifact and the Player's dist tree of the build;
+  that the golden frames, the parity record, the Q14 evidence, and the
+  reference composition are unchanged is shown by comparing the SHA-256 of
+  their files with the previous commit, not by `check`.
 - **Not included:** storage in Taskio; Taskio stores project versions (D02).
 
 ### PR-23 — The integration contract of the Taskio editor

@@ -3,6 +3,8 @@
 - Status: Accepted — by the project owner on 2026-09-23, with the refinements written into 35.1, 35.2, and 35.7
 - Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, 35.2–35.5 and 35.8
   (the first step, `0.1 → 0.2`, and the framework built with it)
+- Amended by: PR-22 (D43) on 2026-10-04 at the owner's request, 35.3 (a second explicit
+  function of the host, `parseComposition`)
 - Date: 2026-09-23
 - Supersedes: —
 - Related: D02, D16, D17, D24,
@@ -102,6 +104,13 @@ known string has no version to be validated under and gets
 `unsupported-schema-version`. The validation of step 3 always runs, also for a
 document that was current already, whose result is a detached copy like any
 other.
+
+Amended by: PR-22 (D43). The same entry point exports a second function a host
+calls itself, `parseComposition(text)`: it reads a saved text as JSON and hands
+what it holds to `migrateComposition`, whose verdict it carries unchanged. It is
+as explicit as the first: `validateComposition` still never migrates, and
+`serializeComposition`, the function that writes the text, refuses a document
+of an earlier version instead of upgrading it (D43.3, D43.4).
 
 **35.4 Old schemas are kept as data.** Each earlier version's JSON Schema stays
 in `@kadrion/schema` as frozen data under D24. Version N's migration validates

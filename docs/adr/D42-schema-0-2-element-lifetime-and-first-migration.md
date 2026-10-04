@@ -6,6 +6,8 @@
   2026-10-02. The CI run of the commit, run 37151313481, passed on 2026-10-03
   and supplied the validated evidence; the documentation commit that follows it
   closes Q14 again ([the first CI run](../ci/first-run.md))
+- Amended by: PR-22 (D43) on 2026-10-04 at the owner's request, D42.9 (the explicit
+  host APIs for saved text)
 - Date: 2026-10-03
 - Supersedes: —
 - Amends: D16 (16.2, 16.5), D18 (new 18.6), D19 (19.4), D22 (22.2, 22.4), D24
@@ -330,6 +332,13 @@ function migrateComposition(input: unknown): MigrationResult;
   version.
 - The playground's showcases are `0.2` documents; a `0.1` document a user loads
   there is refused like any other invalid document.
+
+Amended by: PR-22 (D43). The migration entry also exports `parseComposition`,
+`serializeComposition`, and `SUPPORTED_SCHEMA_VERSIONS`, which a host calls
+itself. They change nothing above: the Player, the Producer, the CLI, the render
+page, `createCommandBus`, and `applyCommand` still require a `0.2` document and
+still refuse a `0.1` one, and no package or application source of this
+repository imports that entry.
 
 ### D42.10 `SetNodeLifetime`
 

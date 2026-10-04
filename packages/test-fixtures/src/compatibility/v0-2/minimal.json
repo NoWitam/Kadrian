@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.2",
+  "width": 1,
+  "height": 1,
+  "fps": 1,
+  "durationUs": 1,
+  "assets": [],
+  "scenes": [{ "id": "minimal-scene", "nodes": [] }],
+  "clips": []
+}

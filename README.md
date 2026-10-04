@@ -124,6 +124,9 @@ are complete, working examples of everything below.
 | `@kadrion/cli`           | render frames and export MP4 from the command line                     |
 | `@kadrion/test-fixtures` | the reference composition, its generated assets, and the golden frames |
 
+`@kadrion/test-fixtures/compatibility` is a second entry of the fixtures: the
+saved documents that must keep loading (D43). Tests read it; no package does.
+
 ### Rules every host follows
 
 - The composition document is the only source of rendering truth. The state of
@@ -265,6 +268,119 @@ if (migrated.ok) {
   value stay as they are.
 - A document without a known `schemaVersion` is refused with
   `unsupported-schema-version` (D35, D42).
+
+#### Save and load
+
+The saved form of a composition is the composition itself as JSON text: no
+envelope, and no version of a file format beside `schemaVersion` (D43).
+Whatever a host keeps around a document is the host's own. Two functions of
+`@kadrion/schema/migrate` read and write that text; a host calls them itself,
+and neither makes the Player, the Producer, the CLI, or the command bus accept
+an older document.
+
+```ts
+import {
+  parseComposition,
+  serializeComposition,
+  SUPPORTED_SCHEMA_VERSIONS,
+} from '@kadrion/schema/migrate';
+
+const loaded = parseComposition(text);
+if (loaded.ok) {
+  loaded.composition; // a new, validated 0.2 document that belongs to the caller
+  loaded.versions; // ['0.1', '0.2'] when it was migrated, ['0.2'] when it was current
+} else if (loaded.stage === 'text') {
+  loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
+} else {
+  loaded.version; // as with migrateComposition: the version the errors belong to, or null
+  loaded.errors; // every error of the validation: there may be several
+}
+
+const saved = serializeComposition(composition);
+if (saved.ok) {
+  saved.text; // compact JSON without a trailing newline
+} else {
+  saved.errors; // the validator's errors: a 0.1 document is refused, never migrated
+}
+
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2']: what this build can carry forward
+```
+
+- The text follows the rules of JSON and no others: a byte order mark is
+  refused, the last of two equal keys wins, and every check of a number sees
+  the value `JSON.parse` made of it, not its spelling. A `-0` is written as `0`.
+- White space and the order of keys carry no meaning. The identity of a
+  document is its composition hash, never the bytes of its text.
+- A version that `SUPPORTED_SCHEMA_VERSIONS` does not list is refused; it is
+  never read as the nearest known one.
+- The list names what can be **migrated**, not what is **accepted**:
+  `validateComposition`, and everything built on it, accepts its last version
+  only. The validator's message for an earlier document, that this build
+  supports `"0.2"`, speaks of that.
+
+Loading replaces the document, so a host creates a new command bus for it,
+with a fresh history, and publishes it only after the load succeeded:
+
+<!-- host-example:start -->
+
+```ts
+import {
+  createCommandBus,
+  type BusListener,
+  type CommandBus,
+  type ListenerErrorHandler,
+} from '@kadrion/editor-sdk';
+import {
+  parseComposition,
+  serializeComposition,
+  type ParseCompositionResult,
+} from '@kadrion/schema/migrate';
+
+/** What a host keeps for the document that is open. */
+interface Session {
+  readonly bus: CommandBus;
+  readonly unsubscribe: () => void;
+}
+
+export interface Host {
+  open(text: string): ParseCompositionResult;
+  save(): string | null;
+  bus(): CommandBus | null;
+}
+
+export function createHost(onChange: BusListener, onListenerError: ListenerErrorHandler): Host {
+  let session: Session | null = null;
+  return {
+    open(text) {
+      const loaded = parseComposition(text);
+      // Refused: the open document, its history, and its listener stay as they are.
+      if (!loaded.ok) return loaded;
+      // A new bus, and so a fresh history, for the loaded document (D32). It is
+      // built and subscribed before it is published in one assignment.
+      const bus = createCommandBus(loaded.composition, { onListenerError });
+      const unsubscribe = bus.subscribe(onChange);
+      session?.unsubscribe();
+      session = { bus, unsubscribe };
+      // loaded.versions.length > 1: it was migrated; store it as a new version (D02).
+      return loaded;
+    },
+    save() {
+      if (session === null) return null;
+      const saved = serializeComposition(session.bus.getDocument());
+      return saved.ok ? saved.text : null;
+    },
+    bus: () => session?.bus ?? null,
+  };
+}
+```
+
+<!-- host-example:end -->
+
+`parseComposition` sees no bus, so a refused text cannot change one; replacing
+the open document in one step is this host's own code. A repository test runs
+this very example and shows that it keeps its bus, its history, and its
+listener when a load is refused. That is evidence for this example, not for a
+host written otherwise.
 
 ### 3. Evaluate a frame
 
@@ -624,7 +740,21 @@ tests/
   stay `Accepted`, and their quotations stay verbatim with `AGENTS.md`.
 - The calls to the bus in the example of section 5 run, in the order written,
   against the document of section 1.
-- The main entry of `@kadrion/schema` reaches no historical schema and no
-  migration step, and no source of a package or of an application imports
-  `@kadrion/schema/migrate`: the migration is outside the runtime build, and
-  migrating is the host's act (D42).
+- The host example of section 2 is the code of the module
+  `tests/repo/readme-host-example.ts`, character for character, and a test
+  runs it: a refused load leaves its bus, history, and listener as they were
+  (D43).
+- The compatibility corpus of `@kadrion/test-fixtures/compatibility` is frozen
+  and stands alone: every file of its directory is named by the manifest, lies
+  in the directory of the version it names, hashes to the manifest's bytes —
+  a change of formatting included — and loads as its hand-written document of
+  the current version; no entry names a file outside that directory, and every
+  supported version has an entry (D43).
+- The main entry of `@kadrion/test-fixtures` reaches no file of that corpus,
+  and no source of a package or of an application imports the corpus entry
+  (D43).
+- The main entry of `@kadrion/schema` reaches exactly its own modules: no
+  historical schema, no migration step, and no saved-text function. No source
+  of a package or of an application imports `@kadrion/schema/migrate`: the
+  migration is outside the runtime build, and migrating is the host's act
+  (D42, D43).

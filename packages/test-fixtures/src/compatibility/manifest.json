@@ -1,0 +1,159 @@
+{
+  "description": "The compatibility corpus (D43.6): saved documents that must keep loading, and the document of the current version each must load as. Every expected document was written by hand, never produced by a migration.",
+  "rule": [
+    "The paths of the corpus — file in provenance, input and expected in entries — are relative to packages/test-fixtures/src, and every one lies in compatibility/: the corpus depends on no file outside its directory. The path of in a provenance record is another kind: relative to the repository, it names the fixture outside the corpus whose bytes were copied.",
+    "Every file of compatibility/ other than this manifest is the input or the expected document of an entry, and has one record in provenance.",
+    "A file of the directory vX-Y is a saved document of schema version X.Y.",
+    "A frozen input: a file that an entry names as its input never changes once it is committed, formatting included. inputSha256 is the SHA-256 of its bytes: UTF-8, LF line endings, as committed.",
+    "An expectation: the expected document of an entry is the hand-written document of the current version that its input must load as. expectedSha256 is the SHA-256 of its bytes; expectedCompositionHash is sha256(canonicalJson(document)) (D28.7), which does not depend on white space or on the order of keys.",
+    "versions is what loading the input must report: the versions the document went through, the input's own first.",
+    "An entry of the current version is expected to load as itself: its expected file is its input file.",
+    "Entries share an expectation where what they must load as is identical, the tested order of keys included: one hand-written document serves them all.",
+    "A later schema version adds a directory of its own with the hand-written expectations for the new migration target, one document for every distinct result. Every entry is re-pointed at its expectation there: every frozen input keeps an expected result of the current version. The entries are not duplicated for the new version; it gets entries of its own, at least one, for saved documents of that version, each a frozen input of its directory. No file of an earlier directory changes or is removed.",
+    "provenance says where the bytes of a file come from. origin copy: the bytes of the named fixture file at the named commit, copied so that later work on that fixture cannot change the corpus. origin written: written by hand for the corpus in the named change."
+  ],
+  "provenance": [
+    {
+      "file": "compatibility/v0-1/extremes.json",
+      "origin": "written",
+      "in": "PR-22"
+    },
+    {
+      "file": "compatibility/v0-1/minimal.json",
+      "origin": "written",
+      "in": "PR-22"
+    },
+    {
+      "file": "compatibility/v0-1/pair.json",
+      "origin": "copy",
+      "of": "packages/test-fixtures/src/compositions/migration-0-1-to-0-2.before.json",
+      "commit": "e4e80ce2a33da2870ec2bebb5b2bbc7fe8de83c1"
+    },
+    {
+      "file": "compatibility/v0-1/reference.json",
+      "origin": "copy",
+      "of": "packages/test-fixtures/src/compositions/reference.v0-1.json",
+      "commit": "e4e80ce2a33da2870ec2bebb5b2bbc7fe8de83c1"
+    },
+    {
+      "file": "compatibility/v0-2/extremes.json",
+      "origin": "written",
+      "in": "PR-22"
+    },
+    {
+      "file": "compatibility/v0-2/lifetime.json",
+      "origin": "copy",
+      "of": "packages/test-fixtures/src/compositions/lifetime.json",
+      "commit": "e4e80ce2a33da2870ec2bebb5b2bbc7fe8de83c1"
+    },
+    {
+      "file": "compatibility/v0-2/minimal.json",
+      "origin": "written",
+      "in": "PR-22"
+    },
+    {
+      "file": "compatibility/v0-2/pair.json",
+      "origin": "copy",
+      "of": "packages/test-fixtures/src/compositions/migration-0-1-to-0-2.after.json",
+      "commit": "e4e80ce2a33da2870ec2bebb5b2bbc7fe8de83c1"
+    },
+    {
+      "file": "compatibility/v0-2/reference.json",
+      "origin": "copy",
+      "of": "packages/test-fixtures/src/compositions/reference.json",
+      "commit": "e4e80ce2a33da2870ec2bebb5b2bbc7fe8de83c1"
+    }
+  ],
+  "entries": [
+    {
+      "id": "reference-0-1",
+      "schemaVersion": "0.1",
+      "input": "compatibility/v0-1/reference.json",
+      "inputSha256": "sha256:ed9f0bc45d6e2b1248b50be131edc50cfc334d16e3070ceadbcfaabbcb2c70ed",
+      "versions": ["0.1", "0.2"],
+      "expected": "compatibility/v0-2/reference.json",
+      "expectedSha256": "sha256:0d66dd243d83790ece2afd1a40c48ca1e33add462068c046aba1797693ed5088",
+      "expectedCompositionHash": "sha256:e8a67aa6fd349827481725669b24905ff011cae657e94ead668eb965ee93700b"
+    },
+    {
+      "id": "pair-0-1",
+      "schemaVersion": "0.1",
+      "input": "compatibility/v0-1/pair.json",
+      "inputSha256": "sha256:6f76f1c6a20973ceead5eeb790c36f64b43cb847331a2baa5c252eb51df49f0f",
+      "versions": ["0.1", "0.2"],
+      "expected": "compatibility/v0-2/pair.json",
+      "expectedSha256": "sha256:61fde55204fac61e3a33c3587943fd59b186c5084c61ce7c52ff969fceef555b",
+      "expectedCompositionHash": "sha256:04d8936784774f84c1fdb82e1954d56426a6a96fd820190ce94df009aac4aaf1"
+    },
+    {
+      "id": "minimal-0-1",
+      "schemaVersion": "0.1",
+      "input": "compatibility/v0-1/minimal.json",
+      "inputSha256": "sha256:5b40cb7b7b64dd7299b98fcce67bdfadeda0602eb4dd1ec29b215ebfaf131488",
+      "versions": ["0.1", "0.2"],
+      "expected": "compatibility/v0-2/minimal.json",
+      "expectedSha256": "sha256:34d1c7504f0c2f1b814aeb5c1fc624429ac92b13466ec85d05cbaaf018ceb64c",
+      "expectedCompositionHash": "sha256:d44a4e88f5df9550539a55e4a930ff9e6a7d2c27a4bb025f7af029572137b281"
+    },
+    {
+      "id": "extremes-0-1",
+      "schemaVersion": "0.1",
+      "input": "compatibility/v0-1/extremes.json",
+      "inputSha256": "sha256:032203572e6a76f142d8800d5bea4d472fcc81ea59db12f69bbb44430e1d3945",
+      "versions": ["0.1", "0.2"],
+      "expected": "compatibility/v0-2/extremes.json",
+      "expectedSha256": "sha256:17f195212d0781dbf36e486b6288e6840b9c1dc59a2536693b83fff1829bbcb3",
+      "expectedCompositionHash": "sha256:07c615ec57148beb0b6cfd1a9c98110a490eef1008b4ffcc5276fce09ea729f6"
+    },
+    {
+      "id": "reference-0-2",
+      "schemaVersion": "0.2",
+      "input": "compatibility/v0-2/reference.json",
+      "inputSha256": "sha256:0d66dd243d83790ece2afd1a40c48ca1e33add462068c046aba1797693ed5088",
+      "versions": ["0.2"],
+      "expected": "compatibility/v0-2/reference.json",
+      "expectedSha256": "sha256:0d66dd243d83790ece2afd1a40c48ca1e33add462068c046aba1797693ed5088",
+      "expectedCompositionHash": "sha256:e8a67aa6fd349827481725669b24905ff011cae657e94ead668eb965ee93700b"
+    },
+    {
+      "id": "pair-0-2",
+      "schemaVersion": "0.2",
+      "input": "compatibility/v0-2/pair.json",
+      "inputSha256": "sha256:61fde55204fac61e3a33c3587943fd59b186c5084c61ce7c52ff969fceef555b",
+      "versions": ["0.2"],
+      "expected": "compatibility/v0-2/pair.json",
+      "expectedSha256": "sha256:61fde55204fac61e3a33c3587943fd59b186c5084c61ce7c52ff969fceef555b",
+      "expectedCompositionHash": "sha256:04d8936784774f84c1fdb82e1954d56426a6a96fd820190ce94df009aac4aaf1"
+    },
+    {
+      "id": "lifetime-0-2",
+      "schemaVersion": "0.2",
+      "input": "compatibility/v0-2/lifetime.json",
+      "inputSha256": "sha256:140ed5bf5a5e0f71c8f8a12312a8d946f461d8fe9aacc8d31bedef28c4ffd890",
+      "versions": ["0.2"],
+      "expected": "compatibility/v0-2/lifetime.json",
+      "expectedSha256": "sha256:140ed5bf5a5e0f71c8f8a12312a8d946f461d8fe9aacc8d31bedef28c4ffd890",
+      "expectedCompositionHash": "sha256:22e3e9ec9525c00f6db81728e25a758f92152e8b1807e2bb87d232e113e2ee53"
+    },
+    {
+      "id": "minimal-0-2",
+      "schemaVersion": "0.2",
+      "input": "compatibility/v0-2/minimal.json",
+      "inputSha256": "sha256:34d1c7504f0c2f1b814aeb5c1fc624429ac92b13466ec85d05cbaaf018ceb64c",
+      "versions": ["0.2"],
+      "expected": "compatibility/v0-2/minimal.json",
+      "expectedSha256": "sha256:34d1c7504f0c2f1b814aeb5c1fc624429ac92b13466ec85d05cbaaf018ceb64c",
+      "expectedCompositionHash": "sha256:d44a4e88f5df9550539a55e4a930ff9e6a7d2c27a4bb025f7af029572137b281"
+    },
+    {
+      "id": "extremes-0-2",
+      "schemaVersion": "0.2",
+      "input": "compatibility/v0-2/extremes.json",
+      "inputSha256": "sha256:17f195212d0781dbf36e486b6288e6840b9c1dc59a2536693b83fff1829bbcb3",
+      "versions": ["0.2"],
+      "expected": "compatibility/v0-2/extremes.json",
+      "expectedSha256": "sha256:17f195212d0781dbf36e486b6288e6840b9c1dc59a2536693b83fff1829bbcb3",
+      "expectedCompositionHash": "sha256:07c615ec57148beb0b6cfd1a9c98110a490eef1008b4ffcc5276fce09ea729f6"
+    }
+  ]
+}

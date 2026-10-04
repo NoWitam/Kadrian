@@ -84,8 +84,10 @@ describe.each(packageDirs)('@kadrion/%s', (dir) => {
 
   // D11: workspace packages resolve through `exports` to built output, so `tsc -b`
   // must build a dependency before whatever imports it. The renderer also exports
-  // the runtime build artifact and its manifest (D21, D25.5), and the schema its
-  // migration entry, which the render page must not import (D42.8); nothing else.
+  // the runtime build artifact and its manifest (D21, D25.5), the schema its
+  // migration entry, which the render page must not import (D42.8), and the
+  // fixtures their compatibility corpus, which the main entry must not load
+  // (D43.6); nothing else.
   it('exports its built output', () => {
     const artifact =
       dir === 'renderer-dom'
@@ -98,10 +100,20 @@ describe.each(packageDirs)('@kadrion/%s', (dir) => {
       dir === 'schema'
         ? { './migrate': { types: './dist/migrate.d.ts', default: './dist/migrate.js' } }
         : {};
+    const corpus =
+      dir === 'test-fixtures'
+        ? {
+            './compatibility': {
+              types: './dist/compatibility.d.ts',
+              default: './dist/compatibility.js',
+            },
+          }
+        : {};
     expect(manifest.exports).toEqual({
       '.': { types: './dist/index.d.ts', default: './dist/index.js' },
       ...artifact,
       ...migration,
+      ...corpus,
     });
   });
 

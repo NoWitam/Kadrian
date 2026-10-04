@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./compatibility": {
+      "types": "./dist/compatibility.d.ts",
+      "default": "./dist/compatibility.js"
     }
   },
   "files": [

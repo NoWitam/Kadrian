@@ -50,6 +50,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D40](D40-property-and-asset-commands.md)                     | Property and asset commands                                                        | Accepted          |
 | [D41](D41-authoring-animations-and-keyframes.md)              | Authoring animations and keyframes                                                 | Accepted          |
 | [D42](D42-schema-0-2-element-lifetime-and-first-migration.md) | Schema `0.2`: element lifetime and the first forward migration                     | Accepted          |
+| [D43](D43-saved-compositions-and-compatibility.md)            | Saved compositions: the JSON text, explicit loading, and the compatibility corpus  | Accepted          |
 
 ## Provenance of D01–D10
 

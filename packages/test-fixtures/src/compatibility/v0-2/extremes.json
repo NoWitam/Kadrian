@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "0.2",
+  "width": 1920,
+  "height": 1920,
+  "fps": 120,
+  "durationUs": 9007199254740991,
+  "assets": [
+    {
+      "id": "extremes-image",
+      "type": "image",
+      "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "extremes-font",
+      "type": "font",
+      "contentHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "id": "extremes-audio",
+      "type": "audio",
+      "contentHash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    }
+  ],
+  "scenes": [
+    {
+      "nodes": [
+        {
+          "color": "#ffffff",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 9007199254740991,
+          "id": "extremes-background"
+        },
+        {
+          "id": "extremes-image-node",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 9007199254740991,
+          "position": { "x": -1000000, "y": 1000000 },
+          "scale": { "x": 0, "y": 1000 },
+          "opacity": 0,
+          "animations": [
+            {
+              "id": "extremes-image-opacity",
+              "property": "opacity",
+              "interpolation": "linear",
+              "keyframes": [
+                { "timeUs": 0, "value": 0 },
+                { "timeUs": 9007199254740991, "value": 1 }
+              ]
+            },
+            {
+              "id": "extremes-image-position",
+              "property": "position",
+              "interpolation": "linear",
+              "keyframes": [
+                { "timeUs": 1, "value": { "x": 1000000, "y": -1000000 } },
+                { "timeUs": 2, "value": { "x": -1000000, "y": 1000000 } }
+              ]
+            },
+            {
+              "id": "extremes-image-scale",
+              "property": "scale",
+              "interpolation": "linear",
+              "keyframes": [
+                { "timeUs": 9007199254740989, "value": { "x": 1000, "y": 0 } },
+                { "timeUs": 9007199254740990, "value": { "x": 0.001, "y": 0.30000000000000004 } }
+              ]
+            }
+          ],
+          "assetId": "extremes-image",
+          "width": 1000000,
+          "height": 1
+        },
+        {
+          "id": "extremes-text",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 9007199254740991,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "text": "",
+          "fontAssetId": "extremes-font",
+          "fontSize": 1000000,
+          "color": "#000000"
+        },
+        {
+          "id": "extremes-html",
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 0.5,
+          "animations": [],
+          "width": 1,
+          "height": 1000000,
+          "html": "",
+          "type": "custom-html",
+          "startUs": 0,
+          "durationUs": 9007199254740991
+        },
+        {
+          "type": "group",
+          "startUs": 0,
+          "durationUs": 9007199254740991,
+          "id": "extremes-empty-group",
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "children": []
+        },
+        {
+          "id": "extremes-group",
+          "type": "group",
+          "startUs": 0,
+          "durationUs": 9007199254740991,
+          "position": { "x": 1, "y": -1 },
+          "scale": { "x": 0.5, "y": 2 },
+          "opacity": 0.25,
+          "animations": [],
+          "children": [
+            {
+              "text": "Zażółć gęślą jaźń ☃ 😀 \"quoted\" \\ / \n\t end",
+              "id": "extremes-child-text",
+              "type": "text",
+              "startUs": 0,
+              "durationUs": 9007199254740991,
+              "position": { "x": 0, "y": 0 },
+              "scale": { "x": 1, "y": 1 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "extremes-font",
+              "fontSize": 1,
+              "color": "#abcdef"
+            }
+          ]
+        }
+      ],
+      "id": "extremes-scene"
+    }
+  ],
+  "clips": [
+    {
+      "id": "extremes-clip",
+      "type": "audio",
+      "assetId": "extremes-audio",
+      "startUs": 9007199254740990,
+      "durationUs": 1
+    }
+  ]
+}
