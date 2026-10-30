@@ -2,6 +2,10 @@
 
 - Status: Accepted
 - Recorded: 2026-09-21, from `AGENTS.md` at commit `250ae8f`
+- Amended by: PR-35 on 2026-10-30, at the owner's instruction: the quotation
+  of the excluded scope follows `AGENTS.md`, which no longer excludes
+  transitions in phase three (roadmap of phase three, question 1); the
+  decision is unchanged
 - Related: D05, D06
 
 ## Decision
@@ -29,7 +33,11 @@ Verbatim quotations. `AGENTS.md` remains the authoritative text.
 
 Listed under "Explicitly outside the current scope":
 
-> Full timeline UI, advanced trimming, color grading, filters, or transitions.
+> Full timeline UI, advanced trimming, color grading, or filters.
+
+(Amended by PR-35: until 2026-10-30 the line also excluded transitions.
+Transitions are planned for phase three as DOM/SVG rendering, within this
+decision.)
 
 ## See also
 

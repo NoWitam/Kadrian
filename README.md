@@ -4,10 +4,11 @@ Kadrion is a TypeScript engine for describing, previewing, editing, and
 deterministically rendering video compositions. It is an engine/SDK, not an
 end-user application, and it does not depend on any consumer product.
 
-**Status: phase two.** The vertical spike is complete
-([`docs/spike/report.md`](docs/spike/report.md), section 10); the current
-phase is authoring and the preparation for the Taskio editor
-([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)). Schema `0.2` with its forward migration from `0.1`, the evaluation core, the DOM
+**Status: phase three.** The vertical spike is complete
+([`docs/spike/report.md`](docs/spike/report.md), section 10), and phase two,
+authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
+PR-18 to PR-22; the current phase is the engine under a host's video editor
+([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.2` with its forward migration from `0.1`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -33,6 +34,8 @@ are those of the spike and may still change.
   its evidence and its limits
 - [`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md) — the plan of phase
   two: authoring and the integration contract for the Taskio editor
+- [`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md) — the plan of phase
+  three: the engine under a host's video editor
 - [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, and how
   Q14 closes and reopens
 - [`docs/architecture/package-boundaries.json`](docs/architecture/package-boundaries.json)

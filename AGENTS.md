@@ -23,12 +23,14 @@ end-to-end path:
 4. An AI-shaped tool call performs an equivalent command.
 5. The Producer exports an H.264 MP4 without storing all intermediate frames.
 
-The current phase is phase two: authoring, and preparing the engine for
-integration with the Taskio editor. `docs/roadmap/phase-2.md` holds the plan;
-every pull request of it is approved separately.
+Phase two (authoring, `docs/roadmap/phase-2.md`) delivered PR-18 to PR-22.
+The current phase is phase three: the engine under a host's video editor
+(video, audio, scenes, transitions, captions, templates, and rendering in
+range jobs). `docs/roadmap/phase-3.md` holds the plan; every pull request of it
+is approved separately.
 
-Do not turn phase two into an end-user editor, a media platform, a plugin
-ecosystem, or a Taskio integration inside this repository.
+Do not turn phase three into an end-user editor, a media platform, a plugin
+ecosystem, a render service, or a Taskio integration inside this repository.
 
 ## Accepted architectural decisions
 
@@ -131,7 +133,7 @@ that are not required by the current spike.
 
 - Taskio database models, queues, permissions, billing, and multi-tenancy.
 - A production REST service or distributed render farm.
-- Full timeline UI, advanced trimming, color grading, filters, or transitions.
+- Full timeline UI, advanced trimming, color grading, or filters.
 - A conversational LLM agent or production asset generation pipeline.
 - CRDT collaboration, public plugins, 4K, HDR, and desktop/mobile apps.
 
