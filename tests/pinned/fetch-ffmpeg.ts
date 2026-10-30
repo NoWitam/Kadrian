@@ -1,5 +1,5 @@
 /**
- * `node --run ffmpeg:fetch` (D29.1): installs the pinned FFmpeg build into
+ * `node --run ffmpeg:fetch` (D29.1, amended by PR-36): installs the pinned FFmpeg build into
  * `.kadrion-cache/ffmpeg/<release>/` unless a verified installation is there,
  * refuses an archive or binaries with other checksums, and prints the two
  * paths to mount read-only into the pinned container. It needs a network; the
@@ -16,9 +16,9 @@ import { fileURLToPath } from 'node:url';
 import {
   FFMPEG_ARCHIVE_SHA256,
   FFMPEG_ASSET,
+  FFMPEG_DOWNLOAD_URL,
   FFMPEG_RELEASE,
   FFMPEG_SHA256,
-  FFMPEG_URL,
   FFPROBE_SHA256,
 } from '@kadrion/producer';
 
@@ -37,8 +37,8 @@ try {
     ffmpegSha256: FFMPEG_SHA256,
     ffprobeSha256: FFPROBE_SHA256,
     async download() {
-      console.log(`Downloading ${FFMPEG_URL}`);
-      const response = await fetch(FFMPEG_URL);
+      console.log(`Downloading ${FFMPEG_DOWNLOAD_URL}`);
+      const response = await fetch(FFMPEG_DOWNLOAD_URL);
       if (!response.ok) {
         throw new FfmpegInstallError(
           'download-failed',

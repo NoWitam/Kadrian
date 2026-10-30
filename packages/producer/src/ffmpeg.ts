@@ -17,6 +17,13 @@ import { ProducerError } from './errors.js';
 export const FFMPEG_RELEASE = 'autobuild-2026-09-21-13-55';
 export const FFMPEG_ASSET = 'ffmpeg-n8.1.3-linux64-gpl-8.1.tar.xz';
 export const FFMPEG_URL = `https://github.com/BtbN/FFmpeg-Builds/releases/download/${FFMPEG_RELEASE}/${FFMPEG_ASSET}`;
+/**
+ * Where the archive is downloaded from (amendment of PR-36 to D29.1). BtbN
+ * deleted the build, so the owner's release holds the same archive, byte for
+ * byte; `FFMPEG_URL` stays the provenance that manifests record, and the
+ * archive is accepted only with `FFMPEG_ARCHIVE_SHA256`, whichever host served it.
+ */
+export const FFMPEG_DOWNLOAD_URL = `https://github.com/NoWitam/Kadrian/releases/download/ffmpeg-n8.1.3-20260921/${FFMPEG_ASSET}`;
 export const FFMPEG_ARCHIVE_SHA256 =
   'sha256:dfe7728e01099e22a6fc7a65355ed4f1b65468e1dbe0015f07c45286b486cc59';
 export const FFMPEG_SHA256 =

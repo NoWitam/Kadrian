@@ -1,6 +1,8 @@
 # D29 — The MP4 export: pinned FFmpeg, streamed frames, presets, and audio mux
 
 - Status: Accepted — by the project owner on 2026-09-22
+- Amended by: PR-36 on 2026-10-30, at the owner's decision: 29.1, where the
+  pinned archive is downloaded from
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D04, D06, D07, D10, D12, D13, D14, D23, D26, D27, D28,
@@ -123,6 +125,19 @@ libswresample   6.  3.103 /  6.  3.103
 - The BtbN project deletes old automatic builds. When the URL is gone, the pin
   still detects any substitute; replacing the build is an amendment of this ADR
   with new checksums and a new measurement, not an edit of the constants.
+
+Amended by: PR-36 (2026-10-30). The URL above answered 404 on 2026-10-30: BtbN
+deleted the build. The owner chose to keep the build, not to replace it, and
+published the same archive as an asset of the release
+[`ffmpeg-n8.1.3-20260921`](https://github.com/NoWitam/Kadrian/releases/tag/ffmpeg-n8.1.3-20260921)
+of this repository. `node --run ffmpeg:fetch` downloads from there
+(`FFMPEG_DOWNLOAD_URL`); the archive downloaded on 2026-10-30 had the pinned
+SHA-256, and its `bin/ffmpeg` and `bin/ffprobe` the pinned checksums. Every pin
+of the table is unchanged, and so is `FFMPEG_URL`, which the manifests record as
+the provenance of the build; no measurement changes, because the binaries are
+the same bytes. Publishing that release distributes a GPL binary, with the
+obligations of 29.2: the archive carries its `LICENSE.txt`, and the release
+also needs the corresponding source or a written offer of it.
 
 **29.2 Licence.** The FFmpeg binary used here is built with `--enable-gpl` and
 libx264, so it is licensed under the GPL, version 2 or later. Kadrion talks to
