@@ -44,6 +44,7 @@ export type { ExportRequest, ExportResult, ExportStats } from './export.js';
 export {
   FFMPEG_ARCHIVE_SHA256,
   FFMPEG_ASSET,
+  FFMPEG_DOWNLOAD_URL,
   FFMPEG_RELEASE,
   FFMPEG_SHA256,
   FFMPEG_URL,
