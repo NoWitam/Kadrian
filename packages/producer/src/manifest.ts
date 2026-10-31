@@ -10,6 +10,12 @@ import type { EnvironmentManifest } from './environment.js';
 /** 2 since PR-07: `environment.network` (D28.9) and the export manifest (D29.9). */
 export const MANIFEST_VERSION = 2;
 
+/**
+ * The version of the manifests of a segmented render (D47.8): segments, audio,
+ * export, and still. 3 since PR-25a; a render of frames keeps `MANIFEST_VERSION`.
+ */
+export const EXPORT_MANIFEST_VERSION = 3;
+
 /** `sha256:` and 64 lowercase hex digits of the bytes, the format of D14. */
 export function sha256(bytes: Uint8Array | string): string {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
@@ -90,8 +96,8 @@ export interface RenderManifest {
   readonly ffmpeg: null;
 }
 
-/** The pinned FFmpeg of an export and what it was asked to do (D29.1, D29.4). */
-export interface ManifestFfmpeg {
+/** The pinned FFmpeg a run verified (D29.1). */
+export interface ManifestFfmpegBuild {
   readonly release: string;
   readonly asset: string;
   readonly url: string;
@@ -101,11 +107,20 @@ export interface ManifestFfmpeg {
   readonly version: string;
   readonly configuration: string;
   readonly encoders: readonly string[];
-  /** The arguments, with the output path written as `<output>`. */
-  readonly args: readonly string[];
 }
 
-/** The audio mux of D29.6, in samples at 48 kHz. */
+/**
+ * The pinned FFmpeg of an export and what each of its processes was asked to do
+ * (D29.4, D47): the arguments of a segment, of the audio pass (`null` without
+ * audio), and of the join, each with its paths written as placeholders.
+ */
+export interface ManifestFfmpeg extends ManifestFfmpegBuild {
+  readonly segmentArgs: readonly string[];
+  readonly audioArgs: readonly string[] | null;
+  readonly joinArgs: readonly string[];
+}
+
+/** The audio mux of D29.6, in samples at 48 kHz, and the intermediate it was encoded from (D47.4). */
 export interface ManifestAudio {
   readonly clipId: string;
   readonly assetId: string;
@@ -113,9 +128,48 @@ export interface ManifestAudio {
   readonly startSample: number;
   readonly sampleCount: number;
   readonly totalSamples: number;
+  /** The samples of the range, from the composition's first: what the output holds. */
+  readonly rangeStartSample: number;
+  readonly rangeSampleCount: number;
   readonly channelLayout: string;
   readonly codec: string;
   readonly bitrate: string;
+  /** The lossless intermediate of the audio pass: its codec, container, and SHA-256. */
+  readonly intermediate: {
+    readonly codec: string;
+    readonly format: string;
+    readonly sha256: string;
+  };
+}
+
+/** A range of the grid, in microseconds and frames (D47.2). */
+export interface ManifestRange {
+  readonly fromUs: number;
+  readonly toUs: number;
+  readonly firstFrame: number;
+  readonly frameCount: number;
+}
+
+/** One encoded segment (D47.3): its frames and the SHA-256 of its file. */
+export interface ManifestSegment {
+  readonly index: number;
+  readonly firstFrame: number;
+  readonly frameCount: number;
+  /** The file's name, relative to the manifest's directory. */
+  readonly file: string;
+  readonly sha256: string;
+}
+
+/** The MP4 preset of D29.5, as an export and its segments record it. */
+export interface ManifestMp4Preset {
+  readonly name: 'mp4-1080p' | 'mp4-720p';
+  readonly width: number;
+  readonly height: number;
+  readonly sourceWidth: number;
+  readonly sourceHeight: number;
+  readonly fps: number;
+  readonly deviceScaleFactor: number;
+  readonly videoGraph: string;
 }
 
 /** The one block that names the render environment (D29.9). */
@@ -130,19 +184,88 @@ export interface RenderIdentity {
   readonly ffmpegBuildConfiguration: string;
 }
 
-/** The manifest of an MP4 export (D29.9): the render manifest with FFmpeg, audio, and identity. */
+/** The identity of FFmpeg alone, for a pass that runs no browser (D47.4). */
+export type FfmpegIdentityBlock = Pick<
+  RenderIdentity,
+  'ffmpegSha256' | 'ffprobeSha256' | 'ffmpegVersion' | 'ffmpegBuildConfiguration'
+>;
+
+/**
+ * The manifest of a range of segments (D47.3, D47.8): the render manifest with
+ * the preset, the segment length, the range, one entry per segment file, the
+ * frames FFmpeg read, and the FFmpeg that encoded them.
+ */
+export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
+  readonly kind: 'segments';
+  readonly preset: ManifestMp4Preset;
+  readonly segmentFrames: number;
+  readonly range: ManifestRange;
+  readonly segments: readonly ManifestSegment[];
+  readonly ffmpeg: ManifestFfmpegBuild & { readonly segmentArgs: readonly string[] };
+  readonly identity: RenderIdentity;
+}
+
+/** The audio of a range, or `null` for a composition without an audio clip (D47.4). */
+export interface ManifestAudioPass {
+  readonly clipId: string;
+  readonly assetId: string;
+  readonly assetHash: string;
+  readonly sampleRate: number;
+  readonly startSample: number;
+  readonly sampleCount: number;
+  readonly totalSamples: number;
+  readonly rangeStartSample: number;
+  readonly rangeSampleCount: number;
+  readonly channelLayout: string;
+  readonly codec: string;
+  readonly format: string;
+  /** The intermediate's name, relative to the manifest's directory. */
+  readonly file: string;
+  readonly sha256: string;
+}
+
+/** The manifest of the audio pass (D47.4, D47.8). It needs no browser, so it names none. */
+export interface AudioManifest {
+  readonly manifestVersion: number;
+  readonly kind: 'audio';
+  readonly compositionHash: string;
+  readonly schemaVersion: string;
+  readonly durationUs: number;
+  readonly frameCount: number;
+  readonly fps: number;
+  readonly range: ManifestRange;
+  readonly audio: ManifestAudioPass | null;
+  readonly ffmpeg: ManifestFfmpegBuild & { readonly audioArgs: readonly string[] | null };
+  readonly identity: FfmpegIdentityBlock;
+}
+
+/**
+ * The manifest of an MP4 (D29.9, D47.8): the render manifest with FFmpeg,
+ * audio, identity, the range it holds, and the segments it was joined from. A
+ * one-pass export and a join of the same segments write the same manifest.
+ */
 export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
-  readonly preset: {
-    readonly name: 'mp4-1080p' | 'mp4-720p';
-    readonly width: number;
-    readonly height: number;
-    readonly sourceWidth: number;
-    readonly sourceHeight: number;
-    readonly fps: number;
-    readonly deviceScaleFactor: number;
-    readonly videoGraph: string;
-  };
+  readonly kind: 'export';
+  readonly preset: ManifestMp4Preset;
+  readonly segmentFrames: number;
+  readonly range: ManifestRange;
+  readonly segments: readonly Omit<ManifestSegment, 'file'>[];
   readonly ffmpeg: ManifestFfmpeg;
   readonly audio: ManifestAudio | null;
   readonly identity: RenderIdentity;
+}
+
+/** The manifest of a still frame (D47.7): the render manifest of its one frame, and the output. */
+export interface StillManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
+  readonly kind: 'still';
+  readonly preset: {
+    readonly name: 'still-png' | 'still-jpeg' | 'still-webp';
+    readonly width: number;
+    readonly height: number;
+    readonly fps: number;
+    readonly deviceScaleFactor: number;
+  };
+  readonly output: { readonly mediaType: string; readonly sha256: string };
+  /** `null` for PNG, which is the captured bytes; else the FFmpeg that encoded them. */
+  readonly ffmpeg: (ManifestFfmpegBuild & { readonly args: readonly string[] }) | null;
 }

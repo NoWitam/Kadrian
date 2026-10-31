@@ -321,7 +321,7 @@ const PURE_PROPERTIES = [
 
 /** D29.3: frames stream to FFmpeg; the Producer writes no file, and only removes a failed output. */
 const NO_FILES =
-  'The Producer writes no file: frames stream to FFmpeg, and only a failed output is removed (D29.3).';
+  'The Producer writes no file: frames stream to FFmpeg, a complete output is renamed from its temporary name, and only a failed output is removed (D29.3, D47.6).';
 
 /** Every API of node:fs that creates or changes a file, and the default import that reaches them all. */
 const FILE_WRITERS = [
@@ -341,7 +341,7 @@ const FILE_WRITERS = [
   'mkdtempSync',
   'open',
   'openSync',
-  'rename',
+  // `rename` stays: a complete output is renamed from its temporary name (D47.6).
   'renameSync',
   'symlink',
   'symlinkSync',

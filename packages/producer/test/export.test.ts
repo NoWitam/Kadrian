@@ -1,10 +1,12 @@
 /**
- * The MP4 export of D29 without a browser or FFmpeg: the pure parts of
- * `encode.ts`, the verification of `ffmpeg.ts` on a fake host, and `exportWith`
- * on a fake frame loop and a fake encoder. Expected arguments and sample counts
- * are written out by hand from D29, not derived from the implementation.
+ * The MP4 export of D29 and D47 without a browser or FFmpeg: the pure parts of
+ * `encode.ts` and `segments.ts`, the verification of `ffmpeg.ts` on a fake
+ * host, and the export, its jobs, the join, and stills on a fake frame loop
+ * and a fake FFmpeg with a fake disk. Expected arguments and sample counts are
+ * written out by hand from D29 and D47, not derived from the implementation.
  */
 import { createHash } from 'node:crypto';
+import { basename } from 'node:path';
 import { Writable } from 'node:stream';
 
 import { generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
@@ -13,9 +15,7 @@ import type { Browser } from 'playwright-core';
 import { describe, expect, it } from 'vitest';
 
 import {
-  audioGraph,
   audioPlan,
-  encoderArgs,
   TIME_SCALE_PER_FRAME,
   FRAMES_IN_FLIGHT,
   FrameSink,
@@ -27,18 +27,55 @@ import {
 } from '../src/encode.js';
 import { documentsProblem, type FrameDocument } from '../src/capture.js';
 import { CHROMIUM_VERSION } from '../src/environment.js';
-import { exportWith, type ExportDependencies, type ExportRequest } from '../src/export.js';
+import {
+  exportWith,
+  joinPlan,
+  joinSegmentsWith,
+  renderAudioWith,
+  renderSegmentsWith,
+  type AudioRequest,
+  type ExportDependencies,
+  type ExportRequest,
+  type JoinPart,
+  type SegmentsRequest,
+} from '../src/export.js';
 import {
   FFMPEG_CONFIGURATION,
   FFMPEG_SHA256,
   FFPROBE_SHA256,
+  REQUIRED_ENCODERS,
   verifyFfmpeg,
   type AudioProbe,
   type EncoderProcess,
   type FfmpegHost,
   type FfmpegTools,
 } from '../src/ffmpeg.js';
+import {
+  sha256,
+  type AudioManifest,
+  type ExportManifest,
+  type RenderManifest,
+  type SegmentsManifest,
+} from '../src/manifest.js';
 import { customHtmlNodes, type FrameSequence } from '../src/render.js';
+import {
+  audioPassArgs,
+  audioPassGraph,
+  audioRangeOf,
+  checkedSegmentFrames,
+  checkedStillFormat,
+  concatList,
+  DEFAULT_SEGMENT_FRAMES,
+  frameRange,
+  joinArgs,
+  MAX_SEGMENT_FRAMES,
+  rangeSegmentsOf,
+  segmentArgs,
+  segmentFileName,
+  segmentsOf,
+  stillArgs,
+} from '../src/segments.js';
+import { renderStillWith, type StillDependencies, type StillRequest } from '../src/still.js';
 
 function validated(input: unknown): ValidatedComposition {
   const result = validateComposition(input);
@@ -145,8 +182,10 @@ describe('samples at 48 kHz (D29.6)', () => {
       totalSamples: 480_000,
       audibleUs: 7_499_989,
     });
-    expect(plan === null ? '' : audioGraph(plan)).toBe(
-      '[1:a]aresample=48000,atrim=end_sample=480000,adelay=delays=120001S:all=1,apad=whole_len=480000,atrim=end_sample=480000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[a]',
+    expect(
+      plan === null ? '' : audioPassGraph(plan, { startSample: 0, sampleCount: 480_000 }),
+    ).toBe(
+      '[0:a]aresample=48000,atrim=end_sample=480000,adelay=delays=120001S:all=1,apad=whole_len=480000,atrim=end_sample=480000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=0:end_sample=480000,asetpts=N/SR/TB[a]',
     );
   });
 
@@ -155,108 +194,184 @@ describe('samples at 48 kHz (D29.6)', () => {
   });
 });
 
-describe('the arguments of FFmpeg (D29.4)', () => {
+describe('the arguments of a segment (D29.4, D47.3)', () => {
   const graph1080 =
     '[0:v]scale=1080:1920:flags=lanczos:out_color_matrix=bt709:out_range=tv,setsar=1,format=yuv420p[v]';
-  const audio =
-    '[1:a]aresample=48000,atrim=end_sample=480000,adelay=delays=0S:all=1,apad=whole_len=480000,atrim=end_sample=480000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[a]';
 
-  it('are exactly the list of D29.4, with the output as the only file', () => {
-    expect(
-      encoderArgs({ fps: 30, videoGraph: graph1080, audioGraph: audio, output: '/out/v.mp4' }),
-    ).toEqual([
-      '-hide_banner',
-      '-nostdin',
-      '-loglevel',
-      'error',
-      '-threads',
-      '1',
-      '-f',
-      'image2pipe',
-      '-c:v',
-      'png',
-      '-framerate',
-      '30',
-      '-i',
-      'pipe:0',
-      '-i',
-      'pipe:3',
-      '-filter_complex_threads',
-      '1',
-      '-filter_complex',
-      `${graph1080};${audio}`,
-      '-map',
-      '[v]',
-      '-map',
-      '[a]',
-      '-fps_mode',
-      'passthrough',
-      '-c:v',
-      'libx264',
-      '-preset',
-      'medium',
-      '-crf',
-      '18',
-      '-profile:v',
-      'high',
-      '-level:v',
-      '4.0',
-      '-pix_fmt',
-      'yuv420p',
-      '-threads',
-      '1',
-      '-color_primaries',
-      'bt709',
-      '-color_trc',
-      'bt709',
-      '-colorspace',
-      'bt709',
-      '-color_range',
-      'tv',
-      '-video_track_timescale',
-      '15360',
-      '-c:a',
-      'aac',
-      '-b:a',
-      '128k',
-      '-ar',
-      '48000',
-      '-ac',
-      '2',
-      '-map_metadata',
-      '-1',
-      '-map_chapters',
-      '-1',
-      '-fflags',
-      '+bitexact',
-      '-flags:v',
-      '+bitexact',
-      '-flags:a',
-      '+bitexact',
-      '-movflags',
-      '+faststart',
-      '-f',
-      'mp4',
-      '-y',
-      '/out/v.mp4',
-      '-map',
-      '0:v',
-      '-c:v',
-      'copy',
-      '-f',
-      'framehash',
-      '-hash',
-      'sha256',
-      'pipe:1',
+  it('are the encoder of D29.4 without audio and +faststart, with the output as the only file', () => {
+    expect(segmentArgs({ fps: 30, videoGraph: graph1080, output: '/out/s.mp4' })).toEqual([
+      ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1'],
+      ...['-f', 'image2pipe', '-c:v', 'png', '-framerate', '30', '-i', 'pipe:0'],
+      ...['-filter_complex_threads', '1', '-filter_complex', graph1080],
+      ...['-map', '[v]', '-fps_mode', 'passthrough'],
+      ...['-c:v', 'libx264', '-preset', 'medium', '-crf', '18'],
+      ...['-profile:v', 'high', '-level:v', '4.0', '-pix_fmt', 'yuv420p', '-threads', '1'],
+      ...['-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709'],
+      ...['-color_range', 'tv', '-video_track_timescale', '15360'],
+      ...['-map_metadata', '-1', '-map_chapters', '-1', '-fflags', '+bitexact'],
+      ...['-flags:v', '+bitexact', '-f', 'mp4', '-y', '/out/s.mp4'],
+      ...['-map', '0:v', '-c:v', 'copy', '-f', 'framehash', '-hash', 'sha256', 'pipe:1'],
+    ]);
+  });
+});
+
+describe('the audio pass (D47.4)', () => {
+  it('mixes the whole composition as D29.6 does, then cuts the range and starts it at 0', () => {
+    const plan = audioPlan(reference);
+    if (plan === null) throw new Error('The reference composition has an audio clip.');
+    const range = audioRangeOf(
+      frameRange(reference, { fromUs: 2_000_000, toUs: 4_000_000 }, 60),
+      samplesAt,
+    );
+    expect(range).toEqual({ startSample: 96_000, sampleCount: 96_000 });
+    const graph = audioPassGraph(plan, range);
+    expect(graph).toBe(
+      '[0:a]aresample=48000,atrim=end_sample=480000,adelay=delays=0S:all=1,apad=whole_len=480000,atrim=end_sample=480000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=96000:end_sample=192000,asetpts=N/SR/TB[a]',
+    );
+    expect(audioPassArgs({ graph, output: '/out/a.wav' })).toEqual([
+      ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1'],
+      ...['-i', 'pipe:0', '-filter_complex_threads', '1', '-filter_complex', graph, '-map', '[a]'],
+      ...['-c:a', 'pcm_f32le', '-ar', '48000', '-ac', '2'],
+      ...['-map_metadata', '-1', '-map_chapters', '-1', '-fflags', '+bitexact'],
+      ...['-flags:a', '+bitexact', '-f', 'wav', '-y', '/out/a.wav'],
+    ]);
+  });
+});
+
+describe('the join (D47.5)', () => {
+  it('reads the list on a pipe, copies the video, encodes the audio once, and writes +faststart', () => {
+    expect(joinArgs({ fps: 30, audio: '/parts/audio.wav', output: '/out/v.mp4' })).toEqual([
+      ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1'],
+      ...['-f', 'concat', '-safe', '0', '-protocol_whitelist', 'file,pipe', '-i', 'pipe:0'],
+      ...['-f', 'wav', '-i', 'file:/parts/audio.wav', '-map', '0:v', '-map', '1:a'],
+      ...['-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2'],
+      ...['-video_track_timescale', '15360'],
+      ...['-map_metadata', '-1', '-map_chapters', '-1', '-fflags', '+bitexact'],
+      ...['-flags:v', '+bitexact', '-flags:a', '+bitexact'],
+      ...['-movflags', '+faststart', '-f', 'mp4', '-y', '/out/v.mp4'],
     ]);
   });
 
-  it('leave out the audio input, map, and encoder without a clip', () => {
-    const args = encoderArgs({ fps: 30, videoGraph: graph1080, audioGraph: null, output: 'o.mp4' });
-    expect(args).not.toContain('pipe:3');
-    expect(args).not.toContain('[a]');
+  it('leaves out the audio without a clip', () => {
+    const args = joinArgs({ fps: 30, audio: null, output: 'v.mp4' });
+    expect(args).not.toContain('1:a');
     expect(args).not.toContain('aac');
-    expect(args[args.indexOf('-filter_complex') + 1]).toBe(graph1080);
+    expect(args).not.toContain('-flags:a');
+  });
+
+  it('lists absolute file URLs in order, quoted, and refuses a relative path or a line break', () => {
+    expect(concatList(['/a/segment-000000.mp4', "/b/it's.mp4"])).toBe(
+      "ffconcat version 1.0\nfile 'file:/a/segment-000000.mp4'\nfile 'file:/b/it'\\''s.mp4'\n",
+    );
+    for (const bad of ['segment-000000.mp4', '/a/b\nfile x', '/a\rb']) {
+      expect(() => concatList([bad])).toThrow(expect.objectContaining({ code: 'join-invalid' }));
+    }
+  });
+});
+
+describe('the arguments of a still (D47.7)', () => {
+  it('encode JPEG in BT.601 full range 4:4:4 at q 2, and WebP lossy at quality 90', () => {
+    const size = { width: 1080, height: 1920 };
+    const jpeg = stillArgs('jpeg', size);
+    expect(jpeg).toEqual(
+      expect.arrayContaining([
+        '[0:v]scale=1080:1920:flags=lanczos:out_color_matrix=bt601:out_range=pc,format=yuv444p[v]',
+        'mjpeg',
+        '-q:v',
+        '2',
+      ]),
+    );
+    expect(jpeg.slice(-3)).toEqual(['-f', 'mjpeg', 'pipe:1']);
+    const webp = stillArgs('webp', size);
+    expect(webp).toEqual(expect.arrayContaining(['libwebp', '-quality', '90', '-lossless', '0']));
+    expect(webp.slice(-3)).toEqual(['-f', 'webp', 'pipe:1']);
+    for (const args of [jpeg, webp]) {
+      expect(args.slice(0, 10)).toEqual([
+        ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1'],
+        ...['-f', 'png_pipe', '-i', 'pipe:0'],
+      ]);
+      expect(args).toContain('+bitexact');
+    }
+  });
+
+  it('accepts png, jpeg, and webp only', () => {
+    expect(['png', 'jpeg', 'webp'].map(checkedStillFormat)).toEqual(['png', 'jpeg', 'webp']);
+    for (const bad of ['jpg', 'PNG', 'gif', '']) {
+      expect(() => checkedStillFormat(bad)).toThrow(
+        expect.objectContaining({ code: 'still-format-unsupported' }),
+      );
+    }
+  });
+});
+
+describe('the segment grid (D47.1, D47.2)', () => {
+  it('cuts 300 frames into segments of 60, and leaves a shorter last one', () => {
+    expect(segmentsOf(reference, 60)).toEqual(
+      [0, 1, 2, 3, 4].map((index) => ({
+        index,
+        firstFrame: index * 60,
+        frameCount: 60,
+      })),
+    );
+    expect(segmentsOf(reference, 128).map(({ frameCount }) => frameCount)).toEqual([128, 128, 44]);
+    expect(segmentsOf(reference, 300)).toEqual([{ index: 0, firstFrame: 0, frameCount: 300 }]);
+    expect(segmentsOf(reference, 1_000)).toEqual([{ index: 0, firstFrame: 0, frameCount: 300 }]);
+    expect(DEFAULT_SEGMENT_FRAMES).toBe(60);
+  });
+
+  it('accepts a whole number of frames from 1 to MAX_SEGMENT_FRAMES', () => {
+    expect(checkedSegmentFrames(undefined)).toBe(60);
+    expect(checkedSegmentFrames(1)).toBe(1);
+    for (const bad of [0, -60, 1.5, Number.NaN, MAX_SEGMENT_FRAMES + 1]) {
+      expect(() => checkedSegmentFrames(bad)).toThrow(
+        expect.objectContaining({ code: 'segment-length-invalid' }),
+      );
+    }
+  });
+
+  it('takes a range on segment boundaries, and the composition end as the last one', () => {
+    expect(frameRange(reference, undefined, 60)).toEqual({
+      fromUs: 0,
+      toUs: 10_000_000,
+      firstFrame: 0,
+      frameCount: 300,
+    });
+    const middle = frameRange(reference, { fromUs: 2_000_000, toUs: 6_000_000 }, 60);
+    expect(middle).toEqual({ fromUs: 2_000_000, toUs: 6_000_000, firstFrame: 60, frameCount: 120 });
+    expect(rangeSegmentsOf(reference, 60, middle).map(({ index }) => index)).toEqual([1, 2]);
+    // 300 frames in segments of 128: the last segment ends at the composition's end.
+    expect(
+      frameRange(reference, { fromUs: frameToTimeUs(256, 30), toUs: 10_000_000 }, 128),
+    ).toEqual({ fromUs: 8_533_333, toUs: 10_000_000, firstFrame: 256, frameCount: 44 });
+  });
+
+  it.each([
+    ['a start inside a segment', { fromUs: 1_000_000, toUs: 4_000_000 }],
+    ['an end inside a segment', { fromUs: 0, toUs: 3_000_000 }],
+    ['a time between two frames', { fromUs: 0, toUs: 2_000_001 }],
+    ['an empty range', { fromUs: 2_000_000, toUs: 2_000_000 }],
+    ['a reversed range', { fromUs: 4_000_000, toUs: 2_000_000 }],
+    ['an end after the composition', { fromUs: 0, toUs: 10_000_001 }],
+    ['a negative start', { fromUs: -1, toUs: 2_000_000 }],
+    ['a fraction', { fromUs: 0.5, toUs: 2_000_000 }],
+  ])('refuses %s with range-invalid', (_, range) => {
+    expect(() => frameRange(reference, range, 60)).toThrow(
+      expect.objectContaining({ code: 'range-invalid' }),
+    );
+  });
+
+  it('takes any frame times without a segment length: the range of an audio pass', () => {
+    expect(frameRange(reference, { fromUs: 1_000_000, toUs: 3_000_000 })).toEqual({
+      fromUs: 1_000_000,
+      toUs: 3_000_000,
+      firstFrame: 30,
+      frameCount: 60,
+    });
+  });
+
+  it('names a segment by its index alone', () => {
+    expect(segmentFileName(0)).toBe('segment-000000.mp4');
+    expect(segmentFileName(42)).toBe('segment-000042.mp4');
   });
 });
 
@@ -409,8 +524,14 @@ function pinnedHost(change: Partial<FfmpegHost> = {}, log: string[] = []): Ffmpe
       if (args.includes('-encoders')) {
         return Promise.resolve({
           code: 0,
-          stdout:
-            ' V....D libx264              libx264 H.264\n A....D aac                  AAC (Advanced Audio Coding)\n',
+          stdout: [
+            ' V....D libx264              libx264 H.264',
+            ' A....D aac                  AAC (Advanced Audio Coding)',
+            ' A....D pcm_f32le            PCM 32-bit floating point little-endian',
+            ' VFS..D mjpeg                MJPEG (Motion JPEG)',
+            ' V....D libwebp              libwebp WebP image (codec webp)',
+            '',
+          ].join('\n'),
           stderr: '',
         });
       }
@@ -438,7 +559,7 @@ describe('verification of the pinned FFmpeg (D29.1)', () => {
       ffprobeSha256: FFPROBE_SHA256,
       version: 'n8.1.3-20260921',
       configuration: FFMPEG_CONFIGURATION,
-      encoders: ['libx264', 'aac'],
+      encoders: ['libx264', 'aac', 'pcm_f32le', 'mjpeg', 'libwebp'],
     });
   });
 
@@ -549,15 +670,30 @@ function frameBytes(index: number, size: number): Uint8Array {
   return bytes;
 }
 
+/** A file the fake FFmpeg wrote: its content stands for itself by a hash. */
+interface FakeFile {
+  readonly hash: string;
+  readonly packets: number;
+  readonly samples: number;
+}
+
 interface FakeRun {
   readonly dependencies: ExportDependencies;
   readonly log: string[];
-  /** SHA-256 hex of every frame the encoder read, in order; the bytes are not kept. */
+  /** SHA-256 hex of every frame an encoder read, in order; the bytes are not kept. */
   readonly received: string[];
-  readonly audioReceived: Uint8Array[];
+  /** The files on the fake disk, by path. */
+  readonly files: Map<string, FakeFile>;
+  /** What the audio pass and the join read on standard input. */
+  readonly inputs: {
+    readonly args: readonly string[];
+    readonly text: string;
+    readonly bytes: number;
+  }[];
   readonly timer: ReturnType<typeof manualTimer>;
   deliveredFrames: number;
-  args: readonly string[];
+  /** The arguments of every segment encoder, in order. */
+  readonly encoderArgs: (readonly string[])[];
 }
 
 interface FakeOptions {
@@ -565,12 +701,12 @@ interface FakeOptions {
   readonly probe?: AudioProbe;
   /** Never accept a frame: the stalled encoder of D29.3. */
   readonly stall?: boolean;
-  /** Never read the audio pipe: FFmpeg that stops reading without closing it. */
-  readonly stallAudio?: boolean;
   readonly exitCode?: number;
   readonly receipt?: (hashes: readonly string[]) => readonly string[];
-  readonly packets?: (frames: number) => number;
-  readonly timestamps?: (wanted: readonly number[]) => number[];
+  readonly packets?: (file: string, packets: number) => number;
+  readonly timestamps?: (file: string, wanted: readonly number[]) => number[];
+  readonly audioSamples?: (samples: number) => number;
+  readonly passExitCode?: (args: readonly string[]) => number;
   readonly failAt?: { readonly index: number; readonly code: string };
   readonly toolsFail?: string;
   readonly onFrame?: (index: number) => void;
@@ -578,14 +714,17 @@ interface FakeOptions {
   readonly networkInterfaces?: readonly string[];
 }
 
+const outputOf = (args: readonly string[]): string => args[args.indexOf('-y') + 1] ?? '';
+
 function fakeRun(options: FakeOptions = {}): FakeRun {
   const run: FakeRun = {
     log: [],
     received: [],
-    audioReceived: [],
+    files: new Map(),
+    inputs: [],
     timer: manualTimer(),
     deliveredFrames: 0,
-    args: [],
+    encoderArgs: [],
     dependencies: undefined as unknown as ExportDependencies,
   };
   const sequence: FrameSequence = async (prepared, frames, deliver) => {
@@ -600,30 +739,89 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
     }
     return { blockedRequests: [] };
   };
+  const file = (path: string): FakeFile => {
+    const found = run.files.get(path);
+    if (found === undefined) throw new Error(`no file ${path}`);
+    return found;
+  };
   const tools: FfmpegTools = {
     identity: {
       ffmpegSha256: FFMPEG_SHA256,
       ffprobeSha256: FFPROBE_SHA256,
       version: 'n8.1.3-20260921',
       configuration: FFMPEG_CONFIGURATION,
-      encoders: ['libx264', 'aac'],
+      encoders: [...REQUIRED_ENCODERS],
     },
     probeAudio(bytes) {
       run.log.push(`probe ${String(bytes.length)}`);
       return Promise.resolve(options.probe ?? WAV_PROBE);
     },
-    countVideoPackets(file) {
-      run.log.push(`count ${file}`);
-      return Promise.resolve((options.packets ?? ((n) => n))(run.received.length));
+    countVideoPackets(path) {
+      run.log.push(`count ${basename(path)}`);
+      return Promise.resolve((options.packets ?? ((_, n) => n))(path, file(path).packets));
     },
-    videoTimestamps(file) {
-      run.log.push(`timestamps ${file}`);
-      const wanted = run.received.map((_, index) => index * TIME_SCALE_PER_FRAME);
-      return Promise.resolve((options.timestamps ?? ((given) => [...given]))(wanted));
+    videoTimestamps(path) {
+      run.log.push(`timestamps ${basename(path)}`);
+      const wanted = Array.from({ length: file(path).packets }, (_, i) => i * TIME_SCALE_PER_FRAME);
+      return Promise.resolve((options.timestamps ?? ((_, given) => [...given]))(path, wanted));
+    },
+    sha256File: async (path) => {
+      await Promise.resolve();
+      return file(path).hash;
+    },
+    audioStream(path) {
+      const { samples } = file(path);
+      return Promise.resolve({
+        codec: 'pcm_f32le',
+        sampleRate: 48_000,
+        channels: 2,
+        samples: (options.audioSamples ?? ((n) => n))(samples),
+      });
+    },
+    run(args, input) {
+      const text = new TextDecoder().decode(input);
+      const output = outputOf(args);
+      run.inputs.push({ args, text: args.includes('concat') ? text : '', bytes: input.length });
+      const code = options.passExitCode?.(args) ?? 0;
+      if (args.includes('concat')) {
+        run.log.push(`join ${basename(output)}`);
+        const listed = text
+          .split('\n')
+          .filter((line) => line.startsWith('file '))
+          .map((line) => line.slice("file 'file:".length, -1));
+        const packets = listed.reduce((sum, path) => sum + file(path).packets, 0);
+        const audio = args.find((arg) => arg.startsWith('file:'));
+        const hash = sha256(
+          [
+            ...listed.map((path) => file(path).hash),
+            audio === undefined ? '' : file(audio.slice(5)).hash,
+          ].join(','),
+        );
+        if (code === 0) run.files.set(output, { hash, packets, samples: 0 });
+      } else {
+        run.log.push(`audio ${basename(output)}`);
+        const graph = args[args.indexOf('-filter_complex') + 1] ?? '';
+        const [, start = '0', end = '0'] =
+          /atrim=start_sample=(\d+):end_sample=(\d+)/.exec(graph) ?? [];
+        if (code === 0) {
+          run.files.set(output, {
+            hash: sha256(`audio ${graph} ${hex(input)}`),
+            packets: 0,
+            samples: Number(end) - Number(start),
+          });
+        }
+      }
+      return Promise.resolve({
+        code,
+        stdout: new Uint8Array(),
+        stderr: code === 0 ? '' : 'fake error',
+      });
     },
     spawnEncoder(args, withAudio) {
-      run.log.push(`spawn audio=${String(withAudio)}`);
-      run.args = args;
+      run.log.push(`spawn ${basename(outputOf(args))} audio=${String(withAudio)}`);
+      run.encoderArgs.push(args);
+      const output = outputOf(args);
+      const mine: string[] = [];
       let exit: (value: { code: number | null; stderr: string }) => void = () => undefined;
       const exited = new Promise<{ code: number | null; stderr: string }>((resolve) => {
         exit = resolve;
@@ -632,30 +830,31 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
         highWaterMark: 1,
         write(chunk: Uint8Array, _encoding, callback) {
           if (options.stall === true) return;
-          run.received.push(hex(chunk));
+          const digest = hex(chunk);
+          run.received.push(digest);
+          mine.push(digest);
           setImmediate(callback);
         },
         final(callback) {
           callback();
           setImmediate(() => {
-            exit({ code: options.exitCode ?? 0, stderr: 'fake stderr' });
+            const code = options.exitCode ?? 0;
+            if (code === 0) {
+              run.files.set(output, {
+                hash: sha256(mine.join(',')),
+                packets: mine.length,
+                samples: 0,
+              });
+            }
+            exit({ code, stderr: 'fake stderr' });
           });
         },
       });
-      const audio = withAudio
-        ? new Writable({
-            write(chunk: Uint8Array, _encoding, callback) {
-              if (options.stallAudio === true) return;
-              run.audioReceived.push(new Uint8Array(chunk));
-              callback();
-            },
-          })
-        : null;
       const encoder: EncoderProcess = {
         video,
-        audio,
+        audio: null,
         get receipt() {
-          const hashes = (options.receipt ?? ((h) => h))(run.received);
+          const hashes = (options.receipt ?? ((h) => h))(mine);
           return Promise.resolve(
             hashes.map((h, i) => `0, ${String(i)}, ${String(i)}, 1, 16, ${h}`).join('\n'),
           );
@@ -688,7 +887,14 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
       });
     },
     removeFile: (path) => {
-      run.log.push(`remove ${path}`);
+      run.log.push(`remove ${basename(path)}`);
+      run.files.delete(path);
+      return Promise.resolve();
+    },
+    renameFile: (from, to) => {
+      run.log.push(`rename ${basename(from)}`);
+      run.files.set(to, file(from));
+      run.files.delete(from);
       return Promise.resolve();
     },
     startTimer: run.timer.start,
@@ -708,8 +914,10 @@ function request(change: Partial<ExportRequest> = {}): ExportRequest {
   };
 }
 
-describe('the export on a fake frame loop and encoder (D29.3)', () => {
-  it('pipes every frame of the grid in order, hashes those bytes, and muxes the verified audio', async () => {
+const SEGMENT_NAMES = [0, 1, 2, 3, 4].map((index) => segmentFileName(index));
+
+describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', () => {
+  it('pipes every frame in order into one encoder per segment, then the audio pass and the join', async () => {
     const run = fakeRun();
     const result = await exportWith(request(), run.dependencies);
     const { manifest } = result;
@@ -721,22 +929,54 @@ describe('the export on a fake frame loop and encoder (D29.3)', () => {
         sha256: `sha256:${hex(frameBytes(index, 16))}`,
       });
     });
-    expect(run.received).toEqual(manifest.frames.map(({ sha256 }) => sha256.slice(7)));
-    expect(Buffer.concat(run.audioReceived).equals(Buffer.from(AUDIO_BYTES))).toBe(true);
+    expect(run.received).toEqual(manifest.frames.map(({ sha256: hash }) => hash.slice(7)));
     expect(result.stats).toEqual({ framesWritten: 300, maxFramesInFlight: 2 });
+    const part = (name: string): string => `video-1080p.mp4.${name}`;
     expect(run.log).toEqual([
       'tools',
       `probe ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'spawn audio=true',
       'load 0.2',
-      `count ${result.outputPath}`,
-      `timestamps ${result.outputPath}`,
+      ...SEGMENT_NAMES.flatMap((name) => [
+        `spawn ${part(name)}.partial audio=false`,
+        `count ${part(name)}.partial`,
+        `timestamps ${part(name)}.partial`,
+        `rename ${part(name)}.partial`,
+      ]),
       'close',
+      `audio ${part('audio.wav')}.partial`,
+      `rename ${part('audio.wav')}.partial`,
+      'join video-1080p.mp4.partial',
+      'count video-1080p.mp4.partial',
+      'timestamps video-1080p.mp4.partial',
+      'rename video-1080p.mp4.partial',
+      ...SEGMENT_NAMES.map((name) => `remove ${part(name)}`),
+      `remove ${part('audio.wav')}`,
     ]);
-    expect(run.args).toContain(result.outputPath);
-    expect(manifest.ffmpeg.args).not.toContain(result.outputPath);
-    expect(manifest.ffmpeg.args).toContain('<output>');
+    // Only the MP4 is left; the parts are gone.
+    expect([...run.files.keys()]).toEqual(['/out/video-1080p.mp4']);
+    // The audio pass read the verified bytes of the asset, nothing else.
+    expect(run.inputs[0]?.bytes).toBe(AUDIO_BYTES.length);
+    // The join read the segments in order, as absolute file URLs.
+    expect(run.inputs[1]?.text).toBe(
+      [
+        'ffconcat version 1.0',
+        ...SEGMENT_NAMES.map((name) => `file 'file:/out/${part(name)}'`),
+        '',
+      ].join('\n'),
+    );
+    expect(manifest.segments).toEqual(
+      [0, 1, 2, 3, 4].map((index) => ({
+        index,
+        firstFrame: index * 60,
+        frameCount: 60,
+        sha256: expect.stringMatching(/^sha256:[0-9a-f]{64}$/) as unknown,
+      })),
+    );
+    expect(manifest.range).toEqual({ fromUs: 0, toUs: 10_000_000, firstFrame: 0, frameCount: 300 });
+    expect(manifest.segmentFrames).toBe(60);
+    expect(manifest.kind).toBe('export');
+    expect(manifest.manifestVersion).toBe(3);
     expect(manifest.preset).toEqual({
       name: 'mp4-1080p',
       width: 1080,
@@ -755,10 +995,25 @@ describe('the export on a fake frame loop and encoder (D29.3)', () => {
       startSample: 0,
       sampleCount: 480_000,
       totalSamples: 480_000,
+      rangeStartSample: 0,
+      rangeSampleCount: 480_000,
       channelLayout: 'stereo',
       codec: 'aac',
       bitrate: '128k',
+      intermediate: {
+        codec: 'pcm_f32le',
+        format: 'wav',
+        sha256: expect.stringMatching(/^sha256:[0-9a-f]{64}$/) as unknown,
+      },
     });
+    // Every path of the run is a placeholder in the manifest.
+    expect(manifest.ffmpeg.segmentArgs).toContain('<output>');
+    expect(manifest.ffmpeg.audioArgs).toContain('<output>');
+    expect(manifest.ffmpeg.joinArgs).toContain('<output>');
+    expect(manifest.ffmpeg.joinArgs).toContain('file:<audio>');
+    expect(manifest.ffmpeg.encoders).toEqual([...REQUIRED_ENCODERS]);
+    expect(JSON.stringify(manifest)).not.toContain('/out/');
+    expect(JSON.stringify(manifest)).not.toContain('.partial');
   });
 
   it('records the network the run reports, never one it assumed (D28.9)', async () => {
@@ -792,23 +1047,28 @@ describe('the export on a fake frame loop and encoder (D29.3)', () => {
       ffmpegVersion: manifest.ffmpeg.version,
       ffmpegBuildConfiguration: manifest.ffmpeg.configuration,
     });
-    expect(manifest.manifestVersion).toBe(2);
-    expect(JSON.stringify(manifest)).not.toContain('/out/');
   });
 
   it('exports the 720p preset from the same frames', async () => {
-    const run1080 = fakeRun();
     const run720 = fakeRun();
-    const a = await exportWith(request(), run1080.dependencies);
+    const a = await exportWith(request(), fakeRun().dependencies);
     const b = await exportWith(
       request({ preset: '720p', outputPath: '/out/v720.mp4' }),
       run720.dependencies,
     );
     expect(b.manifest.frames).toEqual(a.manifest.frames);
     expect(b.manifest.preset.width).toBe(720);
-    expect(run720.args).toContain(
-      '[0:v]scale=720:1280:flags=lanczos:out_color_matrix=bt709:out_range=tv,setsar=1,format=yuv420p[v];[1:a]aresample=48000,atrim=end_sample=480000,adelay=delays=0S:all=1,apad=whole_len=480000,atrim=end_sample=480000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[a]',
+    expect(run720.encoderArgs[0]).toContain(
+      '[0:v]scale=720:1280:flags=lanczos:out_color_matrix=bt709:out_range=tv,setsar=1,format=yuv420p[v]',
     );
+  });
+
+  it('takes another segment length from the settings, and a last segment that is shorter', async () => {
+    const run = fakeRun();
+    const { manifest } = await exportWith(request({ segmentFrames: 128 }), run.dependencies);
+    expect(manifest.segmentFrames).toBe(128);
+    expect(manifest.segments.map(({ frameCount }) => frameCount)).toEqual([128, 128, 44]);
+    expect(run.encoderArgs).toHaveLength(3);
   });
 
   it('exports without an audio stream when the document has no clip', async () => {
@@ -818,12 +1078,16 @@ describe('the export on a fake frame loop and encoder (D29.3)', () => {
       run.dependencies,
     );
     expect(manifest.audio).toBeNull();
-    expect(run.log).toContain('spawn audio=false');
-    expect(run.log.some((line) => line.startsWith('probe'))).toBe(false);
+    expect(manifest.ffmpeg.audioArgs).toBeNull();
+    expect(manifest.ffmpeg.joinArgs).not.toContain('1:a');
+    expect(run.log.some((line) => line.startsWith('probe') || line.startsWith('audio'))).toBe(
+      false,
+    );
   });
 
   it.each([
     ['preset-unsupported', { preset: '4k' }, {}],
+    ['segment-length-invalid', { segmentFrames: 0 }, {}],
     ['invalid-document', { document: { schemaVersion: '0.2' } }, {}],
     ['asset-missing', { resolveAsset: () => null }, {}],
     ['ffmpeg-missing', {}, { toolsFail: 'ffmpeg-missing' }],
@@ -884,18 +1148,10 @@ describe('the export on a fake frame loop and encoder (D29.3)', () => {
     run.timer.expireAll();
     await expect(pending).rejects.toMatchObject({ code: 'encode-failed' });
     expect(run.deliveredFrames).toBe(FRAMES_IN_FLIGHT + 1);
-    const [kill, remove, close] = run.log.slice(-3);
-    expect([kill, close]).toEqual(['kill', 'close']);
-    expect(remove).toMatch(/^remove .*video-1080p.mp4$/);
-  });
-
-  it('fails with encode-failed when FFmpeg stops reading the audio without closing the pipe', async () => {
-    const run = fakeRun({ stallAudio: true });
-    const pending = exportWith(request(), run.dependencies);
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    run.timer.expireAll();
-    await expect(pending).rejects.toMatchObject({ code: 'encode-failed' });
     expect(run.log).toContain('kill');
+    expect(run.log).toContain('remove video-1080p.mp4.segment-000000.mp4.partial');
+    expect(run.log).toContain('remove video-1080p.mp4');
+    expect(run.files.size).toBe(0);
   });
 
   it.each([
@@ -903,41 +1159,526 @@ describe('the export on a fake frame loop and encoder (D29.3)', () => {
     ['the receipt misses a frame', { receipt: (h: readonly string[]) => h.slice(1) }],
     [
       'the receipt has other bytes',
-      { receipt: (h: readonly string[]) => h.map((x, i) => (i === 150 ? 'f'.repeat(64) : x)) },
+      { receipt: (h: readonly string[]) => h.map((x, i) => (i === 30 ? 'f'.repeat(64) : x)) },
     ],
     [
       'the receipt is reordered',
       { receipt: (h: readonly string[]) => [h[1] ?? '', h[0] ?? '', ...h.slice(2)] },
     ],
-    ['the output has another packet count', { packets: (n: number) => n - 1 }],
+    ['a segment has another packet count', { packets: (_: string, n: number) => n - 1 }],
     [
-      'a frame of the output is at another presentation time',
-      { timestamps: (w: readonly number[]) => w.map((pts, at) => (at === 150 ? pts + 512 : pts)) },
-    ],
-    [
-      'the output repeats a presentation time',
+      'a frame of a segment is at another presentation time',
       {
-        timestamps: (w: readonly number[]) =>
-          w.map((pts, at) => (at === 150 ? (w[149] ?? 0) : pts)),
+        timestamps: (_: string, w: readonly number[]) =>
+          w.map((pts, at) => (at === 30 ? pts + 512 : pts)),
       },
     ],
-  ])('fails with encode-failed and removes the output when %s', async (_, options) => {
+    [
+      'the joined file has another packet count',
+      { packets: (f: string, n: number) => (f.endsWith('video-1080p.mp4.partial') ? n - 1 : n) },
+    ],
+    [
+      'the joined file repeats a presentation time',
+      {
+        timestamps: (f: string, w: readonly number[]) =>
+          f.endsWith('video-1080p.mp4.partial')
+            ? w.map((pts, at) => (at === 150 ? (w[149] ?? 0) : pts))
+            : [...w],
+      },
+    ],
+    [
+      'the audio pass exits with an error',
+      { passExitCode: (a: readonly string[]) => (a.includes('concat') ? 0 : 1) },
+    ],
+    ['the audio pass writes another length', { audioSamples: (n: number) => n - 1 }],
+    [
+      'the join exits with an error',
+      { passExitCode: (a: readonly string[]) => (a.includes('concat') ? 1 : 0) },
+    ],
+  ])('fails with encode-failed and leaves no file when %s', async (_, options) => {
     const run = fakeRun(options);
     await expect(exportWith(request(), run.dependencies)).rejects.toMatchObject({
       code: 'encode-failed',
     });
-    expect(run.log.some((line) => line.startsWith('remove'))).toBe(true);
-    expect(run.log.at(-1)).toBe('close');
+    expect(run.log).toContain('close');
+    expect([...run.files.keys()]).toEqual([]);
   });
 
-  it('ends on a navigated element with its code, kills FFmpeg, and removes the output (D23.9)', async () => {
+  it('ends on a navigated element with its code, kills FFmpeg, and removes the parts (D23.9)', async () => {
     const run = fakeRun({ failAt: { index: 150, code: 'custom-html-navigated' } });
     await expect(exportWith(request(), run.dependencies)).rejects.toMatchObject({
       code: 'custom-html-navigated',
     });
     expect(run.deliveredFrames).toBe(150);
     expect(run.log).toContain('kill');
-    expect(run.log.some((line) => line.startsWith('remove'))).toBe(true);
+    expect([...run.files.keys()]).toEqual([]);
+  });
+});
+
+/** One job of a render: a range of segments into a directory of its own. */
+async function segmentsJob(
+  run: FakeRun,
+  range: { fromUs: number; toUs: number } | undefined,
+  directory: string,
+  change: Partial<SegmentsRequest> = {},
+): Promise<JoinPart<SegmentsManifest>> {
+  const { manifest } = await renderSegmentsWith(
+    {
+      document: referenceComposition,
+      resolveAsset: ({ id }) => ASSETS[id] ?? null,
+      preset: '1080p',
+      ...(range === undefined ? {} : { range }),
+      outputDirectory: directory,
+      ffmpeg: PATHS,
+      ...change,
+    },
+    run.dependencies,
+  );
+  // As a host stores it: JSON, read back.
+  return { manifest: JSON.parse(JSON.stringify(manifest)) as SegmentsManifest, directory };
+}
+
+async function audioJob(
+  run: FakeRun,
+  directory: string,
+  change: Partial<AudioRequest> = {},
+): Promise<JoinPart<AudioManifest>> {
+  const { manifest } = await renderAudioWith(
+    {
+      document: referenceComposition,
+      resolveAsset: ({ id }) => ASSETS[id] ?? null,
+      outputDirectory: directory,
+      ffmpeg: PATHS,
+      ...change,
+    },
+    run.dependencies,
+  );
+  return { manifest: JSON.parse(JSON.stringify(manifest)) as AudioManifest, directory };
+}
+
+describe('jobs of one render on a fake frame loop and FFmpeg (D47.3–D47.6)', () => {
+  it('render ranges in any order that join into the manifest of the one-pass export', async () => {
+    const run = fakeRun();
+    const late = await segmentsJob(run, { fromUs: 4_000_000, toUs: 10_000_000 }, '/jobs/c');
+    const early = await segmentsJob(run, { fromUs: 0, toUs: 2_000_000 }, '/jobs/a');
+    const middle = await segmentsJob(run, { fromUs: 2_000_000, toUs: 4_000_000 }, '/jobs/b');
+    expect(late.manifest.segments.map(({ file }) => file)).toEqual(SEGMENT_NAMES.slice(2));
+    expect(early.manifest.range).toEqual({
+      fromUs: 0,
+      toUs: 2_000_000,
+      firstFrame: 0,
+      frameCount: 60,
+    });
+    expect(late.manifest.frames.map(({ index }) => index)).toEqual(
+      Array.from({ length: 180 }, (_, i) => 120 + i),
+    );
+    expect([...run.files.keys()].filter((path) => path.startsWith('/jobs/'))).toEqual([
+      '/jobs/c/segment-000002.mp4',
+      '/jobs/c/segment-000003.mp4',
+      '/jobs/c/segment-000004.mp4',
+      '/jobs/a/segment-000000.mp4',
+      '/jobs/b/segment-000001.mp4',
+    ]);
+    const audio = await audioJob(run, '/jobs/audio');
+    expect(run.files.has('/jobs/audio/audio.wav')).toBe(true);
+    const joined = await joinSegmentsWith(
+      {
+        segments: [late, early, middle],
+        audio,
+        outputPath: '/jobs/video-1080p.mp4',
+        ffmpeg: PATHS,
+      },
+      run.dependencies,
+    );
+    const onePass = await exportWith(request(), fakeRun().dependencies);
+    expect(joined.manifest).toEqual(onePass.manifest);
+    expect(run.files.get('/jobs/video-1080p.mp4')?.hash).toBe(fakeRunHash(onePass, run));
+  });
+
+  it('refuse a range off the segment grid before a browser opens', async () => {
+    const run = fakeRun();
+    await expect(
+      segmentsJob(run, { fromUs: 1_000_000, toUs: 4_000_000 }, '/jobs/x'),
+    ).rejects.toMatchObject({ code: 'range-invalid' });
+    expect(run.log).not.toContain('browser');
+  });
+
+  it('render the audio of a range, and no file for a composition without a clip', async () => {
+    const run = fakeRun();
+    const part = await audioJob(run, '/jobs/p', { range: { fromUs: 2_000_000, toUs: 4_000_000 } });
+    expect(part.manifest.range).toEqual({
+      fromUs: 2_000_000,
+      toUs: 4_000_000,
+      firstFrame: 60,
+      frameCount: 60,
+    });
+    expect(part.manifest.audio).toMatchObject({
+      rangeStartSample: 96_000,
+      rangeSampleCount: 96_000,
+      file: 'audio.wav',
+      codec: 'pcm_f32le',
+      format: 'wav',
+      assetHash: referenceAssetHash('asset-audio'),
+    });
+    expect(run.log).not.toContain('browser');
+    const silent = await audioJob(fakeRun(), '/jobs/q', {
+      document: variant((draft) => (draft.clips = [])),
+    });
+    expect(silent.manifest.audio).toBeNull();
+    expect(silent.manifest.ffmpeg.audioArgs).toBeNull();
+  });
+
+  it('join a range of a preview: the segments that cover the range of the audio pass', async () => {
+    const run = fakeRun();
+    const part = await segmentsJob(run, { fromUs: 2_000_000, toUs: 6_000_000 }, '/p', {
+      preset: '720p',
+    });
+    const audio = await audioJob(run, '/p', { range: { fromUs: 2_000_000, toUs: 6_000_000 } });
+    const { manifest } = await joinSegmentsWith(
+      { segments: [part], audio, outputPath: '/p/preview.mp4', ffmpeg: PATHS },
+      run.dependencies,
+    );
+    expect(manifest.range).toEqual({
+      fromUs: 2_000_000,
+      toUs: 6_000_000,
+      firstFrame: 60,
+      frameCount: 120,
+    });
+    expect(manifest.frames.map(({ index }) => index)).toEqual(
+      Array.from({ length: 120 }, (_, i) => 60 + i),
+    );
+    expect(manifest.frameCount).toBe(300);
+    expect(manifest.preset.name).toBe('mp4-720p');
+  });
+});
+
+function referenceAssetHash(id: string): string {
+  const assets = (referenceComposition as { assets: { id: string; contentHash: string }[] }).assets;
+  return assets.find((asset) => asset.id === id)?.contentHash ?? '';
+}
+
+/** The hash the fake join gives the one-pass export's MP4, from the same segments and audio. */
+function fakeRunHash(onePass: { manifest: ExportManifest }, run: FakeRun): string {
+  const segments = onePass.manifest.segments.map(({ sha256: hash }) => hash);
+  const audio = onePass.manifest.audio?.intermediate.sha256 ?? '';
+  expect(run.files.size).toBeGreaterThan(0);
+  return sha256([...segments, audio].join(','));
+}
+
+describe('the checks of a join (D47.5)', () => {
+  async function parts(): Promise<{
+    run: FakeRun;
+    a: JoinPart<SegmentsManifest>;
+    b: JoinPart<SegmentsManifest>;
+    audio: JoinPart<AudioManifest>;
+  }> {
+    const run = fakeRun();
+    const a = await segmentsJob(run, { fromUs: 0, toUs: 4_000_000 }, '/j/a');
+    const b = await segmentsJob(run, { fromUs: 4_000_000, toUs: 10_000_000 }, '/j/b');
+    const audio = await audioJob(run, '/j/audio');
+    return { run, a, b, audio };
+  }
+
+  const edited = <M>(part: JoinPart<M>, edit: (manifest: M) => void): JoinPart<M> => {
+    const manifest = structuredClone(part.manifest);
+    edit(manifest);
+    return { ...part, manifest };
+  };
+
+  it.each([
+    [
+      'a gap',
+      ({ a, audio }: Awaited<ReturnType<typeof parts>>) => ({ segments: [a], audio }),
+      /gap|cover/,
+    ],
+    [
+      'an overlap',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({ segments: [a, b, a], audio }),
+      /more than once/,
+    ],
+    [
+      'a foreign composition',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [
+          a,
+          edited(b, (m) => Object.assign(m, { compositionHash: `sha256:${'0'.repeat(64)}` })),
+        ],
+        audio,
+      }),
+      /compositionHash/,
+    ],
+    [
+      'another runtime',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [
+          a,
+          edited(b, (m) => Object.assign(m, { runtime: { ...m.runtime, contentHash: 'x' } })),
+        ],
+        audio,
+      }),
+      /runtime/,
+    ],
+    [
+      'another preset',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [
+          a,
+          edited(b, (m) => Object.assign(m, { preset: { ...m.preset, name: 'mp4-720p' } })),
+        ],
+        audio,
+      }),
+      /preset/,
+    ],
+    [
+      'another segment length',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [a, edited(b, (m) => Object.assign(m, { segmentFrames: 30 }))],
+        audio,
+      }),
+      /segmentFrames/,
+    ],
+    [
+      'another FFmpeg',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [
+          a,
+          edited(b, (m) => Object.assign(m, { ffmpeg: { ...m.ffmpeg, version: 'n7' } })),
+        ],
+        audio,
+      }),
+      /ffmpeg/,
+    ],
+    [
+      'an audio pass of another composition',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [a, b],
+        audio: edited(audio, (m) =>
+          Object.assign(m, { compositionHash: `sha256:${'1'.repeat(64)}` }),
+        ),
+      }),
+      /audio manifest differs/,
+    ],
+    [
+      'an audio pass of another FFmpeg',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [a, b],
+        audio: edited(audio, (m) =>
+          Object.assign(m, { identity: { ...m.identity, ffmpegVersion: 'n7' } }),
+        ),
+      }),
+      /audio manifest differs/,
+    ],
+    [
+      'an audio pass of a shorter range',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [a, b],
+        audio: edited(audio, (m) =>
+          Object.assign(m, { range: { ...m.range, toUs: 8_000_000, frameCount: 240 } }),
+        ),
+      }),
+      /not the range/,
+    ],
+    [
+      'a segment off the grid',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [
+          a,
+          edited(b, (m) =>
+            Object.assign(m, {
+              segments: m.segments.map((s) => ({ ...s, firstFrame: s.firstFrame + 1 })),
+            }),
+          ),
+        ],
+        audio,
+      }),
+      /segment grid/,
+    ],
+    [
+      'frames that are not the segments’',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [a, edited(b, (m) => Object.assign(m, { frames: m.frames.slice(1) }))],
+        audio,
+      }),
+      /other frames/,
+    ],
+    [
+      'a file name that is a path',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [
+          a,
+          edited(b, (m) =>
+            Object.assign(m, { segments: m.segments.map((s) => ({ ...s, file: `../${s.file}` })) }),
+          ),
+        ],
+        audio,
+      }),
+      /plain file name/,
+    ],
+    [
+      'another kind of manifest',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [a, b],
+        audio: edited(audio, (m) => Object.assign(m, { kind: 'segments' })),
+      }),
+      /audio manifest of version 3/,
+    ],
+    [
+      'no segments',
+      ({ audio }: Awaited<ReturnType<typeof parts>>) => ({ segments: [], audio }),
+      /at least one/,
+    ],
+  ])('refuses %s with join-invalid before FFmpeg runs', async (_, pick, message) => {
+    const given = await parts();
+    const before = given.run.log.length;
+    const { segments, audio } = pick(given);
+    await expect(
+      joinSegmentsWith(
+        { segments, audio, outputPath: '/j/v.mp4', ffmpeg: PATHS },
+        given.run.dependencies,
+      ),
+    ).rejects.toMatchObject({
+      code: 'join-invalid',
+      message: expect.stringMatching(message) as unknown,
+    });
+    expect(given.run.log.slice(before).some((line) => line.startsWith('join'))).toBe(false);
+  });
+
+  it('refuses a segment file or an audio file that changed since its manifest', async () => {
+    for (const path of ['/j/b/segment-000004.mp4', '/j/audio/audio.wav']) {
+      const { run, a, b, audio } = await parts();
+      const file = run.files.get(path);
+      if (file === undefined) throw new Error(`no ${path}`);
+      run.files.set(path, { ...file, hash: `sha256:${'2'.repeat(64)}` });
+      await expect(
+        joinSegmentsWith(
+          { segments: [a, b], audio, outputPath: '/j/v.mp4', ffmpeg: PATHS },
+          run.dependencies,
+        ),
+      ).rejects.toMatchObject({ code: 'join-invalid' });
+      expect(run.files.has('/j/v.mp4')).toBe(false);
+    }
+  });
+
+  it('refuses a segment file that is missing', async () => {
+    const { run, a, b, audio } = await parts();
+    run.files.delete('/j/a/segment-000000.mp4');
+    await expect(
+      joinSegmentsWith(
+        { segments: [a, b], audio, outputPath: '/j/v.mp4', ffmpeg: PATHS },
+        run.dependencies,
+      ),
+    ).rejects.toMatchObject({ code: 'join-invalid' });
+  });
+
+  it('is a pure function of the manifests, and orders the segments by index', async () => {
+    const { a, b, audio } = await parts();
+    const plan = joinPlan([b, a], audio);
+    expect(plan.segments.map(({ index, path }) => [index, path])).toEqual([
+      [0, '/j/a/segment-000000.mp4'],
+      [1, '/j/a/segment-000001.mp4'],
+      [2, '/j/b/segment-000002.mp4'],
+      [3, '/j/b/segment-000003.mp4'],
+      [4, '/j/b/segment-000004.mp4'],
+    ]);
+    expect(plan.frames.map(({ index }) => index)).toEqual(Array.from({ length: 300 }, (_, i) => i));
+    expect(plan.audioPath).toBe('/j/audio/audio.wav');
+  });
+});
+
+describe('a still frame on a fake render and FFmpeg (D47.7)', () => {
+  const png = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
+  const encoded = new Uint8Array([255, 216, 255, 9]);
+
+  function stillRun(): { deps: StillDependencies; log: string[] } {
+    const log: string[] = [];
+    const tools = {
+      identity: {
+        ffmpegSha256: FFMPEG_SHA256,
+        ffprobeSha256: FFPROBE_SHA256,
+        version: 'n8.1.3-20260921',
+        configuration: FFMPEG_CONFIGURATION,
+        encoders: [...REQUIRED_ENCODERS],
+      },
+      run(args: readonly string[], input: Uint8Array) {
+        log.push(`encode ${args[args.length - 2] ?? ''} ${String(input.length)}`);
+        return Promise.resolve({ code: 0, stdout: encoded, stderr: '' });
+      },
+    } as unknown as FfmpegTools;
+    return {
+      log,
+      deps: {
+        render(given) {
+          log.push(`render ${given.timesUs.join(',')}`);
+          return Promise.resolve({
+            frames: [{ index: 75, timeUs: 2_500_000, png }],
+            manifest: {
+              manifestVersion: 2,
+              preset: {
+                name: 'frames-png',
+                width: 1080,
+                height: 1920,
+                fps: 30,
+                deviceScaleFactor: 1,
+              },
+              frames: [{ index: 75, timeUs: 2_500_000, sha256: sha256(png) }],
+              ffmpeg: null,
+            } as unknown as RenderManifest,
+          });
+        },
+        tools: () => {
+          log.push('tools');
+          return Promise.resolve(tools);
+        },
+      },
+    };
+  }
+
+  const still = (change: Partial<StillRequest> = {}): StillRequest => ({
+    document: referenceComposition,
+    resolveAsset: ({ id }) => ASSETS[id] ?? null,
+    timeUs: 2_500_000,
+    format: 'png',
+    ...change,
+  });
+
+  it('returns the captured PNG bytes unchanged, without FFmpeg', async () => {
+    const { deps, log } = stillRun();
+    const result = await renderStillWith(still(), deps);
+    expect(result.bytes).toBe(png);
+    expect(result.mediaType).toBe('image/png');
+    expect(result.manifest).toMatchObject({
+      manifestVersion: 3,
+      kind: 'still',
+      preset: { name: 'still-png' },
+      output: { mediaType: 'image/png', sha256: sha256(png) },
+      ffmpeg: null,
+    });
+    expect(log).toEqual(['render 2500000']);
+  });
+
+  it.each([
+    ['jpeg', 'mjpeg', 'image/jpeg'],
+    ['webp', 'webp', 'image/webp'],
+  ])('encodes %s from the PNG with the pinned FFmpeg', async (format, muxer, mediaType) => {
+    const { deps, log } = stillRun();
+    const result = await renderStillWith(still({ format, ffmpeg: PATHS }), deps);
+    expect(result.bytes).toBe(encoded);
+    expect(result.manifest.output).toEqual({ mediaType, sha256: sha256(encoded) });
+    expect(result.manifest.preset.name).toBe(`still-${format}`);
+    expect(result.manifest.ffmpeg?.args).toEqual(stillArgs(format as 'jpeg' | 'webp', reference));
+    expect(log).toEqual(['tools', 'render 2500000', `encode ${muxer} ${String(png.length)}`]);
+  });
+
+  it.each([
+    ['still-format-unsupported', { format: 'gif' }],
+    ['frame-out-of-range', { timeUs: 2_500_001 }],
+    ['frame-out-of-range', { timeUs: 10_000_000 }],
+    ['ffmpeg-missing', { format: 'jpeg' }],
+    ['invalid-document', { document: { schemaVersion: '0.2' } }],
+  ] as const)('refuses with %s before anything renders', async (code, change) => {
+    const { deps, log } = stillRun();
+    await expect(renderStillWith(still(change), deps)).rejects.toMatchObject({ code });
+    expect(log).toEqual([]);
   });
 });
 

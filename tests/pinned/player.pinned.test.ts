@@ -89,6 +89,9 @@ window.p1 = {
   load(json) {
     return player.load(json === undefined ? referenceComposition : JSON.parse(json), ({ id }) => assets[id] ?? null);
   },
+  update(json) {
+    return player.update(JSON.parse(json), ({ id }) => assets[id] ?? null);
+  },
   seek: (timeUs) => player.seek(timeUs),
   play: () => player.play(),
   pause: () => player.pause(),
@@ -104,6 +107,7 @@ interface P1Window {
   readonly p1: {
     start(customHtml: { mode: string } | null): Promise<string>;
     load(json?: string): Promise<void>;
+    update(json: string): Promise<void>;
     seek(timeUs: number): Promise<void>;
     play(): void;
     pause(): void;
@@ -323,6 +327,44 @@ describe('P1: the Player in Chromium (D25)', () => {
           pixelReport(`${String(timeUs)} after a seek back`, first, afterSeekBack),
         ).toBe(true);
       }
+    } finally {
+      await closePlayer(player);
+    }
+  });
+
+  it('brings an edit to the preview in the same page, at the time it shows (Player.update, D44)', async () => {
+    const AT = 7_500_000;
+    const { document: moved } = variant((draft) => {
+      const title = draft.scenes[0]?.nodes.find((node) => node.id === 'node-title');
+      if (title === undefined) throw new Error('The fixture has no title node.');
+      title['position'] = { x: 210, y: 360 };
+    });
+    const expected = await renderFrames({
+      document: moved,
+      resolveAsset: referenceResolver,
+      timesUs: [AT],
+      chromium,
+    });
+    const player = await openPlayer();
+    try {
+      const before = await seekAndCapture(player, AT);
+      await player.page.evaluate(
+        (json) => (window as unknown as P1Window).p1.update(json),
+        JSON.stringify(moved),
+      );
+      // The same page and the same render frame: an update is not a new load (D44.5).
+      expect(player.page.mainFrame().childFrames()[0]).toBe(player.renderFrame);
+      const state = await player.page.evaluate(() => (window as unknown as P1Window).p1.state());
+      expect(state).toMatchObject({ status: 'ready', timeUs: AT, error: null });
+      await awaitPresented(player.page, 5_000);
+      const after = await captureFrame(player.page, WIDTH, HEIGHT);
+      const producerFrame = expected.frames[0]?.png ?? new Uint8Array(0);
+      expect(samePixels(before, after), pixelReport('after the update', before, after)).toBe(false);
+      expect(
+        samePixels(producerFrame, after),
+        pixelReport('the update against the Producer', producerFrame, after),
+      ).toBe(true);
+      expect(player.unexpected).toEqual([]);
     } finally {
       await closePlayer(player);
     }

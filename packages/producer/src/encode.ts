@@ -105,59 +105,11 @@ export function videoGraph(size: PresetSize): string {
   return `[0:v]${scale}:out_color_matrix=bt709:out_range=tv,setsar=1,format=yuv420p[v]`;
 }
 
-/** The audio graph of D29.6: resample, cut to the clip, place it, pad, and cut to the composition. */
-export function audioGraph(plan: AudioPlan): string {
-  return [
-    `[1:a]aresample=${String(SAMPLE_RATE)}`,
-    `atrim=end_sample=${String(plan.sampleCount)}`,
-    `adelay=delays=${String(plan.startSample)}S:all=1`,
-    `apad=whole_len=${String(plan.totalSamples)}`,
-    `atrim=end_sample=${String(plan.totalSamples)}`,
-    `aformat=sample_fmts=fltp:sample_rates=${String(SAMPLE_RATE)}:channel_layouts=${AUDIO_CHANNEL_LAYOUT}[a]`,
-  ].join(',');
-}
-
 /** The time base of the video track is `fps × TIME_SCALE_PER_FRAME` (D29.4). */
 export const TIME_SCALE_PER_FRAME = 512;
 
 /** What the output path is replaced with in the manifest (D29.4). */
 export const OUTPUT_PLACEHOLDER = '<output>';
-
-export interface EncoderArgsOptions {
-  readonly fps: number;
-  readonly videoGraph: string;
-  readonly audioGraph: string | null;
-  readonly output: string;
-}
-
-/** The arguments of D29.4, in order. The only file they name is the output. */
-export function encoderArgs(options: EncoderArgsOptions): string[] {
-  const fps = String(options.fps);
-  const audio = options.audioGraph;
-  return [
-    ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1'],
-    ...['-f', 'image2pipe', '-c:v', 'png', '-framerate', fps, '-i', 'pipe:0'],
-    ...(audio === null ? [] : ['-i', 'pipe:3']),
-    '-filter_complex_threads',
-    '1',
-    '-filter_complex',
-    audio === null ? options.videoGraph : `${options.videoGraph};${audio}`,
-    ...['-map', '[v]', ...(audio === null ? [] : ['-map', '[a]'])],
-    ...['-fps_mode', 'passthrough'],
-    ...['-c:v', 'libx264', '-preset', 'medium', '-crf', '18'],
-    ...['-profile:v', 'high', '-level:v', '4.0', '-pix_fmt', 'yuv420p', '-threads', '1'],
-    ...['-color_primaries', 'bt709', '-color_trc', 'bt709'],
-    ...['-colorspace', 'bt709', '-color_range', 'tv'],
-    ...['-video_track_timescale', String(options.fps * TIME_SCALE_PER_FRAME)],
-    ...(audio === null
-      ? []
-      : ['-c:a', AUDIO_CODEC, '-b:a', AUDIO_BITRATE, '-ar', String(SAMPLE_RATE), '-ac', '2']),
-    ...['-map_metadata', '-1', '-map_chapters', '-1'],
-    ...['-fflags', '+bitexact', '-flags:v', '+bitexact', '-flags:a', '+bitexact'],
-    ...['-movflags', '+faststart', '-f', 'mp4', '-y', options.output],
-    ...['-map', '0:v', '-c:v', 'copy', '-f', 'framehash', '-hash', 'sha256', 'pipe:1'],
-  ];
-}
 
 /**
  * The SHA-256 of every packet FFmpeg read, from its `framehash` output (D29.3),

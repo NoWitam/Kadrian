@@ -18,6 +18,7 @@ export const ROUTES: Readonly<Record<string, string>> = {
   '/app/': 'apps/playground/dist',
   '/pkg/ai-sdk/': 'packages/ai-sdk/dist',
   '/pkg/editor-sdk/': 'packages/editor-sdk/dist',
+  '/pkg/editor-session/': 'packages/editor-session/dist',
   '/pkg/player/': 'packages/player/dist',
   '/pkg/renderer-dom/': 'packages/renderer-dom/dist',
   '/pkg/runtime/': 'packages/runtime/dist',

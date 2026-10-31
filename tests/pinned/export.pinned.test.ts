@@ -1,5 +1,6 @@
 /**
- * The MP4 export of D29 (specification §5 P5) with the pinned FFmpeg. It needs
+ * The MP4 export of D29 (specification §5 P5) and its segments, jobs, join, and
+ * stills (D47) with the pinned FFmpeg. It needs
  * `KADRION_FFMPEG` and `KADRION_FFPROBE`, the verified binaries of
  * `node --run ffmpeg:fetch`: required in the pinned environment, and skipped
  * with a message elsewhere, because the pinned build runs on linux/x64 only.
@@ -8,7 +9,15 @@
  * expectations are written out from D29, not taken from the implementation.
  */
 import { execFile } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { networkInterfaces, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import process from 'node:process';
@@ -21,11 +30,19 @@ import {
   PINNED_IMAGE,
   PINNED_IMAGE_VARIABLE,
   renderFrames,
+  renderSegments,
+  renderStill,
+  sha256,
+  type ExportManifest,
   type ExportResult,
   type LaunchedChromium,
   type RenderResult,
 } from '@kadrion/producer';
-import { goldenTimestamps } from '@kadrion/test-fixtures';
+import {
+  generateReferenceAssets,
+  goldenTimestamps,
+  referenceComposition,
+} from '@kadrion/test-fixtures';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -34,6 +51,7 @@ import {
   OUTPUT_DIRECTORY,
   readGoldens,
   referenceResolver,
+  repoRoot,
   variant,
   writeReport,
   type Pixels,
@@ -216,7 +234,13 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
         for (const file of frameLikeFiles(directory)) if (!before.has(file)) outputs.add(file);
       }
       for (const name of existsSync(EXPORTS) ? readdirSync(EXPORTS) : []) {
-        if (!/^video-(1080p|720p)\.mp4$/.test(name)) outputs.add(join(EXPORTS, name));
+        // The MP4, and while it is made its encoded parts (D47.6): segments and the
+        // audio intermediate, never a frame.
+        if (
+          !/^video-(1080p|720p)\.mp4(\.(segment-\d{6}\.mp4|audio\.wav))?(\.partial)?$/.test(name)
+        ) {
+          outputs.add(join(EXPORTS, name));
+        }
       }
     }, 25);
     try {
@@ -260,7 +284,7 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
     );
   });
 
-  it('writes no file but the MP4 while exporting (§5 P5)', () => {
+  it('writes no frame file while exporting, and leaves only the MP4 (§5 P5, D47.6)', () => {
     report.frameFiles = watched;
     expect(watched).toEqual([]);
     expect(readdirSync(EXPORTS).sort()).toEqual(['video-1080p.mp4', 'video-720p.mp4']);
@@ -299,7 +323,26 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
 
   it('keeps FRAMES_IN_FLIGHT and writes every frame once (D29.3)', () => {
     report.stats = { full: full.stats, small: small.stats };
-    expect(full.stats).toEqual({ framesWritten: 300, maxFramesInFlight: 2 });
+    expect(full.stats.framesWritten).toBe(300);
+    expect(full.stats.maxFramesInFlight).toBeGreaterThanOrEqual(1);
+    expect(full.stats.maxFramesInFlight).toBeLessThanOrEqual(2);
+  });
+
+  it('is made of segments of 60 frames on the grid (D47.1)', () => {
+    expect(full.manifest.segmentFrames).toBe(60);
+    expect(
+      full.manifest.segments.map(({ index, firstFrame, frameCount }) => [
+        index,
+        firstFrame,
+        frameCount,
+      ]),
+    ).toEqual([0, 1, 2, 3, 4].map((index) => [index, index * 60, 60]));
+    expect(full.manifest.range).toEqual({
+      fromUs: 0,
+      toUs: 10_000_000,
+      firstFrame: 0,
+      frameCount: 300,
+    });
   });
 
   it.each([
@@ -338,7 +381,7 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
       primaries: video?.color_primaries ?? null,
       transfer: video?.color_transfer ?? null,
     };
-    expect(full.manifest.ffmpeg.args).toEqual(
+    expect(full.manifest.ffmpeg.segmentArgs).toEqual(
       expect.arrayContaining(['-color_primaries', 'bt709', '-color_trc', 'bt709']),
     );
     expect(await videoTimestamps(file)).toEqual(Array.from({ length: 300 }, (_, i) => i * 512));
@@ -470,7 +513,222 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
     ).rejects.toMatchObject({ code: 'custom-html-navigated' });
     expect(existsSync(output)).toBe(false);
   });
+
+  describe.skipIf(!available)(
+    'jobs of one render in separate processes, joined (D47, PR-25a)',
+    () => {
+      const JOBS = join(EXPORTS, 'jobs');
+      const INPUTS = join(JOBS, 'inputs');
+      const ffmpegFlags = ['--ffmpeg', FFMPEG.ffmpegPath, '--ffprobe', FFMPEG.ffprobePath];
+      const inputs = [
+        '--composition',
+        join(INPUTS, 'composition.json'),
+        '--assets',
+        join(INPUTS, 'assets.json'),
+      ];
+      const onePass: Record<string, { file: string; manifest: ExportManifest }> = {};
+      const joined: Record<string, { file: string; manifest: ExportManifest }> = {};
+      /** The ranges of each preset's jobs, in the order they are run: never the grid's. */
+      const RANGES = {
+        '1080p': [
+          [4_000_000, 10_000_000],
+          [0, 2_000_000],
+          [2_000_000, 4_000_000],
+        ],
+        '720p': [
+          [6_000_000, 10_000_000],
+          [0, 6_000_000],
+        ],
+      } as const;
+
+      beforeAll(async () => {
+        rmSync(JOBS, { recursive: true, force: true });
+        mkdirSync(INPUTS, { recursive: true });
+        writeFileSync(join(INPUTS, 'composition.json'), JSON.stringify(referenceComposition));
+        const map: Record<string, { path: string; mediaType: string }> = {};
+        for (const asset of generateReferenceAssets()) {
+          writeFileSync(join(INPUTS, asset.id), asset.bytes);
+          map[asset.id] = { path: asset.id, mediaType: asset.mediaType };
+        }
+        writeFileSync(join(INPUTS, 'assets.json'), JSON.stringify(map));
+        for (const preset of ['1080p', '720p'] as const) {
+          for (const [fromUs, toUs] of RANGES[preset]) {
+            await job([
+              'render-range',
+              ...inputs,
+              ...['--out', join(JOBS, preset, `range-${String(fromUs)}`)],
+              ...['--preset', preset, '--from-us', String(fromUs), '--to-us', String(toUs)],
+              ...ffmpegFlags,
+            ]);
+          }
+          await job([
+            'render-audio',
+            ...inputs,
+            '--out',
+            join(JOBS, preset, 'audio'),
+            ...ffmpegFlags,
+          ]);
+          const directories = readdirSync(join(JOBS, preset));
+          await job([
+            'join',
+            ...directories.flatMap((name) => ['--in', join(JOBS, preset, name)]),
+            ...['--out', join(JOBS, preset, 'joined')],
+            ...ffmpegFlags,
+          ]);
+          const file = join(JOBS, preset, 'joined', `video-${preset}.mp4`);
+          joined[preset] = {
+            file,
+            manifest: JSON.parse(
+              readFileSync(
+                join(JOBS, preset, 'joined', `video-${preset}.render-manifest.json`),
+                'utf8',
+              ),
+            ) as ExportManifest,
+          };
+          // The one-pass export of the same preset, by the CLI as well.
+          await job([
+            'export',
+            ...inputs,
+            '--out',
+            join(JOBS, preset, 'one-pass'),
+            '--preset',
+            preset,
+            ...ffmpegFlags,
+          ]);
+          onePass[preset] = {
+            file: join(JOBS, preset, 'one-pass', `video-${preset}.mp4`),
+            manifest: JSON.parse(
+              readFileSync(
+                join(JOBS, preset, 'one-pass', `video-${preset}.render-manifest.json`),
+                'utf8',
+              ),
+            ) as ExportManifest,
+          };
+        }
+      }, 1_800_000);
+
+      it.each(['1080p', '720p'] as const)(
+        'joins the %s jobs into the one-pass export, byte for byte',
+        (preset) => {
+          const a = joined[preset];
+          const b = onePass[preset];
+          if (a === undefined || b === undefined) throw new Error('The jobs did not run.');
+          const segments = report.segments as Record<string, unknown> | undefined;
+          report.segments = {
+            ...segments,
+            [preset]: {
+              ranges: RANGES[preset],
+              joined: fileHash(a.file),
+              onePass: fileHash(b.file),
+              segments: a.manifest.segments,
+            },
+          };
+          expect(fileHash(a.file)).toBe(fileHash(b.file));
+          expect(a.manifest).toEqual(b.manifest);
+        },
+      );
+
+      it('reads the same PNG frames in the joined render and the one-pass export (D29.3, D47.6)', () => {
+        expect(joined['1080p']?.manifest.frames).toEqual(full.manifest.frames);
+        expect(joined['720p']?.manifest.frames).toEqual(full.manifest.frames);
+      });
+
+      it('passes the self-check of D29.3 on the joined file', async () => {
+        const file = joined['1080p']?.file ?? '';
+        expect(await videoTimestamps(file)).toEqual(Array.from({ length: 300 }, (_, i) => i * 512));
+        const { streams } = await probe(file);
+        expect(streams.map(({ codec_type: type }) => type)).toEqual(['video', 'audio']);
+        expect(streams[0]?.nb_read_frames).toBe('300');
+      });
+
+      it('refuses a range off the segment grid before rendering, and writes nothing', async () => {
+        const directory = join(JOBS, 'refused');
+        mkdirSync(directory, { recursive: true });
+        await expect(
+          renderSegments({
+            document: referenceComposition,
+            resolveAsset: referenceResolver,
+            preset: '1080p',
+            range: { fromUs: 1_000_000, toUs: 4_000_000 },
+            outputDirectory: directory,
+            ffmpeg: FFMPEG,
+            chromium,
+          }),
+        ).rejects.toMatchObject({ code: 'range-invalid' });
+        expect(readdirSync(directory)).toEqual([]);
+      });
+    },
+  );
+
+  describe.skipIf(!available)('still frames (D47.7)', () => {
+    it('renders the golden frame of its time as PNG, where the pinned goldens exist', async () => {
+      const goldens = readGoldens();
+      const rows: Record<string, unknown>[] = [];
+      for (const { timeUs } of goldenTimestamps) {
+        const still = await renderStill({
+          document: referenceComposition,
+          resolveAsset: referenceResolver,
+          timeUs,
+          format: 'png',
+          chromium,
+        });
+        const golden = goldens?.manifest.frames.find((frame) => frame.timeUs === timeUs)?.sha256;
+        rows.push({ timeUs, sha256: still.manifest.output.sha256, golden: golden ?? null });
+        expect(still.manifest.output.sha256).toBe(still.manifest.frames[0]?.sha256);
+        if (goldens !== null && goldens.manifest.environment.pinned && pinned) {
+          expect(still.manifest.output.sha256, String(timeUs)).toBe(golden);
+        }
+      }
+      report.stills = rows;
+    });
+
+    it.each(['jpeg', 'webp'] as const)(
+      'encodes the same %s twice, from the same PNG',
+      async (format) => {
+        const render = () =>
+          renderStill({
+            document: referenceComposition,
+            resolveAsset: referenceResolver,
+            timeUs: 2_500_000,
+            format,
+            ffmpeg: FFMPEG,
+            chromium,
+          });
+        const [a, b] = [await render(), await render()];
+        expect(sha256(a.bytes)).toBe(sha256(b.bytes));
+        expect(a.manifest.frames).toEqual(b.manifest.frames);
+        expect(a.mediaType).toBe(format === 'jpeg' ? 'image/jpeg' : 'image/webp');
+        const { streams } = await probeBytes(a.bytes, format);
+        expect(streams[0]).toMatchObject({ width: 1080, height: 1920 });
+      },
+    );
+  });
 });
+
+/** The CLI of this working tree, run as its own process: one job of a host's queue. */
+const CLI = join(repoRoot, 'packages', 'cli', 'dist', 'bin.js');
+
+async function job(args: readonly string[]): Promise<string> {
+  const { stdout } = await run(process.execPath, [CLI, ...args], {
+    env: process.env,
+    maxBuffer: 16 * 1024 * 1024,
+  });
+  return stdout;
+}
+
+function fileHash(path: string): string {
+  return sha256(readFileSync(path));
+}
+
+async function probeBytes(bytes: Uint8Array, format: string): Promise<Probe> {
+  const file = join(EXPORTS, `still-probe.${format}`);
+  writeFileSync(file, bytes);
+  try {
+    return await probe(file);
+  } finally {
+    rmSync(file, { force: true });
+  }
+}
 
 describe.skipIf(!available)(
   'memory of the export with the pinned FFmpeg (D29.3, report only)',

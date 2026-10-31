@@ -521,6 +521,7 @@ const fileWrites: readonly (readonly [string, string])[] = [
   ],
   ["import { mkdtemp } from 'fs/promises';\nexport const f = mkdtemp;", 'mkdtemp'],
   ["import { open } from 'node:fs/promises';\nexport const f = open;", 'open'],
+  ["import { renameSync } from 'node:fs';\nexport const f = renameSync;", 'renameSync'],
   ["import fs from 'node:fs';\nexport const f = fs;", 'default'],
   ["import * as fs from 'node:fs';\nexport const f = fs;", 'node:fs'],
 ];
@@ -543,11 +544,11 @@ describe('the Producer writes no file (D29.3)', { timeout: 120_000 }, () => {
     expect(verdict.rejections.join('\n')).toContain('no-restricted-syntax');
   });
 
-  it('still lets the Producer read files and remove a failed output', async () => {
+  it('still lets the Producer read files, remove a failed output, and rename a finished one (D47.6)', async () => {
     const source = [
       "import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';",
-      "import { rm } from 'node:fs/promises';",
-      'export const read = [createReadStream, existsSync, readFileSync, statSync, rm];',
+      "import { rename, rm } from 'node:fs/promises';",
+      'export const read = [createReadStream, existsSync, readFileSync, statSync, rm, rename];',
       '',
     ].join('\n');
     expect(await lint(source, PRODUCER_SOURCE)).toEqual({

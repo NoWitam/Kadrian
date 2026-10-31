@@ -54,6 +54,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D44](D44-host-facade-and-live-preview.md)                    | The host facade and the live preview                                               | Accepted          |
 | [D45](D45-delivering-packages-as-release-tarballs.md)         | Delivering the packages as tarballs of a GitHub release                            | Accepted          |
 | [D46](D46-tool-catalogue-from-the-command-registry.md)        | The tool catalogue derived from the command registry                               | Accepted          |
+| [D47](D47-segmented-rendering-join-and-stills.md)             | Segmented rendering, the join, and still frames                                    | Proposed          |
 
 ## Provenance of D01–D10
 

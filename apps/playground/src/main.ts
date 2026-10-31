@@ -2,26 +2,30 @@
  * The playground (D25.9, D30.10, D32): showcases, documents of the user's own,
  * the drag of P3, and the AI tool of P4 on one command bus. This file is the
  * bootstrap and the page's wiring: it fetches the runtime build and its
- * manifest, makes the one Player, and for every document makes a bus and hands
- * both to `wireEditor`, which holds the editing behaviour the tests drive.
+ * manifest, and for every document makes a Player and the host facade of
+ * `@kadrion/editor-session` over it (D44), whose bus every edit goes through
+ * and which brings each edit to the preview with `Player.update`, at the time
+ * it shows. `wireEditor` holds the editing behaviour the tests drive.
  *
  * Nothing here is a domain rule. A document goes through `JSON.parse`, the bus
- * (the full `validateComposition`), and `player.load`; whatever they refuse is
- * shown as they report it. Assets are the bytes `@kadrion/test-fixtures`
+ * (the full `validateComposition`), and the session's first `load`; whatever
+ * they refuse is shown as they report it. Assets are the bytes `@kadrion/test-fixtures`
  * generates, looked up by ID with no fallback (D32.2).
  *
  * Custom HTML is the page's decision, never the document's (D36): the page
  * starts with it disabled, and only the "Run Custom HTML" checkbox makes a
- * Player that trusts it. Changing the choice replaces the Player and shows the
- * same document, with its undo history, again.
+ * Player that trusts it. Changing the choice opens a new session with a new
+ * Player over the current document; its undo history starts again, because a
+ * session owns its bus (D44).
  */
 import { executeSetNodePosition, setNodePositionTool } from '@kadrion/ai-sdk';
-import type { CommandBus } from '@kadrion/editor-sdk';
-import { createPlayer, type Player, type PlayerCustomHtmlPolicy } from '@kadrion/player';
+import { createCommandBus, type CommandBus } from '@kadrion/editor-sdk';
+import { createEditorSession, type EditorSession } from '@kadrion/editor-session';
+import { createPlayer, type PlayerCustomHtmlPolicy } from '@kadrion/player';
 import { frameCount, frameToTimeUs, timeUsToFrame } from '@kadrion/schema';
 import { FONT_GLYPHS, generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
 
-import { busFor, draggableNodes, positionOf, sizeCanvas, wireEditor, type Editor } from './app.js';
+import { draggableNodes, positionOf, sizeCanvas, wireEditor, type Editor } from './app.js';
 import { SHOWCASES, type Showcase } from './showcases.js';
 
 const RUNTIME = '/pkg/renderer-dom/runtime-build/kadrion-runtime.js';
@@ -88,8 +92,9 @@ function button(parent: HTMLElement, label: string, action: () => unknown): HTML
   return control;
 }
 
-/** One document on screen: its bus, the drag editor over it, and the node the grip drags. */
+/** One document on screen: its session, the drag editor over it, and the node the grip drags. */
 interface Session {
+  readonly facade: EditorSession;
   readonly bus: CommandBus;
   readonly label: string;
   editor: Editor | null;
@@ -122,7 +127,6 @@ async function main(): Promise<void> {
   // Before the Player: the render frame needs a stage that already has a height (D30.10).
   sizeViewport(referenceComposition as { width: number; height: number });
   sizeCanvas(elements, referenceComposition as { width: number; height: number });
-  let player: Player = await createPlayer(elements.stage, { runtime, customHtml: customHtml() });
   /** The policy of the Player on screen, which the status line reports. */
   let shown: PlayerCustomHtmlPolicy = customHtml();
   const assets = new Map(generateReferenceAssets().map((asset) => [asset.id, asset]));
@@ -132,8 +136,8 @@ async function main(): Promise<void> {
   let session: Session | null = null;
 
   /**
-   * Opening a document, re-rendering it, and replacing the Player run one at a
-   * time, so that none of them sees a Player the other one is replacing.
+   * Opening a document, waiting for the preview, and replacing the Player run
+   * one at a time, so that none of them sees a session another one is replacing.
    */
   let queue: Promise<void> = Promise.resolve();
   const serially = (task: () => Promise<void>): Promise<void> => {
@@ -145,7 +149,37 @@ async function main(): Promise<void> {
     return run;
   };
 
-  /** Re-renders the current document, keeping the time the preview showed. */
+  /**
+   * A new Player and a session over `document` in place of the one on screen.
+   * The session loads it and from then on brings every edit to it (D44).
+   */
+  const replaceSession = async (document: unknown, label: string): Promise<Session> => {
+    session?.editor?.detach();
+    session?.facade.destroy();
+    session = null;
+    const policy = customHtml();
+    const player = await createPlayer(elements.stage, {
+      runtime,
+      customHtml: policy,
+      onListenerError: report,
+    });
+    const facade = await createEditorSession({
+      document,
+      player,
+      resolveAsset: resolve,
+      onListenerError: report,
+    });
+    shown = policy;
+    // What the preview could not show; the bus holds the document all the same.
+    facade.subscribe((event) => {
+      if (event.type === 'error') report(event.error);
+    });
+    const opened: Session = { facade, bus: facade.bus, label, editor: null, nodeId: null };
+    session = opened;
+    return opened;
+  };
+
+  /** Waits until the preview shows the current document, and puts the grip on it. */
   const rerender = (): Promise<void> => serially(rerenderNow);
   const rerenderNow = async (): Promise<void> => {
     if (session === null) return;
@@ -153,9 +187,7 @@ async function main(): Promise<void> {
       await session.editor.show();
       return;
     }
-    const at = player.getState().timeUs ?? 0;
-    await player.load(session.bus.getDocument(), resolve);
-    if (at !== 0) await player.seek(at);
+    await session.facade.settled();
   };
 
   /** Puts the grip on a node of the current document, or hides it. */
@@ -167,10 +199,8 @@ async function main(): Promise<void> {
     elements.grip.hidden = nodeId === null;
     if (nodeId === null) return;
     session.editor = wireEditor({
-      bus: session.bus,
-      player,
+      session: session.facade,
       elements,
-      resolve,
       nodeId,
       gripSize: GRIP,
       onError: report,
@@ -204,19 +234,18 @@ async function main(): Promise<void> {
       report(new Error(`The JSON does not parse: ${describe(reason)}`));
       return;
     }
-    const bus = busFor(parsed);
-    const composition = bus.getDocument();
+    // The bus validates first: a document it refuses leaves the one on screen as it was.
+    const composition = createCommandBus(parsed).getDocument();
     session?.editor?.detach();
-    session = { bus, label, editor: null, nodeId: null };
     elements.grip.hidden = true;
     timeline.max = String(frameCount(composition.durationUs, composition.fps) - 1);
     timeline.value = '0';
     element('tool-result').textContent = '';
     current.hidden = true;
-    // Before load: the stage must have the new size when the frame is laid out (D32.3).
+    // Before the Player: the stage must have the new size when the frame is laid out (D32.3).
     sizeViewport(composition);
     sizeCanvas(elements, composition);
-    await player.load(composition, resolve);
+    const { bus } = await replaceSession(parsed, label);
 
     const candidates = draggableNodes(composition);
     const wanted = showcase?.dragNodeId ?? null;
@@ -267,31 +296,29 @@ async function main(): Promise<void> {
     control.dataset['id'] = showcase.id;
   }
 
-  // The page's Custom HTML policy (D36): a new Player, the same document and
-  // history. The new Player is made first; if that fails, the old one and the
-  // old choice stay.
+  // The page's Custom HTML policy (D36): a new Player and a new session over the
+  // same document. If the Player cannot be made, the old choice is shown again.
   trust.addEventListener('change', () => {
-    const wanted = customHtml();
     trust.disabled = true;
     serially(async () => {
-      let replacement: Player;
+      if (session === null) {
+        shown = customHtml();
+        return;
+      }
+      const { nodeId, label } = session;
+      const document = session.bus.getDocument();
+      const at = session.facade.getPlaybackState().timeUs ?? 0;
       try {
-        replacement = await createPlayer(elements.stage, { runtime, customHtml: wanted });
+        await replaceSession(document, label);
       } catch (reason: unknown) {
+        // The old session is gone: the old choice gets a new one over the same document.
         trust.checked = !trust.checked;
+        await replaceSession(document, label);
+        attachGrip(nodeId);
         throw reason;
       }
-      const at = player.getState().timeUs ?? 0;
-      session?.editor?.detach();
-      if (session !== null) session.editor = null;
-      const previous = player;
-      player = replacement;
-      shown = wanted;
-      previous.destroy();
-      if (session === null) return;
-      await player.load(session.bus.getDocument(), resolve);
-      if (at !== 0) await player.seek(at);
-      attachGrip(session.nodeId);
+      if (at !== 0) await session.facade.seek(at);
+      attachGrip(nodeId);
     })
       .catch(report)
       .finally(() => {
@@ -302,10 +329,10 @@ async function main(): Promise<void> {
   // Playback and history.
   const controls = element('controls');
   button(controls, 'Play', () => {
-    player.play();
+    session?.facade.play();
   });
   button(controls, 'Pause', () => {
-    player.pause();
+    session?.facade.pause();
   });
   button(controls, 'Undo', async () => {
     if (session === null) return;
@@ -322,9 +349,9 @@ async function main(): Promise<void> {
   timeline.addEventListener('input', () => {
     if (session === null) return;
     const { fps } = session.bus.getDocument();
-    player.seek(frameToTimeUs(Number(timeline.value), fps)).catch((reason: unknown) => {
+    session.facade.seek(frameToTimeUs(Number(timeline.value), fps)).catch((reason: unknown) => {
       // A newer seek replacing this one is the normal case while the slider moves,
-      // and so is a seek of a Player that the policy checkbox is replacing.
+      // and so is a seek of a session that the policy checkbox is replacing.
       const code = (reason as { code?: unknown }).code;
       if (code !== 'superseded' && code !== 'destroyed' && code !== 'not-loaded') report(reason);
     });
@@ -412,7 +439,12 @@ async function main(): Promise<void> {
 
   // The status line, from the Player and the bus only.
   const showState = (): void => {
-    const state = player.getState();
+    const state = session?.facade.getPlaybackState() ?? {
+      status: 'empty',
+      timeUs: null,
+      runtimeHash: '',
+      error: null,
+    };
     const lines = [
       `document ${session?.label ?? '-'}`,
       `status   ${state.status}`,
@@ -427,7 +459,10 @@ async function main(): Promise<void> {
         const { x, y } = positionOf(bus, nodeId);
         lines.push(`${nodeId}  x ${String(x)}, y ${String(y)}`);
       }
-      lines.push(`history  ${bus.canUndo() ? 'undo' : '-'} / ${bus.canRedo() ? 'redo' : '-'}`);
+      const history = session.facade.getHistory();
+      lines.push(
+        `history  ${history.canUndo ? `undo ${String(history.undoDepth)}` : '-'} / ${history.canRedo ? `redo ${String(history.redoDepth)}` : '-'}`,
+      );
       if (state.timeUs !== null && document.activeElement !== timeline) {
         timeline.value = String(timeUsToFrame(state.timeUs, bus.getDocument().fps));
       }

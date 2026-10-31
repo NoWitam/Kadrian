@@ -30,6 +30,7 @@ describe('the playground application (D25.9)', () => {
     expect(manifest.dependencies).toEqual({
       '@kadrion/ai-sdk': 'workspace:*',
       '@kadrion/editor-sdk': 'workspace:*',
+      '@kadrion/editor-session': 'workspace:*',
       '@kadrion/player': 'workspace:*',
       '@kadrion/renderer-dom': 'workspace:*',
       '@kadrion/schema': 'workspace:*',
@@ -55,6 +56,7 @@ describe('the playground application (D25.9)', () => {
       './showcases.js',
       '@kadrion/ai-sdk',
       '@kadrion/editor-sdk',
+      '@kadrion/editor-session',
       '@kadrion/player',
       '@kadrion/schema',
       '@kadrion/test-fixtures',
@@ -200,14 +202,15 @@ describe('the Custom HTML policy of the playground (D36)', () => {
   });
 
   it("makes every Player with the page's choice, and trusts nothing anywhere else", () => {
+    // One Player is made, in `replaceSession`, with the policy the checkbox gives now.
     const calls = [
       ...main.matchAll(
-        /createPlayer\(elements\.stage, \{ runtime, customHtml: (\w+(?:\(\))?) \}\)/g,
+        /createPlayer\(elements\.stage, \{\s*runtime,\s*customHtml: (\w+),\s*onListenerError: report,\s*\}\)/g,
       ),
     ];
-    expect(calls.map((match) => match[1])).toEqual(['customHtml()', 'wanted']);
+    expect(calls.map((match) => match[1])).toEqual(['policy']);
     expect([...main.matchAll(/createPlayer\(/g)]).toHaveLength(calls.length);
-    expect(main).toContain('const wanted = customHtml();');
+    expect(main).toContain('const policy = customHtml();');
     const trusted = sources.flatMap((file) =>
       [...readText(...file.split('/')).matchAll(/'trusted'|"trusted"/g)].map(() => file),
     );

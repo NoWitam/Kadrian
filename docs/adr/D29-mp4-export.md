@@ -4,6 +4,10 @@
 - Amended by: PR-36 on 2026-10-30, at the owner's decision: 29.1, where the
   pinned archive is downloaded from
 - Amended by: PR-26 (D45) on 2026-10-31: 29.1, where the installer lives
+- Amended by: PR-25a (D47) on 2026-10-31: 29.1 (two more required encoders),
+  29.3 (segment files, renamed when complete), 29.4 (one process per segment,
+  audio in the join), 29.9 (the export manifest), and 29.10 (the commands of a
+  range render); proposed with D47 and in force when the owner accepts it
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D04, D06, D07, D10, D12, D13, D14, D23, D26, D27, D28,
@@ -94,6 +98,10 @@ Evidence gathered on 2026-09-22:
 | Version line (both binaries) | `ffmpeg version n8.1.3-20260921 …` and `ffprobe version n8.1.3-20260921 …`, followed by `Copyright (c) 2000-2026` / `2007-2026` |
 | Required encoders            | `libx264` (video), `aac` (audio, native)                                                                                        |
 | Platform                     | `linux`/`x64`, inside the image of D26.2                                                                                        |
+
+(Amended by: PR-25a (D47.4, D47.7). The required encoders are now `libx264`,
+`aac`, `pcm_f32le` (the audio intermediate), `mjpeg`, and `libwebp` (still
+frames). The pinned build is unchanged; it already has all five.)
 
 `ffmpeg -hide_banner -version` in the pinned container printed:
 
@@ -198,6 +206,13 @@ pipe:1`); the Producer compares that list with its own after FFmpeg exits, and
   `playwright-core`'s manifest with it: the rule is a tripwire over the source,
   not a sandbox.
 
+  (Amended by: PR-25a (D47.3, D47.6). FFmpeg writes the files of segments, the
+  audio intermediate, and the joined MP4, each as `<name>.partial`, and the
+  Producer renames each one when it is complete and checked; the lint rule
+  allows `rename` next to removing a partial output. Frames still never reach
+  a file: the receipt, the backpressure, and the self-check above apply to
+  every segment.)
+
 **29.4 Encoding.** The arguments, in this order (`<fps>` is the composition's,
 `<w>:<h>` the preset's size):
 
@@ -229,6 +244,14 @@ checks of 29.11 seeing it. `+bitexact` and `-map_metadata -1` leave no creation
 time and no encoder version string in the file. The manifest records the list
 with the output path replaced by `<output>`, so it is the same in every run.
 Level 4.0 admits 8 160 macroblocks per frame, exactly 1080x1920, at 30 fps.
+
+(Amended by: PR-25a (D47.3 to D47.5). These arguments are now split in three
+processes. A segment runs them without `-i pipe:3`, the audio graph, `-map [a]`,
+the AAC arguments, `-flags:a +bitexact`, and `+faststart`. The audio pass
+renders the graph of 29.6 to a `pcm_f32le` WAV. The join copies the video of the
+segments through the concat demuxer, encodes that WAV with the AAC arguments
+above, and writes `+faststart`. The manifest records the three lists as
+`segmentArgs`, `audioArgs`, and `joinArgs`.)
 
 **29.5 Presets (D07, Q2).** A preset names the short side of the output. The
 composition is rendered once, at its own size and device scale factor 1 (D26.3);
@@ -334,6 +357,12 @@ with:
   measure it from inside.
 - `blockedRequests` as in D28.1. No wall-clock value, as in D28.7.
 
+(Amended by: PR-25a (D47.5, D47.6). The manifest of an export or a join has
+`manifestVersion` 3 and `kind: "export"`, adds `range`, `segmentFrames`, and
+`segments`, replaces `ffmpeg.args` with the three lists of 29.4, and adds the
+range of samples and the intermediate's hash to `audio`. The manifest of
+`renderFrames` and the golden manifests keep version 2.)
+
 **29.10 CLI.** `kadrion export --composition <file> --assets <file> --out <dir>
 --preset <1080p|720p> [--ffmpeg <path>] [--ffprobe <path>]` writes
 `video-<preset>.mp4` and `video-<preset>.render-manifest.json` into `<dir>`.
@@ -342,6 +371,10 @@ it fails with `ffmpeg-missing`. It never searches `PATH`. The exit codes of D28.
 a `--preset` that is not a bare name (`[0-9a-z]+`, so it can never name a path)
 is a usage error, exit 2, while a name the Producer does not support is
 `preset-unsupported`, exit 1.
+
+(Amended by: PR-25a (D47.8). `export` also takes `--segment-frames`; the
+commands `render-range`, `render-audio`, `join`, and `render-still` render a
+range, the audio pass, the join, and one frame.)
 
 **29.11 Reference run (D28.9).** `tests/pinned/container/pinned-run.sh` is the
 one procedure, from Git Bash or Linux:

@@ -27,6 +27,8 @@
     "@kadrion/ai-sdk": "workspace:*",
     "@kadrion/cli": "workspace:*",
     "@kadrion/editor-sdk": "workspace:*",
+    "@kadrion/editor-session": "workspace:*",
+    "@kadrion/player": "workspace:*",
     "@kadrion/producer": "workspace:*",
     "@kadrion/renderer-dom": "workspace:*",
     "@kadrion/schema": "workspace:*",

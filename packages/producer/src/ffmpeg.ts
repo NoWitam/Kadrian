@@ -35,8 +35,15 @@ export const FFMPEG_VERSION_LINE = `ffmpeg version ${FFMPEG_VERSION} Copyright (
 export const FFPROBE_VERSION_LINE = `ffprobe version ${FFMPEG_VERSION} Copyright (c) 2007-2026 the FFmpeg developers`;
 export const FFMPEG_CONFIGURATION =
   "--prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-ffbuild-linux-gnu- --arch=x86_64 --target-os=linux --enable-gpl --enable-version3 --disable-debug --enable-iconv --enable-zlib --enable-libxml2 --enable-libsoxr --enable-openssl --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libdav1d --enable-libvorbis --enable-librav1e --enable-librsvg --enable-libxcb --enable-xlib --enable-libpulse --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-opencl --enable-amf --enable-libaom --enable-avisynth --enable-chromaprint --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribb24 --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librubberband --disable-schannel --enable-sdl2 --enable-libsnappy --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --enable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --disable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs='-lgomp -ldl' --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-ffbuild-linux-gnu-gcc --cxx=x86_64-ffbuild-linux-gnu-g++ --ar=x86_64-ffbuild-linux-gnu-gcc-ar --ranlib=x86_64-ffbuild-linux-gnu-gcc-ranlib --nm=x86_64-ffbuild-linux-gnu-gcc-nm --extra-version=20260921";
-/** The encoders the export uses; `-encoders` must list both (D29.1). */
-export const REQUIRED_ENCODERS: readonly string[] = Object.freeze(['libx264', 'aac']);
+/** The encoders the Producer uses; `-encoders` must list every one (D29.1, D47). */
+export const REQUIRED_ENCODERS: readonly string[] = Object.freeze([
+  'libx264',
+  'aac',
+  // The audio intermediate (D47.4) and the still frames (D47.7).
+  'pcm_f32le',
+  'mjpeg',
+  'libwebp',
+]);
 /** The platform of the pinned binaries (D29.1). */
 export const FFMPEG_PLATFORM = 'linux/x64';
 
@@ -216,6 +223,68 @@ export interface FfmpegTools {
   /** The presentation time of every video frame of a file, in its time base. */
   videoTimestamps(file: string): Promise<number[]>;
   spawnEncoder(args: readonly string[], withAudio: boolean): EncoderProcess;
+  /**
+   * Runs FFmpeg with `input` on standard input and returns what it printed on
+   * standard output as bytes: the audio pass, the join, and a still (D47). A
+   * process that outlives `timeoutMs` is killed and reported with code `null`.
+   */
+  run(args: readonly string[], input: Uint8Array, timeoutMs: number): Promise<BinaryResult>;
+  /** The SHA-256 of a file, read as a stream. */
+  sha256File(file: string): Promise<string>;
+  /** The samples, sample rate, and channels of the first audio stream of a file (D47.4). */
+  audioStream(file: string): Promise<{
+    readonly codec: string;
+    readonly sampleRate: number;
+    readonly channels: number;
+    readonly samples: number;
+  }>;
+}
+
+/** What a process printed on standard output, as bytes, and how it ended. */
+export interface BinaryResult {
+  readonly code: number | null;
+  readonly stdout: Uint8Array;
+  readonly stderr: string;
+}
+
+/** Runs `path` with `input` on standard input and collects standard output as bytes. */
+function runBinary(
+  path: string,
+  args: readonly string[],
+  input: Uint8Array,
+  timeoutMs: number,
+): Promise<BinaryResult> {
+  return new Promise((resolve) => {
+    const child = spawn(path, [...args], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+    const chunks: Buffer[] = [];
+    child.stdout.on('data', (chunk: Buffer) => chunks.push(chunk));
+    child.stdout.on('error', () => undefined);
+    const stderr = collect(child.stderr, STDERR_TAIL);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGKILL');
+    }, timeoutMs);
+    // FFmpeg may stop reading once it has what it needs; that is not an error here.
+    child.stdin.on('error', () => undefined);
+    child.stdin.end(input);
+    const finish = (code: number | null, extra: string): void => {
+      clearTimeout(timer);
+      void stderr.then((text) => {
+        resolve({
+          code: timedOut ? null : code,
+          stdout: new Uint8Array(Buffer.concat(chunks)),
+          stderr: `${text}${timedOut ? `killed after ${String(timeoutMs)} ms` : ''}${extra}`,
+        });
+      });
+    };
+    child.on('error', (reason) => {
+      finish(null, String(reason));
+    });
+    child.on('close', (code) => {
+      finish(code, '');
+    });
+  });
 }
 
 const STDERR_TAIL = 16 * 1024;
@@ -366,6 +435,29 @@ export async function pinnedFfmpeg(
         .trim()
         .split('\n')
         .map((line) => Number(line.split(',')[0]?.trim()));
+    },
+    run: (args, input, timeoutMs) => runBinary(paths.ffmpegPath, args, input, timeoutMs),
+    sha256File: (file) => host.sha256(file),
+    async audioStream(file) {
+      const result = await host.run(paths.ffprobePath, [
+        ...['-v', 'error', '-select_streams', 'a:0'],
+        ...['-show_entries', 'stream=codec_name,sample_rate,channels,duration_ts'],
+        ...['-of', 'csv=p=0', file],
+      ]);
+      const [codec = '', rate, channels, samples] = result.stdout.trim().split(',');
+      const numbers = [rate, channels, samples].map((value) => Number(value));
+      if (result.code !== 0 || numbers.some((value) => !Number.isSafeInteger(value))) {
+        throw new ProducerError(
+          'encode-failed',
+          `ffprobe cannot read the audio of ${file}: ${result.stderr.trim()}`,
+        );
+      }
+      return {
+        codec,
+        sampleRate: numbers[0] ?? 0,
+        channels: numbers[1] ?? 0,
+        samples: numbers[2] ?? 0,
+      };
     },
     spawnEncoder(args, withAudio) {
       const child = spawn(paths.ffmpegPath, [...args], {

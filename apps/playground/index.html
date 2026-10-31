@@ -105,6 +105,12 @@
         transform: scale(0.35);
         transform-origin: 0 0;
       }
+      /* The preview takes no pointer input: the overlay does. Chromium otherwise routes
+         the pointer over a grip that appears after the render frame was mounted to
+         that out-of-process frame, and the grip never sees it (PR-25a). */
+      #stage {
+        pointer-events: none;
+      }
       /* The drag affordance the application owns; it never reaches the renderer's DOM. */
       #overlay {
         position: absolute;
@@ -126,6 +132,7 @@
         "imports": {
           "@kadrion/ai-sdk": "/pkg/ai-sdk/index.js",
           "@kadrion/editor-sdk": "/pkg/editor-sdk/index.js",
+          "@kadrion/editor-session": "/pkg/editor-session/index.js",
           "@kadrion/player": "/pkg/player/index.js",
           "@kadrion/renderer-dom": "/pkg/renderer-dom/index.js",
           "@kadrion/runtime": "/pkg/runtime/index.js",
