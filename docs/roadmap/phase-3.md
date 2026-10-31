@@ -201,6 +201,8 @@ items that reopen it. PR-35 is this document.
 
 ### PR-26 — Delivering the packages
 
+- Status: in review (2026-10-31), with its ADR D45 (proposed). The first
+  release is the tag `v0.1.0`, which only the owner pushes after the merge.
 - **Goal:** the host installs exact, verifiable builds of Kadrion in the
   browser and on its queue worker without a package registry (D37.3).
 - **Need:** the browser side needs `@kadrion/editor-session`, `@kadrion/player`

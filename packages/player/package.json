@@ -1,6 +1,6 @@
 {
   "name": "@kadrion/player",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "browser host, iframe protocol, playback and seek.",
   "license": "UNLICENSED",
@@ -12,7 +12,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/.tsbuildinfo",
+    "!dist/**/*.map"
   ],
   "dependencies": {
     "@kadrion/renderer-dom": "workspace:*",

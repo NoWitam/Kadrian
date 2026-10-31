@@ -1,6 +1,6 @@
 {
   "name": "@kadrion/cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "local rendering and diagnostics.",
   "license": "UNLICENSED",
@@ -12,7 +12,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/.tsbuildinfo",
+    "!dist/**/*.map"
   ],
   "bin": {
     "kadrion": "./dist/bin.js"

@@ -39,7 +39,7 @@ import {
   type InstallOptions,
   type Spawn,
   type SpawnedProcess,
-} from './ffmpeg-install.js';
+} from '../src/ffmpeg-install.js';
 
 const ASSET = 'ffmpeg-n8.1.3-linux64-gpl-8.1.tar.xz';
 const RELEASE = 'autobuild-2026-09-21-13-55';

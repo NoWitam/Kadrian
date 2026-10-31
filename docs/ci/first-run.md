@@ -171,7 +171,8 @@ signed-in account and were not read; the cause was reproduced instead:
   archive's owner, uid 1001. Where root cannot do that (for example on a WSL
   mount), tar fails with "Cannot change ownership". In Docker Desktop it
   succeeds, so this was not the cause of the run, but it is fixed too.
-- **Fix** (`tests/ci/ffmpeg-install.ts`), in this order:
+- **Fix** (`tests/ci/ffmpeg-install.ts`, since PR-26
+  `packages/cli/src/ffmpeg-install.ts`), in this order:
   1. The archive is verified by its SHA-256.
   2. It is decompressed by `xz -dc` if `xz` runs, otherwise by `python3` with
      `lzma`. Neither is an explicit `no-decompressor` error.
@@ -229,7 +230,8 @@ workflow is consistent, not that it works:
     `node --run build && vitest run --config vitest.pinned.config.ts`.
   - Its configuration writes the raw report `.kadrion-out/vitest-pinned.json`
     and allows no retry.
-- **FFmpeg install (PR-14).** `tests/ci/ffmpeg-install.test.ts` checks, without
+- **FFmpeg install (PR-14).** `tests/ci/ffmpeg-install.test.ts` (since PR-26
+  `packages/cli/test/ffmpeg-install.test.ts`) checks, without
   a network, the three ways of decompressing (`xz`, `python3` with `lzma`,
   neither) and the arguments of `tar`. It also checks that the staging
   directory is removed after every failure, and that a verified installation

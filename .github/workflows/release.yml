@@ -1,0 +1,81 @@
+# The release of D45: a tag v<version> packs every shipped package with
+# `pnpm pack`, writes kadrion-release.json with the SHA-256 and the integrity of
+# every tarball, installs the tarballs into a clean project by integrity and
+# renders one frame there in the pinned image, and only then attaches the
+# tarballs and the manifest to a GitHub release of that tag. Nothing is
+# published to a registry, and the packages stay private and UNLICENSED (D37).
+# This file is separate from ci.yml, which stays byte for byte (Q14).
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pack:
+    runs-on: ubuntu-24.04
+    container:
+      # The image of D26.2, as in ci.yml.
+      image: mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
+      options: --platform linux/amd64 --ipc=host
+    env:
+      KADRION_PINNED_IMAGE: mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - name: Install
+        run: corepack pnpm install --frozen-lockfile
+      - name: Check
+        run: corepack pnpm run check
+      # Refuses a tag that is not v and the one version of the packages.
+      - name: Pack
+        run: node --experimental-strip-types tests/release/pack-release.ts --tag "$GITHUB_REF_NAME" --out .kadrion-release
+      # A clean project outside the workspace installs the tarballs by integrity,
+      # validates, dispatches, renders one frame, and bundles the browser packages.
+      - name: Install smoke test
+        run: node --experimental-strip-types tests/release/smoke-release.ts --dir .kadrion-release --render
+      - name: Release files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kadrion-release
+          path: .kadrion-release/
+          if-no-files-found: error
+
+  publish:
+    needs: pack
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: kadrion-release
+          path: release
+      # The files that are attached are exactly those the manifest names, by hash.
+      - name: Verify
+        working-directory: release
+        run: |
+          jq -r '.packages[] | "\(.sha256 | ltrimstr("sha256:"))  \(.file)"' kadrion-release.json | sha256sum --check --strict -
+          test "$(ls | wc -l)" -eq "$(jq '.packages | length + 1' kadrion-release.json)"
+          test "$(jq -r .tag kadrion-release.json)" = "$GITHUB_REF_NAME"
+          test "$(jq -r .commit kadrion-release.json)" = "$GITHUB_SHA"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Kadrion $GITHUB_REF_NAME, commit $GITHUB_SHA."
+            echo
+            echo "Install the tarballs by URL and integrity; kadrion-release.json names each one by its SHA-256 and integrity, the schema version, the runtime build, and the pinned render environment. See the README, \"Installing a release\" (D45)."
+            echo
+            echo "No licence is granted: the code is proprietary, and these files are not published to any registry (D37)."
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "Kadrion $GITHUB_REF_NAME" --notes-file notes.md

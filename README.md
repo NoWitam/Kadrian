@@ -26,8 +26,8 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D37; all accepted, except
-  D10, superseded by D37)
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D45; all accepted, except
+  D10, superseded by D37, and D45, proposed)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
@@ -111,7 +111,9 @@ It serves http://127.0.0.1:4520/ (set `PORT` to change it). The page offers:
 
 The packages are workspace packages: an application in this repository depends
 on them with `"@kadrion/<name>": "workspace:*"` and imports them by name. They
-are ESM, and they resolve to `dist`, so run `node --run build` first. The
+are ESM, and they resolve to `dist`, so run `node --run build` first. A host
+outside this repository installs the tarballs of a release instead (section 10,
+D45). The
 playground (`apps/playground`) and the tests of `tests/app` and `tests/pinned`
 are complete, working examples of everything below.
 
@@ -125,7 +127,7 @@ are complete, working examples of everything below.
 | `@kadrion/editor-session` | join the bus and the Player: every edit reaches the preview, one table of events |
 | `@kadrion/ai-sdk`         | give a model tools that dispatch the same commands                               |
 | `@kadrion/producer`       | render frames and export MP4 in the pinned Chromium, from Node.js                |
-| `@kadrion/cli`            | render frames and export MP4 from the command line                               |
+| `@kadrion/cli`            | render and export from the command line; fetch FFmpeg; check the environment     |
 | `@kadrion/test-fixtures`  | the reference composition, its generated assets, and the golden frames           |
 
 `@kadrion/test-fixtures/compatibility` is a second entry of the fixtures: the
@@ -723,7 +725,69 @@ node packages/cli/dist/bin.js export --composition composition.json \
 - **FFmpeg:** it comes from `--ffmpeg` and `--ffprobe`, or from `KADRION_FFMPEG`
   and `KADRION_FFPROBE`.
 - **Exit codes:** 0 for success, 2 for a usage error, and 1 for an error of the
-  Producer.
+  Producer or of the FFmpeg installation.
+
+For a host's worker (D45):
+
+```bash
+kadrion fetch-ffmpeg --dir /opt/kadrion/ffmpeg
+kadrion doctor --ffmpeg /opt/kadrion/ffmpeg/autobuild-2026-09-21-13-55/bin/ffmpeg \
+  --ffprobe /opt/kadrion/ffmpeg/autobuild-2026-09-21-13-55/bin/ffprobe
+```
+
+- **`fetch-ffmpeg`:** downloads the pinned FFmpeg archive unless a verified one
+  is in the directory, refuses any other bytes, installs `ffmpeg` and `ffprobe`
+  only when both have their pinned SHA-256, and prints both paths. It needs a
+  network; the render does not.
+- **`doctor`:** prints a JSON report of whether this process is the one
+  environment whose output is reference output: Linux x64, the pinned image
+  declared in `KADRION_PINNED_IMAGE`, the pinned Playwright and Chromium, the
+  pinned FFmpeg (from the flags or `KADRION_FFMPEG` and `KADRION_FFPROBE`), no
+  network but loopback, and the runtime build. It exits 0 when every check
+  passes and 3 otherwise; output anywhere else is informative.
+
+### 10. Installing a release
+
+A release is the tag `v<version>` of this repository. Its GitHub release holds
+one tarball per package, `kadrion-<name>-<version>.tgz`, and
+`kadrion-release.json`, which names each tarball by its SHA-256 and its
+`integrity`, together with the schema version the release validates, the
+versions its migration accepts (D43), the hash of the runtime build, and the
+pinned image and FFmpeg of the reference environment. `@kadrion/test-fixtures`
+is not shipped. The release workflow
+([`.github/workflows/release.yml`](.github/workflows/release.yml)) installs the
+tarballs into a clean project and renders a frame before it attaches them.
+
+Pin every Kadrion package, also the ones you do not import, because the
+tarballs name each other by version, and no `@kadrion` name may resolve from a
+registry. With npm, give each tarball as a dependency and as an override, for
+example from a vendored directory:
+
+```json
+{
+  "dependencies": {
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.1.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.1.0.tgz"
+  },
+  "overrides": {
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.1.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.1.0.tgz"
+  }
+}
+```
+
+and so on for all nine tarballs, or the release URLs in place of the files.
+Check that the lockfile records the `integrity` of `kadrion-release.json` for
+each one; with pnpm, put the same specifiers under `overrides`. Upgrading means
+replacing all nine at once by the tarballs of one release.
+
+The browser side needs `schema`, `editor-sdk`, `ai-sdk`, `editor-session`, and
+`player` (with `renderer-dom` and `runtime`, whose runtime build the host
+serves, section 4). The worker needs `producer` and `cli`, the pinned image,
+and the pinned FFmpeg, which Kadrion does not ship: `kadrion fetch-ffmpeg`
+installs it, and `kadrion doctor` says whether the worker produces reference
+output (section 9). The packages stay private and unlicensed: a release
+grants no licence (D37).
 
 ## Layout
 
@@ -743,6 +807,7 @@ tests/
   app/            the playground's drag and the AI tool on one bus (P3, P4)
   parity/         the parity metric and record (D33, D34)
   ci/             the CI identity and the pinned test summary, and their generators
+  release/        packing a release, its manifest, and the install smoke test (D45)
   pinned/         browser and export tests in Chromium (D26–D34)
 ```
 

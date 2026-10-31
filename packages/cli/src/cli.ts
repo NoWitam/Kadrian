@@ -1,9 +1,11 @@
 /**
- * The command line of D28.8 and D29.10:
+ * The command line of D28.8, D29.10, and D45:
  *
  *   kadrion render-frames --composition <file> --assets <file> --out <dir> --times <t,…>
  *   kadrion export --composition <file> --assets <file> --out <dir> --preset <1080p|720p>
  *                  [--ffmpeg <path>] [--ffprobe <path>]
+ *   kadrion fetch-ffmpeg --dir <dir>
+ *   kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]
  *
  * `render-frames` renders frame times of a composition to `frame-<index>.png` and
  * writes `render-manifest.json`. `export` writes `video-<preset>.mp4` and
@@ -12,6 +14,9 @@
  * `PATH` (D29.1). The asset file maps asset IDs to `{ path, mediaType }`,
  * with paths relative to that file: where bytes live is the host's business,
  * never the document's (D14). The CLI knows no golden timestamp (D12).
+ * `fetch-ffmpeg` installs the pinned FFmpeg into a directory and prints the two
+ * paths; `doctor` prints a JSON report of whether this process is the reference
+ * environment, and exits 3 when it is not (D45).
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -20,6 +25,9 @@ import { parseArgs } from 'node:util';
 
 import {
   exportMp4,
+  FFMPEG_SHA256,
+  FFPROBE_SHA256,
+  type FfmpegPaths,
   ProducerError,
   renderFrames,
   type ExportRequest,
@@ -28,13 +36,21 @@ import {
   type RenderResult,
 } from '@kadrion/producer';
 
+import { runDoctor, type DoctorReport } from './doctor.js';
+import { fetchFfmpeg, type FetchFfmpegOptions } from './fetch-ffmpeg.js';
+import { FfmpegInstallError, type Installed } from './ffmpeg-install.js';
+
 export const EXIT_OK = 0;
 export const EXIT_PRODUCER_ERROR = 1;
 export const EXIT_USAGE = 2;
+/** `kadrion doctor`: the report was written, and this is not the reference environment. */
+export const EXIT_NOT_REFERENCE = 3;
 
 export const USAGE = [
   'Usage: kadrion render-frames --composition <file> --assets <file> --out <dir> --times <t,...>',
   '       kadrion export --composition <file> --assets <file> --out <dir> --preset <1080p|720p> [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion fetch-ffmpeg --dir <dir>',
+  '       kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]',
 ].join('\n');
 
 /** Where `kadrion export` finds the pinned executables without flags (D29.10). */
@@ -48,11 +64,15 @@ export interface CliIo {
 
 export type Render = (request: RenderRequest) => Promise<RenderResult>;
 export type Export = (request: ExportRequest) => Promise<ExportResult>;
+export type FetchFfmpeg = (options: FetchFfmpegOptions) => Promise<Installed>;
+export type Doctor = (ffmpeg: Partial<FfmpegPaths>) => Promise<DoctorReport>;
 
 /** What the commands run on; tests replace them. */
 export interface CliHosts {
   readonly render: Render;
   readonly exportMp4: Export;
+  readonly fetchFfmpeg: FetchFfmpeg;
+  readonly doctor: Doctor;
   readonly env: Readonly<Record<string, string | undefined>>;
 }
 
@@ -233,6 +253,42 @@ async function exportCommand(args: readonly string[], io: CliIo, hosts: CliHosts
   return EXIT_OK;
 }
 
+async function fetchFfmpegCommand(
+  args: readonly string[],
+  io: CliIo,
+  fetch: FetchFfmpeg,
+): Promise<number> {
+  const { values } = parseArgs({
+    args: [...args],
+    options: { dir: { type: 'string' } },
+    strict: true,
+    allowPositionals: false,
+  });
+  if (values.dir === undefined || values.dir === '') throw new UsageError('--dir is required.');
+  // Progress goes to standard error; standard output carries only the two paths.
+  const installed = await fetch({ dir: values.dir, log: io.err });
+  io.out(`ffmpeg ${installed.ffmpeg} ${FFMPEG_SHA256}`);
+  io.out(`ffprobe ${installed.ffprobe} ${FFPROBE_SHA256}`);
+  return EXIT_OK;
+}
+
+async function doctorCommand(args: readonly string[], io: CliIo, hosts: CliHosts): Promise<number> {
+  const { values } = parseArgs({
+    args: [...args],
+    options: { ffmpeg: { type: 'string' }, ffprobe: { type: 'string' } },
+    strict: true,
+    allowPositionals: false,
+  });
+  const ffmpegPath = values.ffmpeg ?? hosts.env[FFMPEG_VARIABLE];
+  const ffprobePath = values.ffprobe ?? hosts.env[FFPROBE_VARIABLE];
+  const report = await hosts.doctor({
+    ...(ffmpegPath === undefined ? {} : { ffmpegPath }),
+    ...(ffprobePath === undefined ? {} : { ffprobePath }),
+  });
+  io.out(JSON.stringify(report, null, 2));
+  return report.reference ? EXIT_OK : EXIT_NOT_REFERENCE;
+}
+
 /** Runs the CLI and returns its exit code; nothing here calls `process.exit`. */
 export async function runCli(
   argv: readonly string[],
@@ -243,14 +299,18 @@ export async function runCli(
   const given: CliHosts = {
     render: hosts.render ?? renderFrames,
     exportMp4: hosts.exportMp4 ?? exportMp4,
+    fetchFfmpeg: hosts.fetchFfmpeg ?? fetchFfmpeg,
+    doctor: hosts.doctor ?? ((ffmpeg) => runDoctor(ffmpeg)),
     env: hosts.env ?? process.env,
   };
   try {
     if (command === 'render-frames') return await renderCommand(rest, io, given.render);
     if (command === 'export') return await exportCommand(rest, io, given);
+    if (command === 'fetch-ffmpeg') return await fetchFfmpegCommand(rest, io, given.fetchFfmpeg);
+    if (command === 'doctor') return await doctorCommand(rest, io, given);
     throw new UsageError(USAGE);
   } catch (reason) {
-    if (reason instanceof ProducerError) {
+    if (reason instanceof ProducerError || reason instanceof FfmpegInstallError) {
       io.err(`error ${reason.code}: ${reason.message}`);
       return EXIT_PRODUCER_ERROR;
     }
