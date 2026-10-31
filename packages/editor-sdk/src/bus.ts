@@ -10,6 +10,7 @@ import { validateComposition, type ValidatedComposition } from '@kadrion/schema'
 import { executeCommand, type CommandResult } from './apply.js';
 import { isPlainObject, type Command } from './commands.js';
 import { EditorError } from './errors.js';
+import { factsOf, type MediaFacts, type MediaFactsLookup } from './media.js';
 import { parseCommand } from './registry.js';
 
 /** What one committed operation did: the same shape for a dispatch, a transaction, undo, and redo. */
@@ -63,6 +64,12 @@ export interface CommandBusOptions {
   readonly historyLimit?: number;
   /** Required before `subscribe`: where the errors of listeners go (D38.8). */
   readonly onListenerError?: ListenerErrorHandler;
+  /**
+   * The media facts the host read from verified bytes, by content hash (D49.6,
+   * D50.6). Without them, every command that sets the sampled source range of a
+   * video node is refused with `media-facts-missing`.
+   */
+  readonly mediaFacts?: MediaFactsLookup;
 }
 
 export interface CommandBus {
@@ -70,6 +77,12 @@ export interface CommandBus {
   getDocument(): ValidatedComposition;
   canUndo(): boolean;
   canRedo(): boolean;
+  /**
+   * The media facts the host supplied for the bytes with this content hash, as
+   * the bus checks commands against them, or `null` (D49.6). `describe_document`
+   * reports them to a model.
+   */
+  mediaFactsOf(contentHash: string): MediaFacts | null;
   /**
    * Parses, applies, and records one command. The argument is `unknown` on
    * purpose: the AI tool contract of D31 hands its arguments to this same
@@ -93,16 +106,19 @@ export interface CommandBus {
 /** The default of `historyLimit` (D38.7). */
 const HISTORY_LIMIT = 100;
 
-const OPTIONS: readonly string[] = Object.freeze(['historyLimit', 'onListenerError']);
+const OPTIONS: readonly string[] = Object.freeze(['historyLimit', 'onListenerError', 'mediaFacts']);
 
 interface Settings {
   readonly historyLimit: number;
   readonly onListenerError: ListenerErrorHandler | null;
+  readonly mediaFacts: MediaFactsLookup | null;
 }
 
 /** Reads every option once, so a getter cannot change a setting later (D38.7). */
 function settingsOf(options: unknown): Settings {
-  if (options === undefined) return { historyLimit: HISTORY_LIMIT, onListenerError: null };
+  if (options === undefined) {
+    return { historyLimit: HISTORY_LIMIT, onListenerError: null, mediaFacts: null };
+  }
   if (!isPlainObject(options)) {
     throw new EditorError('invalid-argument', 'The options of the command bus are not an object.');
   }
@@ -129,6 +145,10 @@ function settingsOf(options: unknown): Settings {
     Object.prototype.hasOwnProperty.call(options, key) ? options[key] : undefined;
   const historyLimit = own('historyLimit');
   const onListenerError = own('onListenerError');
+  const mediaFacts = own('mediaFacts');
+  if (mediaFacts !== undefined && typeof mediaFacts !== 'function') {
+    throw new EditorError('invalid-argument', '`mediaFacts` must be a function.');
+  }
   if (
     historyLimit !== undefined &&
     (typeof historyLimit !== 'number' || !Number.isSafeInteger(historyLimit) || historyLimit < 0)
@@ -146,6 +166,7 @@ function settingsOf(options: unknown): Settings {
     historyLimit: historyLimit === undefined ? HISTORY_LIMIT : historyLimit,
     onListenerError:
       onListenerError === undefined ? null : (onListenerError as ListenerErrorHandler),
+    mediaFacts: mediaFacts === undefined ? null : (mediaFacts as MediaFactsLookup),
   };
 }
 
@@ -200,7 +221,7 @@ export function createCommandBus(document: unknown, options?: CommandBusOptions)
       initial.errors.map(({ path, message }) => `${path}: ${message}`),
     );
   }
-  const { historyLimit, onListenerError } = settingsOf(options);
+  const { historyLimit, onListenerError, mediaFacts } = settingsOf(options);
   let current = initial.composition;
   // Each entry is the frozen list of commands one undo (or redo) applies.
   const undoable: (readonly Command[])[] = [];
@@ -233,7 +254,7 @@ export function createCommandBus(document: unknown, options?: CommandBusOptions)
     let created: readonly string[] = [];
     commands.forEach((command, at) => {
       try {
-        const result = executeCommand(candidate, command);
+        const result = executeCommand(candidate, command, mediaFacts);
         candidate = result.document;
         // Undo applies the inverses last first (D38.6).
         if (result.inverse !== null) inverses.unshift(result.inverse);
@@ -335,6 +356,7 @@ export function createCommandBus(document: unknown, options?: CommandBusOptions)
     getDocument: () => current,
     canUndo: () => undoable.length > 0,
     canRedo: () => redoable.length > 0,
+    mediaFactsOf: (contentHash) => (mediaFacts === null ? null : factsOf(mediaFacts, contentHash)),
     dispatch(command) {
       idle();
       const result = run([parseCommand(command)], false);

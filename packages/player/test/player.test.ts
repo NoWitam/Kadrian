@@ -11,6 +11,7 @@ import {
   generateReferenceAssets,
   referenceComposition,
   referenceExpectedRender,
+  videoComposition,
   type ExpectedElement,
   type ExpectedText,
 } from '@kadrion/test-fixtures';
@@ -414,6 +415,7 @@ describe('typed errors before the first frame, never ready (P1, D25.7)', () => {
       'asset-invalid',
     ],
     ['an invalid document', { ...(pinned as object), fps: 0 }, resolve, 'invalid-document'],
+    ['a document with video, until PR-28b', videoComposition, resolve, 'video-unsupported'],
   ])('reports %s', async (_, document, given, code) => {
     const harness = createHarness();
     const player = await started(harness);
@@ -839,6 +841,28 @@ describe('update in the same page (D44)', () => {
     });
     await expect(player.seek(0)).rejects.toMatchObject({ code: 'not-loaded' });
     await expect(player.update(pinned, resolve)).rejects.toMatchObject({ code: 'not-loaded' });
+  });
+
+  it('refuses video before it resolves an asset, naming every video asset and node (D50.6)', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    const asked: string[] = [];
+    const error = await player
+      .load(videoComposition, (request) => {
+        asked.push(request.id);
+        return null;
+      })
+      .catch((reason: unknown) => reason);
+    expect(error).toMatchObject({
+      code: 'video-unsupported',
+      details: [
+        'asset asset-video',
+        'node node-video-full',
+        'node node-video-cover',
+        'node node-video-contain',
+      ],
+    });
+    expect(asked).toEqual([]);
   });
 
   it('rejects an invalid document and an update before a load, sending nothing', async () => {

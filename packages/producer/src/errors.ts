@@ -59,6 +59,12 @@ export type ProducerErrorCode =
   | 'still-format-unsupported'
   /** A limit the host gave the job is exceeded: document, duration, frames, assets, or wall time (D48.4). */
   | 'limit-exceeded'
+  /** A video asset has no video stream the pinned FFmpeg can decode in presentation order (D50.5). */
+  | 'video-undecodable'
+  /** A video node samples source time at or after the end of its video (D49.6, D50.5). */
+  | 'source-range-exceeded'
+  /** The page refused the frames of the video nodes it was given (D50.4). */
+  | 'video-frames-invalid'
   /** The job was cancelled by its signal; nothing stays under a final name (D48.2). */
   | 'cancelled'
   /** Anything else the page reported. */
@@ -91,6 +97,7 @@ const PAGE_CODES: readonly ProducerErrorCode[] = [
   'readiness-unsupported',
   'custom-html-timeout',
   'custom-html-navigated',
+  'video-frames-invalid',
 ];
 
 /** A `RenderError` code or a code the page reported, as the Producer's; anything else is `page-error`. */

@@ -152,7 +152,8 @@ explained where it happens:
 |     4 | PR-25a | Range, segment, join, and still renders    | —      | —             | —           | yes    |
 |     5 | PR-25b | The render job contract                    | —      | —             | —           | if any |
 |     6 | PR-27  | The timeline model (ADR only)              | —      | —             | —           | —      |
-|     7 | PR-28  | Video, and `fit` of images and video       | `0.3`  | yes           | yes         | yes    |
+|     7 | PR-28a | Video in the Producer, and `fit`           | `0.3`  | yes           | yes         | yes    |
+|     7 | PR-28b | Video in the Player, media facts           | —      | if changed    | yes         | yes    |
 |     8 | PR-29  | Audio: clips, gain, fades, mix, playback   | `0.4`  | yes           | yes         | yes    |
 |     9 | PR-30  | Scenes in sequence                         | `0.5`  | yes           | yes         | yes    |
 |    10 | PR-31  | Timeline commands                          | —      | —             | —           | —      |
@@ -436,6 +437,19 @@ pack` does not publish.
 - **Impact:** none; documentation only.
 
 ### PR-28 — Video, and `fit` of images and video
+
+- Status: split in two by D50 (proposed 2026-10-31). **PR-28a** is in review:
+  schema `0.3` and its step, the source-frame rule, the runtime and the
+  renderer, `SetVideoAsset`, `SetVideoSource`, `SetNodeFit` and their tools,
+  the media-facts check of the bus, the Producer decoding with the pinned
+  FFmpeg, the second reference composition with its golden frames, and a
+  Player that refuses video with `video-unsupported`. `muted` and `volume`
+  move to PR-29 (D49.7, D50.1). The resolver delivers a video as bytes, like
+  every asset, and the Producer writes a private copy for FFmpeg (D50.5).
+  **PR-28b** follows: decoding in the Player's host window, delivery by `Blob`
+  and by path, `editor-session` reading media facts from verified bytes, and
+  the parity measurement with video rows and its threshold. The plan below is
+  the plan of both.
 
 - **Goal:** a video file is an asset, a video node shows the right source frame
   at every time in both hosts, and images and videos fit their box.

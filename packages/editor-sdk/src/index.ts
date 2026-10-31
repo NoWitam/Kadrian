@@ -12,7 +12,7 @@
  * can read a document through `describeDocument` (D46).
  */
 export { applyCommand } from './apply.js';
-export type { CommandResult } from './apply.js';
+export type { ApplyOptions, CommandResult } from './apply.js';
 export { createCommandBus } from './bus.js';
 export type {
   BusChange,
@@ -36,6 +36,7 @@ export {
   reorderNodeArgumentsSchema,
   setImageAssetArgumentsSchema,
   setNodeColorArgumentsSchema,
+  setNodeFitArgumentsSchema,
   setNodeLifetimeArgumentsSchema,
   setNodeOpacityArgumentsSchema,
   setNodePositionArgumentsSchema,
@@ -47,6 +48,8 @@ export {
   setTextContentArgumentsSchema,
   setTextFontArgumentsSchema,
   setTextFontSizeArgumentsSchema,
+  setVideoAssetArgumentsSchema,
+  setVideoSourceArgumentsSchema,
 } from './commands.js';
 export type {
   AddAnimationArguments,
@@ -98,6 +101,9 @@ export type {
   SetNodeColorArguments,
   SetNodeColorArgumentsSchema,
   SetNodeColorCommand,
+  SetNodeFitArguments,
+  SetNodeFitArgumentsSchema,
+  SetNodeFitCommand,
   SetNodeLifetimeArguments,
   SetNodeLifetimeArgumentsSchema,
   SetNodeLifetimeCommand,
@@ -131,10 +137,17 @@ export type {
   SetTextFontSizeArguments,
   SetTextFontSizeArgumentsSchema,
   SetTextFontSizeCommand,
+  SetVideoAssetArguments,
+  SetVideoAssetArgumentsSchema,
+  SetVideoAssetCommand,
+  SetVideoSourceArguments,
+  SetVideoSourceArgumentsSchema,
+  SetVideoSourceCommand,
 } from './commands.js';
 export { describeDocument } from './describe.js';
 export type { DocumentDescription, NodeDescription, SceneDescription } from './describe.js';
 export { EditorError } from './errors.js';
+export type { MediaFacts, MediaFactsLookup, VideoFacts } from './media.js';
 export type { EditorErrorCode } from './errors.js';
 export { COMMAND_TYPES, parseCommand } from './registry.js';
 export { COMMAND_TOOL_METADATA } from './tools.js';

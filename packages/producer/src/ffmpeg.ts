@@ -215,6 +215,32 @@ export interface AudioProbe {
   readonly samples: bigint;
 }
 
+/**
+ * The media facts of the first video stream of a file, as the pinned ffprobe
+ * reads them (D49.6, D50.5): its size, its time base, and the presentation
+ * timestamp of every decoded frame in presentation order, strictly ascending,
+ * with the duration of the last one.
+ */
+export interface VideoProbe {
+  readonly width: number;
+  readonly height: number;
+  readonly timeBase: { readonly num: number; readonly den: number };
+  readonly timestamps: readonly number[];
+  /** The duration of the last frame in ticks; the interval before it when the file states none. */
+  readonly lastDuration: number;
+}
+
+/**
+ * One running decode of a video file (D50.5): every frame of its first video
+ * stream, in presentation order, as packed RGB of `width × height × 3` bytes.
+ */
+export interface VideoDecoder {
+  /** The next frame, or `null` after the last. */
+  next(): Promise<Uint8Array | null>;
+  /** Stops the process; a pending `next` rejects. */
+  close(): void;
+}
+
 /** The running parts of the pinned FFmpeg that an export needs; tests replace them. */
 export interface FfmpegTools {
   readonly identity: FfmpegIdentity;
@@ -237,6 +263,10 @@ export interface FfmpegTools {
   ): Promise<BinaryResult>;
   /** The SHA-256 of a file, read as a stream. */
   sha256File(file: string): Promise<string>;
+  /** The media facts of the first video stream of a file, or `video-undecodable` (D50.5). */
+  probeVideo(file: string): Promise<VideoProbe>;
+  /** Starts decoding the first video stream of a file to packed RGB (D50.5). */
+  decodeVideo(file: string, width: number, height: number): VideoDecoder;
   /** The samples, sample rate, and channels of the first audio stream of a file (D47.4). */
   audioStream(file: string): Promise<{
     readonly codec: string;
@@ -409,6 +439,218 @@ async function probeAudioWith(ffprobePath: string, bytes: Uint8Array): Promise<A
   };
 }
 
+function undecodable(message: string): ProducerError {
+  return new ProducerError('video-undecodable', message);
+}
+
+/** Runs ffprobe on a file and hands every line of its standard output to `onLine`. */
+function fileLines(
+  ffprobePath: string,
+  args: readonly string[],
+  onLine: (line: string) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(ffprobePath, [...args], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
+    const stderr = collect(child.stderr, STDERR_TAIL);
+    let rest = '';
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', (chunk: string) => {
+      const parts = `${rest}${chunk}`.split('\n');
+      rest = parts.pop() ?? '';
+      for (const line of parts) onLine(line);
+    });
+    child.stdout.on('error', () => undefined);
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (rest !== '') onLine(rest);
+      void stderr.then((err) => {
+        if (code === 0) resolve();
+        else reject(undecodable(`ffprobe cannot read the video: ${err.trim()}`));
+      });
+    });
+  });
+}
+
+function positiveInteger(value: unknown): number | null {
+  const number = typeof value === 'number' ? value : Number(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : null;
+}
+
+/**
+ * Reads the facts of D50.5 in two passes: the stream (size and time base, as
+ * JSON) and then every decoded frame (best-effort timestamp and duration, one
+ * line each, so a long file costs no buffer). The timestamps must be safe
+ * integers and strictly ascending: a stream whose decoded order is not its
+ * presentation order cannot be sampled by the rule of D49.5.
+ */
+async function probeVideoWith(ffprobePath: string, file: string): Promise<VideoProbe> {
+  let json = '';
+  await fileLines(
+    ffprobePath,
+    [
+      ...['-v', 'error', '-select_streams', 'v:0'],
+      ...['-show_entries', 'stream=codec_type,width,height,time_base', '-of', 'json', file],
+    ],
+    (line) => {
+      json += `${line}\n`;
+    },
+  );
+  let stream: Partial<Record<string, unknown>> | undefined;
+  try {
+    stream = (JSON.parse(json) as { streams?: Partial<Record<string, unknown>>[] }).streams?.[0];
+  } catch {
+    stream = undefined;
+  }
+  const width = positiveInteger(stream?.width);
+  const height = positiveInteger(stream?.height);
+  const timeBase = typeof stream?.time_base === 'string' ? stream.time_base : '';
+  const [num, den] = timeBase.split('/').map(positiveInteger);
+  if (stream?.codec_type !== 'video' || width === null || height === null) {
+    throw undecodable('The file has no video stream with a size.');
+  }
+  if (num === null || num === undefined || den === null || den === undefined) {
+    throw undecodable('The video stream has no time base.');
+  }
+  const timestamps: number[] = [];
+  const durations: (number | null)[] = [];
+  const found: { problem: string | null } = { problem: null };
+  await fileLines(
+    ffprobePath,
+    [
+      ...['-v', 'error', '-select_streams', 'v:0'],
+      ...['-show_entries', 'frame=best_effort_timestamp,duration', '-of', 'csv=p=0', file],
+    ],
+    (line) => {
+      if (line.trim() === '' || found.problem !== null) return;
+      // The first frame may carry side data, which csv writes as one more, empty field.
+      const [timestamp, duration] = line.split(',').map((field) => field.trim());
+      const pts = Number(timestamp);
+      const last = timestamps.at(-1);
+      if (timestamp === '' || !Number.isSafeInteger(pts)) {
+        found.problem = `frame ${String(timestamps.length)} has no timestamp`;
+      } else if (last !== undefined && pts <= last) {
+        found.problem = `frame ${String(timestamps.length)} is not after the frame before it`;
+      } else {
+        timestamps.push(pts);
+        durations.push(positiveInteger(duration));
+      }
+    },
+  );
+  if (found.problem !== null) {
+    throw undecodable(`The video stream cannot be sampled: ${found.problem}.`);
+  }
+  const last = timestamps.at(-1);
+  const before = timestamps.at(-2);
+  const lastDuration =
+    durations.at(-1) ?? (last !== undefined && before !== undefined ? last - before : null);
+  if (lastDuration === null) {
+    throw undecodable(
+      timestamps.length === 0
+        ? 'The video stream has no frame.'
+        : 'The last frame of the video stream has no duration.',
+    );
+  }
+  return { width, height, timeBase: { num, den }, timestamps, lastDuration };
+}
+
+/** The arguments of the decode of D50.5 for the file at `input`; manifests write `<input>`. */
+export function videoDecodeArgs(input: string): string[] {
+  return [
+    ...['-nostdin', '-v', 'error', '-threads', '1', '-i', input, '-map', '0:v:0'],
+    ...['-fps_mode', 'passthrough', '-sws_flags', 'bitexact+accurate_rnd+full_chroma_int'],
+    ...['-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'],
+  ];
+}
+
+/**
+ * The decode of D50.5: one thread, every frame passed through in presentation
+ * order (`-fps_mode passthrough`), converted to packed RGB with bit-exact
+ * scaling flags, on standard output. The output is read one frame at a time,
+ * and the process is paused while a frame waits, so memory stays two frames.
+ */
+function decodeVideoWith(
+  ffmpegPath: string,
+  file: string,
+  width: number,
+  height: number,
+): VideoDecoder {
+  const frameBytes = width * height * 3;
+  const child = spawn(ffmpegPath, videoDecodeArgs(file), {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+  const stderr = collect(child.stderr, STDERR_TAIL);
+  let buffered: Buffer[] = [];
+  let size = 0;
+  let ended = false;
+  let failure: ProducerError | null = null;
+  let waiting: {
+    resolve: (frame: Uint8Array | null) => void;
+    reject: (reason: unknown) => void;
+  } | null = null;
+  const settle = (): void => {
+    if (waiting === null) return;
+    const { resolve, reject } = waiting;
+    if (failure !== null) {
+      waiting = null;
+      reject(failure);
+    } else if (size >= frameBytes) {
+      waiting = null;
+      const all = Buffer.concat(buffered);
+      const frame = new Uint8Array(all.subarray(0, frameBytes));
+      buffered = all.length > frameBytes ? [all.subarray(frameBytes)] : [];
+      size = all.length - frameBytes;
+      resolve(frame);
+    } else if (ended) {
+      waiting = null;
+      if (size === 0) resolve(null);
+      else reject(undecodable('The decoded video ends inside a frame.'));
+    }
+    if (size >= frameBytes) child.stdout.pause();
+    else child.stdout.resume();
+  };
+  child.stdout.on('data', (chunk: Buffer) => {
+    buffered.push(chunk);
+    size += chunk.length;
+    settle();
+  });
+  child.stdout.on('error', () => undefined);
+  child.on('error', (reason) => {
+    failure ??= undecodable(`FFmpeg cannot decode the video: ${String(reason)}`);
+    settle();
+  });
+  child.on('close', (code, signal) => {
+    void stderr.then((text) => {
+      if (code !== 0 && signal === null) {
+        failure ??= undecodable(`FFmpeg cannot decode the video: ${text.trim()}`);
+      }
+      ended = true;
+      settle();
+    });
+  });
+  child.stdout.pause();
+  return {
+    next() {
+      return new Promise((resolve, reject) => {
+        if (waiting !== null) {
+          reject(new ProducerError('page-error', 'A video frame is already being read.'));
+          return;
+        }
+        waiting = { resolve, reject };
+        settle();
+      });
+    },
+    close() {
+      failure ??= new ProducerError('cancelled', 'The video decoder was closed.');
+      child.kill('SIGKILL');
+      settle();
+    },
+  };
+}
+
 /** The tools of a verified pinned FFmpeg (D29.1). */
 export async function pinnedFfmpeg(
   paths: FfmpegPaths,
@@ -452,6 +694,8 @@ export async function pinnedFfmpeg(
     run: (args, input, timeoutMs, signal) =>
       runBinary(paths.ffmpegPath, args, input, timeoutMs, signal),
     sha256File: (file) => host.sha256(file),
+    probeVideo: (file) => probeVideoWith(paths.ffprobePath, file),
+    decodeVideo: (file, width, height) => decodeVideoWith(paths.ffmpegPath, file, width, height),
     async audioStream(file) {
       const result = await host.run(paths.ffprobePath, [
         ...['-v', 'error', '-select_streams', 'a:0'],

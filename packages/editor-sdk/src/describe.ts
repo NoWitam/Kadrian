@@ -8,6 +8,7 @@
 import type { Composition, ValidatedComposition } from '@kadrion/schema';
 
 import { deepFreeze } from './commands.js';
+import type { MediaFacts } from './media.js';
 
 /** One node, with what its place in the document says about it. */
 export interface NodeDescription {
@@ -45,7 +46,10 @@ export interface DocumentDescription {
   /** The length of the composition, in integer microseconds. */
   readonly durationUs: number;
   readonly scenes: readonly SceneDescription[];
-  /** The declared assets, as the document stores them. */
+  /**
+   * The declared assets, as the document stores them; a video asset whose
+   * facts the host supplied also states its `sourceDurationUs` (D49.6, D50.6).
+   */
   readonly assets: readonly unknown[];
   /** The clips, as the document stores them. */
   readonly clips: readonly unknown[];
@@ -83,10 +87,14 @@ function describeNode(
 }
 
 /**
- * Describes a validated document (D46.3). The result shares no object with the
+ * Describes a validated document (D46.3), with the source duration of every
+ * video asset whose facts `mediaFactsOf` knows (D49.6). The result shares no object with the
  * document's arrays it lists — it is a fresh JSON value — and is deep-frozen.
  */
-export function describeDocument(document: ValidatedComposition): DocumentDescription {
+export function describeDocument(
+  document: ValidatedComposition,
+  mediaFactsOf: (contentHash: string) => MediaFacts | null = () => null,
+): DocumentDescription {
   // A JSON round trip gives a value that shares nothing with the document,
   // whose objects belong to the bus and its history.
   const copy = structuredJson(document);
@@ -100,7 +108,10 @@ export function describeDocument(document: ValidatedComposition): DocumentDescri
       id: scene.id,
       nodes: scene.nodes.map((node, at) => describeNode(node, scene.id, at)),
     })),
-    assets: copy.assets,
+    assets: copy.assets.map((asset) => {
+      const facts = asset.type === 'video' ? mediaFactsOf(asset.contentHash) : null;
+      return facts === null ? asset : { ...asset, sourceDurationUs: facts.durationUs };
+    }),
     clips: copy.clips,
   });
 }

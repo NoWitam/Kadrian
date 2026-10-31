@@ -73,7 +73,23 @@ function nodeElement(
           display: 'block',
           width: cssPixels(node.width),
           height: cssPixels(node.height),
-          'object-fit': 'fill',
+          'object-fit': node.fit,
+        },
+      );
+    case 'video':
+      // An image without a source until a frame is supplied (D50.4): the host
+      // gives the pixels of the source frame for every frame it renders, and
+      // `applyVideoFrames` writes them. Nothing of the video's bytes is mounted.
+      return create(
+        document,
+        'img',
+        { ...address, alt: '' },
+        {
+          ...TRANSFORMED,
+          display: 'block',
+          width: cssPixels(node.width),
+          height: cssPixels(node.height),
+          'object-fit': node.fit,
         },
       );
     case 'text': {

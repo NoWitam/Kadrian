@@ -35,7 +35,7 @@ export {
   renderPageDocument,
 } from './render-page.js';
 export { MEDIA_TYPE, mediaTypeFits } from './media-type.js';
-export { resolveAssets } from './resolve.js';
+export { resolveAssets, resolveOneAsset } from './resolve.js';
 export type {
   AssetRequest,
   AssetResolver,
@@ -44,4 +44,6 @@ export type {
   VerifiedAsset,
 } from './resolve.js';
 export { synchronizeCustomHtml } from './synchronize.js';
+export { applyVideoFrames } from './video.js';
+export type { VideoFrame } from './video.js';
 export type { CustomHtmlHost, MessageListener, MessageTarget } from './synchronize.js';

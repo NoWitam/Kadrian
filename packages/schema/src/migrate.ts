@@ -17,18 +17,24 @@
 import type { ValidationError } from './errors.js';
 import { migrateThrough, type MigrationOutcome, type VersionEntry } from './migration/run.js';
 import { step01To02 } from './migration/step-0-1-to-0-2.js';
+import { step02To03 } from './migration/step-0-2-to-0-3.js';
 import { parseThrough, type ParseOutcome } from './migration/text.js';
 import {
   compositionSchemaV01,
   SCHEMA_VERSION_V01,
   type CompositionV01,
 } from './v0-1/composition-schema.js';
+import {
+  compositionSchemaV02,
+  SCHEMA_VERSION_V02,
+  type CompositionV02,
+} from './v0-2/composition-schema.js';
 import { validateSemantics } from './validate-semantics.js';
 import { validateStructure } from './validate-structure.js';
 import { validateComposition } from './validate.js';
 
 /** The versions this build can carry forward, oldest first; the last is the current one. */
-export type SchemaVersion = '0.1' | '0.2';
+export type SchemaVersion = '0.1' | '0.2' | '0.3';
 
 /** What `migrateComposition` returns (D42.8). */
 export type MigrationResult = MigrationOutcome<SchemaVersion>;
@@ -53,6 +59,13 @@ function errorsOfV01(input: unknown): readonly ValidationError[] {
   return validateSemantics(input as CompositionV01);
 }
 
+/** The validation a document of 0.2 had (D35.4, D50.7), as for 0.1. */
+function errorsOfV02(input: unknown): readonly ValidationError[] {
+  const structural = validateStructure(compositionSchemaV02, input);
+  if (structural.length > 0) return structural;
+  return validateSemantics(input as CompositionV02);
+}
+
 function errorsOfCurrent(input: unknown): readonly ValidationError[] {
   const result = validateComposition(input);
   return result.ok ? [] : result.errors;
@@ -65,7 +78,12 @@ const VERSIONS: readonly VersionEntry<SchemaVersion>[] = Object.freeze([
     // `migrateThrough` calls a step only with a document its entry found valid.
     next: (document: unknown) => step01To02(document as CompositionV01),
   }),
-  Object.freeze({ version: '0.2', errors: errorsOfCurrent }),
+  Object.freeze({
+    version: SCHEMA_VERSION_V02,
+    errors: errorsOfV02,
+    next: (document: unknown) => step02To03(document as CompositionV02),
+  }),
+  Object.freeze({ version: '0.3', errors: errorsOfCurrent }),
 ]);
 
 /**
@@ -86,11 +104,11 @@ export const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[] = Object.freeze
  *
  * 1. the input is validated under its own version;
  * 2. every later step is applied in order, and the output of a step is
- *    validated under the version it reaches before another step reads it — with
- *    the two versions of today there is no such intermediate version;
+ *    validated under the version it reaches before another step reads it — a
+ *    document of 0.1 is validated as 0.2 before the step to 0.3 reads it;
  * 3. the result is validated in full under the current version, always;
- * 4. `versions` reports the versions it went through: `['0.1', '0.2']` for a
- *    migration, `['0.2']` for a document that was current already.
+ * 4. `versions` reports the versions it went through: `['0.1', '0.2', '0.3']`
+ *    for a document of 0.1, `['0.3']` for a document that was current already.
  *
  * A document without an own `schemaVersion` that is a known string gets one
  * `unsupported-schema-version` error, `version: null`, and `versions: []`.

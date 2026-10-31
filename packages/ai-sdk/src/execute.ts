@@ -19,10 +19,12 @@ import { commandTypeOf, DESCRIBE_DOCUMENT, RUN_TRANSACTION } from './catalogue.j
 
 /**
  * The capabilities a tool call may use: the three methods of the host's bus
- * that read the document or edit it through the command path. No undo, no
- * redo, no subscription (D31.5, D46.4).
+ * that read the document or edit it through the command path, and the media
+ * facts it reads to `describe_document` where the host lends them (D49.6). No
+ * undo, no redo, no subscription (D31.5, D46.4).
  */
-export type ToolBus = Pick<CommandBus, 'getDocument' | 'dispatch' | 'dispatchTransaction'>;
+export type ToolBus = Pick<CommandBus, 'getDocument' | 'dispatch' | 'dispatchTransaction'> &
+  Partial<Pick<CommandBus, 'mediaFactsOf'>>;
 
 /** What a tool call did; frozen. */
 export type ToolResult =
@@ -104,7 +106,10 @@ export function executeTool(bus: ToolBus, name: unknown, args: unknown): ToolRes
     }
     return Object.freeze({
       kind: 'description',
-      description: describeDocument(bus.getDocument()),
+      description: describeDocument(
+        bus.getDocument(),
+        bus.mediaFactsOf === undefined ? undefined : (hash) => bus.mediaFactsOf?.(hash) ?? null,
+      ),
     });
   }
   if (name === RUN_TRANSACTION) {

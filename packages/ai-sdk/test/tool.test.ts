@@ -98,6 +98,7 @@ describe('executeSetNodePosition on the host bus (D31.3, D31.4)', () => {
     const onlyDispatch: CommandBus = Object.freeze({
       dispatch: (command: unknown) => real.dispatch(command),
       getDocument: refuse,
+      mediaFactsOf: refuse,
       canUndo: refuse,
       canRedo: refuse,
       undo: refuse,

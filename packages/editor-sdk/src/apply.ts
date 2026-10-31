@@ -8,6 +8,7 @@ import { validateComposition, type ValidatedComposition } from '@kadrion/schema'
 import type { Command } from './commands.js';
 import { fieldsOf } from './document.js';
 import { EditorError } from './errors.js';
+import { checkSourceRanges, type MediaFactsLookup } from './media.js';
 import { editDocument, parseCommand } from './registry.js';
 
 export interface CommandResult {
@@ -35,7 +36,11 @@ export interface Execution extends CommandResult {
  * an `EditorError` and leaves the input document exactly as it was; a candidate
  * and an inverse prepared for it are discarded (D39.5).
  */
-export function executeCommand(document: ValidatedComposition, command: Command): Execution {
+export function executeCommand(
+  document: ValidatedComposition,
+  command: Command,
+  mediaFacts: MediaFactsLookup | null = null,
+): Execution {
   const parsed = parseCommand(command);
   const edit = editDocument(fieldsOf(document), parsed);
   // A command that changes no value leaves the document and writes no history (D30.9).
@@ -55,6 +60,8 @@ export function executeCommand(document: ValidatedComposition, command: Command)
       )
     );
   }
+  // The sampled source ranges the command changed, against the host's media facts (D49.6).
+  checkSourceRanges(document, result.composition, mediaFacts);
   return {
     document: result.composition,
     inverse: edit.invert(),
@@ -71,7 +78,24 @@ export function executeCommand(document: ValidatedComposition, command: Command)
  * guarantees that the UI and the AI tool of D31 normalise their values
  * identically (D30.3).
  */
-export function applyCommand(document: ValidatedComposition, command: Command): CommandResult {
-  const { inverse, createdIds, document: edited } = executeCommand(document, command);
+export interface ApplyOptions {
+  /**
+   * The media facts the host read from verified bytes, by content hash (D49.6).
+   * Without them, a command that sets the sampled source range of a video node
+   * is refused with `media-facts-missing`.
+   */
+  readonly mediaFacts?: MediaFactsLookup;
+}
+
+export function applyCommand(
+  document: ValidatedComposition,
+  command: Command,
+  options: ApplyOptions = {},
+): CommandResult {
+  const {
+    inverse,
+    createdIds,
+    document: edited,
+  } = executeCommand(document, command, options.mediaFacts ?? null);
   return Object.freeze({ document: edited, inverse, createdIds });
 }

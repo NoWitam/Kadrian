@@ -592,7 +592,7 @@ describe('input', () => {
     [
       'an unknown node type',
       (title) => {
-        title.type = 'video';
+        title.type = 'sticker';
       },
     ],
   ])('reports a forged document with %s instead of skipping or guessing', (_, forge) => {

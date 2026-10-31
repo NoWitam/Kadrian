@@ -51,6 +51,7 @@ function plan(element: HTMLElement, state: NodeState, writes: MountedNode[]): vo
     case 'image':
     case 'text':
     case 'custom-html':
+    case 'video':
       writes.push({ element, state });
       return;
     default:

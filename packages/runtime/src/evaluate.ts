@@ -1,14 +1,21 @@
-import type { SceneNode, ValidatedComposition } from '@kadrion/schema';
+import {
+  sourceTimeUs,
+  type SceneNode,
+  type ValidatedComposition,
+  type VideoNode,
+} from '@kadrion/schema';
 
 import { EvaluationError, unsupported } from './errors.js';
 import { sampleScalar, sampleVec2 } from './keyframes.js';
 import type {
   CompositionState,
+  GroupNodeState,
   LeafNodeState,
   LeafNodeType,
   NodeState,
   TransformState,
   Vec2,
+  VideoNodeState,
 } from './state.js';
 
 type TransformedNode = Exclude<SceneNode, { readonly type: 'background' }>;
@@ -72,6 +79,20 @@ function evaluateLeaf<Type extends LeafNodeType>(
   };
 }
 
+/** A video leaf with the source time it shows while active (D49.5, D50.3). */
+function evaluateVideo(node: VideoNode, timeUs: number): VideoNodeState {
+  const leaf = evaluateLeaf(node, timeUs);
+  return { ...leaf, sourceTimeUs: leaf.active ? sourceTimeUs(node, timeUs) : null };
+}
+
+/** A child of a group: an image, a text, or a video. */
+function evaluateChild(
+  child: Extract<SceneNode, { readonly type: 'group' }>['children'][number],
+  timeUs: number,
+): GroupNodeState['children'][number] {
+  return child.type === 'video' ? evaluateVideo(child, timeUs) : evaluateLeaf(child, timeUs);
+}
+
 /**
  * Children keep their local values: nothing of the group is folded into them
  * (D15), their `active` included (D42.3). An inactive node is evaluated like any
@@ -87,12 +108,14 @@ function evaluateNode(node: SceneNode, timeUs: number): NodeState {
         type: node.type,
         active: isActive(node, timeUs),
         ...evaluateTransform(node, timeUs),
-        children: node.children.map((child) => evaluateLeaf(child, timeUs)),
+        children: node.children.map((child) => evaluateChild(child, timeUs)),
       };
     case 'image':
     case 'text':
     case 'custom-html':
       return evaluateLeaf(node, timeUs);
+    case 'video':
+      return evaluateVideo(node, timeUs);
     default:
       return unsupported(node, 'type');
   }

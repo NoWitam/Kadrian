@@ -12,6 +12,7 @@ import { generateImage } from './image.js';
 export { AUDIO_SAMPLE_RATE, AUDIO_SECONDS } from './audio.js';
 export { FONT_FAMILY_NAME, FONT_GLYPHS, FONT_UNITS_PER_EM } from './font.js';
 export { IMAGE_SIZE } from './image.js';
+export { VIDEO_FIXTURE, videoFixtureArguments } from './video.js';
 
 /** The bytes of one asset of the reference composition and the media type a host serves them with. */
 export interface FixtureAsset {

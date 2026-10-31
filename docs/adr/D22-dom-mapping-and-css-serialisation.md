@@ -9,6 +9,7 @@
   `renderState` also writes the visibility of every node
 - Date: 2026-09-22
 - Supersedes: —
+- Amended by: PR-28a (D50) on 2026-10-31: `fit` as `object-fit` on images and videos, and the video node as an `<img>` of host-supplied bytes (D50.4)
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, and open
   question Q5

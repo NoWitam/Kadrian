@@ -51,6 +51,9 @@ describe('parseCommand (D30.3)', () => {
       'RemoveKeyframe',
       'MoveKeyframe',
       'SetNodeLifetime',
+      'SetNodeFit',
+      'SetVideoAsset',
+      'SetVideoSource',
     ]);
   });
 

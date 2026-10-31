@@ -8,7 +8,7 @@ end-user application, and it does not depend on any consumer product.
 ([`docs/spike/report.md`](docs/spike/report.md), section 10), and phase two,
 authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
 PR-18 to PR-22; the current phase is the engine under a host's video editor
-([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.2` with its forward migration from `0.1`, the evaluation core, the DOM
+([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.3` with its forward migrations from `0.1` and `0.2`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -26,8 +26,8 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D46; all accepted, except
-  D10, superseded by D37, and D46, proposed)
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D50; all accepted, except
+  D10, superseded by D37, and D50, proposed)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
@@ -149,13 +149,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.2`
+A composition is a JSON document of schema `0.3`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.2",
+  "schemaVersion": "0.3",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -209,8 +209,15 @@ Unknown fields are errors. This one shows a text that fades in:
 }
 ```
 
-- **Nodes:** `background`, `text`, `image`, `group`, and `custom-html`. Array
-  order is the z-order.
+- **Nodes:** `background`, `text`, `image`, `video`, `group`, and
+  `custom-html`. Array order is the z-order. An image or a video fills its box
+  by `fit`: `fill`, `contain`, or `cover`.
+- **Video:** a `video` node shows source time
+  `sourceStartUs + (t − startUs)` of its video asset; the frame is chosen from
+  the container's own timestamps (D49, D50). Every source time a node samples
+  must lie inside the video. The Producer decodes video with the pinned FFmpeg,
+  so rendering a document with video nodes needs `--ffmpeg` and `--ffprobe`;
+  the Player refuses such a document with `video-unsupported` until PR-28b.
 - **Lifetimes:** every node has `startUs` and `durationUs`, in composition
   time, and is shown at `t` while `startUs <= t < startUs + durationUs`. A
   child of a group is shown only while its group is shown too. A lifetime may
@@ -221,7 +228,7 @@ Unknown fields are errors. This one shows a text that fades in:
 - **Animations:** `opacity`, `position`, and `scale`, with linear keyframes, on
   composition time: a lifetime does not shift them.
 - **Clips:** an audio track; the schema allows at most one.
-- **Assets:** images, fonts, and audio, by ID and `contentHash`.
+- **Assets:** images, fonts, audio, and video, by ID and `contentHash`.
 
 The font above is the one of `@kadrion/test-fixtures`. For every field, see the
 reference composition
@@ -246,12 +253,12 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.2` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.2` document, and none of them
+`validateComposition` accepts schema `0.3` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.3` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
-holds a document of schema `0.1` carries it forward itself, once, and stores the
+holds a document of schema `0.1` or `0.2` carries it forward itself, once, and stores the
 result as a new version:
 
 ```ts
@@ -259,8 +266,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.2 document; the input is untouched
-  migrated.versions; // ['0.1', '0.2'], or ['0.2'] for a document that was current
+  migrated.composition; // a new, validated 0.3 document; the input is untouched
+  migrated.versions; // ['0.1', '0.2', '0.3'], or ['0.3'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -270,8 +277,10 @@ if (migrated.ok) {
 - The step from `0.1` gives every node `startUs: 0` and the `durationUs` of the
   composition, so every node stays shown for the whole composition. Lengthening
   the composition later does not lengthen these lifetimes.
-- It changes nothing else: IDs, the order of arrays and of keys, and every other
-  value stay as they are.
+- The step from `0.2` gives every image `fit: "fill"`, which is how an image
+  was always drawn.
+- The steps change nothing else: IDs, the order of arrays and of keys, and
+  every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
   `unsupported-schema-version` (D35, D42).
 
@@ -293,8 +302,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.2 document that belongs to the caller
-  loaded.versions; // ['0.1', '0.2'] when it was migrated, ['0.2'] when it was current
+  loaded.composition; // a new, validated 0.3 document that belongs to the caller
+  loaded.versions; // ['0.1', '0.2', '0.3'] from 0.1, ['0.3'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -306,10 +315,10 @@ const saved = serializeComposition(composition);
 if (saved.ok) {
   saved.text; // compact JSON without a trailing newline
 } else {
-  saved.errors; // the validator's errors: a 0.1 document is refused, never migrated
+  saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -322,7 +331,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2']: what this build can carry forward
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.2"`, speaks of that.
+  supports `"0.3"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -695,6 +704,10 @@ try {
 ```
 
 - Without `chromium`, `renderFrames` launches and closes a browser itself.
+- A document with video nodes also needs `ffmpeg`: the pinned FFmpeg decodes
+  the source frames, and the manifest records how (`video`, D50). Every sampled
+  source range is checked against the video before the page opens
+  (`source-range-exceeded`).
 - Only a render in the pinned container is the reference output. Anywhere else,
   the pixels are informative (D26).
 
@@ -771,7 +784,8 @@ node packages/cli/dist/bin.js render-still --composition composition.json \
   an audio manifest, refuses parts that are not one render, and writes
   `video-<preset>.mp4` and its render manifest.
 - **`render-still`:** writes `still-NNNNNN.<png|jpg|webp>` and its manifest; PNG
-  needs no FFmpeg.
+  needs no FFmpeg unless the document has video nodes, and neither does
+  `render-frames`.
 - Every file is written under a temporary name and renamed when complete.
 - **FFmpeg:** it comes from `--ffmpeg` and `--ffprobe`, or from `KADRION_FFMPEG`
   and `KADRION_FFPROBE`.

@@ -15,6 +15,7 @@ import type {
   sceneNodeSchema,
   sceneSchema,
   textNodeSchema,
+  videoNodeSchema,
 } from './composition-schema.js';
 import type { Infer } from './json-schema.js';
 
@@ -45,6 +46,10 @@ export type BackgroundNode = Infer<typeof backgroundNodeSchema>;
 export type GroupNode = Infer<typeof groupNodeSchema>;
 export type ImageNode = Infer<typeof imageNodeSchema>;
 export type TextNode = Infer<typeof textNodeSchema>;
+export type VideoNode = Infer<typeof videoNodeSchema>;
 export type CustomHtmlNode = Infer<typeof customHtmlNodeSchema>;
 export type NodeAnimation = Infer<typeof animationSchema>;
 export type AudioClip = Infer<typeof audioClipSchema>;
+
+/** How an image or a video meets its box (D50). */
+export type Fit = ImageNode['fit'];

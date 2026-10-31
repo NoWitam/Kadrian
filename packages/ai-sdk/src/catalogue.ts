@@ -94,7 +94,7 @@ function describeDocumentTool(): ToolDefinition {
   return deepFreeze({
     name: DESCRIBE_DOCUMENT,
     description:
-      "Describes the current document and changes nothing. Returns the canvas size in composition pixels, fps, and durationUs; every scene with its nodes from the bottom layer to the top, each with its ID, type, parentId, layer (0 is the bottom), startUs and durationUs in integer microseconds, its stored fields (position, scale, opacity, animations with their keyframes, text, colour, and so on; the html of a Custom HTML element is left out), and a group's children; and the declared assets and clips. Call it before editing to learn the IDs that other tools take.\n\nExample arguments: {}",
+      "Describes the current document and changes nothing. Returns the canvas size in composition pixels, fps, and durationUs; every scene with its nodes from the bottom layer to the top, each with its ID, type, parentId, layer (0 is the bottom), startUs and durationUs in integer microseconds, its stored fields (position, scale, opacity, animations with their keyframes, text, colour, and so on; the html of a Custom HTML element is left out), and a group's children; and the declared assets and clips, where a video asset also states its sourceDurationUs, the length of the video in integer microseconds, when the host knows it. Call it before editing to learn the IDs that other tools take.\n\nExample arguments: {}",
     inputSchema: {
       type: 'object',
       description: 'No arguments.',

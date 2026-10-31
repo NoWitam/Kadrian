@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.2",
+  "schemaVersion": "0.3",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -73,7 +73,8 @@
               ],
               "assetId": "asset-image",
               "width": 400,
-              "height": 400
+              "height": 400,
+              "fit": "fill"
             },
             {
               "id": "node-caption",

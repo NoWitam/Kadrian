@@ -7,7 +7,7 @@
  * (D31.2). `parseCommand` (in `registry.ts`) is the only way a command comes
  * into existence; the parsers here read the fields of one command type.
  */
-import { compositionSchema, type Asset } from '@kadrion/schema';
+import { compositionSchema, type Asset, type Fit } from '@kadrion/schema';
 
 import { keyframeTimeBounds } from './animations.js';
 import { lifetimeBounds, type Bounds } from './lifetimes.js';
@@ -323,6 +323,46 @@ export interface SetNodeLifetimeCommand extends SetNodeLifetimeArguments {
   readonly type: 'SetNodeLifetime';
 }
 
+/** What a caller states for `SetNodeFit` (D50.6). */
+export interface SetNodeFitArguments {
+  readonly nodeId: string;
+  readonly fit: Fit;
+}
+
+/** How an image or a video meets its box: `fill`, `contain`, or `cover` (D50.1, D50.6). */
+export interface SetNodeFitCommand extends SetNodeFitArguments {
+  readonly type: 'SetNodeFit';
+}
+
+/** What a caller states for `SetVideoAsset` (D50.6). */
+export interface SetVideoAssetArguments {
+  readonly nodeId: string;
+  readonly assetId: string;
+}
+
+/**
+ * Points a video node at another video asset of the document; its source start,
+ * size, and fit stay. Its sampled source range is checked against the media
+ * facts of the new asset (D49.6, D50.6).
+ */
+export interface SetVideoAssetCommand extends SetVideoAssetArguments {
+  readonly type: 'SetVideoAsset';
+}
+
+/** What a caller states for `SetVideoSource` (D50.6). */
+export interface SetVideoSourceArguments {
+  readonly nodeId: string;
+  readonly sourceStartUs: number;
+}
+
+/**
+ * Sets the source time a video node shows at its start (D49.1); its lifetime
+ * stays. The sampled source range is checked against the media facts (D49.6).
+ */
+export interface SetVideoSourceCommand extends SetVideoSourceArguments {
+  readonly type: 'SetVideoSource';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -347,7 +387,10 @@ export type Command =
   | AddKeyframeCommand
   | RemoveKeyframeCommand
   | MoveKeyframeCommand
-  | SetNodeLifetimeCommand;
+  | SetNodeLifetimeCommand
+  | SetNodeFitCommand
+  | SetVideoAssetCommand
+  | SetVideoSourceCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -425,6 +468,9 @@ export type SetNodeColorArgumentsSchema = ClosedObjectSchema<keyof SetNodeColorA
 export type SetTextFontSizeArgumentsSchema = ClosedObjectSchema<keyof SetTextFontSizeArguments>;
 export type SetTextFontArgumentsSchema = ClosedObjectSchema<keyof SetTextFontArguments>;
 export type SetImageAssetArgumentsSchema = ClosedObjectSchema<keyof SetImageAssetArguments>;
+export type SetNodeFitArgumentsSchema = ClosedObjectSchema<keyof SetNodeFitArguments>;
+export type SetVideoAssetArgumentsSchema = ClosedObjectSchema<keyof SetVideoAssetArguments>;
+export type SetVideoSourceArgumentsSchema = ClosedObjectSchema<keyof SetVideoSourceArguments>;
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
 
@@ -602,6 +648,88 @@ const KEYFRAME_TIME = keyframeTimeBounds(compositionSchema);
 const LIFETIME = lifetimeBounds(compositionSchema);
 
 const ANIMATION_ID = 'The ID of an animation of the document.';
+
+/** The shapes of the node types that a scene holds, read from the schema (D30.8). */
+const NODE_SHAPES = compositionSchema.properties.scenes.items.properties.nodes.items.oneOf;
+type VideoShape = Extract<
+  (typeof NODE_SHAPES)[number],
+  { readonly properties: { readonly type: { readonly const: 'video' } } }
+>;
+const VIDEO_SHAPE = NODE_SHAPES.find(
+  (shape): shape is VideoShape => shape.properties.type.const === 'video',
+);
+if (VIDEO_SHAPE === undefined) throw new Error('The schema has no video node.');
+/** The values of `fit`, read from the schema (D50.1); images and videos share them. */
+const FITS: readonly Fit[] = VIDEO_SHAPE.properties.fit.enum;
+/** The bounds of `sourceStartUs`, read from the schema (D50.1). */
+const SOURCE_START: Bounds = {
+  minimum: VIDEO_SHAPE.properties.sourceStartUs.minimum,
+  maximum: VIDEO_SHAPE.properties.sourceStartUs.maximum,
+};
+
+/** The JSON Schema of the arguments of `SetNodeFit` (D50.6). */
+export const setNodeFitArgumentsSchema: SetNodeFitArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets how the picture of an image or a video meets the box of its node.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only images and videos have a fit.`,
+      minLength: 1,
+    },
+    fit: {
+      type: 'string',
+      description:
+        'fill stretches the picture to the box; contain shows all of it inside the box; cover fills the box and crops. contain and cover keep the aspect ratio and centre the picture.',
+      enum: FITS,
+    },
+  },
+  required: ['nodeId', 'fit'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetVideoAsset` (D50.6). */
+export const setVideoAssetArgumentsSchema: SetVideoAssetArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Points a video at another video asset of the document; its source start, size, and fit stay.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only videos have a video asset.`,
+      minLength: 1,
+    },
+    assetId: {
+      type: 'string',
+      description: 'The ID of a video asset the document declares.',
+      minLength: 1,
+    },
+  },
+  required: ['nodeId', 'assetId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetVideoSource` (D50.6). */
+export const setVideoSourceArgumentsSchema: SetVideoSourceArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets the source time a video shows at the start of its lifetime; speed is 1.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only videos have a source.`,
+      minLength: 1,
+    },
+    sourceStartUs: {
+      type: 'integer',
+      description:
+        'The source time shown at the start of the lifetime, in integer microseconds from the first frame of the video; it is never rounded. -0 becomes 0.',
+      minimum: SOURCE_START.minimum,
+      maximum: SOURCE_START.maximum,
+    },
+  },
+  required: ['nodeId', 'sourceStartUs'],
+  additionalProperties: false,
+});
 
 const TIME = {
   type: 'integer',
@@ -920,11 +1048,11 @@ export const setNodeScaleArgumentsSchema: SetNodeScaleArgumentsSchema = deepFree
 /** The JSON Schema of the arguments of `SetNodeSize` (D40.1): numbers, since the parser rounds. */
 export const setNodeSizeArgumentsSchema: SetNodeSizeArgumentsSchema = deepFreeze({
   type: 'object',
-  description: 'Sets the size of an image or a Custom HTML element.',
+  description: 'Sets the size of an image, a video, or a Custom HTML element.',
   properties: {
     nodeId: {
       type: 'string',
-      description: `${NODE_ID} Only images and Custom HTML elements have a size.`,
+      description: `${NODE_ID} Only images, videos, and Custom HTML elements have a size.`,
       minLength: 1,
     },
     width: { type: 'number', description: `The width, ${PIXELS}` },
@@ -1600,5 +1728,38 @@ export function parseMoveKeyframe(value: unknown): MoveKeyframeCommand {
     animationId: nodeIdOf(fields, 'animationId'),
     timeUs: timeOf(fields['timeUs'], '`timeUs`'),
     toTimeUs: timeOf(fields['toTimeUs'], '`toTimeUs`'),
+  });
+}
+
+/** The fields of a `SetNodeFit` (D50.6): one of the fits the schema lists. */
+export function parseSetNodeFit(value: unknown): SetNodeFitCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'fit'], 'The command `SetNodeFit`');
+  const nodeId = nodeIdOf(fields);
+  const fit: unknown = fields['fit'];
+  const known = FITS.find((item) => item === fit);
+  if (known === undefined) {
+    throw new EditorError('invalid-argument', `\`fit\` must be one of ${FITS.join(', ')}.`);
+  }
+  return Object.freeze({ type: 'SetNodeFit', nodeId, fit: known });
+}
+
+/** The fields of a `SetVideoAsset` (D50.6): the asset is looked up when the command applies. */
+export function parseSetVideoAsset(value: unknown): SetVideoAssetCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'assetId'], 'The command `SetVideoAsset`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({ type: 'SetVideoAsset', nodeId, assetId: nodeIdOf(fields, 'assetId') });
+}
+
+/** The fields of a `SetVideoSource` (D50.6), with the bounds of the schema. */
+export function parseSetVideoSource(value: unknown): SetVideoSourceCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'sourceStartUs'],
+    'The command `SetVideoSource`',
+  );
+  return Object.freeze({
+    type: 'SetVideoSource',
+    nodeId: nodeIdOf(fields),
+    sourceStartUs: integerWithin(fields['sourceStartUs'], SOURCE_START, '`sourceStartUs`'),
   });
 }

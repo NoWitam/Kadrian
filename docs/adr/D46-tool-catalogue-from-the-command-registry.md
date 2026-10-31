@@ -5,6 +5,7 @@
 - Supersedes: —
 - Extends: D31 (the tool contract of `set_node_position`), with an
   `Amended by: PR-24 (D46)` line
+- Amended by: PR-28a (D50) on 2026-10-31: three tools, and the source durations of video assets in `describe_document` (D50.7)
 - Related: D09, D12, D30, D31, D38, D39, D40, D41, D42,
   [roadmap of phase three](../roadmap/phase-3.md) PR-24
 

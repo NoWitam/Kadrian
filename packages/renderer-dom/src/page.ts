@@ -21,6 +21,7 @@ import { mountOptions } from './policy.js';
 import { awaitMediaReady } from './ready.js';
 import { renderState } from './render.js';
 import { synchronizeCustomHtml, type CustomHtmlHost } from './synchronize.js';
+import { applyVideoFrames } from './video.js';
 
 export type PageResult =
   { readonly ok: true } | { readonly ok: false; readonly errors: readonly ValidationError[] };
@@ -107,8 +108,9 @@ export function synchronize(
 
 /**
  * One complete frame (D25.3), in the one order both hosts use: validate,
- * evaluate, render, and then push the time to the Custom HTML elements while the
- * media of the frame become ready. Resolves with `{ ok: true }` only when the
+ * evaluate, write the frames of the active video nodes that the host supplies
+ * (D50.4) — none when it passes none — render, and then push the time to the
+ * Custom HTML elements while the media of the frame become ready. Resolves with `{ ok: true }` only when the
  * elements acknowledged, every image is decoded, and the font set has settled; a
  * host reports or captures a frame only then. Every failure rejects, including
  * a time outside the composition.
@@ -118,6 +120,7 @@ export function frame(
   document: unknown,
   timeUs: number,
   host: CustomHtmlHost,
+  videoFrames: unknown = [],
 ): Promise<PageResult> {
   return new Promise<PageResult>((resolve, reject) => {
     const result = validateComposition(document);
@@ -126,6 +129,7 @@ export function frame(
       return;
     }
     const state = evaluateComposition(result.composition, timeUs);
+    applyVideoFrames(root, state, videoFrames);
     renderState(root, state);
     Promise.all([synchronizeCustomHtml(root, state, host), awaitMediaReady(root)]).then(() => {
       resolve({ ok: true });

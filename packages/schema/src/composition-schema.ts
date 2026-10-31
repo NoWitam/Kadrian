@@ -1,11 +1,13 @@
 /**
- * Composition schema 0.2: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.3: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
  * It accepts the reference composition and nothing beyond it (D16): no optional
  * fields, no defaults, no unknown fields. 0.2 is 0.1 plus the lifetime of every
- * node (D42.1); the schema of 0.1 is kept as data in `v0-1` (D35.4).
+ * node (D42.1); 0.3 is 0.2 plus the asset type `video`, the node `video`, and
+ * the `fit` of images and videos (D50). The schemas of 0.1 and 0.2 are kept as
+ * data in `v0-1` and `v0-2` (D35.4).
  */
 import {
   closedObject,
@@ -16,7 +18,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.2';
+export const SCHEMA_VERSION = '0.3';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -177,7 +179,15 @@ export const backgroundNodeSchema = closedObject('Solid fill that covers the who
   color,
 });
 
-export const imageNodeSchema = closedObject('An image asset stretched to the box of the node.', {
+/** How the pixels of an image or a video meet the box of their node (D50), as CSS `object-fit`. */
+const fit = {
+  type: 'string',
+  description:
+    'How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture (D50).',
+  enum: ['fill', 'contain', 'cover'],
+} as const satisfies StringSchema;
+
+export const imageNodeSchema = closedObject('An image asset fitted to the box of the node.', {
   id,
   type: { type: 'string', const: 'image' },
   ...lifetime,
@@ -185,7 +195,27 @@ export const imageNodeSchema = closedObject('An image asset stretched to the box
   assetId: assetReference,
   width: length,
   height: length,
+  fit,
 });
+
+export const videoNodeSchema = closedObject(
+  'A video asset: at each instant of its lifetime the source frame of D49.5, fitted to the box of the node. It is silent in 0.3 (D50).',
+  {
+    id,
+    type: { type: 'string', const: 'video' },
+    ...lifetime,
+    ...transform,
+    assetId: assetReference,
+    sourceStartUs: {
+      ...timeUs,
+      description:
+        'Source time, in integer microseconds from the presentation time of the first frame, shown at startUs; speed is 1 (D49.1, D49.5).',
+    },
+    width: length,
+    height: length,
+    fit,
+  },
+);
 
 export const textNodeSchema = closedObject('One run of text; line breaks are preserved.', {
   id,
@@ -221,7 +251,7 @@ export const groupNodeSchema = closedObject(
     children: {
       type: 'array',
       description: 'Array order is the z-order; the first child is at the bottom.',
-      items: { oneOf: [imageNodeSchema, textNodeSchema] },
+      items: { oneOf: [imageNodeSchema, textNodeSchema, videoNodeSchema] },
     },
   },
 );
@@ -233,6 +263,7 @@ export const sceneNodeSchema = {
     imageNodeSchema,
     textNodeSchema,
     customHtmlNodeSchema,
+    videoNodeSchema,
   ],
 } as const satisfies UnionSchema;
 
@@ -252,7 +283,7 @@ export const assetSchema = closedObject(
   'Pinned by content hash; the host resolves the bytes and the engine verifies them (D14).',
   {
     id,
-    type: { type: 'string', enum: ['image', 'audio', 'font'] },
+    type: { type: 'string', enum: ['image', 'audio', 'font', 'video'] },
     contentHash: {
       type: 'string',
       description: 'Algorithm, a colon, and the lowercase hex digest of the exact bytes.',
@@ -287,7 +318,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.2',
+  title: 'Kadrion composition 0.3',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

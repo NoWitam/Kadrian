@@ -23,6 +23,44 @@ import { executeTool, TOOL_CATALOGUE, toolNameOf, type ToolBus } from '../src/in
 import { codeOf, isDeepFrozen, json, stateOf } from './support.js';
 
 const HASH = 'sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae';
+const VIDEO_HASH = `sha256:${'b'.repeat(64)}`;
+const CLIP_HASH = `sha256:${'c'.repeat(64)}`;
+
+/** The media facts the host of these tests knows: both videos last 10 s (D49.6). */
+function mediaFacts(contentHash: string): { type: 'video'; durationUs: number } | null {
+  return contentHash === VIDEO_HASH || contentHash === CLIP_HASH
+    ? { type: 'video', durationUs: 10_000_000 }
+    : null;
+}
+
+/** A video node of the examples, and its asset (D50). */
+const VIDEO_SETUP: readonly Command[] = [
+  {
+    type: 'AddAsset',
+    asset: { id: 'asset-video', type: 'video', contentHash: VIDEO_HASH },
+    index: 0,
+  },
+  {
+    type: 'AddNode',
+    parentId: 'scene-main',
+    index: 4,
+    node: {
+      id: 'node-video',
+      type: 'video',
+      startUs: 0,
+      durationUs: 1_000_000,
+      position: { x: 0, y: 0 },
+      scale: { x: 1, y: 1 },
+      opacity: 1,
+      animations: [],
+      assetId: 'asset-video',
+      sourceStartUs: 0,
+      width: 320,
+      height: 180,
+      fit: 'contain',
+    },
+  },
+];
 
 /**
  * What a document needs before the example of a command changes it: the
@@ -72,10 +110,20 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   ],
   MoveKeyframe: [],
   SetNodeLifetime: [],
+  SetNodeFit: [],
+  SetVideoAsset: [
+    ...VIDEO_SETUP,
+    {
+      type: 'AddAsset',
+      asset: { id: 'asset-clip', type: 'video', contentHash: CLIP_HASH },
+      index: 0,
+    },
+  ],
+  SetVideoSource: VIDEO_SETUP,
 };
 
 function prepared(type: Command['type']): CommandBus {
-  const bus = createCommandBus(referenceComposition);
+  const bus = createCommandBus(referenceComposition, { mediaFacts });
   for (const command of SETUP[type]) bus.dispatch(command);
   return bus;
 }

@@ -118,11 +118,12 @@ describe('P2: the five golden timestamps (D28.4, D28.7)', () => {
   it('record the render manifest of §8', () => {
     const { manifest } = baseline;
     expect(manifest).toMatchObject({
-      manifestVersion: 2,
-      schemaVersion: '0.2',
+      manifestVersion: 3,
+      schemaVersion: '0.3',
       preset: { name: 'frames-png', width: 1080, height: 1920, fps: 30, deviceScaleFactor: 1 },
       durationUs: 10_000_000,
       frameCount: 300,
+      video: null,
       ffmpeg: null,
     });
     expect(manifest.compositionHash).toMatch(/^sha256:[0-9a-f]{64}$/);
@@ -533,10 +534,10 @@ describe('the presentation barrier (D25, D28.5)', () => {
             (
               window as unknown as {
                 kadrionProducer: {
-                  frame(t: number, r: number, a: number): Promise<{ ok: boolean }>;
+                  frame(t: number, r: number, a: number, v: unknown[]): Promise<{ ok: boolean }>;
                 };
               }
-            ).kadrionProducer.frame(time, id, 2_000),
+            ).kadrionProducer.frame(time, id, 2_000, []),
           [timeUs, 1_000 + round] as const,
         );
         expect(outcome.ok).toBe(true);

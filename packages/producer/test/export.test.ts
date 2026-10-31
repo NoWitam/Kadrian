@@ -775,6 +775,10 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
       await Promise.resolve();
       return file(path).hash;
     },
+    probeVideo: () => Promise.reject(new Error('no video in these documents')),
+    decodeVideo: () => {
+      throw new Error('no video in these documents');
+    },
     audioStream(path) {
       const { samples } = file(path);
       return Promise.resolve({
@@ -948,7 +952,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
       'tools',
       `probe ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.2',
+      'load 0.3',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,
@@ -988,7 +992,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
     expect(manifest.range).toEqual({ fromUs: 0, toUs: 10_000_000, firstFrame: 0, frameCount: 300 });
     expect(manifest.segmentFrames).toBe(60);
     expect(manifest.kind).toBe('export');
-    expect(manifest.manifestVersion).toBe(3);
+    expect(manifest.manifestVersion).toBe(4);
     expect(manifest.preset).toEqual({
       name: 'mp4-1080p',
       width: 1080,
@@ -1532,7 +1536,7 @@ describe('the checks of a join (D47.5)', () => {
         segments: [a, b],
         audio: edited(audio, (m) => Object.assign(m, { kind: 'segments' })),
       }),
-      /audio manifest of version 3/,
+      /audio manifest of version 4/,
     ],
     [
       'no segments',
@@ -1624,7 +1628,7 @@ describe('a still frame on a fake render and FFmpeg (D47.7)', () => {
           return Promise.resolve({
             frames: [{ index: 75, timeUs: 2_500_000, png }],
             manifest: {
-              manifestVersion: 2,
+              manifestVersion: 3,
               preset: {
                 name: 'frames-png',
                 width: 1080,
@@ -1659,7 +1663,7 @@ describe('a still frame on a fake render and FFmpeg (D47.7)', () => {
     expect(result.bytes).toBe(png);
     expect(result.mediaType).toBe('image/png');
     expect(result.manifest).toMatchObject({
-      manifestVersion: 3,
+      manifestVersion: 4,
       kind: 'still',
       preset: { name: 'still-png' },
       output: { mediaType: 'image/png', sha256: sha256(png) },

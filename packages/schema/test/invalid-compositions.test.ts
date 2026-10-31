@@ -17,6 +17,7 @@ const ERROR_CODES = [
   'asset-type-mismatch',
   'keyframes-not-ascending',
   'duplicate-animation-target',
+  'source-time-out-of-range',
 ] as const;
 
 describe('negative fixtures', () => {

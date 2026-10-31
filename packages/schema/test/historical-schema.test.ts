@@ -10,19 +10,24 @@ import { createHash } from 'node:crypto';
 
 import {
   invalidCompositionCasesV01,
+  invalidCompositionCasesV02,
   referenceComposition,
   referenceCompositionV01,
+  referenceCompositionV02,
 } from '@kadrion/test-fixtures';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 
 import { compositionSchema, SCHEMA_VERSION } from '../src/index.js';
 import { compositionSchemaV01, SCHEMA_VERSION_V01 } from '../src/v0-1/composition-schema.js';
+import { compositionSchemaV02, SCHEMA_VERSION_V02 } from '../src/v0-2/composition-schema.js';
 import { assertSupportedSchema, validateStructure } from '../src/validate-structure.js';
 import { applyPatch } from './apply-patch.js';
 
 /** `JSON.stringify(compositionSchema)` of commit 27d6259, the last build of schema 0.1. */
 const SCHEMA_V01_SHA256 = '1d311b8710363fef67234639df2b9162fcc582e6ab7a3d7d56f5a5d1f7beb3df';
+/** `JSON.stringify(compositionSchema)` of commit 6707a5a, the last build of schema 0.2. */
+const SCHEMA_V02_SHA256 = '3a603b03ebf08024a980edc422eca06e3549c8209df02df383ccb4b5c0bd0252';
 
 function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex');
@@ -43,8 +48,23 @@ describe('the frozen schema of 0.1 (D35.4)', () => {
   });
 
   it('is not the current schema, whose version it precedes', () => {
-    expect(SCHEMA_VERSION).toBe('0.2');
+    expect(SCHEMA_VERSION).toBe('0.3');
     expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V01_SHA256);
+    expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V02_SHA256);
+  });
+
+  it('has a frozen schema of 0.2 that is, byte for byte, the schema the last build of 0.2 had', () => {
+    expect(sha256(JSON.stringify(compositionSchemaV02))).toBe(SCHEMA_V02_SHA256);
+    expect(SCHEMA_VERSION_V02).toBe('0.2');
+    expect(() => {
+      assertSupportedSchema(compositionSchemaV02);
+    }).not.toThrow();
+    const objects = everyObject(compositionSchemaV02);
+    expect(objects.filter((object) => !Object.isFrozen(object))).toEqual([]);
+    expect(validateStructure(compositionSchemaV02, referenceCompositionV02)).toEqual([]);
+    expect(
+      validateStructure(compositionSchemaV02, referenceComposition).map(({ code }) => code),
+    ).toContain('unknown-field');
   });
 
   it('is frozen with everything reachable from it, like the current schema (D24.2)', () => {
@@ -66,6 +86,26 @@ describe('the frozen schema of 0.1 (D35.4)', () => {
     const errors = validateStructure(compositionSchemaV01, referenceComposition);
     expect(errors.map(({ code }) => code)).toContain('unknown-field');
     expect(errors.find(({ path }) => path === '/schemaVersion')?.code).toBe('invalid-value');
+  });
+});
+
+describe('conformance of the frozen schema of 0.2 with JSON Schema draft 2020-12 (D17.4)', () => {
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  const accepts = ajv.compile(compositionSchemaV02);
+
+  it('agrees with the reference implementation on the frozen corpus of 0.2', () => {
+    expect(ajv.validateSchema(compositionSchemaV02)).toBe(true);
+    const documents = [
+      referenceCompositionV02,
+      ...invalidCompositionCasesV02.map(({ patch }) => applyPatch(referenceCompositionV02, patch)),
+    ];
+    const verdicts = documents.map((document) => accepts(document));
+    expect(verdicts.filter((verdict) => !verdict).length).toBeGreaterThan(20);
+    documents.forEach((document, index) => {
+      expect(validateStructure(compositionSchemaV02, document).length === 0, String(index)).toBe(
+        verdicts[index],
+      );
+    });
   });
 });
 

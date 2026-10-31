@@ -95,6 +95,7 @@ import {
   type RenderTimeouts,
 } from './render.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
+import { prepareVideos } from './video.js';
 import {
   AUDIO_INTERMEDIATE_CODEC,
   AUDIO_INTERMEDIATE_FORMAT,
@@ -562,7 +563,12 @@ async function preparedSegments(
   const tools = await dependencies.tools(request.ffmpeg);
   throwIfCancelled(request.signal);
   return {
-    prepared: { composition, assets, runtime: request.runtime ?? loadRuntimeBuild() },
+    prepared: {
+      composition,
+      assets,
+      runtime: request.runtime ?? loadRuntimeBuild(),
+      videos: await prepareVideos(composition, assets, tools),
+    },
     size,
     segmentFrames,
     frames,
@@ -781,6 +787,7 @@ const SHARED_FIELDS = [
   'frameCount',
   'preset',
   'segmentFrames',
+  'video',
   'ffmpeg',
   'identity',
 ] as const;
@@ -1031,6 +1038,7 @@ async function joinWith(
     frameCount: first.frameCount,
     preset: first.preset,
     segmentFrames: first.segmentFrames,
+    video: first.video,
     identity: first.identity,
     kind: 'export',
     range,

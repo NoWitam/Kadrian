@@ -191,6 +191,29 @@ async function runtimeScript(runtime: PlayerRuntime): Promise<string> {
   }
 }
 
+interface TreeNode {
+  readonly id: string;
+  readonly type: string;
+  readonly children?: readonly TreeNode[];
+}
+
+/**
+ * The video assets and video nodes of a document (D50.6). Until the Player
+ * decodes video (PR-28b), it refuses them with `video-unsupported` before any
+ * asset is resolved, instead of showing a frame without them.
+ */
+function videoIds(composition: ValidatedComposition): string[] {
+  const ids = composition.assets
+    .filter(({ type }) => type === 'video')
+    .map(({ id }) => `asset ${id}`);
+  const visit = (node: TreeNode): void => {
+    if (node.type === 'video') ids.push(`node ${node.id}`);
+    node.children?.forEach(visit);
+  };
+  for (const scene of composition.scenes) scene.nodes.forEach(visit);
+  return ids;
+}
+
 function pageDocument(script: string): string {
   try {
     return renderPageDocument([script, PAGE_AGENT_SCRIPT]);
@@ -418,6 +441,16 @@ export async function createPlayer(
         ? []
         : result.errors.map(({ path, message }) => `${path}: ${message}`);
       throw fail(new PlayerError('invalid-document', 'The document is not valid.', details));
+    }
+    const videos = videoIds(result.composition);
+    if (videos.length > 0) {
+      throw fail(
+        new PlayerError(
+          'video-unsupported',
+          'The Player does not show video yet; the Producer renders it (D50.6).',
+          videos,
+        ),
+      );
     }
     return { text, loaded: result.composition };
   };

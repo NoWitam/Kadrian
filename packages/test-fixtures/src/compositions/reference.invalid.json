@@ -26,13 +26,13 @@
   {
     "name": "schema-version-older",
     "description": "The version before this one is refused at the gate, never upgraded by the validator: a host migrates it explicitly (D35.3, D42.9).",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.1" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.2" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.3" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.4" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -293,7 +293,7 @@
   {
     "name": "node-type-unknown",
     "description": "An unsupported node type is one error at the discriminator, not one error per known type.",
-    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/0/type", "value": "video" }],
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/0/type", "value": "sticker" }],
     "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/0/type" }]
   },
   {
@@ -416,5 +416,187 @@
     "expectedErrors": [
       { "code": "duplicate-animation-target", "path": "/scenes/0/nodes/2/animations/1/property" }
     ]
+  },
+  {
+    "name": "fit-missing-on-image",
+    "description": "Every image states its fit; there is no default (D16.1, D50.1).",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/1/children/0/fit" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/1/children/0/fit" }]
+  },
+  {
+    "name": "fit-unknown",
+    "description": "Fit is one of fill, contain, and cover (D50.1).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/1/children/0/fit", "value": "scale-down" }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/1/children/0/fit" }]
+  },
+  {
+    "name": "video-source-start-missing",
+    "description": "A video node states where its source starts; there is no default (D49.1, D50.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "width": 320,
+          "height": 180,
+          "fit": "contain"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/4/sourceStartUs" }]
+  },
+  {
+    "name": "video-unknown-field",
+    "description": "A video node is a closed object: muted and volume arrive in 0.4, not 0.3 (D49.7, D50.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "muted": true
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "unknown-field", "path": "/scenes/0/nodes/4/muted" }]
+  },
+  {
+    "name": "video-asset-type-mismatch",
+    "description": "A video node refers to an asset of type video, never to an image (D14, D50.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "sourceStartUs": 0,
+          "width": 320,
+          "height": 180,
+          "fit": "contain"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "asset-type-mismatch", "path": "/scenes/0/nodes/4/assetId" }]
+  },
+  {
+    "name": "video-source-time-out-of-range",
+    "description": "Every source time of a video node's lifetime is a safe integer (D50.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 9007199254000000,
+          "width": 320,
+          "height": 180,
+          "fit": "contain"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "source-time-out-of-range", "path": "/scenes/0/nodes/4/sourceStartUs" }
+    ]
+  },
+  {
+    "name": "video-in-group-unknown-fit",
+    "description": "A video may be the child of a group, and its fit is checked there too (D50.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/children/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "width": 320,
+          "height": 180,
+          "fit": "none"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/1/children/2/fit" }]
   }
 ]
