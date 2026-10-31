@@ -7,7 +7,7 @@
 - Amended by: PR-07 on 2026-09-22 at the owner's request, 28.9 (network isolation of the reference run)
 - Amended by: PR-25b (D48) on 2026-10-31: 28.6 (the codes `limit-exceeded` and
   `cancelled`) and 28.8 (JSON lines on standard output and the table of exit
-  codes); proposed with D48 and in force when the owner accepts it
+  codes); in force since the owner accepted D48 on 2026-10-31
 - Implementation status updated by: PR-17 on 2026-09-28 at the owner's request, Measurements (the
   pinned container has run since PR-07; these Windows numbers stay informative)
 - Related: D06, D12, D13, D14, D21, D23, D25, D26, D27, D29,
