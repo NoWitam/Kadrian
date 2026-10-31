@@ -8,6 +8,8 @@ export const PROTOCOL_VERSION = 1;
 export const READY = 'kadrion-player:ready';
 export const LOAD = 'kadrion-player:load';
 export const SEEK = 'kadrion-player:seek';
+/** A load and a frame at `timeUs` in one request, without a paint in between (D44). */
+export const UPDATE = 'kadrion-player:update';
 export const RESULT = 'kadrion-player:result';
 
 /** What the page reports for one request. */

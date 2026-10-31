@@ -684,6 +684,308 @@ describe('play and pause with the preview clock (D25.6)', () => {
   });
 });
 
+/** A copy of `document` with `change` applied, re-pinned to `bytes`. */
+async function edited(
+  document: unknown,
+  change: (copy: Composition) => void,
+  bytes: Readonly<Record<string, PlayerAsset>> = bytesOf,
+): Promise<unknown> {
+  const copy = structuredClone(document) as Composition;
+  change(copy);
+  return pinnedTo(copy, bytes);
+}
+
+interface Composition {
+  fps: number;
+  durationUs: number;
+  clips: { durationUs: number }[];
+  scenes: { nodes: CompositionNode[] }[];
+}
+
+interface CompositionNode {
+  id: string;
+  durationUs: number;
+  text?: string;
+  children?: CompositionNode[];
+  animations?: { keyframes: { timeUs: number }[] }[];
+}
+
+function eachNode(copy: Composition, visit: (node: CompositionNode) => void): void {
+  const walk = (node: CompositionNode): void => {
+    visit(node);
+    node.children?.forEach(walk);
+  };
+  for (const scene of copy.scenes) scene.nodes.forEach(walk);
+}
+
+/** The reference composition with another title. */
+const retitled = await edited(pinned, (copy) => {
+  eachNode(copy, (node) => {
+    if (node.id === 'node-title') node.text = 'Edited';
+  });
+});
+
+/** The reference composition cut to 5 s: every lifetime and keyframe ends there. */
+const shortened = await edited(pinned, (copy) => {
+  copy.durationUs = 5_000_000;
+  for (const clip of copy.clips) clip.durationUs = 5_000_000;
+  eachNode(copy, (node) => {
+    node.durationUs = 5_000_000;
+    for (const animation of node.animations ?? []) {
+      for (const keyframe of animation.keyframes) {
+        keyframe.timeUs = Math.min(keyframe.timeUs, 5_000_000);
+      }
+    }
+  });
+});
+
+const typesSent = (harness: Harness, from = 0): string[] =>
+  harness.log
+    .slice(from)
+    .filter((delivery) => delivery.target === (pageView(harness) as unknown as Window))
+    .map((delivery) => (delivery.data as { type: string }).type)
+    .filter((type) => type.startsWith('kadrion-player:'));
+
+/** What a fresh Player shows for `document` at `timeUs`, and the bar of its element. */
+async function freshly(document: unknown, timeUs: number) {
+  const harness = createHarness();
+  const player = await started(harness);
+  await player.load(document, resolve);
+  if (timeUs !== 0) await player.seek(timeUs);
+  return [shownTree(harness), barWidth(harness)];
+}
+
+describe('update in the same page (D44)', () => {
+  it('shows the edited document at the time shown, in one request, as a fresh load and seek would', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await player.load(pinned, resolve);
+    await player.seek(5_000_000);
+    const frame = pageFrame(harness);
+    const before = harness.log.length;
+    const asked: PlayerAssetRequest[] = [];
+    await player.update(retitled, resolverOf(bytesOf, asked));
+    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: 5_000_000, error: null });
+    expect(typesSent(harness, before)).toEqual(['kadrion-player:update']);
+    expect(pageFrame(harness)).toBe(frame);
+    expect(asked).toEqual([]);
+    expect([shownTree(harness), barWidth(harness)]).toStrictEqual(
+      await freshly(retitled, 5_000_000),
+    );
+  });
+
+  it('keeps the time on the new frame grid', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await player.load(pinned, resolve);
+    await player.seek(100_000);
+    // Frame 3 at 30 fps starts at 100 000 µs; at 24 fps it falls in frame 2 (D13).
+    const slower = await edited(pinned, (copy) => {
+      copy.fps = 24;
+    });
+    await player.update(slower, resolve);
+    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: 83_333 });
+    expect([shownTree(harness), barWidth(harness)]).toStrictEqual(await freshly(slower, 83_333));
+  });
+
+  it('shows the last frame when the document became shorter', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await player.load(pinned, resolve);
+    await player.seek(9_900_000);
+    await player.update(shortened, resolve);
+    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: 4_966_666 });
+    expect([shownTree(harness), barWidth(harness)]).toStrictEqual(
+      await freshly(shortened, 4_966_666),
+    );
+    await expect(player.seek(5_000_000)).rejects.toMatchObject({ code: 'time-out-of-range' });
+  });
+
+  it('asks only for assets it has not verified for the document shown', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await player.load(pinned, resolve);
+    const other = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 9, 9, 9]);
+    const otherBytes = { ...bytesOf, 'asset-image': { bytes: other, mediaType: 'image/png' } };
+    const reimaged = await edited(pinned, () => undefined, otherBytes);
+    const asked: PlayerAssetRequest[] = [];
+    await player.update(reimaged, resolverOf(otherBytes, asked));
+    expect(asked.map((request) => request.id)).toEqual(['asset-image']);
+    // The first image is no longer verified: the document shown does not use it.
+    asked.length = 0;
+    await player.update(pinned, resolverOf(bytesOf, asked));
+    expect(asked.map((request) => request.id)).toEqual(['asset-image']);
+    expect([shownTree(harness), barWidth(harness)]).toStrictEqual(await freshly(pinned, 0));
+  });
+
+  it('rejects new bytes without their hash and leaves nothing loaded', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await player.load(pinned, resolve);
+    const other = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 9, 9, 9]);
+    const reimaged = await edited(pinned, () => undefined, {
+      ...bytesOf,
+      'asset-image': { bytes: other, mediaType: 'image/png' },
+    });
+    const before = harness.log.length;
+    await expect(player.update(reimaged, resolve)).rejects.toMatchObject({
+      code: 'asset-hash-mismatch',
+    });
+    expect(typesSent(harness, before)).toEqual([]);
+    expect(player.getState()).toMatchObject({
+      status: 'error',
+      timeUs: null,
+      error: { code: 'asset-hash-mismatch' },
+    });
+    await expect(player.seek(0)).rejects.toMatchObject({ code: 'not-loaded' });
+    await expect(player.update(pinned, resolve)).rejects.toMatchObject({ code: 'not-loaded' });
+  });
+
+  it('rejects an invalid document and an update before a load, sending nothing', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await expect(player.update(pinned, resolve)).rejects.toMatchObject({ code: 'not-loaded' });
+    await player.load(pinned, resolve);
+    const before = harness.log.length;
+    await expect(player.update({ schemaVersion: '0.2' }, resolve)).rejects.toMatchObject({
+      code: 'invalid-document',
+    });
+    expect(typesSent(harness, before)).toEqual([]);
+  });
+
+  it('lets an update wait for the seek in flight and supersede a waiting one', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await player.load(pinned, resolve);
+    const inFlight = player.seek(2_500_000);
+    const waiting = player.seek(7_500_000);
+    const update = player.update(retitled, resolve);
+    const outcomes = await Promise.allSettled([inFlight, waiting, update]);
+    expect(outcomes.map((outcome) => outcome.status)).toEqual([
+      'fulfilled',
+      'rejected',
+      'fulfilled',
+    ]);
+    expect(outcomes[1]).toMatchObject({ reason: { code: 'superseded' } });
+    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: 2_500_000 });
+    expect([shownTree(harness), barWidth(harness)]).toStrictEqual(
+      await freshly(retitled, 2_500_000),
+    );
+  });
+
+  it('runs updates one after another, the last one shown', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await player.load(pinned, resolve);
+    await player.seek(5_000_000);
+    await Promise.all([player.update(retitled, resolve), player.update(pinned, resolve)]);
+    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: 5_000_000 });
+    expect([shownTree(harness), barWidth(harness)]).toStrictEqual(await freshly(pinned, 5_000_000));
+  });
+
+  it('plays on after an update', async () => {
+    const harness = createHarness();
+    const clock = manualScheduler();
+    const player = await started(harness, { scheduler: clock.scheduler });
+    await player.load(pinned, resolve);
+    player.play();
+    await player.update(retitled, resolve);
+    expect(player.getState().status).toBe('playing');
+    expect(clock.frames()).toBe(1);
+    player.pause();
+  });
+
+  it('lets the page ignore an update with an extra key', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await player.load(pinned, resolve);
+    const view = pageView(harness) as unknown as Window;
+    const update = {
+      type: 'kadrion-player:update',
+      version: 1,
+      requestId: 97,
+      document: JSON.stringify(retitled),
+      assets: [],
+      ackTimeoutMs: 1000,
+      customHtml: { mode: 'trusted' },
+      timeUs: 0,
+    };
+    await harness.deliver(view, { ...update, frame: 0 }, harness.parentOf(view));
+    await harness.settle();
+    await sleep(10);
+    const answered = () =>
+      harness.log.some(
+        (delivery) =>
+          delivery.target !== view && (delivery.data as { requestId?: number }).requestId === 97,
+      );
+    expect(answered()).toBe(false);
+    // Without the key it is served, and answered (here: the assets are missing).
+    await harness.deliver(view, update, harness.parentOf(view));
+    await harness.settle();
+    await sleep(20);
+    await harness.settle();
+    expect(answered()).toBe(true);
+  });
+});
+
+describe('subscribe (D44)', () => {
+  it('needs a handler for the errors of listeners', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    expect(() => player.subscribe(() => undefined)).toThrow(
+      expect.objectContaining({ code: 'invalid-options' }) as Error,
+    );
+  });
+
+  it('reports every change once, in order, until unsubscribed', async () => {
+    const harness = createHarness();
+    const player = await started(harness, { onListenerError: () => undefined });
+    const seen: string[] = [];
+    const stop = player.subscribe((state) => {
+      seen.push(`${state.status} ${String(state.timeUs)}`);
+      expect(Object.isFrozen(state)).toBe(true);
+    });
+    await player.load(pinned, resolve);
+    await player.seek(2_500_000);
+    await player.update(retitled, resolve);
+    stop();
+    await player.seek(5_000_000);
+    expect(seen).toEqual([
+      'loading null',
+      'seeking null',
+      'ready 0',
+      'seeking 0',
+      'ready 2500000',
+      'loading 2500000',
+      'ready 2500000',
+    ]);
+  });
+
+  it('gives what a listener threw to the handler, and tells the other listeners all the same', async () => {
+    const harness = createHarness();
+    const failures: [unknown, string][] = [];
+    const player = await started(harness, {
+      onListenerError: (error, state) => {
+        failures.push([error, state.status]);
+        throw new Error('the handler broke its contract');
+      },
+    });
+    const boom = new Error('listener');
+    player.subscribe(() => {
+      throw boom;
+    });
+    const seen: string[] = [];
+    player.subscribe((state) => seen.push(state.status));
+    await player.load(pinned, resolve);
+    expect(seen).toEqual(['loading', 'seeking', 'ready']);
+    expect(failures).toEqual([
+      [boom, 'loading'],
+      [boom, 'seeking'],
+      [boom, 'ready'],
+    ]);
+  });
+});
+
 describe('destroy', () => {
   it('rejects what is pending and removes the page', async () => {
     const harness = createHarness();

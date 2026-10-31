@@ -111,6 +111,28 @@ importers:
         specifier: 8.20.0
         version: 8.20.0
 
+  packages/editor-session:
+    dependencies:
+      '@kadrion/editor-sdk':
+        specifier: workspace:*
+        version: link:../editor-sdk
+      '@kadrion/player':
+        specifier: workspace:*
+        version: link:../player
+      '@kadrion/schema':
+        specifier: workspace:*
+        version: link:../schema
+    devDependencies:
+      '@kadrion/test-fixtures':
+        specifier: workspace:*
+        version: link:../test-fixtures
+      '@types/jsdom':
+        specifier: 28.0.3
+        version: 28.0.3
+      jsdom:
+        specifier: 29.1.1
+        version: 29.1.1
+
   packages/player:
     dependencies:
       '@kadrion/renderer-dom':

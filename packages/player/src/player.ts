@@ -3,7 +3,9 @@
  * it, and seeks and plays by asking the page for one frame at a time. It decides
  * no pixel — the page and the runtime build do — and owns only the preview
  * clock (D20.2). It never loads anything but the runtime build and the asset
- * bytes the application passes.
+ * bytes the application passes. `update` brings an edited document into the
+ * same page at the time it shows, and `subscribe` reports every change of its
+ * state (D44).
  */
 import {
   RENDER_PAGE_FRAME_STYLE,
@@ -25,7 +27,15 @@ import {
 
 import { PAGE_AGENT_SCRIPT } from './agent.js';
 import { playerCode, PlayerError } from './errors.js';
-import { isReady, LOAD, PROTOCOL_VERSION, readResult, SEEK, type PageFailure } from './protocol.js';
+import {
+  isReady,
+  LOAD,
+  PROTOCOL_VERSION,
+  readResult,
+  SEEK,
+  UPDATE,
+  type PageFailure,
+} from './protocol.js';
 
 /** The runtime build artifact and the hash the application expects of it (D25.5). */
 export interface PlayerRuntime {
@@ -81,6 +91,12 @@ export interface PlayerOptions {
   readonly requestTimeoutMs?: number;
   readonly scheduler?: PlayerScheduler;
   readonly timers?: PlayerTimers;
+  /**
+   * Required before `subscribe`: receives what a listener threw, with the state
+   * it was given. It must not throw itself; the Player catches it all the same
+   * (D44, as D38.8).
+   */
+  readonly onListenerError?: PlayerListenerErrorHandler;
 }
 
 export type PlayerStatus = 'empty' | 'loading' | 'seeking' | 'ready' | 'playing' | 'error';
@@ -94,12 +110,31 @@ export interface PlayerState {
   readonly error: PlayerError | null;
 }
 
+export type PlayerListener = (state: PlayerState) => void;
+
+export type PlayerListenerErrorHandler = (error: unknown, state: PlayerState) => void;
+
 export interface Player {
   load(document: unknown, resolveAsset: PlayerAssetResolver): Promise<void>;
+  /**
+   * Shows `document` in place of the loaded one, in the same page, at the time
+   * shown now: that time's frame on the new frame grid, and the last frame if
+   * the document became shorter (D44). Assets with a content hash the Player
+   * verified for the document shown now are not asked for again; only new ones
+   * go to `resolveAsset`. It plays on if it was playing. Needs a loaded
+   * document; updates run one after another.
+   */
+  update(document: unknown, resolveAsset: PlayerAssetResolver): Promise<void>;
   seek(timeUs: number): Promise<void>;
   play(): void;
   pause(): void;
   getState(): PlayerState;
+  /**
+   * Calls `listener` with the new state after every change of `status`,
+   * `timeUs`, or `error`, until the returned function is called. Needs the
+   * option `onListenerError` (D44).
+   */
+  subscribe(listener: PlayerListener): () => void;
   destroy(): void;
 }
 
@@ -183,9 +218,15 @@ interface AssetMessage {
 async function assetMessages(
   composition: ValidatedComposition,
   resolveAsset: PlayerAssetResolver,
+  cache: Map<string, PlayerAsset>,
 ): Promise<AssetMessage[]> {
   try {
     const verified = await resolveAssets(composition, resolveAsset, sha256);
+    // What was verified, by content hash, for an update to reuse; nothing else is kept.
+    cache.clear();
+    for (const { contentHash, mediaType, bytes } of verified) {
+      cache.set(contentHash, { mediaType, bytes: bytes.slice() });
+    }
     return verified.map(({ id, mediaType, bytes }) => ({
       id,
       mediaType,
@@ -262,6 +303,44 @@ export async function createPlayer(
   let destroyed = false;
   /** The seek that is in flight, settled either way; a load waits for it (D25.4). */
   let inFlight: Promise<void> = Promise.resolve();
+  /** The verified bytes of the loaded document's assets, by content hash (D44). */
+  const verifiedAssets = new Map<string, PlayerAsset>();
+  /** Updates run one after another, each after the one before has settled. */
+  let updates: Promise<void> = Promise.resolve();
+  const { onListenerError } = options;
+  /** One entry per subscription, so that the same function may subscribe twice. */
+  const listeners = new Set<{ readonly listener: PlayerListener }>();
+  let reported: PlayerState | null = null;
+
+  const snapshot = (): PlayerState => Object.freeze({ status, timeUs, runtimeHash, error });
+
+  /**
+   * Tells every listener about the state, unless it equals the one reported
+   * last. Called after each change; a listener's error goes to the host (D44).
+   */
+  const notify = (): void => {
+    if (
+      reported !== null &&
+      reported.status === status &&
+      reported.timeUs === timeUs &&
+      reported.error === error
+    ) {
+      return;
+    }
+    const state = snapshot();
+    reported = state;
+    for (const { listener } of [...listeners]) {
+      try {
+        listener(state);
+      } catch (reason) {
+        try {
+          onListenerError?.(reason, state);
+        } catch {
+          // The handler broke its contract; the Player carries on (as D38.8).
+        }
+      }
+    }
+  };
   let readyPage: ((error: PlayerError | null) => void) | null = null;
 
   const onMessage = (event: MessageEvent): void => {
@@ -317,7 +396,30 @@ export async function createPlayer(
         : new PlayerError('page-error', reason instanceof Error ? reason.message : String(reason));
     status = 'error';
     error = failure;
+    notify();
     return failure;
+  };
+
+  /**
+   * Serialises the document once and validates it as parsed, so that the page
+   * renders exactly the document whose frame grid the Player uses (no getter,
+   * no toJSON).
+   */
+  const parsed = (document: unknown): { text: string; loaded: ValidatedComposition } => {
+    let text: string | undefined;
+    try {
+      text = JSON.stringify(document);
+    } catch {
+      text = undefined;
+    }
+    const result = validateComposition(text === undefined ? undefined : JSON.parse(text));
+    if (text === undefined || !result.ok) {
+      const details = result.ok
+        ? []
+        : result.errors.map(({ path, message }) => `${path}: ${message}`);
+      throw fail(new PlayerError('invalid-document', 'The document is not valid.', details));
+    }
+    return { text, loaded: result.composition };
   };
 
   const settledStatus = (): PlayerStatus => (playing !== null ? 'playing' : 'ready');
@@ -325,6 +427,7 @@ export async function createPlayer(
   const startSeek = (target: number, done: Waiting | null): void => {
     seeking = true;
     status = 'seeking';
+    notify();
     const requestId = nextRequestId++;
     const sent = request({ type: SEEK, version: PROTOCOL_VERSION, requestId, timeUs: target });
     inFlight = sent.then(
@@ -338,6 +441,7 @@ export async function createPlayer(
         error = null;
         done?.resolve();
         next();
+        notify();
       },
       (reason: unknown) => {
         seeking = false;
@@ -354,6 +458,12 @@ export async function createPlayer(
     if (waiting !== null) {
       const queued = waiting;
       waiting = null;
+      // It was checked against the document of its time; an update may have shortened it.
+      if (composition !== null && queued.timeUs >= composition.durationUs) {
+        queued.reject(outOfRange(queued.timeUs));
+        next();
+        return;
+      }
       startSeek(queued.timeUs, queued);
       return;
     }
@@ -363,12 +473,82 @@ export async function createPlayer(
   const checkedTime = (target: number): number => {
     if (composition === null) throw new PlayerError('not-loaded', 'No document is loaded.');
     if (!Number.isSafeInteger(target) || target < 0 || target >= composition.durationUs) {
-      throw new PlayerError(
-        'time-out-of-range',
-        `timeUs must be an integer in [0, ${String(composition.durationUs)}), got ${String(target)}.`,
-      );
+      throw outOfRange(target);
     }
     return target;
+  };
+
+  const outOfRange = (target: number): PlayerError =>
+    new PlayerError(
+      'time-out-of-range',
+      `timeUs must be an integer in [0, ${String(composition?.durationUs ?? 0)}), got ${String(target)}.`,
+    );
+
+  /**
+   * One update (D44): the time shown now, on the new frame grid and clamped to
+   * its last frame, is rendered with the new document in one request, so the
+   * page is never seen between the two.
+   */
+  const update = async (document: unknown, resolveAsset: PlayerAssetResolver): Promise<void> => {
+    if (composition === null) {
+      throw new PlayerError('not-loaded', 'No document is loaded.');
+    }
+    const { text, loaded } = parsed(document);
+    const resumes = playing !== null;
+    stopClock();
+    waiting?.reject(new PlayerError('superseded', 'A new document replaced this seek.'));
+    waiting = null;
+    // A seek that is still in flight finishes first; its time is the one kept.
+    await inFlight;
+    const shown = Math.min(timeUs ?? 0, loaded.durationUs - 1);
+    const target = frameToTimeUs(timeUsToFrame(shown, loaded.fps), loaded.fps);
+    // `timeUs` keeps the frame shown until the new one is.
+    seeking = true;
+    status = 'loading';
+    notify();
+    const sent = (async () => {
+      const cached = new Map(verifiedAssets);
+      const assets = await assetMessages(
+        loaded,
+        (request) => cached.get(request.contentHash) ?? resolveAsset(request),
+        verifiedAssets,
+      );
+      frame.style.setProperty('width', `${String(loaded.width)}px`);
+      frame.style.setProperty('height', `${String(loaded.height)}px`);
+      await request({
+        type: UPDATE,
+        version: PROTOCOL_VERSION,
+        requestId: nextRequestId++,
+        document: text,
+        assets,
+        ackTimeoutMs,
+        customHtml: { mode: customHtml.mode },
+        timeUs: target,
+      });
+    })();
+    inFlight = sent.then(
+      () => undefined,
+      () => undefined,
+    );
+    try {
+      await sent;
+    } catch (reason) {
+      seeking = false;
+      // What the page holds is not known any more: a new load is needed.
+      composition = null;
+      timeUs = null;
+      // A seek may have been requested while the update was in flight.
+      (waiting as Waiting | null)?.reject(new PlayerError('superseded', 'The update failed.'));
+      waiting = null;
+      throw fail(reason);
+    }
+    seeking = false;
+    composition = loaded;
+    timeUs = target;
+    error = null;
+    next();
+    notify();
+    if (resumes) player.play();
   };
 
   const seek = (target: number): Promise<void> =>
@@ -408,32 +588,18 @@ export async function createPlayer(
 
   const player: Player = {
     async load(document, resolveAsset) {
-      // Serialised once and validated as parsed, so that the page renders exactly
-      // the document whose frame grid the Player uses (no getter, no toJSON).
-      let text: string | undefined;
-      try {
-        text = JSON.stringify(document);
-      } catch {
-        text = undefined;
-      }
-      const result = validateComposition(text === undefined ? undefined : JSON.parse(text));
-      if (text === undefined || !result.ok) {
-        const details = result.ok
-          ? []
-          : result.errors.map(({ path, message }) => `${path}: ${message}`);
-        throw fail(new PlayerError('invalid-document', 'The document is not valid.', details));
-      }
-      const loaded = result.composition;
+      const { text, loaded } = parsed(document);
       stopClock();
       waiting?.reject(new PlayerError('superseded', 'A new document was loaded.'));
       waiting = null;
       status = 'loading';
       composition = null;
       timeUs = null;
+      notify();
       // A seek that is still in flight finishes first; the page takes one request at a time.
       await inFlight;
       try {
-        const assets = await assetMessages(loaded, resolveAsset);
+        const assets = await assetMessages(loaded, resolveAsset, verifiedAssets);
         frame.style.setProperty('width', `${String(loaded.width)}px`);
         frame.style.setProperty('height', `${String(loaded.height)}px`);
         await request({
@@ -451,6 +617,11 @@ export async function createPlayer(
       composition = loaded;
       await seek(0);
     },
+    update(document, resolveAsset) {
+      const run = updates.then(() => update(document, resolveAsset));
+      updates = run.catch(() => undefined);
+      return run;
+    },
     seek,
     play() {
       if (composition === null || playing !== null) return;
@@ -460,13 +631,26 @@ export async function createPlayer(
       playing = { startNow: scheduler.now(), startUs, handle: 0 };
       if (!seeking && error === null) status = 'playing';
       playing.handle = scheduler.requestFrame(tick);
+      notify();
     },
     pause() {
       stopClock();
       if (!seeking && error === null && status === 'playing') status = 'ready';
+      notify();
     },
-    getState() {
-      return Object.freeze({ status, timeUs, runtimeHash, error });
+    getState: snapshot,
+    subscribe(listener) {
+      if (onListenerError === undefined) {
+        throw new PlayerError(
+          'invalid-options',
+          'subscribe needs the option onListenerError, where the errors of listeners go (D44).',
+        );
+      }
+      const entry = { listener };
+      listeners.add(entry);
+      return () => {
+        listeners.delete(entry);
+      };
     },
     destroy() {
       destroyed = true;
@@ -479,6 +663,8 @@ export async function createPlayer(
       pending = null;
       readyPage?.(gone);
       readyPage = null;
+      listeners.clear();
+      verifiedAssets.clear();
       frame.remove();
     },
   };

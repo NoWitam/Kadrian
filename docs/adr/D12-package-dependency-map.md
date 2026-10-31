@@ -28,6 +28,11 @@ specifiers in `packages/*/src` (see "Further rules").
 Amended by PR-03 on 2026-09-22: the project owner answered open question Q15
 with a ninth package, `@kadrion/renderer-dom` (D20). The map below includes it.
 
+Amended by PR-23 (D44) on 2026-10-31: a tenth package, `@kadrion/editor-session`,
+the host facade. It may depend on `editor-sdk`, `player`, and `schema`; no
+package may depend on it, and it may not depend on `runtime`, `renderer-dom`, or
+`producer`. The map and the tables below include it.
+
 The identifier D12 may collide with a decision defined in the missing
 `/bootstrap-kadrion` skill (see D11); the project owner should confirm it.
 
@@ -37,17 +42,18 @@ The allowed dependency edges between workspace packages are recorded in
 [`docs/architecture/package-boundaries.json`](../architecture/package-boundaries.json)
 and enforced by `tests/repo/package-boundaries.test.ts`.
 
-| Package         | May depend on (runtime)             |
-| --------------- | ----------------------------------- |
-| `schema`        | —                                   |
-| `runtime`       | `schema`                            |
-| `editor-sdk`    | `schema`                            |
-| `ai-sdk`        | `editor-sdk`, `schema`              |
-| `renderer-dom`  | `runtime`, `schema`                 |
-| `player`        | `renderer-dom`, `runtime`, `schema` |
-| `producer`      | `renderer-dom`, `runtime`, `schema` |
-| `cli`           | `producer`, `schema`                |
-| `test-fixtures` | — (dev-only, pure data)             |
+| Package          | May depend on (runtime)             |
+| ---------------- | ----------------------------------- |
+| `schema`         | —                                   |
+| `runtime`        | `schema`                            |
+| `editor-sdk`     | `schema`                            |
+| `ai-sdk`         | `editor-sdk`, `schema`              |
+| `editor-session` | `editor-sdk`, `player`, `schema`    |
+| `renderer-dom`   | `runtime`, `schema`                 |
+| `player`         | `renderer-dom`, `runtime`, `schema` |
+| `producer`       | `renderer-dom`, `runtime`, `schema` |
+| `cli`            | `producer`, `schema`                |
+| `test-fixtures`  | — (dev-only, pure data)             |
 
 Every edge falls into one of three categories:
 
@@ -68,6 +74,8 @@ Prohibitions:
 | `producer` and `player` | each other                                      | They share the runtime build; shared code moves down into `renderer-dom` or `runtime`, never sideways  |
 | `runtime`               | `renderer-dom`                                  | The evaluation stays free of any environment; rendering builds on it, never the reverse (D20)          |
 | `renderer-dom`          | `player`, `producer`                            | Both hosts load the renderer as part of the one runtime build; it cannot know either host (D20)        |
+| every other package     | `editor-session`                                | The host facade sits on top of the bus and the Player; every edit keeps one path through the bus (D44) |
+| `editor-session`        | `runtime`, `renderer-dom`, `producer`           | The facade drives the preview through the Player only; it renders and evaluates nothing (D44)          |
 
 Further rules enforced by the same test:
 

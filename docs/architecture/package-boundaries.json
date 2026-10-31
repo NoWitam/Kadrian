@@ -13,6 +13,9 @@
     "ai-sdk": {
       "allowedDependencies": ["editor-sdk", "schema"]
     },
+    "editor-session": {
+      "allowedDependencies": ["editor-sdk", "player", "schema"]
+    },
     "renderer-dom": {
       "allowedDependencies": ["runtime", "schema"]
     },
@@ -65,6 +68,25 @@
       "from": ["renderer-dom"],
       "to": ["player", "producer"],
       "reason": "Both hosts load the renderer as part of the one runtime build, so it cannot know either host (D20)."
+    },
+    {
+      "from": [
+        "schema",
+        "runtime",
+        "renderer-dom",
+        "player",
+        "editor-sdk",
+        "ai-sdk",
+        "producer",
+        "cli"
+      ],
+      "to": ["editor-session"],
+      "reason": "The host facade sits on top of the bus and the Player; nothing below it may know it, so every edit keeps one path through the bus (D44)."
+    },
+    {
+      "from": ["editor-session"],
+      "to": ["producer", "renderer-dom", "runtime"],
+      "reason": "The facade drives the preview through the Player only; it renders and evaluates nothing itself (D44)."
     }
   ],
   "externalRuntimeDependencies": {

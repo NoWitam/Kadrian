@@ -70,6 +70,7 @@ must change, stop and propose an ADR instead of silently bypassing it.
 - `@kadrion/renderer-dom`: DOM/SVG rendering of evaluated state and the Custom HTML mount.
 - `@kadrion/player`: browser host, iframe protocol, playback and seek.
 - `@kadrion/editor-sdk`: typed commands, patches, transactions, undo/redo.
+- `@kadrion/editor-session`: host facade joining the document, command bus, Player, and asset resolver.
 - `@kadrion/ai-sdk`: AI tool contracts built on editor-sdk commands.
 - `@kadrion/producer`: Chromium/FFmpeg render orchestration.
 - `@kadrion/cli`: local rendering and diagnostics.

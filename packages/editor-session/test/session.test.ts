@@ -1,0 +1,303 @@
+/**
+ * The host facade (D44) against a recording Player: what the session asks the
+ * Player to do for each change of the bus, and the events it reports. The
+ * Player itself — `update` in the same page, at the time it shows — is tested
+ * in `packages/player/test/player.test.ts`.
+ */
+import type { Command } from '@kadrion/editor-sdk';
+import {
+  PlayerError,
+  type Player,
+  type PlayerAssetResolver,
+  type PlayerListener,
+  type PlayerState,
+} from '@kadrion/player';
+import { referenceComposition } from '@kadrion/test-fixtures';
+import { describe, expect, it } from 'vitest';
+
+import { createEditorSession, type SessionEvent } from '../src/index.js';
+
+const TITLE = 'node-title';
+
+function move(x: number, y: number): Command {
+  return { type: 'SetNodePosition', nodeId: TITLE, position: { x, y } };
+}
+
+interface Call {
+  readonly method: 'load' | 'update';
+  readonly document: unknown;
+  readonly resolveAsset: PlayerAssetResolver;
+  readonly settle: (error?: PlayerError) => void;
+}
+
+/**
+ * A Player that records `load` and `update` and settles each only when the test
+ * says so; `auto` settles every call at once. It keeps the state a real Player
+ * would: no time after a failure.
+ */
+function recordingPlayer(auto = true) {
+  const calls: Call[] = [];
+  const listeners = new Set<PlayerListener>();
+  let state: PlayerState = Object.freeze({
+    status: 'empty',
+    timeUs: null,
+    runtimeHash: 'sha256:test',
+    error: null,
+  });
+  let destroyed = false;
+  const set = (next: Partial<PlayerState>): void => {
+    state = Object.freeze({ ...state, ...next });
+    for (const listener of [...listeners]) listener(state);
+  };
+  const call =
+    (method: Call['method']) =>
+    (document: unknown, resolveAsset: PlayerAssetResolver): Promise<void> =>
+      new Promise<void>((resolve, reject) => {
+        set({ status: 'loading' });
+        const settle = (error?: PlayerError): void => {
+          if (error === undefined) {
+            set({ status: 'ready', timeUs: method === 'load' ? 0 : state.timeUs, error: null });
+            resolve();
+          } else {
+            set({ status: 'error', timeUs: null, error });
+            reject(error);
+          }
+        };
+        calls.push({ method, document, resolveAsset, settle });
+        if (auto) settle();
+      });
+  const player: Player = {
+    load: call('load'),
+    update: call('update'),
+    seek: (timeUs) => {
+      set({ status: 'ready', timeUs });
+      return Promise.resolve();
+    },
+    play: () => {
+      set({ status: 'playing' });
+    },
+    pause: () => {
+      set({ status: 'ready' });
+    },
+    getState: () => state,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    destroy() {
+      destroyed = true;
+    },
+  };
+  return { player, calls, listeners, isDestroyed: () => destroyed };
+}
+
+const resolveAsset: PlayerAssetResolver = () => null;
+
+async function session(auto = true, historyLimit?: number) {
+  const recording = recordingPlayer(auto);
+  const events: SessionEvent[] = [];
+  const failures: unknown[] = [];
+  const started = createEditorSession({
+    document: referenceComposition,
+    player: recording.player,
+    resolveAsset,
+    ...(historyLimit === undefined ? {} : { historyLimit }),
+    onListenerError: (error) => failures.push(error),
+  });
+  if (!auto) recording.calls[0]?.settle();
+  const editor = await started;
+  editor.subscribe((event) => events.push(event));
+  return { ...recording, editor, events, failures };
+}
+
+const brief = (event: SessionEvent): string => {
+  switch (event.type) {
+    case 'document':
+      return `document ${event.change.kind}`;
+    case 'history': {
+      const { undoDepth, redoDepth } = event.history;
+      return `history ${String(undoDepth)}/${String(redoDepth)}`;
+    }
+    case 'playback':
+      return `playback ${event.state.status} ${String(event.state.timeUs)}`;
+    case 'error':
+      return `error ${event.error.code}`;
+  }
+};
+
+describe('createEditorSession (D44)', () => {
+  it('loads the document once, with the host resolver, and shows frame 0', async () => {
+    const { calls, editor } = await session();
+    expect(calls.map(({ method }) => method)).toEqual(['load']);
+    expect(calls[0]?.document).toBe(editor.bus.getDocument());
+    expect(calls[0]?.resolveAsset).toBe(resolveAsset);
+    expect(editor.getPlaybackState()).toMatchObject({ status: 'ready', timeUs: 0 });
+    expect(editor.getHistory()).toEqual({
+      canUndo: false,
+      canRedo: false,
+      undoDepth: 0,
+      redoDepth: 0,
+    });
+  });
+
+  it('refuses an invalid document and destroys the Player', async () => {
+    const { player, isDestroyed, calls } = recordingPlayer();
+    await expect(
+      createEditorSession({ document: { schemaVersion: '0.2' }, player, resolveAsset }),
+    ).rejects.toMatchObject({ code: 'invalid-document' });
+    expect(calls).toEqual([]);
+    expect(isDestroyed()).toBe(true);
+  });
+
+  it('rejects with the error of a failed load and destroys the Player', async () => {
+    const { player, isDestroyed, calls } = recordingPlayer(false);
+    const started = createEditorSession({ document: referenceComposition, player, resolveAsset });
+    calls[0]?.settle(new PlayerError('asset-missing', 'missing'));
+    await expect(started).rejects.toMatchObject({ code: 'asset-missing' });
+    expect(isDestroyed()).toBe(true);
+  });
+});
+
+describe('edits reach the preview (D44)', () => {
+  it('updates the Player with every committed document, through the one bus', async () => {
+    const { calls, editor, events } = await session();
+    editor.bus.dispatch(move(1, 1));
+    await editor.settled();
+    editor.bus.undo();
+    await editor.settled();
+    expect(calls.map(({ method }) => method)).toEqual(['load', 'update', 'update']);
+    expect(calls[2]?.document).toBe(editor.bus.getDocument());
+    expect(events.map(brief)).toEqual([
+      'document dispatch',
+      'history 1/0',
+      'playback loading 0',
+      'playback ready 0',
+      'document undo',
+      'history 0/1',
+      'playback loading 0',
+      'playback ready 0',
+    ]);
+  });
+
+  it('sends only the latest document of edits made while an update runs', async () => {
+    const { calls, editor } = await session(false);
+    editor.bus.dispatch(move(1, 1));
+    editor.bus.dispatch(move(2, 2));
+    editor.bus.dispatch(move(3, 3));
+    expect(calls.map(({ method }) => method)).toEqual(['load', 'update']);
+    const first = calls[1]?.document;
+    calls[1]?.settle();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(calls).toHaveLength(3);
+    calls[2]?.settle();
+    await editor.settled();
+    expect(calls).toHaveLength(3);
+    expect(first).not.toBe(editor.bus.getDocument());
+    expect(calls[2]?.document).toBe(editor.bus.getDocument());
+  });
+
+  it('reports a failed update, keeps the edit, and loads the next document', async () => {
+    const { calls, editor, events } = await session(false);
+    editor.bus.dispatch(move(1, 1));
+    calls[1]?.settle(new PlayerError('asset-missing', 'missing'));
+    await editor.settled();
+    expect(events.map(brief)).toContain('error asset-missing');
+    expect(editor.bus.canUndo()).toBe(true);
+    editor.bus.undo();
+    expect(calls.map(({ method }) => method)).toEqual(['load', 'update', 'load']);
+    calls[2]?.settle();
+    await editor.settled();
+    expect(editor.getPlaybackState()).toMatchObject({ status: 'ready', timeUs: 0 });
+  });
+
+  it('sends nothing for a no-op', async () => {
+    const { calls, editor, events } = await session();
+    const { x, y } = (
+      editor.bus.getDocument().scenes[0]?.nodes.find((node) => node.id === TITLE) as unknown as {
+        position: { x: number; y: number };
+      }
+    ).position;
+    editor.bus.dispatch(move(x, y));
+    await editor.settled();
+    expect(calls).toHaveLength(1);
+    expect(events).toEqual([]);
+  });
+});
+
+describe('the events (D44)', () => {
+  it('reports history only when it changed, with the depths within the limit', async () => {
+    const { editor, events } = await session(true, 1);
+    editor.bus.dispatch(move(1, 1));
+    editor.bus.dispatch(move(2, 2));
+    editor.bus.undo();
+    await editor.settled();
+    expect(events.filter((event) => event.type !== 'playback').map(brief)).toEqual([
+      'document dispatch',
+      'history 1/0',
+      'document dispatch',
+      'document undo',
+      'history 0/1',
+    ]);
+    expect(editor.getHistory()).toEqual({
+      canUndo: false,
+      canRedo: true,
+      undoDepth: 0,
+      redoDepth: 1,
+    });
+  });
+
+  it('reports playback from the Player, and passes seek, play, and pause through', async () => {
+    const { editor, events } = await session();
+    await editor.seek(2_500_000);
+    editor.play();
+    editor.pause();
+    expect(events.map(brief)).toEqual([
+      'playback ready 2500000',
+      'playback playing 2500000',
+      'playback ready 2500000',
+    ]);
+    expect(events.every((event) => Object.isFrozen(event))).toBe(true);
+  });
+
+  it('gives what a listener threw to the handler, and tells the other listeners all the same', async () => {
+    const { editor, events, failures } = await session();
+    const boom = new Error('listener');
+    editor.subscribe(() => {
+      throw boom;
+    });
+    const later: string[] = [];
+    editor.subscribe((event) => later.push(brief(event)));
+    editor.bus.dispatch(move(1, 1));
+    await editor.settled();
+    expect(failures.length).toBeGreaterThan(0);
+    expect(failures.every((failure) => failure === boom)).toBe(true);
+    expect(later).toEqual(events.slice(0, later.length).map(brief));
+  });
+
+  it('needs a handler before subscribe', async () => {
+    const { player } = recordingPlayer();
+    const editor = await createEditorSession({
+      document: referenceComposition,
+      player,
+      resolveAsset,
+    });
+    expect(() => editor.subscribe(() => undefined)).toThrow(
+      expect.objectContaining({ code: 'invalid-options' }) as Error,
+    );
+    editor.destroy();
+  });
+});
+
+describe('destroy', () => {
+  it('stops every event and destroys the Player', async () => {
+    const { editor, events, isDestroyed, listeners } = await session(false);
+    editor.bus.dispatch(move(1, 1));
+    events.length = 0;
+    editor.destroy();
+    editor.bus.dispatch(move(2, 2));
+    expect(events).toEqual([]);
+    expect(listeners.size).toBe(0);
+    expect(isDestroyed()).toBe(true);
+  });
+});

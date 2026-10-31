@@ -91,6 +91,31 @@ describe('the changes (D38.8)', () => {
     expect(changes[3]).toMatchObject({ canUndo: true, canRedo: false });
   });
 
+  it('says how deep undo and redo reach, within the history limit (D44)', () => {
+    const bus = createCommandBus(referenceComposition, {
+      historyLimit: 2,
+      onListenerError: () => undefined,
+    });
+    const depths: [number, number][] = [];
+    bus.subscribe(({ undoDepth, redoDepth }) => depths.push([undoDepth, redoDepth]));
+    bus.dispatch(move(1, 1));
+    bus.dispatchTransaction([fade(0.5), move(2, 2)]);
+    bus.dispatch(move(3, 3));
+    bus.undo();
+    bus.undo();
+    bus.redo();
+    bus.dispatch(move(4, 4));
+    expect(depths).toEqual([
+      [1, 0],
+      [2, 0],
+      [2, 0],
+      [1, 1],
+      [0, 2],
+      [1, 1],
+      [2, 0],
+    ]);
+  });
+
   it('is delivered after the commit: the listener reads the new state', () => {
     const bus = createCommandBus(referenceComposition, { onListenerError: () => undefined });
     const seen: unknown[] = [];
@@ -118,6 +143,8 @@ describe('the changes (D38.8)', () => {
         'document',
         'inverses',
         'kind',
+        'redoDepth',
+        'undoDepth',
       ]);
       expect(Object.isFrozen(change.createdIds)).toBe(true);
     }

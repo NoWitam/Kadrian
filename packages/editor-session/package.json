@@ -1,0 +1,27 @@
+{
+  "name": "@kadrion/editor-session",
+  "version": "0.0.0",
+  "private": true,
+  "description": "host facade joining the document, command bus, Player, and asset resolver.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@kadrion/editor-sdk": "workspace:*",
+    "@kadrion/player": "workspace:*",
+    "@kadrion/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@kadrion/test-fixtures": "workspace:*",
+    "@types/jsdom": "28.0.3",
+    "jsdom": "29.1.1"
+  }
+}
