@@ -1,6 +1,7 @@
 # D49 — The timeline model
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-10-31, after PR-27 was merged
+  (PR #13)
 - Date: 2026-10-31
 - Supersedes: —
 - Amends: nothing by itself. It decides the model that D50 to D57 implement;

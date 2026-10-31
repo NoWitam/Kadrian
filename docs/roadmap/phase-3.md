@@ -394,7 +394,8 @@ pack` does not publish.
 
 ### PR-27 — The timeline model (ADR only)
 
-- Status: proposed in [D49](../adr/D49-the-timeline-model.md) (2026-10-31).
+- Status: done (PR #13, merged 2026-10-31), with its ADR
+  [D49](../adr/D49-the-timeline-model.md) (accepted by the owner on 2026-10-31).
   D49 follows the decisions below and adds three points the plan left open:
   the composition's `durationUs` stays a field checked against the scenes;
   scenes get audio clips of their own in scene time beside the composition's;
