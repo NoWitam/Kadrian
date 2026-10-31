@@ -12,15 +12,20 @@
  * the adapter can get wrong: an own `type`, and values that are not objects.
  */
 import { Ajv2020 } from 'ajv/dist/2020.js';
-import { createCommandBus, type ArgumentSchema } from '@kadrion/editor-sdk';
+import {
+  createCommandBus,
+  setNodePositionArgumentsSchema,
+  type ArgumentSchema,
+} from '@kadrion/editor-sdk';
 import { referenceComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
-import { executeSetNodePosition, setNodePositionTool } from '../src/index.js';
+import { executeSetNodePosition } from '../src/index.js';
 
 import { codeOf, json } from './support.js';
 
-const schema = setNodePositionTool.inputSchema;
+// The tool's `inputSchema` is this very object (tool.test.ts); typed here as the narrow schema.
+const schema = setNodePositionArgumentsSchema;
 const accepts = new Ajv2020({ strict: true, strictNumbers: true }).compile(schema);
 
 const BASE = { nodeId: 'node-title', position: { x: 190, y: 360 } };

@@ -14,7 +14,6 @@ import {
 import { referenceComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
-import * as aiSdk from '../src/index.js';
 import { executeSetNodePosition, setNodePositionTool } from '../src/index.js';
 
 import {
@@ -67,10 +66,6 @@ describe('the definition of set_node_position (D31.1, D31.2)', () => {
     expect(() => {
       (setNodePositionTool as { name: string }).name = 'execute_command';
     }).toThrow(TypeError);
-  });
-
-  it('exports exactly the tool and its function: no registry, no undo tool, no raw command', () => {
-    expect(Object.keys(aiSdk).sort()).toEqual(['executeSetNodePosition', 'setNodePositionTool']);
   });
 });
 

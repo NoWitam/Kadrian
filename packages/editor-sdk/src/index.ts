@@ -8,6 +8,8 @@
  * wraps the argument schemas exported here (D31). The bus is a frozen facade
  * (D30.13); its commands come from a closed registry, and it runs transactions,
  * keeps a bounded history, and tells its listeners about every change (D38).
+ * Every command carries the AI metadata its tool is derived from, and a model
+ * can read a document through `describeDocument` (D46).
  */
 export { applyCommand } from './apply.js';
 export type { CommandResult } from './apply.js';
@@ -130,6 +132,15 @@ export type {
   SetTextFontSizeArgumentsSchema,
   SetTextFontSizeCommand,
 } from './commands.js';
+export { describeDocument } from './describe.js';
+export type { DocumentDescription, NodeDescription, SceneDescription } from './describe.js';
 export { EditorError } from './errors.js';
 export type { EditorErrorCode } from './errors.js';
 export { COMMAND_TYPES, parseCommand } from './registry.js';
+export { COMMAND_TOOL_METADATA } from './tools.js';
+export type {
+  AnyCommandToolMetadata,
+  CommandArguments,
+  CommandArgumentsSchema,
+  CommandToolMetadata,
+} from './tools.js';
