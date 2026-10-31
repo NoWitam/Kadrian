@@ -1,6 +1,7 @@
 # D50 — Video nodes and `fit`: schema 0.3, the source frame, and video in the Producer
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-10-31, after PR-28a was merged
+  (PR #15)
 - Date: 2026-10-31
 - Supersedes: —
 - Extends: D14 (asset type `video`), D16 (node `video`, `fit`), D22 (`fit` as
@@ -189,7 +190,8 @@ measurement (D34 method); outside video nodes the gate stays zero.
   images with `contain` and `cover`. Its golden timestamps are 0, 0.5 s, 1 s,
   1.5 s, and the last frame.
 - **The video is generated, never committed**: three seconds of `testsrc2` at
-  320 × 180 and 25 fps, H.264, made by the pinned FFmpeg with committed
+  320 × 180 and 25 fps, H.264 with x264's assembly off (its output differs
+  between CPUs with and without AVX-512), made by the pinned FFmpeg with committed
   arguments (`videoFixtureArguments`) and accepted only with the committed
   SHA-256 and facts (`VIDEO_FIXTURE`). `tests/pinned/video-fixture.ts` makes
   it.

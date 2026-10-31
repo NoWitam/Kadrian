@@ -438,7 +438,8 @@ pack` does not publish.
 
 ### PR-28 — Video, and `fit` of images and video
 
-- Status: split in two by D50 (proposed 2026-10-31). **PR-28a** is in review:
+- Status: split in two by D50 (accepted by the owner on 2026-10-31).
+  **PR-28a** is done (PR #15, merged 2026-10-31):
   schema `0.3` and its step, the source-frame rule, the runtime and the
   renderer, `SetVideoAsset`, `SetVideoSource`, `SetNodeFit` and their tools,
   the media-facts check of the bus, the Producer decoding with the pinned
