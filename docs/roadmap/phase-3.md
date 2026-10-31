@@ -360,6 +360,8 @@ pack` does not publish.
 
 ### PR-25b — The render job contract
 
+- Status: implemented with its ADR D48 (Proposed), on review. Q14 stays open:
+  the pull request adds the tests of D48 to `tests/pinned/export.pinned.test.ts`.
 - **Goal:** each CLI command behaves as a well-defined job inside a host's
   queue.
 - **Scope (D48, to be decided):**

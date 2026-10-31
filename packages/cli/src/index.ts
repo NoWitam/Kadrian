@@ -4,12 +4,16 @@
  * `runCli` implements `kadrion render-frames` (D28.8) and `kadrion export` (D29.10)
  * on top of the Producer's `renderFrames` and `exportMp4`, the jobs of a
  * segmented render `render-range`, `render-audio`, and `join`, and
- * `render-still` (D47), and `kadrion
+ * `render-still` (D47), `estimate`, and `kadrion
  * fetch-ffmpeg` and `kadrion doctor` for a host's worker (D45); `bin.ts` is the
- * executable.
+ * executable. Every render command is a job of D48: JSON lines on standard
+ * output, cancellation by signal, limits, and a stable table of exit codes.
  */
 export {
   AUDIO_MANIFEST_NAME,
+  CANCEL_GRACE_MS,
+  EXIT_CANCELLED,
+  EXIT_LIMIT_EXCEEDED,
   EXIT_NOT_REFERENCE,
   EXIT_OK,
   EXIT_PRODUCER_ERROR,
@@ -18,9 +22,11 @@ export {
   FFMPEG_VARIABLE,
   FFPROBE_VARIABLE,
   frameFileName,
+  JOB_COMMANDS,
   parseAssetMap,
   parseTimes,
   runCli,
+  RENDER_MANIFEST_NAME,
   segmentsManifestName,
   stillFileNames,
   USAGE,
@@ -31,11 +37,13 @@ export type {
   Doctor,
   Export,
   FetchFfmpeg,
+  JobLine,
   Join,
   Render,
   RenderAudio,
   RenderRange,
   RenderStill,
+  StartTimer,
 } from './cli.js';
 export { DOCTOR_CHECKS, DOCTOR_REPORT_VERSION, runDoctor, systemDoctorHost } from './doctor.js';
 export type { DoctorCheck, DoctorCheckId, DoctorHost, DoctorReport } from './doctor.js';

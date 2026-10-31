@@ -57,6 +57,10 @@ export type ProducerErrorCode =
   | 'join-invalid'
   /** A still frame was asked for in a format other than png, jpeg, or webp (D47.7). */
   | 'still-format-unsupported'
+  /** A limit the host gave the job is exceeded: document, duration, frames, assets, or wall time (D48.4). */
+  | 'limit-exceeded'
+  /** The job was cancelled by its signal; nothing stays under a final name (D48.2). */
+  | 'cancelled'
   /** Anything else the page reported. */
   | 'page-error';
 
