@@ -6,6 +6,8 @@
 - Amends: D12 (the map gains `editor-session`), D25 (25.4 and 25.7, new 25.11),
   and D38 (D38.8, the history depths of a change), each with an
   `Amended by: PR-23 (D44)` line
+- Amended by: PR-28b (D51) on 2026-10-31: the session reads media facts from verified bytes
+  for the bus, and `readMediaFacts` (D51.7)
 - Related: D09, D13, D14, D20, D25, D30, D33, D36, D38,
   [roadmap of phase three](../roadmap/phase-3.md) PR-23
 

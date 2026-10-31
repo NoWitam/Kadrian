@@ -11,6 +11,8 @@
 - Implementation status updated by: PR-17 on 2026-09-28 at the owner's request, Measurements (the
   pinned container has run since PR-07; these Windows numbers stay informative)
 - Amended by: PR-28a (D50) on 2026-10-31: 28.3 (the agent passes video frames), 28.6 (`video-undecodable`, `source-range-exceeded`, `video-frames-invalid`), and 28.7 (the manifest field `video`, `MANIFEST_VERSION` 3) (D50.5)
+- Amended by: PR-28b (D51) on 2026-10-31: 28.3 (the Player's agent receives video frames with
+  `seek` and `update`, as the Producer's agent does) (D51.5)
 - Related: D06, D12, D13, D14, D21, D23, D25, D26, D27, D29,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1–§6.3, §7, §8, and
   open questions Q3, Q9, and Q14

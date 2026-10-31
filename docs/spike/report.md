@@ -98,10 +98,10 @@ shifted golden frame is pixels only.
 - Context: viewport {"width":1080,"height":1920}, device scale factor 1, locale `en-US`, time zone `UTC`; Node `v24.20.0`.
 - Runtime build: `sha256:4dc0c57e179cec048fdc275afdee627286d97f69a6feb1982a218d8a4d02b219`.
 - Document (composition hash): `sha256:afe16f9fce7c5e82a1f76d16c63c5da1e1bf705e4c2c9e32d35453ec3a97a69f`.
-- Player dist tree (D33.10): `sha256:365e99a2353d1c8ea77162bcd668a5f8df1c86e7c477e2f27fb642caec8f4d63`, 31 files, the manifest in the record.
+- Player dist tree (D33.10): `sha256:b3462d5f4ebe8ed434c82932bba4cf88a472745465aef073b149617cbe40d0aa`, 36 files, the manifest in the record.
 - Golden manifest: `packages/test-fixtures/src/golden-frames/reference.golden-frames.json`, `sha256:283abebf3677716dd230fa997f085d3d9d07f66f2cc8df337a1ac90e5fcf2929`.
 - Record: version 2, `gate: true`, thresholds `{"differingPixels":0,"maxChannelDifference":0}` (D34.1).
-- Source: the pinned bootstrap of PR-21 (2026-10-03), in this order. One isolated `goldens:update` first generated the golden frames for the new build: the five PNG files came out byte for byte as committed, and the manifest changed in `render.schemaVersion`, `render.compositionHash`, and `render.runtime.contentHash` only; that manifest was accepted by the owner and copied into the tree. `pinned-run.sh reference` then ran its first `test:pinned` pass against those frames of the tree, and the record of that pass was copied out before the pipeline's own `goldens:update` wrote the frames again (D33.6); that regeneration, and the one of `repeat`, produced the same six files byte for byte. The record kept here is the one of the first reference run that passed, in which `tests/repo/parity-record.test.ts` and `tests/repo/q14.test.ts` were held aside in the Docker volume because both read this record; the full second run, with nothing held aside, measured the same record, and so did every later pass: the raw files are byte-identical. The file in the repository is that record in the repository's Prettier formatting, which differs from the raw bytes in white space only: the same data in the same key order. PR-21 (D42) changed the schema version, the reference document, the runtime build, and the Player's dist tree. Measured again for PR-23 (D44) on 2026-10-31, which changed the Player's dist tree and nothing else that the record binds: one `test:pinned` pass in the pinned container with `--network none` wrote it, and it differs from the record of PR-21 in `playerDistTreeSha256` and the three Player files of the manifest only; every row is again 0/0, with the same PNG hashes. Measured again for PR-28a (D50) on 2026-10-31, which changed the schema version, the reference document, the runtime build, and the Player's dist tree: one isolated `goldens:update` in the pinned container with `--network none` wrote the five reference PNG files byte for byte as committed, the manifest changed in `manifestVersion`, `render.schemaVersion`, `render.compositionHash`, `render.runtime.contentHash`, and the new field `video` (`null`) only, and it wrote the golden frames of the video composition beside them (D50.8); the `test:pinned` pass that followed wrote this record against those frames. Every row is 0/0, with the same PNG hashes; the video composition has no Player rows, because the Player refuses video until PR-28b (D50.6). The environment equals the golden frames' environment on every field that affects pixels, and the record is current with the build (checked by `check`).
+- Source: the pinned bootstrap of PR-21 (2026-10-03), in this order. One isolated `goldens:update` first generated the golden frames for the new build: the five PNG files came out byte for byte as committed, and the manifest changed in `render.schemaVersion`, `render.compositionHash`, and `render.runtime.contentHash` only; that manifest was accepted by the owner and copied into the tree. `pinned-run.sh reference` then ran its first `test:pinned` pass against those frames of the tree, and the record of that pass was copied out before the pipeline's own `goldens:update` wrote the frames again (D33.6); that regeneration, and the one of `repeat`, produced the same six files byte for byte. The record kept here is the one of the first reference run that passed, in which `tests/repo/parity-record.test.ts` and `tests/repo/q14.test.ts` were held aside in the Docker volume because both read this record; the full second run, with nothing held aside, measured the same record, and so did every later pass: the raw files are byte-identical. The file in the repository is that record in the repository's Prettier formatting, which differs from the raw bytes in white space only: the same data in the same key order. PR-21 (D42) changed the schema version, the reference document, the runtime build, and the Player's dist tree. Measured again for PR-23 (D44) on 2026-10-31, which changed the Player's dist tree and nothing else that the record binds: one `test:pinned` pass in the pinned container with `--network none` wrote it, and it differs from the record of PR-21 in `playerDistTreeSha256` and the three Player files of the manifest only; every row is again 0/0, with the same PNG hashes. Measured again for PR-28a (D50) on 2026-10-31, which changed the schema version, the reference document, the runtime build, and the Player's dist tree: one isolated `goldens:update` in the pinned container with `--network none` wrote the five reference PNG files byte for byte as committed, the manifest changed in `manifestVersion`, `render.schemaVersion`, `render.compositionHash`, `render.runtime.contentHash`, and the new field `video` (`null`) only, and it wrote the golden frames of the video composition beside them (D50.8); the `test:pinned` pass that followed wrote this record against those frames. Every row is 0/0, with the same PNG hashes; the video composition has no Player rows, because the Player refuses video until PR-28b (D50.6). Measured again for PR-28b (D51) on 2026-10-31, which changed the Player's dist tree and nothing else that the record binds: one `test:pinned` pass in the pinned container with `--network none` wrote this record and, beside it, the record of the video rows (`docs/spike/video-parity-measurement.json`, below); this record differs from the one of PR-28a in `playerDistTreeSha256` and the Player files of the manifest only, and every row is again 0/0, with the same PNG hashes. The environment equals the golden frames' environment on every field that affects pixels, and the record is current with the build (checked by `check`).
 
 ### Numbers
 
@@ -137,6 +137,32 @@ Two assertions that are not thresholds are unchanged, and both passed:
 - the equality gate of D28.5: the Player and the Producer in the same run and
   the same browser binary differ in zero pixels;
 - the golden-frame equality of the Producer (D26.5).
+
+### Video rows (D51.6)
+
+Since PR-28b the Player shows video nodes, so the video composition of D50.8
+(640x360, document `sha256:ea170b6be82ec0d5967558156a3a4e0e11e8da7123f7a2d44b0d7d2ec84297ca`)
+is measured too, against its own golden frames
+(`packages/test-fixtures/src/golden-frames/video.golden-frames.json`), in the
+same pass, environment, runtime build, and Player dist tree as the record
+above. Its record is `docs/spike/video-parity-measurement.json`, gated by the
+same thresholds of D34.1: the Player decodes in its host window and converts
+YUV to RGB exactly as the Producer's FFmpeg does (D51.4), so pixels inside a
+video node carry no tolerance of their own.
+
+<!-- video-parity-table:start -->
+
+| `timeUs` | Frame | Differing pixels |    Share | Max channel difference | Histogram 0 / 1 / 2-3 / 4-7 / 8-15 / 16-31 / 32-63 / 64-127 / 128-255 |
+| :------- | ----: | ---------------: | -------: | ---------------------: | --------------------------------------------------------------------: |
+| 0        |     0 |       0 / 230400 | 0.0000 % |                      0 |                                230400 / 0 / 0 / 0 / 0 / 0 / 0 / 0 / 0 |
+| 500000   |    15 |       0 / 230400 | 0.0000 % |                      0 |                                230400 / 0 / 0 / 0 / 0 / 0 / 0 / 0 / 0 |
+| 1000000  |    30 |       0 / 230400 | 0.0000 % |                      0 |                                230400 / 0 / 0 / 0 / 0 / 0 / 0 / 0 / 0 |
+| 1500000  |    45 |       0 / 230400 | 0.0000 % |                      0 |                                230400 / 0 / 0 / 0 / 0 / 0 / 0 / 0 / 0 |
+| 1966666  |    59 |       0 / 230400 | 0.0000 % |                      0 |                                230400 / 0 / 0 / 0 / 0 / 0 / 0 / 0 / 0 |
+
+<!-- video-parity-table:end -->
+
+In every row the SHA-256 of the Player's PNG equals that of the golden PNG.
 
 **Informative only, not evidence (D33.9):** the same test on the Windows development machine
 (`win32`/`x64`, Playwright Chromium `153.0.8010.12`, not the container)

@@ -639,7 +639,7 @@ describe('q14EvidenceProblems', () => {
     [
       'a pinned file that was not collected',
       (given) => given.vitest.testResults.splice(4, 1),
-      'not exactly the seven',
+      'not exactly the required',
     ],
     [
       'a pinned file without tests',

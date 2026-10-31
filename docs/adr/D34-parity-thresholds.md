@@ -5,6 +5,8 @@
   Verification (the CI job of D26.6 has run and gates the thresholds; the decision is unchanged)
 - Date: 2026-09-23
 - Supersedes: —
+- Amended by: PR-28b (D51) on 2026-10-31: the thresholds of 34.1 gate the video rows too;
+  no threshold of its own inside video nodes (D51.6)
 - Related: D26, D28, D33,
   [specification](../spike/vertical-spike.md) §6.2 and open question Q9,
   [spike report](../spike/report.md) §3

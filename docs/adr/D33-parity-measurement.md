@@ -8,6 +8,8 @@
   the pinned environment
 - Amended by: PR-11 on 2026-09-23 at the owner's request, 33.10 (the Player's
   dist tree in the record)
+- Amended by: PR-28b (D51) on 2026-10-31: a second record, the video rows measured against
+  the golden frames of the video composition (D51.6)
 - Related: D06, D13, D21, D25, D26, D28, D34,
   [specification](../spike/vertical-spike.md) §6.2, §6.3, §12, and open
   question Q9

@@ -23,6 +23,7 @@ export const REQUIRED_PINNED_FILES: readonly string[] = Object.freeze([
   'tests/pinned/export.pinned.test.ts',
   'tests/pinned/goldens.pinned.test.ts',
   'tests/pinned/parity.pinned.test.ts',
+  'tests/pinned/player-video.pinned.test.ts',
   'tests/pinned/player.pinned.test.ts',
   'tests/pinned/producer.pinned.test.ts',
   'tests/pinned/video.pinned.test.ts',
@@ -175,7 +176,7 @@ export function pinnedSummaryProblems(value: unknown): string[] {
   const testFiles = Array.isArray(summary.testFiles) ? summary.testFiles : [];
   if (JSON.stringify(testFiles) !== JSON.stringify(REQUIRED_PINNED_FILES)) {
     problems.push(
-      `the test files are ${JSON.stringify(testFiles)}, not exactly the seven pinned files`,
+      `the test files are ${JSON.stringify(testFiles)}, not exactly the required pinned files`,
     );
   }
   if (summary.testFileCount !== testFiles.length) {

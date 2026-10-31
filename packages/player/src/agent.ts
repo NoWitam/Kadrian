@@ -5,7 +5,9 @@
  * TypeScript compiles into a call to a helper. It only transports: it checks
  * messages, keeps the document's JSON text, passes the asset bytes through
  * unchanged, and calls `KadrionRuntime.load` and `KadrionRuntime.frame`, whose
- * order of work decides the pixels (D25.3, D27.1). An update (D44) is a load
+ * order of work decides the pixels (D25.3, D27.1). Every seek and update carries
+ * the source frames of the active video nodes, which the Player decoded in the
+ * host window (D51.4); the agent passes them to `frame` unchanged. An update (D44) is a load
  * and a frame in one request: the frame is chained on the load's promise, so the
  * new tree is mounted and rendered at its time with no task in between, and the
  * browser never paints the tree before its first frame. It lends the page's
@@ -32,10 +34,11 @@ export function pageAgent(): void {
       document: unknown,
       timeUs: number,
       host: unknown,
+      videoFrames: unknown,
     ): Promise<{ ok: boolean; errors?: unknown }>;
   }
 
-  const VERSION = 1;
+  const VERSION = 2;
   const LOAD_KEYS = [
     'ackTimeoutMs',
     'assets',
@@ -45,7 +48,7 @@ export function pageAgent(): void {
     'type',
     'version',
   ];
-  const SEEK_KEYS = ['requestId', 'timeUs', 'type', 'version'];
+  const SEEK_KEYS = ['requestId', 'timeUs', 'type', 'version', 'videoFrames'];
   const UPDATE_KEYS = [
     'ackTimeoutMs',
     'assets',
@@ -55,6 +58,7 @@ export function pageAgent(): void {
     'timeUs',
     'type',
     'version',
+    'videoFrames',
   ];
 
   const runtime = (window as unknown as { KadrionRuntime?: Runtime }).KadrionRuntime;
@@ -144,14 +148,14 @@ export function pageAgent(): void {
         reply(requestId, failed);
         return undefined;
       }
-      return frameAt(requestId, data.timeUs as number);
+      return frameAt(requestId, data.timeUs as number, data.videoFrames);
     });
   };
 
   const seek = (data: Record<string, unknown>): Promise<void> =>
-    frameAt(data.requestId as number, data.timeUs as number);
+    frameAt(data.requestId as number, data.timeUs as number, data.videoFrames);
 
-  const frameAt = (requestId: number, timeUs: number): Promise<void> => {
+  const frameAt = (requestId: number, timeUs: number, videoFrames: unknown): Promise<void> => {
     if (state.documentJson === null) {
       reply(requestId, { code: 'not-loaded', message: 'No document is loaded.', details: [] });
       return Promise.resolve();
@@ -175,7 +179,7 @@ export function pageAgent(): void {
       requestId,
     };
     return (runtime as Runtime)
-      .frame(root as Element, JSON.parse(state.documentJson), timeUs, host)
+      .frame(root as Element, JSON.parse(state.documentJson), timeUs, host, videoFrames)
       .then((result) => {
         reply(requestId, result.ok ? null : invalid(result.errors));
       });
@@ -207,7 +211,8 @@ export function pageAgent(): void {
       data.type === 'kadrion-player:seek' &&
       data.version === VERSION &&
       isCount(data.requestId) &&
-      isCount(data.timeUs)
+      isCount(data.timeUs) &&
+      Array.isArray(data.videoFrames)
     ) {
       enqueue(data.requestId, () => seek(data));
     } else if (
@@ -219,7 +224,8 @@ export function pageAgent(): void {
       Array.isArray(data.assets) &&
       isCount(data.ackTimeoutMs) &&
       isPolicy(data.customHtml) &&
-      isCount(data.timeUs)
+      isCount(data.timeUs) &&
+      Array.isArray(data.videoFrames)
     ) {
       const { mode } = data.customHtml;
       enqueue(data.requestId, () => update(data, mode));

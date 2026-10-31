@@ -9,6 +9,8 @@
   Producer's private copies of a video), D35 (the step from `0.2`), D46 (three
   tools, source durations in `describe_document`), and D47 (manifest
   versions), each with an `Amended by: PR-28a (D50)` line
+- Amended by: PR-28b (D51) on 2026-10-31: D50.6 is superseded by D51 (the Player shows video),
+  and the last item of D50.7 (`editor-session` now passes facts)
 - Related: D04, D13, D18, D19, D30, D34, D38, D40, D42, D43, D48, D49,
   [roadmap of phase three](../roadmap/phase-3.md) PR-28
 
@@ -145,6 +147,8 @@ data:`, D25.2) before the tree is rendered; an inactive video loses its
   the fields every part of a join must share (D47.5).
 
 ### D50.6 The Player until PR-28b
+
+_Superseded by D51 (PR-28b): the Player decodes video in its host window._
 
 The Player refuses a document with a video asset or a video node with
 `video-unsupported`, before it resolves any asset, and names every one of them

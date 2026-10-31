@@ -50,6 +50,7 @@ const TYPES: Readonly<Record<string, string>> = {
 export const HOST_SCRIPT = `import { createPlayer } from '@kadrion/player';
 let player;
 let loadedText = null;
+let table = new Map();
 const bytesOf = (base64) => Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
 window.conformance = {
   async start() {
@@ -64,10 +65,22 @@ window.conformance = {
       customHtml: { mode: 'trusted' },
     });
   },
-  load(text, assets) {
+  // A video can be delivered as a Blob, the way a host passes a file (D51.2).
+  load(text, assets, videoAsBlob) {
     loadedText = text;
-    const table = new Map(assets.map((asset) => [asset.id, { bytes: bytesOf(asset.base64), mediaType: asset.mediaType }]));
+    table = new Map(assets.map((asset) => {
+      const bytes = bytesOf(asset.base64);
+      const blob = videoAsBlob && asset.mediaType.startsWith('video/');
+      return [asset.id, blob ? { blob: new Blob([bytes]), mediaType: asset.mediaType } : { bytes, mediaType: asset.mediaType }];
+    }));
     return player.load(JSON.parse(text), ({ id }) => table.get(id) ?? null);
+  },
+  async prepare(id, contentHash) {
+    try {
+      return await player.prepareVideo({ id, type: 'video', contentHash }, (request) => table.get(request.id) ?? null);
+    } catch (error) {
+      return { code: error.code };
+    }
   },
   loadedText: () => loadedText,
   seek: (timeUs) => player.seek(timeUs),
@@ -93,7 +106,8 @@ export const HOST_PAGE = `<!doctype html><html><head><meta charset="utf-8">
 interface HostWindow {
   readonly conformance: {
     start(): Promise<void>;
-    load(text: string, assets: readonly HostAsset[]): Promise<void>;
+    load(text: string, assets: readonly HostAsset[], videoAsBlob: boolean): Promise<void>;
+    prepare(id: string, contentHash: string): Promise<unknown>;
     loadedText(): string | null;
     seek(timeUs: number): Promise<void>;
     state(): { status: string; timeUs: number | null; runtimeHash: string; error: string | null };
@@ -154,6 +168,8 @@ export interface ConformanceHost {
   readonly refused: string[];
   readonly width: number;
   readonly height: number;
+  /** Whether the document has a font asset, whose face the preflight requires. */
+  readonly hasFont: boolean;
   /** `sha256(canonicalJson(validated document))` of the text the page says it loaded (D33.3). */
   readonly compositionHash: string;
 }
@@ -167,6 +183,7 @@ export async function openConformanceHost(
   chromium: LaunchedChromium,
   documentText: string,
   assets: readonly { id: string; mediaType: string; bytes: Uint8Array }[],
+  options: { readonly videoAsBlob?: boolean } = {},
 ): Promise<ConformanceHost> {
   const size = validateComposition(JSON.parse(documentText));
   if (!size.ok) throw new Error('The document to load is not valid.');
@@ -208,7 +225,7 @@ export async function openConformanceHost(
   const renderFrame = page.mainFrame().childFrames()[0];
   if (renderFrame === undefined) throw new Error('The Player made no frame.');
   await page.evaluate(
-    ([text, sent]) => (window as unknown as HostWindow).conformance.load(text, sent),
+    ([text, sent, blob]) => (window as unknown as HostWindow).conformance.load(text, sent, blob),
     [
       documentText,
       assets.map(({ id, mediaType, bytes }) => ({
@@ -216,6 +233,7 @@ export async function openConformanceHost(
         mediaType,
         base64: Buffer.from(bytes).toString('base64'),
       })),
+      options.videoAsBlob === true,
     ] as const,
   );
   const echo = await page.evaluate(() =>
@@ -233,6 +251,7 @@ export async function openConformanceHost(
     refused,
     width: loaded.composition.width,
     height: loaded.composition.height,
+    hasFont: loaded.composition.assets.some((asset) => asset.type === 'font'),
     compositionHash: sha256(canonicalJson(loaded.composition)),
   };
 }
@@ -342,7 +361,7 @@ export async function preflight(
   );
   problems.push(
     ...(await host.renderFrame.evaluate(
-      ([w, h]) => {
+      ([w, h, font]) => {
         const found: string[] = [];
         if (devicePixelRatio !== 1)
           found.push(`render page devicePixelRatio ${String(devicePixelRatio)}`);
@@ -358,14 +377,16 @@ export async function preflight(
         }
         if (document.getElementById('kadrion-root') === null) found.push('no #kadrion-root');
         for (const image of [...document.images]) {
+          // An inactive video node has no source (D50.4): nothing to decode.
+          if (!image.hasAttribute('src')) continue;
           if (!image.complete || image.naturalWidth === 0) found.push('an image is not decoded');
         }
         if (document.fonts.status !== 'loaded') found.push(`fonts are ${document.fonts.status}`);
-        if (!document.fonts.check('16px "Kadrion Fixture"'))
+        if (font && !document.fonts.check('16px "Kadrion Fixture"'))
           found.push('the fixture font is missing');
         return found;
       },
-      [width, height] as const,
+      [width, height, host.hasFont] as const,
     )),
   );
   if (tree !== null) {
@@ -410,4 +431,16 @@ export async function seekAndCapture(
 
 export async function closeConformanceHost(host: ConformanceHost): Promise<void> {
   await host.context.close();
+}
+
+/** The media facts the Player reads for a video of the loaded document (D51.5), or `{ code }`. */
+export async function preparedFacts(
+  host: ConformanceHost,
+  id: string,
+  contentHash: string,
+): Promise<unknown> {
+  return host.page.evaluate(
+    ([assetId, hash]) => (window as unknown as HostWindow).conformance.prepare(assetId, hash),
+    [id, contentHash] as const,
+  );
 }

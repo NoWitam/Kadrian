@@ -31,8 +31,17 @@ export type PlayerErrorCode =
   | 'custom-html-timeout'
   /** A Custom HTML element loaded another document than its shell; the render ends (D23.9). */
   | 'custom-html-navigated'
-  /** The document has video nodes or video assets, which the Player shows only from PR-28b (D50.6). */
+  /**
+   * A video the Player cannot read or decode in this window: not H.264 in an MP4 file it
+   * reads exactly, or no WebCodecs decoder for it (D51.3, D51.4).
+   */
   | 'video-unsupported'
+  /** The browser's decoder failed on a frame of a video it accepted (D51.4). */
+  | 'video-undecodable'
+  /** A video node samples source time at or after the end of its video (D49.6, D51.3). */
+  | 'source-range-exceeded'
+  /** The page refused the frames of the video nodes it was given (D50.4). */
+  | 'video-frames-invalid'
   /** The time is not an integer in `[0, durationUs)` (D13, D25.6). */
   | 'time-out-of-range'
   /** A seek was requested before a document was loaded. */
@@ -76,6 +85,7 @@ const PAGE_CODES: readonly PlayerErrorCode[] = [
   'custom-html-navigated',
   'time-out-of-range',
   'not-loaded',
+  'video-frames-invalid',
 ];
 
 /** A code the page reported, as one of the Player's; anything unknown is `page-error`. */

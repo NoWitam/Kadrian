@@ -11,9 +11,8 @@ import {
   RENDER_PAGE_FRAME_STYLE,
   RENDER_PAGE_SANDBOX,
   renderPageDocument,
-  resolveAssets,
+  resolveOneAsset,
   type AssetRequest,
-  type AssetResolver,
   type CustomHtmlPolicy,
   type ResolvedAsset,
 } from '@kadrion/renderer-dom';
@@ -27,6 +26,20 @@ import {
 
 import { PAGE_AGENT_SCRIPT } from './agent.js';
 import { playerCode, PlayerError } from './errors.js';
+import {
+  checkDecodable,
+  checkSourceRanges,
+  createVideoFrameSource,
+  readVideo,
+  verifyVideo,
+  videoNodes,
+  type PlayerVideoBlob,
+  type PlayerVideoFacts,
+  type VerifiedBlob,
+  type VerifiedVideo,
+  type VideoFrameMessage,
+  type VideoFrameSource,
+} from './video.js';
 import {
   isReady,
   LOAD,
@@ -50,13 +63,24 @@ export type PlayerAssetRequest = AssetRequest;
 /** The bytes of one asset and their media type, as a resolver returns them. */
 export type PlayerAsset = ResolvedAsset;
 
+/** A video asset delivered as a `Blob` (D51.2). */
+export type PlayerVideoAsset = PlayerVideoBlob;
+
 /**
  * The host-provided resolver of D14: bytes for an asset of the document, or
  * `null` when the host has none. The Player verifies the SHA-256 of the bytes
  * against the asset's `contentHash` before anything is rendered, through
- * `resolveAssets` of `@kadrion/renderer-dom`, which the Producer uses too (D27.3).
+ * `resolveOneAsset` of `@kadrion/renderer-dom`, which the Producer uses too
+ * (D27.3). A video asset may instead be a `Blob` with its media type, which the
+ * Player verifies with an incremental SHA-256 without reading it whole into
+ * memory (D51.2); its bytes stay in the host window and never reach the page.
  */
-export type PlayerAssetResolver = AssetResolver;
+export type PlayerAssetResolver = (
+  asset: PlayerAssetRequest,
+) => PlayerAsset | PlayerVideoAsset | null | Promise<PlayerAsset | PlayerVideoAsset | null>;
+
+/** The media facts of a verified video (D49.6, D51.5). */
+export type { PlayerVideoFacts };
 
 /**
  * The host's decision about the Custom HTML of every document this Player
@@ -135,6 +159,16 @@ export interface Player {
    * option `onListenerError` (D44).
    */
   subscribe(listener: PlayerListener): () => void;
+  /**
+   * Resolves and verifies one video asset, reads its first video track, and
+   * returns its media facts (D49.6, D51.5), before any document uses it. The
+   * verified video is kept, so a later `load` or `update` of a document with
+   * that content hash does not ask the resolver for it again.
+   */
+  prepareVideo(
+    asset: PlayerAssetRequest,
+    resolveAsset: PlayerAssetResolver,
+  ): Promise<PlayerVideoFacts>;
   destroy(): void;
 }
 
@@ -191,29 +225,6 @@ async function runtimeScript(runtime: PlayerRuntime): Promise<string> {
   }
 }
 
-interface TreeNode {
-  readonly id: string;
-  readonly type: string;
-  readonly children?: readonly TreeNode[];
-}
-
-/**
- * The video assets and video nodes of a document (D50.6). Until the Player
- * decodes video (PR-28b), it refuses them with `video-unsupported` before any
- * asset is resolved, instead of showing a frame without them.
- */
-function videoIds(composition: ValidatedComposition): string[] {
-  const ids = composition.assets
-    .filter(({ type }) => type === 'video')
-    .map(({ id }) => `asset ${id}`);
-  const visit = (node: TreeNode): void => {
-    if (node.type === 'video') ids.push(`node ${node.id}`);
-    node.children?.forEach(visit);
-  };
-  for (const scene of composition.scenes) scene.nodes.forEach(visit);
-  return ids;
-}
-
 function pageDocument(script: string): string {
   try {
     return renderPageDocument([script, PAGE_AGENT_SCRIPT]);
@@ -233,33 +244,98 @@ interface AssetMessage {
   readonly bytes: ArrayBuffer;
 }
 
+function typed(reason: unknown): PlayerError {
+  if (reason instanceof PlayerError) return reason;
+  const code = (reason as { code?: unknown } | null)?.code;
+  const message = reason instanceof Error ? reason.message : String(reason);
+  return new PlayerError(typeof code === 'string' ? playerCode(code) : 'page-error', message);
+}
+
+/** What the Player verified for one document: the page's assets and the videos it decodes. */
+interface PreparedAssets {
+  readonly messages: AssetMessage[];
+  /** The verified bytes of the non-video assets, by content hash, for an update to reuse (D44). */
+  readonly bytes: Map<string, PlayerAsset>;
+  /** Every verified video asset, by content hash. */
+  readonly blobs: Map<string, VerifiedBlob>;
+  /** The videos the document's nodes show, read, by content hash (D51.3). */
+  readonly videos: Map<string, VerifiedVideo>;
+}
+
 /**
- * Resolves and verifies every asset of the document (D14, D27.3): a missing
- * asset or a mismatch is a typed error before the first frame. Only declared
- * assets are asked for, so nothing else reaches the page.
+ * Resolves and verifies every asset of the document (D14, D27.3), in the
+ * document's order, each once: a missing asset or a mismatch is a typed error
+ * before the first frame. Only declared assets are asked for. Video assets are
+ * verified in the host window and stay there (D51.2): the page receives the
+ * others. Every video a node shows is read, its sampled ranges are checked
+ * against its facts (D49.6), and the host window must be able to decode it,
+ * all before the first frame.
  */
-async function assetMessages(
+async function prepareAssets(
+  view: Window,
   composition: ValidatedComposition,
   resolveAsset: PlayerAssetResolver,
-  cache: Map<string, PlayerAsset>,
-): Promise<AssetMessage[]> {
+  known: {
+    readonly bytes: ReadonlyMap<string, PlayerAsset>;
+    readonly blobs: ReadonlyMap<string, VerifiedBlob>;
+    readonly videos: ReadonlyMap<string, VerifiedVideo>;
+  },
+): Promise<PreparedAssets> {
+  const prepared: PreparedAssets = {
+    messages: [],
+    bytes: new Map(),
+    blobs: new Map(),
+    videos: new Map(),
+  };
+  const BlobOf = (view as unknown as { Blob?: typeof Blob }).Blob ?? Blob;
   try {
-    const verified = await resolveAssets(composition, resolveAsset, sha256);
-    // What was verified, by content hash, for an update to reuse; nothing else is kept.
-    cache.clear();
-    for (const { contentHash, mediaType, bytes } of verified) {
-      cache.set(contentHash, { mediaType, bytes: bytes.slice() });
+    for (const asset of composition.assets) {
+      const { id, type, contentHash } = asset;
+      if (type === 'video') {
+        const blob =
+          known.videos.get(contentHash) ??
+          known.blobs.get(contentHash) ??
+          (await verifyVideo(asset, resolveAsset, BlobOf));
+        prepared.blobs.set(contentHash, { ...blob, id });
+        continue;
+      }
+      const cached = known.bytes.get(contentHash);
+      const verified = await resolveOneAsset(
+        asset,
+        (request) => {
+          if (cached !== undefined) return cached;
+          const given = resolveAsset(request);
+          // A Blob is accepted for a video only; the shared check refuses it here.
+          return given as PlayerAsset | null | Promise<PlayerAsset | null>;
+        },
+        sha256,
+      );
+      prepared.bytes.set(contentHash, {
+        mediaType: verified.mediaType,
+        bytes: verified.bytes.slice(),
+      });
+      prepared.messages.push({
+        id,
+        mediaType: verified.mediaType,
+        bytes: verified.bytes.buffer as ArrayBuffer,
+      });
     }
-    return verified.map(({ id, mediaType, bytes }) => ({
-      id,
-      mediaType,
-      bytes: bytes.buffer as ArrayBuffer,
-    }));
+    const hashes = new Map(composition.assets.map((asset) => [asset.id, asset.contentHash]));
+    for (const node of videoNodes(composition)) {
+      const contentHash = hashes.get(node.assetId) ?? '';
+      if (prepared.videos.has(contentHash)) continue;
+      const blob = prepared.blobs.get(contentHash);
+      if (blob === undefined) {
+        throw new PlayerError('asset-missing', `The video "${node.assetId}" was not resolved.`);
+      }
+      prepared.videos.set(contentHash, known.videos.get(contentHash) ?? (await readVideo(blob)));
+    }
+    checkSourceRanges(composition, prepared.videos);
+    if (prepared.videos.size > 0) await checkDecodable(view, prepared.videos.values());
   } catch (reason) {
-    const code = (reason as { code?: unknown } | null)?.code;
-    const message = reason instanceof Error ? reason.message : String(reason);
-    throw new PlayerError(typeof code === 'string' ? playerCode(code) : 'page-error', message);
+    throw typed(reason);
   }
+  return prepared;
 }
 
 interface Waiting {
@@ -326,8 +402,12 @@ export async function createPlayer(
   let destroyed = false;
   /** The seek that is in flight, settled either way; a load waits for it (D25.4). */
   let inFlight: Promise<void> = Promise.resolve();
-  /** The verified bytes of the loaded document's assets, by content hash (D44). */
-  const verifiedAssets = new Map<string, PlayerAsset>();
+  /** What was verified for the document shown now, by content hash (D44). */
+  let shownAssets: PreparedAssets | null = null;
+  /** Videos verified and read by `prepareVideo`, by content hash (D51.5). */
+  const preparedVideos = new Map<string, VerifiedVideo>();
+  /** The decoders of the document shown now, or `null` without video nodes (D51.4). */
+  let videoSource: VideoFrameSource | null = null;
   /** Updates run one after another, each after the one before has settled. */
   let updates: Promise<void> = Promise.resolve();
   const { onListenerError } = options;
@@ -442,17 +522,36 @@ export async function createPlayer(
         : result.errors.map(({ path, message }) => `${path}: ${message}`);
       throw fail(new PlayerError('invalid-document', 'The document is not valid.', details));
     }
-    const videos = videoIds(result.composition);
-    if (videos.length > 0) {
-      throw fail(
-        new PlayerError(
-          'video-unsupported',
-          'The Player does not show video yet; the Producer renders it (D50.6).',
-          videos,
-        ),
-      );
-    }
     return { text, loaded: result.composition };
+  };
+
+  /** The source frames of the video nodes at `target`, decoded in this window (D51.4). */
+  const framesOf = async (
+    source: VideoFrameSource | null,
+    shown: ValidatedComposition | null,
+    target: number,
+  ): Promise<VideoFrameMessage[]> => {
+    if (source === null || shown === null) return [];
+    try {
+      return await source.framesAt(shown, target);
+    } catch (reason) {
+      throw typed(reason);
+    }
+  };
+
+  /** What a load or an update may take without asking the resolver again. */
+  const knownAssets = (includeShown: boolean) => {
+    const videos = new Map(preparedVideos);
+    if (includeShown && shownAssets !== null) {
+      for (const [hash, video] of shownAssets.videos) videos.set(hash, video);
+    }
+    return {
+      bytes:
+        includeShown && shownAssets !== null ? shownAssets.bytes : new Map<string, PlayerAsset>(),
+      blobs:
+        includeShown && shownAssets !== null ? shownAssets.blobs : new Map<string, VerifiedBlob>(),
+      videos,
+    };
   };
 
   const settledStatus = (): PlayerStatus => (playing !== null ? 'playing' : 'ready');
@@ -462,7 +561,18 @@ export async function createPlayer(
     status = 'seeking';
     notify();
     const requestId = nextRequestId++;
-    const sent = request({ type: SEEK, version: PROTOCOL_VERSION, requestId, timeUs: target });
+    const shown = composition;
+    const source = videoSource;
+    const sent = (async () => {
+      const videoFrames = await framesOf(source, shown, target);
+      await request({
+        type: SEEK,
+        version: PROTOCOL_VERSION,
+        requestId,
+        timeUs: target,
+        videoFrames,
+      });
+    })();
     inFlight = sent.then(
       () => undefined,
       () => undefined,
@@ -539,13 +649,12 @@ export async function createPlayer(
     seeking = true;
     status = 'loading';
     notify();
+    let staged: { assets: PreparedAssets; source: VideoFrameSource | null } | null = null;
     const sent = (async () => {
-      const cached = new Map(verifiedAssets);
-      const assets = await assetMessages(
-        loaded,
-        (request) => cached.get(request.contentHash) ?? resolveAsset(request),
-        verifiedAssets,
-      );
+      const assets = await prepareAssets(view, loaded, resolveAsset, knownAssets(true));
+      const source = assets.videos.size === 0 ? null : createVideoFrameSource(view, assets.videos);
+      staged = { assets, source };
+      const videoFrames = await framesOf(source, loaded, target);
       frame.style.setProperty('width', `${String(loaded.width)}px`);
       frame.style.setProperty('height', `${String(loaded.height)}px`);
       await request({
@@ -553,10 +662,11 @@ export async function createPlayer(
         version: PROTOCOL_VERSION,
         requestId: nextRequestId++,
         document: text,
-        assets,
+        assets: assets.messages,
         ackTimeoutMs,
         customHtml: { mode: customHtml.mode },
         timeUs: target,
+        videoFrames,
       });
     })();
     inFlight = sent.then(
@@ -570,6 +680,8 @@ export async function createPlayer(
       // What the page holds is not known any more: a new load is needed.
       composition = null;
       timeUs = null;
+      shownAssets = null;
+      videoSource = null;
       // A seek may have been requested while the update was in flight.
       (waiting as Waiting | null)?.reject(new PlayerError('superseded', 'The update failed.'));
       waiting = null;
@@ -577,6 +689,9 @@ export async function createPlayer(
     }
     seeking = false;
     composition = loaded;
+    const accepted = staged as { assets: PreparedAssets; source: VideoFrameSource | null } | null;
+    shownAssets = accepted?.assets ?? null;
+    videoSource = accepted?.source ?? null;
     timeUs = target;
     error = null;
     next();
@@ -631,8 +746,12 @@ export async function createPlayer(
       notify();
       // A seek that is still in flight finishes first; the page takes one request at a time.
       await inFlight;
+      shownAssets = null;
+      videoSource = null;
+      let assets: PreparedAssets;
       try {
-        const assets = await assetMessages(loaded, resolveAsset, verifiedAssets);
+        // A load asks again for every asset except the videos the host prepared (D44, D51.5).
+        assets = await prepareAssets(view, loaded, resolveAsset, knownAssets(false));
         frame.style.setProperty('width', `${String(loaded.width)}px`);
         frame.style.setProperty('height', `${String(loaded.height)}px`);
         await request({
@@ -640,7 +759,7 @@ export async function createPlayer(
           version: PROTOCOL_VERSION,
           requestId: nextRequestId++,
           document: text,
-          assets,
+          assets: assets.messages,
           ackTimeoutMs,
           customHtml: { mode: customHtml.mode },
         });
@@ -648,6 +767,8 @@ export async function createPlayer(
         throw fail(reason);
       }
       composition = loaded;
+      shownAssets = assets;
+      videoSource = assets.videos.size === 0 ? null : createVideoFrameSource(view, assets.videos);
       await seek(0);
     },
     update(document, resolveAsset) {
@@ -672,6 +793,40 @@ export async function createPlayer(
       notify();
     },
     getState: snapshot,
+    async prepareVideo(asset, resolveAsset) {
+      if (destroyed) throw new PlayerError('destroyed', 'The Player was destroyed.');
+      const given: unknown = asset;
+      const { id, type, contentHash } = (
+        typeof given === 'object' && given !== null ? given : {}
+      ) as Partial<PlayerAssetRequest>;
+      if (
+        typeof id !== 'string' ||
+        type !== 'video' ||
+        typeof contentHash !== 'string' ||
+        !CONTENT_HASH.test(contentHash)
+      ) {
+        throw new PlayerError(
+          'invalid-options',
+          'prepareVideo needs { id, type: "video", contentHash } with a sha256 content hash.',
+        );
+      }
+      const known = preparedVideos.get(contentHash) ?? shownAssets?.videos.get(contentHash);
+      if (known !== undefined) {
+        preparedVideos.set(contentHash, known);
+        return known.facts;
+      }
+      try {
+        const BlobOf = (view as unknown as { Blob?: typeof Blob }).Blob ?? Blob;
+        const blob =
+          shownAssets?.blobs.get(contentHash) ??
+          (await verifyVideo({ id, type, contentHash }, resolveAsset, BlobOf));
+        const video = await readVideo(blob);
+        preparedVideos.set(contentHash, video);
+        return video.facts;
+      } catch (reason) {
+        throw typed(reason);
+      }
+    },
     subscribe(listener) {
       if (onListenerError === undefined) {
         throw new PlayerError(
@@ -697,7 +852,9 @@ export async function createPlayer(
       readyPage?.(gone);
       readyPage = null;
       listeners.clear();
-      verifiedAssets.clear();
+      shownAssets = null;
+      videoSource = null;
+      preparedVideos.clear();
       frame.remove();
     },
   };

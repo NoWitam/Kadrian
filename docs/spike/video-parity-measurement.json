@@ -1,0 +1,376 @@
+{
+  "recordVersion": 2,
+  "method": "D33",
+  "thresholds": {
+    "differingPixels": 0,
+    "maxChannelDifference": 0
+  },
+  "gate": true,
+  "environment": {
+    "pinned": true,
+    "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+    "pinnedPlatform": "linux/amd64",
+    "os": "linux",
+    "arch": "x64",
+    "node": "v24.20.0",
+    "playwrightCore": "1.63.0",
+    "chromiumRevision": "1243",
+    "chromiumVersion": "153.0.8010.12",
+    "reportedVersion": "153.0.8010.12",
+    "channel": "chromium",
+    "args": [
+      "--force-color-profile=srgb",
+      "--disable-lcd-text",
+      "--hide-scrollbars",
+      "--mute-audio"
+    ],
+    "locale": "en-US",
+    "timezone": "UTC",
+    "viewport": {
+      "width": 1080,
+      "height": 1920
+    },
+    "deviceScaleFactor": 1,
+    "network": {
+      "interfaces": ["lo"],
+      "loopbackOnly": true
+    }
+  },
+  "reference": {
+    "goldenManifest": "packages/test-fixtures/src/golden-frames/video.golden-frames.json",
+    "goldenManifestSha256": "sha256:75ecc7e7d7d0c1580554538e8bc5e5444bb0feeaf769e53b65a9ae91c5e1ae2b",
+    "runtimeHash": "sha256:4dc0c57e179cec048fdc275afdee627286d97f69a6feb1982a218d8a4d02b219",
+    "compositionHash": "sha256:ea170b6be82ec0d5967558156a3a4e0e11e8da7123f7a2d44b0d7d2ec84297ca",
+    "width": 640,
+    "height": 360
+  },
+  "playerDistTreeSha256": "sha256:b3462d5f4ebe8ed434c82932bba4cf88a472745465aef073b149617cbe40d0aa",
+  "playerDistManifest": [
+    {
+      "path": "packages/player/dist/agent.js",
+      "size": 8397,
+      "sha256": "sha256:4f2fcc7a942fced9286161428a3c2bd3e288077fc259a680abdb0242c8d859be"
+    },
+    {
+      "path": "packages/player/dist/avc.js",
+      "size": 7230,
+      "sha256": "sha256:248adc1eb24fc07d7dbbdfef25acfd5d7dd533b5821f8f2c33ee392c836c5c99"
+    },
+    {
+      "path": "packages/player/dist/errors.js",
+      "size": 1063,
+      "sha256": "sha256:73b22a8c111b6bb8e5c1bbedb540e7773f711bacbd6740a0a28a827a14664723"
+    },
+    {
+      "path": "packages/player/dist/index.js",
+      "size": 628,
+      "sha256": "sha256:1285c197fcfe00d32231e392f8e5caba61daf4c6fee7e57928455b123d51c2eb"
+    },
+    {
+      "path": "packages/player/dist/mp4.js",
+      "size": 16803,
+      "sha256": "sha256:c5537a82110e27e7608a21e448cef5fbc08c86899ec28f4a8e7e5dea04b042ed"
+    },
+    {
+      "path": "packages/player/dist/player.js",
+      "size": 26162,
+      "sha256": "sha256:265914a246ed306f44978a29ec89e5fbeedbe7e2dc18fcc12cd0d46fb5c7ffd0"
+    },
+    {
+      "path": "packages/player/dist/protocol.js",
+      "size": 2624,
+      "sha256": "sha256:0e146affeba105b373a88a1685c9fb0e3fec0d479aa1aaa1efaf3797ad563b59"
+    },
+    {
+      "path": "packages/player/dist/sha256.js",
+      "size": 4854,
+      "sha256": "sha256:e3d464e3188486ef1853799395dbb6407fb8e6fe1db87887be48c50fe8c1620e"
+    },
+    {
+      "path": "packages/player/dist/video.js",
+      "size": 16142,
+      "sha256": "sha256:96a0e4bed21c12d902873c3d45c7d03489a883127beb88615f6e1691fbeade8d"
+    },
+    {
+      "path": "packages/player/dist/yuv.js",
+      "size": 11946,
+      "sha256": "sha256:d04b124eb5caf610355f5b06dcb7a5ce585306aeba8dd359e3f98c7407afcaaf"
+    },
+    {
+      "path": "packages/renderer-dom/dist/assets.js",
+      "size": 3490,
+      "sha256": "sha256:20bcae702da4cff6002fc077cb8ce5f0ff785d03632b1f86f20c1cc6ce3764e7"
+    },
+    {
+      "path": "packages/renderer-dom/dist/css.js",
+      "size": 1077,
+      "sha256": "sha256:d4a0b08b8b143398251200a024116649ed4d557ca80aa268378ea69d5a99636a"
+    },
+    {
+      "path": "packages/renderer-dom/dist/errors.js",
+      "size": 789,
+      "sha256": "sha256:6eb2821f8ecf07b2489ef2818d8be10976e609314fa13b7f3d7d370d0304f338"
+    },
+    {
+      "path": "packages/renderer-dom/dist/index.js",
+      "size": 654,
+      "sha256": "sha256:b898af2fd1c5d5b4fc50e56f6f872ae18861bb490f8c25e99a58b8eadbeb6af6"
+    },
+    {
+      "path": "packages/renderer-dom/dist/load.js",
+      "size": 4320,
+      "sha256": "sha256:ba71caed355ddf9cde6b0423becbe7434e9da93719cb5a010fa98f87f684ce5c"
+    },
+    {
+      "path": "packages/renderer-dom/dist/media-type.js",
+      "size": 396,
+      "sha256": "sha256:4ee0efe131acf73393d168c35cf03744646619e6f07c80ba6f26650646671026"
+    },
+    {
+      "path": "packages/renderer-dom/dist/mount.js",
+      "size": 5766,
+      "sha256": "sha256:bbd187e6c589b15ea2ea278c6964c3406e75a5ccb167f5a23c00a31773b04b53"
+    },
+    {
+      "path": "packages/renderer-dom/dist/policy.js",
+      "size": 2277,
+      "sha256": "sha256:740cdd71e1cf6888ede453b7bc94cb37ad7ef1b47ee297611b5d81933d111efa"
+    },
+    {
+      "path": "packages/renderer-dom/dist/ready.js",
+      "size": 1816,
+      "sha256": "sha256:282e3ef7e2bbb631a54be6ac49b523287d752fe9f1d12ce356b4e9639ee5975b"
+    },
+    {
+      "path": "packages/renderer-dom/dist/render-page.js",
+      "size": 2502,
+      "sha256": "sha256:121ada2602c032406e012806bd1d334a06f5d16d7a1aafdc901e310ab3c5cc29"
+    },
+    {
+      "path": "packages/renderer-dom/dist/render.js",
+      "size": 4234,
+      "sha256": "sha256:c158e43d43305e80c53ba2f57570e05ff88231bd994eacda9777a695fd5436fd"
+    },
+    {
+      "path": "packages/renderer-dom/dist/resolve.js",
+      "size": 2544,
+      "sha256": "sha256:c02ab9060b717eb721625500374670acc6698bff966917650915bb771e8007ef"
+    },
+    {
+      "path": "packages/renderer-dom/dist/runtime-build/kadrion-runtime.js",
+      "size": 56498,
+      "sha256": "sha256:4dc0c57e179cec048fdc275afdee627286d97f69a6feb1982a218d8a4d02b219"
+    },
+    {
+      "path": "packages/renderer-dom/dist/runtime-build/kadrion-runtime.json",
+      "size": 269,
+      "sha256": "sha256:2f6451748fc77f3011df784f2ce1baa9a53957d968720230205d678c6e0aa3a6"
+    },
+    {
+      "path": "packages/renderer-dom/dist/sandbox.js",
+      "size": 3021,
+      "sha256": "sha256:1fce3058f88001f5ad24be672091120f39d8195041777e5151f19d5c2b471936"
+    },
+    {
+      "path": "packages/renderer-dom/dist/synchronize.js",
+      "size": 10540,
+      "sha256": "sha256:558f9f2a286d561760196112cca67a7d54e576067aec379627c10e838137762c"
+    },
+    {
+      "path": "packages/renderer-dom/dist/video.js",
+      "size": 3301,
+      "sha256": "sha256:f157010eec283f0a3146fa318ef23ddd697875df021f31009fed330408fd9eb1"
+    },
+    {
+      "path": "packages/schema/dist/composition-schema.js",
+      "size": 9711,
+      "sha256": "sha256:8a23c7835a7163e61387c20217224ea9996728f397596ecdbb0773c526b5375e"
+    },
+    {
+      "path": "packages/schema/dist/errors.js",
+      "size": 212,
+      "sha256": "sha256:7672902c61df25f7513352099cd5c395b2a25f68ecdff4e3b47deaaf7f8a9e2f"
+    },
+    {
+      "path": "packages/schema/dist/frame-grid.js",
+      "size": 2075,
+      "sha256": "sha256:05e8efd8c5c7f7b92459cfd9abb8be250c3fc0960479ce126dcb8eb951cb3ca6"
+    },
+    {
+      "path": "packages/schema/dist/index.js",
+      "size": 755,
+      "sha256": "sha256:21ca10d1b0db425c1804c38d36994013632ce7750e402d0842832c767a17980f"
+    },
+    {
+      "path": "packages/schema/dist/json-schema.js",
+      "size": 792,
+      "sha256": "sha256:78e73fdb6fe7ab8a5ddd2e532303d2cb041119d3c60b5b50ca98be0539f264b9"
+    },
+    {
+      "path": "packages/schema/dist/source-frame.js",
+      "size": 4848,
+      "sha256": "sha256:379178735879e2e4c320ad364e70c1723b0754b2beec88b551936d36958137f8"
+    },
+    {
+      "path": "packages/schema/dist/validate-semantics.js",
+      "size": 6030,
+      "sha256": "sha256:94ae6730ceb4b13139bc5eb4fe524e852b64c0d4836d8db381a06f46231fd3f0"
+    },
+    {
+      "path": "packages/schema/dist/validate-structure.js",
+      "size": 8938,
+      "sha256": "sha256:046a3861b7f1df5eb87f16a7b4a0b6798602f26d8c071bd312ac7bdc79edf92b"
+    },
+    {
+      "path": "packages/schema/dist/validate.js",
+      "size": 2514,
+      "sha256": "sha256:7c54ec2b1c157fae7ce7c26416b09220e0b9de3d78828b25c836204781381b20"
+    }
+  ],
+  "rows": [
+    {
+      "timeUs": 0,
+      "frameIndex": 0,
+      "runtimeHash": "sha256:4dc0c57e179cec048fdc275afdee627286d97f69a6feb1982a218d8a4d02b219",
+      "compositionHash": "sha256:ea170b6be82ec0d5967558156a3a4e0e11e8da7123f7a2d44b0d7d2ec84297ca",
+      "width": 640,
+      "height": 360,
+      "playerPng": "sha256:a22d701793ca4c67a33791300b1f439525b5b7b2529fac63f08b1217ab7ce37d",
+      "goldenPng": "sha256:a22d701793ca4c67a33791300b1f439525b5b7b2529fac63f08b1217ab7ce37d",
+      "goldenFile": "video-0.png",
+      "differingPixels": 0,
+      "totalPixels": 230400,
+      "share": 0,
+      "maxChannelDifference": 0,
+      "histogram": {
+        "0": 230400,
+        "1": 0,
+        "2-3": 0,
+        "4-7": 0,
+        "8-15": 0,
+        "16-31": 0,
+        "32-63": 0,
+        "64-127": 0,
+        "128-255": 0
+      }
+    },
+    {
+      "timeUs": 500000,
+      "frameIndex": 15,
+      "runtimeHash": "sha256:4dc0c57e179cec048fdc275afdee627286d97f69a6feb1982a218d8a4d02b219",
+      "compositionHash": "sha256:ea170b6be82ec0d5967558156a3a4e0e11e8da7123f7a2d44b0d7d2ec84297ca",
+      "width": 640,
+      "height": 360,
+      "playerPng": "sha256:7d4ccaaa78b0e79220790d75223374b63eceb35efb85a51c065a9684f1b5e03f",
+      "goldenPng": "sha256:7d4ccaaa78b0e79220790d75223374b63eceb35efb85a51c065a9684f1b5e03f",
+      "goldenFile": "video-500000.png",
+      "differingPixels": 0,
+      "totalPixels": 230400,
+      "share": 0,
+      "maxChannelDifference": 0,
+      "histogram": {
+        "0": 230400,
+        "1": 0,
+        "2-3": 0,
+        "4-7": 0,
+        "8-15": 0,
+        "16-31": 0,
+        "32-63": 0,
+        "64-127": 0,
+        "128-255": 0
+      }
+    },
+    {
+      "timeUs": 1000000,
+      "frameIndex": 30,
+      "runtimeHash": "sha256:4dc0c57e179cec048fdc275afdee627286d97f69a6feb1982a218d8a4d02b219",
+      "compositionHash": "sha256:ea170b6be82ec0d5967558156a3a4e0e11e8da7123f7a2d44b0d7d2ec84297ca",
+      "width": 640,
+      "height": 360,
+      "playerPng": "sha256:915cdab203f7da83e6ecf6bc2f61cda030a9aff2a0b4f948e082b4283e803071",
+      "goldenPng": "sha256:915cdab203f7da83e6ecf6bc2f61cda030a9aff2a0b4f948e082b4283e803071",
+      "goldenFile": "video-1000000.png",
+      "differingPixels": 0,
+      "totalPixels": 230400,
+      "share": 0,
+      "maxChannelDifference": 0,
+      "histogram": {
+        "0": 230400,
+        "1": 0,
+        "2-3": 0,
+        "4-7": 0,
+        "8-15": 0,
+        "16-31": 0,
+        "32-63": 0,
+        "64-127": 0,
+        "128-255": 0
+      }
+    },
+    {
+      "timeUs": 1500000,
+      "frameIndex": 45,
+      "runtimeHash": "sha256:4dc0c57e179cec048fdc275afdee627286d97f69a6feb1982a218d8a4d02b219",
+      "compositionHash": "sha256:ea170b6be82ec0d5967558156a3a4e0e11e8da7123f7a2d44b0d7d2ec84297ca",
+      "width": 640,
+      "height": 360,
+      "playerPng": "sha256:b1c66e8492b9ea67fa5daa3550f4d10ab3d8b8c43d844d7739740bb86c715c50",
+      "goldenPng": "sha256:b1c66e8492b9ea67fa5daa3550f4d10ab3d8b8c43d844d7739740bb86c715c50",
+      "goldenFile": "video-1500000.png",
+      "differingPixels": 0,
+      "totalPixels": 230400,
+      "share": 0,
+      "maxChannelDifference": 0,
+      "histogram": {
+        "0": 230400,
+        "1": 0,
+        "2-3": 0,
+        "4-7": 0,
+        "8-15": 0,
+        "16-31": 0,
+        "32-63": 0,
+        "64-127": 0,
+        "128-255": 0
+      }
+    },
+    {
+      "timeUs": 1966666,
+      "frameIndex": 59,
+      "runtimeHash": "sha256:4dc0c57e179cec048fdc275afdee627286d97f69a6feb1982a218d8a4d02b219",
+      "compositionHash": "sha256:ea170b6be82ec0d5967558156a3a4e0e11e8da7123f7a2d44b0d7d2ec84297ca",
+      "width": 640,
+      "height": 360,
+      "playerPng": "sha256:adedb017f63824d20d52b3e3fe6ba72444d500c35141c45c988b10751ead4825",
+      "goldenPng": "sha256:adedb017f63824d20d52b3e3fe6ba72444d500c35141c45c988b10751ead4825",
+      "goldenFile": "video-1966666.png",
+      "differingPixels": 0,
+      "totalPixels": 230400,
+      "share": 0,
+      "maxChannelDifference": 0,
+      "histogram": {
+        "0": 230400,
+        "1": 0,
+        "2-3": 0,
+        "4-7": 0,
+        "8-15": 0,
+        "16-31": 0,
+        "32-63": 0,
+        "64-127": 0,
+        "128-255": 0
+      }
+    }
+  ],
+  "worstCase": {
+    "differingPixels": {
+      "value": 0,
+      "timeUs": 0
+    },
+    "share": {
+      "value": 0,
+      "timeUs": 0
+    },
+    "maxChannelDifference": {
+      "value": 0,
+      "timeUs": 0
+    }
+  }
+}

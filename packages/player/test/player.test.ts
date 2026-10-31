@@ -3,6 +3,7 @@
  * What only a real browser shows — sandbox, policy, decoding, fonts, pixels — is
  * P1's automated browser test in pinned Chromium (PR-06).
  */
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -28,7 +29,10 @@ import {
 } from '../src/index.js';
 import { PAGE_AGENT_SCRIPT } from '../src/agent.js';
 import { playerCode } from '../src/errors.js';
+import { encodePng } from '../src/video.js';
+import { yuv420ToRgb } from '../src/yuv.js';
 import { createHarness, sleep, type Harness } from './harness.js';
+import { installCodecs, testMp4 } from './media.js';
 
 const buildDirectory = new URL('../../renderer-dom/dist/runtime-build/', import.meta.url);
 const artifact = new Uint8Array(
@@ -415,7 +419,6 @@ describe('typed errors before the first frame, never ready (P1, D25.7)', () => {
       'asset-invalid',
     ],
     ['an invalid document', { ...(pinned as object), fps: 0 }, resolve, 'invalid-document'],
-    ['a document with video, until PR-28b', videoComposition, resolve, 'video-unsupported'],
   ])('reports %s', async (_, document, given, code) => {
     const harness = createHarness();
     const player = await started(harness);
@@ -545,7 +548,7 @@ describe('messages from anyone but the page or the Player (D25.4)', () => {
     harness.window.document.body.append(stranger);
     const starting = createPlayer(harness.container, { runtime, requestTimeoutMs: 80 });
     await sleep(20);
-    const ready = { type: 'kadrion-player:ready', version: 1 };
+    const ready = { type: 'kadrion-player:ready', version: 2 };
     await harness.deliver(harness.window as unknown as Window, ready, stranger.contentWindow);
     await harness.deliver(harness.window as unknown as Window, ready, harness.window);
     await expect(starting).rejects.toMatchObject({ code: 'page-timeout' });
@@ -565,7 +568,7 @@ describe('messages from anyone but the page or the Player (D25.4)', () => {
     const failure = { code: 'custom-html-timeout', message: 'forged', details: [] };
     const forged = {
       type: 'kadrion-player:result',
-      version: 1,
+      version: 2,
       requestId,
       ok: false,
       error: failure,
@@ -578,14 +581,21 @@ describe('messages from anyone but the page or the Player (D25.4)', () => {
 
   it.each([
     ['an extra key', { frame: 297 }],
-    ['another version', { version: 2 }],
+    ['another version', { version: 1 }],
     ['a fractional time', { timeUs: 0.5 }],
+    ['video frames that are not an array', { videoFrames: null }],
   ])('lets the page ignore a request from its parent with %s', async (_, change) => {
     const harness = createHarness();
     const player = await started(harness);
     await player.load(pinned, resolve);
     const view = pageView(harness) as unknown as Window;
-    const seek = { type: 'kadrion-player:seek', version: 1, requestId: 98, timeUs: 9_900_000 };
+    const seek = {
+      type: 'kadrion-player:seek',
+      version: 2,
+      requestId: 98,
+      timeUs: 9_900_000,
+      videoFrames: [],
+    };
     await harness.deliver(view, { ...seek, ...change }, harness.parentOf(view));
     await harness.settle();
     await sleep(10);
@@ -604,7 +614,13 @@ describe('messages from anyone but the page or the Player (D25.4)', () => {
     await player.load(pinned, resolve);
     const view = pageView(harness) as unknown as Window;
     const element = pageView(harness).document.querySelector('iframe')?.contentWindow;
-    const seek = { type: 'kadrion-player:seek', version: 1, requestId: 99, timeUs: 9_900_000 };
+    const seek = {
+      type: 'kadrion-player:seek',
+      version: 2,
+      requestId: 99,
+      timeUs: 9_900_000,
+      videoFrames: [],
+    };
     await harness.deliver(view, seek, element);
     await harness.deliver(view, seek, harness.window);
     await harness.settle();
@@ -843,28 +859,6 @@ describe('update in the same page (D44)', () => {
     await expect(player.update(pinned, resolve)).rejects.toMatchObject({ code: 'not-loaded' });
   });
 
-  it('refuses video before it resolves an asset, naming every video asset and node (D50.6)', async () => {
-    const harness = createHarness();
-    const player = await started(harness);
-    const asked: string[] = [];
-    const error = await player
-      .load(videoComposition, (request) => {
-        asked.push(request.id);
-        return null;
-      })
-      .catch((reason: unknown) => reason);
-    expect(error).toMatchObject({
-      code: 'video-unsupported',
-      details: [
-        'asset asset-video',
-        'node node-video-full',
-        'node node-video-cover',
-        'node node-video-contain',
-      ],
-    });
-    expect(asked).toEqual([]);
-  });
-
   it('rejects an invalid document and an update before a load, sending nothing', async () => {
     const harness = createHarness();
     const player = await started(harness);
@@ -926,13 +920,14 @@ describe('update in the same page (D44)', () => {
     const view = pageView(harness) as unknown as Window;
     const update = {
       type: 'kadrion-player:update',
-      version: 1,
+      version: 2,
       requestId: 97,
       document: JSON.stringify(retitled),
       assets: [],
       ackTimeoutMs: 1000,
       customHtml: { mode: 'trusted' },
       timeUs: 0,
+      videoFrames: [],
     };
     await harness.deliver(view, { ...update, frame: 0 }, harness.parentOf(view));
     await harness.settle();
@@ -1167,3 +1162,315 @@ describe('the Custom HTML policy of the host (D36)', () => {
     await expect(player.seek(0)).rejects.toMatchObject({ code: 'destroyed' });
   });
 });
+
+describe('video in the host window (D51)', () => {
+  /** 75 frames at 25 fps, a sync sample every 25, luma 16 + the frame's index. */
+  const samples = Array.from({ length: 75 }, (_, at) => ({
+    data: new Uint8Array([16 + at, at]),
+    duration: 40,
+    sync: at % 25 === 0,
+  }));
+  const mp4 = testMp4({ width: 32, height: 16, timescale: 1000, samples });
+  const videoBytes: Readonly<Record<string, PlayerAsset>> = {
+    'asset-video': { bytes: mp4, mediaType: 'video/mp4' },
+    'asset-image': { bytes: image, mediaType: 'image/png' },
+  };
+  const videoResolve = resolverOf(videoBytes);
+  let videoDocument: unknown;
+
+  const withVideoDocument = async (edit: (draft: VideoDraft) => void = () => undefined) => {
+    const draft = (await pinnedTo(videoComposition, videoBytes)) as VideoDraft;
+    edit(draft);
+    return draft;
+  };
+
+  /** The luma of the flat frame the stand-in decoder gives for presentation frame `index`. */
+  const expectedPng = async (index: number): Promise<string> => {
+    const luma = 16 + index;
+    const rgb = yuv420ToRgb(
+      {
+        width: 32,
+        height: 16,
+        y: new Uint8Array(32 * 16).fill(luma),
+        yStride: 32,
+        u: new Uint8Array(16 * 8).fill(128),
+        uStride: 16,
+        v: new Uint8Array(16 * 8).fill(128),
+        vStride: 16,
+      },
+      'bt601',
+      false,
+    );
+    const png = await encodePng({ CompressionStream }, 32, 16, rgb);
+    return `data:image/png;base64,${Buffer.from(png).toString('base64')}`;
+  };
+
+  const sourceOf = (harness: Harness, nodeId: string): string | null =>
+    pageView(harness)
+      .document.querySelector(`[data-kadrion-node="${nodeId}"]`)
+      ?.getAttribute('src') ?? null;
+
+  const sent = (harness: Harness) =>
+    harness.log.filter((delivery) => delivery.target === (pageView(harness) as unknown as Window));
+
+  it('shows the source frame of every active video node, decoded and converted in the host window', async () => {
+    videoDocument = await withVideoDocument();
+    const harness = createHarness();
+    const log = installCodecs(harness.window);
+    const player = await started(harness);
+    await player.load(videoDocument, videoResolve);
+    await player.seek(1_000_000);
+    // The rule of D49.5 at 25 fps: full 1.0 s → 25; cover 1.5 s → 37; contain 0.5 + 1.0 s → 37.
+    expect(sourceOf(harness, 'node-video-full')).toBe(await expectedPng(25));
+    expect(sourceOf(harness, 'node-video-cover')).toBe(await expectedPng(37));
+    expect(sourceOf(harness, 'node-video-contain')).toBe(await expectedPng(37));
+    expect(log.configured.at(-1)).toMatchObject({
+      codec: 'avc1.42001e',
+      codedWidth: 32,
+      codedHeight: 16,
+      hardwareAcceleration: 'prefer-software',
+    });
+    // The page received the frames with the seek, and the video bytes never.
+    const seekMessage = sent(harness).at(-1)?.data as {
+      videoFrames: { nodeId: string; mediaType: string }[];
+    };
+    expect(seekMessage.videoFrames.map(({ nodeId, mediaType }) => [nodeId, mediaType])).toEqual([
+      ['node-video-full', 'image/png'],
+      ['node-video-cover', 'image/png'],
+      ['node-video-contain', 'image/png'],
+    ]);
+    const load = sent(harness).find(
+      (delivery) => (delivery.data as { type?: string }).type === 'kadrion-player:load',
+    )?.data as { assets: { id: string }[] };
+    expect(load.assets.map(({ id }) => id)).toEqual(['asset-image']);
+  });
+
+  it('decodes from the sync sample before the frame, so a frame does not depend on the frames before it', async () => {
+    videoDocument = await withVideoDocument();
+    const harness = createHarness();
+    const log = installCodecs(harness.window);
+    const player = await started(harness);
+    await player.load(videoDocument, videoResolve);
+    await player.seek(1_500_000);
+    const later = sourceOf(harness, 'node-video-full');
+    log.decoded.length = 0;
+    await player.seek(400_000);
+    await player.seek(1_500_000);
+    expect(sourceOf(harness, 'node-video-full')).toBe(later);
+    // Frame 10 (0.4 s) decodes 0..10; frame 37 is kept from before and not decoded again.
+    expect(
+      log.decoded.filter(({ type }) => type === 'key').map(({ first }) => first - 16),
+    ).toContain(0);
+    const fresh = createHarness();
+    const freshLog = installCodecs(fresh.window);
+    const other = await started(fresh);
+    await other.load(videoDocument, videoResolve);
+    freshLog.decoded.length = 0;
+    await other.seek(1_500_000);
+    expect(sourceOf(fresh, 'node-video-full')).toBe(later);
+    const keys = freshLog.decoded
+      .filter(({ type }) => type === 'key')
+      .map(({ first }) => first - 16);
+    expect(keys).toEqual([25, 50]);
+  });
+
+  it('removes the frame of a video node that is not active', async () => {
+    videoDocument = await withVideoDocument();
+    const harness = createHarness();
+    installCodecs(harness.window);
+    const player = await started(harness);
+    await player.load(videoDocument, videoResolve);
+    await player.seek(1_000_000);
+    expect(sourceOf(harness, 'node-video-contain')).not.toBeNull();
+    await player.seek(1_600_000);
+    expect(sourceOf(harness, 'node-video-contain')).toBeNull();
+    const seekMessage = sent(harness).at(-1)?.data as { videoFrames: { nodeId: string }[] };
+    expect(seekMessage.videoFrames.map(({ nodeId }) => nodeId)).toEqual([
+      'node-video-full',
+      'node-video-cover',
+    ]);
+  });
+
+  it('takes a video as a Blob, verified chunk by chunk, and refuses a Blob for anything else', async () => {
+    videoDocument = await withVideoDocument();
+    const harness = createHarness();
+    installCodecs(harness.window);
+    const player = await started(harness);
+    const blobs =
+      (map: Readonly<Record<string, unknown>>): PlayerAssetResolver =>
+      (request) =>
+        (map[request.id] ?? null) as ReturnType<PlayerAssetResolver>;
+    await player.load(
+      videoDocument,
+      blobs({
+        ...videoBytes,
+        'asset-video': {
+          blob: new harness.window.Blob([mp4.slice().buffer]),
+          mediaType: 'video/mp4',
+        },
+      }),
+    );
+    await player.seek(1_000_000);
+    expect(sourceOf(harness, 'node-video-full')).toBe(await expectedPng(25));
+    const tampered = mp4.slice();
+    tampered[tampered.length - 1] = (tampered.at(-1) ?? 0) ^ 1;
+    await expect(
+      player.load(
+        videoDocument,
+        blobs({
+          ...videoBytes,
+          'asset-video': {
+            blob: new harness.window.Blob([tampered.buffer]),
+            mediaType: 'video/mp4',
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: 'asset-hash-mismatch' });
+    await expect(
+      player.load(
+        videoDocument,
+        blobs({
+          ...videoBytes,
+          'asset-image': {
+            blob: new harness.window.Blob([image.slice().buffer]),
+            mediaType: 'image/png',
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: 'asset-invalid' });
+    await expect(
+      player.load(
+        videoDocument,
+        blobs({
+          ...videoBytes,
+          'asset-video': {
+            blob: new harness.window.Blob([mp4.slice().buffer]),
+            mediaType: 'image/png',
+          },
+        }),
+      ),
+    ).rejects.toMatchObject({ code: 'asset-invalid' });
+  });
+
+  it.each([
+    [
+      'a source range past the end of the video',
+      (draft: VideoDraft) => {
+        nodeOf(draft, 'node-video-cover').sourceStartUs = 1_500_000;
+      },
+      'source-range-exceeded',
+    ],
+  ])('refuses %s before the first frame, sending the page nothing', async (_, edit, code) => {
+    const document = await withVideoDocument(edit);
+    const harness = createHarness();
+    installCodecs(harness.window);
+    const player = await started(harness);
+    await expect(player.load(document, videoResolve)).rejects.toMatchObject({ code });
+    await harness.settle();
+    expect(sent(harness)).toEqual([]);
+  });
+
+  it('refuses video in a window without a decoder for it, before the first frame', async () => {
+    videoDocument = await withVideoDocument();
+    const bare = createHarness();
+    const player = await started(bare);
+    await expect(player.load(videoDocument, videoResolve)).rejects.toMatchObject({
+      code: 'video-unsupported',
+    });
+    const refusing = createHarness();
+    installCodecs(refusing.window, { supported: false });
+    const other = await started(refusing);
+    await expect(other.load(videoDocument, videoResolve)).rejects.toMatchObject({
+      code: 'video-unsupported',
+    });
+    expect(sent(refusing)).toEqual([]);
+  });
+
+  it('verifies a video asset that no node shows, but does not read it', async () => {
+    const junk = new Uint8Array([1, 2, 3]);
+    const document = await withVideoDocument((draft) => {
+      draft.assets.push({ id: 'asset-spare', type: 'video', contentHash: nodeHash(junk) });
+    });
+    const harness = createHarness();
+    installCodecs(harness.window);
+    const player = await started(harness);
+    await player.load(
+      document,
+      resolverOf({ ...videoBytes, 'asset-spare': { bytes: junk, mediaType: 'video/mp4' } }),
+    );
+    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: 0 });
+  });
+
+  it('prepares a video before any document uses it: its facts, and no second request (D51.5)', async () => {
+    videoDocument = await withVideoDocument();
+    const harness = createHarness();
+    installCodecs(harness.window);
+    const player = await started(harness);
+    const contentHash = nodeHash(mp4);
+    const asked: PlayerAssetRequest[] = [];
+    const facts = await player.prepareVideo(
+      { id: 'asset-video', type: 'video', contentHash },
+      resolverOf(videoBytes, asked),
+    );
+    expect(facts).toEqual({
+      type: 'video',
+      durationUs: 3_000_000,
+      width: 32,
+      height: 16,
+      frames: 75,
+    });
+    expect(Object.isFrozen(facts)).toBe(true);
+    asked.length = 0;
+    await player.load(videoDocument, resolverOf(videoBytes, asked));
+    expect(asked.map(({ id }) => id)).toEqual(['asset-image']);
+    asked.length = 0;
+    await player.update(videoDocument, resolverOf(videoBytes, asked));
+    expect(asked).toEqual([]);
+    await expect(
+      player.prepareVideo({ id: 'x', type: 'image', contentHash } as never, videoResolve),
+    ).rejects.toMatchObject({ code: 'invalid-options' });
+    await expect(
+      player.prepareVideo(
+        { id: 'x', type: 'video', contentHash: nodeHash(new Uint8Array([9])) },
+        resolverOf({ x: { bytes: new Uint8Array([9]), mediaType: 'video/mp4' } }),
+      ),
+    ).rejects.toMatchObject({ code: 'video-unsupported' });
+  });
+
+  it('brings an edit of a video node to the preview at the time shown (D44)', async () => {
+    videoDocument = await withVideoDocument();
+    const harness = createHarness();
+    installCodecs(harness.window);
+    const player = await started(harness);
+    await player.load(videoDocument, videoResolve);
+    await player.seek(1_000_000);
+    const moved = await withVideoDocument((draft) => {
+      nodeOf(draft, 'node-video-full').sourceStartUs = 400_000;
+    });
+    await player.update(moved, videoResolve);
+    expect(sourceOf(harness, 'node-video-full')).toBe(await expectedPng(35));
+  });
+});
+
+interface VideoDraft {
+  assets: { id: string; type: string; contentHash: string }[];
+  scenes: {
+    nodes: {
+      id: string;
+      sourceStartUs?: number;
+      children?: { id: string; sourceStartUs?: number }[];
+    }[];
+  }[];
+}
+
+function nodeOf(draft: VideoDraft, id: string): { sourceStartUs?: number } {
+  for (const node of draft.scenes[0]?.nodes ?? []) {
+    if (node.id === id) return node;
+    for (const child of node.children ?? []) if (child.id === id) return child;
+  }
+  throw new Error(`No node ${id}.`);
+}
+
+function nodeHash(bytes: Uint8Array): string {
+  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+}

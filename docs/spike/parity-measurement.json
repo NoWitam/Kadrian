@@ -44,32 +44,57 @@
     "width": 1080,
     "height": 1920
   },
-  "playerDistTreeSha256": "sha256:365e99a2353d1c8ea77162bcd668a5f8df1c86e7c477e2f27fb642caec8f4d63",
+  "playerDistTreeSha256": "sha256:b3462d5f4ebe8ed434c82932bba4cf88a472745465aef073b149617cbe40d0aa",
   "playerDistManifest": [
     {
       "path": "packages/player/dist/agent.js",
-      "size": 8025,
-      "sha256": "sha256:dfd8a39d566b77b0b0be65dcb1827e59c8c57af85dacf1020f92ba97408c11ba"
+      "size": 8397,
+      "sha256": "sha256:4f2fcc7a942fced9286161428a3c2bd3e288077fc259a680abdb0242c8d859be"
+    },
+    {
+      "path": "packages/player/dist/avc.js",
+      "size": 7230,
+      "sha256": "sha256:248adc1eb24fc07d7dbbdfef25acfd5d7dd533b5821f8f2c33ee392c836c5c99"
     },
     {
       "path": "packages/player/dist/errors.js",
-      "size": 1035,
-      "sha256": "sha256:24919bbd450cdd75eaf739085f42c217f9c84ae6c4a4cd039f56f09332cd2237"
+      "size": 1063,
+      "sha256": "sha256:73b22a8c111b6bb8e5c1bbedb540e7773f711bacbd6740a0a28a827a14664723"
     },
     {
       "path": "packages/player/dist/index.js",
-      "size": 508,
-      "sha256": "sha256:422161fd0cfc1e727dd21997a9eb55e9c2182690815bd52689a72a90b36ab9d5"
+      "size": 628,
+      "sha256": "sha256:1285c197fcfe00d32231e392f8e5caba61daf4c6fee7e57928455b123d51c2eb"
+    },
+    {
+      "path": "packages/player/dist/mp4.js",
+      "size": 16803,
+      "sha256": "sha256:c5537a82110e27e7608a21e448cef5fbc08c86899ec28f4a8e7e5dea04b042ed"
     },
     {
       "path": "packages/player/dist/player.js",
-      "size": 21258,
-      "sha256": "sha256:80dafa637b1ebd77df3b6b54c316b2d7c647bf9f86b8d0c4b37c879b52076c9a"
+      "size": 26162,
+      "sha256": "sha256:265914a246ed306f44978a29ec89e5fbeedbe7e2dc18fcc12cd0d46fb5c7ffd0"
     },
     {
       "path": "packages/player/dist/protocol.js",
-      "size": 2483,
-      "sha256": "sha256:6790c1167342d12837b718d0e5d12701775686b2375d0597863e9f5414025903"
+      "size": 2624,
+      "sha256": "sha256:0e146affeba105b373a88a1685c9fb0e3fec0d479aa1aaa1efaf3797ad563b59"
+    },
+    {
+      "path": "packages/player/dist/sha256.js",
+      "size": 4854,
+      "sha256": "sha256:e3d464e3188486ef1853799395dbb6407fb8e6fe1db87887be48c50fe8c1620e"
+    },
+    {
+      "path": "packages/player/dist/video.js",
+      "size": 16142,
+      "sha256": "sha256:96a0e4bed21c12d902873c3d45c7d03489a883127beb88615f6e1691fbeade8d"
+    },
+    {
+      "path": "packages/player/dist/yuv.js",
+      "size": 11946,
+      "sha256": "sha256:d04b124eb5caf610355f5b06dcb7a5ce585306aeba8dd359e3f98c7407afcaaf"
     },
     {
       "path": "packages/renderer-dom/dist/assets.js",

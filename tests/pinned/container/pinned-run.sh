@@ -123,6 +123,8 @@ reference() {
     # The parity record of D33 measured against the committed golden frames, before
     # goldens:update can rewrite them: this is the record docs/spike keeps (D33.6).
     cp .kadrion-out/parity/parity-measurement.json /out/parity-measurement-1.json
+    # The same for the video rows of D51.6, measured against the video golden frames.
+    cp .kadrion-out/video-parity/video-parity-measurement.json /out/video-parity-measurement-1.json
     node --run goldens:update 2>&1 | tee /out/goldens-update-1.log
     cp -r '"$GOLDENS"' /out/goldens-1
     node --run test:pinned 2>&1 | tee /out/test-pinned-2.log

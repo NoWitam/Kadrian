@@ -446,10 +446,13 @@ pack` does not publish.
   Player that refuses video with `video-unsupported`. `muted` and `volume`
   move to PR-29 (D49.7, D50.1). The resolver delivers a video as bytes, like
   every asset, and the Producer writes a private copy for FFmpeg (D50.5).
-  **PR-28b** follows: decoding in the Player's host window, delivery by `Blob`
-  and by path, `editor-session` reading media facts from verified bytes, and
-  the parity measurement with video rows and its threshold. The plan below is
-  the plan of both.
+  **PR-28b** (D51, proposed 2026-10-31) is in review: decoding in the
+  Player's host window with WebCodecs, a colour conversion that equals the
+  Producer's FFmpeg pixel for pixel, delivery by `Blob` (or bytes) verified by
+  an incremental SHA-256, `editor-session` reading media facts from verified
+  bytes, and the parity measurement with video rows, gated at zero like every
+  other pixel because the first measurement is 0/0. Delivery by path in the
+  Producer is left for later (D51.2). The plan below is the plan of both.
 
 - **Goal:** a video file is an asset, a video node shows the right source frame
   at every time in both hosts, and images and videos fit their box.
@@ -512,14 +515,14 @@ pack` does not publish.
   into an FFmpeg graph with sample-exact positions (D29.6, integer sample rule)
   in the audio pass of PR-25a; the Player plays the plan with Web Audio in the
   host window, following its own clock, never inside the render page.
-- **Numeric decisions (D51):** gain as an integer in a fixed unit (for example
+- **Numeric decisions (D52):** gain as an integer in a fixed unit (for example
   millibels) or as a number in `[0, 1]` (D15 states the types); fade shape
   (linear only, to start); what a clip past its source does (an error, as
   today).
 - **Packages and documents:** `@kadrion/schema` (`0.4`), `@kadrion/runtime`,
   `@kadrion/player`, `@kadrion/producer`, `@kadrion/editor-sdk`
   (`AddAudioClip`, `RemoveAudioClip`, `SetClipGain`, `SetClipFades`,
-  `SetClipSource`), `@kadrion/ai-sdk`, D51. The repair of the audio plan debt
+  `SetClipSource`), `@kadrion/ai-sdk`, D52. The repair of the audio plan debt
   of phase two (an untyped `RangeError` beyond 2^53 − 1) lands here.
 - **Acceptance:** the mix of a fixture equals a mix computed independently
   sample for sample, within the tolerance of D29.6 for AAC; the Player starts
@@ -541,7 +544,7 @@ pack` does not publish.
   moving a node between scenes; the evaluation maps composition time to a
   scene and its local time.
 - **Packages and documents:** schema (`0.5`), runtime, renderer-dom,
-  editor-sdk, ai-sdk, fixtures, D52; D16 is superseded in its one-scene rule.
+  editor-sdk, ai-sdk, fixtures, D53; D16 is superseded in its one-scene rule.
 - **Acceptance:** the reference composition renders byte for byte after the
   step; each scene renders alone as it does in the sequence; IDs survive every
   command and its inverse.
@@ -559,7 +562,7 @@ pack` does not publish.
   (`ReorderNode` exists; a host's row maps to an index) or another scene. A
   split of a node with animations states where each keyframe goes. All within
   the model of D49; no schema change.
-- **Packages and documents:** `@kadrion/editor-sdk`, `@kadrion/ai-sdk`, D53.
+- **Packages and documents:** `@kadrion/editor-sdk`, `@kadrion/ai-sdk`, D54.
 - **Acceptance:** each inverse restores the document byte for byte; a split
   followed by its inverse is the identity; no command leaves a clip outside
   its source or a dangling reference; rendering a split clip gives the same
@@ -579,7 +582,7 @@ pack` does not publish.
   integer or fixed-point arithmetic (D18); its duration and place as decided in
   D49; commands to add, remove, and change one.
 - **Packages and documents:** schema (`0.6`), runtime, renderer-dom,
-  editor-sdk, ai-sdk, D54.
+  editor-sdk, ai-sdk, D55.
 - **Acceptance:** at progress 0 and 1 the frames equal the frames without the
   transition; golden frames of the second reference composition in the middle
   of each kind.
@@ -594,12 +597,12 @@ pack` does not publish.
   a list of words with `startUs` and `durationUs`; grouping of words into
   lines and pages is a pure function of the document; commands to replace the
   words, edit one word, and change the style.
-- **Decisions (D55):** whether line breaking is computed by the runtime
+- **Decisions (D56):** whether line breaking is computed by the runtime
   (deterministic, without measuring text) or by the browser (measured text,
   pinned fonts, D27); the first keeps the runtime free of layout, the second
   wraps naturally.
 - **Packages and documents:** schema (`0.7`), runtime, renderer-dom,
-  editor-sdk, ai-sdk, fixtures, D55.
+  editor-sdk, ai-sdk, fixtures, D56.
 - **Acceptance:** the active word and line at every time follow from the word
   timings alone; golden frames with highlighted words.
 - **Impact:** as PR-29, with new golden frames.
@@ -610,7 +613,7 @@ pack` does not publish.
 
 - **Goal:** a document becomes a template with declared inputs, and a pure
   function makes a composition from it and a set of values.
-- **Scope (D56):** a template section in the document with inputs (text,
+- **Scope (D57):** a template section in the document with inputs (text,
   number, boolean, colour, image, video, audio asset, and a list of objects of
   those types), each with a stable ID, a type, constraints, and a default;
   bindings from node properties to inputs (a whole property, or text with
@@ -623,7 +626,7 @@ values)`, pure and deterministic, which validates the values against the
   instantiation with the defaults.
 - **Packages and documents:** schema (`0.8`, the template section and
   instantiation, possibly as an entry point `@kadrion/schema/template` like
-  `migrate`), editor-sdk, ai-sdk, editor-session (preview), fixtures, D56.
+  `migrate`), editor-sdk, ai-sdk, editor-session (preview), fixtures, D57.
 - **Acceptance:** instantiation is total over valid values and refuses invalid
   ones with typed errors naming the input; the same template and values give
   the same `compositionHash`; a template without inputs instantiates to
@@ -640,7 +643,7 @@ values)`, pure and deterministic, which validates the values against the
   of the repeats computed by a stated rule (a scene's duration per item, or a
   duration from a numeric field of the item); every ID of a repeat derived
   injectively from the template ID and the index (as D39 does for copies).
-- **Packages and documents:** schema (`0.9`), editor-sdk, ai-sdk, D57.
+- **Packages and documents:** schema (`0.9`), editor-sdk, ai-sdk, D58.
 - **Acceptance:** a list of `n` items gives `n` repeats with distinct,
   predictable IDs and contiguous times; a false condition removes the element
   and every reference to it; limits on the number of repeats are typed errors.
@@ -662,7 +665,8 @@ values)`, pure and deterministic, which validates the values against the
   The golden timestamps of the first reference stay as in `AGENTS.md`.
 - **Parity** is measured again in the pinned environment in every pull request
   that changes the Player's dist tree. Pixels outside video nodes keep the gate
-  of D34 (zero); pixels of video get the measurement-first threshold of D50.
+  of D34 (zero); pixels of video were measured first, at 0/0, and so keep the
+  same zero gate (D51.6).
   Audio is not pixels: its parity is a stated timing tolerance of the Player
   against the Producer's plan, not a gate of D34.
 - **The MP4 bytes change once**, in PR-25a, when export becomes segmented; no

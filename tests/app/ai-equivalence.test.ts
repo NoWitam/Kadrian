@@ -65,6 +65,7 @@ async function drag(start: unknown, dx: number, dy: number): Promise<Gesture> {
   const loaded: unknown[] = [];
   const player: Player = {
     load: () => Promise.resolve(),
+    prepareVideo: () => Promise.reject(new Error('The test document has no video.')),
     update(next) {
       loaded.push(next);
       return Promise.resolve();
