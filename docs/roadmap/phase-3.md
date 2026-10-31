@@ -282,8 +282,8 @@ pack` does not publish.
 
 ### PR-25a — Range, segment, join, and still renders (carried over from phase two, changed)
 
-- Status: implemented on the branch `claude/project-thread-khh7dr` with its ADR
-  D47 (Proposed, 2026-10-31). The join takes MP4 segments through the concat
+- Status: done (PR #9, merged 2026-10-31), with its ADR D47 (accepted by the
+  owner on 2026-10-31). The join takes MP4 segments through the concat
   demuxer; elementary H.264 joined by bytes failed the self-check (D47,
   Context). Q14 is reopened by this pull request.
 
