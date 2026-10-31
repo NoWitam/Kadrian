@@ -201,8 +201,9 @@ items that reopen it. PR-35 is this document.
 
 ### PR-26 — Delivering the packages
 
-- Status: in review (2026-10-31), with its ADR D45 (proposed). The first
-  release is the tag `v0.1.0`, which only the owner pushes after the merge.
+- Status: done (PR #5, merged 2026-10-31), with its ADR D45 (accepted by the
+  owner on 2026-10-31). The first release is the tag `v0.1.0`, which only the
+  owner pushes.
 - **Goal:** the host installs exact, verifiable builds of Kadrion in the
   browser and on its queue worker without a package registry (D37.3).
 - **Need:** the browser side needs `@kadrion/editor-session`, `@kadrion/player`
@@ -251,6 +252,8 @@ pack` does not publish.
 
 ### PR-24 — The tool catalogue (carried over from phase two)
 
+- Status: done (PR #7, merged 2026-10-31), with its ADR D46 (accepted by the
+  owner on 2026-10-31).
 - **What changes from phase two:** it moves before the new commands, and it
   becomes a generator plus a rule rather than a fixed set of tools. The tools
   for the commands of PR-28 to PR-34 are added by those pull requests.

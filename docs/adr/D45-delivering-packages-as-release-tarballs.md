@@ -1,6 +1,6 @@
 # D45 — Delivering the packages as tarballs of a GitHub release
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-10-31, after PR-26 was merged
 - Date: 2026-10-31
 - Supersedes: —
 - Amends: D29 (29.1, where the installer of the pinned FFmpeg lives), with an
