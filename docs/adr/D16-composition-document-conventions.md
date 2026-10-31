@@ -5,6 +5,7 @@
   and 16.5 (schema `0.2`: every node has a lifetime; this ADR's rules are those
   of `0.1` and hold for `0.2` except as amended)
 - Date: 2026-09-21
+- Amended by: PR-28a (D50) on 2026-10-31: the node `video` and the field `fit` (D50.1)
 - Related: D02, D04, D05, D09, D13, D14, D15, D17,
   [specification](../spike/vertical-spike.md) §3 and open questions Q11, Q13,
   Q16

@@ -484,6 +484,27 @@ export default defineConfig(
     },
   },
   {
+    // D50.5: a container such as MP4 is read by seeking, never from a pipe, so
+    // the verified bytes of a video get a private copy in a directory of the
+    // Producer's own, which the frame loop removes when it ends. This module
+    // alone may create that directory and write those copies.
+    files: ['packages/producer/src/video.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['fs', 'node:fs', 'fs/promises', 'node:fs/promises'].map((name) => ({
+            name,
+            importNames: FILE_WRITERS.filter(
+              (writer) => !['mkdtemp', 'writeFile'].includes(writer),
+            ),
+            message: NO_FILES,
+          })),
+        },
+      ],
+    },
+  },
+  {
     // Plain JavaScript config files are linted without type information.
     files: ['*.config.js'],
     extends: [tseslint.configs.disableTypeChecked],

@@ -1,7 +1,9 @@
 /**
  * `node --run goldens:update` (D26.5): renders the golden timestamps of the
- * reference composition with the Producer and writes the golden frames and
- * their manifest into `packages/test-fixtures/src/golden-frames/`. It refuses
+ * reference composition and of the video composition (D50.8) with the
+ * Producer and writes the golden frames and their manifests into
+ * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
+ * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
  * without a network (D28.9);
  * the diff of the images is reviewed like code. Self-contained, because it
@@ -23,7 +25,12 @@ import {
   generateReferenceAssets,
   goldenTimestamps,
   referenceComposition,
+  VIDEO_FIXTURE,
+  videoComposition,
+  videoGoldenTimestamps,
 } from '@kadrion/test-fixtures';
+
+import { makeVideoFixture } from './video-fixture.ts';
 
 const directory = fileURLToPath(
   new URL('../../packages/test-fixtures/src/golden-frames/', import.meta.url),
@@ -34,8 +41,15 @@ const chromium = await launchChromium();
 try {
   const environment = environmentManifest(chromium.reportedVersion, { width: 1080, height: 1920 });
   const refusal = goldenRefusal(environment);
+  const ffmpegPath = process.env.KADRION_FFMPEG;
+  const ffprobePath = process.env.KADRION_FFPROBE;
   if (refusal !== null) {
     console.error(`Refusing to write golden frames: ${refusal}.`);
+    process.exitCode = 1;
+  } else if (ffmpegPath === undefined || ffprobePath === undefined) {
+    console.error(
+      'Refusing to write golden frames: KADRION_FFMPEG and KADRION_FFPROBE are not set.',
+    );
     process.exitCode = 1;
   } else {
     const result = await renderFrames({
@@ -56,6 +70,29 @@ try {
       `${JSON.stringify(manifest, null, 2)}\n`,
     );
     for (const frame of frames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The second reference composition: video nodes, decoded by the pinned FFmpeg (D50.8).
+    const video = await makeVideoFixture(ffmpegPath);
+    const videoResult = await renderFrames({
+      document: videoComposition,
+      resolveAsset: ({ id }) =>
+        id === VIDEO_FIXTURE.id
+          ? { bytes: video, mediaType: VIDEO_FIXTURE.mediaType }
+          : (assets[id] ?? null),
+      timesUs: videoGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+      ffmpeg: { ffmpegPath, ffprobePath },
+    });
+    const videoFrames = videoResult.frames.map(({ index, timeUs, png }) => {
+      const file = `video-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'video.golden-frames.json'),
+      `${JSON.stringify({ render: videoResult.manifest, environment, frames: videoFrames }, null, 2)}\n`,
+    );
+    for (const frame of videoFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

@@ -26,6 +26,7 @@ import {
   reorderNodeArgumentsSchema,
   setImageAssetArgumentsSchema,
   setNodeColorArgumentsSchema,
+  setNodeFitArgumentsSchema,
   setNodeLifetimeArgumentsSchema,
   setNodeOpacityArgumentsSchema,
   setNodePositionArgumentsSchema,
@@ -37,6 +38,8 @@ import {
   setTextContentArgumentsSchema,
   setTextFontArgumentsSchema,
   setTextFontSizeArgumentsSchema,
+  setVideoAssetArgumentsSchema,
+  setVideoSourceArgumentsSchema,
   type AddAnimationArgumentsSchema,
   type AddKeyframeArgumentsSchema,
   type AddNodeArgumentsSchema,
@@ -110,7 +113,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into the scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text and image nodes only. ${TIME_US} Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold.`,
+    description: `Inserts one complete node into the scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -156,7 +159,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setNodeScaleArgumentsSchema,
   },
   SetNodeSize: {
-    description: `Sets the width and height of an image or a Custom HTML element, from 1 to 1000000 each. ${PIXELS} A text has no size; change its font size instead. Refused with invalid-argument for a size outside the range after rounding, unknown-node, and unsupported-node for any other node.`,
+    description: `Sets the width and height of an image, a video, or a Custom HTML element, from 1 to 1000000 each. ${PIXELS} A text has no size; change its font size instead. Refused with invalid-argument for a size outside the range after rounding, unknown-node, and unsupported-node for any other node.`,
     example: { nodeId: 'node-image', width: 480, height: 270 },
     argumentsSchema: setNodeSizeArgumentsSchema,
   },
@@ -185,7 +188,7 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   AddAsset: {
     description:
-      "Declares an image, audio, or font asset at an index of the document's assets, under an unused ID and the SHA-256 of its exact bytes. Declare only assets whose bytes the host has: the host must supply them whenever the document is loaded, even while nothing uses the asset. Refused with id-in-use and index-out-of-range.",
+      "Declares an image, audio, font, or video asset at an index of the document's assets, under an unused ID and the SHA-256 of its exact bytes. Declare only assets whose bytes the host has: the host must supply them whenever the document is loaded, even while nothing uses the asset. Refused with id-in-use and index-out-of-range.",
     example: {
       asset: {
         id: 'asset-photo',
@@ -255,9 +258,25 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: moveKeyframeArgumentsSchema,
   },
   SetNodeLifetime: {
-    description: `Sets when a node is shown: from startUs, for durationUs (at least 1). ${TIME_US} The part after the end of the composition is cut. It moves no keyframe: keyframe times stay composition times. Refused with unknown-node and invalid-result.`,
+    description: `Sets when a node is shown: from startUs, for durationUs (at least 1). ${TIME_US} The part after the end of the composition is cut. It moves no keyframe: keyframe times stay composition times. A video keeps its sourceStartUs, so its lifetime must fit inside its source. Refused with unknown-node, invalid-result, and for a video media-facts-missing and source-range-exceeded.`,
     example: { nodeId: 'node-title', startUs: 1_000_000, durationUs: 5_000_000 },
     argumentsSchema: setNodeLifetimeArgumentsSchema,
+  },
+  SetNodeFit: {
+    description:
+      'Sets how the picture of an image or a video meets the box of its node: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture. Refused with invalid-argument for another fit, unknown-node, and unsupported-node for a node that is neither an image nor a video.',
+    example: { nodeId: 'node-image', fit: 'cover' },
+    argumentsSchema: setNodeFitArgumentsSchema,
+  },
+  SetVideoAsset: {
+    description: `Points a video node at another video asset that the document declares (add one with add_asset first); its source start, size, and fit stay. The part of the source the node samples must lie inside the new video: describe_document reports a video's sourceDurationUs when the host knows it. Refused with unknown-node, unsupported-node for a node that is not a video, unknown-asset, asset-type-mismatch when the asset is not a video, media-facts-missing when the host does not know the video's duration, and source-range-exceeded when the node would sample past its end.`,
+    example: { nodeId: 'node-video', assetId: 'asset-clip' },
+    argumentsSchema: setVideoAssetArgumentsSchema,
+  },
+  SetVideoSource: {
+    description: `Sets the source time a video node shows at the start of its lifetime; it then plays at speed 1. ${TIME_US} Source times count from the video's first frame. The node samples sourceStartUs up to sourceStartUs plus the part of its lifetime inside the composition, which must lie inside the video: describe_document reports its sourceDurationUs when the host knows it. To trim the start of a clip by d, add d to startUs and sourceStartUs and subtract it from durationUs in one transaction. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a video, media-facts-missing, and source-range-exceeded.`,
+    example: { nodeId: 'node-video', sourceStartUs: 2_000_000 },
+    argumentsSchema: setVideoSourceArgumentsSchema,
   },
 });
 

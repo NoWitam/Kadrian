@@ -65,36 +65,48 @@ export async function resolveAssets(
   sha256: Sha256,
 ): Promise<VerifiedAsset[]> {
   const verified: VerifiedAsset[] = [];
-  for (const { id, type, contentHash } of composition.assets) {
-    let given: unknown;
-    try {
-      given = await resolveAsset(Object.freeze({ id, type, contentHash }));
-    } catch (reason) {
-      throw new RenderError(
-        'asset-missing',
-        `The resolver failed for "${id}": ${messageOf(reason)}`,
-      );
-    }
-    if (given === null || given === undefined) {
-      throw new RenderError('asset-missing', `The host has no bytes for "${id}".`);
-    }
-    const { bytes, mediaType } = given as Partial<ResolvedAsset>;
-    if (!isBytes(bytes) || typeof mediaType !== 'string' || !mediaTypeFits(type, mediaType)) {
-      throw new RenderError(
-        'asset-invalid',
-        `The asset "${id}" needs bytes and a media type of the form ${type}/….`,
-      );
-    }
-    // A copy, hashed and returned as it is: what the caller does later changes nothing.
-    const copy = Uint8Array.prototype.slice.call(bytes);
-    const actual = await sha256(copy);
-    if (actual !== contentHash) {
-      throw new RenderError(
-        'asset-hash-mismatch',
-        `The bytes of "${id}" have ${actual}, not ${contentHash}.`,
-      );
-    }
-    verified.push({ id, type, mediaType, contentHash, bytes: copy });
+  for (const asset of composition.assets) {
+    verified.push(await resolveOneAsset(asset, resolveAsset, sha256));
   }
   return verified;
+}
+
+/**
+ * Asks the resolver for one asset of the document, once, with a frozen request,
+ * and verifies the bytes it returns exactly as `resolveAssets` does. A host that
+ * delivers some assets another way — the Producer reads a video from a path
+ * (D50.5) — calls it for the others, in the document's order.
+ */
+export async function resolveOneAsset(
+  asset: AssetRequest,
+  resolveAsset: AssetResolver,
+  sha256: Sha256,
+): Promise<VerifiedAsset> {
+  const { id, type, contentHash } = asset;
+  let given: unknown;
+  try {
+    given = await resolveAsset(Object.freeze({ id, type, contentHash }));
+  } catch (reason) {
+    throw new RenderError('asset-missing', `The resolver failed for "${id}": ${messageOf(reason)}`);
+  }
+  if (given === null || given === undefined) {
+    throw new RenderError('asset-missing', `The host has no bytes for "${id}".`);
+  }
+  const { bytes, mediaType } = given as Partial<ResolvedAsset>;
+  if (!isBytes(bytes) || typeof mediaType !== 'string' || !mediaTypeFits(type, mediaType)) {
+    throw new RenderError(
+      'asset-invalid',
+      `The asset "${id}" needs bytes and a media type of the form ${type}/….`,
+    );
+  }
+  // A copy, hashed and returned as it is: what the caller does later changes nothing.
+  const copy = Uint8Array.prototype.slice.call(bytes);
+  const actual = await sha256(copy);
+  if (actual !== contentHash) {
+    throw new RenderError(
+      'asset-hash-mismatch',
+      `The bytes of "${id}" have ${actual}, not ${contentHash}.`,
+    );
+  }
+  return { id, type, mediaType, contentHash, bytes: copy };
 }

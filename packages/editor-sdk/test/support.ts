@@ -21,6 +21,42 @@ export function reference(): ValidatedComposition {
   return validated(referenceComposition);
 }
 
+/** The video asset and node `everyType` adds to the reference composition. */
+export const VIDEO_ASSET = Object.freeze({
+  id: 'asset-video',
+  type: 'video',
+  contentHash: `sha256:${'c'.repeat(64)}`,
+});
+export const VIDEO_NODE = Object.freeze({
+  id: 'node-video',
+  type: 'video',
+  startUs: 0,
+  durationUs: 1_000_000,
+  position: Object.freeze({ x: 10, y: 20 }),
+  scale: Object.freeze({ x: 1, y: 1 }),
+  opacity: 1,
+  animations: Object.freeze([]),
+  assetId: 'asset-video',
+  sourceStartUs: 0,
+  width: 320,
+  height: 180,
+  fit: 'contain',
+});
+
+/**
+ * The reference composition with one video node at the top of its scene and
+ * its asset (D50.1): a document that holds a node of every type of the schema.
+ */
+export function everyType(): ValidatedComposition {
+  const draft = structuredClone(referenceComposition) as {
+    assets: unknown[];
+    scenes: { nodes: unknown[] }[];
+  };
+  draft.assets.push(structuredClone(VIDEO_ASSET));
+  draft.scenes[0]?.nodes.push(structuredClone(VIDEO_NODE));
+  return validated(draft);
+}
+
 /** The exact JSON text of a document: the comparison P3 and P4 speak of. */
 export function json(value: unknown): string {
   return JSON.stringify(value);

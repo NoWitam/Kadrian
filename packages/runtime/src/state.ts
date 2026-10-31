@@ -30,7 +30,7 @@ export interface TransformState {
   readonly opacity: number;
 }
 
-export type LeafNodeType = 'image' | 'text' | 'custom-html';
+export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video';
 
 export interface BackgroundNodeState extends LifetimeState {
   readonly id: string;
@@ -43,14 +43,28 @@ export interface LeafNodeState<Type extends LeafNodeType = LeafNodeType>
   readonly type: Type;
 }
 
+/**
+ * A video node (D49.5, D50.3): a leaf whose `sourceTimeUs` is the source time it
+ * shows, `sourceStartUs + (timeUs − startUs)`, while it is active, and `null`
+ * while it is not. The runtime knows no frames: which frame that time selects
+ * is the host's matter, by the rule `sourceFrameIndex` of `@kadrion/schema`.
+ */
+export interface VideoNodeState extends LeafNodeState<'video'> {
+  readonly sourceTimeUs: number | null;
+}
+
 export interface GroupNodeState extends LifetimeState, TransformState {
   readonly id: string;
   readonly type: 'group';
   /** Array order is the z-order, as in the document; groups do not nest. */
-  readonly children: readonly LeafNodeState<'image' | 'text'>[];
+  readonly children: readonly (LeafNodeState<'image' | 'text'> | VideoNodeState)[];
 }
 
-export type NodeState = BackgroundNodeState | GroupNodeState | LeafNodeState;
+export type NodeState =
+  | BackgroundNodeState
+  | GroupNodeState
+  | LeafNodeState<'image' | 'text' | 'custom-html'>
+  | VideoNodeState;
 
 export interface SceneState {
   readonly id: string;

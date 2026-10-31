@@ -31,6 +31,8 @@ export type PlayerErrorCode =
   | 'custom-html-timeout'
   /** A Custom HTML element loaded another document than its shell; the render ends (D23.9). */
   | 'custom-html-navigated'
+  /** The document has video nodes or video assets, which the Player shows only from PR-28b (D50.6). */
+  | 'video-unsupported'
   /** The time is not an integer in `[0, durationUs)` (D13, D25.6). */
   | 'time-out-of-range'
   /** A seek was requested before a document was loaded. */

@@ -6,6 +6,7 @@
 - Extends: D07 (still images as an output) and D29 (segments, the audio pass,
   files written under a temporary name), each with an `Amended by: PR-25a
 (D47)` line
+- Amended by: PR-28a (D50) on 2026-10-31: 47.8: `EXPORT_MANIFEST_VERSION` 4 with the field `video`, which every part of a join shares (D50.5)
 - Related: D04, D06, D13, D14, D26, D28, D29, D44,
   [roadmap of phase three](../roadmap/phase-3.md) PR-25a and PR-25b
 

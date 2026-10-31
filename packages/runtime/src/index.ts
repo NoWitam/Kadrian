@@ -20,4 +20,5 @@ export type {
   SceneState,
   TransformState,
   Vec2,
+  VideoNodeState,
 } from './state.js';

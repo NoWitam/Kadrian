@@ -19,6 +19,7 @@ import type {
   TextNode,
   ValidatedComposition,
   ValidationResult,
+  VideoNode,
 } from '../src/index.js';
 
 interface Vec2 {
@@ -38,7 +39,7 @@ type ExpectedNodeAnimation =
   | ExpectedAnimation<'position', Vec2>
   | ExpectedAnimation<'scale', Vec2>;
 
-/** The lifetime every node of schema 0.2 has (D42.1). */
+/** The lifetime every node has since schema 0.2 (D42.1). */
 interface ExpectedLifetime {
   readonly startUs: number;
   readonly durationUs: number;
@@ -63,6 +64,17 @@ interface ExpectedImageNode extends ExpectedTransform {
   readonly assetId: string;
   readonly width: number;
   readonly height: number;
+  readonly fit: 'fill' | 'contain' | 'cover';
+}
+
+interface ExpectedVideoNode extends ExpectedTransform {
+  readonly id: string;
+  readonly type: 'video';
+  readonly assetId: string;
+  readonly sourceStartUs: number;
+  readonly width: number;
+  readonly height: number;
+  readonly fit: 'fill' | 'contain' | 'cover';
 }
 
 interface ExpectedTextNode extends ExpectedTransform {
@@ -85,7 +97,7 @@ interface ExpectedCustomHtmlNode extends ExpectedTransform {
 interface ExpectedGroupNode extends ExpectedTransform {
   readonly id: string;
   readonly type: 'group';
-  readonly children: readonly (ExpectedImageNode | ExpectedTextNode)[];
+  readonly children: readonly (ExpectedImageNode | ExpectedTextNode | ExpectedVideoNode)[];
 }
 
 type ExpectedSceneNode =
@@ -93,7 +105,8 @@ type ExpectedSceneNode =
   | ExpectedGroupNode
   | ExpectedImageNode
   | ExpectedTextNode
-  | ExpectedCustomHtmlNode;
+  | ExpectedCustomHtmlNode
+  | ExpectedVideoNode;
 
 interface ExpectedScene {
   readonly id: string;
@@ -102,7 +115,7 @@ interface ExpectedScene {
 
 interface ExpectedAsset {
   readonly id: string;
-  readonly type: 'image' | 'audio' | 'font';
+  readonly type: 'image' | 'audio' | 'font' | 'video';
   readonly contentHash: string;
 }
 
@@ -115,7 +128,7 @@ interface ExpectedAudioClip {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.2';
+  readonly schemaVersion: '0.3';
   readonly width: number;
   readonly height: number;
   readonly fps: number;
@@ -136,6 +149,7 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<ImageNode>().toEqualTypeOf<ExpectedImageNode>();
     expectTypeOf<TextNode>().toEqualTypeOf<ExpectedTextNode>();
     expectTypeOf<CustomHtmlNode>().toEqualTypeOf<ExpectedCustomHtmlNode>();
+    expectTypeOf<VideoNode>().toEqualTypeOf<ExpectedVideoNode>();
     expectTypeOf<NodeAnimation>().toEqualTypeOf<ExpectedNodeAnimation>();
     expectTypeOf<AudioClip>().toEqualTypeOf<ExpectedAudioClip>();
   });

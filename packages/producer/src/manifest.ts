@@ -7,14 +7,18 @@ import { createHash } from 'node:crypto';
 
 import type { EnvironmentManifest } from './environment.js';
 
-/** 2 since PR-07: `environment.network` (D28.9) and the export manifest (D29.9). */
-export const MANIFEST_VERSION = 2;
+/**
+ * 2 since PR-07: `environment.network` (D28.9) and the export manifest (D29.9);
+ * 3 since PR-28a: `video` (D50.5).
+ */
+export const MANIFEST_VERSION = 3;
 
 /**
  * The version of the manifests of a segmented render (D47.8): segments, audio,
- * export, and still. 3 since PR-25a; a render of frames keeps `MANIFEST_VERSION`.
+ * export, and still. 3 since PR-25a, 4 since PR-28a (`video`, D50.5); a render of
+ * frames keeps `MANIFEST_VERSION`.
  */
-export const EXPORT_MANIFEST_VERSION = 3;
+export const EXPORT_MANIFEST_VERSION = 4;
 
 /** `sha256:` and 64 lowercase hex digits of the bytes, the format of D14. */
 export function sha256(bytes: Uint8Array | string): string {
@@ -92,8 +96,33 @@ export interface RenderManifest {
    * by the Producer, recorded without failing the render (D28.1).
    */
   readonly blockedRequests: readonly string[];
-  /** A render of frames runs no FFmpeg; an export records it (D29.9). */
+  /** How the frames of video nodes were decoded, or `null` without video nodes (D50.5). */
+  readonly video: ManifestVideo | null;
+  /** A render of frames runs no FFmpeg encoder; an export records it (D29.9). */
   readonly ffmpeg: null;
+}
+
+/** One video asset a node samples, with the media facts the run read from it (D49.6, D50.5). */
+export interface ManifestVideoSource {
+  readonly assetId: string;
+  readonly contentHash: string;
+  readonly width: number;
+  readonly height: number;
+  readonly frames: number;
+  /** `num/den` seconds per tick. */
+  readonly timeBase: string;
+  readonly sourceDurationUs: number;
+}
+
+/**
+ * How the frames of the video nodes were made (D50.5): the pinned FFmpeg that
+ * decoded them, its arguments with the path written as `<input>`, and every
+ * source. `null` for a composition without video nodes.
+ */
+export interface ManifestVideo {
+  readonly decoder: ManifestFfmpegBuild;
+  readonly decodeArgs: readonly string[];
+  readonly sources: readonly ManifestVideoSource[];
 }
 
 /** The pinned FFmpeg a run verified (D29.1). */

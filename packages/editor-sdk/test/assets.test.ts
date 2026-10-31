@@ -206,7 +206,7 @@ describe('AddAsset (D40.3)', () => {
 
   it.each([
     ['an ID of another form', { ...asset('a b', 'image') }],
-    ['an unknown type', { ...asset('n', 'video') }],
+    ['an unknown type', { ...asset('n', 'sticker') }],
     ['an upper-case hash', { id: 'n', type: 'image', contentHash: `sha256:${'A'.repeat(64)}` }],
     ['a short hash', { id: 'n', type: 'image', contentHash: 'sha256:abc' }],
     ['another algorithm', { id: 'n', type: 'image', contentHash: `sha1:${'a'.repeat(40)}` }],
@@ -299,6 +299,7 @@ describe('RemoveAsset (D40.3, D40.4)', () => {
             assetId: 'lone',
             width: 10,
             height: 10,
+            fit: 'fill',
           },
         });
         return { bus, users: ['top-image'] };

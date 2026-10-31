@@ -30,6 +30,7 @@ import {
   parseReorderNode,
   parseSetImageAsset,
   parseSetNodeColor,
+  parseSetNodeFit,
   parseSetNodeLifetime,
   parseSetNodeOpacity,
   parseSetNodePosition,
@@ -41,6 +42,8 @@ import {
   parseSetTextContent,
   parseSetTextFont,
   parseSetTextFontSize,
+  parseSetVideoAsset,
+  parseSetVideoSource,
   type Command,
   type CommandPosition,
   type NodeData,
@@ -257,6 +260,16 @@ function unknownAsset(assetId: string): EditorError {
 }
 
 /** Checks that an asset exists in `assets` and is of the type the field expects (D40.2). */
+/** Refuses a node of another type than `type` with `unsupported-node` (D30.8). */
+function requireType(node: DocumentObject, types: readonly string[], nodeId: string): void {
+  if (!types.includes(String(node['type']))) {
+    throw new EditorError(
+      'unsupported-node',
+      `The node \`${nodeId}\` is of type ${String(node['type'])}, not ${types.join(' or ')}.`,
+    );
+  }
+}
+
 function requireAsset(document: DocumentObject, assetId: string, type: string): void {
   const found = locateAsset(document, assetId);
   if (found === null) throw unknownAsset(assetId);
@@ -631,6 +644,8 @@ const DEFINITIONS = deepFreeze<Definitions>({
     parse: parseSetImageAsset,
     edit: (document, command) =>
       onNode(document, command.nodeId, (node) => {
+        // A video has an asset too, of another type and through its own command (D50.6).
+        requireType(node, ['image'], command.nodeId);
         const assetId = stringField(node, 'assetId', command.nodeId);
         requireAsset(document, command.assetId, 'image');
         if (assetId === command.assetId) return null;
@@ -878,6 +893,46 @@ const DEFINITIONS = deepFreeze<Definitions>({
           // The two keys keep their places, and every other value its identity (D42.10).
           node: { ...node, startUs: command.startUs, durationUs: command.durationUs },
           inverse: parseSetNodeLifetime({ ...command, startUs, durationUs }),
+        };
+      }),
+  },
+  SetNodeFit: {
+    parse: parseSetNodeFit,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['image', 'video'], command.nodeId);
+        const fit = stringField(node, 'fit', command.nodeId);
+        if (fit === command.fit) return null;
+        return {
+          node: { ...node, fit: command.fit },
+          inverse: parseSetNodeFit({ ...command, fit }),
+        };
+      }),
+  },
+  SetVideoAsset: {
+    parse: parseSetVideoAsset,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['video'], command.nodeId);
+        const assetId = stringField(node, 'assetId', command.nodeId);
+        requireAsset(document, command.assetId, 'video');
+        if (assetId === command.assetId) return null;
+        return {
+          node: { ...node, assetId: command.assetId },
+          inverse: parseSetVideoAsset({ ...command, assetId }),
+        };
+      }),
+  },
+  SetVideoSource: {
+    parse: parseSetVideoSource,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['video'], command.nodeId);
+        const sourceStartUs = numberField(node, 'sourceStartUs', command.nodeId);
+        if (sourceStartUs === command.sourceStartUs) return null;
+        return {
+          node: { ...node, sourceStartUs: command.sourceStartUs },
+          inverse: parseSetVideoSource({ ...command, sourceStartUs }),
         };
       }),
   },

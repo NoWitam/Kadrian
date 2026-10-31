@@ -7,6 +7,7 @@
   function of the host, `parseComposition`)
 - Date: 2026-09-23
 - Supersedes: —
+- Amended by: PR-28a (D50) on 2026-10-31: the step from `0.2` to `0.3` and the frozen `0.2` schema (D50.2)
 - Related: D02, D16, D17, D24,
   [specification](../spike/vertical-spike.md) §11 and open question Q16,
   [spike report](../spike/report.md)

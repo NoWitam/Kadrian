@@ -12,7 +12,10 @@ const PLACEHOLDER_HASH = /^sha256:0{56}/;
 const CONTENT_HASH = /^sha256:[0-9a-f]{64}$/;
 /** The only place where committed binaries may live: the golden frames of D26.5. */
 const GOLDEN_DIRECTORY = 'packages/test-fixtures/src/golden-frames/';
-const GOLDEN_MANIFEST = `${GOLDEN_DIRECTORY}reference.golden-frames.json`;
+/** The golden manifests: the reference composition, and the video composition of D50.8. */
+const GOLDEN_MANIFESTS = ['reference', 'video'].map(
+  (name) => `${GOLDEN_DIRECTORY}${name}.golden-frames.json`,
+);
 
 interface ReferenceComposition {
   assets: { id: string; contentHash: string }[];
@@ -52,18 +55,14 @@ describe('fixture assets (D14, D27.5)', () => {
     for (const file of binaries) expect(file).toMatch(/\.png$/);
   });
 
-  // D26.5: every committed golden frame is listed, with its hash, in the golden manifest.
-  it('lists every golden frame with its SHA-256 in the golden manifest', () => {
+  // D26.5: every committed golden frame is listed, with its hash, in a golden manifest.
+  it('lists every golden frame with its SHA-256 in a golden manifest', () => {
     const goldens = binaries.filter((file) => file.startsWith(GOLDEN_DIRECTORY));
-    if (!existsSync(repoPath(...GOLDEN_MANIFEST.split('/')))) {
-      expect(goldens).toEqual([]);
-      return;
-    }
-    const manifest = readJson(...GOLDEN_MANIFEST.split('/')) as GoldenManifest;
-    expect(manifest.frames.map((frame) => `${GOLDEN_DIRECTORY}${frame.file}`).sort()).toEqual(
-      goldens,
-    );
-    for (const frame of manifest.frames) {
+    const frames = GOLDEN_MANIFESTS.filter((path) => existsSync(repoPath(...path.split('/'))))
+      .map((path) => readJson(...path.split('/')) as GoldenManifest)
+      .flatMap((manifest) => manifest.frames);
+    expect(frames.map((frame) => `${GOLDEN_DIRECTORY}${frame.file}`).sort()).toEqual(goldens);
+    for (const frame of frames) {
       const bytes = readFileSync(repoPath(...`${GOLDEN_DIRECTORY}${frame.file}`.split('/')));
       expect(`sha256:${createHash('sha256').update(bytes).digest('hex')}`, frame.file).toBe(
         frame.sha256,

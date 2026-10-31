@@ -4,7 +4,8 @@
  * must stay self-contained. Its transport is CDP evaluation, not `postMessage`:
  * it exposes `kadrionProducer.load` and `kadrionProducer.frame`, which the
  * Producer calls through Playwright, and nothing else. It holds no pixel logic:
- * it decodes the base64 of the asset bytes that CDP carries, and calls
+ * it decodes the base64 of the asset bytes and of the video frames that CDP
+ * carries, and calls
  * `KadrionRuntime.load`, with the policy `trusted` stated explicitly (D36, decision 5),
  * and `KadrionRuntime.frame` (D25.3, D27.1). The
  * `FontFace` constructor and the timer are captured when it starts, so a page
@@ -23,7 +24,13 @@ export function producerAgent(): void {
       host: unknown,
       options: unknown,
     ): Promise<Result>;
-    frame(root: Element, document: unknown, timeUs: number, host: unknown): Promise<Result>;
+    frame(
+      root: Element,
+      document: unknown,
+      timeUs: number,
+      host: unknown,
+      videoFrames: unknown,
+    ): Promise<Result>;
   }
   interface Outcome {
     ok: boolean;
@@ -95,7 +102,12 @@ export function producerAgent(): void {
           }, failed)
       );
     },
-    frame(timeUs: number, requestId: number, ackTimeoutMs: number) {
+    frame(
+      timeUs: number,
+      requestId: number,
+      ackTimeoutMs: number,
+      videoFrames: { nodeId: string; mediaType: string; base64: string }[],
+    ) {
       if (state.documentJson === null) {
         return Promise.resolve(failed({ code: 'page-error', message: 'No document is loaded.' }));
       }
@@ -117,8 +129,14 @@ export function producerAgent(): void {
         },
         requestId,
       };
+      // The source frames of the active video nodes, decoded by the Producer (D50.4, D50.5).
+      const frames = videoFrames.map(({ nodeId, mediaType, base64 }) => ({
+        nodeId,
+        mediaType,
+        bytes: bytesOf(base64),
+      }));
       return (runtime as Runtime)
-        .frame(root as Element, JSON.parse(state.documentJson), timeUs, host)
+        .frame(root as Element, JSON.parse(state.documentJson), timeUs, host, frames)
         .then(done, failed);
     },
     stats() {

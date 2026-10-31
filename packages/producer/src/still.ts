@@ -28,6 +28,7 @@ import {
   type RenderTimeouts,
 } from './render.js';
 import type { RuntimeBuild } from './runtime.js';
+import { videoNodes } from './video.js';
 import { checkedStillFormat, STILL_FORMATS, stillArgs, type StillFormat } from './segments.js';
 
 export interface StillRequest extends RenderTimeouts, JobOptions {
@@ -37,7 +38,7 @@ export interface StillRequest extends RenderTimeouts, JobOptions {
   readonly timeUs: number;
   /** `png`, `jpeg`, or `webp`. */
   readonly format: string;
-  /** The pinned executables; required for `jpeg` and `webp`, unused for `png`. */
+  /** The pinned executables; required for `jpeg`, `webp`, and every document with video nodes. */
   readonly ffmpeg?: FfmpegPaths;
   readonly chromium?: LaunchedChromium;
   readonly runtime?: RuntimeBuild;
@@ -82,11 +83,13 @@ async function stillOf(
   frameIndexOf(composition, request.timeUs);
   checkDocumentLimits(request.limits, composition, 1);
   let tools: FfmpegTools | null = null;
-  if (format !== 'png') {
+  if (format !== 'png' || videoNodes(composition).length > 0) {
     if (request.ffmpeg === undefined) {
       throw new ProducerError(
         'ffmpeg-missing',
-        `A ${format} still is encoded by the pinned FFmpeg, and no paths were given.`,
+        format === 'png'
+          ? 'The document has video nodes, which the pinned FFmpeg decodes, and no paths were given.'
+          : `A ${format} still is encoded by the pinned FFmpeg, and no paths were given.`,
       );
     }
     tools = await dependencies.tools(request.ffmpeg);
@@ -97,6 +100,7 @@ async function stillOf(
     timesUs: [request.timeUs],
     ...(request.chromium === undefined ? {} : { chromium: request.chromium }),
     ...(request.runtime === undefined ? {} : { runtime: request.runtime }),
+    ...(request.ffmpeg === undefined ? {} : { ffmpeg: request.ffmpeg }),
     ...(request.ackTimeoutMs === undefined ? {} : { ackTimeoutMs: request.ackTimeoutMs }),
     ...(request.pageTimeoutMs === undefined ? {} : { pageTimeoutMs: request.pageTimeoutMs }),
     ...(request.presentationTimeoutMs === undefined

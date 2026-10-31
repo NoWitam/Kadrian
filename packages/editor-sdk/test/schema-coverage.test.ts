@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { keyframeMinimum, keyframeTimeBounds } from '../src/animations.js';
 import { applyCommand, type Command } from '../src/index.js';
 
-import { codeOf, nodeOf, positionOf, reference, validated } from './support.js';
+import { codeOf, everyType, nodeOf, positionOf, validated } from './support.js';
 
 /** Walks a JSON Schema by key, without claiming a type the schema does not have. */
 function at(value: unknown, ...path: readonly string[]): unknown {
@@ -35,7 +35,7 @@ const groupVariant = nodeVariants.find(
 );
 const childVariants = variantsOf(at(groupVariant, 'properties', 'children', 'items'));
 
-/** Node type → whether schema 0.2 gives that type the field. */
+/** Node type → whether schema 0.3 gives that type the field. */
 function carrying(field: string): Map<string, boolean> {
   return new Map<string, boolean>(
     [...nodeVariants, ...childVariants].map((variant) => [
@@ -60,30 +60,31 @@ interface FixtureNode {
   readonly children?: readonly FixtureNode[];
 }
 
-/** One node of each type in the reference composition, which contains them all (§3.2). */
+/** One node of each type in `everyType`, which contains them all (§3.2, D50.1). */
 function nodesByType(): Map<string, string> {
   const found = new Map<string, string>();
   const visit = (node: FixtureNode): void => {
     if (!found.has(node.type)) found.set(node.type, node.id);
     for (const child of node.children ?? []) visit(child);
   };
-  for (const scene of (reference() as unknown as { scenes: { nodes: FixtureNode[] }[] }).scenes) {
+  for (const scene of (everyType() as unknown as { scenes: { nodes: FixtureNode[] }[] }).scenes) {
     for (const node of scene.nodes) visit(node);
   }
   return found;
 }
 
 describe('the node types the bus accepts (D30.8)', () => {
-  it('reads every node type of schema 0.2 out of the schema itself', () => {
+  it('reads every node type of schema 0.3 out of the schema itself', () => {
     expect([...positioned.keys()].sort()).toEqual([
       'background',
       'custom-html',
       'group',
       'image',
       'text',
+      'video',
     ]);
     expect(positioned.get('background')).toBe(false);
-    expect([...positioned.values()].filter(Boolean)).toHaveLength(4);
+    expect([...positioned.values()].filter(Boolean)).toHaveLength(5);
   });
 
   it('has no nested group, which is why searching two levels deep is enough (D16)', () => {
@@ -97,7 +98,7 @@ describe('the node types the bus accepts (D30.8)', () => {
     expect(childVariants.length).toBeGreaterThan(0);
   });
 
-  it('has one node of every type in the reference composition', () => {
+  it('has one node of every type in the document it edits', () => {
     expect([...nodesByType().keys()].sort()).toEqual([...positioned.keys()].sort());
   });
 
@@ -105,7 +106,7 @@ describe('the node types the bus accepts (D30.8)', () => {
     'moves a node of type %s exactly when it has a position',
     (type) => {
       const nodeId = nodesByType().get(type) ?? '';
-      const document = reference();
+      const document = everyType();
       const command: Command = { type: 'SetNodePosition', nodeId, position: { x: 7, y: 9 } };
       if (positioned.get(type) === true) {
         expect(positionOf(applyCommand(document, command).document, nodeId)).toEqual({
@@ -125,7 +126,7 @@ describe('the node types the bus accepts (D30.8)', () => {
         .filter(([, has]) => has)
         .map(([type]) => type)
         .sort(),
-    ).toEqual(['custom-html', 'group', 'image', 'text']);
+    ).toEqual(['custom-html', 'group', 'image', 'text', 'video']);
     expect([...texted].filter(([, has]) => has).map(([type]) => type)).toEqual(['text']);
   });
 
@@ -133,7 +134,7 @@ describe('the node types the bus accepts (D30.8)', () => {
     'sets the opacity of a node of type %s exactly when it has one',
     (type) => {
       const nodeId = nodesByType().get(type) ?? '';
-      const document = reference();
+      const document = everyType();
       const command: Command = { type: 'SetNodeOpacity', nodeId, opacity: 0.125 };
       if (faded.get(type) === true) {
         expect(fieldOf(applyCommand(document, command).document, nodeId, 'opacity')).toBe(0.125);
@@ -147,7 +148,7 @@ describe('the node types the bus accepts (D30.8)', () => {
     'replaces the text of a node of type %s exactly when it has one',
     (type) => {
       const nodeId = nodesByType().get(type) ?? '';
-      const document = reference();
+      const document = everyType();
       const command: Command = { type: 'SetTextContent', nodeId, text: 'Replaced\ntext' };
       if (texted.get(type) === true) {
         expect(fieldOf(applyCommand(document, command).document, nodeId, 'text')).toBe(
@@ -202,6 +203,13 @@ const EDITED = [
       assetId: 'image-2',
     }),
     expected: 'image-2',
+    // A video has an asset too, of another type and through SetVideoAsset (D50.6).
+    only: 'image',
+  },
+  {
+    field: 'fit',
+    command: (nodeId: string): Command => ({ type: 'SetNodeFit', nodeId, fit: 'cover' }),
+    expected: 'cover',
   },
 ] as const;
 
@@ -210,7 +218,7 @@ const EDITED = [
  * font and image rows change a reference instead of setting the one it holds.
  */
 function withSecondAssets() {
-  const draft = structuredClone(reference()) as unknown as {
+  const draft = structuredClone(everyType()) as unknown as {
     assets: { id: string; type: string; contentHash: string }[];
   };
   draft.assets.push({ id: 'font-2', type: 'font', contentHash: `sha256:${'c'.repeat(64)}` });
@@ -225,17 +233,22 @@ describe('the node types the commands of D40 accept (D30.8)', () => {
         .filter(([, has]) => has)
         .map(([type]) => type)
         .sort();
-    expect(carriers('scale')).toEqual(['custom-html', 'group', 'image', 'text']);
-    expect(carriers('width')).toEqual(['custom-html', 'image']);
+    expect(carriers('scale')).toEqual(['custom-html', 'group', 'image', 'text', 'video']);
+    expect(carriers('width')).toEqual(['custom-html', 'image', 'video']);
     expect(carriers('height')).toEqual(carriers('width'));
     expect(carriers('color')).toEqual(['background', 'text']);
     expect(carriers('fontSize')).toEqual(['text']);
     expect(carriers('fontAssetId')).toEqual(['text']);
-    expect(carriers('assetId')).toEqual(['image']);
+    expect(carriers('assetId')).toEqual(['image', 'video']);
+    expect(carriers('fit')).toEqual(['image', 'video']);
   });
 
-  for (const { field, command, expected } of EDITED) {
-    const carried = carrying(field);
+  for (const row of EDITED) {
+    const { field, command, expected } = row;
+    const only = 'only' in row ? row.only : null;
+    const carried = new Map(
+      [...carrying(field)].map(([type, has]) => [type, has && (only === null || type === only)]),
+    );
     it.each([...carried.keys()].sort())(
       `edits ${field} of a node of type %s exactly when it has the field`,
       (type) => {
@@ -300,7 +313,7 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
 
   it('refuses exactly the removal that would go below the minimum of the schema', () => {
     const minimum = keyframeMinimum(compositionSchema, 'opacity');
-    let document = reference();
+    let document = everyType();
     const count = (): number =>
       (nodeOf(document, 'node-title').animations as { keyframes: unknown[] }[])[0]?.keyframes
         .length ?? 0;
@@ -328,7 +341,7 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
     (type, animated) => {
       const nodeId = nodesByType().get(type) ?? '';
       const animationIds = (
-        (nodeOf(reference(), nodeId).animations as { property: string }[] | undefined) ?? []
+        (nodeOf(everyType(), nodeId).animations as { property: string }[] | undefined) ?? []
       ).map(({ property }) => property);
       const property = ['opacity', 'position', 'scale'].find(
         (name) => !animationIds.includes(name),
@@ -348,9 +361,9 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
         },
       };
       if (animated) {
-        expect(applyCommand(reference(), command).createdIds).toEqual(['anim-new']);
+        expect(applyCommand(everyType(), command).createdIds).toEqual(['anim-new']);
       } else {
-        expect(codeOf(() => applyCommand(reference(), command))).toBe('unsupported-node');
+        expect(codeOf(() => applyCommand(everyType(), command))).toBe('unsupported-node');
       }
     },
   );

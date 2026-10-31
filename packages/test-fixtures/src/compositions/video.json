@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "0.3",
+  "width": 640,
+  "height": 360,
+  "fps": 30,
+  "durationUs": 2000000,
+  "assets": [
+    {
+      "id": "asset-video",
+      "type": "video",
+      "contentHash": "sha256:c2a50df329af0adba0aa56b63c95f3bc55d7991875da558ce6e82288e386065d"
+    },
+    {
+      "id": "asset-image",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-video",
+      "nodes": [
+        {
+          "id": "node-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#203040"
+        },
+        {
+          "id": "node-video-full",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "width": 320,
+          "height": 180,
+          "fit": "fill"
+        },
+        {
+          "id": "node-image-contain",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 0,
+            "y": 190
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 150,
+          "height": 160,
+          "fit": "contain"
+        },
+        {
+          "id": "node-video-cover",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 160,
+            "y": 190
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 500000,
+          "width": 160,
+          "height": 160,
+          "fit": "cover"
+        },
+        {
+          "id": "node-group",
+          "type": "group",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 340,
+            "y": 10
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "anim-group-position",
+              "property": "position",
+              "interpolation": "linear",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 0,
+                    "y": 0
+                  }
+                },
+                {
+                  "timeUs": 2000000,
+                  "value": {
+                    "x": -20,
+                    "y": 0
+                  }
+                }
+              ]
+            }
+          ],
+          "children": [
+            {
+              "id": "node-video-contain",
+              "type": "video",
+              "startUs": 500000,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "opacity": 1,
+              "animations": [],
+              "assetId": "asset-video",
+              "sourceStartUs": 1000000,
+              "width": 280,
+              "height": 200,
+              "fit": "contain"
+            },
+            {
+              "id": "node-image-cover",
+              "type": "image",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": {
+                "x": 0,
+                "y": 220
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "opacity": 1,
+              "animations": [],
+              "assetId": "asset-image",
+              "width": 280,
+              "height": 120,
+              "fit": "cover"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "clips": []
+}

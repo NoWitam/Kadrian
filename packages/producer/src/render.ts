@@ -47,6 +47,7 @@ import {
   type LaunchedChromium,
 } from './environment.js';
 import { asProducerError, ProducerError, producerCode } from './errors.js';
+import { pinnedFfmpeg, type FfmpegPaths } from './ffmpeg.js';
 import {
   checkAssetLimits,
   checkDocumentLimits,
@@ -57,6 +58,7 @@ import {
 } from './job.js';
 import { canonicalJson, MANIFEST_VERSION, sha256, type RenderManifest } from './manifest.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
+import { prepareVideos, videoNodes, type NodeVideoFrame, type VideoLibrary } from './video.js';
 
 export interface RenderTimeouts {
   /** How long the page waits for a Custom HTML acknowledgement (D23.4). */
@@ -92,7 +94,12 @@ interface Outcome {
 interface AgentWindow {
   readonly kadrionProducer: {
     load(json: string, assets: unknown): Promise<Outcome>;
-    frame(timeUs: number, requestId: number, ackTimeoutMs: number): Promise<Outcome>;
+    frame(
+      timeUs: number,
+      requestId: number,
+      ackTimeoutMs: number,
+      videoFrames: readonly { nodeId: string; mediaType: string; base64: string }[],
+    ): Promise<Outcome>;
     stats(): { loads: number; frames: number };
   };
 }
@@ -113,10 +120,20 @@ export interface RenderSession {
    */
   readonly blockedRequests: readonly string[];
   readonly runtime: RuntimeBuild;
-  /** Loads the document with its verified assets into the render page (D27.1). */
+  /**
+   * Loads the document with its verified assets into the render page (D27.1);
+   * the bytes of video assets stay outside the page (D50.5).
+   */
   load(documentJson: string, assets: readonly VerifiedAsset[]): Promise<void>;
-  /** Renders, waits until painted, and captures one frame (D28.4, D28.5). */
-  frame(index: number, timeUs: number): Promise<Uint8Array>;
+  /**
+   * Renders, waits until painted, and captures one frame (D28.4, D28.5), with
+   * the frame of every video node active at `timeUs` (D50.4).
+   */
+  frame(
+    index: number,
+    timeUs: number,
+    videoFrames?: readonly NodeVideoFrame[],
+  ): Promise<Uint8Array>;
   /** How often the agent was asked to load and to render, for the tests of D28.4. */
   stats(): Promise<{ loads: number; frames: number }>;
   /** How many frames of the page run in a process of their own (measured, D28). */
@@ -269,11 +286,13 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
       blockedRequests,
       runtime,
       async load(documentJson, assets) {
-        const messages = assets.map(({ id, mediaType, bytes }) => ({
-          id,
-          mediaType,
-          base64: base64Of(bytes),
-        }));
+        const messages = assets
+          .filter(({ type }) => type !== 'video')
+          .map(({ id, mediaType, bytes }) => ({
+            id,
+            mediaType,
+            base64: base64Of(bytes),
+          }));
         const outcome = await within(
           renderFrame.evaluate(
             ([json, given]) => (window as unknown as AgentWindow).kadrionProducer.load(json, given),
@@ -286,13 +305,18 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
         noRequests();
         loaded = true;
       },
-      async frame(index, timeUs) {
+      async frame(index, timeUs, videoFrames = []) {
         if (!loaded) throw new ProducerError('page-error', 'No document is loaded.');
+        const frames = videoFrames.map(({ nodeId, mediaType, bytes }) => ({
+          nodeId,
+          mediaType,
+          base64: base64Of(bytes),
+        }));
         const outcome = await within(
           renderFrame.evaluate(
-            ([time, requestId, ack]) =>
-              (window as unknown as AgentWindow).kadrionProducer.frame(time, requestId, ack),
-            [timeUs, index, ackTimeoutMs] as const,
+            ([time, requestId, ack, given]) =>
+              (window as unknown as AgentWindow).kadrionProducer.frame(time, requestId, ack, given),
+            [timeUs, index, ackTimeoutMs, frames] as const,
           ),
           pageTimeoutMs,
           'render a frame',
@@ -331,6 +355,8 @@ export interface RenderRequest extends RenderTimeouts, JobOptions {
   /** A browser from `launchChromium` to reuse; otherwise one is launched and closed. */
   readonly chromium?: LaunchedChromium;
   readonly runtime?: RuntimeBuild;
+  /** The pinned executables; required when the document has video nodes (D50.5). */
+  readonly ffmpeg?: FfmpegPaths;
 }
 
 export interface RenderedFrame {
@@ -392,6 +418,8 @@ export interface PreparedRender {
   readonly composition: ValidatedComposition;
   readonly assets: readonly VerifiedAsset[];
   readonly runtime: RuntimeBuild;
+  /** The checked videos of the document; absent or `null` without video nodes (D50.5). */
+  readonly videos?: VideoLibrary | null;
 }
 
 /** How many Custom HTML nodes a composition has, groups included (D29.7). */
@@ -445,7 +473,7 @@ export function chromiumSequence(
 ): FrameSequence {
   const { ackTimeoutMs, pageTimeoutMs, presentationTimeoutMs, signal } = options;
   return async (prepared, frames, deliver) => {
-    const { composition, assets, runtime } = prepared;
+    const { composition, assets, runtime, videos } = prepared;
     throwIfCancelled(signal);
     const session = await openRenderSession({
       ...(ackTimeoutMs === undefined ? {} : { ackTimeoutMs }),
@@ -462,12 +490,15 @@ export function chromiumSequence(
     const stopListening = onCancel(signal, () => {
       session.close().catch(() => undefined);
     });
+    let source: Awaited<ReturnType<VideoLibrary['open']>> | null = null;
     try {
       throwIfCancelled(signal);
+      source = (await videos?.open()) ?? null;
       await session.load(JSON.stringify(composition), assets);
       for (const { index, timeUs } of frames) {
         throwIfCancelled(signal);
-        await deliver({ index, timeUs, png: await session.frame(index, timeUs) });
+        const videoFrames = source === null ? [] : await source.framesAt(timeUs);
+        await deliver({ index, timeUs, png: await session.frame(index, timeUs, videoFrames) });
       }
       return { blockedRequests: [...session.blockedRequests] };
     } catch (reason) {
@@ -475,6 +506,7 @@ export function chromiumSequence(
     } finally {
       stopListening();
       await session.close().catch(() => undefined);
+      await source?.close().catch(() => undefined);
     }
   };
 }
@@ -517,6 +549,7 @@ export function manifestBase(
     })),
     durationUs: composition.durationUs,
     frameCount: frameCount(composition.durationUs, composition.fps),
+    video: prepared.videos?.manifest ?? null,
   };
 }
 
@@ -544,10 +577,15 @@ async function framesOf(request: RenderRequest): Promise<RenderResult> {
   checkDocumentLimits(request.limits, composition, grid.length);
   const assets = await verifiedAssets(composition, request.resolveAsset);
   checkAssetLimits(request.limits, assets);
+  const tools =
+    request.ffmpeg !== undefined && videoNodes(composition).length > 0
+      ? await pinnedFfmpeg(request.ffmpeg)
+      : null;
   const prepared: PreparedRender = {
     composition,
     assets,
     runtime: request.runtime ?? loadRuntimeBuild(),
+    videos: await prepareVideos(composition, assets, tools),
   };
   throwIfCancelled(signal);
   const chromium = request.chromium ?? (await launchChromium());

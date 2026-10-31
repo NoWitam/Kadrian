@@ -10,6 +10,7 @@
   range render); in force since D47 was accepted on 2026-10-31
 - Date: 2026-09-22
 - Supersedes: —
+- Amended by: PR-28a (D50) on 2026-10-31: 29.3: the Producer writes a private copy of each video it decodes and removes it when the frame loop ends (D50.5)
 - Related: D04, D06, D07, D10, D12, D13, D14, D23, D26, D27, D28,
   [specification](../spike/vertical-spike.md) §5 P5, §6.1, §8, and open
   questions Q2, Q4, and Q7

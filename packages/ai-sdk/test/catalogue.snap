@@ -1,7 +1,7 @@
 [
   {
     "name": "describe_document",
-    "description": "Describes the current document and changes nothing. Returns the canvas size in composition pixels, fps, and durationUs; every scene with its nodes from the bottom layer to the top, each with its ID, type, parentId, layer (0 is the bottom), startUs and durationUs in integer microseconds, its stored fields (position, scale, opacity, animations with their keyframes, text, colour, and so on; the html of a Custom HTML element is left out), and a group's children; and the declared assets and clips. Call it before editing to learn the IDs that other tools take.\n\nExample arguments: {}",
+    "description": "Describes the current document and changes nothing. Returns the canvas size in composition pixels, fps, and durationUs; every scene with its nodes from the bottom layer to the top, each with its ID, type, parentId, layer (0 is the bottom), startUs and durationUs in integer microseconds, its stored fields (position, scale, opacity, animations with their keyframes, text, colour, and so on; the html of a Custom HTML element is left out), and a group's children; and the declared assets and clips, where a video asset also states its sourceDurationUs, the length of the video in integer microseconds, when the host knows it. Call it before editing to learn the IDs that other tools take.\n\nExample arguments: {}",
     "inputSchema": {
       "type": "object",
       "description": "No arguments.",
@@ -101,7 +101,7 @@
   },
   {
     "name": "add_node",
-    "description": "Inserts one complete node into the scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text and image nodes only. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"color\":\"#ffffff\"}}",
+    "description": "Inserts one complete node into the scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text, image, and video nodes only. Times are composition times in integer microseconds (1 second is 1000000), never rounded. A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"color\":\"#ffffff\"}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete node, with its animations and children, into a list.",
@@ -245,14 +245,14 @@
   },
   {
     "name": "set_node_size",
-    "description": "Sets the width and height of an image or a Custom HTML element, from 1 to 1000000 each. Lengths and coordinates are composition pixels, rounded to integers. A text has no size; change its font size instead. Refused with invalid-argument for a size outside the range after rounding, unknown-node, and unsupported-node for any other node. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"width\":480,\"height\":270}",
+    "description": "Sets the width and height of an image, a video, or a Custom HTML element, from 1 to 1000000 each. Lengths and coordinates are composition pixels, rounded to integers. A text has no size; change its font size instead. Refused with invalid-argument for a size outside the range after rounding, unknown-node, and unsupported-node for any other node. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"width\":480,\"height\":270}",
     "inputSchema": {
       "type": "object",
-      "description": "Sets the size of an image or a Custom HTML element.",
+      "description": "Sets the size of an image, a video, or a Custom HTML element.",
       "properties": {
         "nodeId": {
           "type": "string",
-          "description": "The stable ID of the node. Only images and Custom HTML elements have a size.",
+          "description": "The stable ID of the node. Only images, videos, and Custom HTML elements have a size.",
           "minLength": 1
         },
         "width": {
@@ -373,7 +373,7 @@
   },
   {
     "name": "add_asset",
-    "description": "Declares an image, audio, or font asset at an index of the document's assets, under an unused ID and the SHA-256 of its exact bytes. Declare only assets whose bytes the host has: the host must supply them whenever the document is loaded, even while nothing uses the asset. Refused with id-in-use and index-out-of-range. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"asset\":{\"id\":\"asset-photo\",\"type\":\"image\",\"contentHash\":\"sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae\"},\"index\":3}",
+    "description": "Declares an image, audio, font, or video asset at an index of the document's assets, under an unused ID and the SHA-256 of its exact bytes. Declare only assets whose bytes the host has: the host must supply them whenever the document is loaded, even while nothing uses the asset. Refused with id-in-use and index-out-of-range. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"asset\":{\"id\":\"asset-photo\",\"type\":\"image\",\"contentHash\":\"sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae\"},\"index\":3}",
     "inputSchema": {
       "type": "object",
       "description": "Declares an asset, pinned by the hash of its exact bytes. The host must then supply those bytes whenever the document is loaded, even while nothing uses the asset.",
@@ -393,7 +393,8 @@
               "enum": [
                 "image",
                 "audio",
-                "font"
+                "font",
+                "video"
               ]
             },
             "contentHash": {
@@ -717,7 +718,7 @@
   },
   {
     "name": "set_node_lifetime",
-    "description": "Sets when a node is shown: from startUs, for durationUs (at least 1). Times are composition times in integer microseconds (1 second is 1000000), never rounded. The part after the end of the composition is cut. It moves no keyframe: keyframe times stay composition times. Refused with unknown-node and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"startUs\":1000000,\"durationUs\":5000000}",
+    "description": "Sets when a node is shown: from startUs, for durationUs (at least 1). Times are composition times in integer microseconds (1 second is 1000000), never rounded. The part after the end of the composition is cut. It moves no keyframe: keyframe times stay composition times. A video keeps its sourceStartUs, so its lifetime must fit inside its source. Refused with unknown-node, invalid-result, and for a video media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"startUs\":1000000,\"durationUs\":5000000}",
     "inputSchema": {
       "type": "object",
       "description": "Sets when a node is shown: from startUs, for durationUs, in composition time. It moves no keyframe of the node.",
@@ -744,6 +745,86 @@
         "nodeId",
         "startUs",
         "durationUs"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_fit",
+    "description": "Sets how the picture of an image or a video meets the box of its node: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture. Refused with invalid-argument for another fit, unknown-node, and unsupported-node for a node that is neither an image nor a video. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"fit\":\"cover\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets how the picture of an image or a video meets the box of its node.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only images and videos have a fit.",
+          "minLength": 1
+        },
+        "fit": {
+          "type": "string",
+          "description": "fill stretches the picture to the box; contain shows all of it inside the box; cover fills the box and crops. contain and cover keep the aspect ratio and centre the picture.",
+          "enum": [
+            "fill",
+            "contain",
+            "cover"
+          ]
+        }
+      },
+      "required": [
+        "nodeId",
+        "fit"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_video_asset",
+    "description": "Points a video node at another video asset that the document declares (add one with add_asset first); its source start, size, and fit stay. The part of the source the node samples must lie inside the new video: describe_document reports a video's sourceDurationUs when the host knows it. Refused with unknown-node, unsupported-node for a node that is not a video, unknown-asset, asset-type-mismatch when the asset is not a video, media-facts-missing when the host does not know the video's duration, and source-range-exceeded when the node would sample past its end. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-video\",\"assetId\":\"asset-clip\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Points a video at another video asset of the document; its source start, size, and fit stay.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only videos have a video asset.",
+          "minLength": 1
+        },
+        "assetId": {
+          "type": "string",
+          "description": "The ID of a video asset the document declares.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "nodeId",
+        "assetId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_video_source",
+    "description": "Sets the source time a video node shows at the start of its lifetime; it then plays at speed 1. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Source times count from the video's first frame. The node samples sourceStartUs up to sourceStartUs plus the part of its lifetime inside the composition, which must lie inside the video: describe_document reports its sourceDurationUs when the host knows it. To trim the start of a clip by d, add d to startUs and sourceStartUs and subtract it from durationUs in one transaction. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a video, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-video\",\"sourceStartUs\":2000000}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the source time a video shows at the start of its lifetime; speed is 1.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only videos have a source.",
+          "minLength": 1
+        },
+        "sourceStartUs": {
+          "type": "integer",
+          "description": "The source time shown at the start of the lifetime, in integer microseconds from the first frame of the video; it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "nodeId",
+        "sourceStartUs"
       ],
       "additionalProperties": false
     }
@@ -790,7 +871,10 @@
                   "add_keyframe",
                   "remove_keyframe",
                   "move_keyframe",
-                  "set_node_lifetime"
+                  "set_node_lifetime",
+                  "set_node_fit",
+                  "set_video_asset",
+                  "set_video_source"
                 ]
               },
               "arguments": {

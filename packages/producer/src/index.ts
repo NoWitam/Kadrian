@@ -95,7 +95,7 @@ export {
   FFPROBE_SHA256,
   verifyFfmpeg,
 } from './ffmpeg.js';
-export type { FfmpegIdentity, FfmpegPaths } from './ffmpeg.js';
+export type { FfmpegIdentity, FfmpegPaths, VideoProbe } from './ffmpeg.js';
 export type { ProducerErrorCode } from './errors.js';
 export { canonicalJson, EXPORT_MANIFEST_VERSION, MANIFEST_VERSION, sha256 } from './manifest.js';
 export type {
@@ -111,6 +111,8 @@ export type {
   ManifestMp4Preset,
   ManifestRange,
   ManifestSegment,
+  ManifestVideo,
+  ManifestVideoSource,
   RenderIdentity,
   RenderManifest,
   SegmentsManifest,

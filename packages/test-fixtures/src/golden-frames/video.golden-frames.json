@@ -1,0 +1,223 @@
+{
+  "render": {
+    "manifestVersion": 3,
+    "compositionHash": "sha256:ea170b6be82ec0d5967558156a3a4e0e11e8da7123f7a2d44b0d7d2ec84297ca",
+    "schemaVersion": "0.3",
+    "runtime": {
+      "contentHash": "sha256:4dc0c57e179cec048fdc275afdee627286d97f69a6feb1982a218d8a4d02b219",
+      "bundler": "esbuild@0.28.2",
+      "compiler": "typescript@6.0.3"
+    },
+    "chromium": {
+      "playwrightCore": "1.63.0",
+      "revision": "1243",
+      "expectedVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ]
+    },
+    "environment": {
+      "pinned": true,
+      "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+      "pinnedPlatform": "linux/amd64",
+      "os": "linux",
+      "arch": "x64",
+      "node": "v24.20.0",
+      "playwrightCore": "1.63.0",
+      "chromiumRevision": "1243",
+      "chromiumVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ],
+      "locale": "en-US",
+      "timezone": "UTC",
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "deviceScaleFactor": 1,
+      "network": {
+        "interfaces": [
+          "lo"
+        ],
+        "loopbackOnly": true
+      }
+    },
+    "assets": [
+      {
+        "id": "asset-video",
+        "type": "video",
+        "mediaType": "video/mp4",
+        "contentHash": "sha256:c2a50df329af0adba0aa56b63c95f3bc55d7991875da558ce6e82288e386065d"
+      },
+      {
+        "id": "asset-image",
+        "type": "image",
+        "mediaType": "image/png",
+        "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+      }
+    ],
+    "durationUs": 2000000,
+    "frameCount": 60,
+    "video": {
+      "decoder": {
+        "release": "autobuild-2026-09-21-13-55",
+        "asset": "ffmpeg-n8.1.3-linux64-gpl-8.1.tar.xz",
+        "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-21-13-55/ffmpeg-n8.1.3-linux64-gpl-8.1.tar.xz",
+        "archiveSha256": "sha256:dfe7728e01099e22a6fc7a65355ed4f1b65468e1dbe0015f07c45286b486cc59",
+        "ffmpegSha256": "sha256:b8404b6fe11bfa0d4970d031b6eb8108d230075e3f3be5fde7fada250f003c54",
+        "ffprobeSha256": "sha256:a037cf8856a567f6c8e25837786bd8dbfb27f57738d9c42331c48a46f423f270",
+        "version": "n8.1.3-20260921",
+        "configuration": "--prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-ffbuild-linux-gnu- --arch=x86_64 --target-os=linux --enable-gpl --enable-version3 --disable-debug --enable-iconv --enable-zlib --enable-libxml2 --enable-libsoxr --enable-openssl --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libdav1d --enable-libvorbis --enable-librav1e --enable-librsvg --enable-libxcb --enable-xlib --enable-libpulse --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-opencl --enable-amf --enable-libaom --enable-avisynth --enable-chromaprint --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribb24 --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librubberband --disable-schannel --enable-sdl2 --enable-libsnappy --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --enable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --disable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs='-lgomp -ldl' --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-ffbuild-linux-gnu-gcc --cxx=x86_64-ffbuild-linux-gnu-g++ --ar=x86_64-ffbuild-linux-gnu-gcc-ar --ranlib=x86_64-ffbuild-linux-gnu-gcc-ranlib --nm=x86_64-ffbuild-linux-gnu-gcc-nm --extra-version=20260921",
+        "encoders": [
+          "libx264",
+          "aac",
+          "pcm_f32le",
+          "mjpeg",
+          "libwebp"
+        ]
+      },
+      "decodeArgs": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-i",
+        "<input>",
+        "-map",
+        "0:v:0",
+        "-fps_mode",
+        "passthrough",
+        "-sws_flags",
+        "bitexact+accurate_rnd+full_chroma_int",
+        "-pix_fmt",
+        "rgb24",
+        "-f",
+        "rawvideo",
+        "pipe:1"
+      ],
+      "sources": [
+        {
+          "assetId": "asset-video",
+          "contentHash": "sha256:c2a50df329af0adba0aa56b63c95f3bc55d7991875da558ce6e82288e386065d",
+          "width": 320,
+          "height": 180,
+          "frames": 75,
+          "timeBase": "1/12800",
+          "sourceDurationUs": 3000000
+        }
+      ]
+    },
+    "preset": {
+      "name": "frames-png",
+      "width": 640,
+      "height": 360,
+      "fps": 30,
+      "deviceScaleFactor": 1
+    },
+    "frames": [
+      {
+        "index": 0,
+        "timeUs": 0,
+        "sha256": "sha256:a22d701793ca4c67a33791300b1f439525b5b7b2529fac63f08b1217ab7ce37d"
+      },
+      {
+        "index": 15,
+        "timeUs": 500000,
+        "sha256": "sha256:7d4ccaaa78b0e79220790d75223374b63eceb35efb85a51c065a9684f1b5e03f"
+      },
+      {
+        "index": 30,
+        "timeUs": 1000000,
+        "sha256": "sha256:915cdab203f7da83e6ecf6bc2f61cda030a9aff2a0b4f948e082b4283e803071"
+      },
+      {
+        "index": 45,
+        "timeUs": 1500000,
+        "sha256": "sha256:b1c66e8492b9ea67fa5daa3550f4d10ab3d8b8c43d844d7739740bb86c715c50"
+      },
+      {
+        "index": 59,
+        "timeUs": 1966666,
+        "sha256": "sha256:adedb017f63824d20d52b3e3fe6ba72444d500c35141c45c988b10751ead4825"
+      }
+    ],
+    "blockedRequests": [],
+    "ffmpeg": null
+  },
+  "environment": {
+    "pinned": true,
+    "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+    "pinnedPlatform": "linux/amd64",
+    "os": "linux",
+    "arch": "x64",
+    "node": "v24.20.0",
+    "playwrightCore": "1.63.0",
+    "chromiumRevision": "1243",
+    "chromiumVersion": "153.0.8010.12",
+    "reportedVersion": "153.0.8010.12",
+    "channel": "chromium",
+    "args": [
+      "--force-color-profile=srgb",
+      "--disable-lcd-text",
+      "--hide-scrollbars",
+      "--mute-audio"
+    ],
+    "locale": "en-US",
+    "timezone": "UTC",
+    "viewport": {
+      "width": 1080,
+      "height": 1920
+    },
+    "deviceScaleFactor": 1,
+    "network": {
+      "interfaces": [
+        "lo"
+      ],
+      "loopbackOnly": true
+    }
+  },
+  "frames": [
+    {
+      "file": "video-0.png",
+      "timeUs": 0,
+      "index": 0,
+      "sha256": "sha256:a22d701793ca4c67a33791300b1f439525b5b7b2529fac63f08b1217ab7ce37d"
+    },
+    {
+      "file": "video-500000.png",
+      "timeUs": 500000,
+      "index": 15,
+      "sha256": "sha256:7d4ccaaa78b0e79220790d75223374b63eceb35efb85a51c065a9684f1b5e03f"
+    },
+    {
+      "file": "video-1000000.png",
+      "timeUs": 1000000,
+      "index": 30,
+      "sha256": "sha256:915cdab203f7da83e6ecf6bc2f61cda030a9aff2a0b4f948e082b4283e803071"
+    },
+    {
+      "file": "video-1500000.png",
+      "timeUs": 1500000,
+      "index": 45,
+      "sha256": "sha256:b1c66e8492b9ea67fa5daa3550f4d10ab3d8b8c43d844d7739740bb86c715c50"
+    },
+    {
+      "file": "video-1966666.png",
+      "timeUs": 1966666,
+      "index": 59,
+      "sha256": "sha256:adedb017f63824d20d52b3e3fe6ba72444d500c35141c45c988b10751ead4825"
+    }
+  ]
+}

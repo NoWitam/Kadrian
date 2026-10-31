@@ -1,6 +1,7 @@
 /**
  * When the media of a rendered frame are ready (D25.3): every image under the
- * root has been decoded, and the document's font set has settled. The renderer
+ * root that has a source, the frame of every active video included (D50.4), has
+ * been decoded, and the document's font set has settled. The renderer
  * waits on the browser's own promises and never on a clock; a host bounds the
  * whole frame with its own timeout. Font loading itself is open question Q5.
  */
@@ -24,7 +25,8 @@ export function awaitMediaReady(root: Element): Promise<void> {
     if (fonts === undefined) {
       throw new RenderError('readiness-unsupported', 'The document has no font set to wait for.');
     }
-    const decodes = [...root.querySelectorAll('img')].map((image) => {
+    // An image without a source is a video that is not active (D50.4): nothing to decode.
+    const decodes = [...root.querySelectorAll('img[src]')].map((image) => {
       const decode = (image as Decodable).decode;
       if (typeof decode !== 'function') {
         throw new RenderError(

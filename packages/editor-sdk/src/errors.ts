@@ -47,7 +47,14 @@ export type EditorErrorCode =
   /** A typed keyframe command names an animation of another property; `details` are empty (D41.5). */
   | 'animation-property-mismatch'
   /** The node already animates that property; `details` hold the ID of the animation that does (D41.5). */
-  | 'duplicate-animation-target';
+  | 'duplicate-animation-target'
+  /**
+   * The command sets the sampled source range of a video node, and the host
+   * supplied no media facts for its asset; `details` name the nodes (D49.6, D50.6).
+   */
+  | 'media-facts-missing'
+  /** A video node would sample past the end of its source; `details` name the nodes and ranges (D49.6). */
+  | 'source-range-exceeded';
 
 /**
  * A typed failure of the command bus (D30.8). Check `code` instead of

@@ -3,9 +3,11 @@
  * valid document. Errors are ordered by rule and then by position; the order
  * never depends on the key order of the input.
  *
- * The rules are those of schema 0.1 and 0.2 alike: a lifetime adds none (D42.1).
- * `migrateComposition` applies them to a document of 0.1 too (D35.4), which is
- * why the document type is either version's; the negative corpus of 0.1 is kept
+ * The rules are those of schema 0.1, 0.2, and 0.3 alike: a lifetime adds none
+ * (D42.1), and a video node adds only the reference to an asset of type video
+ * (D50), which no earlier document can have. `migrateComposition` applies them
+ * to documents of 0.1 and 0.2 too (D35.4), which is why the document type is
+ * any of the three versions'; the negative corpus of 0.1 is kept
  * and pins what they were. A rule that a later version changes gets its own
  * function, never a branch here.
  */
@@ -14,6 +16,7 @@ import type { Asset, Composition, NodeAnimation } from './types.js';
 // A type only: it is erased when the module is built, so the main entry reaches no
 // historical module at run time (D42.8; `migration-entry.test.ts` walks the built output).
 import type { CompositionV01 } from './v0-1/composition-schema.js';
+import type { CompositionV02 } from './v0-2/composition-schema.js';
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -76,7 +79,9 @@ function checkAnimations(
   });
 }
 
-export function validateSemantics(composition: Composition | CompositionV01): ValidationError[] {
+export function validateSemantics(
+  composition: Composition | CompositionV01 | CompositionV02,
+): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
 
@@ -92,6 +97,7 @@ export function validateSemantics(composition: Composition | CompositionV01): Va
     }
   };
   const animationErrors: ValidationError[] = [];
+  const sourceErrors: ValidationError[] = [];
 
   composition.scenes.forEach((scene, sceneIndex) => {
     const nodesPath = pointer(pointer(pointer('', 'scenes'), sceneIndex), 'nodes');
@@ -107,6 +113,17 @@ export function validateSemantics(composition: Composition | CompositionV01): Va
       for (const member of [{ node, path: nodePath }, ...members]) {
         if (member.node.type === 'image') {
           checkReference(member.node.assetId, 'image', pointer(member.path, 'assetId'));
+        } else if (member.node.type === 'video') {
+          checkReference(member.node.assetId, 'video', pointer(member.path, 'assetId'));
+          // Every source time of the lifetime stays a safe integer (D50.2), so the
+          // runtime never forms one that is not.
+          if (member.node.sourceStartUs > Number.MAX_SAFE_INTEGER - member.node.durationUs + 1) {
+            sourceErrors.push({
+              code: 'source-time-out-of-range',
+              path: pointer(member.path, 'sourceStartUs'),
+              message: 'sourceStartUs + durationUs − 1 must be a safe integer.',
+            });
+          }
         } else if (member.node.type === 'text') {
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
         }
@@ -122,5 +139,5 @@ export function validateSemantics(composition: Composition | CompositionV01): Va
     checkReference(clip.assetId, 'audio', pointer(clipPath, 'assetId'));
   });
 
-  return [...errors, ...animationErrors];
+  return [...errors, ...animationErrors, ...sourceErrors];
 }

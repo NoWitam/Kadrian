@@ -2,6 +2,7 @@
  * The command line of D28.8, D29.10, and D45:
  *
  *   kadrion render-frames --composition <file> --assets <file> --out <dir> --times <t,…>
+ *                  [--ffmpeg <path>] [--ffprobe <path>]
  *   kadrion export --composition <file> --assets <file> --out <dir> --preset <1080p|720p>
  *                  [--ffmpeg <path>] [--ffprobe <path>]
  *                  [--segment-frames <n>] [--ffmpeg <path>] [--ffprobe <path>]
@@ -140,7 +141,7 @@ export type JobLine =
   | { readonly event: 'error'; readonly code: string; readonly exitCode: number };
 
 export const USAGE = [
-  'Usage: kadrion render-frames --composition <file> --assets <file> --out <dir> --times <t,...>',
+  'Usage: kadrion render-frames --composition <file> --assets <file> --out <dir> --times <t,...> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion export --composition <file> --assets <file> --out <dir> --preset <1080p|720p> [--segment-frames <n>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion render-range --composition <file> --assets <file> --out <dir> --preset <1080p|720p> [--from-us <t> --to-us <t>] [--segment-frames <n>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion render-audio --composition <file> --assets <file> --out <dir> [--from-us <t> --to-us <t>] [--ffmpeg <path>] [--ffprobe <path>]',
@@ -324,6 +325,7 @@ async function renderCommand(args: readonly string[], job: Job): Promise<number>
       assets: { type: 'string' },
       out: { type: 'string' },
       times: { type: 'string' },
+      ...FFMPEG_OPTIONS,
       ...LIMIT_OPTIONS,
     },
     strict: true,
@@ -341,7 +343,14 @@ async function renderCommand(args: readonly string[], job: Job): Promise<number>
   const timesUs = parseTimes(times);
   const options = jobOptions(job, values);
   const inputs = await readInputs(composition, assets);
-  const result = await job.hosts.render({ ...inputs, timesUs, ...options });
+  // Frames need FFmpeg only to decode video nodes (D50.5).
+  const ffmpeg = optionalFfmpegPaths(values, job.hosts);
+  const result = await job.hosts.render({
+    ...inputs,
+    timesUs,
+    ...(ffmpeg === undefined ? {} : { ffmpeg }),
+    ...options,
+  });
   await mkdir(out, { recursive: true });
   for (const frame of result.frames) {
     await writeComplete(join(out, frameFileName(frame.index)), frame.png);
@@ -438,6 +447,20 @@ function ffmpegPaths(
     );
   }
   return { ffmpegPath, ffprobePath };
+}
+
+/** The pinned executables when a flag or the environment names either, else none. */
+function optionalFfmpegPaths(
+  values: { readonly ffmpeg?: string | undefined; readonly ffprobe?: string | undefined },
+  hosts: CliHosts,
+): FfmpegPaths | undefined {
+  const named = [
+    values.ffmpeg,
+    values.ffprobe,
+    hosts.env[FFMPEG_VARIABLE],
+    hosts.env[FFPROBE_VARIABLE],
+  ];
+  return named.every((value) => value === undefined) ? undefined : ffmpegPaths(values, hosts);
 }
 
 /** A non-negative integer of microseconds or frames, as written. */
@@ -658,8 +681,10 @@ async function renderStillCommand(args: readonly string[], job: Job): Promise<nu
   }
   if (!/^[0-9a-z]+$/.test(format)) throw new UsageError('--format takes a name such as png.');
   const options = jobOptions(job, values);
-  // PNG needs no FFmpeg: the captured bytes are the still (D47.7).
-  const ffmpeg = format === 'png' ? undefined : ffmpegPaths(values, job.hosts);
+  // PNG needs no FFmpeg encoder: the captured bytes are the still (D47.7); video nodes
+  // still need it to decode (D50.5).
+  const ffmpeg =
+    format === 'png' ? optionalFfmpegPaths(values, job.hosts) : ffmpegPaths(values, job.hosts);
   const inputs = await readInputs(composition, assets);
   await mkdir(out, { recursive: true });
   const result = await job.hosts.renderStill({

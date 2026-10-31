@@ -32,6 +32,11 @@ export type RenderErrorCode =
   | 'asset-invalid'
   /** A script for the render page would end or reinterpret its script element (D25.2). */
   | 'unsafe-script'
+  /**
+   * The video frames of a render are not exactly one frame for every active
+   * video node, each `{ nodeId, mediaType, bytes }` with an image media type (D50.4).
+   */
+  | 'video-frames-invalid'
   /** The mounted tree has other scenes or nodes than the state, or another order (D22.4). */
   | 'state-mismatch'
   /**

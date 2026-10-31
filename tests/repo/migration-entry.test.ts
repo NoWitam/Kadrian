@@ -37,6 +37,7 @@ const MAIN_ENTRY_MODULES = [
   'frame-grid.js',
   'index.js',
   'json-schema.js',
+  'source-frame.js',
   'validate-semantics.js',
   'validate-structure.js',
   'validate.js',

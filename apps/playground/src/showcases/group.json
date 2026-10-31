@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.2",
+  "schemaVersion": "0.3",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -68,7 +68,8 @@
               "animations": [],
               "assetId": "asset-image",
               "width": 640,
-              "height": 640
+              "height": 640,
+              "fit": "fill"
             },
             {
               "id": "node-card-caption",

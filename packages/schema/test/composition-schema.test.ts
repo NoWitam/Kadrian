@@ -189,6 +189,7 @@ describe('schema conventions', () => {
       'audio.assetId',
       'image.assetId',
       'text.fontAssetId',
+      'video.assetId',
     ]);
   });
 });

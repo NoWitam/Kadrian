@@ -29,7 +29,10 @@ function isPlainObject(value: unknown): value is Readonly<Record<string, unknown
   return prototype === null || Object.getPrototypeOf(prototype) === null;
 }
 
-/** Image and font assets that visual nodes use; audio belongs to the clip, not to the DOM. */
+/**
+ * Image and font assets that visual nodes use; audio belongs to the clip, not
+ * to the DOM, and a video's pixels arrive frame by frame, never as a URL (D50.4).
+ */
 export function usedAssetIds(composition: ValidatedComposition): Set<string> {
   const used = new Set<string>();
   const visit = (node: SceneNode): void => {
@@ -45,6 +48,7 @@ export function usedAssetIds(composition: ValidatedComposition): Set<string> {
         break;
       case 'background':
       case 'custom-html':
+      case 'video':
         break;
       default:
         unsupportedNode(node);
