@@ -141,7 +141,7 @@ Two assertions that are not thresholds are unchanged, and both passed:
 ### Video rows (D51.6)
 
 Since PR-28b the Player shows video nodes, so the video composition of D50.8
-(640x360, document `sha256:ea170b6be82ec0d5967558156a3a4e0e11e8da7123f7a2d44b0d7d2ec84297ca`)
+(640x360, document `sha256:29f7ce1055e219a2b6cf16e80ac94b033eae6c0930e7a39e26912332716cc6c6`)
 is measured too, against its own golden frames
 (`packages/test-fixtures/src/golden-frames/video.golden-frames.json`), in the
 same pass, environment, runtime build, and Player dist tree as the record
