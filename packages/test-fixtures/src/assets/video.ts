@@ -12,7 +12,7 @@
 export const VIDEO_FIXTURE = Object.freeze({
   id: 'asset-video',
   mediaType: 'video/mp4',
-  contentHash: 'sha256:c2a50df329af0adba0aa56b63c95f3bc55d7991875da558ce6e82288e386065d',
+  contentHash: 'sha256:2defeadc24e956a808f058058c9ae10e4fad87d05b33be9b9d5ea6da2b45d1e0',
   /** The media facts of the stream, as the pinned ffprobe reads them (D49.6). */
   width: 320,
   height: 180,
@@ -26,7 +26,7 @@ export const VIDEO_FIXTURE = Object.freeze({
 /**
  * The arguments of the pinned `ffmpeg` that make the video at `output`: three
  * seconds of `testsrc2` at 320x180 and 25 fps, H.264 with B-frames, one
- * thread, and every bit-exact flag, so that the bytes do not depend on the
+ * thread, x264 without assembly, and every bit-exact flag, so that the bytes do not depend on the
  * machine (D29.4).
  */
 export function videoFixtureArguments(output: string): readonly string[] {
@@ -53,6 +53,10 @@ export function videoFixtureArguments(output: string): readonly string[] {
     '2',
     '-threads',
     '1',
+    // x264's assembly differs between CPUs (AVX-512 or not): C only, so every
+    // machine makes the same bytes.
+    '-x264-params',
+    'asm=0',
     '-pix_fmt',
     'yuv420p',
     '-map_metadata',
