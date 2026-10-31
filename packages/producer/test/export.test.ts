@@ -51,12 +51,16 @@ import {
   type FfmpegTools,
 } from '../src/ffmpeg.js';
 import {
+  canonicalJson,
   sha256,
   type AudioManifest,
   type ExportManifest,
   type RenderManifest,
   type SegmentsManifest,
 } from '../src/manifest.js';
+import { ProducerError } from '../src/errors.js';
+import { estimatePlan } from '../src/estimate.js';
+import type { ProgressEvent } from '../src/job.js';
 import { customHtmlNodes, type FrameSequence } from '../src/render.js';
 import {
   audioPassArgs,
@@ -710,6 +714,8 @@ interface FakeOptions {
   readonly failAt?: { readonly index: number; readonly code: string };
   readonly toolsFail?: string;
   readonly onFrame?: (index: number) => void;
+  /** Called when the audio pass or the join starts, before FFmpeg would write. */
+  readonly onPass?: (args: readonly string[]) => void;
   /** The interface names the run reports; never the host's (D28.9). */
   readonly networkInterfaces?: readonly string[];
 }
@@ -778,10 +784,16 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
         samples: (options.audioSamples ?? ((n) => n))(samples),
       });
     },
-    run(args, input) {
+    run(args, input, _timeoutMs, signal) {
+      options.onPass?.(args);
       const text = new TextDecoder().decode(input);
       const output = outputOf(args);
       run.inputs.push({ args, text: args.includes('concat') ? text : '', bytes: input.length });
+      // A process whose signal aborted is killed: it ends without a code and writes nothing.
+      if (signal?.aborted === true) {
+        run.log.push('killed pass');
+        return Promise.resolve({ code: null, stdout: new Uint8Array(), stderr: 'killed' });
+      }
       const code = options.passExitCode?.(args) ?? 0;
       if (args.includes('concat')) {
         run.log.push(`join ${basename(output)}`);
@@ -1798,5 +1810,300 @@ describe('the documents of the Custom HTML frames (D29.7)', () => {
       'loaded another document',
     );
     expect(documentsProblem(1, one, new Map([['frame-b', shell('load-1')]]))).toContain('is gone');
+  });
+});
+
+/** Every progress event of a job, in order (D48.1). */
+function progress(): { events: ProgressEvent[]; onProgress: (event: ProgressEvent) => void } {
+  const events: ProgressEvent[] = [];
+  return { events, onProgress: (event) => events.push(event) };
+}
+
+describe('the job contract on a fake frame loop and FFmpeg (D48)', () => {
+  it('reports one start, a frame per frame, and a segment per finished segment, in order', async () => {
+    const run = fakeRun();
+    const { events, onProgress } = progress();
+    await segmentsJob(run, { fromUs: 4_000_000, toUs: 10_000_000 }, '/jobs/c', { onProgress });
+    expect(events[0]).toEqual({ event: 'start', frames: 180, segments: 3 });
+    const frames = events.filter((event) => event.event === 'frame');
+    expect(frames.map((event) => [event.frame, event.done, event.frames])).toEqual(
+      Array.from({ length: 180 }, (_, i) => [120 + i, i + 1, 180]),
+    );
+    const order = events.map((event) =>
+      event.event === 'frame'
+        ? event.frame
+        : event.event === 'segment'
+          ? `s${String(event.segment)}`
+          : event.event,
+    );
+    // A segment is reported after its last frame and before the next segment's first.
+    expect(order.indexOf('s2')).toBe(order.indexOf(179) + 1);
+    expect(order.indexOf(180)).toBe(order.indexOf('s2') + 1);
+    expect(events.filter((event) => event.event === 'segment')).toEqual([
+      { event: 'segment', segment: 2, done: 1, segments: 3 },
+      { event: 'segment', segment: 3, done: 2, segments: 3 },
+      { event: 'segment', segment: 4, done: 3, segments: 3 },
+    ]);
+    // Every event has exactly the keys of its kind.
+    for (const event of events) {
+      expect(Object.keys(event).sort()).toEqual(
+        {
+          start: ['event', 'frames', 'segments'],
+          frame: ['done', 'event', 'frame', 'frames'],
+          segment: ['done', 'event', 'segment', 'segments'],
+        }[event.event],
+      );
+    }
+  });
+
+  it('reports the same frames for a one-pass export, and a start without frames for the audio pass', async () => {
+    const { events, onProgress } = progress();
+    await exportWith(request({ onProgress }), fakeRun().dependencies);
+    expect(events[0]).toEqual({ event: 'start', frames: 300, segments: 5 });
+    expect(events.filter((event) => event.event === 'frame')).toHaveLength(300);
+    const audio = progress();
+    await audioJob(fakeRun(), '/jobs/audio', { onProgress: audio.onProgress });
+    expect(audio.events).toEqual([{ event: 'start', frames: 0, segments: 0 }]);
+  });
+
+  it('cancels a range job: kills FFmpeg, closes the page, and leaves no file under any name', async () => {
+    const controller = new AbortController();
+    const run = fakeRun({
+      onFrame: (index) => {
+        if (index === 190) controller.abort();
+      },
+    });
+    await expect(
+      segmentsJob(run, { fromUs: 4_000_000, toUs: 10_000_000 }, '/jobs/c', {
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ code: 'cancelled' });
+    expect(run.log).toContain('kill');
+    expect(run.log).toContain('close');
+    // Segment 2 was finished before the signal; a cancelled job removes it again.
+    expect(run.log).toContain('remove segment-000002.mp4');
+    expect(run.log).toContain('remove segment-000003.mp4.partial');
+    expect([...run.files.keys()]).toEqual([]);
+    // The frame loop stops at the first frame after the signal.
+    expect(run.deliveredFrames).toBe(190 - 120 + 1);
+  });
+
+  it('cancels a one-pass export, and removes its parts and its output', async () => {
+    const controller = new AbortController();
+    const run = fakeRun({
+      onFrame: (index) => {
+        if (index === 200) controller.abort();
+      },
+    });
+    await expect(
+      exportWith(request({ signal: controller.signal }), run.dependencies),
+    ).rejects.toMatchObject({ code: 'cancelled' });
+    expect(run.log).toContain('kill');
+    expect([...run.files.keys()]).toEqual([]);
+  });
+
+  it('ends with the reason of the signal when it is a ProducerError: a wall time that ran out', async () => {
+    const controller = new AbortController();
+    const run = fakeRun({
+      onFrame: (index) => {
+        if (index === 10) {
+          controller.abort(new ProducerError('limit-exceeded', 'The job ran for too long.'));
+        }
+      },
+    });
+    await expect(
+      segmentsJob(run, undefined, '/jobs/all', { signal: controller.signal }),
+    ).rejects.toMatchObject({ code: 'limit-exceeded', message: 'The job ran for too long.' });
+    expect([...run.files.keys()]).toEqual([]);
+  });
+
+  it('starts nothing for a signal that already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const run = fakeRun();
+    await expect(
+      segmentsJob(run, undefined, '/jobs/all', { signal: controller.signal }),
+    ).rejects.toMatchObject({ code: 'cancelled' });
+    await expect(audioJob(run, '/jobs/audio', { signal: controller.signal })).rejects.toMatchObject(
+      { code: 'cancelled' },
+    );
+    await expect(
+      exportWith(request({ signal: controller.signal }), run.dependencies),
+    ).rejects.toMatchObject({ code: 'cancelled' });
+    expect(run.log).toEqual([]);
+  });
+
+  it('kills the audio pass and the join on the signal, and removes what they wrote', async () => {
+    const audioCancel = new AbortController();
+    const run = fakeRun({
+      onPass: (args) => {
+        if (!args.includes('concat')) audioCancel.abort();
+      },
+    });
+    await expect(
+      audioJob(run, '/jobs/audio', { signal: audioCancel.signal }),
+    ).rejects.toMatchObject({ code: 'cancelled' });
+    expect(run.log).toContain('killed pass');
+    expect(run.log).toContain('remove audio.wav.partial');
+    expect(run.files.has('/jobs/audio/audio.wav')).toBe(false);
+
+    const joinCancel = new AbortController();
+    const parts = fakeRun({
+      onPass: (args) => {
+        if (args.includes('concat')) joinCancel.abort();
+      },
+    });
+    const range = await segmentsJob(parts, undefined, '/jobs/all');
+    const audio = await audioJob(parts, '/jobs/audio');
+    await expect(
+      joinSegmentsWith(
+        {
+          segments: [range],
+          audio,
+          outputPath: '/jobs/video-1080p.mp4',
+          ffmpeg: PATHS,
+          signal: joinCancel.signal,
+        },
+        parts.dependencies,
+      ),
+    ).rejects.toMatchObject({ code: 'cancelled' });
+    expect(parts.log).toContain('killed pass');
+    expect(parts.files.has('/jobs/video-1080p.mp4')).toBe(false);
+  });
+
+  const imageBytes = ASSETS['asset-image']?.bytes.byteLength ?? 0;
+  const totalBytes = Object.values(ASSETS).reduce((sum, { bytes }) => sum + bytes.byteLength, 0);
+  const documentBytes = new TextEncoder().encode(canonicalJson(reference)).byteLength;
+
+  it.each([
+    ['the document size', { maxDocumentBytes: documentBytes - 1 }],
+    ['the duration', { maxDurationUs: 9_999_999 }],
+    ['the frames of the range', { maxFrames: 179 }],
+    ['the number of assets', { maxAssets: 2 }],
+    ['the size of one asset', { maxAssetBytes: imageBytes - 1 }],
+    ['the size of all assets', { maxTotalAssetBytes: totalBytes - 1 }],
+    ['a limit that is not a non-negative integer', { maxFrames: -1 }],
+  ])('refuses %s with limit-exceeded before a browser or FFmpeg starts', async (_, limits) => {
+    const run = fakeRun();
+    await expect(
+      segmentsJob(run, { fromUs: 4_000_000, toUs: 10_000_000 }, '/jobs/c', { limits }),
+    ).rejects.toMatchObject({ code: 'limit-exceeded' });
+    expect(run.log).toEqual([]);
+  });
+
+  it('accepts a job exactly at every limit', async () => {
+    const run = fakeRun();
+    const { manifest } = await segmentsJob(
+      run,
+      { fromUs: 4_000_000, toUs: 10_000_000 },
+      '/jobs/c',
+      {
+        limits: {
+          maxDocumentBytes: documentBytes,
+          maxDurationUs: 10_000_000,
+          maxFrames: 180,
+          maxAssets: 3,
+          maxAssetBytes: Math.max(...Object.values(ASSETS).map(({ bytes }) => bytes.byteLength)),
+          maxTotalAssetBytes: totalBytes,
+        },
+      },
+    );
+    expect(manifest.segments).toHaveLength(3);
+  });
+
+  it('checks the frames of the audio pass and of the export against their ranges', async () => {
+    await expect(
+      audioJob(fakeRun(), '/jobs/audio', {
+        range: { fromUs: 0, toUs: 2_000_000 },
+        limits: { maxFrames: 59 },
+      }),
+    ).rejects.toMatchObject({ code: 'limit-exceeded' });
+    await expect(
+      exportWith(request({ limits: { maxFrames: 299 } }), fakeRun().dependencies),
+    ).rejects.toMatchObject({ code: 'limit-exceeded' });
+  });
+
+  it('passes the signal, the progress, and the limits of a still to its render, and counts it as one frame', async () => {
+    const seen: Parameters<StillDependencies['render']>[0][] = [];
+    const controller = new AbortController();
+    const { onProgress } = progress();
+    const deps: StillDependencies = {
+      render(given) {
+        seen.push(given);
+        return Promise.reject(new ProducerError('page-error', 'stop here'));
+      },
+      tools: () => Promise.reject(new Error('no FFmpeg for png')),
+    };
+    const base: StillRequest = {
+      document: referenceComposition,
+      resolveAsset: ({ id }) => ASSETS[id] ?? null,
+      timeUs: 2_500_000,
+      format: 'png',
+    };
+    await expect(
+      renderStillWith(
+        { ...base, signal: controller.signal, onProgress, limits: { maxFrames: 1 } },
+        deps,
+      ),
+    ).rejects.toMatchObject({ code: 'page-error' });
+    expect(seen[0]).toMatchObject({
+      signal: controller.signal,
+      onProgress,
+      limits: { maxFrames: 1 },
+    });
+    await expect(
+      renderStillWith({ ...base, limits: { maxDurationUs: 1 } }, deps),
+    ).rejects.toMatchObject({ code: 'limit-exceeded' });
+    expect(seen).toHaveLength(1);
+    controller.abort();
+    await expect(
+      renderStillWith({ ...base, signal: controller.signal }, deps),
+    ).rejects.toMatchObject({ code: 'cancelled' });
+    expect(seen).toHaveLength(1);
+  });
+});
+
+describe('the plan of an estimate (D48.5)', () => {
+  it('samples the middle segment of the grid of its sample length', () => {
+    // 300 frames in 30 segments of 10: segment 14 holds frames 140…149.
+    expect(estimatePlan(referenceComposition)).toEqual({
+      range: { fromUs: frameToTimeUs(140, 30), toUs: frameToTimeUs(150, 30) },
+      sampleSegmentFrames: 10,
+      frames: 10,
+      segmentFrames: 60,
+      segments: 5,
+    });
+    expect(estimatePlan(referenceComposition, 2, 45)).toMatchObject({
+      range: { fromUs: frameToTimeUs(148, 30), toUs: frameToTimeUs(150, 30) },
+      frames: 2,
+      segmentFrames: 45,
+      segments: 7,
+    });
+    expect(estimatePlan(referenceComposition, 300).range).toEqual({ fromUs: 0, toUs: 10_000_000 });
+  });
+
+  it('never samples the shorter last segment', () => {
+    // 300 frames in segments of 200: the second holds 100.
+    expect(estimatePlan(referenceComposition, 200)).toMatchObject({
+      range: { fromUs: 0, toUs: frameToTimeUs(200, 30) },
+      frames: 200,
+    });
+  });
+
+  it.each([
+    ['one frame', 1],
+    ['more frames than the composition has', 301],
+    ['a fraction', 2.5],
+  ])('refuses %s with range-invalid', (_, samples) => {
+    expect(() => estimatePlan(referenceComposition, samples)).toThrow(
+      expect.objectContaining({ code: 'range-invalid' }),
+    );
+  });
+
+  it('refuses an invalid document and segment length with their codes', () => {
+    expect(() => estimatePlan({})).toThrow(expect.objectContaining({ code: 'invalid-document' }));
+    expect(() => estimatePlan(referenceComposition, 10, 0)).toThrow(
+      expect.objectContaining({ code: 'segment-length-invalid' }),
+    );
   });
 });

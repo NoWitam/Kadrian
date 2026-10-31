@@ -10,6 +10,8 @@
  * joined into one file (D47). `renderSegments`, `renderAudio`, and
  * `joinSegments` are the same export split into jobs a host runs on its own
  * queue; `renderStill` renders one frame as PNG, JPEG, or WebP (D47.7).
+ * Every job reports progress, can be cancelled by an `AbortSignal`, and
+ * checks the limits a host gives it before rendering (D48).
  */
 export { PRODUCER_AGENT_SCRIPT } from './agent.js';
 export { awaitPresented, captureFrame, presentationSessions } from './capture.js';
@@ -42,6 +44,10 @@ export type {
   LaunchOptions,
 } from './environment.js';
 export { ProducerError } from './errors.js';
+export { DEFAULT_ESTIMATE_SAMPLES, estimatePlan } from './estimate.js';
+export type { EstimatePlan } from './estimate.js';
+export { JOB_LIMITS } from './job.js';
+export type { JobLimits, JobOptions, ProgressEvent, ProgressListener } from './job.js';
 export {
   AUDIO_FILE_NAME,
   exportMp4,

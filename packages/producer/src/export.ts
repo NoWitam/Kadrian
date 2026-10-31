@@ -51,6 +51,14 @@ import {
 } from './environment.js';
 import { asProducerError, ProducerError } from './errors.js';
 import {
+  checkAssetLimits,
+  checkDocumentLimits,
+  failure,
+  onCancel,
+  throwIfCancelled,
+  type JobOptions,
+} from './job.js';
+import {
   FFMPEG_ARCHIVE_SHA256,
   FFMPEG_ASSET,
   FFMPEG_RELEASE,
@@ -117,7 +125,7 @@ interface EncoderSettings {
   readonly encoderTimeoutMs?: number;
 }
 
-export interface SegmentsRequest extends RenderTimeouts, EncoderSettings {
+export interface SegmentsRequest extends RenderTimeouts, EncoderSettings, JobOptions {
   readonly document: unknown;
   readonly resolveAsset: AssetResolver;
   /** `1080p` or `720p` (D29.5). */
@@ -147,7 +155,7 @@ export interface SegmentsResult {
   readonly stats: ExportStats;
 }
 
-export interface AudioRequest extends EncoderSettings {
+export interface AudioRequest extends EncoderSettings, JobOptions {
   readonly document: unknown;
   readonly resolveAsset: AssetResolver;
   /** The range of frame times; the whole composition if not given (D47.4). */
@@ -167,7 +175,7 @@ export interface JoinPart<M> {
   readonly directory: string;
 }
 
-export interface JoinRequest extends EncoderSettings {
+export interface JoinRequest extends EncoderSettings, Pick<JobOptions, 'signal'> {
   /** The segments manifests of every job of the render, in any order. */
   readonly segments: readonly JoinPart<SegmentsManifest>[];
   /** The audio pass of the range; it states the range the segments must cover. */
@@ -182,7 +190,7 @@ export interface JoinResult {
   readonly manifest: ExportManifest;
 }
 
-export interface ExportRequest extends RenderTimeouts, EncoderSettings {
+export interface ExportRequest extends RenderTimeouts, EncoderSettings, JobOptions {
   readonly document: unknown;
   readonly resolveAsset: AssetResolver;
   /** `1080p` or `720p` (D29.5). */
@@ -359,14 +367,19 @@ async function encodeSegments(options: {
   readonly targets: readonly SegmentTarget[];
   readonly timeoutMs: number;
   readonly dependencies: ExportDependencies;
+  readonly job: JobOptions;
 }): Promise<{
   readonly segments: ManifestSegment[];
   readonly frames: ManifestFrame[];
   readonly blockedRequests: readonly string[];
   readonly stats: ExportStats;
 }> {
-  const { prepared, tools, browser, size, targets, timeoutMs, dependencies } = options;
+  const { prepared, tools, browser, size, targets, timeoutMs, dependencies, job } = options;
+  const { signal, onProgress } = job;
   const { fps } = prepared.composition;
+  const totalFrames = targets.reduce((sum, { segment }) => sum + segment.frameCount, 0);
+  /** Segments of this call renamed to their final names; removed again if it fails. */
+  const completed: string[] = [];
   const graph = videoGraph(size);
   const frames: ManifestFrame[] = [];
   const segments: ManifestSegment[] = [];
@@ -425,7 +438,9 @@ async function encodeSegments(options: {
       );
     }
     const hash = await tools.sha256File(partial);
+    throwIfCancelled(signal);
     await dependencies.renameFile(partial, target.path);
+    completed.push(target.path);
     framesWritten += sink.written;
     maxFramesInFlight = Math.max(maxFramesInFlight, sink.maxInFlight);
     segments.push({
@@ -434,6 +449,12 @@ async function encodeSegments(options: {
       frameCount: count,
       file: basename(target.path),
       sha256: hash,
+    });
+    onProgress?.({
+      event: 'segment',
+      segment: target.segment.index,
+      done: segments.length,
+      segments: targets.length,
     });
   };
 
@@ -450,11 +471,16 @@ async function encodeSegments(options: {
     }
   }
 
+  // A cancelled job kills the encoder at once; the frame loop stops at its next frame (D48.2).
+  const stopListening = onCancel(signal, () => {
+    state.open?.encoder.kill();
+  });
   try {
     const { blockedRequests } = await browser.sequence(
       prepared,
       grid(),
       async (frame: RenderedFrame) => {
+        throwIfCancelled(signal);
         const begins = byFirstFrame.get(frame.index);
         if (begins !== undefined) state.open = start(begins);
         const current = state.open;
@@ -465,6 +491,12 @@ async function encodeSegments(options: {
         frames.push({ index: frame.index, timeUs: frame.timeUs, sha256: hash });
         current.sent.push(hash);
         await current.sink.write(frame.png);
+        onProgress?.({
+          event: 'frame',
+          frame: frame.index,
+          done: frames.length,
+          frames: totalFrames,
+        });
         const { segment } = current.target;
         if (frame.index === segment.firstFrame + segment.frameCount - 1) {
           await finish(current);
@@ -487,7 +519,11 @@ async function encodeSegments(options: {
       // A failure to remove the partial file must not replace the reason for it.
       await dependencies.removeFile(current.partial).catch(() => undefined);
     }
-    throw asProducerError(reason);
+    // A failed job leaves nothing under a final name, not even its finished segments (D48.2).
+    for (const path of completed) await dependencies.removeFile(path).catch(() => undefined);
+    throw asProducerError(failure(reason, signal));
+  } finally {
+    stopListening();
   }
 }
 
@@ -515,12 +551,16 @@ async function preparedSegments(
   readonly segments: Segment[];
   readonly tools: FfmpegTools;
 }> {
+  throwIfCancelled(request.signal);
   const composition = validated(request.document);
   const size = presetSize(composition, request.preset);
   const segmentFrames = checkedSegmentFrames(request.segmentFrames);
   const frames = frameRange(composition, range, segmentFrames);
+  checkDocumentLimits(request.limits, composition, frames.frameCount);
   const assets = await verifiedAssets(composition, request.resolveAsset);
+  checkAssetLimits(request.limits, assets);
   const tools = await dependencies.tools(request.ffmpeg);
+  throwIfCancelled(request.signal);
   return {
     prepared: { composition, assets, runtime: request.runtime ?? loadRuntimeBuild() },
     size,
@@ -541,7 +581,13 @@ async function segmentsWith(
   const timeoutMs = request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS;
   const browser = await dependencies.browser(request);
   try {
+    throwIfCancelled(request.signal);
     const targets = segments.map((segment) => ({ segment, path: pathOf(segment) }));
+    request.onProgress?.({
+      event: 'start',
+      frames: frames.frameCount,
+      segments: segments.length,
+    });
     const encoded = await encodeSegments({
       prepared,
       tools,
@@ -550,6 +596,7 @@ async function segmentsWith(
       targets,
       timeoutMs,
       dependencies,
+      job: request,
     });
     const base = manifestBase(prepared, browser.chromium, dependencies.networkInterfaces());
     const manifest: SegmentsManifest = {
@@ -583,11 +630,15 @@ export async function renderSegmentsWith(
   request: SegmentsRequest,
   dependencies: ExportDependencies,
 ): Promise<SegmentsResult> {
-  const given = await preparedSegments(request, dependencies, request.range);
-  const directory = resolve(request.outputDirectory);
-  return segmentsWith(request, dependencies, given, (segment) =>
-    join(directory, segmentFileName(segment.index)),
-  );
+  try {
+    const given = await preparedSegments(request, dependencies, request.range);
+    const directory = resolve(request.outputDirectory);
+    return await segmentsWith(request, dependencies, given, (segment) =>
+      join(directory, segmentFileName(segment.index)),
+    );
+  } catch (reason) {
+    throw failure(reason, request.signal);
+  }
 }
 
 /** The file name of the audio pass in its directory (D47.4). */
@@ -601,8 +652,9 @@ async function audioWith(options: {
   readonly path: string;
   readonly timeoutMs: number;
   readonly dependencies: ExportDependencies;
+  readonly signal: AbortSignal | undefined;
 }): Promise<AudioManifest> {
-  const { composition, audio, tools, range, path, timeoutMs, dependencies } = options;
+  const { composition, audio, tools, range, path, timeoutMs, dependencies, signal } = options;
   const samples = audioRangeOf(range, samplesAt);
   const common = {
     manifestVersion: EXPORT_MANIFEST_VERSION,
@@ -622,7 +674,9 @@ async function audioWith(options: {
   const partial = `${path}${PARTIAL_SUFFIX}`;
   const args = audioPassArgs({ graph, output: partial });
   try {
-    const result = await tools.run(args, audio.bytes, timeoutMs * PASS_TIMEOUT_FACTOR);
+    throwIfCancelled(signal);
+    const result = await tools.run(args, audio.bytes, timeoutMs * PASS_TIMEOUT_FACTOR, signal);
+    throwIfCancelled(signal);
     if (result.code !== 0) {
       throw encodeFailed(
         `FFmpeg exited with ${String(result.code)} in the audio pass: ${result.stderr.trim()}`,
@@ -640,6 +694,7 @@ async function audioWith(options: {
       );
     }
     const hash = await tools.sha256File(partial);
+    throwIfCancelled(signal);
     await dependencies.renameFile(partial, path);
     return {
       ...common,
@@ -666,7 +721,7 @@ async function audioWith(options: {
     };
   } catch (reason) {
     await dependencies.removeFile(partial).catch(() => undefined);
-    throw asProducerError(reason);
+    throw asProducerError(failure(reason, signal));
   }
 }
 
@@ -675,22 +730,32 @@ export async function renderAudioWith(
   request: AudioRequest,
   dependencies: ExportDependencies,
 ): Promise<AudioResult> {
-  const composition = validated(request.document);
-  const range = frameRange(composition, request.range);
-  const assets = await verifiedAssets(composition, request.resolveAsset);
-  const tools = await dependencies.tools(request.ffmpeg);
-  const prepared: PreparedRender = { composition, assets, runtime: loadRuntimeBuild() };
-  const audio = await checkedAudio(prepared, tools);
-  const manifest = await audioWith({
-    composition,
-    audio,
-    tools,
-    range,
-    path: join(resolve(request.outputDirectory), AUDIO_FILE_NAME),
-    timeoutMs: request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS,
-    dependencies,
-  });
-  return { manifest };
+  const { signal } = request;
+  try {
+    throwIfCancelled(signal);
+    const composition = validated(request.document);
+    const range = frameRange(composition, request.range);
+    checkDocumentLimits(request.limits, composition, range.frameCount);
+    const assets = await verifiedAssets(composition, request.resolveAsset);
+    checkAssetLimits(request.limits, assets);
+    const tools = await dependencies.tools(request.ffmpeg);
+    const prepared: PreparedRender = { composition, assets, runtime: loadRuntimeBuild() };
+    const audio = await checkedAudio(prepared, tools);
+    request.onProgress?.({ event: 'start', frames: 0, segments: 0 });
+    const manifest = await audioWith({
+      composition,
+      audio,
+      tools,
+      range,
+      path: join(resolve(request.outputDirectory), AUDIO_FILE_NAME),
+      timeoutMs: request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS,
+      dependencies,
+      signal,
+    });
+    return { manifest };
+  } catch (reason) {
+    throw failure(reason, signal);
+  }
 }
 
 /** A file name of a manifest: a plain name in its directory, never a path (D47.5). */
@@ -882,6 +947,7 @@ async function joinWith(
   outputPath: string,
   timeoutMs: number,
   dependencies: ExportDependencies,
+  signal: AbortSignal | undefined,
 ): Promise<ExportManifest> {
   for (const segment of plan.segments) {
     const found = await tools.sha256File(segment.path).catch(() => null);
@@ -904,7 +970,9 @@ async function joinWith(
   const args = joinArgs({ fps: first.preset.fps, audio: plan.audioPath, output: partial });
   try {
     const list = new TextEncoder().encode(concatList(plan.segments.map(({ path }) => path)));
-    const result = await tools.run(args, list, timeoutMs * PASS_TIMEOUT_FACTOR);
+    throwIfCancelled(signal);
+    const result = await tools.run(args, list, timeoutMs * PASS_TIMEOUT_FACTOR, signal);
+    throwIfCancelled(signal);
     if (result.code !== 0) {
       throw encodeFailed(
         `FFmpeg exited with ${String(result.code)} in the join: ${result.stderr.trim()}`,
@@ -927,10 +995,11 @@ async function joinWith(
         `The MP4 holds other presentation times than frames 0…${String(range.frameCount - 1)} at ${String(TIME_SCALE_PER_FRAME)} each.`,
       );
     }
+    throwIfCancelled(signal);
     await dependencies.renameFile(partial, outputPath);
   } catch (reason) {
     await dependencies.removeFile(partial).catch(() => undefined);
-    throw asProducerError(reason);
+    throw asProducerError(failure(reason, signal));
   }
   const pass = audio.audio;
   const exportedAudio: ManifestAudio | null =
@@ -991,18 +1060,25 @@ export async function joinSegmentsWith(
   request: JoinRequest,
   dependencies: ExportDependencies,
 ): Promise<JoinResult> {
-  const plan = joinPlan(request.segments, request.audio);
-  const tools = await dependencies.tools(request.ffmpeg);
-  const outputPath = resolve(request.outputPath);
-  const manifest = await joinWith(
-    plan,
-    request.audio.manifest,
-    tools,
-    outputPath,
-    request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS,
-    dependencies,
-  );
-  return { outputPath, manifest };
+  const { signal } = request;
+  try {
+    throwIfCancelled(signal);
+    const plan = joinPlan(request.segments, request.audio);
+    const tools = await dependencies.tools(request.ffmpeg);
+    const outputPath = resolve(request.outputPath);
+    const manifest = await joinWith(
+      plan,
+      request.audio.manifest,
+      tools,
+      outputPath,
+      request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS,
+      dependencies,
+      signal,
+    );
+    return { outputPath, manifest };
+  } catch (reason) {
+    throw failure(reason, signal);
+  }
 }
 
 /**
@@ -1011,6 +1087,17 @@ export async function joinSegmentsWith(
  * (D47.6). The parts are written next to the output and removed afterwards.
  */
 export async function exportWith(
+  request: ExportRequest,
+  dependencies: ExportDependencies,
+): Promise<ExportResult> {
+  try {
+    return await exportOf(request, dependencies);
+  } catch (reason) {
+    throw failure(reason, request.signal);
+  }
+}
+
+async function exportOf(
   request: ExportRequest,
   dependencies: ExportDependencies,
 ): Promise<ExportResult> {
@@ -1037,12 +1124,21 @@ export async function exportWith(
       path: audioPath,
       timeoutMs,
       dependencies,
+      signal: request.signal,
     });
     const plan = joinPlan([{ manifest: rendered.manifest, directory }], {
       manifest: pass,
       directory,
     });
-    const manifest = await joinWith(plan, pass, given.tools, outputPath, timeoutMs, dependencies);
+    const manifest = await joinWith(
+      plan,
+      pass,
+      given.tools,
+      outputPath,
+      timeoutMs,
+      dependencies,
+      request.signal,
+    );
     return { outputPath, manifest, stats: rendered.stats };
   } catch (reason) {
     await dependencies.removeFile(outputPath).catch(() => undefined);

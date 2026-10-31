@@ -47,6 +47,14 @@ import {
   type LaunchedChromium,
 } from './environment.js';
 import { asProducerError, ProducerError, producerCode } from './errors.js';
+import {
+  checkAssetLimits,
+  checkDocumentLimits,
+  failure,
+  onCancel,
+  throwIfCancelled,
+  type JobOptions,
+} from './job.js';
 import { canonicalJson, MANIFEST_VERSION, sha256, type RenderManifest } from './manifest.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
 
@@ -196,9 +204,9 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
   let loaded = false;
   /** The documents of the Custom HTML frames at the first frame (D29.7). */
   let baseline: ReadonlyMap<string, FrameDocument> | null = null;
-  const close = async (): Promise<void> => {
-    await context.close();
-  };
+  // Closed once: a cancelled job closes the page while a call is in flight (D48.2).
+  let closing: Promise<void> | null = null;
+  const close = (): Promise<void> => (closing ??= context.close());
   try {
     await context.route('**/*', (route) => {
       record(route.request());
@@ -315,7 +323,7 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
   }
 }
 
-export interface RenderRequest extends RenderTimeouts {
+export interface RenderRequest extends RenderTimeouts, JobOptions {
   readonly document: unknown;
   readonly resolveAsset: AssetResolver;
   /** Frame times of the composition, rendered in this order (D28.4). */
@@ -433,28 +441,40 @@ export type FrameSequence = (
 /** The frame sequence of a browser from `launchChromium`. */
 export function chromiumSequence(
   chromium: LaunchedChromium,
-  timeouts: RenderTimeouts,
+  options: RenderTimeouts & Pick<JobOptions, 'signal'>,
 ): FrameSequence {
+  const { ackTimeoutMs, pageTimeoutMs, presentationTimeoutMs, signal } = options;
   return async (prepared, frames, deliver) => {
     const { composition, assets, runtime } = prepared;
+    throwIfCancelled(signal);
     const session = await openRenderSession({
-      ...timeouts,
+      ...(ackTimeoutMs === undefined ? {} : { ackTimeoutMs }),
+      ...(pageTimeoutMs === undefined ? {} : { pageTimeoutMs }),
+      ...(presentationTimeoutMs === undefined ? {} : { presentationTimeoutMs }),
       chromium,
       width: composition.width,
       height: composition.height,
       customHtmlNodes: customHtmlNodes(composition),
       runtime,
     });
+    // A cancelled job closes its page at once, so a call in flight fails now
+    // instead of after its timeout (D48.2).
+    const stopListening = onCancel(signal, () => {
+      session.close().catch(() => undefined);
+    });
     try {
+      throwIfCancelled(signal);
       await session.load(JSON.stringify(composition), assets);
       for (const { index, timeUs } of frames) {
+        throwIfCancelled(signal);
         await deliver({ index, timeUs, png: await session.frame(index, timeUs) });
       }
       return { blockedRequests: [...session.blockedRequests] };
     } catch (reason) {
-      throw asProducerError(reason);
+      throw asProducerError(failure(reason, signal));
     } finally {
-      await session.close();
+      stopListening();
+      await session.close().catch(() => undefined);
     }
   };
 }
@@ -506,25 +526,45 @@ export function manifestBase(
  * opens is checked first: the document, the times, the assets, and the runtime.
  */
 export async function renderFrames(request: RenderRequest): Promise<RenderResult> {
+  try {
+    return await framesOf(request);
+  } catch (reason) {
+    throw failure(reason, request.signal);
+  }
+}
+
+async function framesOf(request: RenderRequest): Promise<RenderResult> {
+  const { signal, onProgress } = request;
+  throwIfCancelled(signal);
   const composition = validated(request.document);
   const grid = request.timesUs.map((timeUs) => ({
     index: frameIndexOf(composition, timeUs),
     timeUs,
   }));
+  checkDocumentLimits(request.limits, composition, grid.length);
   const assets = await verifiedAssets(composition, request.resolveAsset);
+  checkAssetLimits(request.limits, assets);
   const prepared: PreparedRender = {
     composition,
     assets,
     runtime: request.runtime ?? loadRuntimeBuild(),
   };
+  throwIfCancelled(signal);
   const chromium = request.chromium ?? (await launchChromium());
   try {
+    onProgress?.({ event: 'start', frames: grid.length, segments: 0 });
     const frames: RenderedFrame[] = [];
     const { blockedRequests } = await chromiumSequence(chromium, request)(
       prepared,
       grid,
       (frame) => {
         frames.push(frame);
+        onProgress?.({
+          event: 'frame',
+          frame: frame.index,
+          done: frames.length,
+          frames: grid.length,
+        });
         return Promise.resolve();
       },
     );

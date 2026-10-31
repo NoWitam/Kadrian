@@ -7,8 +7,10 @@
  * Structure is checked with `ffprobe`; pixels are compared on the pre-encode
  * frames only, and the decoded video is reported, never asserted (P5). The
  * expectations are written out from D29, not taken from the implementation.
+ * The job contract of D48 is tested on the CLI in processes of its own:
+ * progress lines, cancellation by signal, the wall time, and the estimate.
  */
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
@@ -21,8 +23,10 @@ import {
 import { networkInterfaces, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import process from 'node:process';
+import { createInterface } from 'node:readline';
 import { promisify } from 'node:util';
 
+import { CANCEL_GRACE_MS, EXIT_CANCELLED, EXIT_LIMIT_EXCEEDED } from '@kadrion/cli';
 import {
   exportMp4,
   launchChromium,
@@ -729,6 +733,239 @@ async function probeBytes(bytes: Uint8Array, format: string): Promise<Probe> {
     rmSync(file, { force: true });
   }
 }
+
+/** A CLI job as a host's queue runs it: its own process, read line by line, stopped by a signal (D48). */
+interface RunningJob {
+  readonly lines: Record<string, unknown>[];
+  readonly stderr: string[];
+  /** Resolves with the exit code, or rejects on a line of standard output that is not JSON. */
+  readonly exited: Promise<number | null>;
+  readonly kill: (signal: NodeJS.Signals) => void;
+  /** Resolves once a line matches. */
+  readonly when: (match: (line: Record<string, unknown>) => boolean) => Promise<void>;
+}
+
+/** Marks every process a job starts, Chromium and FFmpeg included, by their environment. */
+const JOB_MARK = 'KADRION_PINNED_JOB_MARK';
+
+function startJob(args: readonly string[], mark: string): RunningJob {
+  const child = spawn(process.execPath, [CLI, ...args], {
+    env: { ...process.env, [JOB_MARK]: mark },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const lines: Record<string, unknown>[] = [];
+  const stderr: string[] = [];
+  const waiting: { match: (line: Record<string, unknown>) => boolean; done: () => void }[] = [];
+  let malformed: string | null = null;
+  createInterface({ input: child.stdout }).on('line', (text) => {
+    try {
+      const line = JSON.parse(text) as Record<string, unknown>;
+      lines.push(line);
+      for (const entry of waiting.splice(0)) {
+        if (entry.match(line)) entry.done();
+        else waiting.push(entry);
+      }
+    } catch {
+      malformed ??= text;
+    }
+  });
+  createInterface({ input: child.stderr }).on('line', (text) => stderr.push(text));
+  const exited = new Promise<number | null>((resolve, reject) => {
+    child.on('close', (code) => {
+      if (malformed !== null) reject(new Error(`Not a JSON line on stdout: ${malformed}`));
+      else resolve(code);
+    });
+  });
+  return {
+    lines,
+    stderr,
+    exited,
+    kill: (signal) => child.kill(signal),
+    when: (match) =>
+      new Promise((resolve) => {
+        if (lines.some(match)) resolve();
+        else waiting.push({ match, done: resolve });
+      }),
+  };
+}
+
+/** The processes that still carry a job's mark: none may outlive a cancelled job. */
+function marked(mark: string): string[] {
+  const found: string[] = [];
+  for (const pid of readdirSync('/proc')) {
+    if (!/^\d+$/.test(pid)) continue;
+    try {
+      if (readFileSync(`/proc/${pid}/environ`, 'latin1').includes(`${JOB_MARK}=${mark}`)) {
+        found.push(readFileSync(`/proc/${pid}/comm`, 'utf8').trim());
+      }
+    } catch {
+      // The process ended between listing and reading, or belongs to another user.
+    }
+  }
+  return found;
+}
+
+describe.skipIf(!available)('a render job of the CLI in its own process (D48)', () => {
+  const JOBS = join(EXPORTS, 'contract');
+  const INPUTS = join(JOBS, 'inputs');
+  const inputs = [
+    '--composition',
+    join(INPUTS, 'composition.json'),
+    '--assets',
+    join(INPUTS, 'assets.json'),
+  ];
+  const ffmpegFlags = ['--ffmpeg', FFMPEG.ffmpegPath, '--ffprobe', FFMPEG.ffprobePath];
+  const rows: Record<string, unknown>[] = [];
+
+  beforeAll(() => {
+    rmSync(JOBS, { recursive: true, force: true });
+    mkdirSync(INPUTS, { recursive: true });
+    writeFileSync(join(INPUTS, 'composition.json'), JSON.stringify(referenceComposition));
+    const map: Record<string, { path: string; mediaType: string }> = {};
+    for (const asset of generateReferenceAssets()) {
+      writeFileSync(join(INPUTS, asset.id), asset.bytes);
+      map[asset.id] = { path: asset.id, mediaType: asset.mediaType };
+    }
+    writeFileSync(join(INPUTS, 'assets.json'), JSON.stringify(map));
+  });
+
+  afterAll(() => {
+    // Report only: how long the jobs took to stop, and the estimate (D48.2, D48.5).
+    console.info(`Job contract (report only): ${JSON.stringify(rows)}`);
+  });
+
+  it('reports every frame and segment of a range as JSON lines, then its files and its end', async () => {
+    const out = join(JOBS, 'range');
+    const job = startJob(
+      [
+        'render-range',
+        ...inputs,
+        ...['--out', out, '--preset', '720p', '--from-us', '0', '--to-us', '4000000'],
+        ...ffmpegFlags,
+      ],
+      'range',
+    );
+    await expect(job.exited).resolves.toBe(0);
+    expect(job.lines[0]).toEqual({ event: 'start', frames: 120, segments: 2 });
+    const frames = job.lines.filter(({ event }) => event === 'frame');
+    expect(frames.map(({ frame, done }) => [frame, done])).toEqual(
+      Array.from({ length: 120 }, (_, i) => [i, i + 1]),
+    );
+    expect(job.lines.filter(({ event }) => event === 'segment')).toEqual([
+      { event: 'segment', segment: 0, done: 1, segments: 2 },
+      { event: 'segment', segment: 1, done: 2, segments: 2 },
+    ]);
+    expect(job.lines.slice(-4)).toEqual([
+      { event: 'file', file: 'segment-000000.mp4' },
+      { event: 'file', file: 'segment-000001.mp4' },
+      { event: 'file', file: 'segments-000000-000001.manifest.json' },
+      { event: 'done', manifest: 'segments-000000-000001.manifest.json' },
+    ]);
+    expect(readdirSync(out).sort()).toEqual([
+      'segment-000000.mp4',
+      'segment-000001.mp4',
+      'segments-000000-000001.manifest.json',
+    ]);
+  });
+
+  it.each(['SIGTERM', 'SIGINT'] as const)(
+    'stops a job on %s within the grace time: Chromium and FFmpeg end, and no file remains',
+    async (signal) => {
+      const out = join(JOBS, `cancelled-${signal}`);
+      const mark = `cancel-${signal}`;
+      const job = startJob(
+        ['render-range', ...inputs, ...['--out', out, '--preset', '1080p'], ...ffmpegFlags],
+        mark,
+      );
+      // Inside segment 1, after segment 0 was written under its final name.
+      await job.when(({ event, frame }) => event === 'frame' && frame === 75);
+      const running = marked(mark);
+      const sent = performance.now();
+      job.kill(signal);
+      const code = await job.exited;
+      const stoppedMs = Math.round(performance.now() - sent);
+      rows.push({ signal, stoppedMs, running });
+      expect(code).toBe(EXIT_CANCELLED);
+      expect(stoppedMs).toBeLessThan(CANCEL_GRACE_MS);
+      expect(job.lines.some(({ event, segment }) => event === 'segment' && segment === 0)).toBe(
+        true,
+      );
+      expect(job.lines.at(-1)).toEqual({
+        event: 'error',
+        code: 'cancelled',
+        exitCode: EXIT_CANCELLED,
+      });
+      expect(job.stderr.join('\n')).toMatch(/error cancelled/);
+      // The browser and the encoder were running, and none of them outlived the job.
+      expect(running).toEqual(expect.arrayContaining(['ffmpeg']));
+      expect(running.some((name) => /chrom/i.test(name))).toBe(true);
+      expect(marked(mark)).toEqual([]);
+      expect(readdirSync(out)).toEqual([]);
+    },
+  );
+
+  it('ends a job at its wall time with limit-exceeded and exit code 4', async () => {
+    const out = join(JOBS, 'wall');
+    const job = startJob(
+      [
+        'render-range',
+        ...inputs,
+        ...['--out', out, '--preset', '1080p', '--max-wall-ms', '4000'],
+        ...ffmpegFlags,
+      ],
+      'wall',
+    );
+    await expect(job.exited).resolves.toBe(EXIT_LIMIT_EXCEEDED);
+    expect(job.lines.at(-1)).toEqual({
+      event: 'error',
+      code: 'limit-exceeded',
+      exitCode: EXIT_LIMIT_EXCEEDED,
+    });
+    expect(marked('wall')).toEqual([]);
+    expect(readdirSync(out)).toEqual([]);
+  });
+
+  it('refuses a job over a limit before Chromium or FFmpeg starts', async () => {
+    const job = startJob(
+      [
+        'render-range',
+        ...inputs,
+        ...['--out', join(JOBS, 'limit'), '--preset', '1080p', '--max-frames', '299'],
+        ...ffmpegFlags,
+      ],
+      'limit',
+    );
+    await expect(job.exited).resolves.toBe(EXIT_LIMIT_EXCEEDED);
+    expect(job.lines).toEqual([
+      { event: 'error', code: 'limit-exceeded', exitCode: EXIT_LIMIT_EXCEEDED },
+    ]);
+  });
+
+  it('estimates the time per frame from one sampled segment, and keeps none of it', async () => {
+    const job = startJob(
+      [
+        'estimate',
+        ...inputs,
+        ...['--preset', '1080p', '--samples', '10', '--budget-ms', '600000'],
+        ...ffmpegFlags,
+      ],
+      'estimate',
+    );
+    await expect(job.exited).resolves.toBe(0);
+    const [estimate, end] = job.lines.slice(-2);
+    rows.push({ estimate });
+    expect(end).toEqual({ event: 'done', manifest: null });
+    expect(estimate).toMatchObject({
+      event: 'estimate',
+      samples: 10,
+      segmentFrames: 60,
+      segments: 5,
+    });
+    expect(estimate?.msPerFrame).toBeGreaterThan(0);
+    expect(estimate?.segmentsInBudget).toBeGreaterThanOrEqual(1);
+    expect(job.lines.filter(({ event }) => event === 'frame')).toHaveLength(10);
+  });
+});
 
 describe.skipIf(!available)(
   'memory of the export with the pinned FFmpeg (D29.3, report only)',

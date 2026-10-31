@@ -226,9 +226,15 @@ export interface FfmpegTools {
   /**
    * Runs FFmpeg with `input` on standard input and returns what it printed on
    * standard output as bytes: the audio pass, the join, and a still (D47). A
-   * process that outlives `timeoutMs` is killed and reported with code `null`.
+   * process that outlives `timeoutMs`, or whose `signal` aborts, is killed and
+   * reported with code `null` (D48.2).
    */
-  run(args: readonly string[], input: Uint8Array, timeoutMs: number): Promise<BinaryResult>;
+  run(
+    args: readonly string[],
+    input: Uint8Array,
+    timeoutMs: number,
+    signal?: AbortSignal,
+  ): Promise<BinaryResult>;
   /** The SHA-256 of a file, read as a stream. */
   sha256File(file: string): Promise<string>;
   /** The samples, sample rate, and channels of the first audio stream of a file (D47.4). */
@@ -253,9 +259,15 @@ function runBinary(
   args: readonly string[],
   input: Uint8Array,
   timeoutMs: number,
+  signal: AbortSignal | undefined,
 ): Promise<BinaryResult> {
   return new Promise((resolve) => {
     const child = spawn(path, [...args], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+    const kill = (): void => {
+      child.kill('SIGKILL');
+    };
+    signal?.addEventListener('abort', kill, { once: true });
+    if (signal?.aborted === true) kill();
     const chunks: Buffer[] = [];
     child.stdout.on('data', (chunk: Buffer) => chunks.push(chunk));
     child.stdout.on('error', () => undefined);
@@ -270,6 +282,7 @@ function runBinary(
     child.stdin.end(input);
     const finish = (code: number | null, extra: string): void => {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', kill);
       void stderr.then((text) => {
         resolve({
           code: timedOut ? null : code,
@@ -436,7 +449,8 @@ export async function pinnedFfmpeg(
         .split('\n')
         .map((line) => Number(line.split(',')[0]?.trim()));
     },
-    run: (args, input, timeoutMs) => runBinary(paths.ffmpegPath, args, input, timeoutMs),
+    run: (args, input, timeoutMs, signal) =>
+      runBinary(paths.ffmpegPath, args, input, timeoutMs, signal),
     sha256File: (file) => host.sha256(file),
     async audioStream(file) {
       const result = await host.run(paths.ffprobePath, [

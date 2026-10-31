@@ -12,8 +12,18 @@
  *   kadrion join --in <dir> [--in <dir> …] --out <dir> [--ffmpeg <path>] [--ffprobe <path>]
  *   kadrion render-still --composition <file> --assets <file> --out <dir> --time-us <t>
  *                  --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]
+ *   kadrion estimate --composition <file> --assets <file> --preset <1080p|720p>
+ *                  [--samples <n>] [--segment-frames <n>] [--budget-ms <ms>] [--ffmpeg …] [--ffprobe …]
  *   kadrion fetch-ffmpeg --dir <dir>
  *   kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]
+ *
+ * Every command but `fetch-ffmpeg` and `doctor` is a job of D48: its standard
+ * output is JSON lines and nothing else (progress, the files written, and the
+ * end), its diagnostics go to standard error, `SIGTERM` or `SIGINT` cancel it,
+ * it takes the limits `--max-document-bytes`, `--max-duration-us`,
+ * `--max-frames`, `--max-assets`, `--max-asset-bytes`,
+ * `--max-total-asset-bytes` (not `join`, which reads no document), and
+ * `--max-wall-ms`, and its exit code is one of the table of D48.3.
  *
  * `render-frames` renders frame times of a composition to `frame-<index>.png` and
  * writes `render-manifest.json`. `export` writes `video-<preset>.mp4` and
@@ -29,20 +39,26 @@
  * directories into the same two files `export` writes. `render-still` writes
  * `still-<index>.<png|jpg|webp>` and its manifest. Every file the CLI writes is
  * written under a temporary name and renamed when complete (D47.6).
+ * `estimate` renders and encodes a few frames into a temporary directory and
+ * reports the time per frame and how many segments fit into a budget (D48.5).
  * `fetch-ffmpeg` installs the pinned FFmpeg into a directory and prints the two
  * paths; `doctor` prints a JSON report of whether this process is the reference
  * environment, and exits 3 when it is not (D45).
  */
-import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { parseArgs } from 'node:util';
 
 import {
   AUDIO_FILE_NAME,
+  DEFAULT_ESTIMATE_SAMPLES,
+  estimatePlan,
   exportMp4,
   FFMPEG_SHA256,
   FFPROBE_SHA256,
+  JOB_LIMITS,
   joinSegments,
   PARTIAL_SUFFIX,
   ProducerError,
@@ -60,6 +76,8 @@ import {
   type JoinPart,
   type JoinRequest,
   type JoinResult,
+  type JobLimits,
+  type ProgressEvent,
   type RenderRequest,
   type RenderResult,
   type SegmentsManifest,
@@ -74,11 +92,52 @@ import { runDoctor, type DoctorReport } from './doctor.js';
 import { fetchFfmpeg, type FetchFfmpegOptions } from './fetch-ffmpeg.js';
 import { FfmpegInstallError, type Installed } from './ffmpeg-install.js';
 
+/** The exit codes of D48.3; a host's queue decides by them whether to retry. */
 export const EXIT_OK = 0;
+/** A `ProducerError` other than the two below: the render failed. */
 export const EXIT_PRODUCER_ERROR = 1;
 export const EXIT_USAGE = 2;
 /** `kadrion doctor`: the report was written, and this is not the reference environment. */
 export const EXIT_NOT_REFERENCE = 3;
+/** A limit of the job is exceeded (`limit-exceeded`), the wall time included. */
+export const EXIT_LIMIT_EXCEEDED = 4;
+/** The job was cancelled by `SIGTERM` or `SIGINT` (`cancelled`). */
+export const EXIT_CANCELLED = 5;
+
+/** How long a cancelled job may take to clean up before the process exits anyway (D48.2). */
+export const CANCEL_GRACE_MS = 10_000;
+
+/** The commands that are jobs of D48: JSON lines on standard output. */
+export const JOB_COMMANDS = [
+  'render-frames',
+  'export',
+  'render-range',
+  'render-audio',
+  'join',
+  'render-still',
+  'estimate',
+] as const;
+
+/**
+ * A line of a job's standard output (D48.1): the Producer's progress, then a
+ * `file` per file written under its final name, then exactly one `done` or
+ * `error`. `estimate` reports its measurement before its `done`.
+ */
+export type JobLine =
+  | ProgressEvent
+  | { readonly event: 'file'; readonly file: string }
+  | {
+      readonly event: 'estimate';
+      readonly samples: number;
+      readonly setupMs: number;
+      readonly msPerFrame: number;
+      readonly segmentFrames: number;
+      readonly msPerSegment: number;
+      readonly segments: number;
+      readonly segmentsInBudget: number | null;
+    }
+  | { readonly event: 'done'; readonly manifest: string | null }
+  | { readonly event: 'error'; readonly code: string; readonly exitCode: number };
 
 export const USAGE = [
   'Usage: kadrion render-frames --composition <file> --assets <file> --out <dir> --times <t,...>',
@@ -87,8 +146,10 @@ export const USAGE = [
   '       kadrion render-audio --composition <file> --assets <file> --out <dir> [--from-us <t> --to-us <t>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion join --in <dir> [--in <dir> ...] --out <dir> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion render-still --composition <file> --assets <file> --out <dir> --time-us <t> --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion estimate --composition <file> --assets <file> --preset <1080p|720p> [--samples <n>] [--segment-frames <n>] [--budget-ms <ms>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion fetch-ffmpeg --dir <dir>',
   '       kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]',
+  'Limits of a job: [--max-document-bytes <n>] [--max-duration-us <n>] [--max-frames <n>] [--max-assets <n>] [--max-asset-bytes <n>] [--max-total-asset-bytes <n>] [--max-wall-ms <n>]',
 ].join('\n');
 
 /** Where `kadrion export` finds the pinned executables without flags (D29.10). */
@@ -109,6 +170,9 @@ export type RenderStill = (request: StillRequest) => Promise<StillResult>;
 export type FetchFfmpeg = (options: FetchFfmpegOptions) => Promise<Installed>;
 export type Doctor = (ffmpeg: Partial<FfmpegPaths>) => Promise<DoctorReport>;
 
+/** Starts a timer and returns how to cancel it: the CLI's clock, never the runtime's (D48.4). */
+export type StartTimer = (fire: () => void, milliseconds: number) => () => void;
+
 /** What the commands run on; tests replace them. */
 export interface CliHosts {
   readonly render: Render;
@@ -120,9 +184,59 @@ export interface CliHosts {
   readonly fetchFfmpeg: FetchFfmpeg;
   readonly doctor: Doctor;
   readonly env: Readonly<Record<string, string | undefined>>;
+  /** Cancels the job: `bin.ts` aborts it on `SIGTERM` and `SIGINT` (D48.2). */
+  readonly signal: AbortSignal | undefined;
+  /** Milliseconds of a monotonic clock, for `estimate` (D48.5). */
+  readonly now: () => number;
+  /** The timer of `--max-wall-ms` (D48.4). */
+  readonly startTimer: StartTimer;
 }
 
 class UsageError extends Error {}
+
+/** What a job command runs with besides its arguments (D48). */
+interface Job {
+  readonly hosts: CliHosts;
+  readonly signal: AbortSignal | undefined;
+  /** Writes one line of standard output. */
+  readonly emit: (line: JobLine) => void;
+}
+
+/** The flag of each limit: `maxDocumentBytes` is `--max-document-bytes`. */
+function limitFlag(name: keyof JobLimits): string {
+  return name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+}
+
+const LIMIT_OPTIONS = Object.fromEntries(
+  JOB_LIMITS.map((name) => [limitFlag(name), { type: 'string' as const }]),
+) as Record<string, { readonly type: 'string' }>;
+
+/** The limits given as flags; a flag that is not a non-negative integer is a usage error. */
+function limitsOf(values: Readonly<Record<string, unknown>>): JobLimits | undefined {
+  const limits: Partial<Record<keyof JobLimits, number>> = {};
+  for (const name of JOB_LIMITS) {
+    const value = integerFlag(limitFlag(name), values[limitFlag(name)] as string | undefined);
+    if (value !== undefined) limits[name] = value;
+  }
+  return Object.keys(limits).length === 0 ? undefined : limits;
+}
+
+/** What every job passes to the Producer: its signal, its progress, and its limits. */
+function jobOptions(
+  job: Job,
+  values: Readonly<Record<string, unknown>>,
+): {
+  readonly signal?: AbortSignal;
+  readonly onProgress: (event: ProgressEvent) => void;
+  readonly limits?: JobLimits;
+} {
+  const limits = limitsOf(values);
+  return {
+    ...(job.signal === undefined ? {} : { signal: job.signal }),
+    onProgress: job.emit,
+    ...(limits === undefined ? {} : { limits }),
+  };
+}
 
 interface AssetEntry {
   readonly path: string;
@@ -202,7 +316,7 @@ async function readInputs(
   };
 }
 
-async function renderCommand(args: readonly string[], io: CliIo, render: Render): Promise<number> {
+async function renderCommand(args: readonly string[], job: Job): Promise<number> {
   const { values } = parseArgs({
     args: [...args],
     options: {
@@ -210,6 +324,7 @@ async function renderCommand(args: readonly string[], io: CliIo, render: Render)
       assets: { type: 'string' },
       out: { type: 'string' },
       times: { type: 'string' },
+      ...LIMIT_OPTIONS,
     },
     strict: true,
     allowPositionals: false,
@@ -224,20 +339,25 @@ async function renderCommand(args: readonly string[], io: CliIo, render: Render)
     throw new UsageError('--composition, --assets, --out, and --times are required.');
   }
   const timesUs = parseTimes(times);
+  const options = jobOptions(job, values);
   const inputs = await readInputs(composition, assets);
-  const result = await render({ ...inputs, timesUs });
+  const result = await job.hosts.render({ ...inputs, timesUs, ...options });
   await mkdir(out, { recursive: true });
   for (const frame of result.frames) {
-    await writeFile(join(out, frameFileName(frame.index)), frame.png);
+    await writeComplete(join(out, frameFileName(frame.index)), frame.png);
+    job.emit({ event: 'file', file: frameFileName(frame.index) });
   }
-  await writeFile(
-    join(out, 'render-manifest.json'),
-    `${JSON.stringify(result.manifest, null, 2)}\n`,
-  );
-  for (const frame of result.manifest.frames) {
-    io.out(`${frameFileName(frame.index)} ${String(frame.timeUs)} ${frame.sha256}`);
-  }
-  io.out(`render-manifest.json runtime ${result.manifest.runtime.contentHash}`);
+  return finished(job, out, RENDER_MANIFEST_NAME, result.manifest);
+}
+
+/** The manifest of `render-frames` in its directory (D28.8). */
+export const RENDER_MANIFEST_NAME = 'render-manifest.json';
+
+/** Writes the manifest of a job last, reports it, and ends the job (D48.1). */
+async function finished(job: Job, out: string, name: string, manifest: unknown): Promise<number> {
+  await writeComplete(join(out, name), manifestText(manifest));
+  job.emit({ event: 'file', file: name });
+  job.emit({ event: 'done', manifest: name });
   return EXIT_OK;
 }
 
@@ -249,7 +369,7 @@ export function exportFileNames(preset: string): {
   return { video: `video-${preset}.mp4`, manifest: `video-${preset}.render-manifest.json` };
 }
 
-async function exportCommand(args: readonly string[], io: CliIo, hosts: CliHosts): Promise<number> {
+async function exportCommand(args: readonly string[], job: Job): Promise<number> {
   const { values } = parseArgs({
     args: [...args],
     options: {
@@ -257,6 +377,7 @@ async function exportCommand(args: readonly string[], io: CliIo, hosts: CliHosts
       preset: { type: 'string' },
       'segment-frames': { type: 'string' },
       ...FFMPEG_OPTIONS,
+      ...LIMIT_OPTIONS,
     },
     strict: true,
     allowPositionals: false,
@@ -272,23 +393,21 @@ async function exportCommand(args: readonly string[], io: CliIo, hosts: CliHosts
   }
   if (!/^[0-9a-z]+$/.test(preset)) throw new UsageError('--preset takes a name such as 1080p.');
   const segmentFrames = integerFlag('segment-frames', values['segment-frames']);
-  const ffmpeg = ffmpegPaths(values, hosts);
+  const options = jobOptions(job, values);
+  const ffmpeg = ffmpegPaths(values, job.hosts);
   const inputs = await readInputs(composition, assets);
   await mkdir(out, { recursive: true });
   const names = exportFileNames(preset);
-  const result = await hosts.exportMp4({
+  const result = await job.hosts.exportMp4({
     ...inputs,
     preset,
     ...(segmentFrames === undefined ? {} : { segmentFrames }),
     outputPath: join(out, names.video),
     ffmpeg,
+    ...options,
   });
-  await writeComplete(join(out, names.manifest), manifestText(result.manifest));
-  io.out(
-    `${names.video} ${String(result.manifest.frames.length)} frames ${result.manifest.preset.name} ffmpeg ${result.manifest.ffmpeg.version}`,
-  );
-  io.out(`${names.manifest} runtime ${result.manifest.runtime.contentHash}`);
-  return EXIT_OK;
+  job.emit({ event: 'file', file: names.video });
+  return finished(job, out, names.manifest, result.manifest);
 }
 
 /**
@@ -370,11 +489,7 @@ export function stillFileNames(
   };
 }
 
-async function renderRangeCommand(
-  args: readonly string[],
-  io: CliIo,
-  hosts: CliHosts,
-): Promise<number> {
+async function renderRangeCommand(args: readonly string[], job: Job): Promise<number> {
   const { values } = parseArgs({
     args: [...args],
     options: {
@@ -384,6 +499,7 @@ async function renderRangeCommand(
       'to-us': { type: 'string' },
       'segment-frames': { type: 'string' },
       ...FFMPEG_OPTIONS,
+      ...LIMIT_OPTIONS,
     },
     strict: true,
     allowPositionals: false,
@@ -400,35 +516,26 @@ async function renderRangeCommand(
   if (!/^[0-9a-z]+$/.test(preset)) throw new UsageError('--preset takes a name such as 1080p.');
   const range = rangeFlags(values);
   const segmentFrames = integerFlag('segment-frames', values['segment-frames']);
-  const ffmpeg = ffmpegPaths(values, hosts);
+  const options = jobOptions(job, values);
+  const ffmpeg = ffmpegPaths(values, job.hosts);
   const inputs = await readInputs(composition, assets);
   await mkdir(out, { recursive: true });
-  const { manifest } = await hosts.renderRange({
+  const { manifest } = await job.hosts.renderRange({
     ...inputs,
     preset,
     ...(range === undefined ? {} : { range }),
     ...(segmentFrames === undefined ? {} : { segmentFrames }),
     outputDirectory: out,
     ffmpeg,
+    ...options,
   });
   const first = manifest.segments[0]?.index ?? 0;
   const last = manifest.segments.at(-1)?.index ?? first;
-  const name = segmentsManifestName(first, last);
-  await writeComplete(join(out, name), manifestText(manifest));
-  for (const segment of manifest.segments) {
-    io.out(
-      `${segment.file} ${String(segment.firstFrame)} ${String(segment.frameCount)} ${segment.sha256}`,
-    );
-  }
-  io.out(`${name} runtime ${manifest.runtime.contentHash}`);
-  return EXIT_OK;
+  for (const segment of manifest.segments) job.emit({ event: 'file', file: segment.file });
+  return finished(job, out, segmentsManifestName(first, last), manifest);
 }
 
-async function renderAudioCommand(
-  args: readonly string[],
-  io: CliIo,
-  hosts: CliHosts,
-): Promise<number> {
+async function renderAudioCommand(args: readonly string[], job: Job): Promise<number> {
   const { values } = parseArgs({
     args: [...args],
     options: {
@@ -436,6 +543,7 @@ async function renderAudioCommand(
       'from-us': { type: 'string' },
       'to-us': { type: 'string' },
       ...FFMPEG_OPTIONS,
+      ...LIMIT_OPTIONS,
     },
     strict: true,
     allowPositionals: false,
@@ -445,23 +553,20 @@ async function renderAudioCommand(
     throw new UsageError('--composition, --assets, and --out are required.');
   }
   const range = rangeFlags(values);
-  const ffmpeg = ffmpegPaths(values, hosts);
+  const options = jobOptions(job, values);
+  const ffmpeg = ffmpegPaths(values, job.hosts);
   const inputs = await readInputs(composition, assets);
   await mkdir(out, { recursive: true });
-  const { manifest } = await hosts.renderAudio({
+  const { manifest } = await job.hosts.renderAudio({
     ...inputs,
     ...(range === undefined ? {} : { range }),
     outputDirectory: out,
     ffmpeg,
+    ...options,
   });
-  await writeComplete(join(out, AUDIO_MANIFEST_NAME), manifestText(manifest));
-  io.out(
-    manifest.audio === null
-      ? `no audio clip: ${AUDIO_MANIFEST_NAME} only`
-      : `${AUDIO_FILE_NAME} ${String(manifest.audio.rangeSampleCount)} samples ${manifest.audio.sha256}`,
-  );
-  io.out(`${AUDIO_MANIFEST_NAME} ${manifest.compositionHash}`);
-  return EXIT_OK;
+  // A composition without an audio clip writes the manifest only (D47.4).
+  if (manifest.audio !== null) job.emit({ event: 'file', file: AUDIO_FILE_NAME });
+  return finished(job, out, AUDIO_MANIFEST_NAME, manifest);
 }
 
 async function readManifest(path: string): Promise<unknown> {
@@ -472,7 +577,7 @@ async function readManifest(path: string): Promise<unknown> {
   }
 }
 
-async function joinCommand(args: readonly string[], io: CliIo, hosts: CliHosts): Promise<number> {
+async function joinCommand(args: readonly string[], job: Job): Promise<number> {
   const { values } = parseArgs({
     args: [...args],
     options: { in: { type: 'string', multiple: true }, out: { type: 'string' }, ...FFMPEG_OPTIONS },
@@ -483,7 +588,7 @@ async function joinCommand(args: readonly string[], io: CliIo, hosts: CliHosts):
   const { out } = values;
   if (inputs.length === 0 || out === undefined)
     throw new UsageError('--in and --out are required.');
-  const ffmpeg = ffmpegPaths(values, hosts);
+  const ffmpeg = ffmpegPaths(values, job.hosts);
   const segments: JoinPart<SegmentsManifest>[] = [];
   const audio: JoinPart<AudioManifest>[] = [];
   for (const directory of inputs) {
@@ -516,25 +621,18 @@ async function joinCommand(args: readonly string[], io: CliIo, hosts: CliHosts):
   }
   await mkdir(out, { recursive: true });
   const names = exportFileNames(preset);
-  const result = await hosts.join({
+  const result = await job.hosts.join({
     segments,
     audio: pass,
     outputPath: join(out, names.video),
     ffmpeg,
+    ...(job.signal === undefined ? {} : { signal: job.signal }),
   });
-  await writeComplete(join(out, names.manifest), manifestText(result.manifest));
-  io.out(
-    `${names.video} ${String(result.manifest.frames.length)} frames ${String(result.manifest.segments.length)} segments ${result.manifest.preset.name}`,
-  );
-  io.out(`${names.manifest} runtime ${result.manifest.runtime.contentHash}`);
-  return EXIT_OK;
+  job.emit({ event: 'file', file: names.video });
+  return finished(job, out, names.manifest, result.manifest);
 }
 
-async function renderStillCommand(
-  args: readonly string[],
-  io: CliIo,
-  hosts: CliHosts,
-): Promise<number> {
+async function renderStillCommand(args: readonly string[], job: Job): Promise<number> {
   const { values } = parseArgs({
     args: [...args],
     options: {
@@ -542,6 +640,7 @@ async function renderStillCommand(
       'time-us': { type: 'string' },
       format: { type: 'string' },
       ...FFMPEG_OPTIONS,
+      ...LIMIT_OPTIONS,
     },
     strict: true,
     allowPositionals: false,
@@ -558,22 +657,107 @@ async function renderStillCommand(
     throw new UsageError('--composition, --assets, --out, --time-us, and --format are required.');
   }
   if (!/^[0-9a-z]+$/.test(format)) throw new UsageError('--format takes a name such as png.');
+  const options = jobOptions(job, values);
   // PNG needs no FFmpeg: the captured bytes are the still (D47.7).
-  const ffmpeg = format === 'png' ? undefined : ffmpegPaths(values, hosts);
+  const ffmpeg = format === 'png' ? undefined : ffmpegPaths(values, job.hosts);
   const inputs = await readInputs(composition, assets);
   await mkdir(out, { recursive: true });
-  const result = await hosts.renderStill({
+  const result = await job.hosts.renderStill({
     ...inputs,
     timeUs,
     format,
     ...(ffmpeg === undefined ? {} : { ffmpeg }),
+    ...options,
   });
   const [frame] = result.manifest.frames;
   const names = stillFileNames(frame?.index ?? 0, result.format);
   await writeComplete(join(out, names.image), result.bytes);
-  await writeComplete(join(out, names.manifest), manifestText(result.manifest));
-  io.out(`${names.image} ${String(timeUs)} ${result.manifest.output.sha256}`);
-  io.out(`${names.manifest} runtime ${result.manifest.runtime.contentHash}`);
+  job.emit({ event: 'file', file: names.image });
+  return finished(job, out, names.manifest, result.manifest);
+}
+
+/**
+ * `kadrion estimate` (D48.5): renders and encodes the segment of
+ * `estimatePlan` into a temporary directory, which it removes, and measures
+ * it with the CLI's clock. The first frame carries the launch and the load;
+ * the rest, up to the finished segment, is the time per frame. It is advice
+ * for the host's batching and changes no output.
+ */
+async function estimateCommand(args: readonly string[], job: Job): Promise<number> {
+  const { values } = parseArgs({
+    args: [...args],
+    options: {
+      composition: { type: 'string' },
+      assets: { type: 'string' },
+      preset: { type: 'string' },
+      samples: { type: 'string' },
+      'segment-frames': { type: 'string' },
+      'budget-ms': { type: 'string' },
+      ...FFMPEG_OPTIONS,
+      ...LIMIT_OPTIONS,
+    },
+    strict: true,
+    allowPositionals: false,
+  });
+  const { composition, assets, preset } = values;
+  if (composition === undefined || assets === undefined || preset === undefined) {
+    throw new UsageError('--composition, --assets, and --preset are required.');
+  }
+  if (!/^[0-9a-z]+$/.test(preset)) throw new UsageError('--preset takes a name such as 1080p.');
+  const samples = integerFlag('samples', values.samples) ?? DEFAULT_ESTIMATE_SAMPLES;
+  const segmentFrames = integerFlag('segment-frames', values['segment-frames']);
+  const budgetMs = integerFlag('budget-ms', values['budget-ms']);
+  const options = jobOptions(job, values);
+  const ffmpeg = ffmpegPaths(values, job.hosts);
+  const inputs = await readInputs(composition, assets);
+  const plan = estimatePlan(inputs.document, samples, segmentFrames);
+  const { now } = job.hosts;
+  const started = now();
+  /** Set by the progress callback: held in an object, so the checks below see them. */
+  const times: { firstFrame: number | null; finishedAt: number | null } = {
+    firstFrame: null,
+    finishedAt: null,
+  };
+  const directory = await mkdtemp(join(tmpdir(), 'kadrion-estimate-'));
+  try {
+    await job.hosts.renderRange({
+      ...inputs,
+      preset,
+      range: plan.range,
+      segmentFrames: plan.sampleSegmentFrames,
+      outputDirectory: directory,
+      ffmpeg,
+      ...options,
+      onProgress(event) {
+        if (event.event === 'frame') times.firstFrame ??= now();
+        if (event.event === 'segment') times.finishedAt = now();
+        job.emit(event);
+      },
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+  const { firstFrame, finishedAt } = times;
+  if (firstFrame === null || finishedAt === null) {
+    throw new ProducerError('page-error', 'The estimate rendered no segment.');
+  }
+  const setupMs = Math.ceil(firstFrame - started);
+  const msPerFrame = Math.ceil((finishedAt - firstFrame) / (plan.frames - 1));
+  const msPerSegment = msPerFrame * plan.segmentFrames;
+  job.emit({
+    event: 'estimate',
+    samples: plan.frames,
+    setupMs,
+    msPerFrame,
+    segmentFrames: plan.segmentFrames,
+    msPerSegment,
+    segments: plan.segments,
+    segmentsInBudget:
+      budgetMs === undefined
+        ? null
+        : Math.max(0, Math.floor((budgetMs - setupMs) / Math.max(1, msPerSegment))),
+  });
+  job.emit({ event: 'done', manifest: null });
   return EXIT_OK;
 }
 
@@ -613,6 +797,116 @@ async function doctorCommand(args: readonly string[], io: CliIo, hosts: CliHosts
   return report.reference ? EXIT_OK : EXIT_NOT_REFERENCE;
 }
 
+/** `--max-wall-ms <n>` or `--max-wall-ms=<n>`, taken out of the arguments of a job (D48.4). */
+function wallLimit(args: readonly string[]): {
+  readonly rest: readonly string[];
+  readonly wallMs: number | undefined;
+} {
+  const rest: string[] = [];
+  let given: string | undefined;
+  for (let at = 0; at < args.length; at += 1) {
+    const arg = args[at] ?? '';
+    if (arg === '--max-wall-ms') {
+      given = args[at + 1];
+      if (given === undefined) throw new UsageError('--max-wall-ms takes a value.');
+      at += 1;
+    } else if (arg.startsWith('--max-wall-ms=')) {
+      given = arg.slice('--max-wall-ms='.length);
+    } else {
+      rest.push(arg);
+    }
+  }
+  return { rest, wallMs: integerFlag('max-wall-ms', given) };
+}
+
+/** The exit code of a failure, by the table of D48.3. */
+function exitCodeOf(code: string): number {
+  if (code === 'limit-exceeded') return EXIT_LIMIT_EXCEEDED;
+  if (code === 'cancelled') return EXIT_CANCELLED;
+  return EXIT_PRODUCER_ERROR;
+}
+
+const JOBS: Readonly<
+  Record<(typeof JOB_COMMANDS)[number], (args: readonly string[], job: Job) => Promise<number>>
+> = {
+  'render-frames': renderCommand,
+  export: exportCommand,
+  'render-range': renderRangeCommand,
+  'render-audio': renderAudioCommand,
+  join: joinCommand,
+  'render-still': renderStillCommand,
+  estimate: estimateCommand,
+};
+
+function isJob(command: string | undefined): command is (typeof JOB_COMMANDS)[number] {
+  return (JOB_COMMANDS as readonly (string | undefined)[]).includes(command);
+}
+
+const realTimer: StartTimer = (fire, milliseconds) => {
+  const timer = setTimeout(fire, milliseconds);
+  return () => {
+    clearTimeout(timer);
+  };
+};
+
+/**
+ * Runs a job: its signal joins the host's with the wall time, its lines go to
+ * standard output, and every failure ends in one `error` line, its message on
+ * standard error, and the exit code of D48.3.
+ */
+async function runJob(
+  command: (typeof JOB_COMMANDS)[number],
+  args: readonly string[],
+  io: CliIo,
+  hosts: CliHosts,
+): Promise<number> {
+  const emit = (line: JobLine): void => {
+    io.out(JSON.stringify(line));
+  };
+  let stopWall = (): void => undefined;
+  try {
+    const { rest, wallMs } = wallLimit(args);
+    let signal = hosts.signal;
+    if (wallMs !== undefined) {
+      const wall = new AbortController();
+      stopWall = hosts.startTimer(() => {
+        wall.abort(
+          new ProducerError(
+            'limit-exceeded',
+            `The job ran for longer than the wall time of ${String(wallMs)} ms.`,
+          ),
+        );
+      }, wallMs);
+      signal = signal === undefined ? wall.signal : AbortSignal.any([signal, wall.signal]);
+    }
+    if (signal?.aborted === true) {
+      throw signal.reason instanceof ProducerError
+        ? signal.reason
+        : new ProducerError('cancelled', 'The job was cancelled before it started.');
+    }
+    return await JOBS[command](rest, { hosts, signal, emit });
+  } catch (reason) {
+    if (reason instanceof ProducerError || reason instanceof FfmpegInstallError) {
+      const exitCode = exitCodeOf(reason.code);
+      io.err(`error ${reason.code}: ${reason.message}`);
+      emit({ event: 'error', code: reason.code, exitCode });
+      return exitCode;
+    }
+    if (
+      reason instanceof UsageError ||
+      String((reason as { code?: unknown }).code).startsWith('ERR_PARSE_ARGS_')
+    ) {
+      io.err((reason as Error).message);
+      if ((reason as Error).message !== USAGE) io.err(USAGE);
+      emit({ event: 'error', code: 'usage', exitCode: EXIT_USAGE });
+      return EXIT_USAGE;
+    }
+    throw reason;
+  } finally {
+    stopWall();
+  }
+}
+
 /** Runs the CLI and returns its exit code; nothing here calls `process.exit`. */
 export async function runCli(
   argv: readonly string[],
@@ -630,14 +924,12 @@ export async function runCli(
     fetchFfmpeg: hosts.fetchFfmpeg ?? fetchFfmpeg,
     doctor: hosts.doctor ?? ((ffmpeg) => runDoctor(ffmpeg)),
     env: hosts.env ?? process.env,
+    signal: hosts.signal,
+    now: hosts.now ?? (() => performance.now()),
+    startTimer: hosts.startTimer ?? realTimer,
   };
+  if (isJob(command)) return runJob(command, rest, io, given);
   try {
-    if (command === 'render-frames') return await renderCommand(rest, io, given.render);
-    if (command === 'export') return await exportCommand(rest, io, given);
-    if (command === 'render-range') return await renderRangeCommand(rest, io, given);
-    if (command === 'render-audio') return await renderAudioCommand(rest, io, given);
-    if (command === 'join') return await joinCommand(rest, io, given);
-    if (command === 'render-still') return await renderStillCommand(rest, io, given);
     if (command === 'fetch-ffmpeg') return await fetchFfmpegCommand(rest, io, given.fetchFfmpeg);
     if (command === 'doctor') return await doctorCommand(rest, io, given);
     throw new UsageError(USAGE);

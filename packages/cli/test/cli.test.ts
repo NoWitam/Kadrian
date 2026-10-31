@@ -5,7 +5,14 @@
  * files written, where FFmpeg comes from, and the exit codes. That the default
  * functions render and encode is `tests/pinned`'s business.
  */
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -29,10 +36,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AUDIO_MANIFEST_NAME,
+  EXIT_CANCELLED,
+  EXIT_LIMIT_EXCEEDED,
   EXIT_OK,
   EXIT_PRODUCER_ERROR,
   EXIT_USAGE,
   frameFileName,
+  JOB_COMMANDS,
   parseAssetMap,
   parseTimes,
   runCli,
@@ -40,6 +50,14 @@ import {
   stillFileNames,
   USAGE,
 } from '../src/index.js';
+
+/** Every line of a job's standard output parses as JSON (D48.1). */
+function lines(out: readonly string[]): unknown[] {
+  return out.map((line) => JSON.parse(line) as unknown);
+}
+
+const done = (manifest: string | null) => ({ event: 'done', manifest });
+const file = (name: string) => ({ event: 'file', file: name });
 
 function io() {
   const out: string[] = [];
@@ -128,7 +146,12 @@ describe('kadrion render-frames (D28.8)', () => {
       runtime: { contentHash: string };
     };
     expect(manifest.runtime.contentHash).toBe('sha256:runtime');
-    expect(out).toContain('frame-000075.png 2500000 sha256:75');
+    expect(lines(out)).toEqual([
+      file('frame-000000.png'),
+      file('frame-000075.png'),
+      file('render-manifest.json'),
+      done('render-manifest.json'),
+    ]);
   });
 
   it('exits 1 with the code of a ProducerError', async () => {
@@ -231,9 +254,10 @@ describe('kadrion export (D29.10)', () => {
       'video-720p.mp4',
       'video-720p.render-manifest.json',
     ]);
-    expect(out).toEqual([
-      'video-720p.mp4 300 frames mp4-720p ffmpeg n8.1.3-20260921',
-      'video-720p.render-manifest.json runtime sha256:runtime',
+    expect(lines(out)).toEqual([
+      file('video-720p.mp4'),
+      file('video-720p.render-manifest.json'),
+      done('video-720p.render-manifest.json'),
     ]);
   });
 
@@ -380,11 +404,12 @@ describe('kadrion render-range (D47.3)', () => {
       'segment-000004.mp4',
       'segments-000002-000004.manifest.json',
     ]);
-    expect(out).toEqual([
-      'segment-000002.mp4 120 60 sha256:2',
-      'segment-000003.mp4 180 60 sha256:3',
-      'segment-000004.mp4 240 60 sha256:4',
-      'segments-000002-000004.manifest.json runtime sha256:runtime',
+    expect(lines(out)).toEqual([
+      file('segment-000002.mp4'),
+      file('segment-000003.mp4'),
+      file('segment-000004.mp4'),
+      file('segments-000002-000004.manifest.json'),
+      done('segments-000002-000004.manifest.json'),
     ]);
   });
 
@@ -458,7 +483,11 @@ describe('kadrion render-audio (D47.4)', () => {
     ).resolves.toBe(EXIT_OK);
     expect(seen[0]?.range).toEqual({ fromUs: 2_000_000, toUs: 4_000_000 });
     expect(readdirSync(join(dir, 'out')).sort()).toEqual(['audio.manifest.json', 'audio.wav']);
-    expect(out).toEqual(['audio.wav 96000 samples sha256:wav', 'audio.manifest.json sha256:doc']);
+    expect(lines(out)).toEqual([
+      file('audio.wav'),
+      file('audio.manifest.json'),
+      done('audio.manifest.json'),
+    ]);
   });
 
   it('says so when the composition has no audio clip', async () => {
@@ -468,7 +497,7 @@ describe('kadrion render-audio (D47.4)', () => {
       renderAudio: fakeAudio([], true),
       env: FFMPEG_ENV,
     });
-    expect(out[0]).toBe('no audio clip: audio.manifest.json only');
+    expect(lines(out)).toEqual([file('audio.manifest.json'), done('audio.manifest.json')]);
     expect(readdirSync(join(dir, 'out'))).toEqual(['audio.manifest.json']);
   });
 
@@ -532,9 +561,10 @@ describe('kadrion join (D47.5)', () => {
       'video-1080p.mp4',
       'video-1080p.render-manifest.json',
     ]);
-    expect(out).toEqual([
-      'video-1080p.mp4 300 frames 5 segments mp4-1080p',
-      'video-1080p.render-manifest.json runtime sha256:runtime',
+    expect(lines(out)).toEqual([
+      file('video-1080p.mp4'),
+      file('video-1080p.render-manifest.json'),
+      done('video-1080p.render-manifest.json'),
     ]);
   });
 
@@ -607,9 +637,10 @@ describe('kadrion render-still (D47.7)', () => {
       'still-000075.png',
     ]);
     expect(readFileSync(join(dir, 'out', 'still-000075.png'))).toEqual(Buffer.from([1, 2, 3]));
-    expect(out).toEqual([
-      'still-000075.png 2500000 sha256:still',
-      'still-000075.manifest.json runtime sha256:runtime',
+    expect(lines(out)).toEqual([
+      file('still-000075.png'),
+      file('still-000075.manifest.json'),
+      done('still-000075.manifest.json'),
     ]);
   });
 
@@ -677,5 +708,343 @@ describe('the parts of the CLI', () => {
       'frame-000000.png',
       'frame-000297.png',
     ]);
+  });
+});
+
+/** A manual timer: the wall time of a job fires when the test says so. */
+function manualTimer() {
+  const timers: { fire: () => void; ms: number; cancelled: boolean }[] = [];
+  return {
+    timers,
+    startTimer: (fire: () => void, ms: number) => {
+      const timer = { fire, ms, cancelled: false };
+      timers.push(timer);
+      return () => {
+        timer.cancelled = true;
+      };
+    },
+  };
+}
+
+/** A range job that reports progress, then waits for its signal and fails as the Producer does. */
+function waitingRange(seen: SegmentsRequest[], started: () => void = () => undefined) {
+  return (request: SegmentsRequest): Promise<SegmentsResult> => {
+    seen.push(request);
+    request.onProgress?.({ event: 'start', frames: 60, segments: 1 });
+    request.onProgress?.({ event: 'frame', frame: 0, done: 1, frames: 60 });
+    started();
+    return new Promise((_, reject) => {
+      const stop = () => {
+        const reason: unknown = request.signal?.reason;
+        reject(
+          reason instanceof ProducerError ? reason : new ProducerError('cancelled', 'cancelled'),
+        );
+      };
+      if (request.signal?.aborted === true) stop();
+      request.signal?.addEventListener('abort', stop);
+    });
+  };
+}
+
+const RANGE = ['--preset', '1080p'];
+
+describe('the job contract of the CLI (D48)', () => {
+  it('passes the progress of the Producer through as JSON lines, before the files and the end', async () => {
+    const { dir } = workspace();
+    const { out, io: streams } = io();
+    const range = (request: SegmentsRequest): Promise<SegmentsResult> => {
+      request.onProgress?.({ event: 'start', frames: 180, segments: 3 });
+      request.onProgress?.({ event: 'frame', frame: 120, done: 1, frames: 180 });
+      request.onProgress?.({ event: 'segment', segment: 2, done: 1, segments: 3 });
+      return fakeRange([])(request);
+    };
+    await expect(
+      runCli(documentArgs('render-range', dir, ...RANGE), streams, {
+        renderRange: range,
+        env: FFMPEG_ENV,
+      }),
+    ).resolves.toBe(EXIT_OK);
+    expect(lines(out).slice(0, 4)).toEqual([
+      { event: 'start', frames: 180, segments: 3 },
+      { event: 'frame', frame: 120, done: 1, frames: 180 },
+      { event: 'segment', segment: 2, done: 1, segments: 3 },
+      file('segment-000002.mp4'),
+    ]);
+    expect(lines(out).at(-1)).toEqual(done('segments-000002-000004.manifest.json'));
+  });
+
+  it.each([
+    ['a render error', 'encode-failed', EXIT_PRODUCER_ERROR],
+    ['an exceeded limit', 'limit-exceeded', EXIT_LIMIT_EXCEEDED],
+    ['a cancelled job', 'cancelled', EXIT_CANCELLED],
+  ] as const)(
+    'ends %s with one error line on stdout, the message on stderr, and its exit code',
+    async (_, code, exitCode) => {
+      const { dir } = workspace();
+      const { out, err, io: streams } = io();
+      const failing = () => Promise.reject(new ProducerError(code, 'it failed'));
+      await expect(
+        runCli(documentArgs('render-range', dir, ...RANGE), streams, {
+          renderRange: failing,
+          env: FFMPEG_ENV,
+        }),
+      ).resolves.toBe(exitCode);
+      expect(lines(out)).toEqual([{ event: 'error', code, exitCode }]);
+      expect(err).toEqual([`error ${code}: it failed`]);
+    },
+  );
+
+  it('ends a usage error with an error line of code usage, and keeps the usage on stderr', async () => {
+    const { out, err, io: streams } = io();
+    await expect(runCli(['render-range', '--nope'], streams, {})).resolves.toBe(EXIT_USAGE);
+    expect(lines(out)).toEqual([{ event: 'error', code: 'usage', exitCode: EXIT_USAGE }]);
+    expect(err).toContain(USAGE);
+  });
+
+  it('keeps the plain output of doctor and fetch-ffmpeg, which are not jobs', async () => {
+    const { out, io: streams } = io();
+    await expect(runCli(['doctor', '--nope'], streams, {})).resolves.toBe(EXIT_USAGE);
+    expect(out).toEqual([]);
+    expect(JOB_COMMANDS).not.toContain('doctor');
+    expect(JOB_COMMANDS).not.toContain('fetch-ffmpeg');
+  });
+
+  it('passes the limits of the flags to the Producer, and refuses a limit that is not an integer', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    const limits = [
+      ...['--max-document-bytes', '100000', '--max-duration-us', '10000000'],
+      ...['--max-frames', '300', '--max-assets', '3'],
+      ...['--max-asset-bytes', '5000000', '--max-total-asset-bytes', '9000000'],
+    ];
+    await runCli(documentArgs('render-range', dir, ...RANGE, ...limits), io().io, {
+      renderRange: fakeRange(seen),
+      env: FFMPEG_ENV,
+    });
+    expect(seen[0]?.limits).toEqual({
+      maxDocumentBytes: 100_000,
+      maxDurationUs: 10_000_000,
+      maxFrames: 300,
+      maxAssets: 3,
+      maxAssetBytes: 5_000_000,
+      maxTotalAssetBytes: 9_000_000,
+    });
+    await runCli(documentArgs('render-range', dir, ...RANGE), io().io, {
+      renderRange: fakeRange(seen),
+      env: FFMPEG_ENV,
+    });
+    expect(seen[1]?.limits).toBeUndefined();
+    for (const bad of [
+      ['--max-frames', '-1'],
+      ['--max-frames', '1.5'],
+      ['--max-wall-ms', 'soon'],
+      ['--max-wall-ms'],
+    ]) {
+      await expect(
+        runCli(documentArgs('render-range', dir, ...RANGE, ...bad), io().io, {
+          renderRange: never,
+          env: FFMPEG_ENV,
+        }),
+      ).resolves.toBe(EXIT_USAGE);
+    }
+  });
+
+  it('gives the join a wall time but no document limits, since it reads no document', async () => {
+    await expect(
+      runCli(['join', '--in', 'a', '--out', 'b', '--max-frames', '10'], io().io, {
+        join: never,
+        env: FFMPEG_ENV,
+      }),
+    ).resolves.toBe(EXIT_USAGE);
+  });
+
+  it('cancels the job at the wall time with limit-exceeded, and stops the timer of a job that ended', async () => {
+    const { dir } = workspace();
+    const timer = manualTimer();
+    const { out, err, io: streams } = io();
+    const pending = runCli(
+      documentArgs('render-range', dir, ...RANGE, '--max-wall-ms=60000'),
+      streams,
+      {
+        renderRange: waitingRange([], () => timer.timers[0]?.fire()),
+        env: FFMPEG_ENV,
+        startTimer: timer.startTimer,
+      },
+    );
+    await expect(pending).resolves.toBe(EXIT_LIMIT_EXCEEDED);
+    expect(timer.timers[0]?.ms).toBe(60_000);
+    expect(lines(out).at(-1)).toEqual({
+      event: 'error',
+      code: 'limit-exceeded',
+      exitCode: EXIT_LIMIT_EXCEEDED,
+    });
+    expect(err[0]).toMatch(/wall time of 60000 ms/);
+
+    const quick = manualTimer();
+    await runCli(documentArgs('render-range', dir, ...RANGE, '--max-wall-ms', '5'), io().io, {
+      renderRange: fakeRange([]),
+      env: FFMPEG_ENV,
+      startTimer: quick.startTimer,
+    });
+    expect(quick.timers[0]?.cancelled).toBe(true);
+  });
+
+  it('passes the host signal to the Producer and ends a cancelled job with exit code 5', async () => {
+    const { dir } = workspace();
+    const controller = new AbortController();
+    const seen: SegmentsRequest[] = [];
+    const { out, io: streams } = io();
+    const pending = runCli(documentArgs('render-range', dir, ...RANGE), streams, {
+      renderRange: waitingRange(seen, () => {
+        controller.abort();
+      }),
+      env: FFMPEG_ENV,
+      signal: controller.signal,
+    });
+    await expect(pending).resolves.toBe(EXIT_CANCELLED);
+    expect(seen[0]?.signal?.aborted).toBe(true);
+    expect(lines(out)).toEqual([
+      { event: 'start', frames: 60, segments: 1 },
+      { event: 'frame', frame: 0, done: 1, frames: 60 },
+      { event: 'error', code: 'cancelled', exitCode: EXIT_CANCELLED },
+    ]);
+    // No manifest under a final name: the job did not finish.
+    expect(readdirSync(join(dir, 'out'))).toEqual([]);
+  });
+
+  it('starts nothing for a signal that aborted before the job', async () => {
+    const { dir } = workspace();
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      runCli(documentArgs('render-range', dir, ...RANGE), io().io, {
+        renderRange: never,
+        env: FFMPEG_ENV,
+        signal: controller.signal,
+      }),
+    ).resolves.toBe(EXIT_CANCELLED);
+  });
+
+  it('passes the signal and the limits to every job that renders', async () => {
+    const { dir } = workspace();
+    const controller = new AbortController();
+    const signals: (AbortSignal | undefined)[] = [];
+    const hosts = {
+      env: FFMPEG_ENV,
+      signal: controller.signal,
+      render: (request: RenderRequest) => {
+        signals.push(request.signal);
+        return fakeRender([])(request);
+      },
+      exportMp4: (request: ExportRequest) => {
+        signals.push(request.signal);
+        return fakeExport([])(request);
+      },
+      renderAudio: (request: AudioRequest) => {
+        signals.push(request.signal);
+        return fakeAudio([])(request);
+      },
+    };
+    const [, ...frames] = workspace().args;
+    await runCli(['render-frames', ...frames], io().io, hosts);
+    await runCli(exportArgs(dir), io().io, hosts);
+    await runCli(documentArgs('render-audio', dir), io().io, hosts);
+    expect(signals).toHaveLength(3);
+    expect(signals.every((signal) => signal === controller.signal)).toBe(true);
+  });
+});
+
+describe('kadrion estimate (D48.5)', () => {
+  function estimateArgs(dir: string, ...extra: string[]): string[] {
+    return [
+      'estimate',
+      '--composition',
+      join(dir, 'composition.json'),
+      '--assets',
+      join(dir, 'assets.json'),
+      '--preset',
+      '1080p',
+      ...extra,
+    ];
+  }
+
+  /** Reports ten frames 50 ms apart after 2 s of setup, on a fake clock. */
+  function timedRange(seen: SegmentsRequest[], clock: { now: number }) {
+    return (request: SegmentsRequest): Promise<SegmentsResult> => {
+      seen.push(request);
+      clock.now += 2_000;
+      request.onProgress?.({ event: 'start', frames: 10, segments: 1 });
+      for (let done = 1; done <= 10; done += 1) {
+        request.onProgress?.({ event: 'frame', frame: 139 + done, done, frames: 10 });
+        clock.now += 50;
+      }
+      clock.now -= 50;
+      request.onProgress?.({ event: 'segment', segment: 14, done: 1, segments: 1 });
+      writeFileSync(join(request.outputDirectory, 'segment-000014.mp4'), 'mp4');
+      return Promise.resolve({} as SegmentsResult);
+    };
+  }
+
+  it('renders the middle segment into a temporary directory and reports the time per frame', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    const clock = { now: 1_000 };
+    const { out, io: streams } = io();
+    await expect(
+      runCli(estimateArgs(dir, '--budget-ms', '20000'), streams, {
+        renderRange: timedRange(seen, clock),
+        env: FFMPEG_ENV,
+        now: () => clock.now,
+      }),
+    ).resolves.toBe(EXIT_OK);
+    expect(seen[0]).toMatchObject({
+      preset: '1080p',
+      range: { fromUs: 4_666_666, toUs: 5_000_000 },
+      segmentFrames: 10,
+    });
+    // The measurement leaves nothing behind.
+    expect(existsSync(seen[0]?.outputDirectory ?? '')).toBe(false);
+    expect(lines(out).slice(-2)).toEqual([
+      {
+        event: 'estimate',
+        samples: 10,
+        setupMs: 2_000,
+        msPerFrame: 50,
+        segmentFrames: 60,
+        msPerSegment: 3_000,
+        segments: 5,
+        // (20 000 − 2 000) / 3 000
+        segmentsInBudget: 6,
+      },
+      done(null),
+    ]);
+  });
+
+  it('takes the samples and the segment length of the host, and reports no budget without one', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    const clock = { now: 0 };
+    const { out, io: streams } = io();
+    await runCli(estimateArgs(dir, '--samples', '10', '--segment-frames', '30'), streams, {
+      renderRange: timedRange(seen, clock),
+      env: FFMPEG_ENV,
+      now: () => clock.now,
+    });
+    expect(lines(out).at(-2)).toMatchObject({
+      segmentFrames: 30,
+      msPerSegment: 1_500,
+      segments: 10,
+      segmentsInBudget: null,
+    });
+  });
+
+  it('refuses one sample with range-invalid before rendering', async () => {
+    const { dir } = workspace();
+    await expect(
+      runCli(estimateArgs(dir, '--samples', '1'), io().io, {
+        renderRange: never,
+        env: FFMPEG_ENV,
+      }),
+    ).resolves.toBe(EXIT_PRODUCER_ERROR);
   });
 });
