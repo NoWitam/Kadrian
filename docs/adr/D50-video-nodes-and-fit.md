@@ -1,6 +1,7 @@
 # D50 — Video nodes and `fit`: schema 0.3, the source frame, and video in the Producer
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-10-31, after PR-28a was merged
+  (PR #15)
 - Date: 2026-10-31
 - Supersedes: —
 - Extends: D14 (asset type `video`), D16 (node `video`, `fit`), D22 (`fit` as
