@@ -56,6 +56,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D46](D46-tool-catalogue-from-the-command-registry.md)        | The tool catalogue derived from the command registry                               | Accepted          |
 | [D47](D47-segmented-rendering-join-and-stills.md)             | Segmented rendering, the join, and still frames                                    | Accepted          |
 | [D48](D48-render-job-contract.md)                             | The render job contract: progress, cancellation, limits, exit codes, the estimate  | Proposed          |
+| [D49](D49-the-timeline-model.md)                              | The timeline model: clips, layers, scenes, transitions, and media facts            | Proposed          |
 
 ## Provenance of D01–D10
 
