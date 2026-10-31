@@ -49,8 +49,9 @@ export {
   FFMPEG_SHA256,
   FFMPEG_URL,
   FFPROBE_SHA256,
+  verifyFfmpeg,
 } from './ffmpeg.js';
-export type { FfmpegPaths } from './ffmpeg.js';
+export type { FfmpegIdentity, FfmpegPaths } from './ffmpeg.js';
 export type { ProducerErrorCode } from './errors.js';
 export { canonicalJson, MANIFEST_VERSION, sha256 } from './manifest.js';
 export type {

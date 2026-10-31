@@ -1,7 +1,8 @@
 /**
  * The installation of the pinned FFmpeg build (D29.1), without the network and
- * the processes, which the caller injects: `tests/pinned/fetch-ffmpeg.ts` passes
- * the real ones, `ffmpeg-install.test.ts` fakes them.
+ * the processes, which the caller injects: `fetch-ffmpeg.ts` passes the real
+ * ones for `kadrion fetch-ffmpeg` (D45), `ffmpeg-install.test.ts` fakes them.
+ * It moved here from `tests/ci` with PR-26, unchanged in behaviour.
  *
  * The first CI run failed here (owner, 2026-09-24): the pinned Playwright image
  * has no `xz`, so `tar -xJf` could not decompress the archive, and GNU tar run
@@ -27,8 +28,7 @@
  * Windows path for a remote host; the flags work with Windows' own `tar.exe`
  * (bsdtar) as well.
  *
- * Node built-ins only, so `fetch-ffmpeg.ts` can run it with
- * `--experimental-strip-types`.
+ * Node built-ins only.
  */
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';

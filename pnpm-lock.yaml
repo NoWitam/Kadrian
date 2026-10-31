@@ -14,6 +14,9 @@ importers:
       '@kadrion/ai-sdk':
         specifier: workspace:*
         version: link:packages/ai-sdk
+      '@kadrion/cli':
+        specifier: workspace:*
+        version: link:packages/cli
       '@kadrion/editor-sdk':
         specifier: workspace:*
         version: link:packages/editor-sdk

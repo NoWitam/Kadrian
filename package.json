@@ -25,6 +25,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@kadrion/ai-sdk": "workspace:*",
+    "@kadrion/cli": "workspace:*",
     "@kadrion/editor-sdk": "workspace:*",
     "@kadrion/producer": "workspace:*",
     "@kadrion/renderer-dom": "workspace:*",

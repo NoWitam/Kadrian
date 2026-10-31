@@ -1,6 +1,6 @@
 {
   "name": "@kadrion/editor-session",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "host facade joining the document, command bus, Player, and asset resolver.",
   "license": "UNLICENSED",
@@ -12,7 +12,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/.tsbuildinfo",
+    "!dist/**/*.map"
   ],
   "dependencies": {
     "@kadrion/editor-sdk": "workspace:*",

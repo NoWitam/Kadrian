@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-09-22
 - Amended by: PR-36 on 2026-10-30, at the owner's decision: 29.1, where the
   pinned archive is downloaded from
+- Amended by: PR-26 (D45) on 2026-10-31: 29.1, where the installer lives
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D04, D06, D07, D10, D12, D13, D14, D23, D26, D27, D28,
@@ -113,7 +114,10 @@ libswresample   6.  3.103 /  6.  3.103
   `.kadrion-cache/ffmpeg/` (ignored by Git) unless it is there, refuses an
   archive with another SHA-256, extracts `bin/ffmpeg`, `bin/ffprobe`, and
   `LICENSE.txt`, and refuses binaries with other checksums. It runs before a
-  render, with a network; the render does not.
+  render, with a network; the render does not. (Amended by: PR-26 (D45). The
+  installer is `fetchFfmpeg` of `@kadrion/cli`, which a host runs as
+  `kadrion fetch-ffmpeg --dir <dir>`; the script calls it with
+  `.kadrion-cache/ffmpeg/`, and its behaviour is unchanged.)
 - `exportMp4` takes `ffmpegPath` and `ffprobePath` explicitly. Before anything
   else touches Chromium it checks, in this order: both paths are absolute and
   exist (`ffmpeg-missing`: a bare name would make the operating system search

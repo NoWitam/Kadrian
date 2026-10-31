@@ -11,10 +11,12 @@
     "./**/*.ts",
     "../parity/parity.ts",
     "../ci/diagnostic.ts",
-    "../ci/ffmpeg-install.ts",
     "../../vitest.pinned.config.ts"
   ],
   "references": [
+    {
+      "path": "../../packages/cli"
+    },
     {
       "path": "../../packages/producer"
     },

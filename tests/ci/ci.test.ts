@@ -40,7 +40,7 @@ import {
   writeCiDiagnostic,
   type CiDiagnostic,
 } from './diagnostic.js';
-import { FFMPEG_INSTALL_ERROR_CODES } from './ffmpeg-install.js';
+import { FFMPEG_INSTALL_ERROR_CODES } from '@kadrion/cli';
 import {
   PinnedSummaryError,
   pinnedSummaryProblems,
