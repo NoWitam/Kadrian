@@ -115,6 +115,12 @@ export async function launchChromium(options: LaunchOptions = {}): Promise<Launc
     browser = await chromium.launch({
       channel: CHROMIUM_CHANNEL,
       args: [...CHROMIUM_ARGS, ...(options.extraArgs ?? [])],
+      // Signals belong to the process that runs the job (D48.2): Playwright's
+      // own handlers would close the browser and exit with 130 before the job
+      // removed its partial files. Its exit handler still kills the browser.
+      handleSIGINT: false,
+      handleSIGTERM: false,
+      handleSIGHUP: false,
     });
   } catch (reason) {
     const message = reason instanceof Error ? reason.message.split('\n')[0] : String(reason);

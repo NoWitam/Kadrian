@@ -20,7 +20,9 @@ local run of the same commands, including
   `tests/pinned/player.pinned.test.ts` (`Player.update`), and
   `tests/pinned/editor.pinned.test.ts` (the playground on the host facade), and
   the encoders the pinned build must have. It deleted the evidence below by the
-  procedure of this file. Q14 closes again only when a documentation commit adds
+  procedure of this file. PR-25b (D48) adds the tests of the render job
+  contract to `tests/pinned/export.pinned.test.ts` while Q14 is open, so the
+  evidence must come from a run that includes them. Q14 closes again only when a documentation commit adds
   the evidence of a green push run of that commit. The text below records the
   evidence of PR-21 as it was.
 

@@ -18,6 +18,7 @@ import {
   type FfmpegPaths,
   type FfmpegTools,
 } from './ffmpeg.js';
+import { checkDocumentLimits, failure, throwIfCancelled, type JobOptions } from './job.js';
 import { EXPORT_MANIFEST_VERSION, sha256, type StillManifest } from './manifest.js';
 import {
   frameIndexOf,
@@ -29,7 +30,7 @@ import {
 import type { RuntimeBuild } from './runtime.js';
 import { checkedStillFormat, STILL_FORMATS, stillArgs, type StillFormat } from './segments.js';
 
-export interface StillRequest extends RenderTimeouts {
+export interface StillRequest extends RenderTimeouts, JobOptions {
   readonly document: unknown;
   readonly resolveAsset: AssetResolver;
   /** A frame time of the composition (D13.2). */
@@ -62,10 +63,24 @@ export async function renderStillWith(
   request: StillRequest,
   dependencies: StillDependencies,
 ): Promise<StillResult> {
+  try {
+    return await stillOf(request, dependencies);
+  } catch (reason) {
+    throw failure(reason, request.signal);
+  }
+}
+
+async function stillOf(
+  request: StillRequest,
+  dependencies: StillDependencies,
+): Promise<StillResult> {
+  const { signal } = request;
   // Everything that can be checked before a page opens is checked first.
+  throwIfCancelled(signal);
   const format = checkedStillFormat(request.format);
   const composition = validated(request.document);
   frameIndexOf(composition, request.timeUs);
+  checkDocumentLimits(request.limits, composition, 1);
   let tools: FfmpegTools | null = null;
   if (format !== 'png') {
     if (request.ffmpeg === undefined) {
@@ -87,6 +102,9 @@ export async function renderStillWith(
     ...(request.presentationTimeoutMs === undefined
       ? {}
       : { presentationTimeoutMs: request.presentationTimeoutMs }),
+    ...(signal === undefined ? {} : { signal }),
+    ...(request.onProgress === undefined ? {} : { onProgress: request.onProgress }),
+    ...(request.limits === undefined ? {} : { limits: request.limits }),
   });
   const [frame] = rendered.frames;
   if (frame === undefined) throw new ProducerError('page-error', 'The render returned no frame.');
@@ -94,11 +112,13 @@ export async function renderStillWith(
   let args: string[] | null = null;
   if (tools !== null && format !== 'png') {
     args = stillArgs(format, composition);
+    throwIfCancelled(signal);
     const result = await tools
-      .run(args, frame.png, request.encoderTimeoutMs ?? 30_000)
+      .run(args, frame.png, request.encoderTimeoutMs ?? 30_000, signal)
       .catch((reason: unknown) => {
         throw asProducerError(reason);
       });
+    throwIfCancelled(signal);
     if (result.code !== 0 || result.stdout.length === 0) {
       throw new ProducerError(
         'encode-failed',

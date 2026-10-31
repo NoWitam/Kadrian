@@ -127,7 +127,7 @@ are complete, working examples of everything below.
 | `@kadrion/editor-session` | join the bus and the Player: every edit reaches the preview, one table of events |
 | `@kadrion/ai-sdk`         | give a model tools that dispatch the same commands                               |
 | `@kadrion/producer`       | render frames and export MP4 in the pinned Chromium, from Node.js                |
-| `@kadrion/cli`            | render and export from the command line; fetch FFmpeg; check the environment     |
+| `@kadrion/cli`            | render and export from the command line as jobs; fetch FFmpeg; check the setup   |
 | `@kadrion/test-fixtures`  | the reference composition, its generated assets, and the golden frames           |
 
 `@kadrion/test-fixtures/compatibility` is a second entry of the fixtures: the
@@ -775,8 +775,42 @@ node packages/cli/dist/bin.js render-still --composition composition.json \
 - Every file is written under a temporary name and renamed when complete.
 - **FFmpeg:** it comes from `--ffmpeg` and `--ffprobe`, or from `KADRION_FFMPEG`
   and `KADRION_FFPROBE`.
-- **Exit codes:** 0 for success, 2 for a usage error, and 1 for an error of the
-  Producer or of the FFmpeg installation.
+
+Each of these commands is a job a host's queue can run (D48):
+
+- **Standard output** is JSON lines and nothing else: `start`, one `frame` per
+  frame, one `segment` per finished segment, one `file` per file written, and
+  last one `done` or `error`. Diagnostics go to standard error.
+
+  ```text
+  {"event":"start","frames":120,"segments":2}
+  {"event":"frame","frame":0,"done":1,"frames":120}
+  {"event":"segment","segment":0,"done":1,"segments":2}
+  {"event":"file","file":"segment-000000.mp4"}
+  {"event":"file","file":"segments-000000-000001.manifest.json"}
+  {"event":"done","manifest":"segments-000000-000001.manifest.json"}
+  ```
+
+- **Cancellation:** `SIGTERM` or `SIGINT` stops Chromium and FFmpeg, removes
+  what the job wrote, and exits 5. A job killed without a signal leaves only
+  files under their temporary names, which the next run replaces.
+- **Limits:** `--max-document-bytes`, `--max-duration-us`, `--max-frames`,
+  `--max-assets`, `--max-asset-bytes`, and `--max-total-asset-bytes` are checked
+  before rendering; `--max-wall-ms` cancels the job when its time is up.
+  `join` takes only `--max-wall-ms`.
+- **Exit codes:** 0 for success, 1 for an error of the Producer or of the FFmpeg
+  installation, 2 for a usage error, 4 for an exceeded limit, and 5 for a
+  cancelled job.
+- **`estimate`:** renders and encodes a few frames, keeps none of them, and
+  reports the time per frame and how many segments fit into `--budget-ms`:
+
+  ```bash
+  node packages/cli/dist/bin.js estimate --composition composition.json \
+    --assets assets.json --preset 1080p --samples 10 --budget-ms 600000
+  ```
+
+In the library, every job takes `signal` (an `AbortSignal`), `onProgress`, and
+`limits`.
 
 For a host's worker (D45):
 
