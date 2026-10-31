@@ -1,0 +1,815 @@
+[
+  {
+    "name": "describe_document",
+    "description": "Describes the current document and changes nothing. Returns the canvas size in composition pixels, fps, and durationUs; every scene with its nodes from the bottom layer to the top, each with its ID, type, parentId, layer (0 is the bottom), startUs and durationUs in integer microseconds, its stored fields (position, scale, opacity, animations with their keyframes, text, colour, and so on; the html of a Custom HTML element is left out), and a group's children; and the declared assets and clips. Call it before editing to learn the IDs that other tools take.\n\nExample arguments: {}",
+    "inputSchema": {
+      "type": "object",
+      "description": "No arguments.",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_position",
+    "description": "Moves one node to an absolute base position: x from the left edge, y from the top edge, of the canvas, or of its group for a node inside a group. Lengths and coordinates are composition pixels, rounded to integers. A position animation of the node adds its offsets on top of this base. Refused with unknown-node when no node has the ID, unsupported-node for a node without a position (the background), and invalid-result when the document cannot hold the position. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"position\":{\"x\":120,\"y\":240}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Moves one node to an absolute base position.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node to move. A node without a position, such as the background, is refused.",
+          "minLength": 1
+        },
+        "position": {
+          "type": "object",
+          "description": "The node's new base position, absolute, in composition pixels. A position animation adds its offsets on top of it.",
+          "properties": {
+            "x": {
+              "type": "number",
+              "description": "Distance from the left edge, in composition pixels. A fraction is rounded to an integer, halves towards +Infinity (2.5 becomes 3, -2.5 becomes -2), and -0 becomes 0."
+            },
+            "y": {
+              "type": "number",
+              "description": "Distance from the top edge, in composition pixels. A fraction is rounded to an integer, halves towards +Infinity (2.5 becomes 3, -2.5 becomes -2), and -0 becomes 0."
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "nodeId",
+        "position"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_opacity",
+    "description": "Sets one node's base opacity, from 0 (transparent) to 1 (opaque) inclusive. An opacity animation of the node multiplies it. Refused with invalid-argument outside 0 to 1, unknown-node when no node has the ID, and unsupported-node for a node without an opacity (the background). The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"opacity\":0.5}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets one node's base opacity.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. A node without an opacity, such as the background, is refused.",
+          "minLength": 1
+        },
+        "opacity": {
+          "type": "number",
+          "description": "The base opacity, from 0 (transparent) to 1 (opaque) inclusive; a fraction is kept as it is, and -0 becomes 0. An opacity animation multiplies it.",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "nodeId",
+        "opacity"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_text_content",
+    "description": "Replaces the text of one text node, exactly as given: nothing is trimmed, and line breaks (\\n) are kept. Refused with unknown-node when no node has the ID and unsupported-node for a node that is not a text. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"text\":\"Hello\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Replaces the text of one text node.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of a text node. Any other node is refused.",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "description": "The new text, exactly as given: nothing is trimmed or normalised, and line breaks are kept."
+        }
+      },
+      "required": [
+        "nodeId",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_node",
+    "description": "Inserts one complete node into the scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text and image nodes only. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"color\":\"#ffffff\"}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Inserts a complete node, with its animations and children, into a list.",
+      "properties": {
+        "parentId": {
+          "type": "string",
+          "description": "The ID of the scene, or of a group, whose list receives the node. A group takes image and text nodes only.",
+          "minLength": 1
+        },
+        "index": {
+          "type": "integer",
+          "description": "The node's index in that list after the insertion, from 0 (the bottom layer) to the list's length (the top).",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "node": {
+          "type": "object",
+          "description": "The complete node as the document stores it, with every ID of its subtree chosen by the caller and unused in the document, and its animations in its own `animations` array."
+        }
+      },
+      "required": [
+        "parentId",
+        "index",
+        "node"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "remove_node",
+    "description": "Removes one node together with its animations and, for a group, its children. Refused with unknown-node when no node has the ID and invalid-result when the document would no longer be valid without it. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-custom-html\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Removes a node with its animations and, for a group, its children.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "nodeId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "duplicate_node",
+    "description": "Copies one node, with its animations and children, into the same list directly above the original. The copy takes newNodeId; a child at index i of the copy becomes <newNodeId>-c<i>, an animation <newNodeId>-a-<property>. Refused with unknown-node, id-in-use when an ID of the copy is taken, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"newNodeId\":\"node-title-copy\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Copies a node, with its animations and children, directly above it.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node.",
+          "minLength": 1
+        },
+        "newNodeId": {
+          "type": "string",
+          "description": "The ID of the copy, unused in the document. Every other ID of the copy derives from it: a child at index i becomes `<newNodeId>-c<i>`, an animation `<newNodeId>-a-<property>`, and an animation of that child `<newNodeId>-c<i>-a-<property>`.",
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "nodeId",
+        "newNodeId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "reorder_node",
+    "description": "Moves one node to another index of its own list, which changes the layer order: 0 is the bottom layer and the length of the list minus 1 the top. It never moves a node into or out of a group. Refused with unknown-node and index-out-of-range. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"index\":1}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Moves a node within its own list, which changes the layer order.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node.",
+          "minLength": 1
+        },
+        "index": {
+          "type": "integer",
+          "description": "The node's index in its own list after the move, from 0 (the bottom layer) to the list's length minus 1 (the top).",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "nodeId",
+        "index"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_scale",
+    "description": "Sets one node's base scale about its top-left corner: 1 is the natural size, from 0 to 1000 on each axis. A scale animation of the node multiplies it. Refused with invalid-argument outside 0 to 1000, unknown-node, and unsupported-node for a node without a scale (the background). The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"scale\":{\"x\":1.5,\"y\":1.5}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets one node's base scale.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. A node without a scale, such as the background, is refused.",
+          "minLength": 1
+        },
+        "scale": {
+          "type": "object",
+          "description": "The node's new base scale about its own origin. A scale animation multiplies it.",
+          "properties": {
+            "x": {
+              "type": "number",
+              "description": "A factor from 0 to 1000 inclusive, kept as it is; -0 becomes 0.",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "y": {
+              "type": "number",
+              "description": "A factor from 0 to 1000 inclusive, kept as it is; -0 becomes 0.",
+              "minimum": 0,
+              "maximum": 1000
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "nodeId",
+        "scale"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_size",
+    "description": "Sets the width and height of an image or a Custom HTML element, from 1 to 1000000 each. Lengths and coordinates are composition pixels, rounded to integers. A text has no size; change its font size instead. Refused with invalid-argument for a size outside the range after rounding, unknown-node, and unsupported-node for any other node. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"width\":480,\"height\":270}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the size of an image or a Custom HTML element.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only images and Custom HTML elements have a size.",
+          "minLength": 1
+        },
+        "width": {
+          "type": "number",
+          "description": "The width, in composition pixels. A fraction is rounded to an integer, halves towards +Infinity, and -0 becomes 0; the document takes 1 to 1 000 000, and a rounded value outside that range is refused."
+        },
+        "height": {
+          "type": "number",
+          "description": "The height, in composition pixels. A fraction is rounded to an integer, halves towards +Infinity, and -0 becomes 0; the document takes 1 to 1 000 000, and a rounded value outside that range is refused."
+        }
+      },
+      "required": [
+        "nodeId",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_color",
+    "description": "Sets the colour of a text or a background, as # and six hexadecimal digits (sRGB), stored in lower case. Refused with invalid-argument for short forms, names, or alpha, unknown-node, and unsupported-node for a node without a colour. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"color\":\"#ffcc00\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the colour of a text or a background.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only texts and backgrounds have a colour.",
+          "minLength": 1
+        },
+        "color": {
+          "type": "string",
+          "description": "An sRGB colour as `#` and six hexadecimal digits, in either case; it is stored in lower case. Short forms, names, and alpha are refused.",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      },
+      "required": [
+        "nodeId",
+        "color"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_text_font_size",
+    "description": "Sets the font size of a text, from 1 to 1000000. Lengths and coordinates are composition pixels, rounded to integers. Refused with invalid-argument outside the range after rounding, unknown-node, and unsupported-node for a node that is not a text. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"fontSize\":96}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the font size of a text.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only texts have a font size.",
+          "minLength": 1
+        },
+        "fontSize": {
+          "type": "number",
+          "description": "The font size, in composition pixels. A fraction is rounded to an integer, halves towards +Infinity, and -0 becomes 0; the document takes 1 to 1 000 000, and a rounded value outside that range is refused."
+        }
+      },
+      "required": [
+        "nodeId",
+        "fontSize"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_text_font",
+    "description": "Points a text at another font asset that the document declares (add one with add_asset first). Refused with unknown-node, unsupported-node for a node that is not a text, unknown-asset, and asset-type-mismatch when the asset is not a font. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"fontAssetId\":\"asset-font-bold\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Points a text at another font asset of the document.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only texts have a font.",
+          "minLength": 1
+        },
+        "fontAssetId": {
+          "type": "string",
+          "description": "The ID of a font asset the document declares.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "nodeId",
+        "fontAssetId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_image_asset",
+    "description": "Points an image node at another image asset that the document declares; the node keeps its size. Refused with unknown-node, unsupported-node for a node that is not an image, unknown-asset, and asset-type-mismatch when the asset is not an image. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"assetId\":\"asset-photo\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Points an image at another image asset of the document; its size stays.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only images have an image asset.",
+          "minLength": 1
+        },
+        "assetId": {
+          "type": "string",
+          "description": "The ID of an image asset the document declares.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "nodeId",
+        "assetId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_asset",
+    "description": "Declares an image, audio, or font asset at an index of the document's assets, under an unused ID and the SHA-256 of its exact bytes. Declare only assets whose bytes the host has: the host must supply them whenever the document is loaded, even while nothing uses the asset. Refused with id-in-use and index-out-of-range. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"asset\":{\"id\":\"asset-photo\",\"type\":\"image\",\"contentHash\":\"sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae\"},\"index\":3}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Declares an asset, pinned by the hash of its exact bytes. The host must then supply those bytes whenever the document is loaded, even while nothing uses the asset.",
+      "properties": {
+        "asset": {
+          "type": "object",
+          "description": "The asset as the document stores it.",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The ID of the asset, unused in the document.",
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "type": {
+              "type": "string",
+              "description": "The kind of the asset.",
+              "enum": [
+                "image",
+                "audio",
+                "font"
+              ]
+            },
+            "contentHash": {
+              "type": "string",
+              "description": "The algorithm, a colon, and the lower-case hex digest of the exact bytes.",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "contentHash"
+          ],
+          "additionalProperties": false
+        },
+        "index": {
+          "type": "integer",
+          "description": "The asset's index in the document's assets after the insertion, from 0 to their number.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "asset",
+        "index"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "remove_asset",
+    "description": "Removes an asset that nothing uses. Refused with unknown-asset, and with asset-in-use, whose details list the IDs of its users: point them at another asset or remove them first. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"assetId\":\"asset-photo\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Removes an asset that nothing uses; an asset in use is refused with its users.",
+      "properties": {
+        "assetId": {
+          "type": "string",
+          "description": "The ID of an asset the document declares.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "assetId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_animation",
+    "description": "Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property (position, scale, or opacity), which the node must not animate yet; the interpolation (\"linear\"); and at least two keyframes in ascending time, each {timeUs, value}. A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Refused with unknown-node, unsupported-node for a node without animations (the background), duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-custom-html\",\"index\":0,\"animation\":{\"id\":\"anim-html-opacity\",\"property\":\"opacity\",\"interpolation\":\"linear\",\"keyframes\":[{\"timeUs\":0,\"value\":0},{\"timeUs\":1000000,\"value\":1}]}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Inserts a complete animation into a node's animations.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. The background has no animations.",
+          "minLength": 1
+        },
+        "index": {
+          "type": "integer",
+          "description": "The animation's index in the node's animations after the insertion.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "animation": {
+          "type": "object",
+          "description": "The complete animation as the document stores it: its ID, unused in the document; its property, which the node must not animate already; its interpolation; and its keyframes."
+        }
+      },
+      "required": [
+        "nodeId",
+        "index",
+        "animation"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "remove_animation",
+    "description": "Removes one animation with all its keyframes; the node keeps its base values. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-title-opacity\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Removes one animation with all its keyframes.",
+      "properties": {
+        "animationId": {
+          "type": "string",
+          "description": "The ID of an animation of the document.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "animationId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_opacity_keyframe",
+    "description": "Sets the opacity factor (0 to 1) of an opacity animation at a time: replaces the value of the keyframe at that time, or inserts one. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation and animation-property-mismatch when the animation does not animate opacity. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-title-opacity\",\"timeUs\":5000000,\"opacity\":0.5}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the keyframe at a time of an opacity animation, inserting it when none is there.",
+      "properties": {
+        "animationId": {
+          "type": "string",
+          "description": "The ID of an animation of the document. It must animate opacity.",
+          "minLength": 1
+        },
+        "timeUs": {
+          "type": "integer",
+          "description": "A composition time in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "opacity": {
+          "type": "number",
+          "description": "The opacity factor, from 0 to 1 inclusive, kept as it is; -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "animationId",
+        "timeUs",
+        "opacity"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_position_keyframe",
+    "description": "Sets the offset {x, y} of a position animation at a time, added to the node's base position: replaces the value of the keyframe at that time, or inserts one. Lengths and coordinates are composition pixels, rounded to integers. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation and animation-property-mismatch when the animation does not animate position. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-group-position\",\"timeUs\":5000000,\"offset\":{\"x\":40,\"y\":200}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the keyframe at a time of a position animation, inserting it when none is there.",
+      "properties": {
+        "animationId": {
+          "type": "string",
+          "description": "The ID of an animation of the document. It must animate position.",
+          "minLength": 1
+        },
+        "timeUs": {
+          "type": "integer",
+          "description": "A composition time in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "offset": {
+          "type": "object",
+          "description": "The offset added to the node's base position, in composition pixels; each coordinate is rounded to an integer, halves towards +Infinity, and -0 becomes 0.",
+          "properties": {
+            "x": {
+              "type": "number",
+              "description": "The horizontal offset."
+            },
+            "y": {
+              "type": "number",
+              "description": "The vertical offset."
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "animationId",
+        "timeUs",
+        "offset"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_scale_keyframe",
+    "description": "Sets the factors {x, y} of a scale animation at a time, from 0 to 1000, multiplied with the node's base scale: replaces the value of the keyframe at that time, or inserts one. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation and animation-property-mismatch when the animation does not animate scale. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-image-scale\",\"timeUs\":5000000,\"factor\":{\"x\":1.1,\"y\":1.1}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the keyframe at a time of a scale animation, inserting it when none is there.",
+      "properties": {
+        "animationId": {
+          "type": "string",
+          "description": "The ID of an animation of the document. It must animate scale.",
+          "minLength": 1
+        },
+        "timeUs": {
+          "type": "integer",
+          "description": "A composition time in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "factor": {
+          "type": "object",
+          "description": "The factors multiplied with the node's base scale.",
+          "properties": {
+            "x": {
+              "type": "number",
+              "description": "A factor from 0 to 1000 inclusive; -0 becomes 0.",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "y": {
+              "type": "number",
+              "description": "A factor from 0 to 1000 inclusive; -0 becomes 0.",
+              "minimum": 0,
+              "maximum": 1000
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "animationId",
+        "timeUs",
+        "factor"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_keyframe",
+    "description": "Inserts one keyframe given exactly as the document stores it, {timeUs, value}, into an animation, at the place its time gives it; the value must fit the animated property. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation, keyframe-exists when the time is taken, and invalid-result for a value of the wrong form. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-title-opacity\",\"keyframe\":{\"timeUs\":9000000,\"value\":0.5}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Inserts a keyframe given as exact data at the place its time gives it; its value is judged by the document.",
+      "properties": {
+        "animationId": {
+          "type": "string",
+          "description": "The ID of an animation of the document.",
+          "minLength": 1
+        },
+        "keyframe": {
+          "type": "object",
+          "description": "The keyframe as the document stores it: its time, which must be free, and its value.",
+          "properties": {
+            "timeUs": {
+              "type": "integer",
+              "description": "A composition time in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "timeUs"
+          ]
+        }
+      },
+      "required": [
+        "animationId",
+        "keyframe"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "remove_keyframe",
+    "description": "Removes the keyframe at a time from an animation. An animation keeps at least two keyframes; remove the whole animation instead. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation, unknown-keyframe, and too-few-keyframes. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-title-opacity\",\"timeUs\":5000000}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Removes the keyframe at a time; refused when the animation would keep fewer keyframes than the document allows.",
+      "properties": {
+        "animationId": {
+          "type": "string",
+          "description": "The ID of an animation of the document.",
+          "minLength": 1
+        },
+        "timeUs": {
+          "type": "integer",
+          "description": "A composition time in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "animationId",
+        "timeUs"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "move_keyframe",
+    "description": "Moves the keyframe at timeUs of an animation to toTimeUs, keeping its value. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation, unknown-keyframe, and keyframe-exists when toTimeUs is taken. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-title-opacity\",\"timeUs\":7500000,\"toTimeUs\":6000000}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Gives the keyframe at a time another time, which must be free.",
+      "properties": {
+        "animationId": {
+          "type": "string",
+          "description": "The ID of an animation of the document.",
+          "minLength": 1
+        },
+        "timeUs": {
+          "type": "integer",
+          "description": "A composition time in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "toTimeUs": {
+          "type": "integer",
+          "description": "A composition time in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "animationId",
+        "timeUs",
+        "toTimeUs"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_lifetime",
+    "description": "Sets when a node is shown: from startUs, for durationUs (at least 1). Times are composition times in integer microseconds (1 second is 1000000), never rounded. The part after the end of the composition is cut. It moves no keyframe: keyframe times stay composition times. Refused with unknown-node and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"startUs\":1000000,\"durationUs\":5000000}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets when a node is shown: from startUs, for durationUs, in composition time. It moves no keyframe of the node.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Every node has a lifetime, the background included.",
+          "minLength": 1
+        },
+        "startUs": {
+          "type": "integer",
+          "description": "The composition time from which the node is active, in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "durationUs": {
+          "type": "integer",
+          "description": "How long the node is active, in integer microseconds, at least 1; whatever lies past the end of the composition is cut, and it is never rounded.",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "nodeId",
+        "startUs",
+        "durationUs"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "run_transaction",
+    "description": "Applies several edit tools in order as one step: all of them or none, and one undo reverts them all. Each call names an edit tool of this catalogue (not describe_document or run_transaction) and passes that tool's arguments; a later call sees the document the earlier ones produced. When one call is refused, nothing changes, and the error names the index of that call. Returns the edited document and the IDs the calls created.\n\nExample arguments: {\"calls\":[{\"name\":\"set_node_position\",\"arguments\":{\"nodeId\":\"node-title\",\"position\":{\"x\":120,\"y\":240}}},{\"name\":\"set_node_opacity\",\"arguments\":{\"nodeId\":\"node-title\",\"opacity\":0.5}}]}",
+    "inputSchema": {
+      "type": "object",
+      "description": "The edit tool calls to apply as one step.",
+      "properties": {
+        "calls": {
+          "type": "array",
+          "description": "The calls, in the order they are applied; at least one.",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "description": "One call of an edit tool.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of an edit tool of this catalogue.",
+                "enum": [
+                  "set_node_position",
+                  "set_node_opacity",
+                  "set_text_content",
+                  "add_node",
+                  "remove_node",
+                  "duplicate_node",
+                  "reorder_node",
+                  "set_node_scale",
+                  "set_node_size",
+                  "set_node_color",
+                  "set_text_font_size",
+                  "set_text_font",
+                  "set_image_asset",
+                  "add_asset",
+                  "remove_asset",
+                  "add_animation",
+                  "remove_animation",
+                  "set_opacity_keyframe",
+                  "set_position_keyframe",
+                  "set_scale_keyframe",
+                  "add_keyframe",
+                  "remove_keyframe",
+                  "move_keyframe",
+                  "set_node_lifetime"
+                ]
+              },
+              "arguments": {
+                "type": "object",
+                "description": "The arguments of that tool, exactly as its own input schema states."
+              }
+            },
+            "required": [
+              "name",
+              "arguments"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "calls"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

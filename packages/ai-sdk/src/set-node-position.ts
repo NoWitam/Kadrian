@@ -1,59 +1,27 @@
 /**
- * The AI tool contract of `SetNodePosition` (D31). The tool is data — a name, a
- * description, and the argument schema that `@kadrion/editor-sdk` owns — and
- * one function that turns the arguments into the command and dispatches it on
- * the host's bus. It adds the discriminator and nothing else: the parse, the
- * rounding, the lookup, and the full validation are the bus's, exactly as for
- * a drag on the canvas (P4).
+ * The AI tool contract of `SetNodePosition` (D31), kept as the narrow entry of
+ * the spike next to the catalogue of D46. Its definition is the catalogue's
+ * own entry, and `executeSetNodePosition` builds the command exactly as
+ * `executeTool` does, but needs nothing of the bus but `dispatch` (D31.5).
  */
-import {
-  EditorError,
-  setNodePositionArgumentsSchema,
-  type ClosedObjectSchema,
-  type CommandBus,
-  type CommandResult,
-} from '@kadrion/editor-sdk';
+import { type CommandBus, type CommandResult } from '@kadrion/editor-sdk';
 
-/** What a host hands to a model API; `inputSchema` is the name MCP uses (D31.1). */
-export interface ToolDefinition {
-  readonly name: string;
-  readonly description: string;
-  readonly inputSchema: ClosedObjectSchema<string>;
+import { TOOL_CATALOGUE, type ToolDefinition } from './catalogue.js';
+import { commandOf } from './execute.js';
+
+const NAME = 'set_node_position';
+
+function entryOf(name: string): ToolDefinition {
+  const entry = TOOL_CATALOGUE.find((tool) => tool.name === name);
+  if (entry === undefined) throw new Error(`The catalogue has no tool \`${name}\`.`);
+  return entry;
 }
 
 /**
- * The definition of `set_node_position`. Its `inputSchema` is the very object
- * `editor-sdk` exports, deep-frozen there, so nothing here can drift from the
- * command (D31.2).
+ * The definition of `set_node_position`: the catalogue's entry, whose
+ * `inputSchema` is the very object `editor-sdk` exports (D31.2, D46.2).
  */
-export const setNodePositionTool: ToolDefinition = Object.freeze({
-  name: 'set_node_position',
-  description:
-    "Moves one node of the composition to an absolute base position, in composition pixels. The edit goes through the host's command bus, like a drag on the canvas: the result is validated in full and can be undone. Returns the edited document and the command that undoes the edit.",
-  inputSchema: setNodePositionArgumentsSchema,
-});
-
-function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * The command the arguments ask for (D31.3). Anything that is not an object
- * goes to the bus unchanged, whose parser refuses it; an own `type` is refused
- * here, because the schema forbids it and either spread order would disagree
- * with the schema. The spread reads each field once, so the parser sees a
- * plain snapshot.
- */
-function commandOf(args: unknown): unknown {
-  if (!isObject(args)) return args;
-  if (Object.hasOwn(args, 'type')) {
-    throw new EditorError(
-      'invalid-argument',
-      'The arguments of `set_node_position` have no `type`; the tool supplies it.',
-    );
-  }
-  return { type: 'SetNodePosition', ...args };
-}
+export const setNodePositionTool: ToolDefinition = entryOf(NAME);
 
 /**
  * Runs one `set_node_position` call on the host's bus: exactly one `dispatch`,
@@ -66,5 +34,5 @@ export function executeSetNodePosition(
   bus: Pick<CommandBus, 'dispatch'>,
   args: unknown,
 ): CommandResult {
-  return bus.dispatch(commandOf(args));
+  return bus.dispatch(commandOf(NAME, 'SetNodePosition', args));
 }

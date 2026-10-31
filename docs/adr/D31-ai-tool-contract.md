@@ -8,6 +8,8 @@
 - Amended by: PR-19a (D39) on 2026-09-29 at the owner's request, a note under
   Consequences (structural commands without tools; the failing-undo obligation
   replaced)
+- Amended by: PR-24 (D46) on 2026-10-31, a note under Consequences (the
+  catalogue derived from the registry; `setNodePositionTool` becomes its entry)
 - Related: D09, D12, D15, D17, D19, D30,
   [specification](../spike/vertical-spike.md) §5 P4 and §9
 
@@ -254,6 +256,20 @@ schemas in `editor-sdk` (D39.1), and:
 3. the `CommandResult` that `executeSetNodePosition` returns from `dispatch`
    (D31.4) now also carries `createdIds`, always empty for `SetNodePosition`,
    and is frozen (D39.4, D39.9).
+
+Note, amended by: PR-24 (D46). The tool catalogue arrives:
+
+1. every command of the registry gets a tool derived from its AI metadata in
+   `editor-sdk`, plus `describe_document` and `run_transaction` (D46.2 to
+   D46.4); "no tool registry" and "no generic `execute_command`" of D31.1 now
+   read as: one catalogue derived from the closed command registry, and no tool
+   that takes a command `type`;
+2. `setNodePositionTool` is the catalogue's own entry: its name and
+   `inputSchema` stay, its description is the catalogue's; `ToolDefinition`
+   widens its `inputSchema` to `ToolInputSchema` (D46.2);
+3. `executeSetNodePosition` stays, with `dispatch` alone; `executeTool` takes
+   `getDocument`, `dispatch`, and `dispatchTransaction`, never undo or redo
+   (D46.4).
 
 ## Verification
 
