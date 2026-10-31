@@ -638,17 +638,32 @@ session.destroy();
 ### 6. Let a model edit through the same bus
 
 ```ts
-import { executeSetNodePosition, setNodePositionTool } from '@kadrion/ai-sdk';
+import { executeTool, TOOL_CATALOGUE } from '@kadrion/ai-sdk';
 
-// Offer the tool to a model: its name, description, and JSON Schema input.
-const { name, description, inputSchema } = setNodePositionTool; // 'set_node_position'
+// Offer the tools to a model: each has a name, a description, and a JSON Schema input.
+const tools = TOOL_CATALOGUE.map(({ name, description, inputSchema }) => ({
+  name,
+  description,
+  inputSchema,
+}));
 
-// Run the model's call on the host's bus, exactly as a drag would.
-const result = executeSetNodePosition(bus, { nodeId: 'node-title', position: { x: 300, y: 400 } });
+// Run each call of the model on the host's bus, exactly as the same edit in the UI.
+const result = executeTool(bus, 'set_node_position', {
+  nodeId: 'node-title',
+  position: { x: 300, y: 400 },
+});
 ```
 
-The tool contract is defined by D31. The same arguments give the same document
-as the equivalent UI command.
+- There is one tool per command of the registry (`set_node_position`,
+  `add_node`, `set_opacity_keyframe`, …), plus `describe_document`, which
+  returns the IDs, types, lifetimes, layers, and fields of the document and
+  changes nothing, and `run_transaction`, which applies several tool calls as
+  one undoable step.
+- A tool needs `getDocument`, `dispatch`, and `dispatchTransaction` of the bus,
+  never undo or redo. Refusals are the bus's `EditorError` codes, and a refused
+  call changes nothing.
+- The catalogue is defined by D46, on the contract of D31. The same arguments
+  give the same document as the equivalent UI command.
 
 ### 7. Render frames from Node.js
 
