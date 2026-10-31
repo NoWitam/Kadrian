@@ -1,6 +1,6 @@
 # D48 — The render job contract
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-10-31, after PR-25b was merged
 - Date: 2026-10-31
 - Supersedes: —
 - Extends: D28 (28.6, two error codes; 28.8, the exit codes and standard
