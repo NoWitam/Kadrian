@@ -447,7 +447,7 @@ pack` does not publish.
   Player that refuses video with `video-unsupported`. `muted` and `volume`
   move to PR-29 (D49.7, D50.1). The resolver delivers a video as bytes, like
   every asset, and the Producer writes a private copy for FFmpeg (D50.5).
-  **PR-28b** (D51, proposed 2026-10-31) is in review: decoding in the
+  **PR-28b** is done (PR #17, merged 2026-10-31; D51 accepted): decoding in the
   Player's host window with WebCodecs, a colour conversion that equals the
   Producer's FFmpeg pixel for pixel, delivery by `Blob` (or bytes) verified by
   an incremental SHA-256, `editor-session` reading media facts from verified

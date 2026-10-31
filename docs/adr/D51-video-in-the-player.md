@@ -1,6 +1,6 @@
 # D51 — Video in the Player: decoding in the host window, exact colour, and media facts from verified bytes
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-10-31, after PR-28b was merged
 - Date: 2026-10-31
 - Supersedes: D50.6 (the Player's refusal of video)
 - Extends: D25 (the resolver may return a `Blob` for a video, the protocol
