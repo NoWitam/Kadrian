@@ -5,6 +5,8 @@
  * sandboxed frame, runs the verified runtime build in it, and offers `load`,
  * `seek`, `play`, and `pause` (D25). The Player decides no pixel and loads
  * nothing but the runtime build and the asset bytes the application passes.
+ * Video nodes are decoded in the host window by the browser's WebCodecs
+ * decoder and reach the page as images (D51).
  */
 export { PlayerError } from './errors.js';
 export type { PlayerErrorCode } from './errors.js';
@@ -23,4 +25,6 @@ export type {
   PlayerState,
   PlayerStatus,
   PlayerTimers,
+  PlayerVideoAsset,
+  PlayerVideoFacts,
 } from './player.js';

@@ -26,8 +26,8 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D50; all accepted, except
-  D10, superseded by D37)
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D51; all accepted, except
+  D10, superseded by D37, and D51, proposed)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
@@ -216,8 +216,12 @@ Unknown fields are errors. This one shows a text that fades in:
   `sourceStartUs + (t − startUs)` of its video asset; the frame is chosen from
   the container's own timestamps (D49, D50). Every source time a node samples
   must lie inside the video. The Producer decodes video with the pinned FFmpeg,
-  so rendering a document with video nodes needs `--ffmpeg` and `--ffprobe`;
-  the Player refuses such a document with `video-unsupported` until PR-28b.
+  so rendering a document with video nodes needs `--ffmpeg` and `--ffprobe`.
+  The Player decodes H.264 MP4 in its host window with WebCodecs and converts
+  colour exactly as the Producer does, so both show the same pixels (D51); its
+  resolver may return a video as a `Blob`, verified by SHA-256 before use, and
+  it refuses files it cannot show exactly (such as 10-bit or BT.2020) with
+  `video-unsupported`.
 - **Lifetimes:** every node has `startUs` and `durationUs`, in composition
   time, and is shown at `t` while `startUs <= t < startUs + durationUs`. A
   child of a group is shown only while its group is shown too. A lifetime may

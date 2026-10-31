@@ -11,7 +11,12 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 
 import { canonicalJson } from '@kadrion/producer';
-import { goldenTimestamps, referenceComposition } from '@kadrion/test-fixtures';
+import {
+  goldenTimestamps,
+  referenceComposition,
+  videoComposition,
+  videoGoldenTimestamps,
+} from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -107,5 +112,53 @@ describe('the spike report (D33.6)', () => {
     expect(record.thresholds).toEqual({ differingPixels: 0, maxChannelDifference: 0 });
     expect(report).toContain('../adr/D33-parity-measurement.md');
     expect(report).toContain('../adr/D34-parity-thresholds.md');
+  });
+});
+
+const VIDEO_RECORD = repoPath('docs', 'spike', 'video-parity-measurement.json');
+const VIDEO_MANIFEST = [
+  'packages',
+  'test-fixtures',
+  'src',
+  'golden-frames',
+  'video.golden-frames.json',
+];
+const videoGolden = {
+  manifest: readJson(...VIDEO_MANIFEST) as GoldenManifest,
+  manifestSha256: sha256(readFileSync(repoPath(...VIDEO_MANIFEST))),
+  timestamps: videoGoldenTimestamps.map(({ timeUs }) => timeUs),
+  width: 640,
+  height: 360,
+  prefix: 'video' as const,
+};
+
+describe('the committed parity record of the video composition (D51.6)', () => {
+  it('exists: the reference run measured the video rows', () => {
+    expect(
+      existsSync(VIDEO_RECORD),
+      'Copy /out/video-parity-measurement-1.json of "pinned-run.sh reference" to docs/spike/.',
+    ).toBe(true);
+  });
+
+  const record = readJson('docs', 'spike', 'video-parity-measurement.json') as ParityRecord;
+  const main = readJson('docs', 'spike', 'parity-measurement.json') as ParityRecord;
+
+  it('is a complete, gated measurement against the committed video golden frames, without a network', () => {
+    expect(recordProblems(record, videoGolden, { reference: true })).toEqual([]);
+    expect(record.gate).toBe(true);
+  });
+
+  it('is current with the video document and with the build the reference record measured', () => {
+    expect(record.reference.compositionHash).toBe(sha256(canonicalJson(videoComposition)));
+    expect(record.reference.runtimeHash).toBe(main.reference.runtimeHash);
+    expect(record.playerDistManifest).toEqual(main.playerDistManifest);
+    expect(record.environment).toEqual(main.environment);
+  });
+
+  it('is quoted by the spike report cell for cell, with its worst case word for word', () => {
+    const report = readText('docs', 'spike', 'report.md');
+    expect(tableIn(report, 'video-parity-table')).toEqual(reportRows(record));
+    expect(report).toContain(reportWorstCase(record));
+    expect(report).toContain(record.reference.compositionHash);
   });
 });

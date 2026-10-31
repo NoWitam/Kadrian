@@ -59,6 +59,7 @@ function stubPlayer(): StubPlayer {
       player.timeUs = 0;
       return Promise.resolve();
     },
+    prepareVideo: () => Promise.reject(new Error('The playground document has no video.')),
     update(document) {
       // An update keeps the time it shows (D44).
       player.loaded.push(document);

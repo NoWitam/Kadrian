@@ -243,6 +243,8 @@ export interface GoldenFrame {
   readonly runtimeHash: string;
   /** `render.compositionHash` of the golden manifest. */
   readonly compositionHash: string;
+  /** Whose golden frames these are: the reference composition's by default (D51.6). */
+  readonly prefix?: GoldenPrefix;
 }
 
 export interface ParityRow extends Metric {
@@ -257,8 +259,16 @@ export interface ParityRow extends Metric {
   readonly goldenFile: string;
 }
 
-export function goldenFileName(timeUs: number): string {
-  return `reference-${String(timeUs)}.png`;
+/** The two sets of golden frames: the reference composition's and the video composition's (D50.8). */
+export type GoldenPrefix = 'reference' | 'video';
+
+export function goldenFileName(timeUs: number, prefix: GoldenPrefix = 'reference'): string {
+  return `${prefix}-${String(timeUs)}.png`;
+}
+
+/** The repository path of the golden manifest of a set. */
+export function goldenManifestPath(prefix: GoldenPrefix = 'reference'): string {
+  return `packages/test-fixtures/src/golden-frames/${prefix}.golden-frames.json`;
 }
 
 /**
@@ -288,7 +298,10 @@ export function compareFrame(
       `the Player showed ${String(player.timeUs)}, the golden frame is ${String(golden.timeUs)}`,
     );
   }
-  if (golden.file !== goldenFileName(golden.timeUs) || golden.index !== expected.frameIndex) {
+  if (
+    golden.file !== goldenFileName(golden.timeUs, golden.prefix) ||
+    golden.index !== expected.frameIndex
+  ) {
     throw new ParityRefusal(
       'golden-mismatch',
       `${golden.file} (frame ${String(golden.index)}) is not the golden frame of ${String(golden.timeUs)} (frame ${String(expected.frameIndex)})`,
@@ -613,6 +626,8 @@ export function recordProblems(
     readonly timestamps: readonly number[];
     readonly width: number;
     readonly height: number;
+    /** The set of golden frames measured against; the reference composition's by default. */
+    readonly prefix?: GoldenPrefix;
   },
   options: { readonly reference: boolean },
 ): string[] {
@@ -658,7 +673,7 @@ export function recordProblems(
 
   const reference = record.reference;
   const expectedReference: RecordReference = {
-    goldenManifest: 'packages/test-fixtures/src/golden-frames/reference.golden-frames.json',
+    goldenManifest: goldenManifestPath(golden.prefix),
     goldenManifestSha256: golden.manifestSha256,
     runtimeHash: manifest.render.runtime.contentHash,
     compositionHash: manifest.render.compositionHash,
@@ -739,7 +754,7 @@ export function recordProblems(
     if (
       frame === undefined ||
       row.goldenFile !== frame.file ||
-      row.goldenFile !== goldenFileName(row.timeUs)
+      row.goldenFile !== goldenFileName(row.timeUs, golden.prefix)
     ) {
       problems.push(`${at}: golden file`);
     }
@@ -868,10 +883,13 @@ export function reportTable(record: ParityRecord): string {
 
 /**
  * The table between `<!-- parity-table:start -->` and `<!-- parity-table:end -->`
- * of a Markdown text, as trimmed cells, header and delimiter row removed.
+ * of a Markdown text (or the markers of another `name`, such as
+ * `video-parity-table`), as trimmed cells, header and delimiter row removed.
  */
-export function tableIn(markdown: string): string[][] | null {
-  const found = /<!-- parity-table:start -->\n([\s\S]*?)\n<!-- parity-table:end -->/.exec(markdown);
+export function tableIn(markdown: string, name = 'parity-table'): string[][] | null {
+  const found = new RegExp(`<!-- ${name}:start -->\\n([\\s\\S]*?)\\n<!-- ${name}:end -->`).exec(
+    markdown,
+  );
   if (found?.[1] === undefined) return null;
   const lines = found[1]
     .split('\n')

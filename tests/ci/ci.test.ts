@@ -95,15 +95,15 @@ describe('the pinned test summary', () => {
     expect(summary).toMatchObject({
       schemaVersion: 1,
       root: ROOT,
-      testFileCount: 8,
+      testFileCount: 9,
       testFiles: [...REQUIRED_PINNED_FILES],
-      tests: 16,
-      passed: 16,
+      tests: 18,
+      passed: 18,
       failed: 0,
       skipped: 0,
       todo: 0,
       startedAt: new Date(1_000).toISOString(),
-      lastTestEndedAt: new Date(3_007).toISOString(),
+      lastTestEndedAt: new Date(3_008).toISOString(),
       success: true,
     });
     expect(pinnedSummaryProblems(summary)).toEqual([]);
@@ -173,7 +173,7 @@ describe('the pinned test summary', () => {
     [
       'a missing pinned file',
       (report) => report.testResults.splice(0, 1),
-      'not exactly the seven pinned files',
+      'not exactly the required pinned files',
     ],
     [
       'an extra test file',
@@ -182,12 +182,12 @@ describe('the pinned test summary', () => {
           ...(report.testResults[0] as RawFile),
           name: `${ROOT}tests/pinned/extra.pinned.test.ts`,
         }),
-      'not exactly the seven pinned files',
+      'not exactly the required pinned files',
     ],
     [
       'a file that failed after its tests passed (an afterAll error)',
       (report) => {
-        const file = report.testResults[5];
+        const file = report.testResults[6];
         if (file !== undefined) file.status = 'failed';
       },
       'tests/pinned/export.pinned.test.ts is failed',
@@ -195,7 +195,7 @@ describe('the pinned test summary', () => {
     [
       'a load message that is not text',
       (report) => {
-        const file = report.testResults[5];
+        const file = report.testResults[6];
         if (file !== undefined) (file as { message: unknown }).message = { stack: 'boom' };
       },
       'tests/pinned/export.pinned.test.ts reported: {"stack":"boom"}',

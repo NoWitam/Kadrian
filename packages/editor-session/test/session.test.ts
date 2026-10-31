@@ -8,11 +8,13 @@ import type { Command } from '@kadrion/editor-sdk';
 import {
   PlayerError,
   type Player,
+  type PlayerAssetRequest,
   type PlayerAssetResolver,
   type PlayerListener,
   type PlayerState,
+  type PlayerVideoFacts,
 } from '@kadrion/player';
-import { referenceComposition } from '@kadrion/test-fixtures';
+import { referenceComposition, VIDEO_FIXTURE, videoComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { createEditorSession, type SessionEvent } from '../src/index.js';
@@ -35,8 +37,12 @@ interface Call {
  * says so; `auto` settles every call at once. It keeps the state a real Player
  * would: no time after a failure.
  */
-function recordingPlayer(auto = true) {
+function recordingPlayer(
+  auto = true,
+  videoFacts: Readonly<Record<string, PlayerVideoFacts | PlayerError>> = {},
+) {
   const calls: Call[] = [];
+  const prepared: PlayerAssetRequest[] = [];
   const listeners = new Set<PlayerListener>();
   let state: PlayerState = Object.freeze({
     status: 'empty',
@@ -80,6 +86,15 @@ function recordingPlayer(auto = true) {
       set({ status: 'ready' });
     },
     getState: () => state,
+    prepareVideo(asset) {
+      prepared.push(asset);
+      const facts = videoFacts[asset.contentHash];
+      if (facts instanceof PlayerError) return Promise.reject(facts);
+      if (facts === undefined) {
+        return Promise.reject(new PlayerError('asset-missing', `No bytes for ${asset.id}.`));
+      }
+      return Promise.resolve(facts);
+    },
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -88,7 +103,7 @@ function recordingPlayer(auto = true) {
       destroyed = true;
     },
   };
-  return { player, calls, listeners, isDestroyed: () => destroyed };
+  return { player, calls, prepared, listeners, isDestroyed: () => destroyed };
 }
 
 const resolveAsset: PlayerAssetResolver = () => null;
@@ -299,5 +314,119 @@ describe('destroy', () => {
     expect(events).toEqual([]);
     expect(listeners.size).toBe(0);
     expect(isDestroyed()).toBe(true);
+  });
+});
+
+describe('media facts from verified bytes (D49.6, D51.5)', () => {
+  const fixtureFacts: PlayerVideoFacts = Object.freeze({
+    type: 'video',
+    durationUs: VIDEO_FIXTURE.sourceDurationUs,
+    width: VIDEO_FIXTURE.width,
+    height: VIDEO_FIXTURE.height,
+    frames: VIDEO_FIXTURE.frames,
+  });
+  const CLIP = 'sha256:' + 'c'.repeat(64);
+  const clipFacts: PlayerVideoFacts = Object.freeze({
+    ...fixtureFacts,
+    durationUs: 500_000,
+    frames: 13,
+  });
+
+  async function videoSession(facts: Readonly<Record<string, PlayerVideoFacts | PlayerError>>) {
+    const recording = recordingPlayer(true, facts);
+    const editor = await createEditorSession({
+      document: videoComposition,
+      player: recording.player,
+      resolveAsset,
+      onListenerError: () => undefined,
+    });
+    return { ...recording, editor };
+  }
+
+  it('reads the facts of every video a node shows, through the Player, before the load', async () => {
+    const { editor, prepared, calls } = await videoSession({
+      [VIDEO_FIXTURE.contentHash]: fixtureFacts,
+    });
+    expect(prepared).toEqual([
+      { id: VIDEO_FIXTURE.id, type: 'video', contentHash: VIDEO_FIXTURE.contentHash },
+    ]);
+    expect(calls.map(({ method }) => method)).toEqual(['load']);
+    expect(editor.bus.mediaFactsOf(VIDEO_FIXTURE.contentHash)).toEqual({
+      type: 'video',
+      durationUs: 3_000_000,
+    });
+  });
+
+  it('lets the bus refuse a source range past the video, and accept one inside it', async () => {
+    const { editor } = await videoSession({ [VIDEO_FIXTURE.contentHash]: fixtureFacts });
+    expect(() =>
+      editor.bus.dispatch({
+        type: 'SetVideoSource',
+        nodeId: 'node-video-full',
+        sourceStartUs: 1_500_000,
+      }),
+    ).toThrow(expect.objectContaining({ code: 'source-range-exceeded' }));
+    editor.bus.dispatch({
+      type: 'SetVideoSource',
+      nodeId: 'node-video-full',
+      sourceStartUs: 1_000_000,
+    });
+    await editor.settled();
+  });
+
+  it('reads the facts of a new video on request, so the bus can check a node that shows it', async () => {
+    const { editor, prepared } = await videoSession({
+      [VIDEO_FIXTURE.contentHash]: fixtureFacts,
+      [CLIP]: clipFacts,
+    });
+    const clip = { id: 'asset-clip', type: 'video', contentHash: CLIP } as const;
+    editor.bus.dispatch({ type: 'AddAsset', asset: clip, index: 0 });
+    const show = {
+      type: 'SetVideoAsset',
+      nodeId: 'node-video-full',
+      assetId: 'asset-clip',
+    } as const;
+    expect(() => editor.bus.dispatch(show)).toThrow(
+      expect.objectContaining({ code: 'media-facts-missing' }),
+    );
+    await expect(editor.readMediaFacts(clip)).resolves.toEqual({
+      type: 'video',
+      durationUs: 500_000,
+    });
+    // Read once: a second request is answered from the facts already read.
+    await editor.readMediaFacts(clip);
+    expect(prepared.filter(({ contentHash }) => contentHash === CLIP)).toHaveLength(1);
+    expect(() => editor.bus.dispatch(show)).toThrow(
+      expect.objectContaining({ code: 'source-range-exceeded' }),
+    );
+    editor.bus.dispatch({
+      type: 'SetNodeLifetime',
+      nodeId: 'node-video-full',
+      startUs: 0,
+      durationUs: 500_000,
+    });
+    editor.bus.dispatch(show);
+    expect(editor.bus.mediaFactsOf(CLIP)).toEqual({ type: 'video', durationUs: 500_000 });
+  });
+
+  it('has no facts for other assets yet, and refuses what is not an asset', async () => {
+    const { editor } = await videoSession({ [VIDEO_FIXTURE.contentHash]: fixtureFacts });
+    await expect(
+      editor.readMediaFacts({ id: 'asset-image', type: 'image', contentHash: CLIP }),
+    ).resolves.toBeNull();
+    await expect(editor.readMediaFacts({} as PlayerAssetRequest)).rejects.toMatchObject({
+      code: 'invalid-options',
+    });
+  });
+
+  it('fails to start, and destroys the Player, when a video cannot be verified or read', async () => {
+    const recording = recordingPlayer(true, {
+      [VIDEO_FIXTURE.contentHash]: new PlayerError('video-unsupported', 'not H.264'),
+    });
+    await expect(
+      createEditorSession({ document: videoComposition, player: recording.player, resolveAsset }),
+    ).rejects.toMatchObject({ code: 'video-unsupported' });
+    expect(recording.isDestroyed()).toBe(true);
+    expect(recording.calls).toEqual([]);
   });
 });

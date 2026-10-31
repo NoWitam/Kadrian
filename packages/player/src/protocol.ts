@@ -1,9 +1,11 @@
 /**
- * The Player ↔ render page protocol, version 1 (D25.4), as the Player sees it.
+ * The Player ↔ render page protocol, version 2 (D25.4, D51.4), as the Player
+ * sees it. Version 2 adds `videoFrames` to every seek and update: the source
+ * frames of the active video nodes, decoded in the host window.
  * The page side is `agent.ts`, which must stay self-contained and therefore
  * repeats its half of these rules.
  */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 export const READY = 'kadrion-player:ready';
 export const LOAD = 'kadrion-player:load';

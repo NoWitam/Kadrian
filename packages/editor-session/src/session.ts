@@ -4,16 +4,24 @@
  * session only watches it, brings each new document to the preview with
  * `Player.update`, and reports what changed through one table of events. It
  * keeps no domain rule of its own and reads no clock: the playback time it
- * reports is the Player's (D20.2).
+ * reports is the Player's (D20.2). The media facts the bus checks (D49.6) come
+ * from the bytes the Player verified, by content hash (D51.5): never from the
+ * document, never from the host's word.
  */
-import { createCommandBus, type BusChange, type CommandBus } from '@kadrion/editor-sdk';
+import {
+  createCommandBus,
+  type BusChange,
+  type CommandBus,
+  type MediaFacts,
+} from '@kadrion/editor-sdk';
 import {
   PlayerError,
   type Player,
+  type PlayerAssetRequest,
   type PlayerAssetResolver,
   type PlayerState,
 } from '@kadrion/player';
-import type { ValidatedComposition } from '@kadrion/schema';
+import type { SceneNode, ValidatedComposition, VideoNode } from '@kadrion/schema';
 
 /** The history the bus reaches after a change (D38.7, D44). */
 export interface SessionHistory {
@@ -74,6 +82,15 @@ export interface EditorSession {
    * what failed was reported as an `error` event.
    */
   settled(): Promise<void>;
+  /**
+   * Reads the media facts of an asset from its verified bytes (D49.6, D51.5):
+   * for a video, the Player resolves and verifies it, reads its track, and the
+   * bus knows its source duration from then on, so commands that sample it are
+   * checked. Call it before dispatching a command that makes a node show a
+   * video the document did not show yet. Other asset types have no facts yet
+   * and resolve with `null`.
+   */
+  readMediaFacts(asset: PlayerAssetRequest): Promise<MediaFacts | null>;
   /** Calls `listener` with every event until the returned function is called. */
   subscribe(listener: SessionListener): () => void;
   /** Stops listening and destroys the Player. */
@@ -94,11 +111,23 @@ const sameHistory = (a: SessionHistory, b: SessionHistory): boolean =>
   a.undoDepth === b.undoDepth &&
   a.redoDepth === b.redoDepth;
 
+/** The video nodes of a document, group children included. */
+function videoNodes(document: ValidatedComposition): VideoNode[] {
+  const found: VideoNode[] = [];
+  const visit = (node: SceneNode | VideoNode): void => {
+    if (node.type === 'video') found.push(node);
+    else if (node.type === 'group') node.children.forEach(visit);
+  };
+  for (const scene of document.scenes) scene.nodes.forEach(visit);
+  return found;
+}
+
 /**
- * Creates the bus over `document`, loads it into the Player, and resolves with
- * the session once frame 0 is shown. A document the bus refuses throws its
- * `EditorError`; a failed load rejects with the `PlayerError`, and the Player
- * is destroyed either way.
+ * Creates the bus over `document`, reads the media facts of every video its
+ * nodes show (D51.5), loads it into the Player, and resolves with the session
+ * once frame 0 is shown. A document the bus refuses throws its `EditorError`;
+ * a video that cannot be verified or read, or a failed load, rejects with the
+ * `PlayerError`, and the Player is destroyed either way.
  */
 export async function createEditorSession(options: EditorSessionOptions): Promise<EditorSession> {
   const { player, resolveAsset, onListenerError } = options;
@@ -121,10 +150,22 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     }
   };
 
+  /** The facts of verified bytes, by content hash; the bus reads them synchronously. */
+  const facts = new Map<string, MediaFacts>();
+  const readVideo = async (asset: PlayerAssetRequest): Promise<MediaFacts> => {
+    const known = facts.get(asset.contentHash);
+    if (known !== undefined) return known;
+    const { durationUs } = await player.prepareVideo(asset, resolveAsset);
+    const read: MediaFacts = Object.freeze({ type: 'video', durationUs });
+    facts.set(asset.contentHash, read);
+    return read;
+  };
+
   let bus: CommandBus;
   let stopPlayer: () => void;
   try {
     bus = createCommandBus(options.document, {
+      mediaFacts: (contentHash) => facts.get(contentHash) ?? null,
       ...(options.historyLimit === undefined ? {} : { historyLimit: options.historyLimit }),
       // The session's own listener catches everything; another one reports here.
       onListenerError: (reason, change) => {
@@ -134,7 +175,12 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     stopPlayer = player.subscribe((state) => {
       emit({ type: 'playback', state });
     });
-    await player.load(bus.getDocument(), resolveAsset);
+    const initial = bus.getDocument();
+    const shown = new Set(videoNodes(initial).map(({ assetId }) => assetId));
+    for (const asset of initial.assets) {
+      if (asset.type === 'video' && shown.has(asset.id)) await readVideo(asset);
+    }
+    await player.load(initial, resolveAsset);
   } catch (reason) {
     destroyed = true;
     player.destroy();
@@ -206,6 +252,16 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     getPlaybackState: () => player.getState(),
     getHistory: () => history,
     settled: () => syncing,
+    async readMediaFacts(asset) {
+      if (destroyed) throw new PlayerError('destroyed', 'The session was destroyed.');
+      const type = (asset as Partial<PlayerAssetRequest> | null)?.type;
+      if (type === 'video') return readVideo(asset);
+      if (type === 'image' || type === 'audio' || type === 'font') return null;
+      throw new PlayerError(
+        'invalid-options',
+        'readMediaFacts needs an asset { id, type, contentHash }.',
+      );
+    },
     subscribe(listener) {
       if (onListenerError === undefined) {
         throw new PlayerError(

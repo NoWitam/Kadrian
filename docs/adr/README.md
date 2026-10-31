@@ -58,6 +58,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D48](D48-render-job-contract.md)                             | The render job contract: progress, cancellation, limits, exit codes, the estimate  | Accepted          |
 | [D49](D49-the-timeline-model.md)                              | The timeline model: clips, layers, scenes, transitions, and media facts            | Accepted          |
 | [D50](D50-video-nodes-and-fit.md)                             | Video nodes and `fit`: schema 0.3, the source frame, and video in the Producer     | Accepted          |
+| [D51](D51-video-in-the-player.md)                             | Video in the Player: decoding in the host window, exact colour, and media facts    | Proposed          |
 
 ## Provenance of D01–D10
 
