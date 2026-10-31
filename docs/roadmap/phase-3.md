@@ -5,8 +5,9 @@
   roadmap approves no pull request: each one below is approved separately,
   before it starts and again before its commit and push, with its own plan,
   review, and decisions.
-- Starting point: `main` at `69b3adc` (PR-22, D43), Q14 closed. PR-23 exists
-  as uncommitted work on the owner's machine and is not on `main`.
+- Starting point: `main` at `69b3adc` (PR-22, D43), Q14 closed. This plan first
+  said that PR-23 existed as uncommitted work on the owner's machine; it did
+  not (owner, 2026-10-31), and PR-23 was written from scratch.
 - Authority: `AGENTS.md` and the ADRs in [`docs/adr`](../adr/README.md). This
   document plans; it decides nothing that needs an ADR. Every decision it names
   is a proposal for an ADR from D44 upwards, which only the owner accepts.
@@ -74,7 +75,7 @@ The plan starts from these facts; each is a constraint on a pull request below.
   closed argument schema (D31.2, D38.11), but `ai-sdk` has one tool,
   `set_node_position` (D31).
 - **Player.** Each `load` remounts the page and seeks to 0, and the Player has
-  no events (phase two, debts). PR-23 addresses both on the owner's machine.
+  no events (phase two, debts). PR-23 addresses both.
 - **Packages.** Every package is `"private": true` and `"license":
 "UNLICENSED"`, with `exports` pointing at `dist`, and nothing is published
   (D37.3). The package list is pinned to `AGENTS.md` (D12).
@@ -134,9 +135,8 @@ The owner proposed: delivery → facade → range render → video → audio →
 growing alongside. The order below keeps that sequence with four changes, each
 explained where it happens:
 
-1. PR-23 (the facade) comes before delivery, because it is written and green
-   on the owner's machine, and a delivered package without the facade would
-   give the host the API it is about to replace.
+1. PR-23 (the facade) comes before delivery, because a delivered package
+   without the facade would give the host the API it is about to replace.
 2. PR-24 (the tool catalogue) moves before the first new command, so that
    "AI tools grow with every command" has a generator to grow from.
 3. A design-only ADR of the timeline model (PR-27) precedes the first schema
@@ -166,41 +166,36 @@ items that reopen it. PR-35 is this document.
 
 ### PR-23 — Host facade and live preview (carried over from phase two)
 
-- Status: implemented as uncommitted work on the owner's machine: the package
-  `@kadrion/editor-session`, `Player.update`, and the playground on the
-  session; typecheck, lint, format, build, and 1 730 tests green there. Its ADR
-  is D44, not yet accepted.
+- Status: written from scratch in this phase, together with its ADR D44
+  (Proposed). An earlier version of this plan said it existed as uncommitted
+  work on the owner's machine; that was wrong (owner, 2026-10-31).
 - **What changes from phase two:** the scope stays; it is checked against
-  Studio item 1. The event table must cover the four kinds the host needs:
-  document changes, history (can undo, can redo, sizes), playback time, and
-  errors. If the local version lacks events of playback time or of errors,
-  they are added here rather than in a later pull request, because every later
-  feature (audio playback, video frames) reports through the same table.
+  Studio item 1. The event table covers the four kinds the host needs:
+  document changes, history (can undo, can redo, depths), playback time, and
+  errors, because every later feature (audio playback, video frames) reports
+  through the same table.
 - **Goal:** a host editor drives Kadrion through one facade.
 - **Scope:** the facade joining document, command bus, Player, and asset
-  resolver; `Player.update`, which brings an edit to the preview without a
-  remount and without seeking to 0; the event table; the playground moved
-  onto the facade.
+  resolver; `Player.update`, which brings an edit to the preview in the same
+  page, at the time shown, in one request and without asking again for
+  verified assets (it still mounts the tree again: D44.5); `Player.subscribe`;
+  the history depths of a bus change; the event table.
 - **Packages and documents:** `@kadrion/editor-session` (new: `AGENTS.md`
   package list, D12 map, workspace structure test), `@kadrion/player`,
-  `@kadrion/editor-sdk`, `apps/playground`, README, D44, an amendment of D25
-  if the protocol changes.
-- **Remaining before commit (from the owner's notes):** the rows P01 and P18 of
-  the mutation table, whose runs ended on timeouts of unrelated tests (the
-  recommendation was to repair those tests and repeat, with consent); the full
-  `check` on the host and a review in a fresh context; the pinned tests in
-  Docker (separate consent) with the parity record measured again; acceptance
-  of D44.
-- **Acceptance:** an edit reaches the preview without a full reload where the
-  contract allows it and keeps the current time; the same edit through the
-  facade and through the bus gives the same document; every event is
-  deterministic and reads no clock except the playback time the Player owns.
-- **Tests:** unit tests of the facade and the event table; pinned Player tests;
-  parity.
+  `@kadrion/editor-sdk`, README, D44, amendments of D12, D25, and D38.
+- **Acceptance:** an edit reaches the preview without a new page and keeps the
+  current time; an edit made through the facade is an edit of the one bus;
+  every event is deterministic and reads no clock except the playback time the
+  Player owns; the runtime build stays byte for byte.
+- **Tests:** unit tests of the facade and the event table; jsdom tests of
+  `Player.update` and `Player.subscribe` against the real render page; parity
+  measured again.
 - **Impact:** the Player's dist tree changes, so parity is measured again in
-  the pinned environment. If the runtime build or a pinned test file changed,
-  Q14 reopens and the controlled bootstrap applies; the golden PNG files must
-  stay byte for byte.
+  the pinned environment. The runtime build and the pinned test files do not
+  change, so Q14 stays closed; the golden PNG files stay byte for byte.
+- **Moved to PR-25a:** the playground on the session and a pinned Player test
+  of an update. The pinned editor test imports the playground's code, so the
+  move reopens Q14, which PR-25a reopens in any case.
 - **Not included:** a timeline UI; audio and video in the Player (PR-28,
   PR-29).
 
@@ -281,6 +276,11 @@ pack` does not publish.
 - **Not included:** a language model, prompts, or a conversational agent.
 
 ### PR-25a — Range, segment, join, and still renders (carried over from phase two, changed)
+
+- **Carried over from PR-23:** the playground on `@kadrion/editor-session` and
+  a pinned Player test of `Player.update`. The pinned editor test imports the
+  playground's code, so this reopens Q14, which this pull request reopens in
+  any case.
 
 - **What changes from phase two:** PR-25 planned a job model with a minimal
   hosting application (`apps/worker`). The host runs its own queue: a render is
@@ -659,8 +659,8 @@ ADRs named in them; each ADR is still accepted on its own.
    trimming" (PR-31 is basic trimming), colour grading, and filters excluded;
    the package list gains `@kadrion/editor-session` with PR-23.
 2. **The order: PR-23 before delivery.** Recommendation: yes, finish PR-23
-   first; it is written and green on the owner's machine, and the facade is
-   the API the host should receive.
+   first; the facade is the API the host should receive. (Corrected
+   2026-10-31: it was not written yet; the order stands.)
 3. **How the host receives packages.** Recommendation: release tarballs of
    `pnpm pack` with a SHA-256 manifest on a GitHub release, pinned by the host
    by URL and integrity (D45). They are downloadable by anyone, like the code

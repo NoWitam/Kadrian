@@ -5,7 +5,10 @@
  * TypeScript compiles into a call to a helper. It only transports: it checks
  * messages, keeps the document's JSON text, passes the asset bytes through
  * unchanged, and calls `KadrionRuntime.load` and `KadrionRuntime.frame`, whose
- * order of work decides the pixels (D25.3, D27.1). It lends the page's
+ * order of work decides the pixels (D25.3, D27.1). An update (D44) is a load
+ * and a frame in one request: the frame is chained on the load's promise, so the
+ * new tree is mounted and rendered at its time with no task in between, and the
+ * browser never paints the tree before its first frame. It lends the page's
  * `FontFace` constructor and a timer, both captured when it starts: the timer
  * bounds the Custom HTML wait, and the clock of the page belongs to the host
  * (D20.2).
@@ -43,6 +46,16 @@ export function pageAgent(): void {
     'version',
   ];
   const SEEK_KEYS = ['requestId', 'timeUs', 'type', 'version'];
+  const UPDATE_KEYS = [
+    'ackTimeoutMs',
+    'assets',
+    'customHtml',
+    'document',
+    'requestId',
+    'timeUs',
+    'type',
+    'version',
+  ];
 
   const runtime = (window as unknown as { KadrionRuntime?: Runtime }).KadrionRuntime;
   const root = document.getElementById('kadrion-root');
@@ -99,26 +112,46 @@ export function pageAgent(): void {
       : [],
   });
 
-  const load = (data: Record<string, unknown>, mode: string): Promise<void> => {
-    const requestId = data.requestId as number;
+  /** Mounts the document; resolves with the failure to report, or `null` once it is mounted. */
+  const mountDocument = (data: Record<string, unknown>, mode: string): Promise<Failure | null> => {
     const text = data.document as string;
+    // Until the new document is mounted, there is none to seek in: a load that
+    // fails half way leaves no stale document behind (D44).
+    state.documentJson = null;
     // Parsed here, so that the validator sees a plain object of this realm (D21);
     // the assets go through unchanged, and the artifact checks them (D27.1).
     return (runtime as Runtime)
       .load(root as Element, JSON.parse(text), data.assets, fontHost, { customHtml: { mode } })
       .then((result) => {
-        if (!result.ok) {
-          reply(requestId, invalid(result.errors));
-          return;
-        }
+        if (!result.ok) return invalid(result.errors);
         state.documentJson = text;
         state.ackTimeoutMs = data.ackTimeoutMs as number;
-        reply(requestId, null);
+        return null;
       });
   };
 
-  const seek = (data: Record<string, unknown>): Promise<void> => {
+  const load = (data: Record<string, unknown>, mode: string): Promise<void> => {
     const requestId = data.requestId as number;
+    return mountDocument(data, mode).then((failed) => {
+      reply(requestId, failed);
+    });
+  };
+
+  const update = (data: Record<string, unknown>, mode: string): Promise<void> => {
+    const requestId = data.requestId as number;
+    return mountDocument(data, mode).then((failed) => {
+      if (failed !== null) {
+        reply(requestId, failed);
+        return undefined;
+      }
+      return frameAt(requestId, data.timeUs as number);
+    });
+  };
+
+  const seek = (data: Record<string, unknown>): Promise<void> =>
+    frameAt(data.requestId as number, data.timeUs as number);
+
+  const frameAt = (requestId: number, timeUs: number): Promise<void> => {
     if (state.documentJson === null) {
       reply(requestId, { code: 'not-loaded', message: 'No document is loaded.', details: [] });
       return Promise.resolve();
@@ -142,7 +175,7 @@ export function pageAgent(): void {
       requestId,
     };
     return (runtime as Runtime)
-      .frame(root as Element, JSON.parse(state.documentJson), data.timeUs as number, host)
+      .frame(root as Element, JSON.parse(state.documentJson), timeUs, host)
       .then((result) => {
         reply(requestId, result.ok ? null : invalid(result.errors));
       });
@@ -177,6 +210,19 @@ export function pageAgent(): void {
       isCount(data.timeUs)
     ) {
       enqueue(data.requestId, () => seek(data));
+    } else if (
+      hasExactly(data, UPDATE_KEYS) &&
+      data.type === 'kadrion-player:update' &&
+      data.version === VERSION &&
+      isCount(data.requestId) &&
+      typeof data.document === 'string' &&
+      Array.isArray(data.assets) &&
+      isCount(data.ackTimeoutMs) &&
+      isPolicy(data.customHtml) &&
+      isCount(data.timeUs)
+    ) {
+      const { mode } = data.customHtml;
+      enqueue(data.requestId, () => update(data, mode));
     }
   });
 

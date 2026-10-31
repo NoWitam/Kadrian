@@ -42,6 +42,9 @@ export interface BusChange {
   readonly createdIds: readonly string[];
   readonly canUndo: boolean;
   readonly canRedo: boolean;
+  /** How many operations undo, and redo, can reach after the change (D44). */
+  readonly undoDepth: number;
+  readonly redoDepth: number;
 }
 
 export type BusListener = (change: BusChange) => void;
@@ -271,6 +274,8 @@ export function createCommandBus(document: unknown, options?: CommandBusOptions)
       createdIds: result.createdIds,
       canUndo: undoable.length > 0,
       canRedo: redoable.length > 0,
+      undoDepth: undoable.length,
+      redoDepth: redoable.length,
     });
     delivering = true;
     try {

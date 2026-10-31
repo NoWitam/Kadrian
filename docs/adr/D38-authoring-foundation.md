@@ -12,6 +12,8 @@
   (the order of `COMMAND_TYPES`)
 - Amended by: PR-20 (D41) on 2026-10-01 at the owner's request, D38.1
   (the order of `COMMAND_TYPES`)
+- Amended by: PR-23 (D44) on 2026-10-31, D38.8 (`undoDepth` and `redoDepth`
+  of a change)
 - Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, D38.1
   (the order of `COMMAND_TYPES`)
 - Related: D02, D09, D15, D16, D19, D30, D31, D32,
@@ -235,6 +237,10 @@ type BusChange = {
   readonly canRedo: boolean;
 };
 ```
+
+Amended by: PR-23 (D44). A change also carries `undoDepth` and `redoDepth`:
+how many operations undo and redo reach after it, within `historyLimit`
+(D44.7). (`createdIds`, added by D39, is in the change as well.)
 
 - Every committed operation delivers exactly one change, synchronously, after
   the commit: a listener that reads the bus sees the new state. A no-op and a

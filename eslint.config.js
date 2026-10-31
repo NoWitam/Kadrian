@@ -409,7 +409,8 @@ export default defineConfig(
     rules: { 'no-restricted-syntax': deterministicSyntax({ brand: true, exempt: true }) },
   },
   {
-    files: ['packages/player/src/**/*.ts'],
+    // The facade of D44 talks to nothing but the bus and the Player either.
+    files: ['packages/player/src/**/*.ts', 'packages/editor-session/src/**/*.ts'],
     linterOptions: { noInlineConfig: true },
     rules: {
       'no-restricted-globals': [

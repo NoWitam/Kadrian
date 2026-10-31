@@ -51,6 +51,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D41](D41-authoring-animations-and-keyframes.md)              | Authoring animations and keyframes                                                 | Accepted          |
 | [D42](D42-schema-0-2-element-lifetime-and-first-migration.md) | Schema `0.2`: element lifetime and the first forward migration                     | Accepted          |
 | [D43](D43-saved-compositions-and-compatibility.md)            | Saved compositions: the JSON text, explicit loading, and the compatibility corpus  | Accepted          |
+| [D44](D44-host-facade-and-live-preview.md)                    | The host facade and the live preview                                               | Proposed          |
 
 ## Provenance of D01–D10
 

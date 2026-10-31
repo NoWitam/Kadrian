@@ -115,17 +115,18 @@ are ESM, and they resolve to `dist`, so run `node --run build` first. The
 playground (`apps/playground`) and the tests of `tests/app` and `tests/pinned`
 are complete, working examples of everything below.
 
-| Package                  | Use it to                                                              |
-| ------------------------ | ---------------------------------------------------------------------- |
-| `@kadrion/schema`        | validate a composition document and convert between times and frames   |
-| `@kadrion/runtime`       | evaluate the state of a composition at one time                        |
-| `@kadrion/renderer-dom`  | render evaluated state to DOM/SVG; it also ships the runtime build     |
-| `@kadrion/player`        | preview a composition in a browser page                                |
-| `@kadrion/editor-sdk`    | change a document through typed commands, with undo and redo           |
-| `@kadrion/ai-sdk`        | give a model tools that dispatch the same commands                     |
-| `@kadrion/producer`      | render frames and export MP4 in the pinned Chromium, from Node.js      |
-| `@kadrion/cli`           | render frames and export MP4 from the command line                     |
-| `@kadrion/test-fixtures` | the reference composition, its generated assets, and the golden frames |
+| Package                   | Use it to                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| `@kadrion/schema`         | validate a composition document and convert between times and frames             |
+| `@kadrion/runtime`        | evaluate the state of a composition at one time                                  |
+| `@kadrion/renderer-dom`   | render evaluated state to DOM/SVG; it also ships the runtime build               |
+| `@kadrion/player`         | preview a composition in a browser page                                          |
+| `@kadrion/editor-sdk`     | change a document through typed commands, with undo and redo                     |
+| `@kadrion/editor-session` | join the bus and the Player: every edit reaches the preview, one table of events |
+| `@kadrion/ai-sdk`         | give a model tools that dispatch the same commands                               |
+| `@kadrion/producer`       | render frames and export MP4 in the pinned Chromium, from Node.js                |
+| `@kadrion/cli`            | render frames and export MP4 from the command line                               |
+| `@kadrion/test-fixtures`  | the reference composition, its generated assets, and the golden frames           |
 
 `@kadrion/test-fixtures/compatibility` is a second entry of the fixtures: the
 saved documents that must keep loading (D43). Tests read it; no package does.
@@ -427,7 +428,11 @@ player.destroy();
 - `load` validates the document in full.
 - A failure rejects with a `PlayerError`, and `getState()` reports it with its
   `code`.
-- After an edit, load the edited document again.
+- After an edit, `player.update(editedDocument, resolver)` shows it in the same
+  page at the time shown now; it asks the resolver only for assets whose hash
+  the Player does not hold yet, and it plays on if it was playing (D44.5).
+  `player.subscribe(listener)` reports every change of the state; it needs the
+  option `onListenerError` of `createPlayer`.
 
 **Custom HTML in the Player.** Custom HTML is disabled by default (D36). A
 Player created without `customHtml` never runs it: every Custom HTML element
@@ -597,6 +602,37 @@ unsubscribe();
   document: `dispatch`, `dispatchTransaction`, `undo`, and `redo` throw `busy`.
 - The bus is defined by D30, D38, D39, D40, D41, and D42.
 
+**The host facade.** `@kadrion/editor-session` does the joining of a bus and a
+Player for a host editor (D44):
+
+```ts
+import { createEditorSession } from '@kadrion/editor-session';
+
+const player = await createPlayer(container, {
+  runtime: { bytes, contentHash },
+  onListenerError: reportError,
+});
+const session = await createEditorSession({
+  document: documentJson,
+  player, // not loaded yet; the session loads it and destroys it with itself
+  resolveAsset: ({ id }) => assets.get(id) ?? null,
+  onListenerError: reportError,
+});
+session.subscribe((event) => {
+  // event.type is 'document', 'history', 'playback', or 'error'.
+});
+session.bus.dispatch(command); // reaches the preview at the time it shows
+await session.settled();
+session.destroy();
+```
+
+- Edits go through `session.bus`, the one bus; the session has no other path
+  into the document. Edits made while an update runs are coalesced: only the
+  latest document is sent.
+- `history` carries `canUndo`, `canRedo`, `undoDepth`, and `redoDepth`;
+  `playback` the Player's state; `error` a `PlayerError` when the preview could
+  not show a document, which stays on the bus all the same.
+
 ### 6. Let a model edit through the same bus
 
 ```ts
@@ -693,7 +729,8 @@ node packages/cli/dist/bin.js export --composition composition.json \
 
 ```text
 packages/
-  schema/ runtime/ renderer-dom/ player/ editor-sdk/ ai-sdk/ producer/ cli/ test-fixtures/
+  schema/ runtime/ renderer-dom/ player/ editor-sdk/ editor-session/ ai-sdk/ producer/
+  cli/ test-fixtures/
 apps/
   playground/     local page that plays the reference composition (not a package)
 docs/
