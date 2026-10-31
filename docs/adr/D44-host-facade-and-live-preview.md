@@ -1,6 +1,6 @@
 # D44 — The host facade and the live preview
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-10-31, after PR-23 was merged
 - Date: 2026-10-31
 - Supersedes: —
 - Amends: D12 (the map gains `editor-session`), D25 (25.4 and 25.7, new 25.11),

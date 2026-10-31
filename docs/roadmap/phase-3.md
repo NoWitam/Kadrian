@@ -166,8 +166,8 @@ items that reopen it. PR-35 is this document.
 
 ### PR-23 — Host facade and live preview (carried over from phase two)
 
-- Status: written from scratch in this phase, together with its ADR D44
-  (Proposed). An earlier version of this plan said it existed as uncommitted
+- Status: done (PR #3, merged 2026-10-31), written from scratch in this
+  phase together with its ADR D44 (accepted by the owner on 2026-10-31). An earlier version of this plan said it existed as uncommitted
   work on the owner's machine; that was wrong (owner, 2026-10-31).
 - **What changes from phase two:** the scope stays; it is checked against
   Studio item 1. The event table covers the four kinds the host needs:
