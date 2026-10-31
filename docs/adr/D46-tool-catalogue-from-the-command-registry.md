@@ -1,6 +1,6 @@
 # D46 — The tool catalogue derived from the command registry
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-10-31, after PR-24 was merged
 - Date: 2026-10-31
 - Supersedes: —
 - Extends: D31 (the tool contract of `set_node_position`), with an

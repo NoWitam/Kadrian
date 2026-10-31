@@ -251,6 +251,8 @@ pack` does not publish.
 
 ### PR-24 — The tool catalogue (carried over from phase two)
 
+- Status: done (PR #7, merged 2026-10-31), with its ADR D46 (accepted by the
+  owner on 2026-10-31).
 - **What changes from phase two:** it moves before the new commands, and it
   becomes a generator plus a rule rather than a fixed set of tools. The tools
   for the commands of PR-28 to PR-34 are added by those pull requests.
