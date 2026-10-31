@@ -6,7 +6,10 @@
  * the presentation barrier, and the capture are exported as well, because the
  * Player's browser test measures through exactly the same functions (D28.5).
  * `exportMp4` streams every frame of the grid into the pinned FFmpeg and writes an
- * H.264 MP4 with the audio clip muxed (D29).
+ * H.264 MP4 with the audio clip muxed (D29), as segments of the canonical grid
+ * joined into one file (D47). `renderSegments`, `renderAudio`, and
+ * `joinSegments` are the same export split into jobs a host runs on its own
+ * queue; `renderStill` renders one frame as PNG, JPEG, or WebP (D47.7).
  */
 export { PRODUCER_AGENT_SCRIPT } from './agent.js';
 export { awaitPresented, captureFrame, presentationSessions } from './capture.js';
@@ -39,8 +42,43 @@ export type {
   LaunchOptions,
 } from './environment.js';
 export { ProducerError } from './errors.js';
-export { exportMp4 } from './export.js';
-export type { ExportRequest, ExportResult, ExportStats } from './export.js';
+export {
+  AUDIO_FILE_NAME,
+  exportMp4,
+  joinPlan,
+  joinSegments,
+  renderAudio,
+  renderSegments,
+} from './export.js';
+export type {
+  AudioRequest,
+  AudioResult,
+  ExportRequest,
+  ExportResult,
+  ExportStats,
+  JoinPart,
+  JoinPlan,
+  JoinRequest,
+  JoinResult,
+  JoinSegment,
+  RangeRequest,
+  SegmentsRequest,
+  SegmentsResult,
+} from './export.js';
+export {
+  checkedSegmentFrames,
+  DEFAULT_SEGMENT_FRAMES,
+  frameRange,
+  MAX_SEGMENT_FRAMES,
+  PARTIAL_SUFFIX,
+  rangeSegmentsOf,
+  segmentFileName,
+  segmentsOf,
+  STILL_FORMATS,
+} from './segments.js';
+export type { FrameRange, Segment, StillFormat } from './segments.js';
+export { renderStill } from './still.js';
+export type { StillRequest, StillResult } from './still.js';
 export {
   FFMPEG_ARCHIVE_SHA256,
   FFMPEG_ASSET,
@@ -53,15 +91,24 @@ export {
 } from './ffmpeg.js';
 export type { FfmpegIdentity, FfmpegPaths } from './ffmpeg.js';
 export type { ProducerErrorCode } from './errors.js';
-export { canonicalJson, MANIFEST_VERSION, sha256 } from './manifest.js';
+export { canonicalJson, EXPORT_MANIFEST_VERSION, MANIFEST_VERSION, sha256 } from './manifest.js';
 export type {
+  AudioManifest,
   ExportManifest,
+  FfmpegIdentityBlock,
   ManifestAsset,
   ManifestAudio,
+  ManifestAudioPass,
   ManifestFfmpeg,
+  ManifestFfmpegBuild,
   ManifestFrame,
+  ManifestMp4Preset,
+  ManifestRange,
+  ManifestSegment,
   RenderIdentity,
   RenderManifest,
+  SegmentsManifest,
+  StillManifest,
 } from './manifest.js';
 export { frameIndexOf, hostDocument, openRenderSession, renderFrames } from './render.js';
 export type {

@@ -16,6 +16,9 @@
       "path": "../../packages/editor-sdk"
     },
     {
+      "path": "../../packages/editor-session"
+    },
+    {
       "path": "../../packages/player"
     },
     {

@@ -4,10 +4,10 @@
  * P4: a fixture tool call with the parameters of the P3 drag produces a
  * document whose serialised JSON is byte-identical to the P3 result (D31).
  *
- * The UI side is the playground's own `wireEditor`, driven by a pointer
- * gesture, with only the Player stubbed, exactly as in
- * `playground-drag.test.ts`; the document compared is the one the Player was
- * handed. The AI side is the committed fixture tool call, parsed from JSON and
+ * The UI side is the playground's own `wireEditor` on the real host facade
+ * (D44), driven by a pointer gesture, with only the Player stubbed, exactly as
+ * in `playground-drag.test.ts`; the document compared is the one the Player was
+ * handed by `Player.update`. The AI side is the committed fixture tool call, parsed from JSON and
  * run through `@kadrion/ai-sdk` on a bus of its own. The fixture is checked
  * against the payload the gesture really dispatched, so the two sides speak of
  * the same parameters rather than of two numbers that happen to match.
@@ -16,9 +16,11 @@ import { readFileSync } from 'node:fs';
 // jsdom replaces the global URL, whose instances node:fs does not accept.
 import { URL as NodeUrl } from 'node:url';
 
-import { busFor, wireEditor, type PreviewPlayer } from '../../apps/playground/src/app.js';
+import { wireEditor } from '../../apps/playground/src/app.js';
 import { executeSetNodePosition, setNodePositionTool } from '@kadrion/ai-sdk';
 import { createCommandBus, type CommandBus } from '@kadrion/editor-sdk';
+import { createEditorSession } from '@kadrion/editor-session';
+import type { Player } from '@kadrion/player';
 import { referenceComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
@@ -60,7 +62,22 @@ async function drag(start: unknown, dx: number, dy: number): Promise<Gesture> {
   // jsdom lays nothing out, so the surface's box is stated here (D30.10).
   overlay.getBoundingClientRect = () => ({ ...VIEW, x: 0, y: 0, top: 0, left: 0 }) as DOMRect;
 
-  const inner = busFor(start);
+  const loaded: unknown[] = [];
+  const player: Player = {
+    load: () => Promise.resolve(),
+    update(next) {
+      loaded.push(next);
+      return Promise.resolve();
+    },
+    seek: () => Promise.resolve(),
+    play: () => undefined,
+    pause: () => undefined,
+    getState: () => ({ status: 'ready', timeUs: 0, runtimeHash: 'sha256:stub', error: null }),
+    subscribe: () => () => undefined,
+    destroy: () => undefined,
+  };
+  const session = await createEditorSession({ document: start, player, resolveAsset: () => null });
+  const inner = session.bus;
   const payloads: unknown[] = [];
   const bus: CommandBus = {
     ...inner,
@@ -69,21 +86,10 @@ async function drag(start: unknown, dx: number, dy: number): Promise<Gesture> {
       return inner.dispatch(command);
     },
   };
-  const loaded: unknown[] = [];
-  const player: PreviewPlayer = {
-    load(next) {
-      loaded.push(next);
-      return Promise.resolve();
-    },
-    seek: () => Promise.resolve(),
-    getState: () => ({ timeUs: 0 }),
-  };
   const errors: unknown[] = [];
   wireEditor({
-    bus,
-    player,
+    session: { bus, settled: () => session.settled() },
     elements: { stage, overlay, grip },
-    resolve: () => null,
     nodeId: NODE_ID,
     gripSize: 140,
     onError: (reason) => errors.push(reason),

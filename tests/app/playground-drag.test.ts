@@ -2,25 +2,23 @@
  * @vitest-environment jsdom
  *
  * The drag gesture of P3 in a DOM (D30.10). The code under test is the
- * playground's own `wireEditor`, the function the page runs, so a bypass of the
+ * playground's own `wireEditor` on the real host facade of
+ * `@kadrion/editor-session` (D44), the code the page runs, so a bypass of the
  * bus in the application would fail here; only the Player is a stub, because
  * the real one needs a frame, the runtime build, and WebCrypto.
  *
  * What this proves is the protocol and the arithmetic: one command per gesture,
  * its exact payload, the conversion of client pixels into composition pixels,
- * and the fact that the document the bus returns is what reaches the Player. It
+ * and the fact that the document the bus returns is what reaches the Player,
+ * through `Player.update` at the time it shows. It
  * cannot prove the conversion factor, because jsdom performs no layout and the
  * surface's box is stubbed here; `tests/pinned/editor.pinned.test.ts` measures
  * that in Chromium, where it once caught a real defect.
  */
-import {
-  busFor,
-  positionOf,
-  wireEditor,
-  type Editor,
-  type PreviewPlayer,
-} from '../../apps/playground/src/app.js';
+import { positionOf, wireEditor, type Editor } from '../../apps/playground/src/app.js';
 import { EditorError, type CommandBus } from '@kadrion/editor-sdk';
+import { createEditorSession, type EditorSession } from '@kadrion/editor-session';
+import type { Player, PlayerState } from '@kadrion/player';
 import { referenceComposition } from '@kadrion/test-fixtures';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -38,22 +36,32 @@ function pointer(type: string, clientX: number, clientY: number, pointerId = 7):
   return event;
 }
 
-interface StubPlayer extends PreviewPlayer {
-  /** Every document the Player was asked to render, in order. */
+interface StubPlayer extends Player {
+  /** Every document the Player was asked to show by an update, in order. */
   readonly loaded: unknown[];
   readonly sought: number[];
-  /** The time the Player reports; `load` resets it to 0, as the real one does (D25). */
+  /** The time the Player reports; `load` shows frame 0, as the real one does (D25). */
   timeUs: number | null;
 }
 
 function stubPlayer(): StubPlayer {
+  const state = (): PlayerState => ({
+    status: 'ready',
+    timeUs: player.timeUs,
+    runtimeHash: 'sha256:stub',
+    error: null,
+  });
   const player: StubPlayer = {
     loaded: [],
     sought: [],
     timeUs: null,
-    load(document) {
-      player.loaded.push(document);
+    load() {
       player.timeUs = 0;
+      return Promise.resolve();
+    },
+    update(document) {
+      // An update keeps the time it shows (D44).
+      player.loaded.push(document);
       return Promise.resolve();
     },
     seek(timeUs) {
@@ -61,7 +69,11 @@ function stubPlayer(): StubPlayer {
       player.timeUs = timeUs;
       return Promise.resolve();
     },
-    getState: () => ({ timeUs: player.timeUs }),
+    play: () => undefined,
+    pause: () => undefined,
+    getState: state,
+    subscribe: () => () => undefined,
+    destroy: () => undefined,
   };
   return player;
 }
@@ -69,13 +81,14 @@ function stubPlayer(): StubPlayer {
 interface Harness {
   readonly grip: HTMLElement;
   readonly overlay: HTMLElement;
+  readonly session: EditorSession;
   readonly bus: CommandBus;
   readonly player: StubPlayer;
   readonly editor: Editor;
   readonly errors: unknown[];
 }
 
-function harness(measurable = true): Harness {
+async function harness(measurable = true): Promise<Harness> {
   document.body.innerHTML =
     '<div id="viewport"><div id="stage"></div><div id="overlay"><div id="grip"></div></div></div>';
   const stage = document.getElementById('stage') as HTMLElement;
@@ -93,19 +106,21 @@ function harness(measurable = true): Harness {
       left: 0,
     }) as DOMRect;
 
-  const bus = busFor(referenceComposition);
   const player = stubPlayer();
   const errors: unknown[] = [];
-  const editor = wireEditor({
-    bus,
+  const session = await createEditorSession({
+    document: referenceComposition,
     player,
+    resolveAsset: () => null,
+  });
+  const editor = wireEditor({
+    session,
     elements: { stage, overlay, grip },
-    resolve: () => null,
     nodeId: NODE_ID,
     gripSize: GRIP,
     onError: (reason) => errors.push(reason),
   });
-  return { grip, overlay, bus, player, editor, errors };
+  return { grip, overlay, session, bus: session.bus, player, editor, errors };
 }
 
 /** A gesture: press, move through every waypoint, release at the last one. */
@@ -116,13 +131,13 @@ function drag(grip: HTMLElement, from: [number, number], ...waypoints: [number, 
   grip.dispatchEvent(pointer('pointerup', last[0], last[1]));
 }
 
-/** Lets the editor's `show()` settle; it awaits `load` and possibly `seek`. */
+/** Lets the session's update and the editor's `show()` settle. */
 const settle = (): Promise<void> => new Promise((done) => setTimeout(done, 0));
 
 let page: Harness;
 
-beforeEach(() => {
-  page = harness();
+beforeEach(async () => {
+  page = await harness();
 });
 
 describe('the playground editor in a DOM (P3, D30.10)', () => {
@@ -162,11 +177,11 @@ describe('the playground editor in a DOM (P3, D30.10)', () => {
     expect(page.player.loaded[0]).toBe(page.bus.getDocument());
   });
 
-  it('keeps the time the preview was showing across the reload (D25 seeks to 0)', async () => {
-    await page.player.seek(7_500_000);
+  it('keeps the time the preview was showing: an update, never a new load (D44)', async () => {
+    await page.session.seek(7_500_000);
     drag(page.grip, [100, 100], [135, 170]);
     await settle();
-    expect(page.player.sought).toEqual([7_500_000, 7_500_000]);
+    expect(page.player.sought).toEqual([7_500_000]);
     expect(page.player.timeUs).toBe(7_500_000);
   });
 
@@ -237,7 +252,7 @@ describe('the playground editor in a DOM (P3, D30.10)', () => {
   });
 
   it('refuses the gesture instead of guessing when the canvas cannot be measured', async () => {
-    const hidden = harness(false);
+    const hidden = await harness(false);
     drag(hidden.grip, [100, 100], [135, 170]);
     await settle();
     expect(hidden.player.loaded).toEqual([]);

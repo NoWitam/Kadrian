@@ -1,24 +1,34 @@
 /**
- * `kadrion render-frames` (D28.8) and `kadrion export` (D29.10) with injected
+ * `kadrion render-frames` (D28.8), `kadrion export` (D29.10), and the jobs of a
+ * segmented render and stills (D47) with injected
  * Producer functions: arguments, the asset map and its relative paths, the
  * files written, where FFmpeg comes from, and the exit codes. That the default
  * functions render and encode is `tests/pinned`'s business.
  */
-import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
   ProducerError,
+  type AudioRequest,
+  type AudioResult,
   type ExportRequest,
   type ExportResult,
+  type JoinRequest,
+  type JoinResult,
   type RenderRequest,
   type RenderResult,
+  type SegmentsRequest,
+  type SegmentsResult,
+  type StillRequest,
+  type StillResult,
 } from '@kadrion/producer';
 import { generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import {
+  AUDIO_MANIFEST_NAME,
   EXIT_OK,
   EXIT_PRODUCER_ERROR,
   EXIT_USAGE,
@@ -26,6 +36,8 @@ import {
   parseAssetMap,
   parseTimes,
   runCli,
+  segmentsManifestName,
+  stillFileNames,
   USAGE,
 } from '../src/index.js';
 
@@ -281,6 +293,360 @@ describe('kadrion export (D29.10)', () => {
     const { err, io: streams } = io();
     await expect(runCli(args, streams, { exportMp4: never, env: {} })).resolves.toBe(EXIT_USAGE);
     expect(err).toContain(USAGE);
+  });
+});
+
+/** The arguments of a command that reads the workspace's document and assets. */
+function documentArgs(command: string, dir: string, ...extra: string[]): string[] {
+  return [
+    command,
+    '--composition',
+    join(dir, 'composition.json'),
+    '--assets',
+    join(dir, 'assets.json'),
+    '--out',
+    join(dir, 'out'),
+    ...extra,
+  ];
+}
+
+const FFMPEG_ENV = { KADRION_FFMPEG: '/env/ffmpeg', KADRION_FFPROBE: '/env/ffprobe' };
+
+/** Writes the segment files a range asks for and returns their manifest. */
+function fakeRange(seen: SegmentsRequest[]) {
+  return (request: SegmentsRequest): Promise<SegmentsResult> => {
+    seen.push(request);
+    const segments = [2, 3, 4].map((index) => ({
+      index,
+      firstFrame: index * 60,
+      frameCount: 60,
+      file: `segment-00000${String(index)}.mp4`,
+      sha256: `sha256:${String(index)}`,
+    }));
+    for (const { file } of segments) writeFileSync(join(request.outputDirectory, file), 'mp4');
+    return Promise.resolve({
+      stats: { framesWritten: 180, maxFramesInFlight: 2 },
+      manifest: {
+        kind: 'segments',
+        runtime: { contentHash: 'sha256:runtime' },
+        preset: { name: 'mp4-720p' },
+        segments,
+      } as unknown as SegmentsResult['manifest'],
+    });
+  };
+}
+
+function fakeAudio(seen: AudioRequest[], silent = false) {
+  return (request: AudioRequest): Promise<AudioResult> => {
+    seen.push(request);
+    if (!silent) writeFileSync(join(request.outputDirectory, 'audio.wav'), 'wav');
+    return Promise.resolve({
+      manifest: {
+        kind: 'audio',
+        compositionHash: 'sha256:doc',
+        audio: silent
+          ? null
+          : { rangeSampleCount: 96_000, sha256: 'sha256:wav', file: 'audio.wav' },
+      } as unknown as AudioResult['manifest'],
+    });
+  };
+}
+
+describe('kadrion render-range (D47.3)', () => {
+  it('passes the range, the segment length, and the directory through, and writes the manifest last', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    const { out, io: streams } = io();
+    const args = documentArgs(
+      'render-range',
+      dir,
+      ...['--preset', '720p', '--from-us', '4000000', '--to-us', '10000000'],
+      ...['--segment-frames', '60'],
+    );
+    await expect(
+      runCli(args, streams, { renderRange: fakeRange(seen), env: FFMPEG_ENV }),
+    ).resolves.toBe(EXIT_OK);
+    expect(seen[0]).toMatchObject({
+      preset: '720p',
+      range: { fromUs: 4_000_000, toUs: 10_000_000 },
+      segmentFrames: 60,
+      outputDirectory: join(dir, 'out'),
+      ffmpeg: { ffmpegPath: '/env/ffmpeg', ffprobePath: '/env/ffprobe' },
+    });
+    expect(seen[0]?.document).toEqual(referenceComposition);
+    expect(readdirSync(join(dir, 'out')).sort()).toEqual([
+      'segment-000002.mp4',
+      'segment-000003.mp4',
+      'segment-000004.mp4',
+      'segments-000002-000004.manifest.json',
+    ]);
+    expect(out).toEqual([
+      'segment-000002.mp4 120 60 sha256:2',
+      'segment-000003.mp4 180 60 sha256:3',
+      'segment-000004.mp4 240 60 sha256:4',
+      'segments-000002-000004.manifest.json runtime sha256:runtime',
+    ]);
+  });
+
+  it('renders the whole composition without a range', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    await runCli(documentArgs('render-range', dir, '--preset', '1080p'), io().io, {
+      renderRange: fakeRange(seen),
+      env: FFMPEG_ENV,
+    });
+    expect(seen[0]?.range).toBeUndefined();
+    expect(seen[0]?.segmentFrames).toBeUndefined();
+  });
+
+  it.each([
+    ['one end of the range only', ['--preset', '720p', '--from-us', '0']],
+    [
+      'a range end that is not an integer',
+      ['--preset', '720p', '--from-us', '0', '--to-us', '2e6'],
+    ],
+    ['a segment length that is not an integer', ['--preset', '720p', '--segment-frames', '-1']],
+    ['a preset that could name a path', ['--preset', '../x']],
+  ])('exits 2 for %s, before rendering', async (_, extra) => {
+    const { dir } = workspace();
+    const { err, io: streams } = io();
+    await expect(
+      runCli(documentArgs('render-range', dir, ...extra), streams, {
+        renderRange: never,
+        env: FFMPEG_ENV,
+      }),
+    ).resolves.toBe(EXIT_USAGE);
+    expect(err).toContain(USAGE);
+  });
+
+  it('exits 1 with range-invalid from the Producer', async () => {
+    const { dir } = workspace();
+    const { err, io: streams } = io();
+    const refused = () =>
+      Promise.reject(new ProducerError('range-invalid', 'fromUs is frame 30, not a boundary'));
+    await expect(
+      runCli(
+        documentArgs(
+          'render-range',
+          dir,
+          '--preset',
+          '720p',
+          '--from-us',
+          '1000000',
+          '--to-us',
+          '4000000',
+        ),
+        streams,
+        { renderRange: refused, env: FFMPEG_ENV },
+      ),
+    ).resolves.toBe(EXIT_PRODUCER_ERROR);
+    expect(err).toEqual(['error range-invalid: fromUs is frame 30, not a boundary']);
+  });
+});
+
+describe('kadrion render-audio (D47.4)', () => {
+  it('writes the audio and its manifest, for a range or the whole composition', async () => {
+    const { dir } = workspace();
+    const seen: AudioRequest[] = [];
+    const { out, io: streams } = io();
+    await expect(
+      runCli(
+        documentArgs('render-audio', dir, '--from-us', '2000000', '--to-us', '4000000'),
+        streams,
+        { renderAudio: fakeAudio(seen), env: FFMPEG_ENV },
+      ),
+    ).resolves.toBe(EXIT_OK);
+    expect(seen[0]?.range).toEqual({ fromUs: 2_000_000, toUs: 4_000_000 });
+    expect(readdirSync(join(dir, 'out')).sort()).toEqual(['audio.manifest.json', 'audio.wav']);
+    expect(out).toEqual(['audio.wav 96000 samples sha256:wav', 'audio.manifest.json sha256:doc']);
+  });
+
+  it('says so when the composition has no audio clip', async () => {
+    const { dir } = workspace();
+    const { out, io: streams } = io();
+    await runCli(documentArgs('render-audio', dir), streams, {
+      renderAudio: fakeAudio([], true),
+      env: FFMPEG_ENV,
+    });
+    expect(out[0]).toBe('no audio clip: audio.manifest.json only');
+    expect(readdirSync(join(dir, 'out'))).toEqual(['audio.manifest.json']);
+  });
+
+  it('exits 1 with ffmpeg-missing without flags or variables', async () => {
+    const { dir } = workspace();
+    const { err, io: streams } = io();
+    await expect(
+      runCli(documentArgs('render-audio', dir), streams, { renderAudio: never, env: {} }),
+    ).resolves.toBe(EXIT_PRODUCER_ERROR);
+    expect(err.join('\n')).toMatch(/^error ffmpeg-missing/);
+  });
+});
+
+describe('kadrion join (D47.5)', () => {
+  function parts(): { dir: string; a: string; b: string; audio: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'kadrion-join-'));
+    const [a, b, audio] = ['a', 'b', 'audio'].map((name) => join(dir, name));
+    for (const directory of [a, b, audio]) mkdirSync(directory ?? '');
+    const segments = (indices: number[]) => ({
+      kind: 'segments',
+      preset: { name: 'mp4-1080p' },
+      segments: indices.map((index) => ({ index })),
+    });
+    writeFileSync(join(a ?? '', segmentsManifestName(0, 1)), JSON.stringify(segments([0, 1])));
+    writeFileSync(join(b ?? '', segmentsManifestName(2, 4)), JSON.stringify(segments([2, 3, 4])));
+    writeFileSync(join(b ?? '', 'notes.json'), '{}');
+    writeFileSync(join(audio ?? '', AUDIO_MANIFEST_NAME), JSON.stringify({ kind: 'audio' }));
+    return { dir, a: a ?? '', b: b ?? '', audio: audio ?? '' };
+  }
+
+  function fakeJoin(seen: JoinRequest[]) {
+    return (request: JoinRequest): Promise<JoinResult> => {
+      seen.push(request);
+      writeFileSync(request.outputPath, 'mp4');
+      return Promise.resolve({
+        outputPath: request.outputPath,
+        manifest: {
+          runtime: { contentHash: 'sha256:runtime' },
+          frames: new Array(300).fill({}),
+          segments: new Array(5).fill({}),
+          preset: { name: 'mp4-1080p' },
+        } as unknown as JoinResult['manifest'],
+      });
+    };
+  }
+
+  it('reads every segments manifest and the audio manifest of the --in directories, and writes what export writes', async () => {
+    const { dir, a, b, audio } = parts();
+    const seen: JoinRequest[] = [];
+    const { out, io: streams } = io();
+    await expect(
+      runCli(['join', '--in', b, '--in', audio, '--in', a, '--out', join(dir, 'out')], streams, {
+        join: fakeJoin(seen),
+        env: FFMPEG_ENV,
+      }),
+    ).resolves.toBe(EXIT_OK);
+    expect(seen[0]?.segments.map(({ directory }) => directory)).toEqual([b, a]);
+    expect(seen[0]?.audio.directory).toBe(audio);
+    expect(seen[0]?.outputPath).toBe(join(dir, 'out', 'video-1080p.mp4'));
+    expect(readdirSync(join(dir, 'out')).sort()).toEqual([
+      'video-1080p.mp4',
+      'video-1080p.render-manifest.json',
+    ]);
+    expect(out).toEqual([
+      'video-1080p.mp4 300 frames 5 segments mp4-1080p',
+      'video-1080p.render-manifest.json runtime sha256:runtime',
+    ]);
+  });
+
+  it.each([
+    ['no audio manifest', (p: ReturnType<typeof parts>) => [p.a, p.b]],
+    ['two audio manifests', (p: ReturnType<typeof parts>) => [p.a, p.b, p.audio, p.audio]],
+    ['no segments manifest', (p: ReturnType<typeof parts>) => [p.audio]],
+  ])('exits 1 with join-invalid for %s', async (_, pick) => {
+    const given = parts();
+    const { err, io: streams } = io();
+    const args = pick(given).flatMap((directory) => ['--in', directory]);
+    await expect(
+      runCli(['join', ...args, '--out', join(given.dir, 'out')], streams, {
+        join: never,
+        env: FFMPEG_ENV,
+      }),
+    ).resolves.toBe(EXIT_PRODUCER_ERROR);
+    expect(err.join('\n')).toMatch(/^error join-invalid/);
+  });
+
+  it('exits 2 without --in, or with a directory it cannot read', async () => {
+    const { dir } = parts();
+    for (const args of [
+      ['join', '--out', dir],
+      ['join', '--in', join(dir, 'missing'), '--out', dir],
+    ]) {
+      await expect(runCli(args, io().io, { join: never, env: FFMPEG_ENV })).resolves.toBe(
+        EXIT_USAGE,
+      );
+    }
+  });
+});
+
+describe('kadrion render-still (D47.7)', () => {
+  function fakeStill(seen: StillRequest[]) {
+    return (request: StillRequest): Promise<StillResult> => {
+      seen.push(request);
+      const format = request.format as StillResult['format'];
+      return Promise.resolve({
+        format,
+        mediaType: `image/${format}`,
+        bytes: Uint8Array.of(1, 2, 3),
+        manifest: {
+          runtime: { contentHash: 'sha256:runtime' },
+          frames: [{ index: 75, timeUs: request.timeUs, sha256: 'sha256:png' }],
+          output: { sha256: 'sha256:still' },
+        } as unknown as StillResult['manifest'],
+      });
+    };
+  }
+
+  it('writes a PNG without FFmpeg, and the manifest next to it', async () => {
+    const { dir } = workspace();
+    const seen: StillRequest[] = [];
+    const { out, io: streams } = io();
+    await expect(
+      runCli(
+        documentArgs('render-still', dir, '--time-us', '2500000', '--format', 'png'),
+        streams,
+        {
+          renderStill: fakeStill(seen),
+          env: {},
+        },
+      ),
+    ).resolves.toBe(EXIT_OK);
+    expect(seen[0]).toMatchObject({ timeUs: 2_500_000, format: 'png' });
+    expect(seen[0]?.ffmpeg).toBeUndefined();
+    expect(readdirSync(join(dir, 'out')).sort()).toEqual([
+      'still-000075.manifest.json',
+      'still-000075.png',
+    ]);
+    expect(readFileSync(join(dir, 'out', 'still-000075.png'))).toEqual(Buffer.from([1, 2, 3]));
+    expect(out).toEqual([
+      'still-000075.png 2500000 sha256:still',
+      'still-000075.manifest.json runtime sha256:runtime',
+    ]);
+  });
+
+  it('needs the pinned FFmpeg for jpeg and webp, and names the files by their format', async () => {
+    const { dir } = workspace();
+    const seen: StillRequest[] = [];
+    await expect(
+      runCli(documentArgs('render-still', dir, '--time-us', '0', '--format', 'jpeg'), io().io, {
+        renderStill: never,
+        env: {},
+      }),
+    ).resolves.toBe(EXIT_PRODUCER_ERROR);
+    await runCli(documentArgs('render-still', dir, '--time-us', '0', '--format', 'webp'), io().io, {
+      renderStill: fakeStill(seen),
+      env: FFMPEG_ENV,
+    });
+    expect(seen[0]?.ffmpeg).toEqual({ ffmpegPath: '/env/ffmpeg', ffprobePath: '/env/ffprobe' });
+    expect(stillFileNames(75, 'jpeg')).toEqual({
+      image: 'still-000075.jpg',
+      manifest: 'still-000075.manifest.json',
+    });
+    expect(stillFileNames(0, 'webp').image).toBe('still-000000.webp');
+  });
+
+  it.each([
+    ['no time', ['--format', 'png']],
+    ['a time that is not an integer', ['--time-us', '1.5', '--format', 'png']],
+    ['no format', ['--time-us', '0']],
+    ['a format that could name a path', ['--time-us', '0', '--format', '../png']],
+  ])('exits 2 for %s', async (_, extra) => {
+    const { dir } = workspace();
+    await expect(
+      runCli(documentArgs('render-still', dir, ...extra), io().io, {
+        renderStill: never,
+        env: FFMPEG_ENV,
+      }),
+    ).resolves.toBe(EXIT_USAGE);
   });
 });
 

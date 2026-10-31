@@ -14,10 +14,10 @@ Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
 of the Player and the Producer is measured and gated
 ([`docs/spike/report.md`](docs/spike/report.md)). The workflow runs on a
-GitHub runner in the pinned image, and Q14 is closed: the run 37151313481 of
-the validated PR-21 commit 8b2b18e met every criterion, with its evidence in
-[`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
-([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
+GitHub runner in the pinned image. Q14 is open again: the run 37151313481 of
+the validated PR-21 commit 8b2b18e met every criterion, and PR-25a (D47)
+changed pinned test files, so its evidence was deleted until a green run of the
+new commit ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 repository is publicly visible, but the project is not open source: no licence
 is granted, and the packages are private and unpublished (D37). The APIs below
 are those of the spike and may still change.
@@ -718,6 +718,15 @@ const { outputPath, manifest, stats } = await exportMp4({
 - The FFmpeg paths must be absolute and name the pinned build. `PATH` is never
   searched, and the executables are verified by their SHA-256.
 - A failed export removes its partial output.
+- The video is a sequence of segments of `segmentFrames` frames (default 60),
+  each encoded by its own FFmpeg process; the export renders them and joins
+  them with the audio (D47).
+
+A host's queue can render the same MP4 in jobs (D47): `renderSegments` renders
+a range of whole segments, `renderAudio` the audio of a range, and
+`joinSegments` checks their manifests and joins them into the MP4 that one
+`exportMp4` would write, byte for byte. `renderStill` renders one frame as PNG,
+JPEG, or WebP.
 
 ### 9. The command line
 
@@ -737,6 +746,33 @@ node packages/cli/dist/bin.js export --composition composition.json \
 - **`render-frames`:** writes `frame-000000.png` and so on, plus
   `render-manifest.json`.
 - **`export`:** writes `video-<preset>.mp4` and its render manifest.
+
+A render in jobs, in any order and in separate processes (D47):
+
+```bash
+node packages/cli/dist/bin.js render-range --composition composition.json \
+  --assets assets.json --out part-a --preset 720p --from-us 0 --to-us 6000000
+node packages/cli/dist/bin.js render-range --composition composition.json \
+  --assets assets.json --out part-b --preset 720p --from-us 6000000 --to-us 10000000
+node packages/cli/dist/bin.js render-audio --composition composition.json \
+  --assets assets.json --out audio
+node packages/cli/dist/bin.js join --in part-a --in part-b --in audio --out video
+node packages/cli/dist/bin.js render-still --composition composition.json \
+  --assets assets.json --out still --time-us 2500000 --format png
+```
+
+- **`render-range`:** writes `segment-NNNNNN.mp4` files and
+  `segments-<first>-<last>.manifest.json`. Both ends of the range must lie on
+  the segment grid; without them the range is the whole composition.
+- **`render-audio`:** writes `audio.wav` and `audio.manifest.json`. Its range is
+  the range the join must cover, so a preview of a range is that range at
+  `720p`, its audio, and a join.
+- **`join`:** reads the manifests of the `--in` directories, exactly one of them
+  an audio manifest, refuses parts that are not one render, and writes
+  `video-<preset>.mp4` and its render manifest.
+- **`render-still`:** writes `still-NNNNNN.<png|jpg|webp>` and its manifest; PNG
+  needs no FFmpeg.
+- Every file is written under a temporary name and renamed when complete.
 - **FFmpeg:** it comes from `--ffmpeg` and `--ffprobe`, or from `KADRION_FFMPEG`
   and `KADRION_FFPROBE`.
 - **Exit codes:** 0 for success, 2 for a usage error, and 1 for an error of the

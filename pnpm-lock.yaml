@@ -20,6 +20,12 @@ importers:
       '@kadrion/editor-sdk':
         specifier: workspace:*
         version: link:packages/editor-sdk
+      '@kadrion/editor-session':
+        specifier: workspace:*
+        version: link:packages/editor-session
+      '@kadrion/player':
+        specifier: workspace:*
+        version: link:packages/player
       '@kadrion/producer':
         specifier: workspace:*
         version: link:packages/producer
@@ -65,6 +71,9 @@ importers:
       '@kadrion/editor-sdk':
         specifier: workspace:*
         version: link:../../packages/editor-sdk
+      '@kadrion/editor-session':
+        specifier: workspace:*
+        version: link:../../packages/editor-session
       '@kadrion/player':
         specifier: workspace:*
         version: link:../../packages/player

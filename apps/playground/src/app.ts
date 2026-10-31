@@ -1,26 +1,27 @@
 /**
  * The editing half of the playground, as one function, so that what the page
  * runs is what the tests drive (D30.10). `main.ts` is the bootstrap around it:
- * it fetches the runtime build, makes the real Player, and hands both to
+ * it fetches the runtime build, makes the real Player, opens the host facade of
+ * `@kadrion/editor-session` over it (D44), and hands the session to
  * `wireEditor`.
  *
  * Nothing here is a domain rule. The function sizes the two canvas boxes from
  * the document, places the grip over the node, converts client pixels, and
- * hands every edit to the bus; the position that survives comes back in the
- * document the bus returns, which is what the Player is then asked to render.
+ * hands every edit to the session's bus; the session brings the document the
+ * bus returns to the preview with `Player.update`, at the time it shows, and
+ * the position that survives comes back in that document.
  */
-import { createCommandBus, EditorError, type CommandBus } from '@kadrion/editor-sdk';
+import { EditorError, type CommandBus } from '@kadrion/editor-sdk';
 
 import { attachNodeDrag, previewScale } from './drag.js';
 
-/** How the host resolves an asset; the Player's own resolver satisfies it. */
-export type AssetResolve = (request: { readonly id: string }) => unknown;
-
-/** What the editor needs of a Player. The real one has more (D25). */
-export interface PreviewPlayer {
-  load(document: unknown, resolveAsset: AssetResolve): Promise<void>;
-  seek(timeUs: number): Promise<void>;
-  getState(): { readonly timeUs: number | null };
+/**
+ * What the editor needs of the host facade (D44): the one bus, and when the
+ * preview has caught up with it. The real session has more.
+ */
+export interface PreviewSession {
+  readonly bus: CommandBus;
+  settled(): Promise<void>;
 }
 
 export interface EditorElements {
@@ -33,10 +34,8 @@ export interface EditorElements {
 }
 
 export interface EditorOptions {
-  readonly bus: CommandBus;
-  readonly player: PreviewPlayer;
+  readonly session: PreviewSession;
   readonly elements: EditorElements;
-  readonly resolve: AssetResolve;
   /** The node the grip drags; it must be one the document gives a position. */
   readonly nodeId: string;
   /** The grip's box in composition pixels: an affordance of the page, not a node property. */
@@ -49,7 +48,7 @@ export interface Editor {
   position(): { x: number; y: number };
   undo(): Promise<void>;
   redo(): Promise<void>;
-  /** Re-renders from the current document, keeping the time the preview showed. */
+  /** Waits until the preview shows the current document, and puts the grip on the node. */
   show(): Promise<void>;
   detach(): void;
 }
@@ -99,11 +98,6 @@ export function draggableNodes(document: unknown): string[] {
   );
 }
 
-/** A validated bus over the document the page starts from. */
-export function busFor(document: unknown): CommandBus {
-  return createCommandBus(document);
-}
-
 /**
  * Gives the stage and the overlay the canvas box in composition pixels. Both
  * carry the same scale from the stylesheet, so the preview scale measured from
@@ -124,7 +118,8 @@ export function sizeCanvas(
 }
 
 export function wireEditor(options: EditorOptions): Editor {
-  const { bus, player, elements, resolve, nodeId, gripSize, onError } = options;
+  const { session, elements, nodeId, gripSize, onError } = options;
+  const { bus } = session;
   const { overlay, grip } = elements;
   const { width, height } = bus.getDocument();
   sizeCanvas(elements, { width, height });
@@ -139,10 +134,9 @@ export function wireEditor(options: EditorOptions): Editor {
   };
 
   const show = async (): Promise<void> => {
-    // `load` seeks to 0 (D25), so the time the preview was showing is restored.
-    const at = player.getState().timeUs ?? 0;
-    await player.load(bus.getDocument(), resolve);
-    if (at !== 0) await player.seek(at);
+    // The session has already sent every committed document to the Player
+    // (D44); an update keeps the time the preview shows.
+    await session.settled();
     place();
   };
 

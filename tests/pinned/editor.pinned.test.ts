@@ -54,7 +54,15 @@ const PAGE_POLICY = [
   "base-uri 'none'",
   "form-action 'none'",
 ].join('; ');
-const PACKAGES = ['editor-sdk', 'player', 'renderer-dom', 'runtime', 'schema', 'test-fixtures'];
+const PACKAGES = [
+  'editor-sdk',
+  'editor-session',
+  'player',
+  'renderer-dom',
+  'runtime',
+  'schema',
+  'test-fixtures',
+];
 const TYPES: Readonly<Record<string, string>> = {
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
@@ -69,8 +77,16 @@ const GRIP = 140;
 /**
  * The playground's arrangement — the stage and an overlay of the same canvas
  * box under the same scale, and one grip — driven by the playground's own
- * `wireEditor`. The only thing this page adds is a counting wrapper around the
- * Player, so that the test can wait for the re-render the editor asks for.
+ * `wireEditor` on the host facade of `@kadrion/editor-session` (D44), as
+ * main.ts makes it. The only thing this page adds is a counting wrapper around
+ * the Player, so that the test can wait for the update the session sends.
+ *
+ * The stage takes no pointer input, as on the playground's page. That earned
+ * its place on the first run of PR-25a: the session loads the Player before
+ * the editor sizes and places the grip, and Chromium then kept routing every
+ * pointer event over the grip to the out-of-process render frame, as if the
+ * grip were not there; with the stage out of hit testing, the overlay is the
+ * only thing the pointer can reach.
  */
 function harness(scale: number): string {
   return `<!doctype html><html><head><meta charset="utf-8">
@@ -78,6 +94,7 @@ function harness(scale: number): string {
 html,body{margin:0;padding:0;overflow:hidden}
 #viewport{position:relative;width:${String(WIDTH * scale)}px;height:${String(HEIGHT * scale)}px;overflow:hidden}
 #stage,#overlay{transform:scale(${String(scale)});transform-origin:0 0}
+#stage{pointer-events:none}
 #overlay{position:absolute;inset:0;pointer-events:none}
 #grip{position:absolute;box-sizing:border-box;pointer-events:auto;touch-action:none}
 </style>
@@ -87,14 +104,17 @@ html,body{margin:0;padding:0;overflow:hidden}
     ),
   })}</script>
 <script type="module">
-import { busFor, sizeCanvas, wireEditor } from '/app/app.js';
+import { sizeCanvas, wireEditor } from '/app/app.js';
+import { createCommandBus } from '@kadrion/editor-sdk';
+import { createEditorSession } from '@kadrion/editor-session';
 import { createPlayer } from '@kadrion/player';
 import { generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
 
 const assets = Object.fromEntries(generateReferenceAssets().map((asset) => [asset.id, asset]));
 const resolve = ({ id }) => assets[id] ?? null;
+const onError = (reason) => { window.e.errors.push(reason.code ?? String(reason)); };
 let player;
-let bus;
+let session;
 let editor;
 window.e = {
   errors: [],
@@ -104,7 +124,6 @@ window.e = {
       fetch('/runtime/kadrion-runtime.js').then((response) => response.arrayBuffer()),
       fetch('/runtime/kadrion-runtime.json').then((response) => response.json()),
     ]);
-    bus = busFor(referenceComposition);
     const elements = {
       stage: document.getElementById('stage'),
       overlay: document.getElementById('overlay'),
@@ -113,37 +132,50 @@ window.e = {
     // Before the Player, exactly as main.ts does it. The fixture's Custom HTML is
     // trusted explicitly, as the playground's checkbox does: the frames of this
     // page are counted with the element's own (FRAMES, D36).
-    sizeCanvas(elements, bus.getDocument());
+    sizeCanvas(elements, createCommandBus(referenceComposition).getDocument());
     player = await createPlayer(elements.stage, {
       runtime: { bytes: new Uint8Array(bytes), contentHash: manifest.contentHash },
       customHtml: { mode: 'trusted' },
+      onListenerError: onError,
     });
     const counted = {
-      // Counted when the load has FINISHED: a render that is still building its
-      // frames is not one the test may capture.
-      load: async (composition, resolveAsset) => {
-        await player.load(composition, resolveAsset);
+      load: (composition, resolveAsset) => player.load(composition, resolveAsset),
+      // Counted when the update has FINISHED: a frame that is still being built
+      // is not one the test may capture.
+      update: async (composition, resolveAsset) => {
+        await player.update(composition, resolveAsset);
         window.e.renders += 1;
       },
       seek: (timeUs) => player.seek(timeUs),
+      play: () => player.play(),
+      pause: () => player.pause(),
       getState: () => player.getState(),
+      subscribe: (listener) => player.subscribe(listener),
+      destroy: () => player.destroy(),
     };
-    editor = wireEditor({
-      bus,
+    session = await createEditorSession({
+      document: referenceComposition,
       player: counted,
+      resolveAsset: resolve,
+      onListenerError: onError,
+    });
+    session.subscribe((event) => {
+      if (event.type === 'error') onError(event.error);
+    });
+    editor = wireEditor({
+      session: { bus: session.bus, settled: () => session.settled() },
       elements,
-      resolve,
       nodeId: ${JSON.stringify(NODE_ID)},
       gripSize: ${String(GRIP)},
-      onError: (reason) => { window.e.errors.push(reason.code ?? String(reason)); },
+      onError,
     });
     await editor.show();
     window.e.renders = 0;
     return manifest.contentHash;
   },
   position: () => editor.position(),
-  document: () => JSON.stringify(bus.getDocument()),
-  seek: (timeUs) => player.seek(timeUs),
+  document: () => JSON.stringify(session.bus.getDocument()),
+  seek: (timeUs) => session.seek(timeUs),
   state: () => ({ status: player.getState().status, timeUs: player.getState().timeUs }),
   undo: () => editor.undo(),
 };

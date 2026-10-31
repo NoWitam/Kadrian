@@ -49,6 +49,14 @@ export type ProducerErrorCode =
   | 'audio-invalid'
   /** The preset does not fit the composition: no upscaling, and even integer dimensions only (D29.5). */
   | 'preset-unsupported'
+  /** The segment length of the settings is not a whole number of frames in range (D47.1). */
+  | 'segment-length-invalid'
+  /** A range is empty, outside the composition, or not on the frame or segment grid (D47.2). */
+  | 'range-invalid'
+  /** The parts given to a join do not make one render: a gap, an overlap, a foreign hash, a changed file (D47.5). */
+  | 'join-invalid'
+  /** A still frame was asked for in a format other than png, jpeg, or webp (D47.7). */
+  | 'still-format-unsupported'
   /** Anything else the page reported. */
   | 'page-error';
 

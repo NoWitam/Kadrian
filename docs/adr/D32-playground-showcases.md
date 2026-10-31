@@ -5,6 +5,8 @@
 - Supersedes: — (widens D25.9)
 - Amended by: PR-17 on 2026-09-28, before acceptance, D32.9 (the page's Custom HTML
   policy of D36; it qualifies the last paragraph of D32.2 and the one Player of D32.3)
+- Amended by: PR-25a on 2026-10-31, D32.3 and D32.7 (the page runs on the host
+  facade of D44)
 - Related: D13, D14, D23, D25, D27, D30, D31, D36,
   [specification](../spike/vertical-spike.md) §5 P1, P3, P4
 
@@ -93,6 +95,17 @@ arithmetic of the grid.
 `@kadrion/test-fixtures`. The server gains the route `/pkg/ai-sdk/`; the
 showcases are served under the existing `/app/` route. No package depends on the
 playground.
+
+(Amended by: PR-25a. The playground also depends on `@kadrion/editor-session`
+and serves it under `/pkg/editor-session/`. Each document opens a new Player and
+a new session of D44; the editor and the AI panel act on the session's bus, and
+an edit reaches the preview through `Player.update` at the time it shows, so
+D32.3's "one Player" now holds for the life of a document. Changing the Custom
+HTML policy (D32.9) opens a new session over the same document, and the undo
+history of the old one is gone. The stage takes no pointer input: the session
+mounts the render frame before the grip appears, and Chromium then sends the
+pointer over the grip to that out-of-process frame, which the pinned editor
+test measured.)
 
 ### D32.8 Showcases are kept current by a test
 
