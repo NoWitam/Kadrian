@@ -1,6 +1,6 @@
 # D47 — Segmented rendering, the join, and still frames
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-10-31, after PR-25a was merged
 - Date: 2026-10-31
 - Supersedes: —
 - Extends: D07 (still images as an output) and D29 (segments, the audio pass,

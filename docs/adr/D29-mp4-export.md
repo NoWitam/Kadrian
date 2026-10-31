@@ -7,7 +7,7 @@
 - Amended by: PR-25a (D47) on 2026-10-31: 29.1 (two more required encoders),
   29.3 (segment files, renamed when complete), 29.4 (one process per segment,
   audio in the join), 29.9 (the export manifest), and 29.10 (the commands of a
-  range render); proposed with D47 and in force when the owner accepts it
+  range render); in force since D47 was accepted on 2026-10-31
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D04, D06, D07, D10, D12, D13, D14, D23, D26, D27, D28,
