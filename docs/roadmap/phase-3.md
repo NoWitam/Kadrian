@@ -282,8 +282,8 @@ pack` does not publish.
 
 ### PR-25a — Range, segment, join, and still renders (carried over from phase two, changed)
 
-- Status: implemented on the branch `claude/project-thread-khh7dr` with its ADR
-  D47 (Proposed, 2026-10-31). The join takes MP4 segments through the concat
+- Status: done (PR #9, merged 2026-10-31), with its ADR D47 (accepted by the
+  owner on 2026-10-31). The join takes MP4 segments through the concat
   demuxer; elementary H.264 joined by bytes failed the self-check (D47,
   Context). Q14 is reopened by this pull request.
 
@@ -395,6 +395,14 @@ pack` does not publish.
 
 ### PR-27 — The timeline model (ADR only)
 
+- Status: proposed in [D49](../adr/D49-the-timeline-model.md) (2026-10-31).
+  D49 follows the decisions below and adds three points the plan left open:
+  the composition's `durationUs` stays a field checked against the scenes;
+  scenes get audio clips of their own in scene time beside the composition's;
+  and commands check source ranges against media facts the host supplies by
+  `contentHash`, which keeps D14 and still lets PR-31 refuse a trim past the
+  source. It also settles the open point of PR-28: `muted` and `volume` arrive
+  with `0.4`.
 - **Goal:** one model for the features of PR-28 to PR-34, decided before the
   first of seven schema changes.
 - **Decisions (D49), each with alternatives and a recommendation:**
