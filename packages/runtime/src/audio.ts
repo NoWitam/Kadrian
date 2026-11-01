@@ -1,128 +1,82 @@
 /**
- * The audio plan of a composition (D52.4): which source is heard when, from
- * which source time, at which volume, and with which fades. It is a pure
- * function of the document, like the state of D19, and both hosts use it: the
- * Producer turns it into an FFmpeg graph (D52.5), and the Player will play it
- * with Web Audio (PR-29b). It knows no sample rate, no media fact, and no
- * clock.
- *
- * Every time of an entry is an integer: a composition time, a source time, or
- * an offset from the entry's start. Nothing is ever added past the end of the
- * composition, so every value stays a safe integer however far a lifetime
- * reaches (the repair of the debt of D29.6, where the end of a clip was
- * computed as a sum).
+ * The audio plan on the sample grid (D29.6, D52.5, D53). The plan itself — what
+ * is heard when — is a pure function of the document in `@kadrion/schema`,
+ * re-exported here; this module places it on the samples of the mix, which the
+ * Producer and the Player share.
  */
-import type { SceneNode, ValidatedComposition, VideoNode } from '@kadrion/schema';
+import type { AudioPlan, AudioPlanEntry } from '@kadrion/schema';
 
-/** One sound of the plan: an audio clip, or the sound of a video node. */
-export interface AudioPlanEntry {
-  /** `clip` for an audio clip, `video` for the sound of a video node. */
-  readonly kind: 'clip' | 'video';
-  /** The ID of the clip, or of the video node. */
-  readonly id: string;
-  readonly assetId: string;
-  /** Composition time of the first instant heard, before the composition's end. */
-  readonly startUs: number;
-  /** How long it is heard, at least 1; it ends at or before the composition's end. */
-  readonly durationUs: number;
-  /** The source time heard at `startUs`; speed is 1. */
-  readonly sourceStartUs: number;
-  /** The linear factor of the amplitude, above 0 and at most 1. */
-  readonly volume: number;
-  /**
-   * The length of the lifetime the fades are counted in, from `startUs`: the
-   * clip's whole `durationUs`, which may reach past the composition's end, or,
-   * for a video, the part that is heard.
-   */
-  readonly lifetimeUs: number;
-  /** The gain rises linearly from 0 over `[0, fadeInUs)` of the lifetime; 0 for a video. */
-  readonly fadeInUs: number;
-  /** The gain falls linearly to 0 over the last `fadeOutUs` of the lifetime; 0 for a video. */
-  readonly fadeOutUs: number;
+export { audioPlan, type AudioPlan, type AudioPlanEntry } from '@kadrion/schema';
+
+/**
+ * The sample rate of every mix (D29.6): the Producer's output and the Player's
+ * audio context run at it, so both place the plan on the same grid (D53).
+ */
+export const AUDIO_SAMPLE_RATE = 48_000;
+
+/** The sample of `AUDIO_SAMPLE_RATE` nearest to a time that may lie beyond the safe integers, an exact half up. */
+export function sampleAt(timeUs: bigint): bigint {
+  return (timeUs * BigInt(AUDIO_SAMPLE_RATE) + 500_000n) / 1_000_000n;
 }
 
-/** What is heard of a composition: its entries, clips first, then videos, each in document order. */
-export interface AudioPlan {
-  readonly durationUs: number;
-  readonly entries: readonly AudioPlanEntry[];
+/** A fade in samples, from the first sample of its source as the output hears it. */
+export interface SampleFade {
+  readonly startSample: number;
+  readonly sampleCount: number;
+}
+
+/** One sound of the audio plan on the output's sample grid (D52.5). */
+export interface SoundLayout {
+  readonly entry: AudioPlanEntry;
+  /** The output sample where it starts: the sample of `entry.startUs`. */
+  readonly startSample: number;
+  /** How many output samples hear it: up to the sample of its end. May be 0. */
+  readonly sampleCount: number;
+  /** The sample of its source, at `AUDIO_SAMPLE_RATE`, heard at `startSample`. */
+  readonly sourceStartSample: number;
+  readonly fadeIn: SampleFade | null;
+  readonly fadeOut: SampleFade | null;
+}
+
+/** The audio plan on the output's sample grid: every sound, and the samples of the composition. */
+export interface AudioLayout {
+  readonly totalSamples: number;
+  readonly sounds: readonly SoundLayout[];
 }
 
 /**
- * The end of `[startUs, startUs + durationUs)` cut to `limitUs`, computed by
- * subtraction only: `startUs + durationUs` may leave the safe integers, the
- * result never does.
+ * Places the audio plan of `@kadrion/runtime` on the grid of `AUDIO_SAMPLE_RATE`
+ * (D29.6, D52.5, D53). Every time is rounded to its nearest sample, an exact half
+ * up, in BigInt: a sound occupies the samples from the one of its start up to
+ * the one of its end, and its source is read from the sample of
+ * `sourceStartUs`. A fade runs from the sample of its first instant up to the
+ * sample of its end; one that rounds to no sample is no fade, and a fade-out
+ * that begins after the last sample heard is left out. A sound that rounds to
+ * no sample at all is not heard and leaves the layout.
  */
-function cutEnd(startUs: number, durationUs: number, limitUs: number): number {
-  if (startUs >= limitUs) return limitUs;
-  return startUs + Math.min(durationUs, limitUs - startUs);
-}
-
-/** The video nodes of a scene with the lifetime of their group, if they have one. */
-function videosOf(
-  nodes: readonly SceneNode[],
-): { readonly node: VideoNode; readonly group: SceneNode | null }[] {
-  const found: { node: VideoNode; group: SceneNode | null }[] = [];
-  for (const node of nodes) {
-    if (node.type === 'video') found.push({ node, group: null });
-    else if (node.type === 'group') {
-      for (const child of node.children) {
-        if (child.type === 'video') found.push({ node: child, group: node });
-      }
-    }
-  }
-  return found;
-}
-
-/**
- * The audio plan of D52.4. A clip or a video at volume 0 is not heard and is
- * not in the plan, so its source is never read; neither is one whose lifetime
- * lies wholly at or after the composition's end. The sound of a video in a
- * group is heard only while the group is active too (D42.4), from the source
- * time its node shows at that instant (D49.5).
- */
-export function audioPlan(composition: ValidatedComposition): AudioPlan {
-  const end = composition.durationUs;
-  const entries: AudioPlanEntry[] = [];
-  for (const clip of composition.clips) {
-    if (clip.volume === 0 || clip.startUs >= end) continue;
-    entries.push({
-      kind: 'clip',
-      id: clip.id,
-      assetId: clip.assetId,
-      startUs: clip.startUs,
-      durationUs: cutEnd(clip.startUs, clip.durationUs, end) - clip.startUs,
-      sourceStartUs: clip.sourceStartUs,
-      volume: clip.volume,
-      lifetimeUs: clip.durationUs,
-      fadeInUs: clip.fadeInUs,
-      fadeOutUs: clip.fadeOutUs,
-    });
-  }
-  for (const scene of composition.scenes) {
-    for (const { node, group } of videosOf(scene.nodes)) {
-      if (node.volume === 0) continue;
-      let startUs = node.startUs;
-      let endUs = cutEnd(node.startUs, node.durationUs, end);
-      if (group !== null) {
-        startUs = Math.max(startUs, group.startUs);
-        endUs = Math.min(endUs, cutEnd(group.startUs, group.durationUs, end));
-      }
-      if (startUs >= endUs) continue;
-      const durationUs = endUs - startUs;
-      entries.push({
-        kind: 'video',
-        id: node.id,
-        assetId: node.assetId,
-        startUs,
-        durationUs,
-        // Within the node's lifetime, so a source time the schema keeps safe (D50.2).
-        sourceStartUs: node.sourceStartUs + (startUs - node.startUs),
-        volume: node.volume,
-        lifetimeUs: durationUs,
-        fadeInUs: 0,
-        fadeOutUs: 0,
-      });
-    }
-  }
-  return { durationUs: end, entries };
+export function audioLayout(plan: AudioPlan): AudioLayout {
+  const placed = plan.entries.map((entry): SoundLayout => {
+    const start = BigInt(entry.startUs);
+    const first = sampleAt(start);
+    const sampleCount = Number(sampleAt(start + BigInt(entry.durationUs)) - first);
+    const fadeInCount = Number(sampleAt(start + BigInt(entry.fadeInUs)) - first);
+    const lifetimeEnd = start + BigInt(entry.lifetimeUs);
+    const fadeOutStart = sampleAt(lifetimeEnd - BigInt(entry.fadeOutUs)) - first;
+    const fadeOutCount = Number(sampleAt(lifetimeEnd) - first - fadeOutStart);
+    return {
+      entry,
+      startSample: Number(first),
+      sampleCount,
+      sourceStartSample: Number(sampleAt(BigInt(entry.sourceStartUs))),
+      fadeIn:
+        entry.fadeInUs > 0 && fadeInCount > 0 ? { startSample: 0, sampleCount: fadeInCount } : null,
+      fadeOut:
+        entry.fadeOutUs > 0 && fadeOutCount > 0 && fadeOutStart < BigInt(sampleCount)
+          ? { startSample: Number(fadeOutStart), sampleCount: fadeOutCount }
+          : null,
+    };
+  });
+  // A sound that rounds to no sample is not heard (D52.5).
+  const sounds = placed.filter(({ sampleCount }) => sampleCount > 0);
+  return { totalSamples: Number(sampleAt(BigInt(plan.durationUs))), sounds };
 }

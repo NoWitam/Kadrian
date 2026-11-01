@@ -6,9 +6,32 @@
 import type { ValidatedComposition } from '@kadrion/schema';
 import { describe, expect, it } from 'vitest';
 
-import { applyCommand, createCommandBus, type Command } from '../src/index.js';
+import {
+  applyCommand as applyWithFacts,
+  createCommandBus,
+  type Command,
+  type CommandResult,
+  type MediaFacts,
+} from '../src/index.js';
 
-import { codeOf, errorOf, everyType, json, reference } from './support.js';
+import { codeOf, errorOf, everyType, json, reference, VIDEO_ASSET } from './support.js';
+
+const AUDIO_HASH = (reference().assets.find(({ type }) => type === 'audio') ?? { contentHash: '' })
+  .contentHash;
+
+/** The facts of this file's host: the reference sound lasts 20 s, the video and its sound 1 s (D53). */
+function mediaFacts(contentHash: string): MediaFacts | null {
+  if (contentHash === AUDIO_HASH) return { type: 'audio', durationUs: 20_000_000 };
+  if (contentHash === VIDEO_ASSET.contentHash) {
+    return { type: 'video', durationUs: 1_000_000, audioDurationUs: 1_000_000 };
+  }
+  return null;
+}
+
+/** `applyCommand` with the facts of this file's host. */
+function applyCommand(document: ValidatedComposition, command: Command): CommandResult {
+  return applyWithFacts(document, command, { mediaFacts });
+}
 
 const VOICE = Object.freeze({
   id: 'clip-voice',
@@ -49,7 +72,7 @@ describe('AddAudioClip and RemoveAudioClip (D52.6)', () => {
 
   it('copies the clip, so the caller cannot reach the history through its object', () => {
     const clip = structuredClone(VOICE) as Record<string, unknown>;
-    const bus = createCommandBus(reference());
+    const bus = createCommandBus(reference(), { mediaFacts });
     bus.dispatch({ type: 'AddAudioClip', index: 1, clip });
     clip['volume'] = 0.1;
     expect(clipsOf(bus.getDocument())[1]?.['volume']).toBe(0.8);
@@ -257,5 +280,71 @@ describe('SetVideoVolume (D52.6)', () => {
         applyCommand(document, { type: 'SetVideoVolume', nodeId: 'node-none', volume: 1 }),
       ),
     ).toBe('unknown-node');
+  });
+});
+
+describe('the source ranges a sound hears, against the facts of the host (D49.6, D53)', () => {
+  const longer = { type: 'SetClipSource', clipId: 'clip-audio', assetId: 'asset-audio' } as const;
+
+  it('refuses a clip that would hear past the end of its sound, and names it', () => {
+    const error = errorOf(() =>
+      applyCommand(reference(), { ...longer, sourceStartUs: 10_000_001 }),
+    );
+    expect([error.code, error.details]).toEqual([
+      'source-range-exceeded',
+      ['clip-audio: hears 10000001 to 20000001 µs of a sound of 20000000 µs'],
+    ]);
+    expect(
+      applyCommand(reference(), { ...longer, sourceStartUs: 10_000_000 }).inverse,
+    ).not.toBeNull();
+  });
+
+  it('refuses a new sound without facts, and lets a clip read less than before', () => {
+    const none = { mediaFacts: () => null };
+    expect(
+      errorOf(() => applyWithFacts(reference(), { ...longer, sourceStartUs: 1 }, none)),
+    ).toMatchObject({ code: 'media-facts-missing', details: ['clip-audio'] });
+    expect(
+      codeOf(() => applyWithFacts(reference(), { type: 'AddAudioClip', index: 0, clip: VOICE })),
+    ).toBe('media-facts-missing');
+    // Silent, it reads nothing; quieter or with fades, it reads what it read before.
+    for (const command of [
+      { type: 'SetClipVolume', clipId: 'clip-audio', volume: 0 },
+      { type: 'SetClipVolume', clipId: 'clip-audio', volume: 0.5 },
+      { type: 'SetClipFades', clipId: 'clip-audio', fadeInUs: 1, fadeOutUs: 1 },
+      { type: 'AddAudioClip', index: 0, clip: { ...VOICE, volume: 0 } },
+    ] as const) {
+      expect(applyWithFacts(reference(), command, none).inverse).not.toBeNull();
+    }
+  });
+
+  it('checks the sound of a video once it is heard, and refuses a video without sound', () => {
+    const louder = { type: 'SetVideoVolume', nodeId: 'node-video', volume: 1 } as const;
+    expect(codeOf(() => applyWithFacts(everyType(), louder, { mediaFacts: () => null }))).toBe(
+      'media-facts-missing',
+    );
+    const silent = (): MediaFacts => ({
+      type: 'video',
+      durationUs: 1_000_000,
+      audioDurationUs: null,
+    });
+    expect(
+      errorOf(() => applyWithFacts(everyType(), louder, { mediaFacts: silent })),
+    ).toMatchObject({
+      code: 'source-range-exceeded',
+      details: ['node-video: hears 0 to 1000000 µs of a source with no sound'],
+    });
+    const unread = (): MediaFacts => ({ type: 'video', durationUs: 1_000_000 });
+    expect(codeOf(() => applyWithFacts(everyType(), louder, { mediaFacts: unread }))).toBe(
+      'media-facts-missing',
+    );
+    const short = (): MediaFacts => ({
+      type: 'video',
+      durationUs: 1_000_000,
+      audioDurationUs: 999_999,
+    });
+    expect(codeOf(() => applyWithFacts(everyType(), louder, { mediaFacts: short }))).toBe(
+      'source-range-exceeded',
+    );
   });
 });

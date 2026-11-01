@@ -1,13 +1,17 @@
 /**
- * Media facts at the command bus (D49.6, D50.6). A fact of a source — here the
- * duration of a video — is a pure function of its bytes, and therefore of its
- * `contentHash` (D14); the document never stores one. A host that has verified
- * the bytes supplies the facts by hash, and every command whose result changes
- * the sampled source range of a video node is checked against them: a range
- * that leaves the source, or a range whose asset has no facts, is refused, so
- * the bus never accepts what both hosts would reject before the first frame.
+ * Media facts at the command bus (D49.6, D50.6, D53). A fact of a source — the
+ * duration of a video, or of a sound — is a pure function of its bytes, and
+ * therefore of its `contentHash` (D14); the document never stores one. A host
+ * that has verified the bytes supplies the facts by hash, and every command
+ * whose result changes the sampled source range of a video node, or the source
+ * range a sound of the audio plan hears (D52.4), is checked against them: a
+ * range that leaves the source, or a range whose asset has no facts, is
+ * refused, so the bus never accepts what both hosts would reject before the
+ * first frame.
  */
 import {
+  audioPlan,
+  type AudioPlanEntry,
   sampledSourceRange,
   sourceRangeFits,
   type SourceRange,
@@ -16,15 +20,28 @@ import {
 
 import { EditorError } from './errors.js';
 
-/** What a host knows of a video's bytes (D49.6). */
+/** What a host knows of a video's bytes (D49.6, D53). */
 export interface VideoFacts {
   readonly type: 'video';
   /** The presentation end of the last frame, counted from the first, in microseconds (D49.5). */
   readonly durationUs: number;
+  /**
+   * The length of its decoded sound in whole microseconds, `null` when it has
+   * none, or absent when the host has not read it (D53). A video node above
+   * volume 0 needs it.
+   */
+  readonly audioDurationUs?: number | null;
 }
 
-/** The facts of one asset; a later version adds audio. */
-export type MediaFacts = VideoFacts;
+/** What a host knows of a sound's bytes (D53). */
+export interface AudioFacts {
+  readonly type: 'audio';
+  /** The length of its decoded samples, in whole microseconds, rounded down. */
+  readonly durationUs: number;
+}
+
+/** The facts of one asset. */
+export type MediaFacts = VideoFacts | AudioFacts;
 
 /** The facts of the bytes with this content hash, or `null` when the host has none. */
 export type MediaFactsLookup = (contentHash: string) => MediaFacts | null;
@@ -63,15 +80,41 @@ function sameRange(a: SourceRange | null, b: SourceRange | null): boolean {
   );
 }
 
+function isDuration(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+}
+
 /** Reads a host's facts once, as plain data: anything else is no facts. */
 export function factsOf(lookup: MediaFactsLookup, contentHash: string): MediaFacts | null {
   const facts: unknown = lookup(contentHash);
   if (typeof facts !== 'object' || facts === null) return null;
-  const { type, durationUs } = facts as Partial<Record<string, unknown>>;
-  if (type !== 'video' || typeof durationUs !== 'number' || !Number.isSafeInteger(durationUs)) {
-    return null;
+  const { type, durationUs, audioDurationUs } = facts as Partial<Record<string, unknown>>;
+  if (!isDuration(durationUs)) return null;
+  if (type === 'audio') return { type, durationUs };
+  if (type !== 'video') return null;
+  if (audioDurationUs === null || isDuration(audioDurationUs)) {
+    return { type, durationUs, audioDurationUs };
   }
   return { type, durationUs };
+}
+
+/** The source length a sound of the plan reads from, `null` for none, or `undefined` if unknown. */
+function soundLength(entry: AudioPlanEntry, facts: MediaFacts | null): number | null | undefined {
+  if (facts === null) return undefined;
+  if (entry.kind === 'clip') return facts.type === 'audio' ? facts.durationUs : undefined;
+  return facts.type === 'video' ? facts.audioDurationUs : undefined;
+}
+
+/**
+ * Whether sound `b` reads only source time that sound `a` of the same source
+ * read already: a range that shrinks reads nothing new and needs no facts.
+ */
+function readsNothingNew(a: AudioPlanEntry, b: AudioPlanEntry, hashes: [string, string]): boolean {
+  return (
+    hashes[0] === hashes[1] &&
+    b.sourceStartUs >= a.sourceStartUs &&
+    b.sourceStartUs - a.sourceStartUs <= a.durationUs - b.durationUs
+  );
 }
 
 /**
@@ -109,18 +152,62 @@ export function checkSourceRanges(
       );
     }
   }
+  checkSounds(before, after, lookup, missing, exceeded);
   if (missing.length > 0) {
     throw new EditorError(
       'media-facts-missing',
-      'The host supplied no media facts for the video of a node whose source range the command sets (D49.6).',
+      'The host supplied no media facts for the source of a node or clip whose source range the command sets (D49.6, D53).',
       missing,
     );
   }
   if (exceeded.length > 0) {
     throw new EditorError(
       'source-range-exceeded',
-      'The command would make a video node sample past the end of its source (D49.6).',
+      'The command would make a node or clip read past the end of its source (D49.6, D53).',
       exceeded,
     );
+  }
+}
+
+/**
+ * The sounds of the audio plan of `after` (D52.4) that read source time the
+ * sound of the same clip or node in `before` did not — a new sound, another
+ * asset, or a range reaching outside the one before — checked
+ * against the facts of their sources (D53): a clip reads `[sourceStartUs,
+ * sourceStartUs + durationUs)` of a sound, and a video node above volume 0 the
+ * same of its video's sound. A sound not heard — volume 0, or past the end —
+ * needs no facts. Adds to `missing` and `exceeded`.
+ */
+function checkSounds(
+  before: ValidatedComposition,
+  after: ValidatedComposition,
+  lookup: MediaFactsLookup | null,
+  missing: string[],
+  exceeded: string[],
+): void {
+  const hashOf = (document: ValidatedComposition) => {
+    const hashes = new Map(document.assets.map((asset) => [asset.id, asset.contentHash]));
+    return (assetId: string): string => hashes.get(assetId) ?? '';
+  };
+  const beforeHash = hashOf(before);
+  const afterHash = hashOf(after);
+  const previous = new Map(
+    audioPlan(before).entries.map((entry) => [`${entry.kind}:${entry.id}`, entry]),
+  );
+  for (const entry of audioPlan(after).entries) {
+    const contentHash = afterHash(entry.assetId);
+    const old = previous.get(`${entry.kind}:${entry.id}`);
+    if (old !== undefined && readsNothingNew(old, entry, [beforeHash(old.assetId), contentHash])) {
+      continue;
+    }
+    const length = soundLength(entry, lookup === null ? null : factsOf(lookup, contentHash));
+    const end = `${String(entry.sourceStartUs)} to ${String(entry.sourceStartUs + entry.durationUs)} µs`;
+    if (length === undefined) {
+      if (!missing.includes(entry.id)) missing.push(entry.id);
+    } else if (length === null) {
+      exceeded.push(`${entry.id}: hears ${end} of a source with no sound`);
+    } else if (entry.sourceStartUs > length || entry.durationUs > length - entry.sourceStartUs) {
+      exceeded.push(`${entry.id}: hears ${end} of a sound of ${String(length)} µs`);
+    }
   }
 }

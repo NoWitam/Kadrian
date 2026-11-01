@@ -12,6 +12,9 @@
       "path": "../renderer-dom"
     },
     {
+      "path": "../runtime"
+    },
+    {
       "path": "../schema"
     }
   ]

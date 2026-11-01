@@ -42,6 +42,10 @@ export type PlayerErrorCode =
   | 'source-range-exceeded'
   /** The page refused the frames of the video nodes it was given (D50.4). */
   | 'video-frames-invalid'
+  /** A sound the browser cannot decode at 48 kHz, as the Producer's `audio-invalid` (D53). */
+  | 'audio-invalid'
+  /** No Web Audio context to decode with, or a sound of more than two channels (D53). */
+  | 'audio-unsupported'
   /** The time is not an integer in `[0, durationUs)` (D13, D25.6). */
   | 'time-out-of-range'
   /** A seek was requested before a document was loaded. */

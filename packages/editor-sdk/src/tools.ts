@@ -287,13 +287,12 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setVideoSourceArgumentsSchema,
   },
   SetVideoVolume: {
-    description:
-      'Sets how loud the sound of a video node is heard: a linear factor of the amplitude from 0 (silent) to 1 (the source as it is); it never amplifies. A video above 0 is heard from the source time it shows, and its asset must then have exactly one audio stream that starts with its picture, or rendering refuses it with audio-invalid. Refused with invalid-argument outside 0 to 1, unknown-node, and unsupported-node for a node that is not a video.',
+    description: `Sets how loud the sound of a video node is heard: a linear factor of the amplitude from 0 (silent) to 1 (the source as it is); it never amplifies. A video above 0 is heard from the source time it shows, and its asset must then have exactly one audio stream that starts with its picture, long enough for what is heard: describe_document reports a video's soundDurationUs when the host knows it, null when it has no sound. Refused with invalid-argument outside 0 to 1, unknown-node, unsupported-node for a node that is not a video, media-facts-missing when the host does not know the video's sound, and source-range-exceeded when the node would hear past its end or the video has no sound.`,
     example: { nodeId: 'node-video', volume: 0.5 },
     argumentsSchema: setVideoVolumeArgumentsSchema,
   },
   AddAudioClip: {
-    description: `Adds one complete audio clip at an index of the document's clips; every clip is heard, mixed by adding, whatever the order. The clip is given exactly as the document stores it: an ID unused in the document, type "audio", the ID of an audio asset the document declares (add one with add_asset first), startUs and durationUs (at least 1) in composition time, sourceStartUs (the source time heard at startUs; speed is 1), volume from 0 to 1, and fadeInUs and fadeOutUs, linear, which together take at most durationUs. ${TIME_US} The part after the end of the composition is cut; the source must be long enough for the part that is heard, or rendering refuses it with source-range-exceeded. Refused with index-out-of-range, id-in-use, and invalid-result.`,
+    description: `Adds one complete audio clip at an index of the document's clips; every clip is heard, mixed by adding, whatever the order. The clip is given exactly as the document stores it: an ID unused in the document, type "audio", the ID of an audio asset the document declares (add one with add_asset first), startUs and durationUs (at least 1) in composition time, sourceStartUs (the source time heard at startUs; speed is 1), volume from 0 to 1, and fadeInUs and fadeOutUs, linear, which together take at most durationUs. ${TIME_US} The part after the end of the composition is cut; the source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with index-out-of-range, id-in-use, invalid-result, media-facts-missing when the host does not know the asset's duration, and source-range-exceeded when the clip would hear past its end.`,
     example: {
       index: 1,
       clip: {
@@ -327,7 +326,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setClipFadesArgumentsSchema,
   },
   SetClipSource: {
-    description: `Points one audio clip at an audio asset the document declares, which may be the one it has, and sets the source time heard at the clip's start; it then plays at speed 1 and keeps its lifetime. ${TIME_US} Source times count from the first sample. To move a clip in time, run remove_audio_clip and add_audio_clip in one transaction. Refused with invalid-argument, unknown-clip, unknown-asset, and asset-type-mismatch when the asset is not audio.`,
+    description: `Points one audio clip at an audio asset the document declares, which may be the one it has, and sets the source time heard at the clip's start; it then plays at speed 1 and keeps its lifetime. ${TIME_US} Source times count from the first sample. To move a clip in time, run remove_audio_clip and add_audio_clip in one transaction. The part heard must lie inside the source: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with invalid-argument, unknown-clip, unknown-asset, asset-type-mismatch when the asset is not audio, media-facts-missing, and source-range-exceeded.`,
     example: { clipId: 'clip-audio', assetId: 'asset-audio', sourceStartUs: 1_000_000 },
     argumentsSchema: setClipSourceArgumentsSchema,
   },

@@ -32,6 +32,7 @@ const HISTORICAL = /migrat|v0-1/;
 
 /** Every module the main entry of `@kadrion/schema` may reach, and it reaches each. */
 const MAIN_ENTRY_MODULES = [
+  'audio-plan.js',
   'composition-schema.js',
   'errors.js',
   'frame-grid.js',

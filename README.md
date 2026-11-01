@@ -236,7 +236,8 @@ Unknown fields are errors. This one shows a text that fades in:
   to 1, with linear fades `fadeInUs` and `fadeOutUs`; clips and the sound of
   video nodes are summed (D52). A `video` node has a `volume` too: at 0 it is
   silent and its file needs no sound. The Producer mixes all of it with the
-  pinned FFmpeg, sample-exact; the Player plays no sound yet.
+  pinned FFmpeg, sample-exact; the Player plays the same plan with Web Audio
+  when the host gives it an audio context (D53).
 - **Assets:** images, fonts, audio, and video, by ID and `contentHash`.
 
 The font above is the one of `@kadrion/test-fixtures`. For every field, see the
@@ -456,6 +457,17 @@ player.destroy();
   the Player does not hold yet, and it plays on if it was playing (D44.5).
   `player.subscribe(listener)` reports every change of the state; it needs the
   option `onListenerError` of `createPlayer`.
+
+**Sound in the Player.** A Player plays no sound unless the host passes an
+`AudioContext` at 48 kHz, created on a gesture of the user:
+`createPlayer(container, { runtime, audio: { context } })` with
+`context = new AudioContext({ sampleRate: 48000 })` (D53). It then decodes the
+sources the document hears, plays them on the Producer's sample grid, and the
+picture follows the context's clock. `player.prepareAudio(asset, resolveAsset)`
+decodes one audio or video asset and returns its length; `editor-session`
+reads these facts, so the bus refuses a clip or a heard video that reads past
+its source (`source-range-exceeded`) or whose source it does not know
+(`media-facts-missing`).
 
 **Custom HTML in the Player.** Custom HTML is disabled by default (D36). A
 Player created without `customHtml` never runs it: every Custom HTML element

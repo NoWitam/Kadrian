@@ -7,8 +7,8 @@
  * `@kadrion/renderer-dom`. Beside it, the audio plan: what is heard of a
  * composition, from the document alone (D52.4).
  */
-export { audioPlan } from './audio.js';
-export type { AudioPlan, AudioPlanEntry } from './audio.js';
+export { AUDIO_SAMPLE_RATE, audioLayout, audioPlan, sampleAt } from './audio.js';
+export type { AudioLayout, AudioPlan, AudioPlanEntry, SampleFade, SoundLayout } from './audio.js';
 export { EvaluationError } from './errors.js';
 export type { EvaluationErrorCode } from './errors.js';
 export { evaluateComposition } from './evaluate.js';
