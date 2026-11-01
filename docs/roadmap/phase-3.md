@@ -514,7 +514,7 @@ pack` does not publish.
   `@kadrion/runtime` (which repairs the debt beyond 2^53 − 1), the mix in the
   Producer on the 48 kHz grid with a pinned test against an independent sum,
   and six commands with their tools (`SetClipGain` is `SetClipVolume`).
-  **PR-29b** follows with D53 (proposed 2026-11-01): playback with Web Audio in
+  **PR-29b** is done (PR #21, merged 2026-11-01; D53 accepted): playback with Web Audio in
   an `AudioContext` the host passes, on the Producer's 48 kHz grid (the grid
   moves to `@kadrion/runtime`, the plan to `@kadrion/schema`), the audio clock
   driving the picture, `Player.prepareAudio`, audio media facts read by
