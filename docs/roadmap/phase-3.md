@@ -507,7 +507,7 @@ pack` does not publish.
 
 ### PR-29 — Audio: clips, gain, fades, mix, playback
 
-- Status: split in two by D52 (proposed 2026-10-31). **PR-29a** is in review:
+- Status: split in two by D52 (accepted 2026-11-01). **PR-29a** is done (PR #19, merged 2026-11-01):
   schema `0.4` and its step (`volume` on clips and video nodes, no `muted`,
   because the schema subset has no boolean), any number of clips with a source
   start and linear fades counted in the clip's lifetime, the audio plan in
