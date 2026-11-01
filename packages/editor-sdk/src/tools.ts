@@ -14,6 +14,7 @@
 import {
   addAnimationArgumentsSchema,
   addAssetArgumentsSchema,
+  addAudioClipArgumentsSchema,
   addKeyframeArgumentsSchema,
   addNodeArgumentsSchema,
   deepFreeze,
@@ -21,9 +22,13 @@ import {
   moveKeyframeArgumentsSchema,
   removeAnimationArgumentsSchema,
   removeAssetArgumentsSchema,
+  removeAudioClipArgumentsSchema,
   removeKeyframeArgumentsSchema,
   removeNodeArgumentsSchema,
   reorderNodeArgumentsSchema,
+  setClipFadesArgumentsSchema,
+  setClipSourceArgumentsSchema,
+  setClipVolumeArgumentsSchema,
   setImageAssetArgumentsSchema,
   setNodeColorArgumentsSchema,
   setNodeFitArgumentsSchema,
@@ -40,7 +45,9 @@ import {
   setTextFontSizeArgumentsSchema,
   setVideoAssetArgumentsSchema,
   setVideoSourceArgumentsSchema,
+  setVideoVolumeArgumentsSchema,
   type AddAnimationArgumentsSchema,
+  type AddAudioClipArgumentsSchema,
   type AddKeyframeArgumentsSchema,
   type AddNodeArgumentsSchema,
   type ClosedObjectSchema,
@@ -59,7 +66,8 @@ export type CommandArgumentsSchema =
   | ClosedObjectSchema<string>
   | AddNodeArgumentsSchema
   | AddAnimationArgumentsSchema
-  | AddKeyframeArgumentsSchema;
+  | AddKeyframeArgumentsSchema
+  | AddAudioClipArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -277,6 +285,51 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Sets the source time a video node shows at the start of its lifetime; it then plays at speed 1. ${TIME_US} Source times count from the video's first frame. The node samples sourceStartUs up to sourceStartUs plus the part of its lifetime inside the composition, which must lie inside the video: describe_document reports its sourceDurationUs when the host knows it. To trim the start of a clip by d, add d to startUs and sourceStartUs and subtract it from durationUs in one transaction. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a video, media-facts-missing, and source-range-exceeded.`,
     example: { nodeId: 'node-video', sourceStartUs: 2_000_000 },
     argumentsSchema: setVideoSourceArgumentsSchema,
+  },
+  SetVideoVolume: {
+    description:
+      'Sets how loud the sound of a video node is heard: a linear factor of the amplitude from 0 (silent) to 1 (the source as it is); it never amplifies. A video above 0 is heard from the source time it shows, and its asset must then have exactly one audio stream that starts with its picture, or rendering refuses it with audio-invalid. Refused with invalid-argument outside 0 to 1, unknown-node, and unsupported-node for a node that is not a video.',
+    example: { nodeId: 'node-video', volume: 0.5 },
+    argumentsSchema: setVideoVolumeArgumentsSchema,
+  },
+  AddAudioClip: {
+    description: `Adds one complete audio clip at an index of the document's clips; every clip is heard, mixed by adding, whatever the order. The clip is given exactly as the document stores it: an ID unused in the document, type "audio", the ID of an audio asset the document declares (add one with add_asset first), startUs and durationUs (at least 1) in composition time, sourceStartUs (the source time heard at startUs; speed is 1), volume from 0 to 1, and fadeInUs and fadeOutUs, linear, which together take at most durationUs. ${TIME_US} The part after the end of the composition is cut; the source must be long enough for the part that is heard, or rendering refuses it with source-range-exceeded. Refused with index-out-of-range, id-in-use, and invalid-result.`,
+    example: {
+      index: 1,
+      clip: {
+        id: 'clip-voice',
+        type: 'audio',
+        assetId: 'asset-audio',
+        startUs: 2_000_000,
+        durationUs: 3_000_000,
+        sourceStartUs: 500_000,
+        volume: 0.8,
+        fadeInUs: 250_000,
+        fadeOutUs: 1_000_000,
+      },
+    },
+    argumentsSchema: addAudioClipArgumentsSchema,
+  },
+  RemoveAudioClip: {
+    description: 'Removes one audio clip; its asset stays declared. Refused with unknown-clip.',
+    example: { clipId: 'clip-audio' },
+    argumentsSchema: removeAudioClipArgumentsSchema,
+  },
+  SetClipVolume: {
+    description:
+      'Sets the volume of one audio clip: a linear factor of the amplitude from 0 (silent) to 1 (the source as it is); it never amplifies. Refused with invalid-argument outside 0 to 1 and unknown-clip.',
+    example: { clipId: 'clip-audio', volume: 0.5 },
+    argumentsSchema: setClipVolumeArgumentsSchema,
+  },
+  SetClipFades: {
+    description: `Sets the linear fade-in and fade-out of one audio clip: the clip rises from silence to its volume over the first fadeInUs of its lifetime and falls back to silence over the last fadeOutUs, counted in its whole lifetime even where the composition cuts it. 0 is no fade, and both together take at most the clip's durationUs. ${TIME_US} Refused with invalid-argument, unknown-clip, and invalid-result when the fades exceed the duration.`,
+    example: { clipId: 'clip-audio', fadeInUs: 500_000, fadeOutUs: 2_000_000 },
+    argumentsSchema: setClipFadesArgumentsSchema,
+  },
+  SetClipSource: {
+    description: `Points one audio clip at an audio asset the document declares, which may be the one it has, and sets the source time heard at the clip's start; it then plays at speed 1 and keeps its lifetime. ${TIME_US} Source times count from the first sample. To move a clip in time, run remove_audio_clip and add_audio_clip in one transaction. Refused with invalid-argument, unknown-clip, unknown-asset, and asset-type-mismatch when the asset is not audio.`,
+    example: { clipId: 'clip-audio', assetId: 'asset-audio', sourceStartUs: 1_000_000 },
+    argumentsSchema: setClipSourceArgumentsSchema,
   },
 });
 

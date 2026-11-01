@@ -24,11 +24,13 @@ import { basename, dirname, join, resolve } from 'node:path';
 import type { AssetResolver } from '@kadrion/renderer-dom';
 import { frameCount, frameToTimeUs, type ValidatedComposition } from '@kadrion/schema';
 
+import { audioPlan } from '@kadrion/runtime';
+
 import {
   AUDIO_BITRATE,
   AUDIO_CHANNEL_LAYOUT,
   AUDIO_CODEC,
-  audioPlan,
+  audioLayout,
   FrameSink,
   OUTPUT_PLACEHOLDER,
   presetSize,
@@ -37,7 +39,7 @@ import {
   SAMPLE_RATE,
   samplesAt,
   TIME_SCALE_PER_FRAME,
-  type AudioPlan,
+  type AudioLayout,
   type PresetSize,
   type StartTimer,
   videoGraph,
@@ -64,9 +66,11 @@ import {
   FFMPEG_RELEASE,
   FFMPEG_URL,
   pinnedFfmpeg,
+  type AudioProbe,
   type EncoderProcess,
   type FfmpegPaths,
   type FfmpegTools,
+  type StreamStart,
 } from './ffmpeg.js';
 import {
   canonicalJson,
@@ -78,6 +82,7 @@ import {
   type ManifestAudio,
   type ManifestFfmpegBuild,
   type ManifestFrame,
+  type ManifestSound,
   type ManifestMp4Preset,
   type ManifestSegment,
   type RenderIdentity,
@@ -95,7 +100,7 @@ import {
   type RenderTimeouts,
 } from './render.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
-import { prepareVideos } from './video.js';
+import { prepareVideos, privateCopies, type PrivateCopies } from './video.js';
 import {
   AUDIO_INTERMEDIATE_CODEC,
   AUDIO_INTERMEDIATE_FORMAT,
@@ -103,6 +108,7 @@ import {
   audioPassArgs,
   audioPassGraph,
   audioRangeOf,
+  soundPlaceholder,
   checkedSegmentFrames,
   concatList,
   frameRange,
@@ -265,49 +271,105 @@ function within<T>(
   });
 }
 
+/** The checked sounds of a render: their layout, a private copy of each source, and their hashes. */
 interface CheckedAudio {
-  readonly plan: AudioPlan;
-  readonly bytes: Uint8Array;
-  readonly contentHash: string;
+  readonly layout: AudioLayout;
+  /** The file each sound is read from, in the order of the layout. */
+  readonly inputs: readonly string[];
+  readonly hashes: ReadonlyMap<string, string>;
+  /** Removes the private copies; every caller calls it when the audio pass is done or failed. */
+  close(): Promise<void>;
 }
 
-/** The audio of the document, checked with the pinned ffprobe before the render (D29.6). */
+/** Whether two stated stream starts are the same instant, compared exactly. */
+function sameStart(a: StreamStart, b: StreamStart): boolean {
+  return a.pts * BigInt(a.num) * BigInt(b.den) === b.pts * BigInt(b.num) * BigInt(a.den);
+}
+
+/**
+ * The sounds of the document, checked with the pinned ffprobe before the render
+ * (D29.6, D49.6, D52.5): the audio plan of `@kadrion/runtime` on the sample
+ * grid, a private copy of every source a sound reads, and for each sound a
+ * source with exactly one audio stream and a sample rate, which covers every
+ * source time it is heard at; the sound of a video starts where its picture
+ * does. `null` when nothing is heard: the export then has no audio stream.
+ */
 async function checkedAudio(
   prepared: PreparedRender,
   tools: FfmpegTools,
 ): Promise<CheckedAudio | null> {
-  const plan = audioPlan(prepared.composition);
-  if (plan === null) return null;
-  const asset = prepared.assets.find(({ id }) => id === plan.assetId);
-  if (asset === undefined) {
-    throw new ProducerError('audio-invalid', `The audio asset "${plan.assetId}" was not resolved.`);
+  const layout = audioLayout(audioPlan(prepared.composition));
+  if (layout.sounds.length === 0) return null;
+  const used = new Set(layout.sounds.map(({ entry }) => entry.assetId));
+  const sources = prepared.assets.filter(({ id }) => used.has(id));
+  for (const id of used) {
+    if (!sources.some((asset) => asset.id === id)) {
+      // Unreachable: every asset of the document was resolved and verified.
+      throw new ProducerError('asset-missing', `The asset "${id}" was not resolved.`);
+    }
   }
-  const probe = await tools.probeAudio(asset.bytes);
-  if (probe.audioStreams !== 1) {
-    throw new ProducerError(
-      'audio-invalid',
-      `The audio asset "${plan.assetId}" has ${String(probe.audioStreams)} audio streams, not 1.`,
-    );
+  const copies: PrivateCopies = await privateCopies(sources);
+  try {
+    const probes = new Map<string, AudioProbe>();
+    for (const [id, file] of copies.files) probes.set(id, await tools.probeAudio(file));
+    for (const { entry } of layout.sounds) {
+      const probe = probes.get(entry.assetId);
+      const name = `${entry.kind === 'clip' ? 'The clip' : 'The video node'} "${entry.id}"`;
+      if (probe === undefined || probe.audioStreams !== 1) {
+        throw new ProducerError(
+          'audio-invalid',
+          `${name} plays "${entry.assetId}", which has ${String(probe?.audioStreams ?? 0)} audio streams, not 1.`,
+        );
+      }
+      if (probe.sampleRate === null) {
+        throw new ProducerError(
+          'audio-invalid',
+          `${name} plays "${entry.assetId}", which has no sample rate that ffprobe could read.`,
+        );
+      }
+      if (entry.kind === 'video') {
+        const { audioStart, videoStart } = probe;
+        if (audioStart === null || videoStart === null || !sameStart(audioStart, videoStart)) {
+          throw new ProducerError(
+            'audio-invalid',
+            `${name} plays the sound of "${entry.assetId}", whose audio does not start where its video does, so source time 0 would not be one instant (D52.5).`,
+          );
+        }
+      }
+      const endUs = BigInt(entry.sourceStartUs) + BigInt(entry.durationUs);
+      if (probe.samples * 1_000_000n < endUs * BigInt(probe.sampleRate)) {
+        throw new ProducerError(
+          'source-range-exceeded',
+          `${entry.id}: samples ${String(entry.sourceStartUs)} to ${String(endUs)} µs of "${entry.assetId}", which holds ${String(probe.samples)} samples at ${String(probe.sampleRate)} Hz (D49.6).`,
+        );
+      }
+    }
+    return {
+      layout,
+      inputs: layout.sounds.map(({ entry }) => copies.files.get(entry.assetId) ?? ''),
+      hashes: new Map(sources.map(({ id, contentHash }) => [id, contentHash])),
+      close: () => copies.remove(),
+    };
+  } catch (reason) {
+    await copies.remove();
+    throw reason;
   }
-  if (probe.sampleRate === null) {
-    throw new ProducerError(
-      'audio-invalid',
-      `The audio asset "${plan.assetId}" has no sample rate that ffprobe could read.`,
-    );
-  }
-  if (plan.audibleUs === 0) {
-    throw new ProducerError(
-      'audio-invalid',
-      `The clip "${plan.clipId}" starts at or after the end of the composition, so none of it would be heard; silence is not an export.`,
-    );
-  }
-  if (probe.samples * 1_000_000n < BigInt(plan.audibleUs) * BigInt(probe.sampleRate)) {
-    throw new ProducerError(
-      'audio-invalid',
-      `The audio asset "${plan.assetId}" is shorter than the ${String(plan.audibleUs)} µs of its clip that are heard.`,
-    );
-  }
-  return { plan, bytes: asset.bytes, contentHash: asset.contentHash };
+}
+
+/** The sounds of the layout as the manifests record them (D52.5). */
+function manifestSounds(audio: CheckedAudio): ManifestSound[] {
+  return audio.layout.sounds.map((sound) => ({
+    kind: sound.entry.kind,
+    id: sound.entry.id,
+    assetId: sound.entry.assetId,
+    assetHash: audio.hashes.get(sound.entry.assetId) ?? '',
+    volume: sound.entry.volume,
+    startSample: sound.startSample,
+    sampleCount: sound.sampleCount,
+    sourceStartSample: sound.sourceStartSample,
+    fadeIn: sound.fadeIn,
+    fadeOut: sound.fadeOut,
+  }));
 }
 
 function ffmpegBuild(tools: FfmpegTools): ManifestFfmpegBuild {
@@ -676,12 +738,17 @@ async function audioWith(options: {
   if (audio === null) {
     return { ...common, audio: null, ffmpeg: { ...ffmpegBuild(tools), audioArgs: null } };
   }
-  const graph = audioPassGraph(audio.plan, samples);
+  const graph = audioPassGraph(audio.layout, samples);
   const partial = `${path}${PARTIAL_SUFFIX}`;
-  const args = audioPassArgs({ graph, output: partial });
+  const args = audioPassArgs({ graph, inputs: audio.inputs, output: partial });
   try {
     throwIfCancelled(signal);
-    const result = await tools.run(args, audio.bytes, timeoutMs * PASS_TIMEOUT_FACTOR, signal);
+    const result = await tools.run(
+      args,
+      new Uint8Array(0),
+      timeoutMs * PASS_TIMEOUT_FACTOR,
+      signal,
+    );
     throwIfCancelled(signal);
     if (result.code !== 0) {
       throw encodeFailed(
@@ -705,13 +772,9 @@ async function audioWith(options: {
     return {
       ...common,
       audio: {
-        clipId: audio.plan.clipId,
-        assetId: audio.plan.assetId,
-        assetHash: audio.contentHash,
         sampleRate: SAMPLE_RATE,
-        startSample: audio.plan.startSample,
-        sampleCount: audio.plan.sampleCount,
-        totalSamples: audio.plan.totalSamples,
+        totalSamples: audio.layout.totalSamples,
+        sounds: manifestSounds(audio),
         rangeStartSample: samples.startSample,
         rangeSampleCount: samples.sampleCount,
         channelLayout: AUDIO_CHANNEL_LAYOUT,
@@ -722,7 +785,11 @@ async function audioWith(options: {
       },
       ffmpeg: {
         ...ffmpegBuild(tools),
-        audioArgs: audioPassArgs({ graph, output: OUTPUT_PLACEHOLDER }),
+        audioArgs: audioPassArgs({
+          graph,
+          inputs: audio.inputs.map((_, index) => soundPlaceholder(index)),
+          output: OUTPUT_PLACEHOLDER,
+        }),
       },
     };
   } catch (reason) {
@@ -747,18 +814,22 @@ export async function renderAudioWith(
     const tools = await dependencies.tools(request.ffmpeg);
     const prepared: PreparedRender = { composition, assets, runtime: loadRuntimeBuild() };
     const audio = await checkedAudio(prepared, tools);
-    request.onProgress?.({ event: 'start', frames: 0, segments: 0 });
-    const manifest = await audioWith({
-      composition,
-      audio,
-      tools,
-      range,
-      path: join(resolve(request.outputDirectory), AUDIO_FILE_NAME),
-      timeoutMs: request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS,
-      dependencies,
-      signal,
-    });
-    return { manifest };
+    try {
+      request.onProgress?.({ event: 'start', frames: 0, segments: 0 });
+      const manifest = await audioWith({
+        composition,
+        audio,
+        tools,
+        range,
+        path: join(resolve(request.outputDirectory), AUDIO_FILE_NAME),
+        timeoutMs: request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS,
+        dependencies,
+        signal,
+      });
+      return { manifest };
+    } finally {
+      await audio?.close();
+    }
   } catch (reason) {
     throw failure(reason, signal);
   }
@@ -1013,12 +1084,9 @@ async function joinWith(
     pass === null
       ? null
       : {
-          clipId: pass.clipId,
-          assetId: pass.assetId,
           sampleRate: pass.sampleRate,
-          startSample: pass.startSample,
-          sampleCount: pass.sampleCount,
           totalSamples: pass.totalSamples,
+          sounds: pass.sounds,
           rangeStartSample: pass.rangeStartSample,
           rangeSampleCount: pass.rangeSampleCount,
           channelLayout: pass.channelLayout,
@@ -1152,6 +1220,7 @@ async function exportOf(
     await dependencies.removeFile(outputPath).catch(() => undefined);
     throw asProducerError(reason);
   } finally {
+    await audio?.close();
     for (const part of parts) await dependencies.removeFile(part).catch(() => undefined);
   }
 }

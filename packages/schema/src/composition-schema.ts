@@ -1,13 +1,15 @@
 /**
- * Composition schema 0.3: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.4: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
  * It accepts the reference composition and nothing beyond it (D16): no optional
  * fields, no defaults, no unknown fields. 0.2 is 0.1 plus the lifetime of every
  * node (D42.1); 0.3 is 0.2 plus the asset type `video`, the node `video`, and
- * the `fit` of images and videos (D50). The schemas of 0.1 and 0.2 are kept as
- * data in `v0-1` and `v0-2` (D35.4).
+ * the `fit` of images and videos (D50); 0.4 is 0.3 plus any number of audio
+ * clips with a source start, a volume, and fades, and the sound of a video
+ * node (D52). The schemas of 0.1, 0.2, and 0.3 are kept as data in `v0-1`,
+ * `v0-2`, and `v0-3` (D35.4).
  */
 import {
   closedObject,
@@ -18,7 +20,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.3';
+export const SCHEMA_VERSION = '0.4';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -72,6 +74,18 @@ const length = {
 const opacity = {
   type: 'number',
   description: 'Opacity from 0 (transparent) to 1 (opaque). A group is composited first (D15).',
+  minimum: 0,
+  maximum: 1,
+} as const satisfies NumberSchema;
+
+/**
+ * The volume of a sound (D52.2): a linear factor of its amplitude, from 0
+ * (silent) to 1 (the source as it is). Like an opacity, a JSON number.
+ */
+const volume = {
+  type: 'number',
+  description:
+    'Linear factor of the amplitude, from 0 (silent) to 1 (the source as it is); it never amplifies (D52).',
   minimum: 0,
   maximum: 1,
 } as const satisfies NumberSchema;
@@ -199,7 +213,7 @@ export const imageNodeSchema = closedObject('An image asset fitted to the box of
 });
 
 export const videoNodeSchema = closedObject(
-  'A video asset: at each instant of its lifetime the source frame of D49.5, fitted to the box of the node. It is silent in 0.3 (D50).',
+  'A video asset: at each instant of its lifetime the source frame of D49.5, fitted to the box of the node, and, at a volume above 0, the sound of its source at the same source time (D50, D52).',
   {
     id,
     type: { type: 'string', const: 'video' },
@@ -214,6 +228,11 @@ export const videoNodeSchema = closedObject(
     width: length,
     height: length,
     fit,
+    volume: {
+      ...volume,
+      description:
+        'Linear factor of the amplitude of the sound of the video, from 0 to 1. At 0 the video is silent and its source needs no sound; above 0 it needs exactly one audio stream (D52).',
+    },
   },
 );
 
@@ -292,14 +311,38 @@ export const assetSchema = closedObject(
   },
 );
 
+const fadeUs = {
+  type: 'integer',
+  description:
+    'Length of a linear fade, in integer microseconds of the lifetime of the clip; 0 is no fade (D52).',
+  minimum: 0,
+  maximum: MAX_SAFE_INTEGER,
+} as const satisfies NumberSchema;
+
 export const audioClipSchema = closedObject(
-  'Plays an audio asset from its beginning; whatever lies past the composition end is cut.',
+  'Plays an audio asset from sourceStartUs for durationUs, at its volume and with its fades; whatever lies past the composition end is cut. Clips are mixed regardless of their order (D52).',
   {
     id,
     type: { type: 'string', const: 'audio' },
     assetId: assetReference,
     startUs: timeUs,
     durationUs,
+    sourceStartUs: {
+      ...timeUs,
+      description:
+        'Source time, in integer microseconds from the first sample, heard at startUs; speed is 1 (D49.1, D52).',
+    },
+    volume,
+    fadeInUs: {
+      ...fadeUs,
+      description:
+        'The clip rises linearly from silence to its volume over the first fadeInUs of its lifetime (D52).',
+    },
+    fadeOutUs: {
+      ...fadeUs,
+      description:
+        'The clip falls linearly from its volume to silence over the last fadeOutUs of its lifetime, even where the composition cuts it earlier (D52).',
+    },
   },
 );
 
@@ -318,7 +361,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.3',
+  title: 'Kadrion composition 0.4',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,
@@ -334,8 +377,8 @@ export const compositionSchema = deepFreeze({
     scenes: { type: 'array', minItems: 1, maxItems: 1, items: sceneSchema },
     clips: {
       type: 'array',
-      description: 'At most one audio clip, because mixing is undefined (D16).',
-      maxItems: 1,
+      description:
+        'Audio clips in composition time, mixed by summing regardless of their order (D52).',
       items: audioClipSchema,
     },
   }),

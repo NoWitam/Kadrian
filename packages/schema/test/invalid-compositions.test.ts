@@ -18,6 +18,7 @@ const ERROR_CODES = [
   'keyframes-not-ascending',
   'duplicate-animation-target',
   'source-time-out-of-range',
+  'clip-fades-exceed-duration',
 ] as const;
 
 describe('negative fixtures', () => {

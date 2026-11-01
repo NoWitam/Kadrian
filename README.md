@@ -8,7 +8,7 @@ end-user application, and it does not depend on any consumer product.
 ([`docs/spike/report.md`](docs/spike/report.md), section 10), and phase two,
 authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
 PR-18 to PR-22; the current phase is the engine under a host's video editor
-([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.3` with its forward migrations from `0.1` and `0.2`, the evaluation core, the DOM
+([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.4` with its forward migrations from `0.1`, `0.2`, and `0.3`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -149,13 +149,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.3`
+A composition is a JSON document of schema `0.4`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.3",
+  "schemaVersion": "0.4",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -231,7 +231,12 @@ Unknown fields are errors. This one shows a text that fades in:
   environment (D42.6).
 - **Animations:** `opacity`, `position`, and `scale`, with linear keyframes, on
   composition time: a lifetime does not shift them.
-- **Clips:** an audio track; the schema allows at most one.
+- **Clips:** any number of audio clips in composition time. A clip plays its
+  asset from `sourceStartUs` for its `durationUs`, at a linear `volume` from 0
+  to 1, with linear fades `fadeInUs` and `fadeOutUs`; clips and the sound of
+  video nodes are summed (D52). A `video` node has a `volume` too: at 0 it is
+  silent and its file needs no sound. The Producer mixes all of it with the
+  pinned FFmpeg, sample-exact; the Player plays no sound yet.
 - **Assets:** images, fonts, audio, and video, by ID and `contentHash`.
 
 The font above is the one of `@kadrion/test-fixtures`. For every field, see the
@@ -257,12 +262,12 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.3` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.3` document, and none of them
+`validateComposition` accepts schema `0.4` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.4` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
-holds a document of schema `0.1` or `0.2` carries it forward itself, once, and stores the
+holds a document of schema `0.1`, `0.2`, or `0.3` carries it forward itself, once, and stores the
 result as a new version:
 
 ```ts
@@ -270,8 +275,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.3 document; the input is untouched
-  migrated.versions; // ['0.1', '0.2', '0.3'], or ['0.3'] for a document that was current
+  migrated.composition; // a new, validated 0.4 document; the input is untouched
+  migrated.versions; // ['0.1', '0.2', '0.3', '0.4'], or ['0.4'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -283,6 +288,9 @@ if (migrated.ok) {
   the composition later does not lengthen these lifetimes.
 - The step from `0.2` gives every image `fit: "fill"`, which is how an image
   was always drawn.
+- The step from `0.3` gives every video `volume: 0`, the silence it had, and
+  every audio clip `sourceStartUs: 0`, `volume: 1`, `fadeInUs: 0`, and
+  `fadeOutUs: 0`, the sound it had.
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -306,8 +314,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.3 document that belongs to the caller
-  loaded.versions; // ['0.1', '0.2', '0.3'] from 0.1, ['0.3'] when it was current
+  loaded.composition; // a new, validated 0.4 document that belongs to the caller
+  loaded.versions; // ['0.1', '0.2', '0.3', '0.4'] from 0.1, ['0.4'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -322,7 +330,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -335,7 +343,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3']: what this build can carry f
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.3"`, speaks of that.
+  supports `"0.4"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -604,6 +612,12 @@ unsubscribe();
   and the duration is at least 1. It changes when the node is shown and nothing
   else: the node's keyframes keep their composition times. A node added with
   `AddNode` carries its lifetime like every other field.
+- The video commands are `SetNodeFit`, `SetVideoAsset`, `SetVideoSource`
+  (D50), and `SetVideoVolume`. The audio commands are `AddAudioClip`,
+  `RemoveAudioClip`, `SetClipVolume`, `SetClipFades`, and `SetClipSource`
+  (D52): a clip is added whole, like a node, and is addressed by its ID
+  (`unknown-clip`); a volume is a factor from 0 to 1, and the two fades
+  together fit in the clip's duration.
 - After `AddAsset`, the host must supply the new asset's bytes whenever the
   document is loaded, even while nothing uses it; after `RemoveAsset`, a host
   that passes asset URLs must stop passing the removed asset's URL.
@@ -730,8 +744,11 @@ const { outputPath, manifest, stats } = await exportMp4({
 ```
 
 - The export streams the frames to FFmpeg and writes no intermediate frames. It
-  encodes H.264 video, and muxes the audio clip; the schema allows at most one
-  (D16, D29).
+  encodes H.264 video, and mixes every clip and the sound of every video node
+  above volume 0 into one AAC track, each sound placed on the 48 kHz sample
+  grid (D29, D52). A source too short for what is heard is refused as
+  `source-range-exceeded` before the first frame; a composition in which nothing
+  is heard has no audio track.
 - The FFmpeg paths must be absolute and name the pinned build. `PATH` is never
   searched, and the executables are verified by their SHA-256.
 - A failed export removes its partial output.

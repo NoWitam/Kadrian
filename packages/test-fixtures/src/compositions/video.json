@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.3",
+  "schemaVersion": "0.4",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -46,7 +46,8 @@
           "sourceStartUs": 0,
           "width": 320,
           "height": 180,
-          "fit": "fill"
+          "fit": "fill",
+          "volume": 0
         },
         {
           "id": "node-image-contain",
@@ -87,7 +88,8 @@
           "sourceStartUs": 500000,
           "width": 160,
           "height": 160,
-          "fit": "cover"
+          "fit": "cover",
+          "volume": 0
         },
         {
           "id": "node-group",
@@ -146,7 +148,8 @@
               "sourceStartUs": 1000000,
               "width": 280,
               "height": 200,
-              "fit": "contain"
+              "fit": "contain",
+              "volume": 0
             },
             {
               "id": "node-image-cover",

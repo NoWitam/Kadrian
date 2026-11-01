@@ -72,3 +72,82 @@ export function videoFixtureArguments(output: string): readonly string[] {
     output,
   ];
 }
+
+/**
+ * A video with sound (D52.7): the picture of `VIDEO_FIXTURE` and three seconds
+ * of a 440 Hz sine at 48 kHz in AAC, stereo, made by the pinned FFmpeg like
+ * the video above. FFmpeg's own assembly differs between CPUs too, so this
+ * recipe turns it off for every codec (`-cpuflags 0`) as well as x264's;
+ * without that flag the AAC bytes differ on a CPU with AVX-512.
+ */
+export const VIDEO_SOUND_FIXTURE = Object.freeze({
+  id: 'asset-video-sound',
+  mediaType: 'video/mp4',
+  contentHash: 'sha256:95f5bd4d2f95207842f32a517f6289437d4e41688505c096d1297eca9e430239',
+  width: 320,
+  height: 180,
+  frames: 75,
+  sourceDurationUs: 3_000_000,
+  /** The tone of the sound, in hertz, and its sample rate. */
+  toneHz: 440,
+  sampleRate: 48_000,
+});
+
+/** The arguments of the pinned `ffmpeg` that make the video with sound at `output`. */
+export function videoSoundFixtureArguments(output: string): readonly string[] {
+  return [
+    '-nostdin',
+    '-v',
+    'error',
+    '-y',
+    '-cpuflags',
+    '0',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc2=size=320x180:rate=25:duration=3',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=frequency=440:sample_rate=48000:duration=3',
+    '-map',
+    '0:v:0',
+    '-map',
+    '1:a:0',
+    '-c:v',
+    'libx264',
+    '-preset',
+    'medium',
+    '-crf',
+    '20',
+    '-g',
+    '25',
+    '-bf',
+    '2',
+    '-threads',
+    '1',
+    '-x264-params',
+    'asm=0',
+    '-pix_fmt',
+    'yuv420p',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '128k',
+    '-ac',
+    '2',
+    '-map_metadata',
+    '-1',
+    '-fflags',
+    '+bitexact',
+    '-flags:v',
+    '+bitexact',
+    '-flags:a',
+    '+bitexact',
+    '-movflags',
+    '+faststart',
+    '-f',
+    'mp4',
+    output,
+  ];
+}

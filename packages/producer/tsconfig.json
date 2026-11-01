@@ -8,5 +8,5 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "include": ["src"],
-  "references": [{ "path": "../renderer-dom" }, { "path": "../schema" }]
+  "references": [{ "path": "../renderer-dom" }, { "path": "../runtime" }, { "path": "../schema" }]
 }

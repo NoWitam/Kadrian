@@ -154,7 +154,8 @@ explained where it happens:
 |     6 | PR-27  | The timeline model (ADR only)              | —      | —             | —           | —      |
 |     7 | PR-28a | Video in the Producer, and `fit`           | `0.3`  | yes           | yes         | yes    |
 |     7 | PR-28b | Video in the Player, media facts           | —      | if changed    | yes         | yes    |
-|     8 | PR-29  | Audio: clips, gain, fades, mix, playback   | `0.4`  | yes           | yes         | yes    |
+|     8 | PR-29a | Audio: clips, volume, fades, the mix       | `0.4`  | yes           | yes         | yes    |
+|     8 | PR-29b | Audio playback in the Player, audio facts  | —      | if changed    | yes         | yes    |
 |     9 | PR-30  | Scenes in sequence                         | `0.5`  | yes           | yes         | yes    |
 |    10 | PR-31  | Timeline commands                          | —      | —             | —           | —      |
 |    11 | PR-32  | Transitions                                | `0.6`  | yes           | yes         | yes    |
@@ -505,6 +506,17 @@ pack` does not publish.
   of the video (PR-29).
 
 ### PR-29 — Audio: clips, gain, fades, mix, playback
+
+- Status: split in two by D52 (proposed 2026-10-31). **PR-29a** is in review:
+  schema `0.4` and its step (`volume` on clips and video nodes, no `muted`,
+  because the schema subset has no boolean), any number of clips with a source
+  start and linear fades counted in the clip's lifetime, the audio plan in
+  `@kadrion/runtime` (which repairs the debt beyond 2^53 − 1), the mix in the
+  Producer on the 48 kHz grid with a pinned test against an independent sum,
+  and six commands with their tools (`SetClipGain` is `SetClipVolume`).
+  **PR-29b** follows: playback with Web Audio in the Player's host window,
+  audio media facts read by `editor-session`, and the bus's range check for
+  clips and the sound of videos. The plan below is the plan of both.
 
 - **Goal:** several sounds play in the Player and are mixed by the Producer
   the same way.

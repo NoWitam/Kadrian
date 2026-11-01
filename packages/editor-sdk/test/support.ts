@@ -41,6 +41,7 @@ export const VIDEO_NODE = Object.freeze({
   width: 320,
   height: 180,
   fit: 'contain',
+  volume: 0,
 });
 
 /**

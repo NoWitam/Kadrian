@@ -203,16 +203,27 @@ export interface EncoderProcess {
   kill(): void;
 }
 
+/** A presentation time as a rational number of seconds: `pts × num / den`. */
+export interface StreamStart {
+  readonly pts: bigint;
+  readonly num: number;
+  readonly den: number;
+}
+
 /**
- * What the audio asset is, as the pinned `ffprobe` reads it from a pipe (D29.6).
- * A container read from a pipe need not state its length — a WAV does not,
- * because its size is unknown — so the samples are counted by decoding.
+ * What a sound source is, as the pinned `ffprobe` reads it from the Producer's
+ * private copy (D29.6, D52.5). The samples are counted by decoding, so a
+ * container that does not state its length is measured all the same.
  */
 export interface AudioProbe {
   readonly audioStreams: number;
   readonly sampleRate: number | null;
   /** Decoded samples of the first audio stream, at `sampleRate`. */
   readonly samples: bigint;
+  /** The stated start of the first audio stream, or `null` when none is stated. */
+  readonly audioStart: StreamStart | null;
+  /** The stated start of the first video stream, or `null` without one. */
+  readonly videoStart: StreamStart | null;
 }
 
 /**
@@ -244,7 +255,8 @@ export interface VideoDecoder {
 /** The running parts of the pinned FFmpeg that an export needs; tests replace them. */
 export interface FfmpegTools {
   readonly identity: FfmpegIdentity;
-  probeAudio(bytes: Uint8Array): Promise<AudioProbe>;
+  /** The facts of a sound source, read from its file (D52.5). */
+  probeAudio(file: string): Promise<AudioProbe>;
   countVideoPackets(file: string): Promise<number>;
   /** The presentation time of every video frame of a file, in its time base. */
   videoTimestamps(file: string): Promise<number[]>;
@@ -351,16 +363,16 @@ function collect(stream: NodeJS.ReadableStream | null, tail: number | null): Pro
   });
 }
 
-/** Runs ffprobe over the bytes on a pipe and hands every line of its output to `onLine`. */
+/** Runs ffprobe over a sound source and hands every line of its output to `onLine`. */
 function probeLines(
   ffprobePath: string,
   args: readonly string[],
-  bytes: Uint8Array,
+  file: string,
   onLine: (line: string) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(ffprobePath, [...args, '-i', 'pipe:0'], {
-      stdio: ['pipe', 'pipe', 'pipe'],
+    const child = spawn(ffprobePath, [...args, '-i', `file:${file}`], {
+      stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     });
     const stderr = collect(child.stderr, STDERR_TAIL);
@@ -373,9 +385,6 @@ function probeLines(
       for (const line of parts) onLine(line);
     });
     child.stdout.on('error', () => undefined);
-    // ffprobe may stop reading once it knows enough; that is not an error.
-    child.stdin.on('error', () => undefined);
-    child.stdin.end(bytes);
     child.on('error', reject);
     child.on('close', (code) => {
       if (rest !== '') onLine(rest);
@@ -383,10 +392,7 @@ function probeLines(
         if (code === 0) resolve();
         else {
           reject(
-            new ProducerError(
-              'audio-invalid',
-              `ffprobe cannot read the audio asset: ${err.trim()}`,
-            ),
+            new ProducerError('audio-invalid', `ffprobe cannot read the sound: ${err.trim()}`),
           );
         }
       });
@@ -394,30 +400,50 @@ function probeLines(
   });
 }
 
+/** `pts` and `num/den` of a line `pts,num/den`, or `null` when either is not stated. */
+function streamStart(line: string | undefined): StreamStart | null {
+  const [pts, timeBase] = (line ?? '').split(',').map((part) => part.trim());
+  const [num, den] = (timeBase ?? '').split('/').map(Number);
+  if (pts === undefined || !/^-?\d+$/.test(pts) || num === undefined || den === undefined) {
+    return null;
+  }
+  if (!Number.isSafeInteger(num) || !Number.isSafeInteger(den) || num <= 0 || den <= 0) {
+    return null;
+  }
+  return { pts: BigInt(pts), num, den };
+}
+
 /**
- * What the asset is, measured from the pipe (D29.6): how many audio streams it
- * has, the sample rate of the first, and how many samples decoding it yields.
- * The samples are summed line by line, so the length of the asset costs no memory.
+ * What a sound source is, measured from its file (D29.6, D52.5): how many
+ * audio streams it has, the sample rate of the first, how many samples
+ * decoding it yields, and where its first audio and video streams start. The
+ * samples are summed line by line, so the length of the source costs no memory.
  */
-async function probeAudioWith(ffprobePath: string, bytes: Uint8Array): Promise<AudioProbe> {
-  const streams: string[] = [];
+async function probeAudioWith(ffprobePath: string, file: string): Promise<AudioProbe> {
+  let json = '';
   await probeLines(
     ffprobePath,
     [
-      '-v',
-      'error',
-      '-select_streams',
-      'a',
-      '-show_entries',
-      'stream=sample_rate',
-      '-of',
-      'csv=p=0',
+      ...['-v', 'error', '-show_entries', 'stream=codec_type,sample_rate,time_base,start_pts'],
+      ...['-of', 'json'],
     ],
-    bytes,
+    file,
     (line) => {
-      if (line.trim() !== '') streams.push(line.trim());
+      json += `${line}\n`;
     },
   );
+  let streams: readonly Partial<Record<string, unknown>>[];
+  try {
+    streams = (JSON.parse(json) as { streams?: Partial<Record<string, unknown>>[] }).streams ?? [];
+  } catch {
+    streams = [];
+  }
+  const audio = streams.filter((stream) => stream.codec_type === 'audio');
+  const video = streams.find((stream) => stream.codec_type === 'video');
+  const startOf = (stream: Partial<Record<string, unknown>> | undefined): StreamStart | null =>
+    stream === undefined
+      ? null
+      : streamStart(`${String(stream.start_pts)},${String(stream.time_base)}`);
   let samples = 0n;
   await probeLines(
     ffprobePath,
@@ -425,17 +451,19 @@ async function probeAudioWith(ffprobePath: string, bytes: Uint8Array): Promise<A
       ...['-v', 'error', '-select_streams', 'a:0', '-count_frames'],
       ...['-show_entries', 'frame=nb_samples', '-of', 'csv=p=0'],
     ],
-    bytes,
+    file,
     (line) => {
       const count = Number(line.split(',')[0]?.trim());
       if (Number.isSafeInteger(count) && count > 0) samples += BigInt(count);
     },
   );
-  const rate = Number(streams[0]?.split(',')[0]);
+  const rate = Number(audio[0]?.sample_rate);
   return {
-    audioStreams: streams.length,
+    audioStreams: audio.length,
     sampleRate: Number.isSafeInteger(rate) && rate > 0 ? rate : null,
     samples,
+    audioStart: startOf(audio[0]),
+    videoStart: startOf(video),
   };
 }
 
@@ -659,7 +687,7 @@ export async function pinnedFfmpeg(
   const identity = await verifyFfmpeg(paths, host);
   return {
     identity,
-    probeAudio: (bytes) => probeAudioWith(paths.ffprobePath, bytes),
+    probeAudio: (file) => probeAudioWith(paths.ffprobePath, file),
     async countVideoPackets(file) {
       const result = await host.run(paths.ffprobePath, [
         ...['-v', 'error', '-select_streams', 'v:0', '-count_packets'],

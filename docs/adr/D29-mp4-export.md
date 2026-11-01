@@ -11,6 +11,7 @@
 - Date: 2026-09-22
 - Supersedes: —
 - Amended by: PR-28a (D50) on 2026-10-31: 29.3: the Producer writes a private copy of each video it decodes and removes it when the frame loop ends (D50.5)
+- Amended by: PR-29a (D52) on 2026-10-31: 29.6: several sounds mixed on the sample grid from private copies, a short source is `source-range-exceeded`, nothing heard means no audio stream, and the manifest's `audio` lists the sounds (D52.5)
 - Related: D04, D06, D07, D10, D12, D13, D14, D23, D26, D27, D28,
   [specification](../spike/vertical-spike.md) §5 P5, §6.1, §8, and open
   questions Q2, Q4, and Q7

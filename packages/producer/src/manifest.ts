@@ -15,10 +15,10 @@ export const MANIFEST_VERSION = 3;
 
 /**
  * The version of the manifests of a segmented render (D47.8): segments, audio,
- * export, and still. 3 since PR-25a, 4 since PR-28a (`video`, D50.5); a render of
- * frames keeps `MANIFEST_VERSION`.
+ * export, and still. 3 since PR-25a, 4 since PR-28a (`video`, D50.5), 5 since
+ * PR-29 (the sounds of the mix, D52.5); a render of frames keeps `MANIFEST_VERSION`.
  */
-export const EXPORT_MANIFEST_VERSION = 4;
+export const EXPORT_MANIFEST_VERSION = 5;
 
 /** `sha256:` and 64 lowercase hex digits of the bytes, the format of D14. */
 export function sha256(bytes: Uint8Array | string): string {
@@ -149,14 +149,36 @@ export interface ManifestFfmpeg extends ManifestFfmpegBuild {
   readonly joinArgs: readonly string[];
 }
 
-/** The audio mux of D29.6, in samples at 48 kHz, and the intermediate it was encoded from (D47.4). */
-export interface ManifestAudio {
-  readonly clipId: string;
-  readonly assetId: string;
-  readonly sampleRate: number;
+/** A fade of a sound, in samples from the first sample the output hears of it (D52.5). */
+export interface ManifestFade {
   readonly startSample: number;
   readonly sampleCount: number;
+}
+
+/** One sound of the mix (D52.5): what is heard, where, from which sample of which source. */
+export interface ManifestSound {
+  /** `clip` for an audio clip, `video` for the sound of a video node. */
+  readonly kind: 'clip' | 'video';
+  /** The clip's or the video node's ID. */
+  readonly id: string;
+  readonly assetId: string;
+  readonly assetHash: string;
+  readonly volume: number;
+  /** The output sample where it starts, and how many output samples hear it. */
+  readonly startSample: number;
+  readonly sampleCount: number;
+  /** The sample of its source, at `sampleRate`, heard at `startSample`. */
+  readonly sourceStartSample: number;
+  readonly fadeIn: ManifestFade | null;
+  readonly fadeOut: ManifestFade | null;
+}
+
+/** The audio mix of D52.5, in samples at 48 kHz, and the intermediate it was encoded from (D47.4). */
+export interface ManifestAudio {
+  readonly sampleRate: number;
   readonly totalSamples: number;
+  /** Every sound of the mix, in the order of the audio plan. */
+  readonly sounds: readonly ManifestSound[];
   /** The samples of the range, from the composition's first: what the output holds. */
   readonly rangeStartSample: number;
   readonly rangeSampleCount: number;
@@ -236,13 +258,9 @@ export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpe
 
 /** The audio of a range, or `null` for a composition without an audio clip (D47.4). */
 export interface ManifestAudioPass {
-  readonly clipId: string;
-  readonly assetId: string;
-  readonly assetHash: string;
   readonly sampleRate: number;
-  readonly startSample: number;
-  readonly sampleCount: number;
   readonly totalSamples: number;
+  readonly sounds: readonly ManifestSound[];
   readonly rangeStartSample: number;
   readonly rangeSampleCount: number;
   readonly channelLayout: string;

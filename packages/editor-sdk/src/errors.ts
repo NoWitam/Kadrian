@@ -36,6 +36,8 @@ export type EditorErrorCode =
   | 'asset-type-mismatch'
   /** The asset is still used; `details` list the IDs of its users, sorted (D40.4). */
   | 'asset-in-use'
+  /** No audio clip of the document has that ID; `details` are empty (D52.6). */
+  | 'unknown-clip'
   /** No animation of the document has that ID; `details` are empty (D41.5). */
   | 'unknown-animation'
   /** The animation has no keyframe at that time; `details` are empty (D41.5). */

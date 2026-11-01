@@ -6,16 +6,18 @@
  * written out by hand from D29 and D47, not derived from the implementation.
  */
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
 import { Writable } from 'node:stream';
 
+import { audioPlan } from '@kadrion/runtime';
 import { generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
 import { frameToTimeUs, validateComposition, type ValidatedComposition } from '@kadrion/schema';
 import type { Browser } from 'playwright-core';
 import { describe, expect, it } from 'vitest';
 
 import {
-  audioPlan,
+  audioLayout,
   TIME_SCALE_PER_FRAME,
   FRAMES_IN_FLIGHT,
   FrameSink,
@@ -159,15 +161,19 @@ describe('samples at 48 kHz (D29.6)', () => {
     }
   });
 
-  it('plans the reference clip over the whole composition', () => {
-    expect(audioPlan(reference)).toEqual({
-      clipId: 'clip-audio',
-      assetId: 'asset-audio',
-      startSample: 0,
-      sampleCount: 480_000,
-      totalSamples: 480_000,
-      audibleUs: 10_000_000,
-    });
+  it('places the reference clip over the whole composition', () => {
+    const layout = audioLayout(audioPlan(reference));
+    expect(layout.totalSamples).toBe(480_000);
+    expect(layout.sounds.map(({ entry, ...placed }) => ({ id: entry.id, ...placed }))).toEqual([
+      {
+        id: 'clip-audio',
+        startSample: 0,
+        sampleCount: 480_000,
+        sourceStartSample: 0,
+        fadeIn: null,
+        fadeOut: null,
+      },
+    ]);
   });
 
   it('places a later clip and hears it only up to the end of the composition', () => {
@@ -177,24 +183,121 @@ describe('samples at 48 kHz (D29.6)', () => {
         Object.assign(clip ?? {}, { startUs: 2_500_011, durationUs: 10_000_000 });
       }),
     );
-    const plan = audioPlan(late);
-    expect(plan).toEqual({
-      clipId: 'clip-audio',
-      assetId: 'asset-audio',
+    const layout = audioLayout(audioPlan(late));
+    expect(layout.sounds[0]).toMatchObject({
       startSample: 120_001, // 120 000.528
-      sampleCount: 480_000, // 600 001 − 120 001
-      totalSamples: 480_000,
-      audibleUs: 7_499_989,
+      sampleCount: 359_999, // 480 000 − 120 001
+      sourceStartSample: 0,
     });
-    expect(
-      plan === null ? '' : audioPassGraph(plan, { startSample: 0, sampleCount: 480_000 }),
-    ).toBe(
-      '[0:a]aresample=48000,atrim=end_sample=480000,adelay=delays=120001S:all=1,apad=whole_len=480000,atrim=end_sample=480000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=0:end_sample=480000,asetpts=N/SR/TB[a]',
+    expect(audioPassGraph(layout, { startSample: 0, sampleCount: 480_000 })).toBe(
+      '[0:a:0]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=0:end_sample=359999,asetpts=N/SR/TB,adelay=delays=120001S:all=1,apad=whole_len=480000,atrim=end_sample=480000[s0];[s0]atrim=start_sample=0:end_sample=480000,asetpts=N/SR/TB[a]',
     );
   });
 
-  it('plans nothing without an audio clip', () => {
-    expect(audioPlan(validated(variant((draft) => (draft.clips = []))))).toBeNull();
+  it('places a source start, a volume, and both fades on the sample grid (D52.5)', () => {
+    const faded = validated(
+      variant((draft) => {
+        const [clip] = draft.clips as Record<string, unknown>[];
+        Object.assign(clip ?? {}, {
+          startUs: 1_000_000,
+          durationUs: 2_000_000,
+          sourceStartUs: 500_000,
+          volume: 0.5,
+          fadeInUs: 250_000,
+          fadeOutUs: 1_000_000,
+        });
+      }),
+    );
+    const layout = audioLayout(audioPlan(faded));
+    expect(layout.sounds[0]).toMatchObject({
+      startSample: 48_000,
+      sampleCount: 96_000,
+      sourceStartSample: 24_000,
+      fadeIn: { startSample: 0, sampleCount: 12_000 },
+      // From 2 s, the sample 96 000, to 3 s, the sample 144 000, counted from 48 000.
+      fadeOut: { startSample: 48_000, sampleCount: 48_000 },
+    });
+    expect(audioPassGraph(layout, { startSample: 0, sampleCount: 480_000 })).toBe(
+      '[0:a:0]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=24000:end_sample=120000,asetpts=N/SR/TB,volume=volume=0.5:precision=float,afade=t=in:ss=0:ns=12000:curve=tri,afade=t=out:ss=48000:ns=48000:curve=tri,adelay=delays=48000S:all=1,apad=whole_len=480000,atrim=end_sample=480000[s0];[s0]atrim=start_sample=0:end_sample=480000,asetpts=N/SR/TB[a]',
+    );
+  });
+
+  it('leaves out a fade-out that begins after the last sample heard, and a fade of no sample', () => {
+    const cut = validated(
+      variant((draft) => {
+        const [clip] = draft.clips as Record<string, unknown>[];
+        Object.assign(clip ?? {}, {
+          startUs: 9_000_000,
+          durationUs: 5_000_000,
+          fadeInUs: 10,
+          fadeOutUs: 2_000_000,
+        });
+      }),
+    );
+    expect(audioLayout(audioPlan(cut)).sounds[0]).toMatchObject({
+      startSample: 432_000,
+      sampleCount: 48_000,
+      fadeIn: null,
+      fadeOut: null,
+    });
+  });
+
+  it('places a lifetime that reaches 2^53 − 1 without leaving the safe integers (the debt of D29.6)', () => {
+    const long = validated(
+      variant((draft) => {
+        const [clip] = draft.clips as Record<string, unknown>[];
+        Object.assign(clip ?? {}, {
+          durationUs: Number.MAX_SAFE_INTEGER,
+          fadeOutUs: Number.MAX_SAFE_INTEGER - 1,
+        });
+      }),
+    );
+    expect(audioLayout(audioPlan(long)).sounds[0]).toMatchObject({
+      startSample: 0,
+      sampleCount: 480_000,
+      // ⌊(2^53 − 1) × 48 000 / 10^6 + ½⌋, from the sample of 1 µs, which is 0.
+      fadeOut: { startSample: 0, sampleCount: 432_345_564_227_568 },
+    });
+  });
+
+  it('mixes several sounds by summing them in the order of the plan', () => {
+    const two = validated(
+      variant((draft) => {
+        (draft.clips as unknown[]).push({
+          id: 'clip-second',
+          type: 'audio',
+          assetId: 'asset-audio',
+          startUs: 5_000_000,
+          durationUs: 1_000_000,
+          sourceStartUs: 0,
+          volume: 0.125,
+          fadeInUs: 0,
+          fadeOutUs: 0,
+        });
+      }),
+    );
+    const graph = audioPassGraph(audioLayout(audioPlan(two)), {
+      startSample: 96_000,
+      sampleCount: 96_000,
+    });
+    expect(graph.split(';')).toEqual([
+      '[0:a:0]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=0:end_sample=480000,asetpts=N/SR/TB,adelay=delays=0S:all=1,apad=whole_len=480000,atrim=end_sample=480000[s0]',
+      '[1:a:0]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=0:end_sample=48000,asetpts=N/SR/TB,volume=volume=0.125:precision=float,adelay=delays=240000S:all=1,apad=whole_len=480000,atrim=end_sample=480000[s1]',
+      '[s0][s1]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,atrim=start_sample=96000:end_sample=192000,asetpts=N/SR/TB[a]',
+    ]);
+  });
+
+  it('places nothing without a sound: no clip, or only silent ones', () => {
+    expect(
+      audioLayout(audioPlan(validated(variant((draft) => (draft.clips = []))))).sounds,
+    ).toEqual([]);
+    const silent = validated(
+      variant((draft) => {
+        const [clip] = draft.clips as Record<string, unknown>[];
+        Object.assign(clip ?? {}, { volume: 0 });
+      }),
+    );
+    expect(audioLayout(audioPlan(silent)).sounds).toEqual([]);
   });
 });
 
@@ -220,21 +323,21 @@ describe('the arguments of a segment (D29.4, D47.3)', () => {
 });
 
 describe('the audio pass (D47.4)', () => {
-  it('mixes the whole composition as D29.6 does, then cuts the range and starts it at 0', () => {
-    const plan = audioPlan(reference);
-    if (plan === null) throw new Error('The reference composition has an audio clip.');
+  it('mixes the whole composition as D52.5 does, then cuts the range and starts it at 0', () => {
+    const layout = audioLayout(audioPlan(reference));
     const range = audioRangeOf(
       frameRange(reference, { fromUs: 2_000_000, toUs: 4_000_000 }, 60),
       samplesAt,
     );
     expect(range).toEqual({ startSample: 96_000, sampleCount: 96_000 });
-    const graph = audioPassGraph(plan, range);
+    const graph = audioPassGraph(layout, range);
     expect(graph).toBe(
-      '[0:a]aresample=48000,atrim=end_sample=480000,adelay=delays=0S:all=1,apad=whole_len=480000,atrim=end_sample=480000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=96000:end_sample=192000,asetpts=N/SR/TB[a]',
+      '[0:a:0]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=0:end_sample=480000,asetpts=N/SR/TB,adelay=delays=0S:all=1,apad=whole_len=480000,atrim=end_sample=480000[s0];[s0]atrim=start_sample=96000:end_sample=192000,asetpts=N/SR/TB[a]',
     );
-    expect(audioPassArgs({ graph, output: '/out/a.wav' })).toEqual([
+    expect(audioPassArgs({ graph, inputs: ['/tmp/x/sound-0'], output: '/out/a.wav' })).toEqual([
       ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1'],
-      ...['-i', 'pipe:0', '-filter_complex_threads', '1', '-filter_complex', graph, '-map', '[a]'],
+      ...['-i', 'file:/tmp/x/sound-0'],
+      ...['-filter_complex_threads', '1', '-filter_complex', graph, '-map', '[a]'],
       ...['-c:a', 'pcm_f32le', '-ar', '48000', '-ac', '2'],
       ...['-map_metadata', '-1', '-map_chapters', '-1', '-fflags', '+bitexact'],
       ...['-flags:a', '+bitexact', '-f', 'wav', '-y', '/out/a.wav'],
@@ -664,8 +767,14 @@ describe('verification of the pinned FFmpeg (D29.1)', () => {
 
 const ASSETS = Object.fromEntries(generateReferenceAssets().map((asset) => [asset.id, asset]));
 const AUDIO_BYTES = ASSETS['asset-audio']?.bytes ?? new Uint8Array();
-/** The WAV fixture as ffprobe counts it from a pipe: 480 000 samples at 48 kHz. */
-const WAV_PROBE: AudioProbe = { audioStreams: 1, sampleRate: 48_000, samples: 480_000n };
+/** The WAV fixture as ffprobe counts it: 480 000 samples at 48 kHz, and no stated start. */
+const WAV_PROBE: AudioProbe = {
+  audioStreams: 1,
+  sampleRate: 48_000,
+  samples: 480_000n,
+  audioStart: null,
+  videoStart: null,
+};
 
 /** A frame's bytes: distinct per index, and as large as the test wants. */
 function frameBytes(index: number, size: number): Uint8Array {
@@ -758,9 +867,10 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
       configuration: FFMPEG_CONFIGURATION,
       encoders: [...REQUIRED_ENCODERS],
     },
-    probeAudio(bytes) {
-      run.log.push(`probe ${String(bytes.length)}`);
-      return Promise.resolve(options.probe ?? WAV_PROBE);
+    async probeAudio(path) {
+      // The private copy is a real file: the bytes the resolver verified.
+      run.log.push(`probe ${basename(path)} ${String((await readFile(path)).length)}`);
+      return options.probe ?? WAV_PROBE;
     },
     countVideoPackets(path) {
       run.log.push(`count ${basename(path)}`);
@@ -817,8 +927,9 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
       } else {
         run.log.push(`audio ${basename(output)}`);
         const graph = args[args.indexOf('-filter_complex') + 1] ?? '';
+        // The last cut of the graph is the range's (D52.5).
         const [, start = '0', end = '0'] =
-          /atrim=start_sample=(\d+):end_sample=(\d+)/.exec(graph) ?? [];
+          /atrim=start_sample=(\d+):end_sample=(\d+),asetpts=N\/SR\/TB\[a\]$/.exec(graph) ?? [];
         if (code === 0) {
           run.files.set(output, {
             hash: sha256(`audio ${graph} ${hex(input)}`),
@@ -950,9 +1061,9 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
     const part = (name: string): string => `video-1080p.mp4.${name}`;
     expect(run.log).toEqual([
       'tools',
-      `probe ${String(AUDIO_BYTES.length)}`,
+      `probe sound-0 ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.3',
+      'load 0.4',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,
@@ -971,8 +1082,11 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
     ]);
     // Only the MP4 is left; the parts are gone.
     expect([...run.files.keys()]).toEqual(['/out/video-1080p.mp4']);
-    // The audio pass read the verified bytes of the asset, nothing else.
-    expect(run.inputs[0]?.bytes).toBe(AUDIO_BYTES.length);
+    // The audio pass read the private copy of the asset, and nothing on standard input.
+    expect(run.inputs[0]?.bytes).toBe(0);
+    expect(run.inputs[0]?.args.filter((arg) => arg.startsWith('file:'))).toEqual([
+      expect.stringMatching(/kadrion-sound-[^/]+\/sound-0$/) as unknown,
+    ]);
     // The join read the segments in order, as absolute file URLs.
     expect(run.inputs[1]?.text).toBe(
       [
@@ -992,7 +1106,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
     expect(manifest.range).toEqual({ fromUs: 0, toUs: 10_000_000, firstFrame: 0, frameCount: 300 });
     expect(manifest.segmentFrames).toBe(60);
     expect(manifest.kind).toBe('export');
-    expect(manifest.manifestVersion).toBe(4);
+    expect(manifest.manifestVersion).toBe(5);
     expect(manifest.preset).toEqual({
       name: 'mp4-1080p',
       width: 1080,
@@ -1005,12 +1119,22 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
         '[0:v]scale=1080:1920:flags=lanczos:out_color_matrix=bt709:out_range=tv,setsar=1,format=yuv420p[v]',
     });
     expect(manifest.audio).toEqual({
-      clipId: 'clip-audio',
-      assetId: 'asset-audio',
       sampleRate: 48_000,
-      startSample: 0,
-      sampleCount: 480_000,
       totalSamples: 480_000,
+      sounds: [
+        {
+          kind: 'clip',
+          id: 'clip-audio',
+          assetId: 'asset-audio',
+          assetHash: reference.assets.find(({ id }) => id === 'asset-audio')?.contentHash,
+          volume: 1,
+          startSample: 0,
+          sampleCount: 480_000,
+          sourceStartSample: 0,
+          fadeIn: null,
+          fadeOut: null,
+        },
+      ],
       rangeStartSample: 0,
       rangeSampleCount: 480_000,
       channelLayout: 'stereo',
@@ -1107,7 +1231,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
     ['invalid-document', { document: { schemaVersion: '0.2' } }, {}],
     ['asset-missing', { resolveAsset: () => null }, {}],
     ['ffmpeg-missing', {}, { toolsFail: 'ffmpeg-missing' }],
-    ['audio-invalid', {}, { probe: { ...WAV_PROBE, samples: 479_999n } }],
+    ['source-range-exceeded', {}, { probe: { ...WAV_PROBE, samples: 479_999n } }],
     ['audio-invalid', {}, { probe: { ...WAV_PROBE, audioStreams: 2 } }],
     ['audio-invalid', {}, { probe: { ...WAV_PROBE, sampleRate: null } }],
   ] as const)(
@@ -1120,23 +1244,38 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
     },
   );
 
-  it('refuses a clip that starts at or after the end of the composition (D29.6)', async () => {
+  it('hears nothing of a clip that starts at or after the end of the composition (D52.4)', async () => {
     const late = variant((draft) => {
       const [clip] = draft.clips as Record<string, unknown>[];
       Object.assign(clip ?? {}, { startUs: 10_000_000, durationUs: 1_000_000 });
     });
     const run = fakeRun();
-    await expect(exportWith(request({ document: late }), run.dependencies)).rejects.toMatchObject({
-      code: 'audio-invalid',
-    });
-    expect(run.log).not.toContain('browser');
+    const { manifest } = await exportWith(request({ document: late }), run.dependencies);
+    expect(manifest.audio).toBeNull();
+    expect(run.log.some((line) => line.startsWith('probe'))).toBe(false);
+  });
+
+  it('checks where the audio starts for the sound of a video only: a clip passes whatever it states', async () => {
+    // The refusal itself, for a video, is in video.test.ts.
+    await expect(
+      exportWith(
+        request(),
+        fakeRun({
+          probe: {
+            ...WAV_PROBE,
+            audioStart: { pts: 1n, num: 1, den: 48_000 },
+            videoStart: { pts: 0n, num: 1, den: 12_800 },
+          },
+        }).dependencies,
+      ),
+    ).resolves.toBeDefined();
   });
 
   it('accepts an asset exactly as long as the part of the clip that is heard', async () => {
     // 440 000 samples = 9 166 666.67 µs: too short for the reference clip…
     await expect(
       exportWith(request(), fakeRun({ probe: { ...WAV_PROBE, samples: 440_000n } }).dependencies),
-    ).rejects.toMatchObject({ code: 'audio-invalid' });
+    ).rejects.toMatchObject({ code: 'source-range-exceeded' });
     // …but the clip moved to 2.5 s is heard for 7.5 s = 360 000 samples only.
     const late = variant((draft) => {
       const [clip] = draft.clips as Record<string, unknown>[];
@@ -1153,7 +1292,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
         request({ document: late }),
         fakeRun({ probe: { ...WAV_PROBE, samples: 359_999n } }).dependencies,
       ),
-    ).rejects.toMatchObject({ code: 'audio-invalid' });
+    ).rejects.toMatchObject({ code: 'source-range-exceeded' });
   });
 
   it('renders at most FRAMES_IN_FLIGHT + 1 frames into an encoder that accepts nothing, then fails', async () => {
@@ -1334,8 +1473,10 @@ describe('jobs of one render on a fake frame loop and FFmpeg (D47.3–D47.6)', (
       file: 'audio.wav',
       codec: 'pcm_f32le',
       format: 'wav',
-      assetHash: referenceAssetHash('asset-audio'),
     });
+    expect(part.manifest.audio?.sounds.map(({ assetHash }) => assetHash)).toEqual([
+      referenceAssetHash('asset-audio'),
+    ]);
     expect(run.log).not.toContain('browser');
     const silent = await audioJob(fakeRun(), '/jobs/q', {
       document: variant((draft) => (draft.clips = [])),
@@ -1536,7 +1677,7 @@ describe('the checks of a join (D47.5)', () => {
         segments: [a, b],
         audio: edited(audio, (m) => Object.assign(m, { kind: 'segments' })),
       }),
-      /audio manifest of version 4/,
+      /audio manifest of version 5/,
     ],
     [
       'no segments',
@@ -1663,7 +1804,7 @@ describe('a still frame on a fake render and FFmpeg (D47.7)', () => {
     expect(result.bytes).toBe(png);
     expect(result.mediaType).toBe('image/png');
     expect(result.manifest).toMatchObject({
-      manifestVersion: 4,
+      manifestVersion: 5,
       kind: 'still',
       preset: { name: 'still-png' },
       output: { mediaType: 'image/png', sha256: sha256(png) },

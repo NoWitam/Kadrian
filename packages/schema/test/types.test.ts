@@ -75,6 +75,7 @@ interface ExpectedVideoNode extends ExpectedTransform {
   readonly width: number;
   readonly height: number;
   readonly fit: 'fill' | 'contain' | 'cover';
+  readonly volume: number;
 }
 
 interface ExpectedTextNode extends ExpectedTransform {
@@ -125,10 +126,14 @@ interface ExpectedAudioClip {
   readonly assetId: string;
   readonly startUs: number;
   readonly durationUs: number;
+  readonly sourceStartUs: number;
+  readonly volume: number;
+  readonly fadeInUs: number;
+  readonly fadeOutUs: number;
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.3';
+  readonly schemaVersion: '0.4';
   readonly width: number;
   readonly height: number;
   readonly fps: number;

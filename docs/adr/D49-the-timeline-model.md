@@ -10,6 +10,7 @@
 - Numbering note: PR-28b on 2026-10-31 took D51 for video in the Player, so each later ADR
   this record names is one number higher than written (D52 here is D53, D53 is D54, D54 is
   D55, and "D50 to D57" is D50 to D58); the decision is unchanged
+- Amended by: PR-29a (D52) on 2026-10-31: 49.7: the step to `0.4` gives a video node `volume: 0`, not `muted: true`; the schema has no boolean (D52.1)
 - Related: D04, D13, D14, D16, D18, D19, D23, D29, D30, D35, D38, D39, D41,
   D42, D47, [roadmap of phase three](../roadmap/phase-3.md) PR-27 to PR-34b
 

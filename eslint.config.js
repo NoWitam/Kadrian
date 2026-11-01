@@ -487,7 +487,8 @@ export default defineConfig(
     // D50.5: a container such as MP4 is read by seeking, never from a pipe, so
     // the verified bytes of a video get a private copy in a directory of the
     // Producer's own, which the frame loop removes when it ends. This module
-    // alone may create that directory and write those copies.
+    // alone may create that directory and write those copies, and those of the
+    // sound sources of the audio pass (D52.5).
     files: ['packages/producer/src/video.ts'],
     rules: {
       'no-restricted-imports': [
