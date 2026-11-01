@@ -1,6 +1,6 @@
 # D52 — Audio: clips, volume, fades, and the mix in the Producer
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-01, after PR-29a was merged
 - Date: 2026-10-31
 - Supersedes: —
 - Extends: D16 (any number of clips, their new fields, `volume` on video
