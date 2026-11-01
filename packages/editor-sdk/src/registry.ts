@@ -24,6 +24,11 @@ import {
   parseAddNode,
   parseAddScene,
   parseAddSceneAudioClip,
+  parseJoinClips,
+  parseMoveClip,
+  parseSplitClip,
+  parseTrimClipEnd,
+  parseTrimClipStart,
   parseDuplicateScene,
   parseMoveNodeToScene,
   parseRemoveScene,
@@ -86,6 +91,8 @@ import {
   scenesOf,
   subtreeIds,
   type AnimationLocation,
+  type ClipOwner,
+  type ListAddress,
   type DocumentObject,
   type NodeLocation,
   type ValidationFinding,
@@ -512,6 +519,205 @@ function duplicatedScene(source: DocumentObject, newSceneId: string): NodeData {
         }
       : {}),
   });
+}
+
+/**
+ * A clip of a timeline command (D55.1): a node, the list that holds it, and
+ * its place there, or an audio clip in its list. `list` is a key of the list,
+ * equal for two clips of the same list; `put` writes the list back.
+ */
+interface TimelineClip {
+  readonly kind: 'node' | 'audio';
+  readonly clip: DocumentObject;
+  readonly items: readonly unknown[];
+  readonly index: number;
+  readonly list: string;
+  readonly put: (document: DocumentObject, items: readonly unknown[]) => DocumentObject;
+}
+
+function nodeClip(
+  node: DocumentObject,
+  items: readonly unknown[],
+  index: number,
+  address: ListAddress,
+): TimelineClip {
+  return {
+    kind: 'node',
+    clip: node,
+    items,
+    index,
+    list: `nodes:${String(address.sceneIndex)}:${String(address.groupIndex)}`,
+    put: (document, edited) => replaceList(document, address, edited),
+  };
+}
+
+function audioClip(
+  clip: DocumentObject,
+  items: readonly unknown[],
+  index: number,
+  owner: ClipOwner,
+): TimelineClip {
+  return {
+    kind: 'audio',
+    clip,
+    items,
+    index,
+    list: `clips:${owner === null ? 'composition' : String(owner.sceneIndex)}`,
+    put: (document, edited) => replaceClipList(document, owner, edited),
+  };
+}
+
+/** The node or audio clip with that ID — a node first, IDs being one namespace — or `unknown-clip` (D55.1). */
+function locatedClip(document: DocumentObject, clipId: string): TimelineClip {
+  const node = locateNode(document, clipId);
+  if (node !== null) return nodeClip(node.node, node.list, node.index, node.address);
+  const found = locateClip(document, clipId);
+  if (found !== null) {
+    return audioClip(found.clip, clipListOf(document, found.owner), found.index, found.owner);
+  }
+  throw new EditorError('unknown-clip', `The document has no node or audio clip \`${clipId}\`.`);
+}
+
+/** The document with `clip` in the place of the located one. */
+function withClip(
+  document: DocumentObject,
+  found: TimelineClip,
+  clip: DocumentObject,
+): DocumentObject {
+  return found.put(
+    document,
+    found.items.map((item, at) => (at === found.index ? clip : item)),
+  );
+}
+
+/** Whether a clip plays a source and so has `sourceStartUs`: a video node or an audio clip (D55.1). */
+function hasSource(found: TimelineClip): boolean {
+  return found.kind === 'audio' || found.clip['type'] === 'video';
+}
+
+/** Refuses a group, whose children have lifetimes of their own (D55.4). */
+function refuseGroup(found: TimelineClip, clipId: string): void {
+  if (found.kind === 'node' && found.clip['type'] === 'group') {
+    throw new EditorError(
+      'unsupported-node',
+      `The node \`${clipId}\` is a group; its children have their own lifetimes, so it is not split or joined (D55.4).`,
+    );
+  }
+}
+
+/** Every keyframe of an owner's animations moved by `deltaUs`; every key keeps its place (D55.3). */
+function shiftedAnimations(owner: DocumentObject, deltaUs: number): DocumentObject {
+  const animations: unknown = owner['animations'];
+  if (!Array.isArray(animations)) return owner;
+  return {
+    ...owner,
+    animations: (animations as readonly unknown[]).map((animation) =>
+      isObject(animation)
+        ? {
+            ...animation,
+            keyframes: keyframesOf(animation).map((keyframe) => {
+              if (!isObject(keyframe)) return keyframe;
+              const timeUs: unknown = keyframe['timeUs'];
+              return typeof timeUs === 'number'
+                ? { ...keyframe, timeUs: timeUs + deltaUs }
+                : keyframe;
+            }),
+          }
+        : animation,
+    ),
+  };
+}
+
+/**
+ * The smallest number of whole microseconds that is a whole number of samples
+ * at 48 kHz (D52.5, D53): 125 µs are 6 samples. A sound split at a multiple of
+ * it from its start is heard sample for sample like the whole (D55.4).
+ */
+const SAMPLE_GRID_US = 125;
+
+/** Whether a clip is heard: an audio clip, or a video node above volume 0 (D52.4). */
+function isHeard(found: TimelineClip): boolean {
+  if (found.kind === 'audio') return true;
+  const volume: unknown = found.clip['volume'];
+  return found.clip['type'] === 'video' && typeof volume === 'number' && volume > 0;
+}
+
+function outsideClip(clipId: string, what: string): EditorError {
+  return new EditorError('time-outside-clip', `${what} of the clip \`${clipId}\` (D55.4).`);
+}
+
+/**
+ * The two halves of a clip cut at `atUs` (D49.1, D55.4): the first keeps its ID
+ * and start, the second is a copy under `newClipId` that starts at `atUs`,
+ * with a source advanced by the same amount and its animations renamed after
+ * it (D39.3). A sound is cut only where both halves are heard exactly as the
+ * whole; otherwise `split-not-exact`. Every key keeps its place (D30.7).
+ */
+function splitHalves(
+  found: TimelineClip,
+  atUs: number,
+  newClipId: string,
+  clipId: string,
+): { readonly first: DocumentObject; readonly second: NodeData } {
+  const clip = found.clip;
+  const startUs = numberField(clip, 'startUs', clipId);
+  const durationUs = numberField(clip, 'durationUs', clipId);
+  // A subtraction, never the sum, which need not be a safe integer (D42.2).
+  const offsetUs = atUs - startUs;
+  if (!(offsetUs > 0 && offsetUs < durationUs)) {
+    throw outsideClip(
+      clipId,
+      `The time ${String(atUs)} µs does not lie strictly inside the lifetime`,
+    );
+  }
+  if (isHeard(found) && offsetUs % SAMPLE_GRID_US !== 0) {
+    const below = atUs - (offsetUs % SAMPLE_GRID_US);
+    throw new EditorError(
+      'split-not-exact',
+      `The clip \`${clipId}\` is heard, and a split ${String(offsetUs)} µs after its start is not a whole number of samples; split it at a multiple of ${String(SAMPLE_GRID_US)} µs from its start, such as ${String(below)} or ${String(below + SAMPLE_GRID_US)} µs (D55.4).`,
+    );
+  }
+  const restUs = durationUs - offsetUs;
+  const source = hasSource(found)
+    ? { sourceStartUs: numberField(clip, 'sourceStartUs', clipId) + offsetUs }
+    : {};
+  if (found.kind === 'audio') {
+    const fadeInUs = numberField(clip, 'fadeInUs', clipId);
+    const fadeOutUs = numberField(clip, 'fadeOutUs', clipId);
+    if (fadeInUs > offsetUs || fadeOutUs > restUs) {
+      throw new EditorError(
+        'split-not-exact',
+        `The time ${String(atUs)} µs lies inside a fade of the clip \`${clipId}\`; split it outside its fades (D55.4).`,
+      );
+    }
+    return {
+      first: { ...clip, durationUs: offsetUs, fadeOutUs: 0 },
+      second: deepFreeze({
+        ...copyNode(clip),
+        id: newClipId,
+        startUs: atUs,
+        durationUs: restUs,
+        ...source,
+        fadeInUs: 0,
+      }),
+    };
+  }
+  return {
+    first: { ...clip, durationUs: offsetUs },
+    second: deepFreeze(
+      renamedAnimations(
+        { ...copyNode(clip), id: newClipId, startUs: atUs, durationUs: restUs, ...source },
+        newClipId,
+      ),
+    ),
+  };
+}
+
+/** The IDs a clip holds: a node's subtree (D39.4), or the audio clip's own. */
+function clipIds(found: TimelineClip, clip: DocumentObject): readonly string[] {
+  if (found.kind === 'node') return subtreeIds(clip);
+  const id: unknown = clip['id'];
+  return typeof id === 'string' ? [id] : [];
 }
 
 // The type argument makes the literal itself a `Definitions`: a missing entry and
@@ -1339,6 +1545,190 @@ const DEFINITIONS = deepFreeze<Definitions>({
         invert: () => parseRemoveAudioClip({ type: 'RemoveAudioClip', clipId: id }),
         createdIds,
         removedIds: [],
+      };
+    },
+  },
+  MoveClip: {
+    parse: parseMoveClip,
+    edit(document, command) {
+      const found = locatedClip(document, command.clipId);
+      const startUs = numberField(found.clip, 'startUs', command.clipId);
+      if (startUs === command.startUs) return null;
+      const deltaUs = command.startUs - startUs;
+      let clip: DocumentObject = { ...found.clip, startUs: command.startUs };
+      if (found.kind === 'node') {
+        // The content moves with the clip: its keyframes, and a group's children with theirs (D55.3).
+        clip = shiftedAnimations(clip, deltaUs);
+        const children: unknown = clip['children'];
+        if (Array.isArray(children)) {
+          clip = {
+            ...clip,
+            children: (children as readonly unknown[]).map((child) => {
+              if (!isObject(child)) return child;
+              const childStart = numberField(child, 'startUs', String(child['id']));
+              return shiftedAnimations({ ...child, startUs: childStart + deltaUs }, deltaUs);
+            }),
+          };
+        }
+      }
+      return {
+        document: withClip(document, found, clip),
+        invert: () => parseMoveClip({ ...command, startUs }),
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  TrimClipStart: {
+    parse: parseTrimClipStart,
+    edit(document, command) {
+      const found = locatedClip(document, command.clipId);
+      const startUs = numberField(found.clip, 'startUs', command.clipId);
+      const durationUs = numberField(found.clip, 'durationUs', command.clipId);
+      if (startUs === command.startUs) return null;
+      const deltaUs = command.startUs - startUs;
+      if (deltaUs >= durationUs) {
+        throw outsideClip(
+          command.clipId,
+          `A start at ${String(command.startUs)} µs leaves no duration`,
+        );
+      }
+      let clip: DocumentObject = {
+        ...found.clip,
+        startUs: command.startUs,
+        durationUs: durationUs - deltaUs,
+      };
+      if (hasSource(found)) {
+        const sourceStartUs = numberField(found.clip, 'sourceStartUs', command.clipId);
+        if (sourceStartUs + deltaUs < 0) {
+          throw new EditorError(
+            'source-range-exceeded',
+            'The command would make a node or clip start before its source (D55.6).',
+            [
+              `${command.clipId}: would start ${String(-(sourceStartUs + deltaUs))} µs before its source`,
+            ],
+          );
+        }
+        clip = { ...clip, sourceStartUs: sourceStartUs + deltaUs };
+      }
+      return {
+        document: withClip(document, found, clip),
+        invert: () => parseTrimClipStart({ ...command, startUs }),
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  TrimClipEnd: {
+    parse: parseTrimClipEnd,
+    edit(document, command) {
+      const found = locatedClip(document, command.clipId);
+      const startUs = numberField(found.clip, 'startUs', command.clipId);
+      const durationUs = numberField(found.clip, 'durationUs', command.clipId);
+      const newDurationUs = command.endUs - startUs;
+      if (newDurationUs <= 0) {
+        throw outsideClip(
+          command.clipId,
+          `An end at ${String(command.endUs)} µs leaves no duration`,
+        );
+      }
+      if (newDurationUs === durationUs) return null;
+      // The inverse names the old end, which must itself be a time (D55.2).
+      if (durationUs > Number.MAX_SAFE_INTEGER - startUs) {
+        throw outsideClip(command.clipId, 'The end lies past the largest time and cannot be named');
+      }
+      const endUs = startUs + durationUs;
+      return {
+        document: withClip(document, found, { ...found.clip, durationUs: newDurationUs }),
+        invert: () => parseTrimClipEnd({ ...command, endUs }),
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  SplitClip: {
+    parse: parseSplitClip,
+    edit(document, command) {
+      const found = locatedClip(document, command.clipId);
+      refuseGroup(found, command.clipId);
+      const { first, second } = splitHalves(found, command.atUs, command.newClipId, command.clipId);
+      const createdIds = clipIds(found, second);
+      refuseTaken(document, createdIds);
+      const items = found.items.map((item, at) => (at === found.index ? first : item));
+      return {
+        // The second half directly after the first: the layer right above it (D55.4).
+        document: found.put(document, inserted(items, found.index + 1, second)),
+        invert: () =>
+          parseJoinClips({
+            type: 'JoinClips',
+            clipId: command.clipId,
+            nextClipId: command.newClipId,
+          }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  JoinClips: {
+    parse: parseJoinClips,
+    edit(document, command) {
+      const found = locatedClip(document, command.clipId);
+      const next = locatedClip(document, command.nextClipId);
+      refuseGroup(found, command.clipId);
+      const notJoinable = (why: string): EditorError =>
+        new EditorError('clips-not-joinable', `The clip \`${command.nextClipId}\` ${why} (D55.5).`);
+      if (next.list !== found.list || next.index !== found.index + 1) {
+        throw notJoinable(`is not directly after \`${command.clipId}\` in the same list`);
+      }
+      const startUs = numberField(found.clip, 'startUs', command.clipId);
+      const durationUs = numberField(found.clip, 'durationUs', command.clipId);
+      const nextStartUs = numberField(next.clip, 'startUs', command.nextClipId);
+      const nextDurationUs = numberField(next.clip, 'durationUs', command.nextClipId);
+      if (nextStartUs - startUs !== durationUs) {
+        throw notJoinable(`does not start where \`${command.clipId}\` ends`);
+      }
+      const joined: DocumentObject = {
+        ...found.clip,
+        durationUs: durationUs + nextDurationUs,
+        ...(found.kind === 'audio'
+          ? { fadeOutUs: numberField(next.clip, 'fadeOutUs', command.nextClipId) }
+          : {}),
+      };
+      // Joined only when splitting the joined clip again gives both clips back,
+      // byte for byte: then the inverse restores the document exactly (D55.5).
+      let halves: ReturnType<typeof splitHalves>;
+      try {
+        halves = splitHalves(
+          { ...found, clip: joined },
+          nextStartUs,
+          command.nextClipId,
+          command.clipId,
+        );
+      } catch (reason) {
+        if (reason instanceof EditorError)
+          throw notJoinable(`cannot be split off again: ${reason.message}`);
+        throw reason;
+      }
+      if (
+        JSON.stringify(halves.first) !== JSON.stringify(found.clip) ||
+        JSON.stringify(halves.second) !== JSON.stringify(next.clip)
+      ) {
+        throw notJoinable(`is not what a split of the joined clip would make`);
+      }
+      const items = found.items
+        .filter((_, at) => at !== next.index)
+        .map((item, at) => (at === found.index ? joined : item));
+      return {
+        document: found.put(document, items),
+        invert: () =>
+          parseSplitClip({
+            type: 'SplitClip',
+            clipId: command.clipId,
+            atUs: nextStartUs,
+            newClipId: command.nextClipId,
+          }),
+        createdIds: [],
+        removedIds: clipIds(next, next.clip),
       };
     },
   },

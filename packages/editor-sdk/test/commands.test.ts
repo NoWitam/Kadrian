@@ -25,7 +25,7 @@ function parsePosition(value: unknown): SetNodePositionCommand {
 }
 
 describe('parseCommand (D30.3)', () => {
-  it('knows exactly the commands of its closed registry, in a fixed order (D38.1, D39.9, D40.6, D41.1, D42.10, D50.6, D52.6)', () => {
+  it('knows exactly the commands of its closed registry, in a fixed order (D38.1, D39.9, D40.6, D41.1, D42.10, D50.6, D52.6, D54.5, D55.2)', () => {
     expect(COMMAND_TYPES).toEqual([
       'SetNodePosition',
       'SetNodeOpacity',
@@ -67,6 +67,11 @@ describe('parseCommand (D30.3)', () => {
       'SetSceneDuration',
       'MoveNodeToScene',
       'AddSceneAudioClip',
+      'MoveClip',
+      'TrimClipStart',
+      'TrimClipEnd',
+      'SplitClip',
+      'JoinClips',
     ]);
   });
 

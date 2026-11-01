@@ -62,6 +62,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D52](D52-audio-clips-volume-fades-and-the-mix.md)            | Audio: clips, volume, fades, and the mix in the Producer                                     | Accepted          |
 | [D53](D53-audio-in-the-player.md)                             | Audio in the Player: the plan on the Producer's grid, the audio clock, and audio media facts | Accepted          |
 | [D54](D54-scenes-in-sequence.md)                              | Scenes in sequence: schema 0.5, scene time, and the scene commands                           | Accepted          |
+| [D55](D55-timeline-commands.md)                               | Timeline commands: move, trim, split, and join a clip                                        | Proposed          |
 
 ## Provenance of D01–D10
 

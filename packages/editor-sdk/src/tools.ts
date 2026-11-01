@@ -20,6 +20,11 @@ import {
   addSceneArgumentsSchema,
   addSceneAudioClipArgumentsSchema,
   deepFreeze,
+  joinClipsArgumentsSchema,
+  moveClipArgumentsSchema,
+  splitClipArgumentsSchema,
+  trimClipEndArgumentsSchema,
+  trimClipStartArgumentsSchema,
   duplicateNodeArgumentsSchema,
   duplicateSceneArgumentsSchema,
   moveNodeToSceneArgumentsSchema,
@@ -108,6 +113,9 @@ const TIME_US =
 
 const SCENES =
   "Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, and the composition's durationUs is the sum of the scenes' durations, which every scene command keeps.";
+
+const CLIPS =
+  'A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene.';
 
 const PIXELS = 'Lengths and coordinates are composition pixels, rounded to integers.';
 
@@ -409,6 +417,31 @@ const METADATA = deepFreeze<MetadataTable>({
       },
     },
     argumentsSchema: addSceneAudioClipArgumentsSchema,
+  },
+  MoveClip: {
+    description: `Moves one clip — a node of any type, or an audio clip — to a new start, keeping its duration and, for a video or an audio clip, its source: it plays the same, only earlier or later. A node's keyframes move with it, and a group's children with theirs, so its animation keeps its place in the clip; set_node_lifetime is the command that changes when a node is shown without moving keyframes. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, invalid-result when a keyframe or a child would leave the times of the document, and, when a video or sound would then be seen or heard further, media-facts-missing and source-range-exceeded.`,
+    example: { clipId: 'node-title', startUs: 1_000_000 },
+    argumentsSchema: moveClipArgumentsSchema,
+  },
+  TrimClipStart: {
+    description: `Moves the start of one clip and keeps its end, as dragging the left edge on a timeline: startUs becomes the given time, durationUs changes by the opposite amount, and a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays exactly where it did. No keyframe moves, and an audio clip's fades stay at its edges. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, time-outside-clip when the start would reach the end, source-range-exceeded when the source would start before its first instant or run past its end, invalid-result when the fades no longer fit, and media-facts-missing.`,
+    example: { clipId: 'clip-audio', startUs: 2_000_000 },
+    argumentsSchema: trimClipStartArgumentsSchema,
+  },
+  TrimClipEnd: {
+    description: `Moves the end of one clip and keeps its start, as dragging the right edge on a timeline: durationUs becomes endUs minus startUs. No keyframe moves. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, time-outside-clip when the end would reach the start, invalid-result when an audio clip's fades no longer fit, and, when a video or sound would then be seen or heard further, media-facts-missing and source-range-exceeded.`,
+    example: { clipId: 'node-title', endUs: 6_000_000 },
+    argumentsSchema: trimClipEndArgumentsSchema,
+  },
+  SplitClip: {
+    description: `Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, so both halves look exactly like the whole. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded.`,
+    example: { clipId: 'node-title', atUs: 5_000_000, newClipId: 'node-title-tail' },
+    argumentsSchema: splitClipArgumentsSchema,
+  },
+  JoinClips: {
+    description: `Joins two halves of a split back into one clip: nextClipId must be directly after clipId in the same list, start where it ends, and be exactly what split_clip would make of the joined clip (same fields, its source continuing, its animations those of the first under its own ID). The joined clip keeps clipId and the second is removed. ${CLIPS} Refused with unknown-clip, unsupported-node for a group, clips-not-joinable, invalid-result, media-facts-missing, and source-range-exceeded.`,
+    example: { clipId: 'node-title', nextClipId: 'node-title-tail' },
+    argumentsSchema: joinClipsArgumentsSchema,
   },
 });
 

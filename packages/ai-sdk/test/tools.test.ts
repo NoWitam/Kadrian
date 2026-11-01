@@ -159,6 +159,13 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetSceneDuration: [],
   MoveNodeToScene: OUTRO_SETUP,
   AddSceneAudioClip: [],
+  MoveClip: [],
+  TrimClipStart: [],
+  TrimClipEnd: [],
+  SplitClip: [],
+  JoinClips: [
+    { type: 'SplitClip', clipId: 'node-title', atUs: 5_000_000, newClipId: 'node-title-tail' },
+  ],
 };
 
 function prepared(type: Command['type']): CommandBus {
