@@ -1,6 +1,6 @@
 # D53 — Audio in the Player: the plan on the Producer's grid, the audio clock, and audio media facts
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-01, after PR-29b was merged
 - Date: 2026-11-01
 - Supersedes: —
 - Extends: D25 (the option `audio`, `prepareAudio`, the audio clock, a seek
