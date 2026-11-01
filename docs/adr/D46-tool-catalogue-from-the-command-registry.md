@@ -9,6 +9,7 @@
 - Amended by: PR-29a (D52) on 2026-10-31: six tools of audio (D52.6)
 - Amended by: PR-29b (D53) on 2026-11-01: `describe_document` states the length of audio assets and of the sound of videos (D53.4)
 - Amended by: PR-30 (D54) on 2026-11-01: seven tools of scenes, and the derived start of each scene in `describe_document` (D54.6)
+- Amended by: PR-31 (D55) on 2026-11-01: five tools of the timeline (D55.7)
 - Related: D09, D12, D30, D31, D38, D39, D40, D41, D42,
   [roadmap of phase three](../roadmap/phase-3.md) PR-24
 

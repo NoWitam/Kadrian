@@ -12,6 +12,7 @@
   D55, and "D50 to D57" is D50 to D58); the decision is unchanged
 - Amended by: PR-29a (D52) on 2026-10-31: 49.7: the step to `0.4` gives a video node `volume: 0`, not `muted: true`; the schema has no boolean (D52.1)
 - Amended by: PR-29b (D53) on 2026-11-01: 49.6: the bus checks the source ranges the audio plan hears against audio facts (D53.4)
+- Amended by: PR-31 (D55) on 2026-11-01: 49.1: a split copies every animation to the second half, under `<newClipId>-a-<property>` (D55.3)
 - Related: D04, D13, D14, D16, D18, D19, D23, D29, D30, D35, D38, D39, D41,
   D42, D47, [roadmap of phase three](../roadmap/phase-3.md) PR-27 to PR-34b
 

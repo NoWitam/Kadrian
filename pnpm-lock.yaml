@@ -32,6 +32,9 @@ importers:
       '@kadrion/renderer-dom':
         specifier: workspace:*
         version: link:packages/renderer-dom
+      '@kadrion/runtime':
+        specifier: workspace:*
+        version: link:packages/runtime
       '@kadrion/schema':
         specifier: workspace:*
         version: link:packages/schema

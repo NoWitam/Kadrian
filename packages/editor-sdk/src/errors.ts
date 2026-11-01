@@ -40,8 +40,14 @@ export type EditorErrorCode =
   | 'unknown-scene'
   /** The command would remove the only scene; a composition has at least one (D54.5). */
   | 'last-scene'
-  /** No audio clip of the document has that ID; `details` are empty (D52.6). */
+  /** No audio clip of the document has that ID — for the timeline commands, no node or audio clip (D52.6, D55.1); `details` are empty. */
   | 'unknown-clip'
+  /** The time does not lie strictly inside the clip's lifetime, or a trim would leave it no duration (D55.4). */
+  | 'time-outside-clip'
+  /** The halves of the split would not render exactly as the whole: off the 125 µs grid of a sound, or inside a fade (D55.4). */
+  | 'split-not-exact'
+  /** The second clip is not directly after the first, or not what a split of the joined clip would make (D55.5). */
+  | 'clips-not-joinable'
   /** No animation of the document has that ID; `details` are empty (D41.5). */
   | 'unknown-animation'
   /** The animation has no keyframe at that time; `details` are empty (D41.5). */

@@ -517,6 +517,72 @@ export interface AddSceneAudioClipCommand extends AddSceneAudioClipArguments {
   readonly type: 'AddSceneAudioClip';
 }
 
+/** What a caller states for `MoveClip` (D55.2). */
+export interface MoveClipArguments {
+  /** The ID of a node or of an audio clip (D55.1). */
+  readonly clipId: string;
+  /** The clip's new start, in the time of its scene, or composition time for a composition clip. */
+  readonly startUs: number;
+}
+
+/**
+ * Moves a clip to a new start, keeping its duration and source; a node's
+ * keyframes, and a group's children with theirs, move by the same amount (D55.3).
+ */
+export interface MoveClipCommand extends MoveClipArguments {
+  readonly type: 'MoveClip';
+}
+
+/** What a caller states for `TrimClipStart` (D55.2). */
+export interface TrimClipStartArguments {
+  readonly clipId: string;
+  /** The clip's new start; its end stays where it is. */
+  readonly startUs: number;
+}
+
+/** Moves a clip's start and keeps its end; a source's start moves by the same amount (D49.1, D55.2). */
+export interface TrimClipStartCommand extends TrimClipStartArguments {
+  readonly type: 'TrimClipStart';
+}
+
+/** What a caller states for `TrimClipEnd` (D55.2). */
+export interface TrimClipEndArguments {
+  readonly clipId: string;
+  /** The clip's new end, exclusive; its start stays where it is. */
+  readonly endUs: number;
+}
+
+/** Moves a clip's end and keeps its start (D49.1, D55.2). */
+export interface TrimClipEndCommand extends TrimClipEndArguments {
+  readonly type: 'TrimClipEnd';
+}
+
+/** What a caller states for `SplitClip` (D55.2). */
+export interface SplitClipArguments {
+  readonly clipId: string;
+  /** The time of the cut, strictly inside the clip's lifetime. */
+  readonly atUs: number;
+  /** The ID of the second half, unused in the document (D39.3). */
+  readonly newClipId: string;
+}
+
+/** Cuts a clip into two that meet at `atUs`, the second directly after the first (D49.1, D55.4). */
+export interface SplitClipCommand extends SplitClipArguments {
+  readonly type: 'SplitClip';
+}
+
+/** What a caller states for `JoinClips` (D55.5). */
+export interface JoinClipsArguments {
+  readonly clipId: string;
+  /** The clip directly after it, exactly as a split of the joined clip would make it. */
+  readonly nextClipId: string;
+}
+
+/** Joins a clip with the one a split made of it: the inverse of `SplitClip` (D55.5). */
+export interface JoinClipsCommand extends JoinClipsArguments {
+  readonly type: 'JoinClips';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -557,7 +623,12 @@ export type Command =
   | ReorderSceneCommand
   | SetSceneDurationCommand
   | MoveNodeToSceneCommand
-  | AddSceneAudioClipCommand;
+  | AddSceneAudioClipCommand
+  | MoveClipCommand
+  | TrimClipStartCommand
+  | TrimClipEndCommand
+  | SplitClipCommand
+  | JoinClipsCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -685,6 +756,11 @@ export type DuplicateSceneArgumentsSchema = ClosedObjectSchema<keyof DuplicateSc
 export type ReorderSceneArgumentsSchema = ClosedObjectSchema<keyof ReorderSceneArguments>;
 export type SetSceneDurationArgumentsSchema = ClosedObjectSchema<keyof SetSceneDurationArguments>;
 export type MoveNodeToSceneArgumentsSchema = ClosedObjectSchema<keyof MoveNodeToSceneArguments>;
+export type MoveClipArgumentsSchema = ClosedObjectSchema<keyof MoveClipArguments>;
+export type TrimClipStartArgumentsSchema = ClosedObjectSchema<keyof TrimClipStartArguments>;
+export type TrimClipEndArgumentsSchema = ClosedObjectSchema<keyof TrimClipEndArguments>;
+export type SplitClipArgumentsSchema = ClosedObjectSchema<keyof SplitClipArguments>;
+export type JoinClipsArgumentsSchema = ClosedObjectSchema<keyof JoinClipsArguments>;
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
 
@@ -1409,6 +1485,93 @@ export const addSceneAudioClipArgumentsSchema: AddSceneAudioClipArgumentsSchema 
     },
   },
   required: ['sceneId', 'index', 'clip'],
+  additionalProperties: false,
+});
+
+const TIMELINE_CLIP_ID =
+  'The stable ID of a clip: a node of any type, a child of a group included, or an audio clip of the composition or of a scene.';
+
+/** A time of a timeline command (D55.2), with the bounds of a lifetime's start (D42.1). */
+function timelineTime(description: string) {
+  return {
+    type: 'integer',
+    description: `${description} In integer microseconds of the time of the clip's scene, or composition time for a composition clip; never rounded. -0 becomes 0.`,
+    minimum: LIFETIME.startUs.minimum,
+    maximum: LIFETIME.startUs.maximum,
+  } as const;
+}
+
+/** The JSON Schema of the arguments of `MoveClip` (D55.2). */
+export const moveClipArgumentsSchema: MoveClipArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Moves a clip to a new start, keeping its duration and its source; a node's keyframes, and a group's children with theirs, move by the same amount.",
+  properties: {
+    clipId: { type: 'string', description: TIMELINE_CLIP_ID, minLength: 1 },
+    startUs: timelineTime('The new start of the clip.'),
+  },
+  required: ['clipId', 'startUs'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `TrimClipStart` (D55.2). */
+export const trimClipStartArgumentsSchema: TrimClipStartArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Moves the start of a clip and keeps its end; a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays where it did.",
+  properties: {
+    clipId: { type: 'string', description: TIMELINE_CLIP_ID, minLength: 1 },
+    startUs: timelineTime('The new start of the clip, before its end.'),
+  },
+  required: ['clipId', 'startUs'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `TrimClipEnd` (D55.2). */
+export const trimClipEndArgumentsSchema: TrimClipEndArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Moves the end of a clip and keeps its start.',
+  properties: {
+    clipId: { type: 'string', description: TIMELINE_CLIP_ID, minLength: 1 },
+    endUs: timelineTime('The new end of the clip, exclusive, after its start.'),
+  },
+  required: ['clipId', 'endUs'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SplitClip` (D55.2). */
+export const splitClipArgumentsSchema: SplitClipArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Cuts a clip into two that meet at atUs; the second half is placed directly after the first.',
+  properties: {
+    clipId: { type: 'string', description: TIMELINE_CLIP_ID, minLength: 1 },
+    atUs: timelineTime('The time of the cut, strictly between the start and the end of the clip.'),
+    newClipId: {
+      type: 'string',
+      description:
+        'The ID of the second half, unused in the document. Each copied animation becomes `<newClipId>-a-<property>`.',
+      pattern: ID_PATTERN,
+    },
+  },
+  required: ['clipId', 'atUs', 'newClipId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `JoinClips` (D55.5). */
+export const joinClipsArgumentsSchema: JoinClipsArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Joins two halves of a split back into one clip.',
+  properties: {
+    clipId: { type: 'string', description: 'The ID of the first half.', minLength: 1 },
+    nextClipId: {
+      type: 'string',
+      description:
+        'The ID of the second half: directly after the first in the same list, exactly as split_clip made it.',
+      minLength: 1,
+    },
+  },
+  required: ['clipId', 'nextClipId'],
   additionalProperties: false,
 });
 
@@ -2410,5 +2573,74 @@ export function parseAddSceneAudioClip(value: unknown): AddSceneAudioClipCommand
     sceneId,
     index,
     clip: dataOf(fields['clip'], 'clip'),
+  });
+}
+
+/** A new ID a command gives, which must match the document's ID pattern (D39.3). */
+function newIdOf(fields: Readonly<Record<string, unknown>>, name: string): string {
+  const id: unknown = fields[name];
+  if (typeof id !== 'string' || !new RegExp(ID_PATTERN).test(id)) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`${name}\` must be an ID of the document's form, ${ID_PATTERN}.`,
+    );
+  }
+  return id;
+}
+
+/** The fields of a `MoveClip` (D55.2). */
+export function parseMoveClip(value: unknown): MoveClipCommand {
+  const fields = fieldsOf(value, ['type', 'clipId', 'startUs'], 'The command `MoveClip`');
+  return Object.freeze({
+    type: 'MoveClip',
+    clipId: nodeIdOf(fields, 'clipId'),
+    startUs: integerWithin(fields['startUs'], LIFETIME.startUs, '`startUs`'),
+  });
+}
+
+/** The fields of a `TrimClipStart` (D55.2). */
+export function parseTrimClipStart(value: unknown): TrimClipStartCommand {
+  const fields = fieldsOf(value, ['type', 'clipId', 'startUs'], 'The command `TrimClipStart`');
+  return Object.freeze({
+    type: 'TrimClipStart',
+    clipId: nodeIdOf(fields, 'clipId'),
+    startUs: integerWithin(fields['startUs'], LIFETIME.startUs, '`startUs`'),
+  });
+}
+
+/** The fields of a `TrimClipEnd` (D55.2). */
+export function parseTrimClipEnd(value: unknown): TrimClipEndCommand {
+  const fields = fieldsOf(value, ['type', 'clipId', 'endUs'], 'The command `TrimClipEnd`');
+  return Object.freeze({
+    type: 'TrimClipEnd',
+    clipId: nodeIdOf(fields, 'clipId'),
+    endUs: integerWithin(fields['endUs'], LIFETIME.startUs, '`endUs`'),
+  });
+}
+
+/** The fields of a `SplitClip` (D55.2): the new ID must match the document's ID pattern. */
+export function parseSplitClip(value: unknown): SplitClipCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'clipId', 'atUs', 'newClipId'],
+    'The command `SplitClip`',
+  );
+  const clipId = nodeIdOf(fields, 'clipId');
+  const atUs = integerWithin(fields['atUs'], LIFETIME.startUs, '`atUs`');
+  return Object.freeze({
+    type: 'SplitClip',
+    clipId,
+    atUs,
+    newClipId: newIdOf(fields, 'newClipId'),
+  });
+}
+
+/** The fields of a `JoinClips` (D55.5). */
+export function parseJoinClips(value: unknown): JoinClipsCommand {
+  const fields = fieldsOf(value, ['type', 'clipId', 'nextClipId'], 'The command `JoinClips`');
+  return Object.freeze({
+    type: 'JoinClips',
+    clipId: nodeIdOf(fields, 'clipId'),
+    nextClipId: nodeIdOf(fields, 'nextClipId'),
   });
 }

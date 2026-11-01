@@ -31,6 +31,7 @@
     "@kadrion/player": "workspace:*",
     "@kadrion/producer": "workspace:*",
     "@kadrion/renderer-dom": "workspace:*",
+    "@kadrion/runtime": "workspace:*",
     "@kadrion/schema": "workspace:*",
     "@kadrion/test-fixtures": "workspace:*",
     "@types/node": "22.20.4",
