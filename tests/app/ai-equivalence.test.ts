@@ -66,6 +66,8 @@ async function drag(start: unknown, dx: number, dy: number): Promise<Gesture> {
   const player: Player = {
     load: () => Promise.resolve(),
     prepareVideo: () => Promise.reject(new Error('The test document has no video.')),
+    prepareAudio: () =>
+      Promise.reject(Object.assign(new Error('No Web Audio here.'), { code: 'audio-unsupported' })),
     update(next) {
       loaded.push(next);
       return Promise.resolve();

@@ -60,6 +60,8 @@ function stubPlayer(): StubPlayer {
       return Promise.resolve();
     },
     prepareVideo: () => Promise.reject(new Error('The playground document has no video.')),
+    prepareAudio: () =>
+      Promise.reject(Object.assign(new Error('No Web Audio here.'), { code: 'audio-unsupported' })),
     update(document) {
       // An update keeps the time it shows (D44).
       player.loaded.push(document);

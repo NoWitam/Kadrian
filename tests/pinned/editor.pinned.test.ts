@@ -147,6 +147,8 @@ window.e = {
         window.e.renders += 1;
       },
       seek: (timeUs) => player.seek(timeUs),
+      prepareVideo: (asset, resolveAsset) => player.prepareVideo(asset, resolveAsset),
+      prepareAudio: (asset, resolveAsset) => player.prepareAudio(asset, resolveAsset),
       play: () => player.play(),
       pause: () => player.pause(),
       getState: () => player.getState(),

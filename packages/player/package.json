@@ -18,6 +18,7 @@
   ],
   "dependencies": {
     "@kadrion/renderer-dom": "workspace:*",
+    "@kadrion/runtime": "workspace:*",
     "@kadrion/schema": "workspace:*"
   },
   "devDependencies": {

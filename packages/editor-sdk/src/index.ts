@@ -171,7 +171,7 @@ export type {
 export { describeDocument } from './describe.js';
 export type { DocumentDescription, NodeDescription, SceneDescription } from './describe.js';
 export { EditorError } from './errors.js';
-export type { MediaFacts, MediaFactsLookup, VideoFacts } from './media.js';
+export type { AudioFacts, MediaFacts, MediaFactsLookup, VideoFacts } from './media.js';
 export type { EditorErrorCode } from './errors.js';
 export { COMMAND_TYPES, parseCommand } from './registry.js';
 export { COMMAND_TOOL_METADATA } from './tools.js';

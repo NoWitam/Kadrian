@@ -514,9 +514,13 @@ pack` does not publish.
   `@kadrion/runtime` (which repairs the debt beyond 2^53 − 1), the mix in the
   Producer on the 48 kHz grid with a pinned test against an independent sum,
   and six commands with their tools (`SetClipGain` is `SetClipVolume`).
-  **PR-29b** follows: playback with Web Audio in the Player's host window,
-  audio media facts read by `editor-session`, and the bus's range check for
-  clips and the sound of videos. The plan below is the plan of both.
+  **PR-29b** follows with D53 (proposed 2026-11-01): playback with Web Audio in
+  an `AudioContext` the host passes, on the Producer's 48 kHz grid (the grid
+  moves to `@kadrion/runtime`, the plan to `@kadrion/schema`), the audio clock
+  driving the picture, `Player.prepareAudio`, audio media facts read by
+  `editor-session`, and the bus's range check for clips and the sound of
+  videos; the Player's graph equals the Producer's mix within 1e-5 in pinned
+  Chromium. The plan below is the plan of both.
 
 - **Goal:** several sounds play in the Player and are mixed by the Producer
   the same way.

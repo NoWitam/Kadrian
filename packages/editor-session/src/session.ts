@@ -86,9 +86,11 @@ export interface EditorSession {
    * Reads the media facts of an asset from its verified bytes (D49.6, D51.5):
    * for a video, the Player resolves and verifies it, reads its track, and the
    * bus knows its source duration from then on, so commands that sample it are
-   * checked. Call it before dispatching a command that makes a node show a
-   * video the document did not show yet. Other asset types have no facts yet
-   * and resolve with `null`.
+   * checked, and the length of its sound, `null` when it has none (D53); for
+   * a sound, the Player decodes it and the bus knows its length (D53). Call it
+   * before dispatching a command that makes a node show a video, or a clip or
+   * node hear a source, that the document did not use yet. Images and fonts
+   * have no facts and resolve with `null`.
    */
   readMediaFacts(asset: PlayerAssetRequest): Promise<MediaFacts | null>;
   /** Calls `listener` with every event until the returned function is called. */
@@ -152,11 +154,41 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
 
   /** The facts of verified bytes, by content hash; the bus reads them synchronously. */
   const facts = new Map<string, MediaFacts>();
-  const readVideo = async (asset: PlayerAssetRequest): Promise<MediaFacts> => {
+  /**
+   * The length of a video's sound (D53): `null` when the browser finds none to
+   * decode, as the Producer refuses it, or `undefined` when this window cannot
+   * decode sound at all, so the facts leave it out.
+   */
+  const soundOf = async (asset: PlayerAssetRequest): Promise<number | null | undefined> => {
+    try {
+      return (await player.prepareAudio(asset, resolveAsset)).durationUs;
+    } catch (reason) {
+      const code = (reason as { code?: unknown } | null)?.code;
+      if (code === 'audio-invalid') return null;
+      if (code === 'audio-unsupported') return undefined;
+      throw reason;
+    }
+  };
+  /** The facts of a video, with its sound when `sound` asks for it and it was not read yet. */
+  const readVideo = async (asset: PlayerAssetRequest, sound: boolean): Promise<MediaFacts> => {
     const known = facts.get(asset.contentHash);
-    if (known !== undefined) return known;
-    const { durationUs } = await player.prepareVideo(asset, resolveAsset);
-    const read: MediaFacts = Object.freeze({ type: 'video', durationUs });
+    if (known?.type === 'video' && (!sound || known.audioDurationUs !== undefined)) return known;
+    const durationUs =
+      known?.durationUs ?? (await player.prepareVideo(asset, resolveAsset)).durationUs;
+    const audioDurationUs = sound ? await soundOf(asset) : undefined;
+    const read: MediaFacts = Object.freeze(
+      audioDurationUs === undefined
+        ? { type: 'video', durationUs }
+        : { type: 'video', durationUs, audioDurationUs },
+    );
+    facts.set(asset.contentHash, read);
+    return read;
+  };
+  const readAudio = async (asset: PlayerAssetRequest): Promise<MediaFacts> => {
+    const known = facts.get(asset.contentHash);
+    if (known?.type === 'audio') return known;
+    const { durationUs } = await player.prepareAudio(asset, resolveAsset);
+    const read: MediaFacts = Object.freeze({ type: 'audio', durationUs });
     facts.set(asset.contentHash, read);
     return read;
   };
@@ -176,11 +208,28 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
       emit({ type: 'playback', state });
     });
     const initial = bus.getDocument();
-    const shown = new Set(videoNodes(initial).map(({ assetId }) => assetId));
+    const nodes = videoNodes(initial);
+    const shown = new Set(nodes.map(({ assetId }) => assetId));
     for (const asset of initial.assets) {
-      if (asset.type === 'video' && shown.has(asset.id)) await readVideo(asset);
+      if (asset.type === 'video' && shown.has(asset.id)) await readVideo(asset, false);
     }
     await player.load(initial, resolveAsset);
+    // The sounds the document hears, after the load: a Player with sound decoded them for it (D53).
+    const heard = new Set(nodes.filter(({ volume }) => volume > 0).map(({ assetId }) => assetId));
+    const clipped = new Set(
+      initial.clips.filter(({ volume }) => volume > 0).map(({ assetId }) => assetId),
+    );
+    for (const asset of initial.assets) {
+      if (asset.type === 'video' && heard.has(asset.id)) await readVideo(asset, true);
+      if (asset.type === 'audio' && clipped.has(asset.id)) {
+        try {
+          await readAudio(asset);
+        } catch (reason) {
+          // A window that cannot decode sound starts all the same; the bus then knows no sound.
+          if ((reason as { code?: unknown } | null)?.code !== 'audio-unsupported') throw reason;
+        }
+      }
+    }
   } catch (reason) {
     destroyed = true;
     player.destroy();
@@ -255,8 +304,9 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     async readMediaFacts(asset) {
       if (destroyed) throw new PlayerError('destroyed', 'The session was destroyed.');
       const type = (asset as Partial<PlayerAssetRequest> | null)?.type;
-      if (type === 'video') return readVideo(asset);
-      if (type === 'image' || type === 'audio' || type === 'font') return null;
+      if (type === 'video') return readVideo(asset, true);
+      if (type === 'audio') return readAudio(asset);
+      if (type === 'image' || type === 'font') return null;
       throw new PlayerError(
         'invalid-options',
         'readMediaFacts needs an asset { id, type, contentHash }.',

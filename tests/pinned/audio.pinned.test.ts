@@ -6,8 +6,12 @@
  * the pinned FFmpeg decodes them. The sample positions are written out by hand
  * from the rules of D52.5, not taken from the implementation; the mix is
  * summed in TypeScript. Every problem of a sound is typed before any pass.
- * Skipped without `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where the
- * run is pinned.
+ *
+ * The Player plays the same plan with Web Audio (D53): in pinned Chromium, its
+ * graph rendered offline from the start and from a sample in the middle equals
+ * the Producer's intermediate within the error of 32-bit float automation,
+ * and the facts it reads are the decoded lengths. Skipped without
+ * `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where the run is pinned.
  */
 import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -18,16 +22,23 @@ import { promisify } from 'node:util';
 
 import {
   AUDIO_FILE_NAME,
+  launchChromium,
   PINNED_IMAGE,
   PINNED_IMAGE_VARIABLE,
   renderAudio,
   sha256,
   type AudioManifest,
+  type LaunchedChromium,
 } from '@kadrion/producer';
 import type { AssetResolver } from '@kadrion/renderer-dom';
 import { VIDEO_FIXTURE, VIDEO_SOUND_FIXTURE } from '@kadrion/test-fixtures';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import {
+  closeConformanceHost,
+  openConformanceHost,
+  type ConformanceHost,
+} from './conformance-host.js';
 import { OUTPUT_DIRECTORY, writeReport } from './support.js';
 import { makeVideoFixture, makeVideoSoundFixture } from './video-fixture.ts';
 
@@ -252,6 +263,36 @@ function wavFloats(bytes: Uint8Array): { channels: number; rate: number; samples
   throw new Error('The WAV has no data chunk.');
 }
 
+/**
+ * Run in the conformance host (D33.2): the Player's graph for a document,
+ * scheduled from output sample `fromSample` at time 0 of an offline context at
+ * 48 kHz, through the built packages the host serves; the rendered samples
+ * interleaved, and the decoded length of each source (D53).
+ */
+const PLAYED = `(async () => {
+  const { text, sources, fromSample } = INPUT;
+  const player = await import('@kadrion/player');
+  const runtime = await import('@kadrion/runtime');
+  const schema = await import('@kadrion/schema');
+  const layout = runtime.audioLayout(runtime.audioPlan(schema.validateComposition(JSON.parse(text)).composition));
+  const context = new OfflineAudioContext(2, layout.totalSamples - fromSample, 48000);
+  const buffers = new Map();
+  const lengths = {};
+  for (const [id, base64] of sources) {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const decoded = await player.decodeSound(context, id, bytes.buffer);
+    buffers.set(id, decoded);
+    lengths[id] = decoded.length;
+  }
+  player.scheduleSounds(context, layout, buffers, fromSample, 0);
+  const rendered = await context.startRendering();
+  const left = rendered.getChannelData(0);
+  const right = rendered.getChannelData(1);
+  const samples = [];
+  for (let index = 0; index < rendered.length; index += 1) samples.push(left[index], right[index]);
+  return { samples, lengths };
+})()`;
+
 /** The gain of a linear fade at sample `k` of the sound (D52.2). */
 function gain(sound: (typeof SOUNDS)[number], k: number): number {
   let value = 1;
@@ -362,6 +403,69 @@ describe.skipIf(!available)('the audio mix of the Producer (D52.5)', () => {
     expect(worst.difference).toBeLessThan(1e-5);
     // Before the voice and the video, only the music is heard, and it starts at silence.
     expect(mixed.samples[0]).toBe(0);
+  });
+
+  describe("the Player's mix in Chromium (D53)", () => {
+    let chromium: LaunchedChromium;
+    let host: ConformanceHost;
+
+    /** `PLAYED` for the document of this file, from output sample `from`. */
+    const played = async (
+      from: number,
+    ): Promise<{ samples: number[]; lengths: Record<string, number> }> => {
+      const input = JSON.stringify({
+        text: JSON.stringify(document(VIDEO_SOUND_FIXTURE.contentHash)),
+        sources: [
+          ['asset-music', Buffer.from(MUSIC).toString('base64')],
+          ['asset-voice', Buffer.from(VOICE).toString('base64')],
+          ['asset-video', Buffer.from(video).toString('base64')],
+        ],
+        fromSample: from,
+      });
+      // A script of its own, so that no transform of this file touches its imports.
+      return host.page.evaluate(PLAYED.replace('INPUT', input));
+    };
+
+    beforeAll(async () => {
+      chromium = await launchChromium();
+      host = await openConformanceHost(
+        chromium,
+        JSON.stringify(document(VIDEO_SOUND_FIXTURE.contentHash)),
+        [
+          { id: 'asset-music', mediaType: 'audio/wav', bytes: MUSIC },
+          { id: 'asset-voice', mediaType: 'audio/wav', bytes: VOICE },
+          { id: 'asset-video', mediaType: 'video/mp4', bytes: video },
+        ],
+      );
+    }, 120_000);
+
+    afterAll(async () => {
+      await closeConformanceHost(host);
+      await chromium.browser.close();
+    });
+
+    it("equals the Producer's mix from the start and from the middle, within float automation", async () => {
+      const report: Record<string, unknown> = {};
+      // From the start, and from inside the music's fade-out and the video's sound.
+      for (const from of [0, 75_001]) {
+        const { samples, lengths } = await played(from);
+        expect(samples).toHaveLength((96_000 - from) * 2);
+        let worst = { at: -1, difference: 0 };
+        for (let index = 0; index < samples.length; index += 1) {
+          const difference = Math.abs(
+            (samples[index] ?? Number.NaN) - (mixed.samples[from * 2 + index] ?? Number.NaN),
+          );
+          if (!(difference <= worst.difference)) worst = { at: index, difference };
+        }
+        report[`from-${String(from)}`] = { worst, lengths };
+        expect(worst.difference, `from sample ${String(from)}`).toBeLessThan(1e-4);
+        // The WAVs decode to their own lengths; the video's sound at least to what is heard.
+        expect(lengths['asset-music']).toBe(3 * RATE);
+        expect(lengths['asset-voice']).toBe(RATE);
+        expect(lengths['asset-video']).toBeGreaterThanOrEqual(14_400 + 48_000);
+      }
+      writeReport('audio-player-report.json', report);
+    }, 120_000);
   });
 
   it('hears nothing of a video at volume 0, and reads no audio from it', async () => {

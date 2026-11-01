@@ -14,6 +14,7 @@ import {
   describeDocument,
   type Command,
   type CommandBus,
+  type MediaFacts,
 } from '@kadrion/editor-sdk';
 import { referenceComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
@@ -25,12 +26,14 @@ import { codeOf, isDeepFrozen, json, stateOf } from './support.js';
 const HASH = 'sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae';
 const VIDEO_HASH = `sha256:${'b'.repeat(64)}`;
 const CLIP_HASH = `sha256:${'c'.repeat(64)}`;
+const AUDIO_HASH = 'sha256:a383506e57b39f51b8952cff8a82f2a058e4d07b8c970068b8af84f72d058f97';
 
-/** The media facts the host of these tests knows: both videos last 10 s (D49.6). */
-function mediaFacts(contentHash: string): { type: 'video'; durationUs: number } | null {
-  return contentHash === VIDEO_HASH || contentHash === CLIP_HASH
-    ? { type: 'video', durationUs: 10_000_000 }
-    : null;
+/** The media facts the host of these tests knows: both videos and their sound last 10 s, the reference sound 20 s (D49.6, D53). */
+function mediaFacts(contentHash: string): MediaFacts | null {
+  if (contentHash === VIDEO_HASH || contentHash === CLIP_HASH) {
+    return { type: 'video', durationUs: 10_000_000, audioDurationUs: 10_000_000 };
+  }
+  return contentHash === AUDIO_HASH ? { type: 'audio', durationUs: 20_000_000 } : null;
 }
 
 /** A video node of the examples, and its asset (D50). */

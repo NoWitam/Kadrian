@@ -12,6 +12,7 @@ import {
   type PlayerAssetResolver,
   type PlayerListener,
   type PlayerState,
+  type PlayerAudioFacts,
   type PlayerVideoFacts,
 } from '@kadrion/player';
 import { referenceComposition, VIDEO_FIXTURE, videoComposition } from '@kadrion/test-fixtures';
@@ -40,6 +41,7 @@ interface Call {
 function recordingPlayer(
   auto = true,
   videoFacts: Readonly<Record<string, PlayerVideoFacts | PlayerError>> = {},
+  audioFacts: Readonly<Record<string, PlayerAudioFacts | PlayerError>> = {},
 ) {
   const calls: Call[] = [];
   const prepared: PlayerAssetRequest[] = [];
@@ -92,6 +94,14 @@ function recordingPlayer(
       if (facts instanceof PlayerError) return Promise.reject(facts);
       if (facts === undefined) {
         return Promise.reject(new PlayerError('asset-missing', `No bytes for ${asset.id}.`));
+      }
+      return Promise.resolve(facts);
+    },
+    prepareAudio(asset) {
+      const facts = audioFacts[asset.contentHash];
+      if (facts instanceof PlayerError) return Promise.reject(facts);
+      if (facts === undefined) {
+        return Promise.reject(new PlayerError('audio-unsupported', 'No Web Audio here.'));
       }
       return Promise.resolve(facts);
     },

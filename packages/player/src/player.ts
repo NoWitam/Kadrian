@@ -17,6 +17,13 @@ import {
   type ResolvedAsset,
 } from '@kadrion/renderer-dom';
 import {
+  AUDIO_SAMPLE_RATE,
+  audioLayout,
+  audioPlan,
+  sampleAt,
+  type AudioLayout,
+} from '@kadrion/runtime';
+import {
   frameCount,
   frameToTimeUs,
   timeUsToFrame,
@@ -25,6 +32,15 @@ import {
 } from '@kadrion/schema';
 
 import { PAGE_AGENT_SCRIPT } from './agent.js';
+import {
+  checkSoundRanges,
+  decodeSound,
+  scheduleSounds,
+  soundFacts,
+  type PlayerAudioFacts,
+  type ScheduledSounds,
+  type SoundContext,
+} from './audio.js';
 import { playerCode, PlayerError } from './errors.js';
 import {
   checkDecodable,
@@ -79,8 +95,19 @@ export type PlayerAssetResolver = (
   asset: PlayerAssetRequest,
 ) => PlayerAsset | PlayerVideoAsset | null | Promise<PlayerAsset | PlayerVideoAsset | null>;
 
-/** The media facts of a verified video (D49.6, D51.5). */
-export type { PlayerVideoFacts };
+/** The media facts of a verified video (D49.6, D51.5), and of a decoded sound (D53). */
+export type { PlayerAudioFacts, PlayerVideoFacts };
+
+/**
+ * The sound of the preview (D53): the Web Audio context the Player plays the
+ * document's audio plan in, created by the host (a browser lets a context
+ * start only after a gesture of the user). It must run at 48 kHz, the rate of
+ * the Producer's mix (D29.6). While a document with sound plays, its clock is
+ * the preview clock.
+ */
+export interface PlayerAudio {
+  readonly context: AudioContext;
+}
 
 /**
  * The host's decision about the Custom HTML of every document this Player
@@ -121,6 +148,8 @@ export interface PlayerOptions {
    * (D44, as D38.8).
    */
   readonly onListenerError?: PlayerListenerErrorHandler;
+  /** Absent means no sound: the Player plays the picture only, as before D53. */
+  readonly audio?: PlayerAudio;
 }
 
 export type PlayerStatus = 'empty' | 'loading' | 'seeking' | 'ready' | 'playing' | 'error';
@@ -169,10 +198,53 @@ export interface Player {
     asset: PlayerAssetRequest,
     resolveAsset: PlayerAssetResolver,
   ): Promise<PlayerVideoFacts>;
+  /**
+   * Resolves and verifies one audio or video asset, decodes its sound at
+   * 48 kHz, and returns its facts (D53), before any document uses it: the
+   * decoded sound is kept for a later `load` or `update`. It decodes with the
+   * option `audio`, or without it in an offline context of the window; a
+   * window with neither is `audio-unsupported`, and bytes without a sound the
+   * browser decodes are `audio-invalid`.
+   */
+  prepareAudio(
+    asset: PlayerAssetRequest,
+    resolveAsset: PlayerAssetResolver,
+  ): Promise<PlayerAudioFacts>;
   destroy(): void;
 }
 
 const CONTENT_HASH = /^sha256:[0-9a-f]{64}$/;
+
+/** How far ahead of the context's clock playback is scheduled, in seconds (D53). */
+const SOUND_LEAD_S = 0.05;
+
+/** The host's sound context, checked: absent means no sound (D53). */
+function audioContextOf(value: unknown): SoundContext | null {
+  if (value === undefined) return null;
+  const context: unknown =
+    typeof value === 'object' && value !== null
+      ? (value as { context?: unknown }).context
+      : undefined;
+  if (
+    typeof context !== 'object' ||
+    context === null ||
+    typeof (context as Partial<SoundContext>).createBufferSource !== 'function' ||
+    typeof (context as Partial<SoundContext>).decodeAudioData !== 'function'
+  ) {
+    throw new PlayerError(
+      'invalid-options',
+      'audio must be absent or { context: AudioContext } (D53).',
+    );
+  }
+  const { sampleRate } = context as SoundContext;
+  if (sampleRate !== AUDIO_SAMPLE_RATE) {
+    throw new PlayerError(
+      'invalid-options',
+      `The audio context runs at ${String(sampleRate)} Hz; the Player plays at 48 000 Hz (D29.6, D53).`,
+    );
+  }
+  return context as SoundContext;
+}
 
 /**
  * The policy the host stated, or `disabled` when it stated none (D36). Only
@@ -260,6 +332,17 @@ interface PreparedAssets {
   readonly blobs: Map<string, VerifiedBlob>;
   /** The videos the document's nodes show, read, by content hash (D51.3). */
   readonly videos: Map<string, VerifiedVideo>;
+  /** Every decoded sound, by content hash (D53). */
+  readonly sounds: Map<string, AudioBuffer>;
+  /** What the document makes heard, or `null` when the Player has no sound (D53). */
+  audio: PreparedAudio | null;
+}
+
+/** The audio plan of a document on the grid, with the decoded source of each asset it hears. */
+interface PreparedAudio {
+  readonly layout: AudioLayout;
+  /** By asset ID. */
+  readonly buffers: ReadonlyMap<string, AudioBuffer>;
 }
 
 /**
@@ -269,7 +352,8 @@ interface PreparedAssets {
  * verified in the host window and stay there (D51.2): the page receives the
  * others. Every video a node shows is read, its sampled ranges are checked
  * against its facts (D49.6), and the host window must be able to decode it,
- * all before the first frame.
+ * all before the first frame. With a sound context, every source the audio
+ * plan hears is decoded and its ranges are checked too (D53).
  */
 async function prepareAssets(
   view: Window,
@@ -279,13 +363,17 @@ async function prepareAssets(
     readonly bytes: ReadonlyMap<string, PlayerAsset>;
     readonly blobs: ReadonlyMap<string, VerifiedBlob>;
     readonly videos: ReadonlyMap<string, VerifiedVideo>;
+    readonly sounds: ReadonlyMap<string, AudioBuffer>;
   },
+  decoder: SoundContext | null,
 ): Promise<PreparedAssets> {
   const prepared: PreparedAssets = {
     messages: [],
     bytes: new Map(),
     blobs: new Map(),
     videos: new Map(),
+    sounds: new Map(),
+    audio: null,
   };
   const BlobOf = (view as unknown as { Blob?: typeof Blob }).Blob ?? Blob;
   try {
@@ -332,10 +420,58 @@ async function prepareAssets(
     }
     checkSourceRanges(composition, prepared.videos);
     if (prepared.videos.size > 0) await checkDecodable(view, prepared.videos.values());
+    if (decoder !== null)
+      prepared.audio = await prepareSounds(composition, prepared, known, decoder);
   } catch (reason) {
     throw typed(reason);
   }
   return prepared;
+}
+
+/** Decodes every source the audio plan hears, each content hash once, and checks its ranges (D53). */
+async function prepareSounds(
+  composition: ValidatedComposition,
+  prepared: PreparedAssets,
+  known: { readonly sounds: ReadonlyMap<string, AudioBuffer> },
+  decoder: SoundContext,
+): Promise<PreparedAudio> {
+  const layout = audioLayout(audioPlan(composition));
+  const heard = new Set(layout.sounds.map(({ entry }) => entry.assetId));
+  const buffers = new Map<string, AudioBuffer>();
+  for (const { id, contentHash } of composition.assets) {
+    if (!heard.has(id)) continue;
+    let buffer = prepared.sounds.get(contentHash) ?? known.sounds.get(contentHash);
+    if (buffer === undefined) {
+      const blob = prepared.blobs.get(contentHash);
+      const bytes =
+        blob !== undefined
+          ? await blob.blob.arrayBuffer()
+          : prepared.bytes.get(contentHash)?.bytes.slice().buffer;
+      if (bytes === undefined) {
+        throw new PlayerError('asset-missing', `The sound "${id}" was not resolved.`);
+      }
+      buffer = await decodeSound(decoder, id, bytes);
+    }
+    prepared.sounds.set(contentHash, buffer);
+    buffers.set(id, buffer);
+  }
+  checkSoundRanges(layout, buffers);
+  return { layout, buffers };
+}
+
+/** The sound of one run of the clock: when its first sample is heard, once scheduled. */
+interface PlayingSound {
+  when: number | null;
+  sounds: ScheduledSounds | null;
+}
+
+/** One run of the preview clock, from `startUs`. */
+interface Playing {
+  startNow: number;
+  readonly startUs: number;
+  handle: number;
+  /** With sound, the audio context is the clock (D53); otherwise `null`. */
+  sound: PlayingSound | null;
 }
 
 interface Waiting {
@@ -360,6 +496,7 @@ export async function createPlayer(
   const view = container.ownerDocument.defaultView;
   if (view === null) throw new PlayerError('page-error', 'The container has no window.');
   const customHtml = customHtmlPolicy(options.customHtml);
+  const audioContext = audioContextOf(options.audio);
   const script = await runtimeScript(options.runtime);
   const runtimeHash = options.runtime.contentHash;
   const srcdoc = pageDocument(script);
@@ -397,8 +534,13 @@ export async function createPlayer(
   let pending: Pending | null = null;
   let seeking = false;
   let waiting: Waiting | null = null;
-  let playing: { readonly startNow: number; readonly startUs: number; handle: number } | null =
-    null;
+  let playing: Playing | null = null;
+  /** The sounds of a run that reached its last frame, left to end on their own (D53). */
+  let lingering: ScheduledSounds | null = null;
+  /** Sounds decoded by `prepareAudio`, by content hash (D53). */
+  const preparedSounds = new Map<string, AudioBuffer>();
+  /** The context that decodes for `prepareAudio` without the option `audio`, made once. */
+  let offlineDecoder: SoundContext | null = null;
   let destroyed = false;
   /** The seek that is in flight, settled either way; a load waits for it (D25.4). */
   let inFlight: Promise<void> = Promise.resolve();
@@ -542,16 +684,29 @@ export async function createPlayer(
   /** What a load or an update may take without asking the resolver again. */
   const knownAssets = (includeShown: boolean) => {
     const videos = new Map(preparedVideos);
+    const sounds = new Map(preparedSounds);
     if (includeShown && shownAssets !== null) {
       for (const [hash, video] of shownAssets.videos) videos.set(hash, video);
+      for (const [hash, sound] of shownAssets.sounds) sounds.set(hash, sound);
     }
     return {
+      sounds,
       bytes:
         includeShown && shownAssets !== null ? shownAssets.bytes : new Map<string, PlayerAsset>(),
       blobs:
         includeShown && shownAssets !== null ? shownAssets.blobs : new Map<string, VerifiedBlob>(),
       videos,
     };
+  };
+
+  /** An offline context of the window, made once, or `null` where the window has none (D53). */
+  const offlineDecoderOf = (): SoundContext | null => {
+    if (offlineDecoder !== null) return offlineDecoder;
+    const Offline = (view as unknown as { OfflineAudioContext?: typeof OfflineAudioContext })
+      .OfflineAudioContext;
+    if (typeof Offline !== 'function') return null;
+    offlineDecoder = new Offline(2, 1, AUDIO_SAMPLE_RATE);
+    return offlineDecoder;
   };
 
   const settledStatus = (): PlayerStatus => (playing !== null ? 'playing' : 'ready');
@@ -651,7 +806,13 @@ export async function createPlayer(
     notify();
     let staged: { assets: PreparedAssets; source: VideoFrameSource | null } | null = null;
     const sent = (async () => {
-      const assets = await prepareAssets(view, loaded, resolveAsset, knownAssets(true));
+      const assets = await prepareAssets(
+        view,
+        loaded,
+        resolveAsset,
+        knownAssets(true),
+        audioContext,
+      );
       const source = assets.videos.size === 0 ? null : createVideoFrameSource(view, assets.videos);
       staged = { assets, source };
       const videoFrames = await framesOf(source, loaded, target);
@@ -702,6 +863,8 @@ export async function createPlayer(
   const seek = (target: number): Promise<void> =>
     new Promise<void>((resolve, reject) => {
       const checked = checkedTime(target);
+      // While playing, the clock goes on from the time sought, with its sound (D53).
+      if (playing !== null) startClock(checked);
       if (!seeking) {
         startSeek(checked, { timeUs: checked, resolve, reject });
         return;
@@ -712,15 +875,71 @@ export async function createPlayer(
     });
 
   const stopClock = (): void => {
-    if (playing !== null) scheduler.cancelFrame(playing.handle);
+    if (playing !== null) {
+      scheduler.cancelFrame(playing.handle);
+      playing.sound?.sounds?.stop();
+    }
     playing = null;
+    lingering?.stop();
+    lingering = null;
+  };
+
+  /**
+   * Starts the preview clock at `startUs`, in place of a running one. With
+   * sound to play, the clock is the audio context's (D53): the plan is
+   * scheduled from the sample of `startUs` a little ahead of the context's
+   * time, and the picture follows what is heard. A context that is not
+   * running is resumed first; one that cannot be leaves the picture to the
+   * scheduler, without sound.
+   */
+  const startClock = (startUs: number): void => {
+    stopClock();
+    const run: Playing = { startNow: scheduler.now(), startUs, handle: 0, sound: null };
+    playing = run;
+    const audio = shownAssets?.audio ?? null;
+    if (audioContext !== null && audio !== null && audio.layout.sounds.length > 0) {
+      const context = audioContext;
+      const sound: PlayingSound = { when: null, sounds: null };
+      run.sound = sound;
+      const begin = (): void => {
+        if (playing !== run) return;
+        const when = context.currentTime + SOUND_LEAD_S;
+        const fromSample = Number(sampleAt(BigInt(startUs)));
+        sound.sounds = scheduleSounds(context, audio.layout, audio.buffers, fromSample, when);
+        sound.when = when;
+      };
+      const resumable = context as SoundContext & {
+        readonly state?: string;
+        resume?: () => Promise<void>;
+      };
+      if (resumable.state === 'running' || typeof resumable.resume !== 'function') begin();
+      else {
+        resumable.resume().then(begin, () => {
+          // The browser keeps the context stopped: the picture plays on without sound.
+          if (playing !== run) return;
+          run.sound = null;
+          run.startNow = scheduler.now();
+        });
+      }
+    }
+    run.handle = scheduler.requestFrame(tick);
+  };
+
+  /** The microseconds played since the clock started: heard ones, with sound (D53). */
+  const elapsedOf = (run: Playing): number => {
+    if (run.sound === null) return Math.round((scheduler.now() - run.startNow) * 1_000);
+    const { when } = run.sound;
+    if (when === null || audioContext === null) return 0;
+    const latency = (audioContext as { readonly outputLatency?: unknown }).outputLatency;
+    const heard = audioContext.currentTime - (typeof latency === 'number' ? latency : 0);
+    return Math.round((heard - when) * 1_000_000);
   };
 
   const tick = (): void => {
     if (playing === null || composition === null) return;
     const { fps, durationUs } = composition;
     const last = frameCount(durationUs, fps) - 1;
-    const elapsedUs = Math.max(0, Math.round((scheduler.now() - playing.startNow) * 1_000));
+    const elapsedUs = Math.max(0, elapsedOf(playing));
     const index = Math.min(timeUsToFrame(playing.startUs + elapsedUs, fps), last);
     const target = frameToTimeUs(index, fps);
     if (!seeking && target !== timeUs) {
@@ -728,7 +947,11 @@ export async function createPlayer(
       startSeek(target, null);
     }
     if (index === last) {
+      // The sound of the last frame plays to its end; the next start stops it.
+      const sounds = playing.sound?.sounds ?? null;
+      playing.sound = null;
       stopClock();
+      lingering = sounds;
       return;
     }
     playing.handle = scheduler.requestFrame(tick);
@@ -751,7 +974,7 @@ export async function createPlayer(
       let assets: PreparedAssets;
       try {
         // A load asks again for every asset except the videos the host prepared (D44, D51.5).
-        assets = await prepareAssets(view, loaded, resolveAsset, knownAssets(false));
+        assets = await prepareAssets(view, loaded, resolveAsset, knownAssets(false), audioContext);
         frame.style.setProperty('width', `${String(loaded.width)}px`);
         frame.style.setProperty('height', `${String(loaded.height)}px`);
         await request({
@@ -782,9 +1005,8 @@ export async function createPlayer(
       const { fps, durationUs } = composition;
       const last = frameToTimeUs(frameCount(durationUs, fps) - 1, fps);
       const startUs = timeUs === null || timeUs >= last ? 0 : timeUs;
-      playing = { startNow: scheduler.now(), startUs, handle: 0 };
+      startClock(startUs);
       if (!seeking && error === null) status = 'playing';
-      playing.handle = scheduler.requestFrame(tick);
       notify();
     },
     pause() {
@@ -827,6 +1049,61 @@ export async function createPlayer(
         throw typed(reason);
       }
     },
+    async prepareAudio(asset, resolveAsset) {
+      if (destroyed) throw new PlayerError('destroyed', 'The Player was destroyed.');
+      const given: unknown = asset;
+      const { id, type, contentHash } = (
+        typeof given === 'object' && given !== null ? given : {}
+      ) as Partial<PlayerAssetRequest>;
+      if (
+        typeof id !== 'string' ||
+        (type !== 'audio' && type !== 'video') ||
+        typeof contentHash !== 'string' ||
+        !CONTENT_HASH.test(contentHash)
+      ) {
+        throw new PlayerError(
+          'invalid-options',
+          'prepareAudio needs { id, type: "audio" or "video", contentHash } with a sha256 content hash.',
+        );
+      }
+      const known = preparedSounds.get(contentHash) ?? shownAssets?.sounds.get(contentHash);
+      if (known !== undefined) {
+        preparedSounds.set(contentHash, known);
+        return soundFacts(known);
+      }
+      const decoder = audioContext ?? offlineDecoderOf();
+      if (decoder === null) {
+        throw new PlayerError(
+          'audio-unsupported',
+          'This window has no Web Audio context to decode sound with (D53).',
+        );
+      }
+      try {
+        let bytes: ArrayBuffer;
+        if (type === 'video') {
+          const BlobOf = (view as unknown as { Blob?: typeof Blob }).Blob ?? Blob;
+          const blob =
+            shownAssets?.blobs.get(contentHash) ??
+            preparedVideos.get(contentHash) ??
+            (await verifyVideo({ id, type, contentHash }, resolveAsset, BlobOf));
+          bytes = await blob.blob.arrayBuffer();
+        } else {
+          const cached = shownAssets?.bytes.get(contentHash);
+          const verified = await resolveOneAsset(
+            { id, type, contentHash },
+            (request) =>
+              cached ?? (resolveAsset(request) as PlayerAsset | null | Promise<PlayerAsset | null>),
+            sha256,
+          );
+          bytes = verified.bytes.slice().buffer;
+        }
+        const buffer = await decodeSound(decoder, id, bytes);
+        preparedSounds.set(contentHash, buffer);
+        return soundFacts(buffer);
+      } catch (reason) {
+        throw typed(reason);
+      }
+    },
     subscribe(listener) {
       if (onListenerError === undefined) {
         throw new PlayerError(
@@ -855,6 +1132,7 @@ export async function createPlayer(
       shownAssets = null;
       videoSource = null;
       preparedVideos.clear();
+      preparedSounds.clear();
       frame.remove();
     },
   };
