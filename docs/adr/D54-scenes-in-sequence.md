@@ -1,6 +1,6 @@
 # D54 — Scenes in sequence: schema 0.5, scene time, and the scene commands
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-01, after PR-30 was merged
 - Date: 2026-11-01
 - Supersedes: D16 in its one-scene rule (16.2 "exactly one scene", 16.5 "the
   single scene spans the composition"), with a `Superseded in part by` line

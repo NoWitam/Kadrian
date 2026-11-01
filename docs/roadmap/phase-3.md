@@ -552,7 +552,7 @@ pack` does not publish.
 
 ### PR-30 — Scenes in sequence
 
-- Status: implemented, in review, with its ADR D54 (Proposed).
+- Status: done (PR #23, merged 2026-11-01), with its ADR D54 (accepted by the owner on 2026-11-01).
 - **Goal:** a film is a sequence of scenes, each with a stable ID that a host
   maps to its own shots.
 - **Scope:** several scenes (relaxing `maxItems: 1`), each with a duration and
