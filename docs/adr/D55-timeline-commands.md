@@ -1,6 +1,7 @@
 # D55 — Timeline commands: move, trim, split, and join a clip
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-01, after PR-31 was merged
+  (PR #25)
 - Date: 2026-11-01
 - Supersedes: —
 - Extends: D46 (five tools), D49 (49.1: which keyframes a split copies, and

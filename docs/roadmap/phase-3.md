@@ -572,6 +572,7 @@ pack` does not publish.
 
 ### PR-31 — Timeline commands
 
+- Status: done (PR #25, merged 2026-11-01), with its ADR D55 (accepted by the owner on 2026-11-01). The commands are `MoveClip`, `TrimClipStart`, `TrimClipEnd`, `SplitClip`, and `JoinClips`, the inverse of a split.
 - **Goal:** the editing commands of a timeline, each exactly undone.
 - **Scope:** `MoveClip` (a node or an audio clip to a new `startUs`),
   `TrimClipStart` (moves `startUs` and `sourceStartUs` together, keeping the
@@ -580,7 +581,7 @@ pack` does not publish.
   (`ReorderNode` exists; a host's row maps to an index) or another scene. A
   split of a node with animations states where each keyframe goes. All within
   the model of D49; no schema change.
-- **Packages and documents:** `@kadrion/editor-sdk`, `@kadrion/ai-sdk`, D54.
+- **Packages and documents:** `@kadrion/editor-sdk`, `@kadrion/ai-sdk`, D55.
 - **Acceptance:** each inverse restores the document byte for byte; a split
   followed by its inverse is the identity; no command leaves a clip outside
   its source or a dangling reference; rendering a split clip gives the same
