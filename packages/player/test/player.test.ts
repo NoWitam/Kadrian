@@ -717,7 +717,7 @@ interface Composition {
   fps: number;
   durationUs: number;
   clips: { durationUs: number }[];
-  scenes: { nodes: CompositionNode[] }[];
+  scenes: { durationUs: number; nodes: CompositionNode[] }[];
 }
 
 interface CompositionNode {
@@ -746,6 +746,7 @@ const retitled = await edited(pinned, (copy) => {
 /** The reference composition cut to 5 s: every lifetime and keyframe ends there. */
 const shortened = await edited(pinned, (copy) => {
   copy.durationUs = 5_000_000;
+  for (const scene of copy.scenes) scene.durationUs = 5_000_000;
   for (const clip of copy.clips) clip.durationUs = 5_000_000;
   eachNode(copy, (node) => {
     node.durationUs = 5_000_000;

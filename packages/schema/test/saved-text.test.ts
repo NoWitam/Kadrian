@@ -159,7 +159,7 @@ describe('the compatibility corpus, read from saved text (D43.4, D43.6)', () => 
 
 describe('the supported versions (D43.5)', () => {
   it('is the frozen list of the migration, oldest first, the current one last', () => {
-    expect(SUPPORTED_SCHEMA_VERSIONS).toEqual(['0.1', '0.2', '0.3', '0.4']);
+    expect(SUPPORTED_SCHEMA_VERSIONS).toEqual(['0.1', '0.2', '0.3', '0.4', '0.5']);
     expect(Object.isFrozen(SUPPORTED_SCHEMA_VERSIONS)).toBe(true);
     expect(SUPPORTED_SCHEMA_VERSIONS.at(-1)).toBe(SCHEMA_VERSION);
     expect(new Set(SUPPORTED_SCHEMA_VERSIONS).size).toBe(SUPPORTED_SCHEMA_VERSIONS.length);
@@ -179,7 +179,8 @@ describe('the supported versions (D43.5)', () => {
   );
 
   it.each([
-    '0.5',
+    '0.6',
+    '0.50',
     '0.40',
     '0.30',
     '0.20',
@@ -312,7 +313,7 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
       ({ name, patch }) => [`0.1: ${name}`, applyPatch(referenceCompositionV01, patch)] as const,
     ),
     ...invalidCompositionCases.map(
-      ({ name, patch }) => [`0.4: ${name}`, applyPatch(referenceComposition, patch)] as const,
+      ({ name, patch }) => [`0.5: ${name}`, applyPatch(referenceComposition, patch)] as const,
     ),
   ];
 
@@ -348,15 +349,15 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
 
 describe('the rules of JSON, and no others (D43.2)', () => {
   it('lets the last of two equal keys win, as JSON.parse does', () => {
-    // A valid 0.4 body with two versions: the later one decides.
+    // A valid 0.5 body with two versions: the later one decides.
     const current = referenceText.replace(
-      '"schemaVersion":"0.4"',
-      '"schemaVersion":"0.1","schemaVersion":"0.4"',
+      '"schemaVersion":"0.5"',
+      '"schemaVersion":"0.1","schemaVersion":"0.5"',
     );
-    expect(loaded(parseComposition(current)).versions).toEqual(['0.4']);
+    expect(loaded(parseComposition(current)).versions).toEqual(['0.5']);
     const older = referenceText.replace(
-      '"schemaVersion":"0.4"',
-      '"schemaVersion":"0.4","schemaVersion":"0.1"',
+      '"schemaVersion":"0.5"',
+      '"schemaVersion":"0.5","schemaVersion":"0.1"',
     );
     const judged = refused(parseComposition(older));
     // Judged as the 0.1 document its last key says it is, which it is not.
@@ -393,8 +394,14 @@ describe('the rules of JSON, and no others (D43.2)', () => {
   });
 
   it('accepts a spelling that rounds to a valid value, and refuses one that rounds out of range', () => {
+    // The composition and its one scene, which must agree (D54.2).
     const withDuration = (spelling: string): string =>
-      referenceText.replace('"durationUs":10000000,"assets"', `"durationUs":${spelling},"assets"`);
+      referenceText
+        .replace('"durationUs":10000000,"assets"', `"durationUs":${spelling},"assets"`)
+        .replace(
+          '"id":"scene-main","durationUs":10000000',
+          `"id":"scene-main","durationUs":${spelling}`,
+        );
     // 2^53 - 1 + 0.4 has no double of its own: JSON.parse reads 2^53 - 1.
     const rounded = loaded(parseComposition(withDuration('9007199254740991.4')));
     expect((rounded.composition as unknown as { durationUs: number }).durationUs).toBe(MAX);
@@ -403,13 +410,19 @@ describe('the rules of JSON, and no others (D43.2)', () => {
     expect(tooLarge).toStrictEqual(documentFailure(JSON.parse(withDuration('9007199254740993'))));
     expect(
       tooLarge.stage === 'document' && tooLarge.errors.map(({ code, path }) => [code, path]),
-    ).toEqual([['out-of-range', '/durationUs']]);
+    ).toEqual([
+      ['out-of-range', '/durationUs'],
+      ['out-of-range', '/scenes/0/durationUs'],
+    ]);
     // 1e999 reads as Infinity, which is no JSON number and no integer.
     const infinite = refused(parseComposition(withDuration('1e999')));
     expect(infinite).toStrictEqual(documentFailure(JSON.parse(withDuration('1e999'))));
     expect(
       infinite.stage === 'document' && infinite.errors.map(({ code, path }) => [code, path]),
-    ).toEqual([['invalid-type', '/durationUs']]);
+    ).toEqual([
+      ['invalid-type', '/durationUs'],
+      ['invalid-type', '/scenes/0/durationUs'],
+    ]);
   });
 
   it('reads -0 as -0 and writes it as 0, which the composition hash does not see', () => {
@@ -470,6 +483,10 @@ describe('deeply nested JSON (D43.4)', () => {
    */
   function nestedGroups(version: string, depth: number): string {
     const lifetime = version === '0.1' ? '' : '"startUs":0,"durationUs":1,';
+    // From 0.5 a scene has its own duration and clips (D54.1).
+    const [sceneHead, sceneTail] = ['0.1', '0.2', '0.3', '0.4'].includes(version)
+      ? ['', '']
+      : ['"durationUs":1,', ',"clips":[]'];
     let open = '';
     let close = '';
     for (let level = 0; level < depth; level += 1) {
@@ -480,7 +497,7 @@ describe('deeply nested JSON (D43.4)', () => {
     }
     return (
       `{"schemaVersion":"${version}","width":1,"height":1,"fps":1,"durationUs":1,"assets":[],` +
-      `"scenes":[{"id":"scene","nodes":[${open}${close}]}],"clips":[]}`
+      `"scenes":[{"id":"scene",${sceneHead}"nodes":[${open}${close}]${sceneTail}}],"clips":[]}`
     );
   }
 
@@ -519,7 +536,7 @@ describe('ownership and freezing (D43.4, D43.3)', () => {
     [
       'a migrated 0.1 document',
       JSON.stringify(referenceCompositionV01),
-      ['0.1', '0.2', '0.3', SCHEMA_VERSION],
+      ['0.1', '0.2', '0.3', '0.4', SCHEMA_VERSION],
     ],
     ['a current document', referenceText, [SCHEMA_VERSION]],
   ] as const;

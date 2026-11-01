@@ -10,6 +10,7 @@
 - Date: 2026-09-22
 - Supersedes: —
 - Amended by: PR-28a (D50) on 2026-10-31: `fit` as `object-fit` on images and videos, and the video node as an `<img>` of host-supplied bytes (D50.4)
+- Amended by: PR-30 (D54) on 2026-11-01: 22.4: every scene is mounted; a scene the state does not evaluate is hidden and its nodes lose what an earlier render wrote (D54.3)
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, and open
   question Q5

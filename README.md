@@ -8,7 +8,7 @@ end-user application, and it does not depend on any consumer product.
 ([`docs/spike/report.md`](docs/spike/report.md), section 10), and phase two,
 authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
 PR-18 to PR-22; the current phase is the engine under a host's video editor
-([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.4` with its forward migrations from `0.1`, `0.2`, and `0.3`, the evaluation core, the DOM
+([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.5` with its forward migrations from `0.1` to `0.4`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -26,7 +26,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D51; all accepted, except
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D54; all accepted except D54, which is proposed, and
   D10, superseded by D37)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
@@ -149,13 +149,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.4`
+A composition is a JSON document of schema `0.5`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.4",
+  "schemaVersion": "0.5",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -170,6 +170,7 @@ Unknown fields are errors. This one shows a text that fades in:
   "scenes": [
     {
       "id": "scene-main",
+      "durationUs": 3000000,
       "nodes": [
         {
           "id": "node-background",
@@ -202,13 +203,20 @@ Unknown fields are errors. This one shows a text that fades in:
           "fontSize": 144,
           "color": "#ffffff"
         }
-      ]
+      ],
+      "clips": []
     }
   ],
   "clips": []
 }
 ```
 
+- **Scenes:** a composition is a sequence of scenes, at least one, played in
+  their order. A scene has an ID, a `durationUs`, its nodes, and its own audio
+  clips; it has no start of its own: it starts where the scene before it ends,
+  and the composition's `durationUs` must be the sum of the scenes' (D49, D54).
+  Every time inside a scene is scene time, from 0 at the scene's start, so a
+  scene renders alone exactly as it does in the sequence.
 - **Nodes:** `background`, `text`, `image`, `video`, `group`, and
   `custom-html`. Array order is the z-order. An image or a video fills its box
   by `fit`: `fill`, `contain`, or `cover`.
@@ -222,16 +230,18 @@ Unknown fields are errors. This one shows a text that fades in:
   resolver may return a video as a `Blob`, verified by SHA-256 before use, and
   it refuses files it cannot show exactly (such as 10-bit or BT.2020) with
   `video-unsupported`.
-- **Lifetimes:** every node has `startUs` and `durationUs`, in composition
-  time, and is shown at `t` while `startUs <= t < startUs + durationUs`. A
-  child of a group is shown only while its group is shown too. A lifetime may
-  reach past the end of the composition, where it is cut. The render page
+- **Lifetimes:** every node has `startUs` and `durationUs`, in the time of its
+  scene, and is shown at scene time `t` while `startUs <= t < startUs +
+durationUs`. A child of a group is shown only while its group is shown too. A
+  lifetime may reach past the end of its scene, where it is cut. The render page
   declares a white background for the pixels no node covers (D42.5); that the
   pixels are white in the Producer and in the Player is measured in the pinned
   environment (D42.6).
 - **Animations:** `opacity`, `position`, and `scale`, with linear keyframes, on
-  composition time: a lifetime does not shift them.
-- **Clips:** any number of audio clips in composition time. A clip plays its
+  scene time: a lifetime does not shift them.
+- **Clips:** any number of audio clips, in composition time in the
+  composition's `clips` (sound that spans scenes, such as music) and in scene
+  time in a scene's `clips` (sound that moves with its scene, cut at its end). A clip plays its
   asset from `sourceStartUs` for its `durationUs`, at a linear `volume` from 0
   to 1, with linear fades `fadeInUs` and `fadeOutUs`; clips and the sound of
   video nodes are summed (D52). A `video` node has a `volume` too: at 0 it is
@@ -263,12 +273,12 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.4` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.4` document, and none of them
+`validateComposition` accepts schema `0.5` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.5` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
-holds a document of schema `0.1`, `0.2`, or `0.3` carries it forward itself, once, and stores the
+holds a document of schema `0.1` to `0.4` carries it forward itself, once, and stores the
 result as a new version:
 
 ```ts
@@ -276,8 +286,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.4 document; the input is untouched
-  migrated.versions; // ['0.1', '0.2', '0.3', '0.4'], or ['0.4'] for a document that was current
+  migrated.composition; // a new, validated 0.5 document; the input is untouched
+  migrated.versions; // ['0.1', '0.2', '0.3', '0.4', '0.5'], or ['0.5'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -315,8 +325,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.4 document that belongs to the caller
-  loaded.versions; // ['0.1', '0.2', '0.3', '0.4'] from 0.1, ['0.4'] when it was current
+  loaded.composition; // a new, validated 0.5 document that belongs to the caller
+  loaded.versions; // ['0.1', '0.2', '0.3', '0.4', '0.5'] from 0.1, ['0.5'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -331,7 +341,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -344,7 +354,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4']: what this build can 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.4"`, speaks of that.
+  supports `"0.5"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -416,6 +426,7 @@ host written otherwise.
 import { evaluateComposition } from '@kadrion/runtime';
 
 const state = evaluateComposition(composition, 2_500_000);
+// state.scenes: the scene playing at that time, with its scene time (timeUs minus its start);
 // state.scenes[0].nodes: whether each node is active, and its resolved position, scale, and opacity
 ```
 

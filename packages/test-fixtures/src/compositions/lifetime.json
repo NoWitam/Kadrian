@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.4",
+  "schemaVersion": "0.5",
   "width": 400,
   "height": 300,
   "fps": 30,
@@ -14,6 +14,7 @@
   "scenes": [
     {
       "id": "life-scene",
+      "durationUs": 10000000,
       "nodes": [
         {
           "id": "life-background",
@@ -113,7 +114,8 @@
           "height": 40,
           "html": "<p>E</p>"
         }
-      ]
+      ],
+      "clips": []
     }
   ],
   "clips": []

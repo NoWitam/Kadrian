@@ -72,6 +72,28 @@ const VIDEO_SETUP: readonly Command[] = [
  * animation with a keyframe to spare. Typed by the registry, so a new command
  * without a row fails compilation.
  */
+/** A second scene, as the example of `AddScene` adds it. */
+const OUTRO_SETUP: readonly Command[] = [
+  {
+    type: 'AddScene',
+    index: 1,
+    scene: {
+      id: 'scene-outro',
+      durationUs: 3_000_000,
+      nodes: [
+        {
+          id: 'node-outro-background',
+          type: 'background',
+          startUs: 0,
+          durationUs: 3_000_000,
+          color: '#000000',
+        },
+      ],
+      clips: [],
+    },
+  },
+];
+
 const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetNodePosition: [],
   SetNodeOpacity: [],
@@ -130,6 +152,13 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetClipVolume: [],
   SetClipFades: [],
   SetClipSource: [],
+  AddScene: [],
+  RemoveScene: OUTRO_SETUP,
+  DuplicateScene: [],
+  ReorderScene: OUTRO_SETUP,
+  SetSceneDuration: [],
+  MoveNodeToScene: OUTRO_SETUP,
+  AddSceneAudioClip: [],
 };
 
 function prepared(type: Command['type']): CommandBus {

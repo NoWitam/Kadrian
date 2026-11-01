@@ -980,6 +980,10 @@ describe.skipIf(!available)(
           for (const frames of [60, 300]) {
             const { document } = variant((draft) => {
               (draft as unknown as { durationUs: number }).durationUs = (frames * 1_000_000) / 30;
+              for (const scene of (draft as unknown as { scenes: { durationUs: number }[] })
+                .scenes) {
+                scene.durationUs = (frames * 1_000_000) / 30;
+              }
               const [clip] = (draft as unknown as { clips: { durationUs: number }[] }).clips;
               if (clip !== undefined) clip.durationUs = (frames * 1_000_000) / 30;
             });

@@ -23,6 +23,7 @@
         "scenes": [
           {
             "id": "scene-main",
+            "timeUs": 0,
             "nodes": [
               { "id": "node-background", "type": "background", "active": true },
               {
@@ -84,6 +85,7 @@
         "scenes": [
           {
             "id": "scene-main",
+            "timeUs": 2500000,
             "nodes": [
               { "id": "node-background", "type": "background", "active": true },
               {
@@ -145,6 +147,7 @@
         "scenes": [
           {
             "id": "scene-main",
+            "timeUs": 5000000,
             "nodes": [
               { "id": "node-background", "type": "background", "active": true },
               {
@@ -206,6 +209,7 @@
         "scenes": [
           {
             "id": "scene-main",
+            "timeUs": 7500000,
             "nodes": [
               { "id": "node-background", "type": "background", "active": true },
               {
@@ -272,6 +276,7 @@
         "scenes": [
           {
             "id": "scene-main",
+            "timeUs": 9900000,
             "nodes": [
               { "id": "node-background", "type": "background", "active": true },
               {

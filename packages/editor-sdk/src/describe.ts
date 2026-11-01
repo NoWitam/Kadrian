@@ -5,7 +5,7 @@
  * document stores them. It reads and never writes, and it is a pure function
  * of the document: the same document gives the same description.
  */
-import type { Composition, ValidatedComposition } from '@kadrion/schema';
+import { scenePlacements, type Composition, type ValidatedComposition } from '@kadrion/schema';
 
 import { deepFreeze } from './commands.js';
 import type { MediaFacts } from './media.js';
@@ -32,8 +32,16 @@ export interface NodeDescription {
 
 export interface SceneDescription {
   readonly id: string;
+  /**
+   * Where the scene starts in composition time: the sum of the durations of the
+   * scenes before it, derived and not stored (D49.3, D54.6).
+   */
+  readonly startUs: number;
+  readonly durationUs: number;
   /** The scene's nodes from the bottom layer to the top. */
   readonly nodes: readonly NodeDescription[];
+  /** The scene's audio clips, in scene time, as the document stores them (D54.1). */
+  readonly clips: readonly unknown[];
 }
 
 /** What `describeDocument` returns; plain JSON, deep-frozen. */
@@ -53,7 +61,7 @@ export interface DocumentDescription {
    * `soundDurationUs`, `null` when it has none (D53).
    */
   readonly assets: readonly unknown[];
-  /** The clips, as the document stores them. */
+  /** The composition's clips, in composition time, as the document stores them. */
   readonly clips: readonly unknown[];
 }
 
@@ -100,15 +108,19 @@ export function describeDocument(
   // A JSON round trip gives a value that shares nothing with the document,
   // whose objects belong to the bus and its history.
   const copy = structuredJson(document);
+  const placements = scenePlacements(copy.scenes);
   return deepFreeze<DocumentDescription>({
     schemaVersion: copy.schemaVersion,
     width: copy.width,
     height: copy.height,
     fps: copy.fps,
     durationUs: copy.durationUs,
-    scenes: copy.scenes.map((scene) => ({
+    scenes: copy.scenes.map((scene, index) => ({
       id: scene.id,
+      startUs: placements[index]?.startUs ?? 0,
+      durationUs: scene.durationUs,
       nodes: scene.nodes.map((node, at) => describeNode(node, scene.id, at)),
+      clips: scene.clips,
     })),
     assets: copy.assets.map((asset) => {
       const facts =

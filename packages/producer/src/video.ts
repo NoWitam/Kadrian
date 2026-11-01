@@ -19,11 +19,14 @@ import { crc32, deflateSync } from 'node:zlib';
 
 import type { VerifiedAsset } from '@kadrion/renderer-dom';
 import {
+  placedVideos,
   sampledSourceRange,
   sourceDurationUs,
   sourceFrameIndex,
   sourceRangeFits,
   sourceTimeUs,
+  videoSceneTimeUs,
+  type PlacedVideo,
   type SceneNode,
   type ValidatedComposition,
   type VideoNode,
@@ -73,11 +76,6 @@ export function videoNodes(composition: ValidatedComposition): VideoNode[] {
   };
   for (const scene of composition.scenes) scene.nodes.forEach(visit);
   return found;
-}
-
-/** Whether a lifetime contains `timeUs` (D42.2), as the runtime evaluates it. */
-function isActive(node: VideoNode, timeUs: number): boolean {
-  return timeUs >= node.startUs && timeUs - node.startUs < node.durationUs;
 }
 
 /** A PNG of packed RGB: one IHDR, one IDAT of filter-0 rows, deflated by node:zlib. */
@@ -183,14 +181,16 @@ export async function prepareVideos(
   for (const [id, probe] of probes) {
     durations.set(id, sourceDurationUs(probe.timestamps, probe.lastDuration, probe.timeBase));
   }
-  for (const node of nodes) {
+  const placed = placedVideos(composition);
+  for (const { node, scene } of placed) {
     const probe = probes.get(node.assetId);
     if (probe === undefined) {
       // Unreachable: validation checked that the asset exists and is a video.
       throw new ProducerError('asset-missing', `The video "${node.assetId}" was not resolved.`);
     }
     const duration = durations.get(node.assetId) ?? 0;
-    const range = sampledSourceRange(node, composition.durationUs);
+    // The lifetime cut to its scene (D49.6, D54.3).
+    const range = sampledSourceRange(node, scene.durationUs);
     if (range !== null && !sourceRangeFits(range, duration)) {
       throw new ProducerError(
         'source-range-exceeded',
@@ -228,7 +228,7 @@ export async function prepareVideos(
   return {
     probes,
     manifest,
-    open: () => openFrameSource(nodes, videos, probes, tools),
+    open: () => openFrameSource(placed, videos, probes, tools),
   };
 }
 
@@ -241,7 +241,7 @@ interface NodeDecoder {
 }
 
 async function openFrameSource(
-  nodes: readonly VideoNode[],
+  nodes: readonly PlacedVideo[],
   videos: readonly VerifiedAsset[],
   probes: ReadonlyMap<string, VideoProbe>,
   tools: FfmpegTools,
@@ -288,14 +288,17 @@ async function openFrameSource(
   return {
     async framesAt(timeUs) {
       const frames: NodeVideoFrame[] = [];
-      for (const node of nodes) {
-        if (!isActive(node, timeUs)) continue;
+      for (const placed of nodes) {
+        // Each video at the time of its scene, while its scene is evaluated (D54.3).
+        const sceneTimeUs = videoSceneTimeUs(placed, timeUs);
+        if (sceneTimeUs === null) continue;
+        const { node } = placed;
         const probe = probes.get(node.assetId);
         if (probe === undefined) throw new ProducerError('asset-missing', node.assetId);
         const index = sourceFrameIndex(
           probe.timestamps,
           probe.timeBase,
-          sourceTimeUs(node, timeUs),
+          sourceTimeUs(node, sceneTimeUs),
         );
         frames.push({
           nodeId: node.id,

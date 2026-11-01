@@ -306,7 +306,7 @@ export interface MoveKeyframeCommand extends MoveKeyframeArguments {
   readonly type: 'MoveKeyframe';
 }
 
-/** The arguments of `SetNodeLifetime`, in composition time (D42.10). */
+/** The arguments of `SetNodeLifetime`, in the time of its scene (D42.10, D54.3). */
 export interface SetNodeLifetimeArguments {
   readonly nodeId: string;
   /** From when the node is active, in integer microseconds. */
@@ -317,7 +317,7 @@ export interface SetNodeLifetimeArguments {
 
 /**
  * Sets the lifetime of a node: when it is shown (D42.2, D42.10). It moves no
- * keyframe; an animation keeps its composition times.
+ * keyframe; an animation keeps its scene times.
  */
 export interface SetNodeLifetimeCommand extends SetNodeLifetimeArguments {
   readonly type: 'SetNodeLifetime';
@@ -432,6 +432,91 @@ export interface SetClipSourceCommand extends SetClipSourceArguments {
   readonly type: 'SetClipSource';
 }
 
+/** What a caller states for `AddScene` (D54.5). */
+export interface AddSceneArguments {
+  /** The scene's index in `scenes` after the insertion, from 0 to their number. */
+  readonly index: number;
+  /** The complete scene, with its duration, nodes, and clips, as the document stores it. */
+  readonly scene: NodeData;
+}
+
+/** Inserts a complete scene into the sequence; the composition grows by its duration (D54.5). */
+export interface AddSceneCommand extends AddSceneArguments {
+  readonly type: 'AddScene';
+}
+
+/** What a caller states for `RemoveScene` (D54.5). */
+export interface RemoveSceneArguments {
+  readonly sceneId: string;
+}
+
+/** Removes a scene with everything in it; the composition shrinks by its duration (D54.5). */
+export interface RemoveSceneCommand extends RemoveSceneArguments {
+  readonly type: 'RemoveScene';
+}
+
+/** What a caller states for `DuplicateScene` (D54.5). */
+export interface DuplicateSceneArguments {
+  readonly sceneId: string;
+  /** The ID of the copy; every other ID of the copy derives from it (D39.3, D54.5). */
+  readonly newSceneId: string;
+}
+
+/** Copies a scene directly after the source; the composition grows by its duration (D54.5). */
+export interface DuplicateSceneCommand extends DuplicateSceneArguments {
+  readonly type: 'DuplicateScene';
+}
+
+/** What a caller states for `ReorderScene` (D54.5). */
+export interface ReorderSceneArguments {
+  readonly sceneId: string;
+  /** The scene's index in `scenes` after the move. */
+  readonly index: number;
+}
+
+/** Moves a scene to another place in the sequence; nothing inside it moves (D54.5). */
+export interface ReorderSceneCommand extends ReorderSceneArguments {
+  readonly type: 'ReorderScene';
+}
+
+/** What a caller states for `SetSceneDuration` (D54.5). */
+export interface SetSceneDurationArguments {
+  readonly sceneId: string;
+  readonly durationUs: number;
+}
+
+/** Sets how long a scene lasts; the composition's duration changes by the same amount (D54.5). */
+export interface SetSceneDurationCommand extends SetSceneDurationArguments {
+  readonly type: 'SetSceneDuration';
+}
+
+/** What a caller states for `MoveNodeToScene` (D54.5). */
+export interface MoveNodeToSceneArguments {
+  readonly nodeId: string;
+  readonly sceneId: string;
+  /** The node's index in the nodes of that scene after the move. */
+  readonly index: number;
+}
+
+/** Moves a node of a scene's own list into a list of another scene, keeping its scene times (D49.3, D54.5). */
+export interface MoveNodeToSceneCommand extends MoveNodeToSceneArguments {
+  readonly type: 'MoveNodeToScene';
+}
+
+/** What a caller states for `AddSceneAudioClip` (D54.5). */
+export interface AddSceneAudioClipArguments {
+  readonly sceneId: string;
+  /** The clip's index in the scene's clips after the insertion, from 0 to their number. */
+  readonly index: number;
+  /** The complete clip, as the document stores it, in scene time. */
+  readonly clip: NodeData;
+}
+
+/** Inserts a complete audio clip into a scene's clips (D54.5); it moves with the scene. */
+export interface AddSceneAudioClipCommand extends AddSceneAudioClipArguments {
+  readonly type: 'AddSceneAudioClip';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -465,7 +550,14 @@ export type Command =
   | RemoveAudioClipCommand
   | SetClipVolumeCommand
   | SetClipFadesCommand
-  | SetClipSourceCommand;
+  | SetClipSourceCommand
+  | AddSceneCommand
+  | RemoveSceneCommand
+  | DuplicateSceneCommand
+  | ReorderSceneCommand
+  | SetSceneDurationCommand
+  | MoveNodeToSceneCommand
+  | AddSceneAudioClipCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -563,6 +655,36 @@ export interface AddAudioClipArgumentsSchema {
   readonly required: readonly (keyof AddAudioClipArguments)[];
   readonly additionalProperties: false;
 }
+
+/** The argument schema of `AddScene`: closed, with `scene` an open object (D54.5). */
+export interface AddSceneArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly index: ArgumentSchema;
+    readonly scene: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddSceneArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `AddSceneAudioClip`: closed, with `clip` an open object (D54.5). */
+export interface AddSceneAudioClipArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly sceneId: ArgumentSchema;
+    readonly index: ArgumentSchema;
+    readonly clip: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddSceneAudioClipArguments)[];
+  readonly additionalProperties: false;
+}
+export type RemoveSceneArgumentsSchema = ClosedObjectSchema<keyof RemoveSceneArguments>;
+export type DuplicateSceneArgumentsSchema = ClosedObjectSchema<keyof DuplicateSceneArguments>;
+export type ReorderSceneArgumentsSchema = ClosedObjectSchema<keyof ReorderSceneArguments>;
+export type SetSceneDurationArgumentsSchema = ClosedObjectSchema<keyof SetSceneDurationArguments>;
+export type MoveNodeToSceneArgumentsSchema = ClosedObjectSchema<keyof MoveNodeToSceneArguments>;
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
 
@@ -949,7 +1071,7 @@ export const setClipSourceArgumentsSchema: SetClipSourceArgumentsSchema = deepFr
 const TIME = {
   type: 'integer',
   description:
-    'A composition time in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.',
+    'A scene time in integer microseconds from the start of the scene of the node; it may lie at or after the end of the scene, and it is never rounded. -0 becomes 0.',
   minimum: KEYFRAME_TIME.minimum,
   maximum: KEYFRAME_TIME.maximum,
 } as const;
@@ -1125,7 +1247,7 @@ export const moveKeyframeArgumentsSchema: MoveKeyframeArgumentsSchema = deepFree
 export const setNodeLifetimeArgumentsSchema: SetNodeLifetimeArgumentsSchema = deepFreeze({
   type: 'object',
   description:
-    'Sets when a node is shown: from startUs, for durationUs, in composition time. It moves no keyframe of the node.',
+    'Sets when a node is shown: from startUs, for durationUs, in the time of its scene. It moves no keyframe of the node.',
   properties: {
     nodeId: {
       type: 'string',
@@ -1135,19 +1257,158 @@ export const setNodeLifetimeArgumentsSchema: SetNodeLifetimeArgumentsSchema = de
     startUs: {
       type: 'integer',
       description:
-        'The composition time from which the node is active, in integer microseconds; it may lie at or after the end of the composition, and it is never rounded. -0 becomes 0.',
+        'The scene time from which the node is active, in integer microseconds from the start of its scene; it may lie at or after the end of the scene, and it is never rounded. -0 becomes 0.',
       minimum: LIFETIME.startUs.minimum,
       maximum: LIFETIME.startUs.maximum,
     },
     durationUs: {
       type: 'integer',
       description:
-        'How long the node is active, in integer microseconds, at least 1; whatever lies past the end of the composition is cut, and it is never rounded.',
+        'How long the node is active, in integer microseconds, at least 1; whatever lies past the end of its scene is cut, and it is never rounded.',
       minimum: LIFETIME.durationUs.minimum,
       maximum: LIFETIME.durationUs.maximum,
     },
   },
   required: ['nodeId', 'startUs', 'durationUs'],
+  additionalProperties: false,
+});
+
+/** The bounds of a scene's duration, read from the schema (D54.1). */
+const SCENE_DURATION: Bounds = {
+  minimum: compositionSchema.properties.scenes.items.properties.durationUs.minimum,
+  maximum: compositionSchema.properties.scenes.items.properties.durationUs.maximum,
+};
+
+const SCENE_ID = 'The stable ID of a scene of the document.';
+
+/** The JSON Schema of the arguments of `AddScene` (D54.5): the scene is the document's to judge. */
+export const addSceneArgumentsSchema: AddSceneArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Inserts a complete scene into the sequence; the composition's durationUs grows by the scene's.",
+  properties: {
+    index: {
+      type: 'integer',
+      description:
+        "The scene's index in the sequence after the insertion, from 0 (the first scene) to the number of scenes (after the last).",
+      ...INDEX_BOUNDS,
+    },
+    scene: {
+      type: 'object',
+      description:
+        'The complete scene as the document stores it: its ID, durationUs, nodes, and clips, every ID of it chosen by the caller and unused in the document, every time in it scene time.',
+    },
+  },
+  required: ['index', 'scene'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveScene` (D54.5). */
+export const removeSceneArgumentsSchema: RemoveSceneArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Removes a scene with its nodes and clips; the composition's durationUs shrinks by the scene's. The last scene cannot be removed.",
+  properties: { sceneId: { type: 'string', description: SCENE_ID, minLength: 1 } },
+  required: ['sceneId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `DuplicateScene` (D54.5). */
+export const duplicateSceneArgumentsSchema: DuplicateSceneArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Copies a scene, with its nodes and clips, directly after it; the composition's durationUs grows by the scene's.",
+  properties: {
+    sceneId: { type: 'string', description: SCENE_ID, minLength: 1 },
+    newSceneId: {
+      type: 'string',
+      description:
+        'The ID of the copy, unused in the document. Every other ID of the copy derives from it: the node at index i becomes `<newSceneId>-n<i>`, its child at index j `<newSceneId>-n<i>-c<j>`, an animation `<owner>-a-<property>`, and the clip at index k `<newSceneId>-k<k>`.',
+      pattern: ID_PATTERN,
+    },
+  },
+  required: ['sceneId', 'newSceneId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `ReorderScene` (D54.5). */
+export const reorderSceneArgumentsSchema: ReorderSceneArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Moves a scene to another place in the sequence; nothing inside it moves.',
+  properties: {
+    sceneId: { type: 'string', description: SCENE_ID, minLength: 1 },
+    index: {
+      type: 'integer',
+      description:
+        "The scene's index in the sequence after the move, from 0 (the first) to the number of scenes minus 1 (the last).",
+      ...INDEX_BOUNDS,
+    },
+  },
+  required: ['sceneId', 'index'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetSceneDuration` (D54.5). */
+export const setSceneDurationArgumentsSchema: SetSceneDurationArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Sets how long a scene lasts; the composition's durationUs changes by the same amount, and every later scene starts that much earlier or later.",
+  properties: {
+    sceneId: { type: 'string', description: SCENE_ID, minLength: 1 },
+    durationUs: {
+      type: 'integer',
+      description:
+        'The new duration of the scene, in integer microseconds, at least 1; never rounded. What lies past it in the scene is cut.',
+      minimum: SCENE_DURATION.minimum,
+      maximum: SCENE_DURATION.maximum,
+    },
+  },
+  required: ['sceneId', 'durationUs'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `MoveNodeToScene` (D54.5). */
+export const moveNodeToSceneArgumentsSchema: MoveNodeToSceneArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Moves a node of a scene's own list, with its animations and children, into the list of a scene; its times stay the same scene times.",
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: 'The stable ID of a node of a scene, not a child of a group.',
+      minLength: 1,
+    },
+    sceneId: { type: 'string', description: SCENE_ID, minLength: 1 },
+    index: {
+      type: 'integer',
+      description:
+        "The node's index in the nodes of that scene after the move, from 0 (the bottom layer) to their number (the top), or their number minus 1 within its own scene.",
+      ...INDEX_BOUNDS,
+    },
+  },
+  required: ['nodeId', 'sceneId', 'index'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `AddSceneAudioClip` (D54.5): the clip is the document's to judge. */
+export const addSceneAudioClipArgumentsSchema: AddSceneAudioClipArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: "Inserts a complete audio clip into a scene's clips, in scene time.",
+  properties: {
+    sceneId: { type: 'string', description: SCENE_ID, minLength: 1 },
+    index: {
+      type: 'integer',
+      description:
+        "The clip's index in the scene's clips after the insertion, from 0 to their number. Clips are mixed whatever their order.",
+      ...INDEX_BOUNDS,
+    },
+    clip: {
+      type: 'object',
+      description:
+        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in scene time; sourceStartUs; volume; fadeInUs and fadeOutUs.',
+    },
+  },
+  required: ['sceneId', 'index', 'clip'],
   additionalProperties: false,
 });
 
@@ -2058,5 +2319,96 @@ export function parseSetClipSource(value: unknown): SetClipSourceCommand {
     clipId: nodeIdOf(fields, 'clipId'),
     assetId: nodeIdOf(fields, 'assetId'),
     sourceStartUs: integerWithin(fields['sourceStartUs'], CLIP_SOURCE_START, '`sourceStartUs`'),
+  });
+}
+
+/** A complete entity a command carries: copied as exact data and deep-frozen (D39.5). */
+function dataOf(value: unknown, name: string): NodeData {
+  if (!isPlainObject(value) || !isDataObject(value)) {
+    throw new EditorError('invalid-argument', `\`${name}\` must be an object.`);
+  }
+  return deepFreeze(copyData(value, `\`${name}\``, []) as NodeData);
+}
+
+/** The fields of an `AddScene` (D54.5); the document's validation judges the scene. */
+export function parseAddScene(value: unknown): AddSceneCommand {
+  const fields = fieldsOf(value, ['type', 'index', 'scene'], 'The command `AddScene`');
+  const index = indexOf(fields);
+  return Object.freeze({ type: 'AddScene', index, scene: dataOf(fields['scene'], 'scene') });
+}
+
+/** The fields of a `RemoveScene` (D54.5). */
+export function parseRemoveScene(value: unknown): RemoveSceneCommand {
+  const fields = fieldsOf(value, ['type', 'sceneId'], 'The command `RemoveScene`');
+  return Object.freeze({ type: 'RemoveScene', sceneId: nodeIdOf(fields, 'sceneId') });
+}
+
+/** The fields of a `DuplicateScene` (D54.5): the new ID must match the document's ID pattern. */
+export function parseDuplicateScene(value: unknown): DuplicateSceneCommand {
+  const fields = fieldsOf(value, ['type', 'sceneId', 'newSceneId'], 'The command `DuplicateScene`');
+  const sceneId = nodeIdOf(fields, 'sceneId');
+  const newSceneId: unknown = fields['newSceneId'];
+  if (typeof newSceneId !== 'string' || !new RegExp(ID_PATTERN).test(newSceneId)) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`newSceneId\` must be an ID of the document's form, ${ID_PATTERN}.`,
+    );
+  }
+  return Object.freeze({ type: 'DuplicateScene', sceneId, newSceneId });
+}
+
+/** The fields of a `ReorderScene` (D54.5). */
+export function parseReorderScene(value: unknown): ReorderSceneCommand {
+  const fields = fieldsOf(value, ['type', 'sceneId', 'index'], 'The command `ReorderScene`');
+  return Object.freeze({
+    type: 'ReorderScene',
+    sceneId: nodeIdOf(fields, 'sceneId'),
+    index: indexOf(fields),
+  });
+}
+
+/** The fields of a `SetSceneDuration` (D54.5), with the bounds of the schema. */
+export function parseSetSceneDuration(value: unknown): SetSceneDurationCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'sceneId', 'durationUs'],
+    'The command `SetSceneDuration`',
+  );
+  return Object.freeze({
+    type: 'SetSceneDuration',
+    sceneId: nodeIdOf(fields, 'sceneId'),
+    durationUs: integerWithin(fields['durationUs'], SCENE_DURATION, '`durationUs`'),
+  });
+}
+
+/** The fields of a `MoveNodeToScene` (D54.5). */
+export function parseMoveNodeToScene(value: unknown): MoveNodeToSceneCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'sceneId', 'index'],
+    'The command `MoveNodeToScene`',
+  );
+  return Object.freeze({
+    type: 'MoveNodeToScene',
+    nodeId: nodeIdOf(fields),
+    sceneId: nodeIdOf(fields, 'sceneId'),
+    index: indexOf(fields),
+  });
+}
+
+/** The fields of an `AddSceneAudioClip` (D54.5); the document's validation judges the clip. */
+export function parseAddSceneAudioClip(value: unknown): AddSceneAudioClipCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'sceneId', 'index', 'clip'],
+    'The command `AddSceneAudioClip`',
+  );
+  const sceneId = nodeIdOf(fields, 'sceneId');
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddSceneAudioClip',
+    sceneId,
+    index,
+    clip: dataOf(fields['clip'], 'clip'),
   });
 }

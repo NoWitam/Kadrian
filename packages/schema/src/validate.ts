@@ -5,7 +5,7 @@ import { validateSemantics } from './validate-semantics.js';
 import { validateStructure } from './validate-structure.js';
 
 /**
- * Validates parsed JSON against schema 0.3, the one current version (D17,
+ * Validates parsed JSON against schema 0.5, the one current version (D17,
  * D35.1). A document of an earlier version is refused at the gate; a host
  * carries it forward first with `migrateComposition` of
  * `@kadrion/schema/migrate`, explicitly (D35.3, D42.9). Validation runs in three
@@ -15,7 +15,8 @@ import { validateStructure } from './validate-structure.js';
  *    error instead of a flood of structural ones;
  * 2. the structure, exactly as `compositionSchema` describes it;
  * 3. the rules JSON Schema cannot express: unique IDs, asset references,
- *    ascending keyframes, and one animation per property.
+ *    ascending keyframes, one animation per property, source ranges and fades,
+ *    and a composition as long as its scenes.
  *
  * Never throws for any input, including values that are not JSON data. An
  * accepted document comes back as a `ValidatedComposition`, the only type that

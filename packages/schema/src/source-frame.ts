@@ -69,18 +69,17 @@ export function sourceTimeUs(node: SourceMapping, timeUs: number): number {
 }
 
 /**
- * The source range a node ever samples: its lifetime cut to the composition,
- * `[0, compositionDurationUs)`, mapped into source time (D49.6). `null` when the
- * lifetime starts at or after the end of the composition and nothing is
- * sampled.
+ * The source range a node ever samples: its lifetime cut to its scene,
+ * `[0, sceneDurationUs)`, mapped into source time (D49.6, D54.3). `null` when
+ * the lifetime starts at or after the end of the scene and nothing is sampled.
  */
 export function sampledSourceRange(
   node: SourceMapping,
-  compositionDurationUs: number,
+  sceneDurationUs: number,
 ): SourceRange | null {
   const start = safe('startUs', node.startUs, 0);
   const duration = safe('durationUs', node.durationUs, 1);
-  const end = safe('compositionDurationUs', compositionDurationUs, 1);
+  const end = safe('sceneDurationUs', sceneDurationUs, 1);
   if (start >= end) return null;
   const sampled = duration < end - start ? duration : end - start;
   return {

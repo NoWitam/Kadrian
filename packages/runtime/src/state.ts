@@ -1,6 +1,6 @@
 /**
  * The evaluated state of a composition at one instant (D19). It mirrors the
- * document: scenes, nodes, and group children keep their order and hierarchy
+ * document: the evaluated scenes, nodes, and group children keep their order and hierarchy
  * (D16.4), and every value is local to its node (D15, D18.5, D42.3). Static
  * properties such as colours, text, and asset references stay in the document;
  * a renderer walks the document and the state side by side.
@@ -66,14 +66,18 @@ export type NodeState =
   | LeafNodeState<'image' | 'text' | 'custom-html'>
   | VideoNodeState;
 
+/** A scene evaluated at one instant (D49.3, D54.3). */
 export interface SceneState {
   readonly id: string;
+  /** Scene time: the composition time minus the scene's start, from 0. Its nodes are evaluated at it. */
+  readonly timeUs: number;
   /** Array order is the z-order, as in the document. */
   readonly nodes: readonly NodeState[];
 }
 
 export interface CompositionState {
-  /** The instant this state was evaluated for. */
+  /** The composition time this state was evaluated for. */
   readonly timeUs: number;
+  /** The scenes evaluated at that time, in their order: one, outside a transition (D49.3). */
   readonly scenes: readonly SceneState[];
 }

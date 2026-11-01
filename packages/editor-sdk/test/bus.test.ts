@@ -229,7 +229,7 @@ describe('a document of schema 0.1 at the bus (D42.9)', () => {
   it('accepts the same document once the host has migrated it explicitly', () => {
     const migrated = migrateComposition(referenceCompositionV01);
     if (!migrated.ok) throw new Error('The reference of 0.1 did not migrate.');
-    expect(migrated.versions).toEqual(['0.1', '0.2', '0.3', '0.4']);
+    expect(migrated.versions).toEqual(['0.1', '0.2', '0.3', '0.4', '0.5']);
     const bus = createCommandBus(migrated.composition);
     expect(json(bus.getDocument())).toBe(json(referenceComposition));
     // And it is a document the bus can edit like any other.

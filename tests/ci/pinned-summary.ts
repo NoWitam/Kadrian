@@ -27,6 +27,7 @@ export const REQUIRED_PINNED_FILES: readonly string[] = Object.freeze([
   'tests/pinned/player-video.pinned.test.ts',
   'tests/pinned/player.pinned.test.ts',
   'tests/pinned/producer.pinned.test.ts',
+  'tests/pinned/scenes.pinned.test.ts',
   'tests/pinned/video.pinned.test.ts',
 ]);
 

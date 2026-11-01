@@ -7,6 +7,7 @@
 - Amended by: PR-07 on 2026-09-22 at the owner's request, 23.9 (a navigated element ends the render)
 - Amended by: PR-16 (D36) on 2026-09-27 at the owner's request, 23.10 (the host's Custom HTML
   policy: 23.1, 23.4, and 23.8 hold for a trusted element; a disabled one has no frame)
+- Amended by: PR-30 (D54) on 2026-11-01: 23.4: an element is pushed the time of its scene, and nothing while its scene is not evaluated (D54.3)
 - Related: D05, D14, D16, D19, D20, D21, D22,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §7, and open questions
   Q13 and Q16

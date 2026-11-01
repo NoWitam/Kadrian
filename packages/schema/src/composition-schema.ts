@@ -1,5 +1,5 @@
 /**
- * Composition schema 0.4: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.5: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
@@ -8,8 +8,9 @@
  * node (D42.1); 0.3 is 0.2 plus the asset type `video`, the node `video`, and
  * the `fit` of images and videos (D50); 0.4 is 0.3 plus any number of audio
  * clips with a source start, a volume, and fades, and the sound of a video
- * node (D52). The schemas of 0.1, 0.2, and 0.3 are kept as data in `v0-1`,
- * `v0-2`, and `v0-3` (D35.4).
+ * node (D52); 0.5 is 0.4 plus a sequence of scenes, each with its own duration
+ * and its own audio clips, and every time inside a scene local to it (D49.3,
+ * D54). The schemas of 0.1 to 0.4 are kept as data in `v0-1` to `v0-4` (D35.4).
  */
 import {
   closedObject,
@@ -20,7 +21,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.4';
+export const SCHEMA_VERSION = '0.5';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -38,7 +39,8 @@ const assetReference = {
 
 const timeUs = {
   type: 'integer',
-  description: 'Composition time in integer microseconds (D04).',
+  description:
+    'Time in integer microseconds (D04): scene time inside a scene, composition time in the composition (D49.3).',
   minimum: 0,
   maximum: MAX_SAFE_INTEGER,
 } as const satisfies NumberSchema;
@@ -169,7 +171,7 @@ const animations = {
 const transform = { position, scale, opacity, animations } as const;
 
 /**
- * The lifetime of a node, in composition time (D42.1, D42.2): it is active at
+ * The lifetime of a node, in the time of its scene (D42.1, D42.2, D49.3): it is active at
  * `t` when `t >= startUs` and `t - startUs < durationUs`. Every node has one,
  * directly after its `type`.
  */
@@ -177,12 +179,12 @@ const lifetime = {
   startUs: {
     ...timeUs,
     description:
-      'Composition time, in integer microseconds, from which the node is active (D42.2). It may lie at or after the end of the composition.',
+      'Scene time, in integer microseconds from the start of its scene, from which the node is active (D42.2, D49.3). It may lie at or after the end of the scene.',
   },
   durationUs: {
     ...durationUs,
     description:
-      'How long the node is active, in integer microseconds, from startUs (D42.2). Whatever lies past the end of the composition is cut.',
+      'How long the node is active, in integer microseconds, from startUs (D42.2). Whatever lies past the end of its scene is cut (D49.3).',
   },
 } as const;
 
@@ -192,6 +194,14 @@ export const backgroundNodeSchema = closedObject('Solid fill that covers the who
   ...lifetime,
   color,
 });
+
+const fadeUs = {
+  type: 'integer',
+  description:
+    'Length of a linear fade, in integer microseconds of the lifetime of the clip; 0 is no fade (D52).',
+  minimum: 0,
+  maximum: MAX_SAFE_INTEGER,
+} as const satisfies NumberSchema;
 
 /** How the pixels of an image or a video meet the box of their node (D50), as CSS `object-fit`. */
 const fit = {
@@ -286,41 +296,12 @@ export const sceneNodeSchema = {
   ],
 } as const satisfies UnionSchema;
 
-export const sceneSchema = closedObject(
-  'The single scene spans the whole composition (D16); its nodes have lifetimes of their own (D42).',
-  {
-    id,
-    nodes: {
-      type: 'array',
-      description: 'Array order is the z-order; the first node is at the bottom.',
-      items: sceneNodeSchema,
-    },
-  },
-);
-
-export const assetSchema = closedObject(
-  'Pinned by content hash; the host resolves the bytes and the engine verifies them (D14).',
-  {
-    id,
-    type: { type: 'string', enum: ['image', 'audio', 'font', 'video'] },
-    contentHash: {
-      type: 'string',
-      description: 'Algorithm, a colon, and the lowercase hex digest of the exact bytes.',
-      pattern: '^sha256:[0-9a-f]{64}$',
-    },
-  },
-);
-
-const fadeUs = {
-  type: 'integer',
-  description:
-    'Length of a linear fade, in integer microseconds of the lifetime of the clip; 0 is no fade (D52).',
-  minimum: 0,
-  maximum: MAX_SAFE_INTEGER,
-} as const satisfies NumberSchema;
-
+/**
+ * The audio clip of D52, in the time of what holds it: composition time in the
+ * composition's `clips`, scene time in a scene's `clips` (D49.3, D54).
+ */
 export const audioClipSchema = closedObject(
-  'Plays an audio asset from sourceStartUs for durationUs, at its volume and with its fades; whatever lies past the composition end is cut. Clips are mixed regardless of their order (D52).',
+  'Plays an audio asset from sourceStartUs for durationUs, at its volume and with its fades; whatever lies past the end of what holds it — the composition, or its scene — is cut. Clips are mixed regardless of their order (D52, D54).',
   {
     id,
     type: { type: 'string', const: 'audio' },
@@ -341,7 +322,43 @@ export const audioClipSchema = closedObject(
     fadeOutUs: {
       ...fadeUs,
       description:
-        'The clip falls linearly from its volume to silence over the last fadeOutUs of its lifetime, even where the composition cuts it earlier (D52).',
+        'The clip falls linearly from its volume to silence over the last fadeOutUs of its lifetime, even where its scene or the composition cuts it earlier (D52).',
+    },
+  },
+);
+
+export const sceneSchema = closedObject(
+  'One scene of the sequence (D49.3): it starts where the scene before it ends and lasts durationUs; every time inside it is scene time, from 0 at its start (D54).',
+  {
+    id,
+    durationUs: {
+      ...durationUs,
+      description:
+        'How long the scene lasts, in integer microseconds. The scenes follow each other in their order, and the durationUs of the composition is the sum of theirs (D49.3, D54).',
+    },
+    nodes: {
+      type: 'array',
+      description: 'Array order is the z-order; the first node is at the bottom.',
+      items: sceneNodeSchema,
+    },
+    clips: {
+      type: 'array',
+      description:
+        'Audio clips in scene time, which move with the scene; mixed with every other clip regardless of their order (D49.3, D54).',
+      items: audioClipSchema,
+    },
+  },
+);
+
+export const assetSchema = closedObject(
+  'Pinned by content hash; the host resolves the bytes and the engine verifies them (D14).',
+  {
+    id,
+    type: { type: 'string', enum: ['image', 'audio', 'font', 'video'] },
+    contentHash: {
+      type: 'string',
+      description: 'Algorithm, a colon, and the lowercase hex digest of the exact bytes.',
+      pattern: '^sha256:[0-9a-f]{64}$',
     },
   },
 );
@@ -361,7 +378,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.4',
+  title: 'Kadrion composition 0.5',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,
@@ -374,11 +391,17 @@ export const compositionSchema = deepFreeze({
     },
     durationUs,
     assets: { type: 'array', items: assetSchema },
-    scenes: { type: 'array', minItems: 1, maxItems: 1, items: sceneSchema },
+    scenes: {
+      type: 'array',
+      description:
+        'The scenes in the order they are played, at least one; scene k + 1 starts where scene k ends (D49.3, D54).',
+      minItems: 1,
+      items: sceneSchema,
+    },
     clips: {
       type: 'array',
       description:
-        'Audio clips in composition time, mixed by summing regardless of their order (D52).',
+        'Audio clips in composition time, for sound that spans scenes, mixed by summing regardless of their order (D52, D54).',
       items: audioClipSchema,
     },
   }),

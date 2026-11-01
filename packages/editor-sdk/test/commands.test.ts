@@ -60,6 +60,13 @@ describe('parseCommand (D30.3)', () => {
       'SetClipVolume',
       'SetClipFades',
       'SetClipSource',
+      'AddScene',
+      'RemoveScene',
+      'DuplicateScene',
+      'ReorderScene',
+      'SetSceneDuration',
+      'MoveNodeToScene',
+      'AddSceneAudioClip',
     ]);
   });
 

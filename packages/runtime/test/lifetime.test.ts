@@ -42,6 +42,7 @@ function activeIds(state: CompositionState): string[] {
 function titleLiving(startUs: number, durationUs: number, compositionUs = 10_000_000) {
   return derived((draft) => {
     draft.durationUs = compositionUs;
+    for (const scene of draft.scenes) scene.durationUs = compositionUs;
     const title = draft.scenes[0]?.nodes.find(({ id }) => id === 'node-title');
     if (title === undefined) throw new Error('No title.');
     title.startUs = startUs;

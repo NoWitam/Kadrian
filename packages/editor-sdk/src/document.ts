@@ -241,20 +241,95 @@ export function clipsOf(document: object): readonly unknown[] {
   return asArray(fieldsOf(document)['clips']) ?? [];
 }
 
+/** The document's scenes, in their order (D54). */
+export function scenesOf(document: object): readonly unknown[] {
+  return asArray(fieldsOf(document)['scenes']) ?? [];
+}
+
+/** The document with `scenes` in place of its scenes; everything else keeps its identity (D30.7). */
+export function replaceScenes(document: object, scenes: readonly unknown[]): DocumentObject {
+  return { ...fieldsOf(document), scenes };
+}
+
+/** The scene with that ID and its index in `scenes`, or `null` (D54.5). */
+export function locateScene(
+  document: object,
+  sceneId: string,
+): { readonly scene: DocumentObject; readonly index: number } | null {
+  const scenes = scenesOf(document);
+  const index = scenes.findIndex((scene) => isObject(scene) && scene['id'] === sceneId);
+  const scene = scenes[index];
+  return isObject(scene) ? { scene, index } : null;
+}
+
+/**
+ * The IDs a scene carries, in the order of D39.4 carried to scenes (D54.5): the
+ * scene's own, then the IDs of each node's subtree in the order of its list,
+ * then the IDs of its clips. Reads only where the shapes are arrays of objects.
+ */
+export function sceneIds(scene: DocumentObject): readonly string[] {
+  const own = typeof scene['id'] === 'string' ? [scene['id']] : [];
+  const nodes = objectsIn(scene['nodes']).flatMap(subtreeIds);
+  const clips = objectsIn(scene['clips'])
+    .map((clip) => clip['id'])
+    .filter((id): id is string => typeof id === 'string');
+  return [...own, ...nodes, ...clips];
+}
+
+/** Where a list of audio clips lives: the composition's, or the scene at that index (D54.1). */
+export type ClipOwner = { readonly sceneIndex: number } | null;
+
+/** The audio clips of an owner, in their order. */
+export function clipListOf(document: object, owner: ClipOwner): readonly unknown[] {
+  if (owner === null) return clipsOf(document);
+  const scene = scenesOf(document)[owner.sceneIndex];
+  return isObject(scene) ? (asArray(scene['clips']) ?? []) : [];
+}
+
+/** The document with `clips` in place of the clips of an owner; everything else keeps its identity. */
+export function replaceClipList(
+  document: object,
+  owner: ClipOwner,
+  clips: readonly unknown[],
+): DocumentObject {
+  if (owner === null) return replaceClips(document, clips);
+  const scenes = scenesOf(document);
+  return replaceScenes(
+    document,
+    scenes.map((scene, at) =>
+      at === owner.sceneIndex && isObject(scene) ? { ...scene, clips } : scene,
+    ),
+  );
+}
+
 /** The document with `clips` in place of its clips; everything else keeps its identity (D30.7). */
 export function replaceClips(document: object, clips: readonly unknown[]): DocumentObject {
   return { ...fieldsOf(document), clips };
 }
 
-/** The audio clip with that ID and its index in `clips`, or `null` (D52.6). */
+/**
+ * The audio clip with that ID, the list that holds it, and its index there, or
+ * `null` (D52.6): the composition's clips first, then each scene's (D54.1).
+ */
 export function locateClip(
   document: object,
   clipId: string,
-): { readonly clip: DocumentObject; readonly index: number } | null {
-  const clips = clipsOf(document);
-  const index = clips.findIndex((clip) => isObject(clip) && clip['id'] === clipId);
-  const clip = clips[index];
-  return isObject(clip) ? { clip, index } : null;
+): {
+  readonly clip: DocumentObject;
+  readonly index: number;
+  readonly owner: ClipOwner;
+} | null {
+  const owners: ClipOwner[] = [
+    null,
+    ...scenesOf(document).map((_, sceneIndex) => ({ sceneIndex })),
+  ];
+  for (const owner of owners) {
+    const clips = clipListOf(document, owner);
+    const index = clips.findIndex((clip) => isObject(clip) && clip['id'] === clipId);
+    const clip = clips[index];
+    if (isObject(clip)) return { clip, index, owner };
+  }
+  return null;
 }
 
 /** The reference tokens of an RFC 6901 JSON Pointer, or `null` when it is not one. */

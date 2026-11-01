@@ -21,6 +21,8 @@ export type ValidationErrorCode =
   | 'source-time-out-of-range'
   /** An audio clip's `fadeInUs + fadeOutUs` exceeds its `durationUs` (D52.3). */
   | 'clip-fades-exceed-duration'
+  /** The composition's `durationUs` is not the sum of its scenes' `durationUs` (D49.3, D54.2). */
+  | 'composition-duration-mismatch'
   | 'duplicate-animation-target';
 
 export interface ValidationError {

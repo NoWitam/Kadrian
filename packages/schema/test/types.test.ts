@@ -109,11 +109,6 @@ type ExpectedSceneNode =
   | ExpectedCustomHtmlNode
   | ExpectedVideoNode;
 
-interface ExpectedScene {
-  readonly id: string;
-  readonly nodes: readonly ExpectedSceneNode[];
-}
-
 interface ExpectedAsset {
   readonly id: string;
   readonly type: 'image' | 'audio' | 'font' | 'video';
@@ -132,8 +127,15 @@ interface ExpectedAudioClip {
   readonly fadeOutUs: number;
 }
 
+interface ExpectedScene {
+  readonly id: string;
+  readonly durationUs: number;
+  readonly nodes: readonly ExpectedSceneNode[];
+  readonly clips: readonly ExpectedAudioClip[];
+}
+
 interface ExpectedComposition {
-  readonly schemaVersion: '0.4';
+  readonly schemaVersion: '0.5';
   readonly width: number;
   readonly height: number;
   readonly fps: number;
