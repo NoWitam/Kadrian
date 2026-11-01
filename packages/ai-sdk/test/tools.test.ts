@@ -58,6 +58,7 @@ const VIDEO_SETUP: readonly Command[] = [
       width: 320,
       height: 180,
       fit: 'contain',
+      volume: 0,
     },
   },
 ];
@@ -120,6 +121,12 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
     },
   ],
   SetVideoSource: VIDEO_SETUP,
+  SetVideoVolume: VIDEO_SETUP,
+  AddAudioClip: [],
+  RemoveAudioClip: [],
+  SetClipVolume: [],
+  SetClipFades: [],
+  SetClipSource: [],
 };
 
 function prepared(type: Command['type']): CommandBus {

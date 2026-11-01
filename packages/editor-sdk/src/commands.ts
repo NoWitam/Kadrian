@@ -363,6 +363,75 @@ export interface SetVideoSourceCommand extends SetVideoSourceArguments {
   readonly type: 'SetVideoSource';
 }
 
+/** What a caller states for `SetVideoVolume` (D52.6). */
+export interface SetVideoVolumeArguments {
+  readonly nodeId: string;
+  readonly volume: number;
+}
+
+/** Sets how loud the sound of a video node is heard: 0 is silent, 1 the source as it is (D52.1). */
+export interface SetVideoVolumeCommand extends SetVideoVolumeArguments {
+  readonly type: 'SetVideoVolume';
+}
+
+/** What a caller states for `AddAudioClip` (D52.6). */
+export interface AddAudioClipArguments {
+  /** The clip's index in `clips` after the insertion, from 0 to their number. */
+  readonly index: number;
+  /** The complete clip, as the document stores it. */
+  readonly clip: NodeData;
+}
+
+/** Inserts a complete audio clip into the document's clips (D52.6); their order is not heard. */
+export interface AddAudioClipCommand extends AddAudioClipArguments {
+  readonly type: 'AddAudioClip';
+}
+
+/** What a caller states for `RemoveAudioClip` (D52.6). */
+export interface RemoveAudioClipArguments {
+  readonly clipId: string;
+}
+
+/** Removes one audio clip (D52.6). */
+export interface RemoveAudioClipCommand extends RemoveAudioClipArguments {
+  readonly type: 'RemoveAudioClip';
+}
+
+/** What a caller states for `SetClipVolume` (D52.6). */
+export interface SetClipVolumeArguments {
+  readonly clipId: string;
+  readonly volume: number;
+}
+
+/** Sets the volume of an audio clip, from 0 (silent) to 1 (the source as it is) (D52.1). */
+export interface SetClipVolumeCommand extends SetClipVolumeArguments {
+  readonly type: 'SetClipVolume';
+}
+
+/** What a caller states for `SetClipFades` (D52.6). */
+export interface SetClipFadesArguments {
+  readonly clipId: string;
+  readonly fadeInUs: number;
+  readonly fadeOutUs: number;
+}
+
+/** Sets both linear fades of an audio clip; together they fit in its lifetime (D52.2). */
+export interface SetClipFadesCommand extends SetClipFadesArguments {
+  readonly type: 'SetClipFades';
+}
+
+/** What a caller states for `SetClipSource` (D52.6). */
+export interface SetClipSourceArguments {
+  readonly clipId: string;
+  readonly assetId: string;
+  readonly sourceStartUs: number;
+}
+
+/** Points an audio clip at an audio asset and the source time it plays from (D52.6). */
+export interface SetClipSourceCommand extends SetClipSourceArguments {
+  readonly type: 'SetClipSource';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -390,7 +459,13 @@ export type Command =
   | SetNodeLifetimeCommand
   | SetNodeFitCommand
   | SetVideoAssetCommand
-  | SetVideoSourceCommand;
+  | SetVideoSourceCommand
+  | SetVideoVolumeCommand
+  | AddAudioClipCommand
+  | RemoveAudioClipCommand
+  | SetClipVolumeCommand
+  | SetClipFadesCommand
+  | SetClipSourceCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -471,6 +546,23 @@ export type SetImageAssetArgumentsSchema = ClosedObjectSchema<keyof SetImageAsse
 export type SetNodeFitArgumentsSchema = ClosedObjectSchema<keyof SetNodeFitArguments>;
 export type SetVideoAssetArgumentsSchema = ClosedObjectSchema<keyof SetVideoAssetArguments>;
 export type SetVideoSourceArgumentsSchema = ClosedObjectSchema<keyof SetVideoSourceArguments>;
+export type SetVideoVolumeArgumentsSchema = ClosedObjectSchema<keyof SetVideoVolumeArguments>;
+export type RemoveAudioClipArgumentsSchema = ClosedObjectSchema<keyof RemoveAudioClipArguments>;
+export type SetClipVolumeArgumentsSchema = ClosedObjectSchema<keyof SetClipVolumeArguments>;
+export type SetClipFadesArgumentsSchema = ClosedObjectSchema<keyof SetClipFadesArguments>;
+export type SetClipSourceArgumentsSchema = ClosedObjectSchema<keyof SetClipSourceArguments>;
+
+/** The argument schema of `AddAudioClip`: closed, with `clip` an open object (D52.6). */
+export interface AddAudioClipArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly index: ArgumentSchema;
+    readonly clip: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddAudioClipArguments)[];
+  readonly additionalProperties: false;
+}
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
 
@@ -728,6 +820,129 @@ export const setVideoSourceArgumentsSchema: SetVideoSourceArgumentsSchema = deep
     },
   },
   required: ['nodeId', 'sourceStartUs'],
+  additionalProperties: false,
+});
+
+/** The shape of an audio clip, read from the schema (D52.1). */
+const CLIP = compositionSchema.properties.clips.items.properties;
+/** The bounds of a volume, read from the schema (D52.1); clips and videos share them. */
+const VOLUME = { minimum: CLIP.volume.minimum, maximum: CLIP.volume.maximum } as const;
+/** The bounds of a fade, read from the schema (D52.2). */
+const FADE: Bounds = { minimum: CLIP.fadeInUs.minimum, maximum: CLIP.fadeInUs.maximum };
+/** The bounds of a clip's source start, read from the schema (D52.1). */
+const CLIP_SOURCE_START: Bounds = {
+  minimum: CLIP.sourceStartUs.minimum,
+  maximum: CLIP.sourceStartUs.maximum,
+};
+
+const CLIP_ID = 'The ID of an audio clip of the document.';
+
+const VOLUME_TEXT =
+  'The linear factor of the amplitude, from 0 (silent) to 1 (the source as it is) inclusive; it never amplifies. A fraction is kept as it is, and -0 becomes 0.';
+
+/** The JSON Schema of the arguments of `SetVideoVolume` (D52.6). */
+export const setVideoVolumeArgumentsSchema: SetVideoVolumeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets how loud the sound of a video is heard; 0 is silent.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only videos have a volume.`,
+      minLength: 1,
+    },
+    volume: { type: 'number', description: VOLUME_TEXT, ...VOLUME },
+  },
+  required: ['nodeId', 'volume'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `AddAudioClip` (D52.6): the clip is the document's to judge. */
+export const addAudioClipArgumentsSchema: AddAudioClipArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: "Inserts a complete audio clip into the document's clips.",
+  properties: {
+    index: {
+      type: 'integer',
+      description:
+        "The clip's index in the document's clips after the insertion, from 0 to their number. Clips are mixed whatever their order.",
+      ...INDEX_BOUNDS,
+    },
+    clip: {
+      type: 'object',
+      description:
+        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; volume; fadeInUs and fadeOutUs.',
+    },
+  },
+  required: ['index', 'clip'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveAudioClip` (D52.6). */
+export const removeAudioClipArgumentsSchema: RemoveAudioClipArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Removes one audio clip.',
+  properties: { clipId: { type: 'string', description: CLIP_ID, minLength: 1 } },
+  required: ['clipId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetClipVolume` (D52.6). */
+export const setClipVolumeArgumentsSchema: SetClipVolumeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets the volume of one audio clip; 0 is silent.',
+  properties: {
+    clipId: { type: 'string', description: CLIP_ID, minLength: 1 },
+    volume: { type: 'number', description: VOLUME_TEXT, ...VOLUME },
+  },
+  required: ['clipId', 'volume'],
+  additionalProperties: false,
+});
+
+const FADE_TEXT =
+  "in integer microseconds of the lifetime of the clip, 0 for none; it is never rounded, and -0 becomes 0. Both fades together take at most the clip's durationUs.";
+
+/** The JSON Schema of the arguments of `SetClipFades` (D52.6). */
+export const setClipFadesArgumentsSchema: SetClipFadesArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets the linear fade-in and fade-out of one audio clip.',
+  properties: {
+    clipId: { type: 'string', description: CLIP_ID, minLength: 1 },
+    fadeInUs: {
+      type: 'integer',
+      description: `How long the clip rises from silence to its volume at its start, ${FADE_TEXT}`,
+      ...FADE,
+    },
+    fadeOutUs: {
+      type: 'integer',
+      description: `How long the clip falls from its volume to silence at its end, ${FADE_TEXT}`,
+      ...FADE,
+    },
+  },
+  required: ['clipId', 'fadeInUs', 'fadeOutUs'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetClipSource` (D52.6). */
+export const setClipSourceArgumentsSchema: SetClipSourceArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Points one audio clip at an audio asset and the source time it plays from; its lifetime stays.',
+  properties: {
+    clipId: { type: 'string', description: CLIP_ID, minLength: 1 },
+    assetId: {
+      type: 'string',
+      description: 'The ID of an audio asset the document declares; it may be the one it has.',
+      minLength: 1,
+    },
+    sourceStartUs: {
+      type: 'integer',
+      description:
+        'The source time heard at the start of the clip, in integer microseconds from the first sample; it is never rounded, and -0 becomes 0.',
+      minimum: CLIP_SOURCE_START.minimum,
+      maximum: CLIP_SOURCE_START.maximum,
+    },
+  },
+  required: ['clipId', 'assetId', 'sourceStartUs'],
   additionalProperties: false,
 });
 
@@ -1761,5 +1976,87 @@ export function parseSetVideoSource(value: unknown): SetVideoSourceCommand {
     type: 'SetVideoSource',
     nodeId: nodeIdOf(fields),
     sourceStartUs: integerWithin(fields['sourceStartUs'], SOURCE_START, '`sourceStartUs`'),
+  });
+}
+
+/** A volume: finite, within the schema's bounds, never rounded; -0 becomes 0 (D52.1). */
+function volumeOf(value: unknown): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < VOLUME.minimum ||
+    value > VOLUME.maximum
+  ) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`volume\` must be a finite number from ${String(VOLUME.minimum)} to ${String(VOLUME.maximum)}, not ${typeof value === 'number' ? String(value) : typeof value}.`,
+    );
+  }
+  return value === 0 ? 0 : value;
+}
+
+/** The fields of a `SetVideoVolume` (D52.6). */
+export function parseSetVideoVolume(value: unknown): SetVideoVolumeCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'volume'], 'The command `SetVideoVolume`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({ type: 'SetVideoVolume', nodeId, volume: volumeOf(fields['volume']) });
+}
+
+/**
+ * The fields of an `AddAudioClip` (D52.6): an index and the complete clip,
+ * copied as exact data and deep-frozen, so the caller's object never reaches
+ * the history (D39.5); the document's validation judges the clip.
+ */
+export function parseAddAudioClip(value: unknown): AddAudioClipCommand {
+  const fields = fieldsOf(value, ['type', 'index', 'clip'], 'The command `AddAudioClip`');
+  const index = indexOf(fields);
+  const clip: unknown = fields['clip'];
+  if (!isPlainObject(clip) || !isDataObject(clip)) {
+    throw new EditorError('invalid-argument', '`clip` must be an object.');
+  }
+  const copy = deepFreeze(copyData(clip, '`clip`', []) as NodeData);
+  return Object.freeze({ type: 'AddAudioClip', index, clip: copy });
+}
+
+/** The fields of a `RemoveAudioClip` (D52.6). */
+export function parseRemoveAudioClip(value: unknown): RemoveAudioClipCommand {
+  const fields = fieldsOf(value, ['type', 'clipId'], 'The command `RemoveAudioClip`');
+  return Object.freeze({ type: 'RemoveAudioClip', clipId: nodeIdOf(fields, 'clipId') });
+}
+
+/** The fields of a `SetClipVolume` (D52.6). */
+export function parseSetClipVolume(value: unknown): SetClipVolumeCommand {
+  const fields = fieldsOf(value, ['type', 'clipId', 'volume'], 'The command `SetClipVolume`');
+  const clipId = nodeIdOf(fields, 'clipId');
+  return Object.freeze({ type: 'SetClipVolume', clipId, volume: volumeOf(fields['volume']) });
+}
+
+/** The fields of a `SetClipFades` (D52.6); whether both fit the clip is the document's rule. */
+export function parseSetClipFades(value: unknown): SetClipFadesCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'clipId', 'fadeInUs', 'fadeOutUs'],
+    'The command `SetClipFades`',
+  );
+  return Object.freeze({
+    type: 'SetClipFades',
+    clipId: nodeIdOf(fields, 'clipId'),
+    fadeInUs: integerWithin(fields['fadeInUs'], FADE, '`fadeInUs`'),
+    fadeOutUs: integerWithin(fields['fadeOutUs'], FADE, '`fadeOutUs`'),
+  });
+}
+
+/** The fields of a `SetClipSource` (D52.6): the asset is looked up when the command applies. */
+export function parseSetClipSource(value: unknown): SetClipSourceCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'clipId', 'assetId', 'sourceStartUs'],
+    'The command `SetClipSource`',
+  );
+  return Object.freeze({
+    type: 'SetClipSource',
+    clipId: nodeIdOf(fields, 'clipId'),
+    assetId: nodeIdOf(fields, 'assetId'),
+    sourceStartUs: integerWithin(fields['sourceStartUs'], CLIP_SOURCE_START, '`sourceStartUs`'),
   });
 }

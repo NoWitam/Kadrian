@@ -19,15 +19,20 @@ import {
   isPlainObject,
   parseAddAnimation,
   parseAddAsset,
+  parseAddAudioClip,
   parseAddKeyframe,
   parseAddNode,
   parseDuplicateNode,
   parseMoveKeyframe,
   parseRemoveAnimation,
   parseRemoveAsset,
+  parseRemoveAudioClip,
   parseRemoveKeyframe,
   parseRemoveNode,
   parseReorderNode,
+  parseSetClipFades,
+  parseSetClipSource,
+  parseSetClipVolume,
   parseSetImageAsset,
   parseSetNodeColor,
   parseSetNodeFit,
@@ -44,6 +49,7 @@ import {
   parseSetTextFontSize,
   parseSetVideoAsset,
   parseSetVideoSource,
+  parseSetVideoVolume,
   type Command,
   type CommandPosition,
   type NodeData,
@@ -51,6 +57,7 @@ import {
 import {
   assetUsers,
   assetsOf,
+  clipsOf,
   findNode,
   findParent,
   idsIn,
@@ -58,10 +65,12 @@ import {
   keyframeIndex,
   keyframesOf,
   locateAnimation,
+  locateClip,
   locateNode,
   placedByTime,
   replaceAnimation,
   replaceAssets,
+  replaceClips,
   replaceList,
   replaceNode,
   subtreeIds,
@@ -151,6 +160,33 @@ function onNode(
   const inverse = edit.inverse;
   return {
     document: replaceNode(document, nodeId, edit.node),
+    invert: () => inverse,
+    createdIds: [],
+    removedIds: [],
+  };
+}
+
+/**
+ * The edit of one audio clip's fields (D52.6): find the clip, let `change`
+ * rebuild it or report that nothing changes, and put the new clip in its place.
+ */
+function onClip(
+  document: DocumentObject,
+  clipId: string,
+  change: (
+    clip: DocumentObject,
+  ) => { readonly clip: DocumentObject; readonly inverse: Command } | null,
+): DocumentEdit | null {
+  const found = locateClip(document, clipId);
+  if (found === null) {
+    throw new EditorError('unknown-clip', `The document has no audio clip \`${clipId}\`.`);
+  }
+  const edit = change(found.clip);
+  if (edit === null) return null;
+  const inverse = edit.inverse;
+  const clips = clipsOf(document).map((clip, at) => (at === found.index ? edit.clip : clip));
+  return {
+    document: replaceClips(document, clips),
     invert: () => inverse,
     createdIds: [],
     removedIds: [],
@@ -933,6 +969,105 @@ const DEFINITIONS = deepFreeze<Definitions>({
         return {
           node: { ...node, sourceStartUs: command.sourceStartUs },
           inverse: parseSetVideoSource({ ...command, sourceStartUs }),
+        };
+      }),
+  },
+  SetVideoVolume: {
+    parse: parseSetVideoVolume,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['video'], command.nodeId);
+        const volume = numberField(node, 'volume', command.nodeId);
+        if (volume === command.volume) return null;
+        return {
+          node: { ...node, volume: command.volume },
+          inverse: parseSetVideoVolume({ ...command, volume }),
+        };
+      }),
+  },
+  AddAudioClip: {
+    parse: parseAddAudioClip,
+    edit(document, command) {
+      const clips = clipsOf(document);
+      if (command.index > clips.length) {
+        throw outOfRange(command.index, clips.length, 'the clips');
+      }
+      // The ID is read only where it is a string; every other malformation is the validator's.
+      const id: unknown = command.clip['id'];
+      const createdIds = typeof id === 'string' ? [id] : [];
+      refuseTaken(document, createdIds);
+      return {
+        document: replaceClips(document, inserted(clips, command.index, command.clip)),
+        // The clip validated by now, so its `id` is an ID of the document's form.
+        invert: () => parseRemoveAudioClip({ type: 'RemoveAudioClip', clipId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveAudioClip: {
+    parse: parseRemoveAudioClip,
+    edit(document, command) {
+      const found = locateClip(document, command.clipId);
+      if (found === null) {
+        throw new EditorError(
+          'unknown-clip',
+          `The document has no audio clip \`${command.clipId}\`.`,
+        );
+      }
+      // A frozen copy of the whole clip at its index, so undo restores the same bytes.
+      const inverse = parseAddAudioClip({
+        type: 'AddAudioClip',
+        index: found.index,
+        clip: found.clip,
+      });
+      return {
+        document: replaceClips(
+          document,
+          clipsOf(document).filter((_, at) => at !== found.index),
+        ),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [command.clipId],
+      };
+    },
+  },
+  SetClipVolume: {
+    parse: parseSetClipVolume,
+    edit: (document, command) =>
+      onClip(document, command.clipId, (clip) => {
+        const volume = numberField(clip, 'volume', command.clipId);
+        if (volume === command.volume) return null;
+        return {
+          clip: { ...clip, volume: command.volume },
+          inverse: parseSetClipVolume({ ...command, volume }),
+        };
+      }),
+  },
+  SetClipFades: {
+    parse: parseSetClipFades,
+    edit: (document, command) =>
+      onClip(document, command.clipId, (clip) => {
+        const fadeInUs = numberField(clip, 'fadeInUs', command.clipId);
+        const fadeOutUs = numberField(clip, 'fadeOutUs', command.clipId);
+        if (fadeInUs === command.fadeInUs && fadeOutUs === command.fadeOutUs) return null;
+        return {
+          clip: { ...clip, fadeInUs: command.fadeInUs, fadeOutUs: command.fadeOutUs },
+          inverse: parseSetClipFades({ ...command, fadeInUs, fadeOutUs }),
+        };
+      }),
+  },
+  SetClipSource: {
+    parse: parseSetClipSource,
+    edit: (document, command) =>
+      onClip(document, command.clipId, (clip) => {
+        const assetId = stringField(clip, 'assetId', command.clipId);
+        const sourceStartUs = numberField(clip, 'sourceStartUs', command.clipId);
+        requireAsset(document, command.assetId, 'audio');
+        if (assetId === command.assetId && sourceStartUs === command.sourceStartUs) return null;
+        return {
+          clip: { ...clip, assetId: command.assetId, sourceStartUs: command.sourceStartUs },
+          inverse: parseSetClipSource({ ...command, assetId, sourceStartUs }),
         };
       }),
   },

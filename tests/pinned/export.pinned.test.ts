@@ -478,7 +478,7 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
     }
   });
 
-  it('refuses an audio asset shorter than its clip with the pinned ffprobe, before the first frame', async () => {
+  it('refuses an audio asset shorter than its clip with the pinned ffprobe, before the first frame (D52.5)', async () => {
     const wav = generatedWav(48_000 * 5);
     const { document, resolveAsset } = variant(() => undefined, { 'asset-audio': wav });
     const output = join(EXPORTS, 'refused-audio.mp4');
@@ -491,7 +491,7 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
         ffmpeg: FFMPEG,
         chromium,
       }),
-    ).rejects.toMatchObject({ code: 'audio-invalid' });
+    ).rejects.toMatchObject({ code: 'source-range-exceeded' });
     expect(existsSync(output)).toBe(false);
   });
 

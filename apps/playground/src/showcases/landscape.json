@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.3",
+  "schemaVersion": "0.4",
   "width": 1920,
   "height": 1080,
   "fps": 24,
@@ -113,7 +113,11 @@
       "type": "audio",
       "assetId": "asset-audio",
       "startUs": 0,
-      "durationUs": 5000000
+      "durationUs": 5000000,
+      "sourceStartUs": 0,
+      "volume": 1,
+      "fadeInUs": 0,
+      "fadeOutUs": 0
     }
   ]
 }

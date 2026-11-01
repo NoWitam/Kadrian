@@ -17,6 +17,8 @@ import migrationAfter from './compositions/migration-0-1-to-0-2.after.json' with
 import migrationBefore from './compositions/migration-0-1-to-0-2.before.json' with { type: 'json' };
 import migration03After from './compositions/migration-0-2-to-0-3.after.json' with { type: 'json' };
 import migration03Before from './compositions/migration-0-2-to-0-3.before.json' with { type: 'json' };
+import migration04After from './compositions/migration-0-3-to-0-4.after.json' with { type: 'json' };
+import migration04Before from './compositions/migration-0-3-to-0-4.before.json' with { type: 'json' };
 import invalidCases from './compositions/reference.invalid.json' with { type: 'json' };
 import reference from './compositions/reference.json' with { type: 'json' };
 import video from './compositions/video.json' with { type: 'json' };
@@ -24,6 +26,8 @@ import invalidCasesV01 from './compositions/reference.v0-1.invalid.json' with { 
 import referenceV01 from './compositions/reference.v0-1.json' with { type: 'json' };
 import invalidCasesV02 from './compositions/reference.v0-2.invalid.json' with { type: 'json' };
 import referenceV02 from './compositions/reference.v0-2.json' with { type: 'json' };
+import invalidCasesV03 from './compositions/reference.v0-3.invalid.json' with { type: 'json' };
+import referenceV03 from './compositions/reference.v0-3.json' with { type: 'json' };
 
 export {
   AUDIO_SAMPLE_RATE,
@@ -34,7 +38,9 @@ export {
   generateReferenceAssets,
   IMAGE_SIZE,
   VIDEO_FIXTURE,
+  VIDEO_SOUND_FIXTURE,
   videoFixtureArguments,
+  videoSoundFixtureArguments,
 } from './assets/index.js';
 export type { FixtureAsset } from './assets/index.js';
 
@@ -140,7 +146,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.3. */
+/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.4. */
 export const referenceComposition: unknown = deepFreeze(reference);
 
 /** Patches over `referenceComposition`; the consumer applies them to a copy. */
@@ -173,6 +179,18 @@ export const invalidCompositionCasesV02 = deepFreeze(
   invalidCasesV02,
 ) as readonly InvalidCompositionCase[];
 
+/**
+ * The reference composition as schema 0.3 had it, byte for byte: the file is
+ * frozen (D35.4, D35.5). `migrateComposition` must carry it to
+ * `referenceComposition`, which was written by hand and not by the migration.
+ */
+export const referenceCompositionV03: unknown = deepFreeze(referenceV03);
+
+/** The negative corpus of schema 0.3, frozen with it: patches over `referenceCompositionV03`. */
+export const invalidCompositionCasesV03 = deepFreeze(
+  invalidCasesV03,
+) as readonly InvalidCompositionCase[];
+
 /** A document before a migration step and what the step must make of it, both written by hand. */
 export interface MigrationPair {
   readonly before: unknown;
@@ -199,6 +217,18 @@ export const migrationPair02To03: MigrationPair = deepFreeze({
   after: migration03After,
 });
 
+/**
+ * The hand-written pair of the step 0.3 → 0.4 (D35.5, D52.6): the document the
+ * pair of 0.2 → 0.3 ends with, plus a video node whose `type` is its last key,
+ * a video child of the group whose `fit` is its second key, and a clip whose
+ * keys are in reverse order. Each video gains `volume: 0` at its end, and the
+ * clip `sourceStartUs: 0`, `volume: 1`, `fadeInUs: 0`, and `fadeOutUs: 0`.
+ */
+export const migrationPair03To04: MigrationPair = deepFreeze({
+  before: migration04Before,
+  after: migration04After,
+});
+
 /** Which nodes of `lifetimeComposition` are active and which are shown at one time. */
 export interface ExpectedLifetime {
   readonly timeUs: number;
@@ -217,7 +247,7 @@ export interface ExpectedLifetimes {
   readonly times: readonly ExpectedLifetime[];
 }
 
-/** A small composition of schema 0.3 whose nodes begin and end inside it (D42.2). */
+/** A small composition of schema 0.4 whose nodes begin and end inside it (D42.2). */
 export const lifetimeComposition: unknown = deepFreeze(lifetime);
 
 /**

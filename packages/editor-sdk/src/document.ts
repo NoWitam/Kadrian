@@ -236,6 +236,27 @@ export function replaceAssets(document: object, assets: readonly unknown[]): Doc
   return { ...fieldsOf(document), assets };
 }
 
+/** The document's audio clips, in their order (D52). */
+export function clipsOf(document: object): readonly unknown[] {
+  return asArray(fieldsOf(document)['clips']) ?? [];
+}
+
+/** The document with `clips` in place of its clips; everything else keeps its identity (D30.7). */
+export function replaceClips(document: object, clips: readonly unknown[]): DocumentObject {
+  return { ...fieldsOf(document), clips };
+}
+
+/** The audio clip with that ID and its index in `clips`, or `null` (D52.6). */
+export function locateClip(
+  document: object,
+  clipId: string,
+): { readonly clip: DocumentObject; readonly index: number } | null {
+  const clips = clipsOf(document);
+  const index = clips.findIndex((clip) => isObject(clip) && clip['id'] === clipId);
+  const clip = clips[index];
+  return isObject(clip) ? { clip, index } : null;
+}
+
 /** The reference tokens of an RFC 6901 JSON Pointer, or `null` when it is not one. */
 function tokensOf(path: string): string[] | null {
   if (!path.startsWith('/')) return null;

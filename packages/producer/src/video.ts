@@ -8,6 +8,9 @@
  * source frame of every active video node is chosen by the rule of
  * `@kadrion/schema` (D49.5), decoded by the pinned FFmpeg, and handed to the
  * page as a PNG (D50.4). The copies are removed when the frame loop ends.
+ *
+ * The sound sources of the audio pass get private copies by the same means
+ * (`privateCopies`, D52.5): this module alone writes them.
  */
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -118,14 +121,37 @@ async function withDirectory<T>(work: (directory: string) => Promise<T>): Promis
 async function writeCopies(
   directory: string,
   assets: readonly VerifiedAsset[],
+  prefix = 'video',
 ): Promise<ReadonlyMap<string, string>> {
   const files = new Map<string, string>();
   for (const [at, asset] of assets.entries()) {
-    const file = join(directory, `video-${String(at)}`);
+    const file = join(directory, `${prefix}-${String(at)}`);
     await writeFile(file, asset.bytes, { mode: 0o600, flag: 'wx' });
     files.set(asset.id, file);
   }
   return files;
+}
+
+/** Private copies of verified assets, by asset ID, until `remove` is called. */
+export interface PrivateCopies {
+  readonly files: ReadonlyMap<string, string>;
+  remove(): Promise<void>;
+}
+
+/**
+ * Writes a private copy of each asset, mode `0600`, into a new directory of
+ * the Producer's own (D50.5, D52.5); `remove` deletes the directory, and a
+ * failure while writing deletes it at once.
+ */
+export async function privateCopies(assets: readonly VerifiedAsset[]): Promise<PrivateCopies> {
+  const directory = await mkdtemp(join(tmpdir(), 'kadrion-sound-'));
+  const remove = (): Promise<void> => rm(directory, { recursive: true, force: true });
+  try {
+    return { files: await writeCopies(directory, assets, 'sound'), remove };
+  } catch (reason) {
+    await remove();
+    throw reason;
+  }
 }
 
 /**

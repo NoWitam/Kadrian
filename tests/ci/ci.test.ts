@@ -95,15 +95,15 @@ describe('the pinned test summary', () => {
     expect(summary).toMatchObject({
       schemaVersion: 1,
       root: ROOT,
-      testFileCount: 9,
+      testFileCount: 10,
       testFiles: [...REQUIRED_PINNED_FILES],
-      tests: 18,
-      passed: 18,
+      tests: 20,
+      passed: 20,
       failed: 0,
       skipped: 0,
       todo: 0,
       startedAt: new Date(1_000).toISOString(),
-      lastTestEndedAt: new Date(3_008).toISOString(),
+      lastTestEndedAt: new Date(3_009).toISOString(),
       success: true,
     });
     expect(pinnedSummaryProblems(summary)).toEqual([]);
@@ -239,7 +239,7 @@ describe('the pinned test summary', () => {
     [
       'a file whose tests did not all pass',
       (summary) => (((summary.files as { passed: number }[])[0] as { passed: number }).passed = 1),
-      'tests/pinned/custom-html.pinned.test.ts: not every test passed',
+      'tests/pinned/audio.pinned.test.ts: not every test passed',
     ],
   ])('refuses a summary with %s', (_, edit, problem) => {
     const summary = structuredClone(summarizeVitestReport(raw(), ROOT)) as unknown as Record<

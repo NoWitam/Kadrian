@@ -17,8 +17,10 @@ export type ValidationErrorCode =
   | 'unresolved-asset-reference'
   | 'asset-type-mismatch'
   | 'keyframes-not-ascending'
-  /** A video node's last source time, `sourceStartUs + durationUs − 1`, is not a safe integer (D50.2). */
+  /** The last source time of a video node or an audio clip, `sourceStartUs + durationUs − 1`, is not a safe integer (D50.2, D52.3). */
   | 'source-time-out-of-range'
+  /** An audio clip's `fadeInUs + fadeOutUs` exceeds its `durationUs` (D52.3). */
+  | 'clip-fades-exceed-duration'
   | 'duplicate-animation-target';
 
 export interface ValidationError {

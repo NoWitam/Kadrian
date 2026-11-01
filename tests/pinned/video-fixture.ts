@@ -12,21 +12,39 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
-import { VIDEO_FIXTURE, videoFixtureArguments } from '@kadrion/test-fixtures';
+import {
+  VIDEO_FIXTURE,
+  VIDEO_SOUND_FIXTURE,
+  videoFixtureArguments,
+  videoSoundFixtureArguments,
+} from '@kadrion/test-fixtures';
 
 const run = promisify(execFile);
 
 /** The bytes of the fixture video, made by the FFmpeg at `ffmpegPath` and checked. */
-export async function makeVideoFixture(ffmpegPath: string): Promise<Uint8Array> {
+export function makeVideoFixture(ffmpegPath: string): Promise<Uint8Array> {
+  return made(ffmpegPath, videoFixtureArguments, VIDEO_FIXTURE.contentHash);
+}
+
+/** The bytes of the fixture video with sound (D52.7), made and checked the same way. */
+export function makeVideoSoundFixture(ffmpegPath: string): Promise<Uint8Array> {
+  return made(ffmpegPath, videoSoundFixtureArguments, VIDEO_SOUND_FIXTURE.contentHash);
+}
+
+async function made(
+  ffmpegPath: string,
+  recipe: (output: string) => readonly string[],
+  contentHash: string,
+): Promise<Uint8Array> {
   const directory = mkdtempSync(join(tmpdir(), 'kadrion-video-fixture-'));
   try {
     const output = join(directory, 'video.mp4');
-    await run(ffmpegPath, [...videoFixtureArguments(output)]);
+    await run(ffmpegPath, [...recipe(output)]);
     const bytes = new Uint8Array(readFileSync(output));
     const actual = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
-    if (actual !== VIDEO_FIXTURE.contentHash) {
+    if (actual !== contentHash) {
       throw new Error(
-        `The fixture video has ${actual}, not ${VIDEO_FIXTURE.contentHash}: is this the pinned FFmpeg?`,
+        `The fixture video has ${actual}, not ${contentHash}: is this the pinned FFmpeg?`,
       );
     }
     return bytes;

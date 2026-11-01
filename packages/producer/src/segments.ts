@@ -18,7 +18,7 @@ import {
   AUDIO_CODEC,
   SAMPLE_RATE,
   TIME_SCALE_PER_FRAME,
-  type AudioPlan,
+  type AudioLayout,
 } from './encode.js';
 import { ProducerError } from './errors.js';
 
@@ -207,30 +207,67 @@ export interface AudioRange {
 }
 
 /**
- * The audio graph of the pass (D47.4): the mix of D29.6 over the whole
- * composition, cut to the range's samples and started again at 0.
+ * The audio graph of the pass (D47.4, D52.5): each sound read from its own
+ * input `k`, normalised to 32-bit float stereo at 48 kHz, cut to the samples
+ * it is heard from its source, given its volume and its fades, delayed to its
+ * place and padded to the composition's length; then the sounds summed, cut to
+ * the range's samples, and started again at 0. Every position is a sample
+ * count, never a time.
  */
-export function audioPassGraph(plan: AudioPlan, range: AudioRange): string {
-  return [
-    `[0:a]aresample=${String(SAMPLE_RATE)}`,
-    `atrim=end_sample=${String(plan.sampleCount)}`,
-    `adelay=delays=${String(plan.startSample)}S:all=1`,
-    `apad=whole_len=${String(plan.totalSamples)}`,
-    `atrim=end_sample=${String(plan.totalSamples)}`,
-    `aformat=sample_fmts=fltp:sample_rates=${String(SAMPLE_RATE)}:channel_layouts=${AUDIO_CHANNEL_LAYOUT}`,
-    `atrim=start_sample=${String(range.startSample)}:end_sample=${String(range.startSample + range.sampleCount)}`,
-    'asetpts=N/SR/TB[a]',
-  ].join(',');
+export function audioPassGraph(layout: AudioLayout, range: AudioRange): string {
+  const total = String(layout.totalSamples);
+  const chains = layout.sounds.map((sound, index) => {
+    const from = sound.sourceStartSample;
+    const steps = [
+      `[${String(index)}:a:0]aresample=${String(SAMPLE_RATE)}`,
+      `aformat=sample_fmts=fltp:sample_rates=${String(SAMPLE_RATE)}:channel_layouts=${AUDIO_CHANNEL_LAYOUT}`,
+      `atrim=start_sample=${String(from)}:end_sample=${String(from + sound.sampleCount)}`,
+      'asetpts=N/SR/TB',
+    ];
+    // A volume of 1 multiplies by 1 and is left out; JSON's shortest form of a double reads back exactly.
+    if (sound.entry.volume !== 1) {
+      steps.push(`volume=volume=${String(sound.entry.volume)}:precision=float`);
+    }
+    if (sound.fadeIn !== null) {
+      steps.push(
+        `afade=t=in:ss=${String(sound.fadeIn.startSample)}:ns=${String(sound.fadeIn.sampleCount)}:curve=tri`,
+      );
+    }
+    if (sound.fadeOut !== null) {
+      steps.push(
+        `afade=t=out:ss=${String(sound.fadeOut.startSample)}:ns=${String(sound.fadeOut.sampleCount)}:curve=tri`,
+      );
+    }
+    steps.push(
+      `adelay=delays=${String(sound.startSample)}S:all=1`,
+      `apad=whole_len=${total}`,
+      `atrim=end_sample=${total}[s${String(index)}]`,
+    );
+    return steps.join(',');
+  });
+  const inputs = layout.sounds.map((_, index) => `[s${String(index)}]`).join('');
+  const mix =
+    layout.sounds.length === 1
+      ? inputs
+      : `${inputs}amix=inputs=${String(layout.sounds.length)}:duration=first:dropout_transition=0:normalize=0,`;
+  const cut = `atrim=start_sample=${String(range.startSample)}:end_sample=${String(range.startSample + range.sampleCount)},asetpts=N/SR/TB[a]`;
+  return [...chains, `${mix}${cut}`].join(';');
 }
 
-/** The arguments of the audio pass (D47.4): the asset on `pipe:0`, a WAV at `output`. */
+/** What the path of sound source `k` is replaced with in the manifest. */
+export function soundPlaceholder(index: number): string {
+  return `<sound-${String(index)}>`;
+}
+
+/** The arguments of the audio pass (D47.4, D52.5): one file per sound, a WAV at `output`. */
 export function audioPassArgs(options: {
   readonly graph: string;
+  readonly inputs: readonly string[];
   readonly output: string;
 }): string[] {
   return [
     ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1'],
-    ...['-i', 'pipe:0'],
+    ...options.inputs.flatMap((input) => ['-i', `file:${input}`]),
     ...['-filter_complex_threads', '1', '-filter_complex', options.graph, '-map', '[a]'],
     ...['-c:a', AUDIO_INTERMEDIATE_CODEC, '-ar', String(SAMPLE_RATE), '-ac', '2'],
     ...BITEXACT,

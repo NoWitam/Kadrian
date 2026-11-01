@@ -35,7 +35,7 @@ const groupVariant = nodeVariants.find(
 );
 const childVariants = variantsOf(at(groupVariant, 'properties', 'children', 'items'));
 
-/** Node type → whether schema 0.3 gives that type the field. */
+/** Node type → whether schema 0.4 gives that type the field. */
 function carrying(field: string): Map<string, boolean> {
   return new Map<string, boolean>(
     [...nodeVariants, ...childVariants].map((variant) => [
@@ -74,7 +74,7 @@ function nodesByType(): Map<string, string> {
 }
 
 describe('the node types the bus accepts (D30.8)', () => {
-  it('reads every node type of schema 0.3 out of the schema itself', () => {
+  it('reads every node type of schema 0.4 out of the schema itself', () => {
     expect([...positioned.keys()].sort()).toEqual([
       'background',
       'custom-html',

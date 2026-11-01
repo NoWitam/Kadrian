@@ -40,7 +40,7 @@ describe('reference composition', () => {
 
   it('has the fixed parameters of specification §3.1', () => {
     expect(composition).toMatchObject({
-      schemaVersion: '0.3',
+      schemaVersion: '0.4',
       width: 1080,
       height: 1920,
       fps: 30,
@@ -105,6 +105,10 @@ describe('reference composition', () => {
         assetId: 'asset-audio',
         startUs: 0,
         durationUs: 10_000_000,
+        sourceStartUs: 0,
+        volume: 1,
+        fadeInUs: 0,
+        fadeOutUs: 0,
       },
     ]);
   });

@@ -36,7 +36,7 @@ describe('the catalogue covers the command registry exactly (D46.2)', () => {
       ...COMMAND_TYPES.map(toolNameOf),
       'run_transaction',
     ]);
-    expect(COMMAND_TOOLS).toHaveLength(27);
+    expect(COMMAND_TOOLS).toHaveLength(33);
   });
 
   it('names every tool in snake_case, each name once', () => {

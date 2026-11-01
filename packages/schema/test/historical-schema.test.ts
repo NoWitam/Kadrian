@@ -11,9 +11,11 @@ import { createHash } from 'node:crypto';
 import {
   invalidCompositionCasesV01,
   invalidCompositionCasesV02,
+  invalidCompositionCasesV03,
   referenceComposition,
   referenceCompositionV01,
   referenceCompositionV02,
+  referenceCompositionV03,
 } from '@kadrion/test-fixtures';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
@@ -21,6 +23,7 @@ import { describe, expect, it } from 'vitest';
 import { compositionSchema, SCHEMA_VERSION } from '../src/index.js';
 import { compositionSchemaV01, SCHEMA_VERSION_V01 } from '../src/v0-1/composition-schema.js';
 import { compositionSchemaV02, SCHEMA_VERSION_V02 } from '../src/v0-2/composition-schema.js';
+import { compositionSchemaV03, SCHEMA_VERSION_V03 } from '../src/v0-3/composition-schema.js';
 import { assertSupportedSchema, validateStructure } from '../src/validate-structure.js';
 import { applyPatch } from './apply-patch.js';
 
@@ -28,6 +31,8 @@ import { applyPatch } from './apply-patch.js';
 const SCHEMA_V01_SHA256 = '1d311b8710363fef67234639df2b9162fcc582e6ab7a3d7d56f5a5d1f7beb3df';
 /** `JSON.stringify(compositionSchema)` of commit 6707a5a, the last build of schema 0.2. */
 const SCHEMA_V02_SHA256 = '3a603b03ebf08024a980edc422eca06e3549c8209df02df383ccb4b5c0bd0252';
+/** `JSON.stringify(compositionSchema)` of commit 0e3c8c9, the last build of schema 0.3. */
+const SCHEMA_V03_SHA256 = 'd62167a646893d98f9be50855f7a357eef7a5274c9272ff8741b48aebc833259';
 
 function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex');
@@ -48,9 +53,24 @@ describe('the frozen schema of 0.1 (D35.4)', () => {
   });
 
   it('is not the current schema, whose version it precedes', () => {
-    expect(SCHEMA_VERSION).toBe('0.3');
+    expect(SCHEMA_VERSION).toBe('0.4');
     expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V01_SHA256);
     expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V02_SHA256);
+    expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V03_SHA256);
+  });
+
+  it('has a frozen schema of 0.3 that is, byte for byte, the schema the last build of 0.3 had', () => {
+    expect(sha256(JSON.stringify(compositionSchemaV03))).toBe(SCHEMA_V03_SHA256);
+    expect(SCHEMA_VERSION_V03).toBe('0.3');
+    expect(() => {
+      assertSupportedSchema(compositionSchemaV03);
+    }).not.toThrow();
+    const objects = everyObject(compositionSchemaV03);
+    expect(objects.filter((object) => !Object.isFrozen(object))).toEqual([]);
+    expect(validateStructure(compositionSchemaV03, referenceCompositionV03)).toEqual([]);
+    expect(
+      validateStructure(compositionSchemaV03, referenceComposition).map(({ code }) => code),
+    ).toContain('unknown-field');
   });
 
   it('has a frozen schema of 0.2 that is, byte for byte, the schema the last build of 0.2 had', () => {
@@ -86,6 +106,26 @@ describe('the frozen schema of 0.1 (D35.4)', () => {
     const errors = validateStructure(compositionSchemaV01, referenceComposition);
     expect(errors.map(({ code }) => code)).toContain('unknown-field');
     expect(errors.find(({ path }) => path === '/schemaVersion')?.code).toBe('invalid-value');
+  });
+});
+
+describe('conformance of the frozen schema of 0.3 with JSON Schema draft 2020-12 (D17.4)', () => {
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  const accepts = ajv.compile(compositionSchemaV03);
+
+  it('agrees with the reference implementation on the frozen corpus of 0.3', () => {
+    expect(ajv.validateSchema(compositionSchemaV03)).toBe(true);
+    const documents = [
+      referenceCompositionV03,
+      ...invalidCompositionCasesV03.map(({ patch }) => applyPatch(referenceCompositionV03, patch)),
+    ];
+    const verdicts = documents.map((document) => accepts(document));
+    expect(verdicts.filter((verdict) => !verdict).length).toBeGreaterThan(20);
+    documents.forEach((document, index) => {
+      expect(validateStructure(compositionSchemaV03, document).length === 0, String(index)).toBe(
+        verdicts[index],
+      );
+    });
   });
 });
 

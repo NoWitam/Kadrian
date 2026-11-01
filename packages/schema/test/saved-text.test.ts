@@ -159,7 +159,7 @@ describe('the compatibility corpus, read from saved text (D43.4, D43.6)', () => 
 
 describe('the supported versions (D43.5)', () => {
   it('is the frozen list of the migration, oldest first, the current one last', () => {
-    expect(SUPPORTED_SCHEMA_VERSIONS).toEqual(['0.1', '0.2', '0.3']);
+    expect(SUPPORTED_SCHEMA_VERSIONS).toEqual(['0.1', '0.2', '0.3', '0.4']);
     expect(Object.isFrozen(SUPPORTED_SCHEMA_VERSIONS)).toBe(true);
     expect(SUPPORTED_SCHEMA_VERSIONS.at(-1)).toBe(SCHEMA_VERSION);
     expect(new Set(SUPPORTED_SCHEMA_VERSIONS).size).toBe(SUPPORTED_SCHEMA_VERSIONS.length);
@@ -179,7 +179,8 @@ describe('the supported versions (D43.5)', () => {
   );
 
   it.each([
-    '0.4',
+    '0.5',
+    '0.40',
     '0.30',
     '0.20',
     '0.2.0',
@@ -311,7 +312,7 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
       ({ name, patch }) => [`0.1: ${name}`, applyPatch(referenceCompositionV01, patch)] as const,
     ),
     ...invalidCompositionCases.map(
-      ({ name, patch }) => [`0.3: ${name}`, applyPatch(referenceComposition, patch)] as const,
+      ({ name, patch }) => [`0.4: ${name}`, applyPatch(referenceComposition, patch)] as const,
     ),
   ];
 
@@ -347,15 +348,15 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
 
 describe('the rules of JSON, and no others (D43.2)', () => {
   it('lets the last of two equal keys win, as JSON.parse does', () => {
-    // A valid 0.3 body with two versions: the later one decides.
+    // A valid 0.4 body with two versions: the later one decides.
     const current = referenceText.replace(
-      '"schemaVersion":"0.3"',
-      '"schemaVersion":"0.1","schemaVersion":"0.3"',
+      '"schemaVersion":"0.4"',
+      '"schemaVersion":"0.1","schemaVersion":"0.4"',
     );
-    expect(loaded(parseComposition(current)).versions).toEqual(['0.3']);
+    expect(loaded(parseComposition(current)).versions).toEqual(['0.4']);
     const older = referenceText.replace(
-      '"schemaVersion":"0.3"',
-      '"schemaVersion":"0.3","schemaVersion":"0.1"',
+      '"schemaVersion":"0.4"',
+      '"schemaVersion":"0.4","schemaVersion":"0.1"',
     );
     const judged = refused(parseComposition(older));
     // Judged as the 0.1 document its last key says it is, which it is not.
@@ -518,7 +519,7 @@ describe('ownership and freezing (D43.4, D43.3)', () => {
     [
       'a migrated 0.1 document',
       JSON.stringify(referenceCompositionV01),
-      ['0.1', '0.2', SCHEMA_VERSION],
+      ['0.1', '0.2', '0.3', SCHEMA_VERSION],
     ],
     ['a current document', referenceText, [SCHEMA_VERSION]],
   ] as const;

@@ -3,20 +3,23 @@
  * valid document. Errors are ordered by rule and then by position; the order
  * never depends on the key order of the input.
  *
- * The rules are those of schema 0.1, 0.2, and 0.3 alike: a lifetime adds none
- * (D42.1), and a video node adds only the reference to an asset of type video
- * (D50), which no earlier document can have. `migrateComposition` applies them
- * to documents of 0.1 and 0.2 too (D35.4), which is why the document type is
- * any of the three versions'; the negative corpus of 0.1 is kept
+ * The rules are those of schema 0.1 to 0.4 alike: a lifetime adds none
+ * (D42.1), a video node adds only the reference to an asset of type video
+ * (D50), which no earlier document can have, and the fields an audio clip gains
+ * in 0.4 add the rules of D52.3, which no earlier clip has the fields for.
+ * `migrateComposition` applies them to documents of 0.1 to 0.3 too (D35.4),
+ * which is why the document type is any of the four versions'; the negative
+ * corpus of 0.1 is kept
  * and pins what they were. A rule that a later version changes gets its own
  * function, never a branch here.
  */
 import { pointer, type ValidationError } from './errors.js';
-import type { Asset, Composition, NodeAnimation } from './types.js';
+import type { Asset, AudioClip, Composition, NodeAnimation } from './types.js';
 // A type only: it is erased when the module is built, so the main entry reaches no
 // historical module at run time (D42.8; `migration-entry.test.ts` walks the built output).
 import type { CompositionV01 } from './v0-1/composition-schema.js';
 import type { CompositionV02 } from './v0-2/composition-schema.js';
+import type { CompositionV03 } from './v0-3/composition-schema.js';
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -80,7 +83,7 @@ function checkAnimations(
 }
 
 export function validateSemantics(
-  composition: Composition | CompositionV01 | CompositionV02,
+  composition: Composition | CompositionV01 | CompositionV02 | CompositionV03,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -134,10 +137,31 @@ export function validateSemantics(
       }
     });
   });
-  composition.clips.forEach((clip, clipIndex) => {
+  const fadeErrors: ValidationError[] = [];
+  const clips: readonly (AudioClip | CompositionV03['clips'][number])[] = composition.clips;
+  clips.forEach((clip, clipIndex) => {
     const clipPath = pointer(pointer('', 'clips'), clipIndex);
     checkReference(clip.assetId, 'audio', pointer(clipPath, 'assetId'));
+    // The fields of 0.4 (D52.3); a clip of an earlier version has none of them.
+    if ('sourceStartUs' in clip) {
+      if (clip.sourceStartUs > Number.MAX_SAFE_INTEGER - clip.durationUs + 1) {
+        sourceErrors.push({
+          code: 'source-time-out-of-range',
+          path: pointer(clipPath, 'sourceStartUs'),
+          message: 'sourceStartUs + durationUs − 1 must be a safe integer.',
+        });
+      }
+      // Both fades are at most a safe integer each, so their sum is exact as a double
+      // only up to 2^53; compared as a difference, it never rounds.
+      if (clip.fadeInUs > clip.durationUs - clip.fadeOutUs) {
+        fadeErrors.push({
+          code: 'clip-fades-exceed-duration',
+          path: pointer(clipPath, 'fadeOutUs'),
+          message: 'fadeInUs + fadeOutUs must not exceed durationUs.',
+        });
+      }
+    }
   });
 
-  return [...errors, ...animationErrors, ...sourceErrors];
+  return [...errors, ...animationErrors, ...sourceErrors, ...fadeErrors];
 }

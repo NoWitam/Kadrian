@@ -830,6 +830,167 @@
     }
   },
   {
+    "name": "set_video_volume",
+    "description": "Sets how loud the sound of a video node is heard: a linear factor of the amplitude from 0 (silent) to 1 (the source as it is); it never amplifies. A video above 0 is heard from the source time it shows, and its asset must then have exactly one audio stream that starts with its picture, or rendering refuses it with audio-invalid. Refused with invalid-argument outside 0 to 1, unknown-node, and unsupported-node for a node that is not a video. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-video\",\"volume\":0.5}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets how loud the sound of a video is heard; 0 is silent.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only videos have a volume.",
+          "minLength": 1
+        },
+        "volume": {
+          "type": "number",
+          "description": "The linear factor of the amplitude, from 0 (silent) to 1 (the source as it is) inclusive; it never amplifies. A fraction is kept as it is, and -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "nodeId",
+        "volume"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_audio_clip",
+    "description": "Adds one complete audio clip at an index of the document's clips; every clip is heard, mixed by adding, whatever the order. The clip is given exactly as the document stores it: an ID unused in the document, type \"audio\", the ID of an audio asset the document declares (add one with add_asset first), startUs and durationUs (at least 1) in composition time, sourceStartUs (the source time heard at startUs; speed is 1), volume from 0 to 1, and fadeInUs and fadeOutUs, linear, which together take at most durationUs. Times are composition times in integer microseconds (1 second is 1000000), never rounded. The part after the end of the composition is cut; the source must be long enough for the part that is heard, or rendering refuses it with source-range-exceeded. Refused with index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":1,\"clip\":{\"id\":\"clip-voice\",\"type\":\"audio\",\"assetId\":\"asset-audio\",\"startUs\":2000000,\"durationUs\":3000000,\"sourceStartUs\":500000,\"volume\":0.8,\"fadeInUs\":250000,\"fadeOutUs\":1000000}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Inserts a complete audio clip into the document's clips.",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "description": "The clip's index in the document's clips after the insertion, from 0 to their number. Clips are mixed whatever their order.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "clip": {
+          "type": "object",
+          "description": "The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; volume; fadeInUs and fadeOutUs."
+        }
+      },
+      "required": [
+        "index",
+        "clip"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "remove_audio_clip",
+    "description": "Removes one audio clip; its asset stays declared. Refused with unknown-clip. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Removes one audio clip.",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The ID of an audio clip of the document.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "clipId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_clip_volume",
+    "description": "Sets the volume of one audio clip: a linear factor of the amplitude from 0 (silent) to 1 (the source as it is); it never amplifies. Refused with invalid-argument outside 0 to 1 and unknown-clip. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"volume\":0.5}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the volume of one audio clip; 0 is silent.",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The ID of an audio clip of the document.",
+          "minLength": 1
+        },
+        "volume": {
+          "type": "number",
+          "description": "The linear factor of the amplitude, from 0 (silent) to 1 (the source as it is) inclusive; it never amplifies. A fraction is kept as it is, and -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "clipId",
+        "volume"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_clip_fades",
+    "description": "Sets the linear fade-in and fade-out of one audio clip: the clip rises from silence to its volume over the first fadeInUs of its lifetime and falls back to silence over the last fadeOutUs, counted in its whole lifetime even where the composition cuts it. 0 is no fade, and both together take at most the clip's durationUs. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Refused with invalid-argument, unknown-clip, and invalid-result when the fades exceed the duration. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"fadeInUs\":500000,\"fadeOutUs\":2000000}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the linear fade-in and fade-out of one audio clip.",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The ID of an audio clip of the document.",
+          "minLength": 1
+        },
+        "fadeInUs": {
+          "type": "integer",
+          "description": "How long the clip rises from silence to its volume at its start, in integer microseconds of the lifetime of the clip, 0 for none; it is never rounded, and -0 becomes 0. Both fades together take at most the clip's durationUs.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fadeOutUs": {
+          "type": "integer",
+          "description": "How long the clip falls from its volume to silence at its end, in integer microseconds of the lifetime of the clip, 0 for none; it is never rounded, and -0 becomes 0. Both fades together take at most the clip's durationUs.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "clipId",
+        "fadeInUs",
+        "fadeOutUs"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_clip_source",
+    "description": "Points one audio clip at an audio asset the document declares, which may be the one it has, and sets the source time heard at the clip's start; it then plays at speed 1 and keeps its lifetime. Times are composition times in integer microseconds (1 second is 1000000), never rounded. Source times count from the first sample. To move a clip in time, run remove_audio_clip and add_audio_clip in one transaction. Refused with invalid-argument, unknown-clip, unknown-asset, and asset-type-mismatch when the asset is not audio. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"assetId\":\"asset-audio\",\"sourceStartUs\":1000000}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Points one audio clip at an audio asset and the source time it plays from; its lifetime stays.",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The ID of an audio clip of the document.",
+          "minLength": 1
+        },
+        "assetId": {
+          "type": "string",
+          "description": "The ID of an audio asset the document declares; it may be the one it has.",
+          "minLength": 1
+        },
+        "sourceStartUs": {
+          "type": "integer",
+          "description": "The source time heard at the start of the clip, in integer microseconds from the first sample; it is never rounded, and -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "clipId",
+        "assetId",
+        "sourceStartUs"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "run_transaction",
     "description": "Applies several edit tools in order as one step: all of them or none, and one undo reverts them all. Each call names an edit tool of this catalogue (not describe_document or run_transaction) and passes that tool's arguments; a later call sees the document the earlier ones produced. When one call is refused, nothing changes, and the error names the index of that call. Returns the edited document and the IDs the calls created.\n\nExample arguments: {\"calls\":[{\"name\":\"set_node_position\",\"arguments\":{\"nodeId\":\"node-title\",\"position\":{\"x\":120,\"y\":240}}},{\"name\":\"set_node_opacity\",\"arguments\":{\"nodeId\":\"node-title\",\"opacity\":0.5}}]}",
     "inputSchema": {
@@ -874,7 +1035,13 @@
                   "set_node_lifetime",
                   "set_node_fit",
                   "set_video_asset",
-                  "set_video_source"
+                  "set_video_source",
+                  "set_video_volume",
+                  "add_audio_clip",
+                  "remove_audio_clip",
+                  "set_clip_volume",
+                  "set_clip_fades",
+                  "set_clip_source"
                 ]
               },
               "arguments": {
