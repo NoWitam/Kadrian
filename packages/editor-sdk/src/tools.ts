@@ -17,8 +17,15 @@ import {
   addAudioClipArgumentsSchema,
   addKeyframeArgumentsSchema,
   addNodeArgumentsSchema,
+  addSceneArgumentsSchema,
+  addSceneAudioClipArgumentsSchema,
   deepFreeze,
   duplicateNodeArgumentsSchema,
+  duplicateSceneArgumentsSchema,
+  moveNodeToSceneArgumentsSchema,
+  removeSceneArgumentsSchema,
+  reorderSceneArgumentsSchema,
+  setSceneDurationArgumentsSchema,
   moveKeyframeArgumentsSchema,
   removeAnimationArgumentsSchema,
   removeAssetArgumentsSchema,
@@ -50,6 +57,8 @@ import {
   type AddAudioClipArgumentsSchema,
   type AddKeyframeArgumentsSchema,
   type AddNodeArgumentsSchema,
+  type AddSceneArgumentsSchema,
+  type AddSceneAudioClipArgumentsSchema,
   type ClosedObjectSchema,
   type Command,
 } from './commands.js';
@@ -67,7 +76,9 @@ export type CommandArgumentsSchema =
   | AddNodeArgumentsSchema
   | AddAnimationArgumentsSchema
   | AddKeyframeArgumentsSchema
-  | AddAudioClipArgumentsSchema;
+  | AddAudioClipArgumentsSchema
+  | AddSceneArgumentsSchema
+  | AddSceneAudioClipArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -93,7 +104,10 @@ export type AnyCommandToolMetadata = {
 }[Command['type']];
 
 const TIME_US =
-  'Times are composition times in integer microseconds (1 second is 1000000), never rounded.';
+  "Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time.";
+
+const SCENES =
+  "Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, and the composition's durationUs is the sum of the scenes' durations, which every scene command keeps.";
 
 const PIXELS = 'Lengths and coordinates are composition pixels, rounded to integers.';
 
@@ -121,7 +135,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into the scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -282,7 +296,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setVideoAssetArgumentsSchema,
   },
   SetVideoSource: {
-    description: `Sets the source time a video node shows at the start of its lifetime; it then plays at speed 1. ${TIME_US} Source times count from the video's first frame. The node samples sourceStartUs up to sourceStartUs plus the part of its lifetime inside the composition, which must lie inside the video: describe_document reports its sourceDurationUs when the host knows it. To trim the start of a clip by d, add d to startUs and sourceStartUs and subtract it from durationUs in one transaction. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a video, media-facts-missing, and source-range-exceeded.`,
+    description: `Sets the source time a video node shows at the start of its lifetime; it then plays at speed 1. ${TIME_US} Source times count from the video's first frame. The node samples sourceStartUs up to sourceStartUs plus the part of its lifetime inside its scene, which must lie inside the video: describe_document reports its sourceDurationUs when the host knows it. To trim the start of a clip by d, add d to startUs and sourceStartUs and subtract it from durationUs in one transaction. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a video, media-facts-missing, and source-range-exceeded.`,
     example: { nodeId: 'node-video', sourceStartUs: 2_000_000 },
     argumentsSchema: setVideoSourceArgumentsSchema,
   },
@@ -310,7 +324,8 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: addAudioClipArgumentsSchema,
   },
   RemoveAudioClip: {
-    description: 'Removes one audio clip; its asset stays declared. Refused with unknown-clip.',
+    description:
+      "Removes one audio clip, of the composition's clips or of a scene's; its asset stays declared. Refused with unknown-clip.",
     example: { clipId: 'clip-audio' },
     argumentsSchema: removeAudioClipArgumentsSchema,
   },
@@ -321,7 +336,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setClipVolumeArgumentsSchema,
   },
   SetClipFades: {
-    description: `Sets the linear fade-in and fade-out of one audio clip: the clip rises from silence to its volume over the first fadeInUs of its lifetime and falls back to silence over the last fadeOutUs, counted in its whole lifetime even where the composition cuts it. 0 is no fade, and both together take at most the clip's durationUs. ${TIME_US} Refused with invalid-argument, unknown-clip, and invalid-result when the fades exceed the duration.`,
+    description: `Sets the linear fade-in and fade-out of one audio clip: the clip rises from silence to its volume over the first fadeInUs of its lifetime and falls back to silence over the last fadeOutUs, counted in its whole lifetime even where its scene or the composition cuts it. 0 is no fade, and both together take at most the clip's durationUs. ${TIME_US} Refused with invalid-argument, unknown-clip, and invalid-result when the fades exceed the duration.`,
     example: { clipId: 'clip-audio', fadeInUs: 500_000, fadeOutUs: 2_000_000 },
     argumentsSchema: setClipFadesArgumentsSchema,
   },
@@ -329,6 +344,71 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Points one audio clip at an audio asset the document declares, which may be the one it has, and sets the source time heard at the clip's start; it then plays at speed 1 and keeps its lifetime. ${TIME_US} Source times count from the first sample. To move a clip in time, run remove_audio_clip and add_audio_clip in one transaction. The part heard must lie inside the source: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with invalid-argument, unknown-clip, unknown-asset, asset-type-mismatch when the asset is not audio, media-facts-missing, and source-range-exceeded.`,
     example: { clipId: 'clip-audio', assetId: 'asset-audio', sourceStartUs: 1_000_000 },
     argumentsSchema: setClipSourceArgumentsSchema,
+  },
+  AddScene: {
+    description: `Inserts one complete scene at an index of the sequence. ${SCENES} The scene is given exactly as the document stores it: an ID unused in the document, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), and its audio clips (each as add_scene_audio_clip takes one), every ID unused in the document. ${TIME_US} Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the scene is not one the document can hold; a scene with video or sound also with media-facts-missing and source-range-exceeded.`,
+    example: {
+      index: 1,
+      scene: {
+        id: 'scene-outro',
+        durationUs: 3_000_000,
+        nodes: [
+          {
+            id: 'node-outro-background',
+            type: 'background',
+            startUs: 0,
+            durationUs: 3_000_000,
+            color: '#000000',
+          },
+        ],
+        clips: [],
+      },
+    },
+    argumentsSchema: addSceneArgumentsSchema,
+  },
+  RemoveScene: {
+    description: `Removes one scene with its nodes and clips; its assets stay declared. ${SCENES} Every later scene starts earlier by the removed scene's duration. Refused with unknown-scene, and last-scene for the only scene of the document.`,
+    example: { sceneId: 'scene-outro' },
+    argumentsSchema: removeSceneArgumentsSchema,
+  },
+  DuplicateScene: {
+    description: `Copies one scene, with its nodes, animations, and clips, directly after it. ${SCENES} The copy's IDs derive from newSceneId: the node at index i becomes <newSceneId>-n<i>, its child at index j <newSceneId>-n<i>-c<j>, an animation <owner>-a-<property>, and the clip at index k <newSceneId>-k<k>. Refused with invalid-argument for an ID not of the document's form, unknown-scene, id-in-use with the derived IDs already taken, and invalid-result; a scene with video or sound also with media-facts-missing and source-range-exceeded.`,
+    example: { sceneId: 'scene-main', newSceneId: 'scene-again' },
+    argumentsSchema: duplicateSceneArgumentsSchema,
+  },
+  ReorderScene: {
+    description: `Moves one scene to another index of the sequence: 0 is the first scene. ${SCENES} Nothing inside the scene moves, since its times are its own. Refused with unknown-scene and index-out-of-range.`,
+    example: { sceneId: 'scene-outro', index: 0 },
+    argumentsSchema: reorderSceneArgumentsSchema,
+  },
+  SetSceneDuration: {
+    description: `Sets how long one scene lasts. ${SCENES} Every later scene starts earlier or later by the change, and whatever in the scene lies past its new end is cut; nothing moves inside it. ${TIME_US} Refused with invalid-argument, unknown-scene, invalid-result when the composition would last too long, and, when a video or sound would then be heard further, media-facts-missing and source-range-exceeded.`,
+    example: { sceneId: 'scene-main', durationUs: 8_000_000 },
+    argumentsSchema: setSceneDurationArgumentsSchema,
+  },
+  MoveNodeToScene: {
+    description: `Moves one node of a scene, with its animations and, for a group, its children, into the nodes of a scene at a layer index: 0 is the bottom layer. Its startUs, durationUs, and keyframe times stay the same scene times, so it plays at the same moment of its new scene. Within its own scene it acts as reorder_node. A child of a group moves only with its group. Refused with unknown-node, unsupported-node for a child of a group, unknown-scene, index-out-of-range, and, when a video would then be seen or heard further, media-facts-missing and source-range-exceeded.`,
+    example: { nodeId: 'node-title', sceneId: 'scene-outro', index: 1 },
+    argumentsSchema: moveNodeToSceneArgumentsSchema,
+  },
+  AddSceneAudioClip: {
+    description: `Adds one complete audio clip at an index of a scene's clips, in the time of that scene: it moves with its scene, which cuts it at its end. The clip is given as add_audio_clip takes one: an ID unused in the document, type "audio", the ID of an audio asset, startUs and durationUs in scene time, sourceStartUs, volume from 0 to 1, fadeInUs and fadeOutUs. ${TIME_US} The source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with unknown-scene, index-out-of-range, id-in-use, invalid-result, media-facts-missing, and source-range-exceeded.`,
+    example: {
+      sceneId: 'scene-main',
+      index: 0,
+      clip: {
+        id: 'clip-scene-voice',
+        type: 'audio',
+        assetId: 'asset-audio',
+        startUs: 1_000_000,
+        durationUs: 2_000_000,
+        sourceStartUs: 0,
+        volume: 1,
+        fadeInUs: 0,
+        fadeOutUs: 500_000,
+      },
+    },
+    argumentsSchema: addSceneAudioClipArgumentsSchema,
   },
 });
 

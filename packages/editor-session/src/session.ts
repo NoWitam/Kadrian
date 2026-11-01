@@ -216,8 +216,11 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     await player.load(initial, resolveAsset);
     // The sounds the document hears, after the load: a Player with sound decoded them for it (D53).
     const heard = new Set(nodes.filter(({ volume }) => volume > 0).map(({ assetId }) => assetId));
+    // The composition's clips and every scene's (D54.1).
     const clipped = new Set(
-      initial.clips.filter(({ volume }) => volume > 0).map(({ assetId }) => assetId),
+      [...initial.clips, ...initial.scenes.flatMap((scene) => scene.clips)]
+        .filter(({ volume }) => volume > 0)
+        .map(({ assetId }) => assetId),
     );
     for (const asset of initial.assets) {
       if (asset.type === 'video' && heard.has(asset.id)) await readVideo(asset, true);

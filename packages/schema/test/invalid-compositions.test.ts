@@ -19,6 +19,7 @@ const ERROR_CODES = [
   'duplicate-animation-target',
   'source-time-out-of-range',
   'clip-fades-exceed-duration',
+  'composition-duration-mismatch',
 ] as const;
 
 describe('negative fixtures', () => {

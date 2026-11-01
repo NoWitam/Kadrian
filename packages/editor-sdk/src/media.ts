@@ -65,7 +65,7 @@ function sampledVideos(document: ValidatedComposition): SampledVideo[] {
         videos.push({
           nodeId: member.id,
           contentHash: hashes.get(member.assetId) ?? '',
-          range: sampledSourceRange(member, document.durationUs),
+          range: sampledSourceRange(member, scene.durationUs),
         });
       }
     }
@@ -121,7 +121,7 @@ function readsNothingNew(a: AudioPlanEntry, b: AudioPlanEntry, hashes: [string, 
  * Checks every video node of `after` whose sampled source range or asset
  * differs from the node with its ID in `before`, or that `before` does not
  * have (D49.6). A node that samples nothing — its lifetime starts at or after
- * the end of the composition — needs no facts. Throws `media-facts-missing`
+ * the end of its scene (D54.3) — needs no facts. Throws `media-facts-missing`
  * when the host has no facts for a checked asset, and `source-range-exceeded`
  * when a range does not lie in `[0, durationUs)` of its source; the details
  * name the nodes, in document order.

@@ -13,7 +13,12 @@ import { NODE_ATTRIBUTE, SCENE_ATTRIBUTE, STAGE_ATTRIBUTE } from './mount.js';
 export interface MountedNode {
   readonly element: HTMLElement;
   readonly state: NodeState;
+  /** The time of the node's scene, at which the state was evaluated (D49.3, D54.3). */
+  readonly sceneTimeUs: number;
 }
+
+/** The declarations `renderState` writes on a node; the mount writes none of them. */
+const WRITTEN = ['transform', 'opacity', 'visibility'] as const;
 
 function mismatch(message: string): never {
   throw new RenderError('state-mismatch', message);
@@ -33,18 +38,23 @@ function matchChildren(parent: Element, attribute: string, ids: readonly string[
 }
 
 /** Collects every write of one node and its children; nothing is written yet. */
-function plan(element: HTMLElement, state: NodeState, writes: MountedNode[]): void {
+function plan(
+  element: HTMLElement,
+  state: NodeState,
+  sceneTimeUs: number,
+  writes: MountedNode[],
+): void {
   switch (state.type) {
     case 'background':
       // No transform, but a lifetime like every node (D42.1).
-      writes.push({ element, state });
+      writes.push({ element, state, sceneTimeUs });
       return;
     case 'group': {
-      writes.push({ element, state });
+      writes.push({ element, state, sceneTimeUs });
       const ids = state.children.map((child) => child.id);
       matchChildren(element, NODE_ATTRIBUTE, ids).forEach((child, index) => {
         const childState = state.children[index];
-        if (childState !== undefined) plan(child, childState, writes);
+        if (childState !== undefined) plan(child, childState, sceneTimeUs, writes);
       });
       return;
     }
@@ -52,42 +62,82 @@ function plan(element: HTMLElement, state: NodeState, writes: MountedNode[]): vo
     case 'text':
     case 'custom-html':
     case 'video':
-      writes.push({ element, state });
+      writes.push({ element, state, sceneTimeUs });
       return;
     default:
       unsupportedNode(state);
   }
 }
 
-/**
- * Checks that `root` holds the tree that `mountComposition` built for the
- * scenes and nodes of `state` — the same IDs, in the same order and hierarchy —
- * and returns every node with its element, in document order. A mismatch throws
- * a `RenderError`; nothing is written.
- */
-export function mountedNodes(root: Element, state: CompositionState): MountedNode[] {
+/** A mounted scene, and whether the state evaluates it. */
+interface MountedScene {
+  readonly element: HTMLElement;
+  readonly evaluated: boolean;
+}
+
+/** The mounted tree checked against a state: every scene element, and the nodes of the evaluated ones. */
+interface MountedTree {
+  readonly scenes: readonly MountedScene[];
+  readonly nodes: readonly MountedNode[];
+}
+
+function mountedTree(root: Element, state: CompositionState): MountedTree {
   const stage = root.firstElementChild;
   if (root.childElementCount !== 1 || stage?.getAttribute(STAGE_ATTRIBUTE) !== '') {
     throw new RenderError('not-mounted', 'The root holds no tree built by mountComposition.');
   }
-  const writes: MountedNode[] = [];
-  const scenes = matchChildren(
-    stage,
-    SCENE_ATTRIBUTE,
-    state.scenes.map((scene) => scene.id),
-  );
-  scenes.forEach((sceneElement, index) => {
-    const nodes = state.scenes[index]?.nodes ?? [];
+  // Every scene of the document is mounted; the state lists the evaluated ones, in
+  // the same order (D54.3), so its IDs must be found among the mounted ones in order.
+  const elements = [...stage.children];
+  const mountedIds = elements.map((child) => child.getAttribute(SCENE_ATTRIBUTE));
+  const stateIds = state.scenes.map((scene) => scene.id);
+  const positions: number[] = [];
+  let from = 0;
+  for (const id of stateIds) {
+    const at = mountedIds.indexOf(id, from);
+    if (at < 0) {
+      mismatch(
+        `The mounted tree has the scenes ${JSON.stringify(mountedIds)}, which do not hold ${JSON.stringify(stateIds)} in this order.`,
+      );
+    }
+    positions.push(at);
+    from = at + 1;
+  }
+  if (mountedIds.some((id) => id === null)) {
+    mismatch(`The mounted tree has ${JSON.stringify(mountedIds)} where scenes belong.`);
+  }
+  const nodes: MountedNode[] = [];
+  state.scenes.forEach((scene, index) => {
+    const sceneElement = elements[positions[index] ?? -1];
+    if (sceneElement === undefined) return;
     matchChildren(
       sceneElement,
       NODE_ATTRIBUTE,
-      nodes.map((node) => node.id),
+      scene.nodes.map((node) => node.id),
     ).forEach((element, nodeIndex) => {
-      const node = nodes[nodeIndex];
-      if (node !== undefined) plan(element, node, writes);
+      const node = scene.nodes[nodeIndex];
+      if (node !== undefined) plan(element, node, scene.timeUs, nodes);
     });
   });
-  return writes;
+  return {
+    // An element that carries the attribute of this renderer is one of its HTML elements.
+    scenes: (elements as HTMLElement[]).map((element, at) => ({
+      element,
+      evaluated: positions.includes(at),
+    })),
+    nodes,
+  };
+}
+
+/**
+ * Checks that `root` holds the tree that `mountComposition` built for the
+ * scenes and nodes of `state` — the evaluated scenes among the mounted ones in
+ * their order, and their nodes with the same IDs, in the same order and
+ * hierarchy — and returns every node of the evaluated scenes with its element,
+ * in document order. A mismatch throws a `RenderError`; nothing is written.
+ */
+export function mountedNodes(root: Element, state: CompositionState): MountedNode[] {
+  return [...mountedTree(root, state).nodes];
 }
 
 /**
@@ -104,9 +154,27 @@ export function mountedNodes(root: Element, state: CompositionState): MountedNod
  * hidden group hides its children whatever their own state says, and a tree
  * whose nodes are all active carries no declaration at all. Both branches write
  * on every call, so nothing depends on what an earlier call left.
+ *
+ * A scene that the state does not evaluate gets `visibility: hidden` on its
+ * element, which hides every node in it whatever was written there before; an
+ * evaluated one loses the declaration (D54.3). The nodes of a scene that is
+ * not evaluated lose what an earlier call wrote on them, so that the tree is
+ * that of a fresh mount rendered at this state, whatever came before.
  */
 export function renderState(root: Element, state: CompositionState): void {
-  for (const { element, state: node } of mountedNodes(root, state)) {
+  const tree = mountedTree(root, state);
+  for (const { element, evaluated } of tree.scenes) {
+    if (evaluated) {
+      element.style.removeProperty('visibility');
+      continue;
+    }
+    element.style.setProperty('visibility', 'hidden');
+    // Back to what the mount wrote, so the tree never keeps an earlier instant.
+    for (const node of element.querySelectorAll<HTMLElement>(`[${NODE_ATTRIBUTE}]`)) {
+      for (const property of WRITTEN) node.style.removeProperty(property);
+    }
+  }
+  for (const { element, state: node } of tree.nodes) {
     if (node.type !== 'background') {
       element.style.setProperty('transform', cssTransform(node));
       element.style.setProperty('opacity', cssNumber(node.opacity));

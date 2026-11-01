@@ -1,12 +1,13 @@
 /**
- * `migrateComposition` and the steps 0.1 → 0.2, 0.2 → 0.3, and 0.3 → 0.4
- * (D35.2–D35.5, D42.7, D42.8, D50.7, D52.6).
+ * `migrateComposition` and the steps 0.1 → 0.2, 0.2 → 0.3, 0.3 → 0.4, and
+ * 0.4 → 0.5 (D35.2–D35.5, D42.7, D42.8, D50.7, D52.6, D54.4).
  *
  * Every expected document here was written by hand and none by a step: the
- * pairs of `@kadrion/test-fixtures`, and the reference composition of 0.4 beside
- * its frozen 0.1, 0.2, and 0.3 originals. A pair that has nothing a later step
- * changes reaches 0.4 by its version alone, which the test states by spreading
- * the hand-written document with `schemaVersion: '0.4'` in the key's own place. Nothing the step produces is used as its own
+ * pairs of `@kadrion/test-fixtures`, and the reference composition of 0.5 beside
+ * its frozen 0.1 to 0.4 originals. A pair that has nothing the step to 0.4
+ * changes reaches 0.4 by its version alone, and 0.5 by its version and the
+ * duration and the clips of its one scene, which the test states by hand
+ * (`as05`). Nothing the step produces is used as its own
  * expectation, and documents are compared as JSON text, so the order of the keys
  * is part of every comparison. What the repository can show is the frozen
  * content — the 0.1 files are byte for byte those of the last build of 0.1; in
@@ -20,13 +21,16 @@ import {
   invalidCompositionCasesV01,
   invalidCompositionCasesV02,
   invalidCompositionCasesV03,
+  invalidCompositionCasesV04,
   migrationPair01To02,
   migrationPair02To03,
   migrationPair03To04,
+  migrationPair04To05,
   referenceComposition,
   referenceCompositionV01,
   referenceCompositionV02,
   referenceCompositionV03,
+  referenceCompositionV04,
 } from '@kadrion/test-fixtures';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -36,9 +40,11 @@ import { migrateThrough, type VersionEntry } from '../src/migration/run.js';
 import { step01To02 } from '../src/migration/step-0-1-to-0-2.js';
 import { step02To03 } from '../src/migration/step-0-2-to-0-3.js';
 import { step03To04 } from '../src/migration/step-0-3-to-0-4.js';
+import { step04To05 } from '../src/migration/step-0-4-to-0-5.js';
 import type { CompositionV01 } from '../src/v0-1/composition-schema.js';
 import type { CompositionV02 } from '../src/v0-2/composition-schema.js';
 import type { CompositionV03 } from '../src/v0-3/composition-schema.js';
+import type { CompositionV04 } from '../src/v0-4/composition-schema.js';
 import { applyPatch } from './apply-patch.js';
 
 /** `render.compositionHash` of the golden manifest while the reference was a 0.1 document. */
@@ -97,9 +103,22 @@ function copy(value: unknown): Record<string, unknown> {
   return structuredClone(value) as Record<string, unknown>;
 }
 
-/** A hand-written document of 0.3 that nothing of the step to 0.4 touches, as 0.4 (D52.6). */
-function as04(document: unknown): unknown {
-  return { ...(document as object), schemaVersion: '0.4' };
+/**
+ * A hand-written document of 0.3 that nothing of the step to 0.4 touches, as
+ * 0.5 (D52.6, D54.4): its version, and its one scene, whose keys must be
+ * exactly `id` and `nodes`, with the composition's duration after its `id` and
+ * no clips after its nodes.
+ */
+function as05(document: unknown): unknown {
+  const source = document as { durationUs: number; scenes: { id: string; nodes: unknown }[] };
+  return {
+    ...source,
+    schemaVersion: '0.5',
+    scenes: source.scenes.map((scene) => {
+      expect(Object.keys(scene)).toEqual(['id', 'nodes']);
+      return { id: scene.id, durationUs: source.durationUs, nodes: scene.nodes, clips: [] };
+    }),
+  };
 }
 
 describe('the evidence of the step, written before it (D35.5)', () => {
@@ -128,8 +147,14 @@ describe('the evidence of the step, written before it (D35.5)', () => {
     expect(ids(end).every((id) => ids(before).includes(id))).toBe(true);
   });
 
+  it('starts the pair of 0.4 → 0.5 where the pair of 0.3 → 0.4 ends', () => {
+    expect(JSON.stringify(migrationPair04To05.before)).toBe(
+      JSON.stringify(migrationPair03To04.after),
+    );
+  });
+
   it('holds documents the validators tell apart', () => {
-    for (const current of [referenceComposition, migrationPair03To04.after]) {
+    for (const current of [referenceComposition, migrationPair04To05.after]) {
       expect(validateComposition(current).ok).toBe(true);
     }
     for (const older of [
@@ -140,6 +165,8 @@ describe('the evidence of the step, written before it (D35.5)', () => {
       referenceCompositionV03,
       migrationPair02To03.after,
       migrationPair03To04.before,
+      referenceCompositionV04,
+      migrationPair03To04.after,
     ]) {
       const result = validateComposition(older);
       expect(result.ok ? [] : result.errors.map(({ code }) => code)).toEqual([
@@ -162,12 +189,12 @@ describe('the step 0.1 → 0.2 (D42.7)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair01To02.before, as04(migrationPair02To03.after)],
+    ['the hand-written pair', migrationPair01To02.before, as05(migrationPair02To03.after)],
     ['the reference composition', referenceCompositionV01, referenceComposition],
-  ])('carries %s through every step to its hand-written result of 0.4', (_, before, after) => {
+  ])('carries %s through every step to its hand-written result of 0.5', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
-    expect(result.versions).toEqual(['0.1', '0.2', '0.3', '0.4']);
+    expect(result.versions).toEqual(['0.1', '0.2', '0.3', '0.4', '0.5']);
     expect(validateComposition(result.composition).ok).toBe(true);
   });
 
@@ -211,6 +238,8 @@ describe('the step 0.1 → 0.2 (D42.7)', () => {
       referenceCompositionV02,
       referenceCompositionV03,
       migrationPair03To04.before,
+      referenceCompositionV04,
+      migrationPair04To05.before,
     ]) {
       const { composition } = success(migrateComposition(before));
       expect(idsOf(composition)).toEqual(idsOf(before));
@@ -261,12 +290,12 @@ describe('the step 0.2 → 0.3 (D50.7)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair02To03.before, as04(migrationPair02To03.after)],
+    ['the hand-written pair', migrationPair02To03.before, as05(migrationPair02To03.after)],
     ['the reference composition', referenceCompositionV02, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.4', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.5', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
-    expect(result.versions).toEqual(['0.2', '0.3', '0.4']);
+    expect(result.versions).toEqual(['0.2', '0.3', '0.4', '0.5']);
   });
 
   it('gives every image, at any depth, fit "fill" as its last key, and nothing else', () => {
@@ -316,19 +345,25 @@ describe('the step 0.2 → 0.3 (D50.7)', () => {
 describe('the step 0.3 → 0.4 (D52.6)', () => {
   it.each([
     ['the hand-written pair', migrationPair03To04.before, migrationPair03To04.after],
-    ['the reference composition', referenceCompositionV03, referenceComposition],
+    ['the reference composition', referenceCompositionV03, referenceCompositionV04],
   ])(
     'carries %s to its hand-written result, key for key and in their order',
     (_, before, after) => {
-      const result = success(migrateComposition(before));
-      expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
-      expect(result.versions).toEqual(['0.3', '0.4']);
       expect(JSON.stringify(step03To04(before as CompositionV03))).toBe(JSON.stringify(after));
     },
   );
 
+  it.each([
+    ['the hand-written pair', migrationPair03To04.before, migrationPair04To05.after],
+    ['the reference composition', referenceCompositionV03, referenceComposition],
+  ])('carries %s on to its hand-written result of 0.5', (_, before, after) => {
+    const result = success(migrateComposition(before));
+    expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
+    expect(result.versions).toEqual(['0.3', '0.4', '0.5']);
+  });
+
   it('silences every video at any depth and gives every clip its source start, unity volume, and no fades, as its last keys', () => {
-    const { composition } = success(migrateComposition(migrationPair03To04.before));
+    const composition = step03To04(migrationPair03To04.before as CompositionV03) as CompositionV04;
     const nodes = composition.scenes.flatMap((scene) =>
       scene.nodes.flatMap((node) => [node, ...(node.type === 'group' ? node.children : [])]),
     );
@@ -373,7 +408,7 @@ describe('the step 0.3 → 0.4 (D52.6)', () => {
       JSON.stringify(value)
         .match(/"(?:startUs|durationUs|timeUs)":-?[0-9.e+]+/g)
         ?.map((entry) => Number(entry.split(':')[1])) ?? [];
-    const { composition } = success(migrateComposition(referenceCompositionV03));
+    const composition = step03To04(referenceCompositionV03 as CompositionV03);
     expect(times(composition)).toEqual(times(referenceCompositionV03));
     expect(times(composition).length).toBeGreaterThan(10);
   });
@@ -388,12 +423,74 @@ describe('the step 0.3 → 0.4 (D52.6)', () => {
   });
 });
 
+describe('the step 0.4 → 0.5 (D54.4)', () => {
+  it.each([
+    ['the hand-written pair', migrationPair04To05.before, migrationPair04To05.after],
+    ['the reference composition', referenceCompositionV04, referenceComposition],
+  ])(
+    'carries %s to its hand-written result, key for key and in their order',
+    (_, before, after) => {
+      const result = success(migrateComposition(before));
+      expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
+      expect(result.versions).toEqual(['0.4', '0.5']);
+      expect(JSON.stringify(step04To05(before as CompositionV04))).toBe(JSON.stringify(after));
+    },
+  );
+
+  it("gives the one scene the composition's duration after its id and no clips as its last key, and nothing else", () => {
+    const { composition } = success(migrateComposition(migrationPair04To05.before));
+    expect(composition.scenes).toHaveLength(1);
+    for (const scene of composition.scenes) {
+      const keys = Object.keys(scene);
+      expect(keys[keys.indexOf('id') + 1]).toBe('durationUs');
+      expect(keys.at(-1)).toBe('clips');
+      expect(scene.durationUs).toBe(composition.durationUs);
+      expect(scene.clips).toEqual([]);
+    }
+    const stripped = JSON.parse(
+      JSON.stringify(composition, function (this: unknown, key, value: unknown) {
+        // Only the two keys of a scene are new; every node keeps its own durationUs.
+        const holder = this as Record<string, unknown> | undefined;
+        const isScene = holder !== undefined && 'nodes' in holder;
+        return isScene && (key === 'durationUs' || key === 'clips') ? undefined : value;
+      }),
+    ) as Record<string, unknown>;
+    expect(JSON.stringify({ ...stripped, schemaVersion: '0.4' })).toBe(
+      JSON.stringify(migrationPair04To05.before),
+    );
+  });
+
+  it('changes no time value of the reference composition (D49.7)', () => {
+    const times = (value: unknown): number[] =>
+      JSON.stringify(value, (key, child: unknown) => (key === 'scenes' ? undefined : child))
+        .match(/"(?:startUs|durationUs|timeUs|sourceStartUs)":-?[0-9.e+]+/g)
+        ?.map((entry) => Number(entry.split(':')[1])) ?? [];
+    const nodeTimes = (value: unknown): number[] =>
+      JSON.stringify((value as { scenes: { nodes: unknown }[] }).scenes.map(({ nodes }) => nodes))
+        .match(/"(?:startUs|durationUs|timeUs|sourceStartUs)":-?[0-9.e+]+/g)
+        ?.map((entry) => Number(entry.split(':')[1])) ?? [];
+    const composition = step04To05(referenceCompositionV04 as CompositionV04);
+    expect(times(composition)).toEqual(times(referenceCompositionV04));
+    expect(nodeTimes(composition)).toEqual(nodeTimes(referenceCompositionV04));
+    expect(nodeTimes(composition).length).toBeGreaterThan(10);
+  });
+
+  it('never writes its input, and shares no object with it at any depth', () => {
+    const input = copy(migrationPair04To05.before);
+    const text = JSON.stringify(input);
+    const result = step04To05(input as unknown as CompositionV04);
+    expect(JSON.stringify(input)).toBe(text);
+    const mine = objectsOf(input);
+    expect([...objectsOf(result)].filter((object) => mine.has(object))).toEqual([]);
+  });
+});
+
 describe('a document that is current already (D42.8)', () => {
   it('is validated and returned as a new tree, with the one version it went through', () => {
     const input = copy(referenceComposition);
     const text = JSON.stringify(input);
     const result = success(migrateComposition(input));
-    expect(result.versions).toEqual(['0.4']);
+    expect(result.versions).toEqual(['0.5']);
     expect(result.composition).not.toBe(input);
     expect(JSON.stringify(result.composition)).toBe(text);
     expect(JSON.stringify(input)).toBe(text);
@@ -456,11 +553,22 @@ function keepingVersion<Case extends { readonly patch: readonly { readonly path:
 }
 
 describe('an input that is invalid under its own version (D35.3, D35.4)', () => {
-  it('has frozen corpora of 0.1, 0.2, and 0.3 to be judged by', () => {
+  it('has frozen corpora of 0.1 to 0.4 to be judged by', () => {
     expect(keepingVersion(invalidCompositionCasesV01).length).toBeGreaterThan(35);
     expect(keepingVersion(invalidCompositionCasesV02).length).toBeGreaterThan(45);
     expect(keepingVersion(invalidCompositionCasesV03).length).toBeGreaterThan(50);
+    expect(keepingVersion(invalidCompositionCasesV04).length).toBeGreaterThan(60);
   });
+
+  it.each(keepingVersion(invalidCompositionCasesV04))(
+    'is refused as 0.4 with exactly the errors 0.4 had: $name',
+    ({ patch, expectedErrors }) => {
+      const result = failure(migrateComposition(applyPatch(referenceCompositionV04, patch)));
+      expect(result.version).toBe('0.4');
+      expect(result.versions).toEqual(['0.4']);
+      expect(result.errors.map(({ code, path }) => ({ code, path }))).toEqual(expectedErrors);
+    },
+  );
 
   it.each(keepingVersion(invalidCompositionCasesV03))(
     'is refused as 0.3 with exactly the errors 0.3 had: $name',
@@ -493,11 +601,11 @@ describe('an input that is invalid under its own version (D35.3, D35.4)', () => 
   );
 
   it.each(keepingVersion(invalidCompositionCases))(
-    'is refused as 0.4 with the errors of validateComposition: $name',
+    'is refused as 0.5 with the errors of validateComposition: $name',
     ({ patch, expectedErrors }) => {
       const result = failure(migrateComposition(applyPatch(referenceComposition, patch)));
-      expect(result.version).toBe('0.4');
-      expect(result.versions).toEqual(['0.4']);
+      expect(result.version).toBe('0.5');
+      expect(result.versions).toEqual(['0.5']);
       expect(result.errors.map(({ code, path }) => ({ code, path }))).toEqual(expectedErrors);
     },
   );
@@ -530,8 +638,20 @@ describe('an input that is invalid under its own version (D35.3, D35.4)', () => 
     ]);
   });
 
-  it('judges a 0.3 document by the schema of 0.3: the fields of a clip of 0.4 are unknown there', () => {
+  it('judges a 0.4 document by the schema of 0.4: the fields of a scene of 0.5 are unknown there', () => {
     const input = copy(referenceComposition);
+    input['schemaVersion'] = '0.4';
+    const result = failure(migrateComposition(input));
+    expect(result.version).toBe('0.4');
+    expect(result.versions).toEqual(['0.4']);
+    expect(result.errors.map(({ code, path }) => ({ code, path }))).toEqual([
+      { code: 'unknown-field', path: '/scenes/0/clips' },
+      { code: 'unknown-field', path: '/scenes/0/durationUs' },
+    ]);
+  });
+
+  it('judges a 0.3 document by the schema of 0.3: the fields of a clip of 0.4 are unknown there', () => {
+    const input = copy(referenceCompositionV04);
     input['schemaVersion'] = '0.3';
     const result = failure(migrateComposition(input));
     expect(result.version).toBe('0.3');
@@ -570,7 +690,7 @@ describe('a version nobody knows (D42.8)', () => {
     ['an object without a version', { width: 1 }],
     ['the number 0.1', { schemaVersion: 0.1 }],
     ['null as the version', { schemaVersion: null }],
-    ['a future version', { ...copy(referenceComposition), schemaVersion: '0.5' }],
+    ['a future version', { ...copy(referenceComposition), schemaVersion: '0.6' }],
     ['the empty string', { schemaVersion: '' }],
     ['"constructor"', { schemaVersion: 'constructor' }],
     ['"__proto__"', { schemaVersion: '__proto__' }],
@@ -635,17 +755,18 @@ describe('the validation of the target is always enforced (D35.3, D42.8)', () =>
       {
         version: '0.1',
         errors: () => [],
-        next: (document) => ({ ...(document as object), schemaVersion: '0.4' }),
+        next: (document) => ({ ...(document as object), schemaVersion: '0.5' }),
       },
-      { version: '0.4', errors: () => [] },
+      { version: '0.5', errors: () => [] },
     ];
     const result = migrateThrough(table, valid, referenceCompositionV01);
     if (result.ok) throw new Error('The invalid result was accepted.');
-    expect(result.version).toBe('0.4');
-    expect(result.versions).toEqual(['0.1', '0.4']);
+    expect(result.version).toBe('0.5');
+    expect(result.versions).toEqual(['0.1', '0.5']);
     expect(new Set(result.errors.map(({ code }) => code))).toEqual(new Set(['missing-field']));
-    // Two lifetime fields for each of six nodes, a fit, and four fields of the clip.
-    expect(result.errors).toHaveLength(17);
+    // Two lifetime fields for each of six nodes, a fit, four fields of the clip,
+    // and the duration and the clips of the scene.
+    expect(result.errors).toHaveLength(19);
     expect(Object.isFrozen(result.errors)).toBe(true);
   });
 

@@ -14,11 +14,13 @@
  */
 import { mediaTypeFits, type AssetRequest } from '@kadrion/renderer-dom';
 import {
+  placedVideos,
   sampledSourceRange,
   sourceDurationUs,
   sourceFrameIndex,
   sourceRangeFits,
   sourceTimeUs,
+  videoSceneTimeUs,
   type SceneNode,
   type ValidatedComposition,
   type VideoNode,
@@ -194,11 +196,6 @@ export function videoNodes(composition: ValidatedComposition): VideoNode[] {
   return found;
 }
 
-/** Whether a lifetime contains `timeUs` (D42.2), as the runtime evaluates it. */
-function isActive(node: VideoNode, timeUs: number): boolean {
-  return timeUs >= node.startUs && timeUs - node.startUs < node.durationUs;
-}
-
 /**
  * Every sampled source range of the document inside its video (D49.6), before
  * the first frame: `source-range-exceeded` names the node, the range, and the
@@ -209,13 +206,14 @@ export function checkSourceRanges(
   videos: ReadonlyMap<string, VerifiedVideo>,
 ): void {
   const hashes = new Map(composition.assets.map((asset) => [asset.id, asset.contentHash]));
-  for (const node of videoNodes(composition)) {
+  for (const { node, scene } of placedVideos(composition)) {
     const video = videos.get(hashes.get(node.assetId) ?? '');
     if (video === undefined) {
       throw new PlayerError('asset-missing', `The video "${node.assetId}" was not resolved.`);
     }
     const duration = video.facts.durationUs;
-    const range = sampledSourceRange(node, composition.durationUs);
+    // The lifetime cut to its scene (D49.6, D54.3).
+    const range = sampledSourceRange(node, scene.durationUs);
     if (range !== null && !sourceRangeFits(range, duration)) {
       throw new PlayerError(
         'source-range-exceeded',
@@ -485,18 +483,22 @@ export function createVideoFrameSource(
   };
   return {
     async framesAt(composition, timeUs) {
-      const nodes = videoNodes(composition).filter((node) => isActive(node, timeUs));
+      // Each video at the time of its scene, while its scene is evaluated (D54.3).
+      const nodes = placedVideos(composition).flatMap((placed) => {
+        const sceneTimeUs = videoSceneTimeUs(placed, timeUs);
+        return sceneTimeUs === null ? [] : [{ node: placed.node, sceneTimeUs }];
+      });
       if (nodes.length === 0) return [];
       const codecs = codecsOf(view);
       const hashes = new Map(composition.assets.map((asset) => [asset.id, asset.contentHash]));
       const frames: VideoFrameMessage[] = [];
-      for (const node of nodes) {
+      for (const { node, sceneTimeUs } of nodes) {
         const video = videos.get(hashes.get(node.assetId) ?? '');
         if (video === undefined) {
           throw new PlayerError('asset-missing', `The video "${node.assetId}" was not resolved.`);
         }
         const { timestamps, timeBase } = video.track;
-        const index = sourceFrameIndex(timestamps, timeBase, sourceTimeUs(node, timeUs));
+        const index = sourceFrameIndex(timestamps, timeBase, sourceTimeUs(node, sceneTimeUs));
         const png = await pngOf(codecs, video, index);
         frames.push({ nodeId: node.id, mediaType: 'image/png', bytes: png.slice().buffer });
       }

@@ -19,7 +19,7 @@ describe('describeDocument (D46.3)', () => {
   it('lists the scene, its nodes bottom to top with parent and layer, and the group children', () => {
     const description = describeDocument(reference());
     expect(description).toMatchObject({
-      schemaVersion: '0.4',
+      schemaVersion: '0.5',
       width: 1080,
       height: 1920,
       fps: 30,
@@ -27,6 +27,7 @@ describe('describeDocument (D46.3)', () => {
     });
     const [scene] = description.scenes;
     expect(scene?.id).toBe('scene-main');
+    expect(scene).toMatchObject({ startUs: 0, durationUs: 10_000_000, clips: [] });
     expect(
       scene?.nodes.map(({ id, type, parentId, layer }) => [id, type, parentId, layer]),
     ).toEqual([

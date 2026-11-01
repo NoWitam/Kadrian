@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.4",
+  "schemaVersion": "0.5",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -19,6 +19,7 @@
   "scenes": [
     {
       "id": "scene-main",
+      "durationUs": 8000000,
       "nodes": [
         {
           "id": "node-background",
@@ -111,7 +112,8 @@
           "fontSize": 144,
           "color": "#ffffff"
         }
-      ]
+      ],
+      "clips": []
     }
   ],
   "clips": []

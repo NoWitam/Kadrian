@@ -22,6 +22,13 @@ import {
   parseAddAudioClip,
   parseAddKeyframe,
   parseAddNode,
+  parseAddScene,
+  parseAddSceneAudioClip,
+  parseDuplicateScene,
+  parseMoveNodeToScene,
+  parseRemoveScene,
+  parseReorderScene,
+  parseSetSceneDuration,
   parseDuplicateNode,
   parseMoveKeyframe,
   parseRemoveAnimation,
@@ -57,7 +64,7 @@ import {
 import {
   assetUsers,
   assetsOf,
-  clipsOf,
+  clipListOf,
   findNode,
   findParent,
   idsIn,
@@ -67,12 +74,16 @@ import {
   locateAnimation,
   locateClip,
   locateNode,
+  locateScene,
   placedByTime,
   replaceAnimation,
   replaceAssets,
-  replaceClips,
+  replaceClipList,
   replaceList,
   replaceNode,
+  replaceScenes,
+  sceneIds,
+  scenesOf,
   subtreeIds,
   type AnimationLocation,
   type DocumentObject,
@@ -184,9 +195,11 @@ function onClip(
   const edit = change(found.clip);
   if (edit === null) return null;
   const inverse = edit.inverse;
-  const clips = clipsOf(document).map((clip, at) => (at === found.index ? edit.clip : clip));
+  const clips = clipListOf(document, found.owner).map((clip, at) =>
+    at === found.index ? edit.clip : clip,
+  );
   return {
-    document: replaceClips(document, clips),
+    document: replaceClipList(document, found.owner, clips),
     invert: () => inverse,
     createdIds: [],
     removedIds: [],
@@ -435,6 +448,70 @@ function setKeyframe(
     createdIds: [],
     removedIds: [],
   };
+}
+
+/** The scene with that ID and its index, or `unknown-scene` (D54.5). */
+function locatedScene(
+  document: DocumentObject,
+  sceneId: string,
+): { readonly scene: DocumentObject; readonly index: number } {
+  const found = locateScene(document, sceneId);
+  if (found === null) {
+    throw new EditorError('unknown-scene', `The document has no scene \`${sceneId}\`.`);
+  }
+  return found;
+}
+
+/**
+ * The document with `scenes` and its `durationUs` changed by `deltaUs`, so that
+ * it stays the sum of the scenes' durations (D49.3, D54.2). A document whose
+ * duration is not a number is left for the validation to refuse.
+ */
+function withScenes(
+  document: DocumentObject,
+  scenes: readonly unknown[],
+  deltaUs: number,
+): DocumentObject {
+  const durationUs: unknown = document['durationUs'];
+  const edited = replaceScenes(document, scenes);
+  return typeof durationUs === 'number' ? { ...edited, durationUs: durationUs + deltaUs } : edited;
+}
+
+/** The duration a scene states, or 0 when it states none; the validation judges the rest. */
+function sceneDuration(scene: DocumentObject): number {
+  const durationUs: unknown = scene['durationUs'];
+  return typeof durationUs === 'number' ? durationUs : 0;
+}
+
+/**
+ * The copy of a scene under the IDs D54.5 derives from `newSceneId`, in the
+ * manner of D39.3: the scene is `S`, the node at index i is `S-n<i>`, a child of
+ * that node at index j is `S-n<i>-c<j>`, each animation is its owner's ID
+ * followed by `-a-<property>`, and the clip at index k is `S-k<k>`. Only the
+ * `id` fields change.
+ */
+function duplicatedScene(source: DocumentObject, newSceneId: string): NodeData {
+  const copy = copyNode(source);
+  const nodes = copy['nodes'];
+  const clips = copy['clips'];
+  return deepFreeze({
+    ...copy,
+    id: newSceneId,
+    ...(Array.isArray(nodes)
+      ? {
+          nodes: (nodes as readonly unknown[]).map((node, at) =>
+            isObject(node) ? duplicated(node, `${newSceneId}-n${String(at)}`) : node,
+          ),
+        }
+      : {}),
+    ...(Array.isArray(clips)
+      ? {
+          clips: (clips as readonly unknown[]).map((clip, at) =>
+            isObject(clip) ? { ...clip, id: `${newSceneId}-k${String(at)}` } : clip,
+          ),
+        }
+      : {}),
+  });
 }
 
 // The type argument makes the literal itself a `Definitions`: a missing entry and
@@ -988,7 +1065,7 @@ const DEFINITIONS = deepFreeze<Definitions>({
   AddAudioClip: {
     parse: parseAddAudioClip,
     edit(document, command) {
-      const clips = clipsOf(document);
+      const clips = clipListOf(document, null);
       if (command.index > clips.length) {
         throw outOfRange(command.index, clips.length, 'the clips');
       }
@@ -997,7 +1074,7 @@ const DEFINITIONS = deepFreeze<Definitions>({
       const createdIds = typeof id === 'string' ? [id] : [];
       refuseTaken(document, createdIds);
       return {
-        document: replaceClips(document, inserted(clips, command.index, command.clip)),
+        document: replaceClipList(document, null, inserted(clips, command.index, command.clip)),
         // The clip validated by now, so its `id` is an ID of the document's form.
         invert: () => parseRemoveAudioClip({ type: 'RemoveAudioClip', clipId: id }),
         createdIds,
@@ -1015,16 +1092,23 @@ const DEFINITIONS = deepFreeze<Definitions>({
           `The document has no audio clip \`${command.clipId}\`.`,
         );
       }
-      // A frozen copy of the whole clip at its index, so undo restores the same bytes.
-      const inverse = parseAddAudioClip({
-        type: 'AddAudioClip',
-        index: found.index,
-        clip: found.clip,
-      });
+      // A frozen copy of the whole clip at its index in its own list, so undo restores
+      // the same bytes in the same place (D54.5).
+      const scene = found.owner === null ? null : scenesOf(document)[found.owner.sceneIndex];
+      const inverse =
+        found.owner === null || !isObject(scene)
+          ? parseAddAudioClip({ type: 'AddAudioClip', index: found.index, clip: found.clip })
+          : parseAddSceneAudioClip({
+              type: 'AddSceneAudioClip',
+              sceneId: scene['id'],
+              index: found.index,
+              clip: found.clip,
+            });
       return {
-        document: replaceClips(
+        document: replaceClipList(
           document,
-          clipsOf(document).filter((_, at) => at !== found.index),
+          found.owner,
+          clipListOf(document, found.owner).filter((_, at) => at !== found.index),
         ),
         invert: () => inverse,
         createdIds: [],
@@ -1071,7 +1155,200 @@ const DEFINITIONS = deepFreeze<Definitions>({
         };
       }),
   },
+  AddScene: {
+    parse: parseAddScene,
+    edit(document, command) {
+      const scenes = scenesOf(document);
+      if (command.index > scenes.length) {
+        throw outOfRange(command.index, scenes.length, 'the scenes');
+      }
+      const createdIds = sceneIds(command.scene);
+      refuseTaken(document, createdIds);
+      const id: unknown = command.scene['id'];
+      return {
+        document: withScenes(
+          document,
+          inserted(scenes, command.index, command.scene),
+          sceneDuration(command.scene),
+        ),
+        // The scene validated by now, so its `id` is an ID of the document's form.
+        invert: () => parseRemoveScene({ type: 'RemoveScene', sceneId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveScene: {
+    parse: parseRemoveScene,
+    edit(document, command) {
+      const found = locatedScene(document, command.sceneId);
+      const scenes = scenesOf(document);
+      if (scenes.length === 1) {
+        throw new EditorError(
+          'last-scene',
+          `The scene \`${command.sceneId}\` is the only scene; a composition has at least one (D49.3).`,
+        );
+      }
+      // A frozen copy of the whole scene at its index, so undo restores the same bytes (D30).
+      const inverse = parseAddScene({ type: 'AddScene', index: found.index, scene: found.scene });
+      return {
+        document: withScenes(
+          document,
+          scenes.filter((_, at) => at !== found.index),
+          -sceneDuration(found.scene),
+        ),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: sceneIds(found.scene),
+      };
+    },
+  },
+  DuplicateScene: {
+    parse: parseDuplicateScene,
+    edit(document, command) {
+      const found = locatedScene(document, command.sceneId);
+      const copy = duplicatedScene(found.scene, command.newSceneId);
+      const createdIds = sceneIds(copy);
+      refuseTaken(document, createdIds);
+      return {
+        // Directly after the source (D54.5).
+        document: withScenes(
+          document,
+          inserted(scenesOf(document), found.index + 1, copy),
+          sceneDuration(copy),
+        ),
+        invert: () => parseRemoveScene({ type: 'RemoveScene', sceneId: command.newSceneId }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  ReorderScene: {
+    parse: parseReorderScene,
+    edit(document, command) {
+      const found = locatedScene(document, command.sceneId);
+      const scenes = scenesOf(document);
+      const last = scenes.length - 1;
+      if (command.index > last) throw outOfRange(command.index, last, 'the scenes');
+      if (command.index === found.index) return null;
+      const without = scenes.filter((_, at) => at !== found.index);
+      return {
+        // The scene itself moves, the same object (D30.7); the sum of durations stays.
+        document: replaceScenes(document, inserted(without, command.index, found.scene)),
+        invert: () =>
+          parseReorderScene({
+            type: 'ReorderScene',
+            sceneId: command.sceneId,
+            index: found.index,
+          }),
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  SetSceneDuration: {
+    parse: parseSetSceneDuration,
+    edit(document, command) {
+      const found = locatedScene(document, command.sceneId);
+      const durationUs = numberField(found.scene, 'durationUs', command.sceneId);
+      if (durationUs === command.durationUs) return null;
+      const scenes = scenesOf(document).map((scene, at) =>
+        at === found.index ? { ...found.scene, durationUs: command.durationUs } : scene,
+      );
+      return {
+        document: withScenes(document, scenes, command.durationUs - durationUs),
+        invert: () => parseSetSceneDuration({ ...command, durationUs }),
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  MoveNodeToScene: {
+    parse: parseMoveNodeToScene,
+    edit(document, command) {
+      const location = located(document, command.nodeId);
+      if (location.address.groupIndex !== null) {
+        throw new EditorError(
+          'unsupported-node',
+          `The node \`${command.nodeId}\` is a child of a group; it moves with its group (D49.3).`,
+        );
+      }
+      const target = locatedScene(document, command.sceneId);
+      const from = location.address.sceneIndex;
+      const source = scenesOf(document)[from];
+      const sourceId = isObject(source) ? source['id'] : undefined;
+      const inverse = (): Command =>
+        parseMoveNodeToScene({
+          type: 'MoveNodeToScene',
+          nodeId: command.nodeId,
+          sceneId: sourceId,
+          index: location.index,
+        });
+      const targetNodes = target.index === from ? location.list : listOf(target.scene);
+      const last = target.index === from ? targetNodes.length - 1 : targetNodes.length;
+      if (command.index > last) {
+        throw outOfRange(command.index, last, `the nodes of \`${command.sceneId}\``);
+      }
+      if (target.index === from) {
+        if (command.index === location.index) return null;
+        const without = location.list.filter((_, at) => at !== location.index);
+        return {
+          document: replaceList(
+            document,
+            location.address,
+            inserted(without, command.index, location.node),
+          ),
+          invert: inverse,
+          createdIds: [],
+          removedIds: [],
+        };
+      }
+      // The node itself moves, the same object, with its scene times (D49.3, D30.7).
+      const scenes = scenesOf(document).map((scene, at) => {
+        if (!isObject(scene)) return scene;
+        if (at === from) {
+          return { ...scene, nodes: location.list.filter((_, index) => index !== location.index) };
+        }
+        if (at === target.index) {
+          return { ...scene, nodes: inserted(targetNodes, command.index, location.node) };
+        }
+        return scene;
+      });
+      return {
+        document: replaceScenes(document, scenes),
+        invert: inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  AddSceneAudioClip: {
+    parse: parseAddSceneAudioClip,
+    edit(document, command) {
+      const found = locatedScene(document, command.sceneId);
+      const owner = { sceneIndex: found.index };
+      const clips = clipListOf(document, owner);
+      if (command.index > clips.length) {
+        throw outOfRange(command.index, clips.length, `the clips of \`${command.sceneId}\``);
+      }
+      const id: unknown = command.clip['id'];
+      const createdIds = typeof id === 'string' ? [id] : [];
+      refuseTaken(document, createdIds);
+      return {
+        document: replaceClipList(document, owner, inserted(clips, command.index, command.clip)),
+        invert: () => parseRemoveAudioClip({ type: 'RemoveAudioClip', clipId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
 });
+
+/** The nodes of a scene, as the document holds them. */
+function listOf(scene: DocumentObject): readonly unknown[] {
+  const nodes: unknown = scene['nodes'];
+  return Array.isArray(nodes) ? (nodes as readonly unknown[]) : [];
+}
 
 /**
  * Every command type this build knows: the keys of the registry, in the order

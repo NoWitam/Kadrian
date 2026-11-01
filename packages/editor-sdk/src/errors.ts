@@ -24,7 +24,7 @@ export type EditorErrorCode =
   | 'nothing-to-redo'
   /** A listener called a mutating method of the bus while a change was being delivered (D38.8). */
   | 'busy'
-  /** `parentId` names neither the scene nor a node of the document (D39.8). */
+  /** `parentId` names neither a scene nor a node of the document (D39.8). */
   | 'unknown-parent'
   /** The index lies outside the list it refers to in this document (D39.8). */
   | 'index-out-of-range'
@@ -36,6 +36,10 @@ export type EditorErrorCode =
   | 'asset-type-mismatch'
   /** The asset is still used; `details` list the IDs of its users, sorted (D40.4). */
   | 'asset-in-use'
+  /** No scene of the document has that ID; `details` are empty (D54.5). */
+  | 'unknown-scene'
+  /** The command would remove the only scene; a composition has at least one (D54.5). */
+  | 'last-scene'
   /** No audio clip of the document has that ID; `details` are empty (D52.6). */
   | 'unknown-clip'
   /** No animation of the document has that ID; `details` are empty (D41.5). */

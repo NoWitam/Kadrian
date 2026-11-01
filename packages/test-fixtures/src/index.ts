@@ -19,8 +19,11 @@ import migration03After from './compositions/migration-0-2-to-0-3.after.json' wi
 import migration03Before from './compositions/migration-0-2-to-0-3.before.json' with { type: 'json' };
 import migration04After from './compositions/migration-0-3-to-0-4.after.json' with { type: 'json' };
 import migration04Before from './compositions/migration-0-3-to-0-4.before.json' with { type: 'json' };
+import migration05After from './compositions/migration-0-4-to-0-5.after.json' with { type: 'json' };
+import migration05Before from './compositions/migration-0-4-to-0-5.before.json' with { type: 'json' };
 import invalidCases from './compositions/reference.invalid.json' with { type: 'json' };
 import reference from './compositions/reference.json' with { type: 'json' };
+import scenes from './compositions/scenes.json' with { type: 'json' };
 import video from './compositions/video.json' with { type: 'json' };
 import invalidCasesV01 from './compositions/reference.v0-1.invalid.json' with { type: 'json' };
 import referenceV01 from './compositions/reference.v0-1.json' with { type: 'json' };
@@ -28,6 +31,8 @@ import invalidCasesV02 from './compositions/reference.v0-2.invalid.json' with { 
 import referenceV02 from './compositions/reference.v0-2.json' with { type: 'json' };
 import invalidCasesV03 from './compositions/reference.v0-3.invalid.json' with { type: 'json' };
 import referenceV03 from './compositions/reference.v0-3.json' with { type: 'json' };
+import invalidCasesV04 from './compositions/reference.v0-4.invalid.json' with { type: 'json' };
+import referenceV04 from './compositions/reference.v0-4.json' with { type: 'json' };
 
 export {
   AUDIO_SAMPLE_RATE,
@@ -146,7 +151,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.4. */
+/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.5. */
 export const referenceComposition: unknown = deepFreeze(reference);
 
 /** Patches over `referenceComposition`; the consumer applies them to a copy. */
@@ -191,6 +196,27 @@ export const invalidCompositionCasesV03 = deepFreeze(
   invalidCasesV03,
 ) as readonly InvalidCompositionCase[];
 
+/**
+ * The reference composition as schema 0.4 had it, byte for byte: the file is
+ * frozen (D35.4, D35.5). `migrateComposition` must carry it to
+ * `referenceComposition`, which was written by hand and not by the migration.
+ */
+export const referenceCompositionV04: unknown = deepFreeze(referenceV04);
+
+/** The negative corpus of schema 0.4, frozen with it: patches over `referenceCompositionV04`. */
+export const invalidCompositionCasesV04 = deepFreeze(
+  invalidCasesV04,
+) as readonly InvalidCompositionCase[];
+
+/**
+ * A composition of schema 0.5 with three scenes in sequence (D54): 1 s, 1.5 s,
+ * and 0.7 s, each starting on the frame grid of 30 fps, with nodes in scene
+ * time — keyframes, an image, a Custom HTML element, a text whose lifetime
+ * reaches past its scene — a clip of the middle scene, and a composition clip
+ * that spans all three.
+ */
+export const scenesComposition: unknown = deepFreeze(scenes);
+
 /** A document before a migration step and what the step must make of it, both written by hand. */
 export interface MigrationPair {
   readonly before: unknown;
@@ -229,6 +255,16 @@ export const migrationPair03To04: MigrationPair = deepFreeze({
   after: migration04After,
 });
 
+/**
+ * The hand-written pair of the step 0.4 → 0.5 (D35.5, D54.4): the document the
+ * pair of 0.3 → 0.4 ends with, whose one scene gains `durationUs: 3000000`, the
+ * composition's, directly after its `id`, and `clips: []` at its end.
+ */
+export const migrationPair04To05: MigrationPair = deepFreeze({
+  before: migration05Before,
+  after: migration05After,
+});
+
 /** Which nodes of `lifetimeComposition` are active and which are shown at one time. */
 export interface ExpectedLifetime {
   readonly timeUs: number;
@@ -247,7 +283,7 @@ export interface ExpectedLifetimes {
   readonly times: readonly ExpectedLifetime[];
 }
 
-/** A small composition of schema 0.4 whose nodes begin and end inside it (D42.2). */
+/** A small composition of schema 0.5 whose nodes begin and end inside it (D42.2). */
 export const lifetimeComposition: unknown = deepFreeze(lifetime);
 
 /**

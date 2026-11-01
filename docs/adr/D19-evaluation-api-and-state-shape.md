@@ -5,6 +5,7 @@
   (`active` in every node state)
 - Date: 2026-09-21
 - Supersedes: —
+- Amended by: PR-30 (D54) on 2026-11-01: 19.4: each scene of the state carries its scene time `timeUs`, and `scenes` lists the evaluated scenes only (D54.3)
 - Related: D03, D12, D14, D15, D16, D17, D18,
   [specification](../spike/vertical-spike.md) §5.1, §10, and open questions Q15
   and Q17

@@ -1063,7 +1063,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
       'tools',
       `probe sound-0 ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.4',
+      'load 0.5',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,
@@ -1854,6 +1854,9 @@ describe('memory of the export (D29.3, specification §5 P5)', () => {
         let peak = 0;
         const document = variant((draft) => {
           draft.durationUs = Math.round((frames * 1_000_000) / 30);
+          for (const scene of draft['scenes'] as { durationUs: number }[]) {
+            scene.durationUs = draft['durationUs'] as number;
+          }
           draft.clips = [];
         });
         const run = fakeRun({

@@ -1,4 +1,5 @@
 import {
+  scenesAt,
   sourceTimeUs,
   type SceneNode,
   type ValidatedComposition,
@@ -126,6 +127,11 @@ function evaluateNode(node: SceneNode, timeUs: number): NodeState {
  * and nothing else: no clock, no timer, no playback history, no cache (D18,
  * D19). The document is never modified, and the state shares no object with it.
  *
+ * `scenes` lists the scenes evaluated at `timeUs` — exactly one, until
+ * transitions exist (PR-32) — each at its local time, `timeUs` minus its start;
+ * every node of a scene is evaluated at that scene time (D49.3, D54.3). A scene
+ * is therefore evaluated alone exactly as it is in the sequence.
+ *
  * `timeUs` is an integer with `0 <= timeUs < durationUs`; it need not lie on the
  * frame grid, which is host-side sampling (D13). Any other value throws an
  * `EvaluationError` instead of being clamped or rounded.
@@ -150,9 +156,13 @@ export function evaluateComposition(
   const time = timeUs === 0 ? 0 : timeUs;
   return {
     timeUs: time,
-    scenes: composition.scenes.map((scene) => ({
-      id: scene.id,
-      nodes: scene.nodes.map((node) => evaluateNode(node, time)),
-    })),
+    scenes: scenesAt(composition.scenes, time).map(({ placement, timeUs: sceneTimeUs }) => {
+      const scene = composition.scenes[placement.index];
+      return {
+        id: placement.id,
+        timeUs: sceneTimeUs,
+        nodes: (scene?.nodes ?? []).map((node) => evaluateNode(node, sceneTimeUs)),
+      };
+    }),
   };
 }

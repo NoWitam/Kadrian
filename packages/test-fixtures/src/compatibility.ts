@@ -36,6 +36,14 @@ import minimalV04 from './compatibility/v0-4/minimal.json' with { type: 'json' }
 import pairV04 from './compatibility/v0-4/pair.json' with { type: 'json' };
 import referenceV04 from './compatibility/v0-4/reference.json' with { type: 'json' };
 import videoV04 from './compatibility/v0-4/video.json' with { type: 'json' };
+import audioV05 from './compatibility/v0-5/audio.json' with { type: 'json' };
+import extremesV05 from './compatibility/v0-5/extremes.json' with { type: 'json' };
+import lifetimeV05 from './compatibility/v0-5/lifetime.json' with { type: 'json' };
+import minimalV05 from './compatibility/v0-5/minimal.json' with { type: 'json' };
+import pairV05 from './compatibility/v0-5/pair.json' with { type: 'json' };
+import referenceV05 from './compatibility/v0-5/reference.json' with { type: 'json' };
+import scenesV05 from './compatibility/v0-5/scenes.json' with { type: 'json' };
+import videoV05 from './compatibility/v0-5/video.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -85,6 +93,14 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-4/pair.json': pairV04,
   'compatibility/v0-4/reference.json': referenceV04,
   'compatibility/v0-4/video.json': videoV04,
+  'compatibility/v0-5/audio.json': audioV05,
+  'compatibility/v0-5/extremes.json': extremesV05,
+  'compatibility/v0-5/lifetime.json': lifetimeV05,
+  'compatibility/v0-5/minimal.json': minimalV05,
+  'compatibility/v0-5/pair.json': pairV05,
+  'compatibility/v0-5/reference.json': referenceV05,
+  'compatibility/v0-5/scenes.json': scenesV05,
+  'compatibility/v0-5/video.json': videoV05,
 };
 
 function fileOf(path: string): unknown {

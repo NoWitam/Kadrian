@@ -3,13 +3,15 @@
  * valid document. Errors are ordered by rule and then by position; the order
  * never depends on the key order of the input.
  *
- * The rules are those of schema 0.1 to 0.4 alike: a lifetime adds none
+ * The rules are those of schema 0.1 to 0.5 alike: a lifetime adds none
  * (D42.1), a video node adds only the reference to an asset of type video
- * (D50), which no earlier document can have, and the fields an audio clip gains
- * in 0.4 add the rules of D52.3, which no earlier clip has the fields for.
- * `migrateComposition` applies them to documents of 0.1 to 0.3 too (D35.4),
- * which is why the document type is any of the four versions'; the negative
- * corpus of 0.1 is kept
+ * (D50), which no earlier document can have, the fields an audio clip gains
+ * in 0.4 add the rules of D52.3, which no earlier clip has the fields for, and
+ * the scenes of 0.5 add the clips of a scene, checked as the composition's are,
+ * and the rule that the composition lasts as long as its scenes (D54.2), which
+ * no earlier scene has the fields for. `migrateComposition` applies them to
+ * documents of 0.1 to 0.4 too (D35.4), which is why the document type is any
+ * of the five versions'; the negative corpus of 0.1 is kept
  * and pins what they were. A rule that a later version changes gets its own
  * function, never a branch here.
  */
@@ -20,6 +22,7 @@ import type { Asset, AudioClip, Composition, NodeAnimation } from './types.js';
 import type { CompositionV01 } from './v0-1/composition-schema.js';
 import type { CompositionV02 } from './v0-2/composition-schema.js';
 import type { CompositionV03 } from './v0-3/composition-schema.js';
+import type { CompositionV04 } from './v0-4/composition-schema.js';
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -83,7 +86,7 @@ function checkAnimations(
 }
 
 export function validateSemantics(
-  composition: Composition | CompositionV01 | CompositionV02 | CompositionV03,
+  composition: Composition | CompositionV01 | CompositionV02 | CompositionV03 | CompositionV04,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -138,9 +141,7 @@ export function validateSemantics(
     });
   });
   const fadeErrors: ValidationError[] = [];
-  const clips: readonly (AudioClip | CompositionV03['clips'][number])[] = composition.clips;
-  clips.forEach((clip, clipIndex) => {
-    const clipPath = pointer(pointer('', 'clips'), clipIndex);
+  const checkClip = (clip: AudioClip | CompositionV03['clips'][number], clipPath: string): void => {
     checkReference(clip.assetId, 'audio', pointer(clipPath, 'assetId'));
     // The fields of 0.4 (D52.3); a clip of an earlier version has none of them.
     if ('sourceStartUs' in clip) {
@@ -161,7 +162,40 @@ export function validateSemantics(
         });
       }
     }
+  };
+  const clips: readonly (AudioClip | CompositionV03['clips'][number])[] = composition.clips;
+  clips.forEach((clip, clipIndex) => {
+    checkClip(clip, pointer(pointer('', 'clips'), clipIndex));
   });
+  // The scenes of 0.5 (D54.2); a scene of an earlier version has no duration and no clips.
+  const durationErrors: ValidationError[] = [];
+  const scenes: readonly (
+    Composition['scenes'][number] | { readonly id: string; readonly nodes: readonly unknown[] }
+  )[] = composition.scenes;
+  let totalUs = 0;
+  let measured = true;
+  for (const [sceneIndex, scene] of scenes.entries()) {
+    if (!('durationUs' in scene)) {
+      measured = false;
+      break;
+    }
+    scene.clips.forEach((clip, clipIndex) => {
+      checkClip(
+        clip,
+        pointer(pointer(pointer(pointer('', 'scenes'), sceneIndex), 'clips'), clipIndex),
+      );
+    });
+    // Compared as a difference, so the running sum never leaves the safe integers.
+    totalUs =
+      totalUs > Number.MAX_SAFE_INTEGER - scene.durationUs ? Infinity : totalUs + scene.durationUs;
+  }
+  if (measured && totalUs !== composition.durationUs) {
+    durationErrors.push({
+      code: 'composition-duration-mismatch',
+      path: '/durationUs',
+      message: `durationUs must be the sum of the durationUs of the scenes, ${Number.isFinite(totalUs) ? String(totalUs) : 'which exceeds the safe integers'}.`,
+    });
+  }
 
-  return [...errors, ...animationErrors, ...sourceErrors, ...fadeErrors];
+  return [...errors, ...animationErrors, ...sourceErrors, ...fadeErrors, ...durationErrors];
 }

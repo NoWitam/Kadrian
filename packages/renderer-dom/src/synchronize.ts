@@ -53,6 +53,8 @@ export interface CustomHtmlHost {
 interface Frame {
   readonly nodeId: string;
   readonly frame: HTMLIFrameElement;
+  /** The time of the element's scene that it is pushed (D23.4, D54.3). */
+  readonly timeUs: number;
 }
 
 function navigatedError(nodeId: string): RenderError {
@@ -160,9 +162,10 @@ function isAcknowledgement(data: unknown, expected: Message): boolean {
 }
 
 /**
- * Pushes `state.timeUs` to every Custom HTML element of the tree that
- * `mountComposition` built in `root`, and resolves once each of them has
- * acknowledged exactly that time. Call it after `renderState` with the same
+ * Pushes the time of its scene to every Custom HTML element of the evaluated
+ * scenes of the tree that `mountComposition` built in `root` (D23.4, D54.3), and
+ * resolves once each of them has acknowledged exactly that time. An element of
+ * a scene the state does not evaluate is hidden and gets nothing. Call it after `renderState` with the same
  * state, and capture a frame only after it resolved.
  *
  * - The tree is checked first, as by `renderState`; a problem rejects before any
@@ -208,27 +211,27 @@ export function synchronizeCustomHtml(
     for (const { element, state: node } of elements) checkPlaceholder(element, node.id, disabled);
     const frames: readonly Frame[] = disabled
       ? []
-      : elements.map(({ element, state: node }) => ({
+      : elements.map(({ element, state: node, sceneTimeUs }) => ({
           nodeId: node.id,
           frame: frameOf(element, node.id),
+          timeUs: sceneTimeUs,
         }));
     if (frames.length === 0) {
       resolve();
       return;
     }
-    const { timeUs } = state;
     const waiting = new Set(frames.map(({ nodeId }) => nodeId));
-    const messageFor = (nodeId: string, type: string): Message => ({
+    const messageFor = ({ nodeId, timeUs }: Frame, type: string): Message => ({
       type,
       version: PROTOCOL_VERSION,
       instanceId: nodeId,
       requestId,
       timeUs,
     });
-    const post = ({ nodeId, frame }: Frame): void => {
+    const post = (entry: Frame): void => {
       // Directly to this frame's window, never broadcast. Its origin is opaque and
       // cannot be named; the message holds nothing but the time and its correlation.
-      frame.contentWindow?.postMessage(messageFor(nodeId, TIME_MESSAGE), '*');
+      entry.frame.contentWindow?.postMessage(messageFor(entry, TIME_MESSAGE), '*');
     };
     const reposts = frames.map((entry) => {
       const repost = (): void => {
@@ -256,7 +259,7 @@ export function synchronizeCustomHtml(
       // alone would not, since every sandboxed frame has it (D23.3).
       const answered = frames.find(({ frame }) => frame.contentWindow === event.source);
       if (answered === undefined) return;
-      const expected = messageFor(answered.nodeId, ACKNOWLEDGEMENT_MESSAGE);
+      const expected = messageFor(answered, ACKNOWLEDGEMENT_MESSAGE);
       if (!isAcknowledgement(event.data, expected)) return;
       waiting.delete(answered.nodeId);
       if (waiting.size > 0) return;
@@ -272,7 +275,7 @@ export function synchronizeCustomHtml(
       reject(
         new RenderError(
           'custom-html-timeout',
-          `Custom HTML did not acknowledge timeUs ${String(timeUs)} in time: ${missing}.`,
+          `Custom HTML did not acknowledge timeUs ${String(state.timeUs)} in time: ${missing}.`,
         ),
       );
     });
