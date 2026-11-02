@@ -1,6 +1,7 @@
 # D58 — Templates: schema 0.8, inputs, bindings, and instantiation
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-02, after PR-34a was merged
+  (PR #31)
 - Date: 2026-11-02
 - Supersedes: —
 - Extends: D17 (the schema subset gains `type: "boolean"`), D25 (the Player
