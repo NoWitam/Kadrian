@@ -1,0 +1,827 @@
+[
+  {
+    "name": "unknown-field-root",
+    "description": "A field the schema does not define is an error, not a silent pass-through.",
+    "patch": [{ "op": "add", "path": "/title", "value": "Untitled" }],
+    "expectedErrors": [{ "code": "unknown-field", "path": "/title" }]
+  },
+  {
+    "name": "unknown-field-node",
+    "description": "Nodes are closed objects too.",
+    "patch": [{ "op": "add", "path": "/scenes/0/nodes/1/children/0/blur", "value": 4 }],
+    "expectedErrors": [{ "code": "unknown-field", "path": "/scenes/0/nodes/1/children/0/blur" }]
+  },
+  {
+    "name": "unknown-field-value-object",
+    "description": "Value objects such as a position are closed objects too.",
+    "patch": [{ "op": "add", "path": "/scenes/0/nodes/2/position/z", "value": 0 }],
+    "expectedErrors": [{ "code": "unknown-field", "path": "/scenes/0/nodes/2/position/z" }]
+  },
+  {
+    "name": "custom-html-capabilities",
+    "description": "Schema 0.1 defines no Custom HTML capability, so a document cannot grant one.",
+    "patch": [{ "op": "add", "path": "/scenes/0/nodes/3/capabilities", "value": ["network"] }],
+    "expectedErrors": [{ "code": "unknown-field", "path": "/scenes/0/nodes/3/capabilities" }]
+  },
+  {
+    "name": "schema-version-older",
+    "description": "The version before this one is refused at the gate, never upgraded by the validator: a host migrates it explicitly (D35.3, D42.9).",
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.2" }],
+    "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
+  },
+  {
+    "name": "schema-version-unsupported",
+    "description": "A version this build does not support yields one error instead of a flood of structural ones.",
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.6" }],
+    "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
+  },
+  {
+    "name": "lifetime-start-missing",
+    "description": "Every node has a lifetime; there is no default (D16.1, D42.1).",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/2/startUs" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/2/startUs" }]
+  },
+  {
+    "name": "lifetime-duration-missing-on-background",
+    "description": "The background has a lifetime like every node (D42.1).",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/0/durationUs" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/0/durationUs" }]
+  },
+  {
+    "name": "lifetime-missing-on-group-child",
+    "description": "A child of a group has a lifetime of its own (D42.1).",
+    "patch": [
+      { "op": "remove", "path": "/scenes/0/nodes/1/children/1/startUs" },
+      { "op": "remove", "path": "/scenes/0/nodes/1/children/1/durationUs" }
+    ],
+    "expectedErrors": [
+      { "code": "missing-field", "path": "/scenes/0/nodes/1/children/1/startUs" },
+      { "code": "missing-field", "path": "/scenes/0/nodes/1/children/1/durationUs" }
+    ]
+  },
+  {
+    "name": "lifetime-duration-zero",
+    "description": "A lifetime lasts at least one microsecond: a node that is never active by its duration does not exist (D42.1).",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/3/durationUs", "value": 0 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/3/durationUs" }]
+  },
+  {
+    "name": "lifetime-start-negative",
+    "description": "A lifetime begins at a composition time, which is never negative (D04, D42.1).",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/1/startUs", "value": -1 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/1/startUs" }]
+  },
+  {
+    "name": "lifetime-start-fractional",
+    "description": "A lifetime is in integer microseconds (D04).",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/1/children/0/startUs", "value": 0.5 }],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/scenes/0/nodes/1/children/0/startUs" }]
+  },
+  {
+    "name": "lifetime-duration-above-safe-integer",
+    "description": "A duration is a safe integer on its own; no rule concerns its sum with the start (D42.1).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 9007199254740992 }
+    ],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/2/durationUs" }]
+  },
+  {
+    "name": "schema-version-not-a-string",
+    "description": "Any value other than a supported version string is an unsupported version.",
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": 1 }],
+    "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
+  },
+  {
+    "name": "schema-version-missing",
+    "description": "The schema version is part of the document.",
+    "patch": [{ "op": "remove", "path": "/schemaVersion" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/schemaVersion" }]
+  },
+  {
+    "name": "time-fractional",
+    "description": "D04: persistent time values are integer microseconds.",
+    "patch": [{ "op": "replace", "path": "/durationUs", "value": 10000000.5 }],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/durationUs" }]
+  },
+  {
+    "name": "time-negative",
+    "description": "Time values start at zero.",
+    "patch": [{ "op": "replace", "path": "/clips/0/startUs", "value": -1 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/clips/0/startUs" }]
+  },
+  {
+    "name": "time-not-a-number",
+    "description": "A numeric string is not a time value.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/1/timeUs",
+        "value": "7500000"
+      }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-type", "path": "/scenes/0/nodes/2/animations/0/keyframes/1/timeUs" }
+    ]
+  },
+  {
+    "name": "time-above-safe-integer",
+    "description": "2^53 is the first integer that is no longer exact in every JSON implementation.",
+    "patch": [{ "op": "replace", "path": "/clips/0/durationUs", "value": 9007199254740992 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/clips/0/durationUs" }]
+  },
+  {
+    "name": "duration-zero",
+    "description": "A duration is at least one microsecond.",
+    "patch": [{ "op": "replace", "path": "/durationUs", "value": 0 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/durationUs" }]
+  },
+  {
+    "name": "fps-fractional",
+    "description": "D13: the frame rate is an integer.",
+    "patch": [{ "op": "replace", "path": "/fps", "value": 29.97 }],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/fps" }]
+  },
+  {
+    "name": "fps-out-of-range",
+    "description": "D13: schema 0.1 accepts 1 to 120 frames per second.",
+    "patch": [{ "op": "replace", "path": "/fps", "value": 0 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/fps" }]
+  },
+  {
+    "name": "canvas-too-large",
+    "description": "D15: the canvas stops at 1920 because D07 stops at 1080p.",
+    "patch": [{ "op": "replace", "path": "/width", "value": 3840 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/width" }]
+  },
+  {
+    "name": "pixel-fractional",
+    "description": "D15: persisted coordinates are integer composition pixels.",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/2/position/x", "value": 90.5 }],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/scenes/0/nodes/2/position/x" }]
+  },
+  {
+    "name": "opacity-out-of-range",
+    "description": "D15: opacity lies between 0 and 1.",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/2/opacity", "value": 1.5 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/2/opacity" }]
+  },
+  {
+    "name": "color-uppercase",
+    "description": "D15: colours are lowercase #rrggbb strings.",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/0/color", "value": "#0B1020" }],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/0/color" }]
+  },
+  {
+    "name": "content-hash-unsupported-algorithm",
+    "description": "D14: schema 0.1 accepts sha256 content hashes only.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/assets/0/contentHash",
+        "value": "sha1:da39a3ee5e6b4b0d3255bfef95601890afd80709"
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/assets/0/contentHash" }]
+  },
+  {
+    "name": "asset-reference-unresolved-image",
+    "description": "A missing required asset is an error, not a silent fallback.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/1/children/0/assetId", "value": "asset-missing" }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-asset-reference", "path": "/scenes/0/nodes/1/children/0/assetId" }
+    ]
+  },
+  {
+    "name": "asset-reference-unresolved-font",
+    "description": "A font is an asset like any other.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/fontAssetId", "value": "asset-missing" }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-asset-reference", "path": "/scenes/0/nodes/2/fontAssetId" }
+    ]
+  },
+  {
+    "name": "asset-reference-unresolved-clip",
+    "description": "Clips refer to assets as well.",
+    "patch": [{ "op": "replace", "path": "/clips/0/assetId", "value": "asset-missing" }],
+    "expectedErrors": [{ "code": "unresolved-asset-reference", "path": "/clips/0/assetId" }]
+  },
+  {
+    "name": "asset-removed",
+    "description": "Removing an asset reports every reference to it, in document order.",
+    "patch": [{ "op": "remove", "path": "/assets/2" }],
+    "expectedErrors": [
+      { "code": "unresolved-asset-reference", "path": "/scenes/0/nodes/1/children/1/fontAssetId" },
+      { "code": "unresolved-asset-reference", "path": "/scenes/0/nodes/2/fontAssetId" }
+    ]
+  },
+  {
+    "name": "asset-reference-wrong-type",
+    "description": "An image node cannot display a font.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/1/children/0/assetId", "value": "asset-font" }
+    ],
+    "expectedErrors": [
+      { "code": "asset-type-mismatch", "path": "/scenes/0/nodes/1/children/0/assetId" }
+    ]
+  },
+  {
+    "name": "duplicate-id-same-kind",
+    "description": "The later occurrence of an ID is reported.",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/2/id", "value": "node-caption" }],
+    "expectedErrors": [{ "code": "duplicate-id", "path": "/scenes/0/nodes/2/id" }]
+  },
+  {
+    "name": "duplicate-id-across-kinds",
+    "description": "D16: IDs share one namespace, whatever the kind of entity.",
+    "patch": [{ "op": "replace", "path": "/clips/0/id", "value": "asset-audio" }],
+    "expectedErrors": [{ "code": "duplicate-id", "path": "/clips/0/id" }]
+  },
+  {
+    "name": "duplicate-id-animation",
+    "description": "Animation IDs take part in the same namespace.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/animations/0/id", "value": "scene-main" }
+    ],
+    "expectedErrors": [{ "code": "duplicate-id", "path": "/scenes/0/nodes/2/animations/0/id" }]
+  },
+  {
+    "name": "missing-id-scene",
+    "description": "Scenes require a stable ID.",
+    "patch": [{ "op": "remove", "path": "/scenes/0/id" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/id" }]
+  },
+  {
+    "name": "missing-id-node",
+    "description": "Nodes require a stable ID.",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/0/id" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/0/id" }]
+  },
+  {
+    "name": "missing-id-child-node",
+    "description": "Nodes inside a group require a stable ID.",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/1/children/1/id" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/1/children/1/id" }]
+  },
+  {
+    "name": "missing-id-clip",
+    "description": "Clips require a stable ID.",
+    "patch": [{ "op": "remove", "path": "/clips/0/id" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/clips/0/id" }]
+  },
+  {
+    "name": "missing-id-animation",
+    "description": "Animations require a stable ID.",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/1/animations/0/id" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/1/animations/0/id" }]
+  },
+  {
+    "name": "missing-id-asset",
+    "description": "Assets require a stable ID. Structural errors stop validation before references are checked.",
+    "patch": [{ "op": "remove", "path": "/assets/0/id" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/assets/0/id" }]
+  },
+  {
+    "name": "id-invalid-characters",
+    "description": "D16: IDs match ^[A-Za-z0-9_-]+$.",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/0/id", "value": "node background" }],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/0/id" }]
+  },
+  {
+    "name": "node-type-unknown",
+    "description": "An unsupported node type is one error at the discriminator, not one error per known type.",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/0/type", "value": "sticker" }],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/0/type" }]
+  },
+  {
+    "name": "node-type-missing",
+    "description": "A node without a type cannot be validated further.",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/0/type" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/0/type" }]
+  },
+  {
+    "name": "group-nested",
+    "description": "D16: groups do not nest in schema 0.1.",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/1/children/1/type", "value": "group" }],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/1/children/1/type" }]
+  },
+  {
+    "name": "scene-second-without-duration",
+    "description": "From 0.5 a composition may hold several scenes (D54.1), each with its own durationUs and clips.",
+    "patch": [{ "op": "add", "path": "/scenes/-", "value": { "id": "scene-second", "nodes": [] } }],
+    "expectedErrors": [
+      { "code": "missing-field", "path": "/scenes/1/durationUs" },
+      { "code": "missing-field", "path": "/scenes/1/clips" }
+    ]
+  },
+  {
+    "name": "clips-several",
+    "description": "D52.1: any number of clips; the second is checked like the first.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/clips/-",
+        "value": {
+          "id": "clip-audio-second",
+          "type": "audio",
+          "assetId": "asset-missing",
+          "startUs": 5000000,
+          "durationUs": 1000000,
+          "sourceStartUs": 0,
+          "volume": 1,
+          "fadeInUs": 0,
+          "fadeOutUs": 0
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "unresolved-asset-reference", "path": "/clips/1/assetId" }]
+  },
+  {
+    "name": "clip-source-start-missing",
+    "description": "A clip states where its source starts; there is no default (D49.1, D52.1).",
+    "patch": [{ "op": "remove", "path": "/clips/0/sourceStartUs" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/clips/0/sourceStartUs" }]
+  },
+  {
+    "name": "clip-source-time-out-of-range",
+    "description": "Every source time of a clip's lifetime is a safe integer (D52.3).",
+    "patch": [{ "op": "replace", "path": "/clips/0/sourceStartUs", "value": 9007199254740991 }],
+    "expectedErrors": [{ "code": "source-time-out-of-range", "path": "/clips/0/sourceStartUs" }]
+  },
+  {
+    "name": "clip-volume-above-one",
+    "description": "A volume never amplifies (D52.2).",
+    "patch": [{ "op": "replace", "path": "/clips/0/volume", "value": 1.5 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/clips/0/volume" }]
+  },
+  {
+    "name": "clip-fade-negative",
+    "description": "A fade is a non-negative integer duration (D52.1).",
+    "patch": [{ "op": "replace", "path": "/clips/0/fadeInUs", "value": -1 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/clips/0/fadeInUs" }]
+  },
+  {
+    "name": "clip-fade-fractional",
+    "description": "Fades are integer microseconds (D04, D52.1).",
+    "patch": [{ "op": "replace", "path": "/clips/0/fadeOutUs", "value": 0.5 }],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/clips/0/fadeOutUs" }]
+  },
+  {
+    "name": "clip-fades-exceed-duration",
+    "description": "The two fades of a clip fit in its lifetime together (D52.3).",
+    "patch": [
+      { "op": "replace", "path": "/clips/0/fadeInUs", "value": 6000000 },
+      { "op": "replace", "path": "/clips/0/fadeOutUs", "value": 4000001 }
+    ],
+    "expectedErrors": [{ "code": "clip-fades-exceed-duration", "path": "/clips/0/fadeOutUs" }]
+  },
+  {
+    "name": "interpolation-unsupported",
+    "description": "Q11: linear interpolation only.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/interpolation",
+        "value": "ease-in-out"
+      }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-value", "path": "/scenes/0/nodes/2/animations/0/interpolation" }
+    ]
+  },
+  {
+    "name": "animation-property-unknown",
+    "description": "Only opacity, position, and scale can be animated.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/animations/0/property", "value": "rotation" }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-value", "path": "/scenes/0/nodes/2/animations/0/property" }
+    ]
+  },
+  {
+    "name": "animation-value-wrong-shape",
+    "description": "The keyframe value type follows the animated property.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/value",
+        "value": { "x": 1, "y": 1 }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-type", "path": "/scenes/0/nodes/2/animations/0/keyframes/0/value" }
+    ]
+  },
+  {
+    "name": "keyframes-single",
+    "description": "D16: an animation has at least two keyframes; a constant belongs on the node.",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/2/animations/0/keyframes/1" }],
+    "expectedErrors": [
+      { "code": "invalid-length", "path": "/scenes/0/nodes/2/animations/0/keyframes" }
+    ]
+  },
+  {
+    "name": "keyframes-not-ascending",
+    "description": "D16: keyframe times ascend strictly, so array order carries no extra meaning.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/1/timeUs",
+        "value": 0
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "keyframes-not-ascending",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/1/timeUs"
+      }
+    ]
+  },
+  {
+    "name": "animation-duplicate-target",
+    "description": "D16: a node has at most one animation per property.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/animations/-",
+        "value": {
+          "id": "anim-title-opacity-second",
+          "property": "opacity",
+          "interpolation": "linear",
+          "keyframes": [
+            { "timeUs": 0, "value": 1 },
+            { "timeUs": 1000000, "value": 0 }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "duplicate-animation-target", "path": "/scenes/0/nodes/2/animations/1/property" }
+    ]
+  },
+  {
+    "name": "fit-missing-on-image",
+    "description": "Every image states its fit; there is no default (D16.1, D50.1).",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/1/children/0/fit" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/1/children/0/fit" }]
+  },
+  {
+    "name": "fit-unknown",
+    "description": "Fit is one of fill, contain, and cover (D50.1).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/1/children/0/fit", "value": "scale-down" }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/1/children/0/fit" }]
+  },
+  {
+    "name": "video-source-start-missing",
+    "description": "A video node states where its source starts; there is no default (D49.1, D50.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "volume": 0
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/4/sourceStartUs" }]
+  },
+  {
+    "name": "video-unknown-field",
+    "description": "A video node is a closed object: there is no muted, a volume of 0 is silence (D52.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "muted": true,
+          "volume": 0
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "unknown-field", "path": "/scenes/0/nodes/4/muted" }]
+  },
+  {
+    "name": "video-asset-type-mismatch",
+    "description": "A video node refers to an asset of type video, never to an image (D14, D50.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "sourceStartUs": 0,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "volume": 0
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "asset-type-mismatch", "path": "/scenes/0/nodes/4/assetId" }]
+  },
+  {
+    "name": "video-source-time-out-of-range",
+    "description": "Every source time of a video node's lifetime is a safe integer (D50.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 9007199254000000,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "volume": 0
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "source-time-out-of-range", "path": "/scenes/0/nodes/4/sourceStartUs" }
+    ]
+  },
+  {
+    "name": "video-volume-above-one",
+    "description": "The volume of a video never amplifies (D52.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "volume": 2
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/4/volume" }]
+  },
+  {
+    "name": "video-in-group-unknown-fit",
+    "description": "A video may be the child of a group, and its fit is checked there too (D50.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/children/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "width": 320,
+          "height": 180,
+          "fit": "none",
+          "volume": 0
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/1/children/2/fit" }]
+  },
+  {
+    "name": "scenes-shorter-than-composition",
+    "description": "The composition's durationUs must be the sum of its scenes' durationUs (D49.3, D54.2).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/durationUs",
+        "value": 9000000
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "composition-duration-mismatch",
+        "path": "/durationUs"
+      }
+    ]
+  },
+  {
+    "name": "scene-second-not-counted",
+    "description": "A second scene lengthens the composition, whose durationUs must say so (D54.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-second",
+          "durationUs": 1000000,
+          "nodes": [],
+          "clips": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "composition-duration-mismatch",
+        "path": "/durationUs"
+      }
+    ]
+  },
+  {
+    "name": "scene-duration-zero",
+    "description": "A scene lasts at least one microsecond (D54.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/durationUs",
+        "value": 0
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/durationUs"
+      }
+    ]
+  },
+  {
+    "name": "scene-clip-unresolved-asset",
+    "description": "A clip of a scene refers to an audio asset, as a composition clip does (D54.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/clips/-",
+        "value": {
+          "id": "clip-scene",
+          "type": "audio",
+          "assetId": "asset-missing",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "sourceStartUs": 0,
+          "volume": 1,
+          "fadeInUs": 0,
+          "fadeOutUs": 0
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "unresolved-asset-reference",
+        "path": "/scenes/0/clips/0/assetId"
+      }
+    ]
+  },
+  {
+    "name": "scene-clip-fades-exceed-duration",
+    "description": "The fades of a scene's clip fit in its lifetime (D52.3, D54.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/clips/-",
+        "value": {
+          "id": "clip-scene",
+          "type": "audio",
+          "assetId": "asset-audio",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "sourceStartUs": 0,
+          "volume": 1,
+          "fadeInUs": 600000,
+          "fadeOutUs": 600000
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "clip-fades-exceed-duration",
+        "path": "/scenes/0/clips/0/fadeOutUs"
+      }
+    ]
+  },
+  {
+    "name": "scene-clip-unknown-field",
+    "description": "A clip of a scene has exactly the fields of a clip (D54.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/clips/-",
+        "value": {
+          "id": "clip-scene",
+          "type": "audio",
+          "assetId": "asset-audio",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "sourceStartUs": 0,
+          "volume": 1,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
+          "muted": 0
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "unknown-field",
+        "path": "/scenes/0/clips/0/muted"
+      }
+    ]
+  }
+]

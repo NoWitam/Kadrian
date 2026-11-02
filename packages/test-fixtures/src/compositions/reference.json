@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.5",
+  "schemaVersion": "0.6",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -131,7 +131,8 @@
           "html": "<!doctype html><meta charset='utf-8'><style>html,body{margin:0;height:100%;background:#1d2939}#bar{width:0;height:100%;background:#f79009}</style><div id='bar'></div><script>(function(){var meta=document.querySelector('meta[name=kadrion-instance]');var instanceId=meta?meta.getAttribute('content'):null;var KEYS='instanceId,requestId,timeUs,type,version';function count(n){return typeof n==='number'&&Number.isSafeInteger(n)&&n>=0}addEventListener('message',function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=='object'||Array.isArray(data)||Object.keys(data).sort().join(',')!==KEYS)return;if(data.type!=='kadrion:time'||data.version!==1||instanceId===null||data.instanceId!==instanceId||!count(data.requestId)||!count(data.timeUs))return;document.getElementById('bar').style.width=data.timeUs/100000+'%';window.parent.postMessage({type:'kadrion:time-ack',version:1,instanceId:instanceId,requestId:data.requestId,timeUs:data.timeUs},'*')})})()</script>"
         }
       ],
-      "clips": []
+      "clips": [],
+      "transitions": []
     }
   ],
   "clips": [
@@ -146,5 +147,6 @@
       "fadeInUs": 0,
       "fadeOutUs": 0
     }
-  ]
+  ],
+  "transitions": []
 }

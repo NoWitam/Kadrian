@@ -992,7 +992,7 @@
   },
   {
     "name": "add_scene",
-    "description": "Inserts one complete scene at an index of the sequence. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, and the composition's durationUs is the sum of the scenes' durations, which every scene command keeps. The scene is given exactly as the document stores it: an ID unused in the document, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), and its audio clips (each as add_scene_audio_clip takes one), every ID unused in the document. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the scene is not one the document can hold; a scene with video or sound also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":1,\"scene\":{\"id\":\"scene-outro\",\"durationUs\":3000000,\"nodes\":[{\"id\":\"node-outro-background\",\"type\":\"background\",\"startUs\":0,\"durationUs\":3000000,\"color\":\"#000000\"}],\"clips\":[]}}",
+    "description": "Inserts one complete scene at an index of the sequence. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, less the duration of a transition between them, and the composition's durationUs is the sum of the scenes' durations less those of the scene transitions, which every scene command keeps. A command that would break a transition — remove or move one of its scenes or nodes, or shorten one so that it no longer fits — is refused with transition-in-use and the IDs of those transitions: remove them first, in the same transaction. The scene is given exactly as the document stores it: an ID unused in the document, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), and its audio clips (each as add_scene_audio_clip takes one), every ID unused in the document. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the scene is not one the document can hold; a scene with video or sound also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":1,\"scene\":{\"id\":\"scene-outro\",\"durationUs\":3000000,\"nodes\":[{\"id\":\"node-outro-background\",\"type\":\"background\",\"startUs\":0,\"durationUs\":3000000,\"color\":\"#000000\"}],\"clips\":[],\"transitions\":[]}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete scene into the sequence; the composition's durationUs grows by the scene's.",
@@ -1017,7 +1017,7 @@
   },
   {
     "name": "remove_scene",
-    "description": "Removes one scene with its nodes and clips; its assets stay declared. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, and the composition's durationUs is the sum of the scenes' durations, which every scene command keeps. Every later scene starts earlier by the removed scene's duration. Refused with unknown-scene, and last-scene for the only scene of the document. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-outro\"}",
+    "description": "Removes one scene with its nodes and clips; its assets stay declared. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, less the duration of a transition between them, and the composition's durationUs is the sum of the scenes' durations less those of the scene transitions, which every scene command keeps. A command that would break a transition — remove or move one of its scenes or nodes, or shorten one so that it no longer fits — is refused with transition-in-use and the IDs of those transitions: remove them first, in the same transaction. Every later scene starts earlier by the removed scene's duration. Refused with unknown-scene, and last-scene for the only scene of the document. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-outro\"}",
     "inputSchema": {
       "type": "object",
       "description": "Removes a scene with its nodes and clips; the composition's durationUs shrinks by the scene's. The last scene cannot be removed.",
@@ -1036,7 +1036,7 @@
   },
   {
     "name": "duplicate_scene",
-    "description": "Copies one scene, with its nodes, animations, and clips, directly after it. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, and the composition's durationUs is the sum of the scenes' durations, which every scene command keeps. The copy's IDs derive from newSceneId: the node at index i becomes <newSceneId>-n<i>, its child at index j <newSceneId>-n<i>-c<j>, an animation <owner>-a-<property>, and the clip at index k <newSceneId>-k<k>. Refused with invalid-argument for an ID not of the document's form, unknown-scene, id-in-use with the derived IDs already taken, and invalid-result; a scene with video or sound also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-main\",\"newSceneId\":\"scene-again\"}",
+    "description": "Copies one scene, with its nodes, animations, and clips, directly after it. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, less the duration of a transition between them, and the composition's durationUs is the sum of the scenes' durations less those of the scene transitions, which every scene command keeps. A command that would break a transition — remove or move one of its scenes or nodes, or shorten one so that it no longer fits — is refused with transition-in-use and the IDs of those transitions: remove them first, in the same transaction. The copy's IDs derive from newSceneId: the node at index i becomes <newSceneId>-n<i>, its child at index j <newSceneId>-n<i>-c<j>, an animation <owner>-a-<property>, and the clip at index k <newSceneId>-k<k>. Refused with invalid-argument for an ID not of the document's form, unknown-scene, id-in-use with the derived IDs already taken, and invalid-result; a scene with video or sound also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-main\",\"newSceneId\":\"scene-again\"}",
     "inputSchema": {
       "type": "object",
       "description": "Copies a scene, with its nodes and clips, directly after it; the composition's durationUs grows by the scene's.",
@@ -1061,7 +1061,7 @@
   },
   {
     "name": "reorder_scene",
-    "description": "Moves one scene to another index of the sequence: 0 is the first scene. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, and the composition's durationUs is the sum of the scenes' durations, which every scene command keeps. Nothing inside the scene moves, since its times are its own. Refused with unknown-scene and index-out-of-range. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-outro\",\"index\":0}",
+    "description": "Moves one scene to another index of the sequence: 0 is the first scene. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, less the duration of a transition between them, and the composition's durationUs is the sum of the scenes' durations less those of the scene transitions, which every scene command keeps. A command that would break a transition — remove or move one of its scenes or nodes, or shorten one so that it no longer fits — is refused with transition-in-use and the IDs of those transitions: remove them first, in the same transaction. Nothing inside the scene moves, since its times are its own. Refused with unknown-scene and index-out-of-range. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-outro\",\"index\":0}",
     "inputSchema": {
       "type": "object",
       "description": "Moves a scene to another place in the sequence; nothing inside it moves.",
@@ -1087,7 +1087,7 @@
   },
   {
     "name": "set_scene_duration",
-    "description": "Sets how long one scene lasts. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, and the composition's durationUs is the sum of the scenes' durations, which every scene command keeps. Every later scene starts earlier or later by the change, and whatever in the scene lies past its new end is cut; nothing moves inside it. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-scene, invalid-result when the composition would last too long, and, when a video or sound would then be heard further, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-main\",\"durationUs\":8000000}",
+    "description": "Sets how long one scene lasts. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, less the duration of a transition between them, and the composition's durationUs is the sum of the scenes' durations less those of the scene transitions, which every scene command keeps. A command that would break a transition — remove or move one of its scenes or nodes, or shorten one so that it no longer fits — is refused with transition-in-use and the IDs of those transitions: remove them first, in the same transaction. Every later scene starts earlier or later by the change, and whatever in the scene lies past its new end is cut; nothing moves inside it. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-scene, invalid-result when the composition would last too long, and, when a video or sound would then be heard further, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-main\",\"durationUs\":8000000}",
     "inputSchema": {
       "type": "object",
       "description": "Sets how long a scene lasts; the composition's durationUs changes by the same amount, and every later scene starts that much earlier or later.",
@@ -1176,7 +1176,7 @@
   },
   {
     "name": "move_clip",
-    "description": "Moves one clip — a node of any type, or an audio clip — to a new start, keeping its duration and, for a video or an audio clip, its source: it plays the same, only earlier or later. A node's keyframes move with it, and a group's children with theirs, so its animation keeps its place in the clip; set_node_lifetime is the command that changes when a node is shown without moving keyframes. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, invalid-result when a keyframe or a child would leave the times of the document, and, when a video or sound would then be seen or heard further, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"startUs\":1000000}",
+    "description": "Moves one clip — a node of any type, or an audio clip — to a new start, keeping its duration and, for a video or an audio clip, its source: it plays the same, only earlier or later. A node's keyframes move with it, and a group's children with theirs, so its animation keeps its place in the clip; set_node_lifetime is the command that changes when a node is shown without moving keyframes. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, invalid-result when a keyframe or a child would leave the times of the document, and, when a video or sound would then be seen or heard further, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"startUs\":1000000}",
     "inputSchema": {
       "type": "object",
       "description": "Moves a clip to a new start, keeping its duration and its source; a node's keyframes, and a group's children with theirs, move by the same amount.",
@@ -1202,7 +1202,7 @@
   },
   {
     "name": "trim_clip_start",
-    "description": "Moves the start of one clip and keeps its end, as dragging the left edge on a timeline: startUs becomes the given time, durationUs changes by the opposite amount, and a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays exactly where it did. No keyframe moves, and an audio clip's fades stay at its edges. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, time-outside-clip when the start would reach the end, source-range-exceeded when the source would start before its first instant or run past its end, invalid-result when the fades no longer fit, and media-facts-missing. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"startUs\":2000000}",
+    "description": "Moves the start of one clip and keeps its end, as dragging the left edge on a timeline: startUs becomes the given time, durationUs changes by the opposite amount, and a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays exactly where it did. No keyframe moves, and an audio clip's fades stay at its edges. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, time-outside-clip when the start would reach the end, source-range-exceeded when the source would start before its first instant or run past its end, invalid-result when the fades no longer fit, and media-facts-missing. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"startUs\":2000000}",
     "inputSchema": {
       "type": "object",
       "description": "Moves the start of a clip and keeps its end; a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays where it did.",
@@ -1228,7 +1228,7 @@
   },
   {
     "name": "trim_clip_end",
-    "description": "Moves the end of one clip and keeps its start, as dragging the right edge on a timeline: durationUs becomes endUs minus startUs. No keyframe moves. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, time-outside-clip when the end would reach the start, invalid-result when an audio clip's fades no longer fit, and, when a video or sound would then be seen or heard further, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"endUs\":6000000}",
+    "description": "Moves the end of one clip and keeps its start, as dragging the right edge on a timeline: durationUs becomes endUs minus startUs. No keyframe moves. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, time-outside-clip when the end would reach the start, invalid-result when an audio clip's fades no longer fit, and, when a video or sound would then be seen or heard further, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"endUs\":6000000}",
     "inputSchema": {
       "type": "object",
       "description": "Moves the end of a clip and keeps its start.",
@@ -1254,7 +1254,7 @@
   },
   {
     "name": "split_clip",
-    "description": "Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, so both halves look exactly like the whole. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"atUs\":5000000,\"newClipId\":\"node-title-tail\"}",
+    "description": "Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, so both halves look exactly like the whole. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"atUs\":5000000,\"newClipId\":\"node-title-tail\"}",
     "inputSchema": {
       "type": "object",
       "description": "Cuts a clip into two that meet at atUs; the second half is placed directly after the first.",
@@ -1286,7 +1286,7 @@
   },
   {
     "name": "join_clips",
-    "description": "Joins two halves of a split back into one clip: nextClipId must be directly after clipId in the same list, start where it ends, and be exactly what split_clip would make of the joined clip (same fields, its source continuing, its animations those of the first under its own ID). The joined clip keeps clipId and the second is removed. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. Refused with unknown-clip, unsupported-node for a group, clips-not-joinable, invalid-result, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"nextClipId\":\"node-title-tail\"}",
+    "description": "Joins two halves of a split back into one clip: nextClipId must be directly after clipId in the same list, start where it ends, and be exactly what split_clip would make of the joined clip (same fields, its source continuing, its animations those of the first under its own ID). The joined clip keeps clipId and the second is removed. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Refused with unknown-clip, unsupported-node for a group, clips-not-joinable, invalid-result, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"nextClipId\":\"node-title-tail\"}",
     "inputSchema": {
       "type": "object",
       "description": "Joins two halves of a split back into one clip.",
@@ -1305,6 +1305,131 @@
       "required": [
         "clipId",
         "nextClipId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_scene_transition",
+    "description": "Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide or wipe with a direction (left, right, up, down). Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"transition\":{\"id\":\"transition-outro\",\"fromSceneId\":\"scene-main\",\"toSceneId\":\"scene-outro\",\"durationUs\":500000,\"effect\":{\"kind\":\"crossfade\"}}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Inserts a transition on the boundary between two adjacent scenes: the incoming scene starts durationUs earlier and overlaps the end of the outgoing one, and the composition's durationUs shrinks by as much.",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "description": "The transition's index in the composition's transitions after the insertion, from 0 to their number; their order has no meaning.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "transition": {
+          "type": "object",
+          "description": "The complete transition as the document stores it: its ID, unused in the document; fromSceneId, the outgoing scene; toSceneId, the scene directly after it; durationUs, at most the duration of either scene; and effect. An effect is an object with its kind: {\"kind\":\"crossfade\"} (the incoming side fades in over the outgoing one), {\"kind\":\"fade-through-color\",\"color\":\"#rrggbb\"} (the outgoing scene fades out to the colour, then the incoming one fades in from it), {\"kind\":\"slide\",\"direction\":\"left\"|\"right\"|\"up\"|\"down\"} (the incoming scene slides in, moving in its direction), or {\"kind\":\"wipe\",\"direction\":…} (an edge moving in its direction uncovers the incoming scene). A clip transition takes crossfade only."
+        }
+      },
+      "required": [
+        "index",
+        "transition"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_clip_transition",
+    "description": "Adds a crossfade between two clips of one layer of a scene — two children of one parent, neither a background — whose lifetimes already overlap by exactly durationUs: the outgoing node ends durationUs after the incoming one starts. During the overlap the incoming node fades in, and the outgoing one fades out if it lies above the incoming one; nothing moves. Make the overlap first with move_clip, trim_clip_start, or trim_clip_end. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with unknown-scene, index-out-of-range, id-in-use, and invalid-result when the nodes are not siblings of this scene, a background, or do not overlap by exactly durationUs. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-main\",\"index\":0,\"transition\":{\"id\":\"transition-title\",\"fromNodeId\":\"node-title\",\"toNodeId\":\"node-custom-html\",\"durationUs\":500000,\"effect\":{\"kind\":\"crossfade\"}}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Inserts a transition between two clips of one layer of a scene, two children of one parent whose lifetimes already overlap by exactly its durationUs; nothing moves.",
+      "properties": {
+        "sceneId": {
+          "type": "string",
+          "description": "The stable ID of a scene of the document.",
+          "minLength": 1
+        },
+        "index": {
+          "type": "integer",
+          "description": "The transition's index in the scene's transitions after the insertion, from 0 to their number; their order has no meaning.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "transition": {
+          "type": "object",
+          "description": "The complete transition as the document stores it: its ID, unused in the document; fromNodeId, the outgoing node, which ends durationUs after the incoming one starts; toNodeId, the incoming node; durationUs; and effect, {\"kind\":\"crossfade\"}."
+        }
+      },
+      "required": [
+        "sceneId",
+        "index",
+        "transition"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "remove_transition",
+    "description": "Removes a scene or clip transition. Without a scene transition the incoming scene starts where the outgoing one ends again: every later scene starts durationUs later and the composition grows by as much. Without a clip transition the two clips stay where they are and simply overlap. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Refused with unknown-transition. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"transitionId\":\"transition-outro\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Removes a transition. A scene transition's duration is given back: the incoming scene starts that much later, and the composition's durationUs grows by as much. A clip transition's clips stay where they are.",
+      "properties": {
+        "transitionId": {
+          "type": "string",
+          "description": "The stable ID of a scene transition or a clip transition of the document.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "transitionId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_transition_duration",
+    "description": "Sets how long a transition lasts. A longer scene transition makes the incoming scene, and every later one, start earlier, and the composition shorter, by the change. A longer clip transition makes the outgoing clip last longer by the change, so that it still ends durationUs after the incoming one starts: a video then shows more of its source. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-transition, invalid-result when it would not fit its sides, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"transitionId\":\"transition-outro\",\"durationUs\":1000000}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets how long a transition lasts. For a scene transition, the incoming scene and every later one start earlier or later by the change, and the composition's durationUs changes by the opposite amount. For a clip transition, the outgoing clip's durationUs changes by the same amount, so that it still ends durationUs after the incoming clip starts.",
+      "properties": {
+        "transitionId": {
+          "type": "string",
+          "description": "The stable ID of a scene transition or a clip transition of the document.",
+          "minLength": 1
+        },
+        "durationUs": {
+          "type": "integer",
+          "description": "The new duration of the transition, in integer microseconds, at least 1; at most the duration of either side, and the transitions into and out of one side together at most its duration.",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "transitionId",
+        "durationUs"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_transition_effect",
+    "description": "Replaces how a transition combines its two sides with a complete effect: {\"kind\":\"crossfade\"}, {\"kind\":\"fade-through-color\",\"color\":\"#000000\"}, {\"kind\":\"slide\",\"direction\":\"left\"}, or {\"kind\":\"wipe\",\"direction\":\"up\"}; directions are left, right, up, and down, the way the incoming scene moves. A clip transition takes crossfade only. No time changes. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Refused with unknown-transition and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"transitionId\":\"transition-outro\",\"effect\":{\"kind\":\"wipe\",\"direction\":\"left\"}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Replaces how a transition combines its two sides; no time changes.",
+      "properties": {
+        "transitionId": {
+          "type": "string",
+          "description": "The stable ID of a scene transition or a clip transition of the document.",
+          "minLength": 1
+        },
+        "effect": {
+          "type": "object",
+          "description": "The complete new effect. An effect is an object with its kind: {\"kind\":\"crossfade\"} (the incoming side fades in over the outgoing one), {\"kind\":\"fade-through-color\",\"color\":\"#rrggbb\"} (the outgoing scene fades out to the colour, then the incoming one fades in from it), {\"kind\":\"slide\",\"direction\":\"left\"|\"right\"|\"up\"|\"down\"} (the incoming scene slides in, moving in its direction), or {\"kind\":\"wipe\",\"direction\":…} (an edge moving in its direction uncovers the incoming scene). A clip transition takes crossfade only."
+        }
+      },
+      "required": [
+        "transitionId",
+        "effect"
       ],
       "additionalProperties": false
     }
@@ -1372,7 +1497,12 @@
                   "trim_clip_start",
                   "trim_clip_end",
                   "split_clip",
-                  "join_clips"
+                  "join_clips",
+                  "add_scene_transition",
+                  "add_clip_transition",
+                  "remove_transition",
+                  "set_transition_duration",
+                  "set_transition_effect"
                 ]
               },
               "arguments": {

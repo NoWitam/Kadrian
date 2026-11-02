@@ -31,7 +31,7 @@ const nodeById = (id: string): SceneNode | undefined => nodes.find((node) => nod
 const entry = (key: string, value: string): [string, string] => [key, value];
 
 describe('reference composition', () => {
-  it('validates against schema 0.5', () => {
+  it('validates against schema 0.6', () => {
     expect(validateComposition(referenceComposition)).toEqual({
       ok: true,
       composition: referenceComposition,
@@ -40,7 +40,7 @@ describe('reference composition', () => {
 
   it('has the fixed parameters of specification §3.1', () => {
     expect(composition).toMatchObject({
-      schemaVersion: '0.5',
+      schemaVersion: '0.6',
       width: 1080,
       height: 1920,
       fps: 30,

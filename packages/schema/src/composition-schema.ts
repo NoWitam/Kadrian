@@ -10,7 +10,9 @@
  * clips with a source start, a volume, and fades, and the sound of a video
  * node (D52); 0.5 is 0.4 plus a sequence of scenes, each with its own duration
  * and its own audio clips, and every time inside a scene local to it (D49.3,
- * D54). The schemas of 0.1 to 0.4 are kept as data in `v0-1` to `v0-4` (D35.4).
+ * D54); 0.6 is 0.5 plus transitions on the boundaries between scenes and
+ * between two clips of one layer (D49.4, D56). The schemas of 0.1 to 0.5 are
+ * kept as data in `v0-1` to `v0-5` (D35.4).
  */
 import {
   closedObject,
@@ -21,7 +23,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.5';
+export const SCHEMA_VERSION = '0.6';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -327,6 +329,104 @@ export const audioClipSchema = closedObject(
   },
 );
 
+const sceneReference = {
+  type: 'string',
+  description: 'ID of a scene of this composition (D56).',
+  pattern: '^[A-Za-z0-9_-]+$',
+} as const satisfies StringSchema;
+
+const nodeReference = {
+  type: 'string',
+  description: 'ID of a node of the same scene (D56).',
+  pattern: '^[A-Za-z0-9_-]+$',
+} as const satisfies StringSchema;
+
+const direction = {
+  type: 'string',
+  description: 'The direction in which the incoming side moves across the frame (D56).',
+  enum: ['left', 'right', 'up', 'down'],
+} as const satisfies StringSchema;
+
+export const crossfadeEffectSchema = closedObject(
+  'The incoming side fades in, from transparent to its own opacity, over the outgoing one (D56).',
+  { kind: { type: 'string', const: 'crossfade' } },
+);
+
+export const fadeThroughColorEffectSchema = closedObject(
+  'The outgoing scene fades out to the colour over the first half, and the incoming scene fades in from it over the second half (D56).',
+  { kind: { type: 'string', const: 'fade-through-color' }, color },
+);
+
+export const slideEffectSchema = closedObject(
+  'The incoming scene slides in over the outgoing one from the edge opposite to its direction (D56).',
+  { kind: { type: 'string', const: 'slide' }, direction },
+);
+
+export const wipeEffectSchema = closedObject(
+  'An edge travels across the frame in its direction and uncovers the incoming scene behind it (D56).',
+  { kind: { type: 'string', const: 'wipe' }, direction },
+);
+
+/** How a transition between two scenes combines their images (D56). */
+export const sceneTransitionEffectSchema = {
+  description: 'How the two images are combined; a pure function of the progress (D49.4, D56).',
+  oneOf: [crossfadeEffectSchema, fadeThroughColorEffectSchema, slideEffectSchema, wipeEffectSchema],
+} as const satisfies UnionSchema;
+
+/** How a transition between two clips combines them (D56): a node's box is not the frame. */
+export const clipTransitionEffectSchema = {
+  description: 'How the two clips are combined; a pure function of the progress (D49.4, D56).',
+  oneOf: [crossfadeEffectSchema],
+} as const satisfies UnionSchema;
+
+const transitionDurationUs = {
+  ...durationUs,
+  description:
+    'How long the two sides overlap, in integer microseconds; at most the duration of either side (D49.4, D56).',
+} as const satisfies NumberSchema;
+
+/**
+ * A transition on the boundary between two scenes (D49.4, D56): the incoming
+ * scene starts durationUs before the outgoing one ends.
+ */
+export const sceneTransitionSchema = closedObject(
+  'The overlap of two adjacent scenes: during its durationUs the outgoing scene shows its last durationUs and the incoming scene its first, combined by the effect (D49.4, D56).',
+  {
+    id,
+    fromSceneId: {
+      ...sceneReference,
+      description: 'The outgoing scene (D56).',
+    },
+    toSceneId: {
+      ...sceneReference,
+      description: 'The incoming scene, directly after the outgoing one (D56).',
+    },
+    durationUs: transitionDurationUs,
+    effect: sceneTransitionEffectSchema,
+  },
+);
+
+/**
+ * A transition between two clips of one layer (D49.2, D49.4, D56): two
+ * siblings whose lifetimes overlap by exactly its duration.
+ */
+export const clipTransitionSchema = closedObject(
+  'The overlap of two clips of one layer, siblings of one parent whose lifetimes overlap by exactly durationUs; it adds no time and moves nothing (D49.4, D56).',
+  {
+    id,
+    fromNodeId: {
+      ...nodeReference,
+      description: 'The outgoing node, which ends durationUs after the incoming one starts (D56).',
+    },
+    toNodeId: {
+      ...nodeReference,
+      description: 'The incoming node, a sibling of the outgoing one (D56).',
+    },
+    durationUs: transitionDurationUs,
+    effect: clipTransitionEffectSchema,
+  },
+);
+
 export const sceneSchema = closedObject(
   'One scene of the sequence (D49.3): it starts where the scene before it ends and lasts durationUs; every time inside it is scene time, from 0 at its start (D54).',
   {
@@ -334,7 +434,7 @@ export const sceneSchema = closedObject(
     durationUs: {
       ...durationUs,
       description:
-        'How long the scene lasts, in integer microseconds. The scenes follow each other in their order, and the durationUs of the composition is the sum of theirs (D49.3, D54).',
+        'How long the scene lasts, in integer microseconds. The scenes follow each other in their order, and the durationUs of the composition is the sum of theirs less the durations of the scene transitions (D49.3, D54, D56).',
     },
     nodes: {
       type: 'array',
@@ -346,6 +446,12 @@ export const sceneSchema = closedObject(
       description:
         'Audio clips in scene time, which move with the scene; mixed with every other clip regardless of their order (D49.3, D54).',
       items: audioClipSchema,
+    },
+    transitions: {
+      type: 'array',
+      description:
+        'Transitions between two clips of one layer of this scene; their order has no meaning (D49.4, D56).',
+      items: clipTransitionSchema,
     },
   },
 );
@@ -378,7 +484,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.5',
+  title: 'Kadrion composition 0.6',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,
@@ -394,7 +500,7 @@ export const compositionSchema = deepFreeze({
     scenes: {
       type: 'array',
       description:
-        'The scenes in the order they are played, at least one; scene k + 1 starts where scene k ends (D49.3, D54).',
+        'The scenes in the order they are played, at least one; scene k + 1 starts where scene k ends, less the duration of the transition between them (D49.3, D54, D56).',
       minItems: 1,
       items: sceneSchema,
     },
@@ -403,6 +509,12 @@ export const compositionSchema = deepFreeze({
       description:
         'Audio clips in composition time, for sound that spans scenes, mixed by summing regardless of their order (D52, D54).',
       items: audioClipSchema,
+    },
+    transitions: {
+      type: 'array',
+      description:
+        'Transitions on the boundaries between scenes, at most one per boundary; their order has no meaning (D49.4, D56).',
+      items: sceneTransitionSchema,
     },
   }),
 } as const satisfies JsonSchema);

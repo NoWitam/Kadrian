@@ -8,6 +8,7 @@ import {
 
 import { EvaluationError, unsupported } from './errors.js';
 import { sampleScalar, sampleVec2 } from './keyframes.js';
+import { clipTransitionFactors, sceneTransitionEffects } from './transitions.js';
 import type {
   CompositionState,
   GroupNodeState,
@@ -68,21 +69,35 @@ function isActive(
   return timeUs >= node.startUs && timeUs - node.startUs < node.durationUs;
 }
 
+/**
+ * The factors clip transitions multiply into opacities at this instant (D56), by
+ * node ID; a node without one is evaluated as it would be without them.
+ */
+type Factors = ReadonlyMap<string, number>;
+
+/** The transform of a node, with the factor of a clip transition in its opacity (D56). */
+function transformOf(node: TransformedNode, timeUs: number, factors: Factors): TransformState {
+  const transform = evaluateTransform(node, timeUs);
+  const factor = factors.get(node.id);
+  return factor === undefined ? transform : { ...transform, opacity: transform.opacity * factor };
+}
+
 function evaluateLeaf<Type extends LeafNodeType>(
   node: TransformedNode & { readonly type: Type },
   timeUs: number,
+  factors: Factors,
 ): LeafNodeState<Type> {
   return {
     id: node.id,
     type: node.type,
     active: isActive(node, timeUs),
-    ...evaluateTransform(node, timeUs),
+    ...transformOf(node, timeUs, factors),
   };
 }
 
 /** A video leaf with the source time it shows while active (D49.5, D50.3). */
-function evaluateVideo(node: VideoNode, timeUs: number): VideoNodeState {
-  const leaf = evaluateLeaf(node, timeUs);
+function evaluateVideo(node: VideoNode, timeUs: number, factors: Factors): VideoNodeState {
+  const leaf = evaluateLeaf(node, timeUs, factors);
   return { ...leaf, sourceTimeUs: leaf.active ? sourceTimeUs(node, timeUs) : null };
 }
 
@@ -90,8 +105,11 @@ function evaluateVideo(node: VideoNode, timeUs: number): VideoNodeState {
 function evaluateChild(
   child: Extract<SceneNode, { readonly type: 'group' }>['children'][number],
   timeUs: number,
+  factors: Factors,
 ): GroupNodeState['children'][number] {
-  return child.type === 'video' ? evaluateVideo(child, timeUs) : evaluateLeaf(child, timeUs);
+  return child.type === 'video'
+    ? evaluateVideo(child, timeUs, factors)
+    : evaluateLeaf(child, timeUs, factors);
 }
 
 /**
@@ -99,7 +117,7 @@ function evaluateChild(
  * (D15), their `active` included (D42.3). An inactive node is evaluated like any
  * other, so the state still mirrors the document.
  */
-function evaluateNode(node: SceneNode, timeUs: number): NodeState {
+function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeState {
   switch (node.type) {
     case 'background':
       return { id: node.id, type: node.type, active: isActive(node, timeUs) };
@@ -108,15 +126,15 @@ function evaluateNode(node: SceneNode, timeUs: number): NodeState {
         id: node.id,
         type: node.type,
         active: isActive(node, timeUs),
-        ...evaluateTransform(node, timeUs),
-        children: node.children.map((child) => evaluateChild(child, timeUs)),
+        ...transformOf(node, timeUs, factors),
+        children: node.children.map((child) => evaluateChild(child, timeUs, factors)),
       };
     case 'image':
     case 'text':
     case 'custom-html':
-      return evaluateLeaf(node, timeUs);
+      return evaluateLeaf(node, timeUs, factors);
     case 'video':
-      return evaluateVideo(node, timeUs);
+      return evaluateVideo(node, timeUs, factors);
     default:
       return unsupported(node, 'type');
   }
@@ -127,10 +145,12 @@ function evaluateNode(node: SceneNode, timeUs: number): NodeState {
  * and nothing else: no clock, no timer, no playback history, no cache (D18,
  * D19). The document is never modified, and the state shares no object with it.
  *
- * `scenes` lists the scenes evaluated at `timeUs` — exactly one, until
- * transitions exist (PR-32) — each at its local time, `timeUs` minus its start;
- * every node of a scene is evaluated at that scene time (D49.3, D54.3). A scene
- * is therefore evaluated alone exactly as it is in the sequence.
+ * `scenes` lists the scenes evaluated at `timeUs` — one, or the two sides of a
+ * scene transition — each at its local time, `timeUs` minus its start; every
+ * node of a scene is evaluated at that scene time (D49.3, D54.3). A scene is
+ * therefore evaluated alone exactly as it is in the sequence, except for what a
+ * transition adds: its `transition` state, the factors of clip transitions in
+ * the opacities of its nodes, and the composition's `backdrop` (D56).
  *
  * `timeUs` is an integer with `0 <= timeUs < durationUs`; it need not lie on the
  * frame grid, which is host-side sampling (D13). Any other value throws an
@@ -154,15 +174,29 @@ export function evaluateComposition(
 
   // `-0` is an integer inside the domain; the state reports it as `0`.
   const time = timeUs === 0 ? 0 : timeUs;
+  const transition = sceneTransitionEffects(composition, time);
+  const scenes = scenesAt(composition, time).map(({ placement, timeUs: sceneTimeUs }) => {
+    const scene = composition.scenes[placement.index];
+    const factors =
+      scene === undefined ? new Map<string, number>() : clipTransitionFactors(scene, sceneTimeUs);
+    const effect =
+      transition === null
+        ? null
+        : placement.index === transition.fromIndex
+          ? transition.outgoing
+          : placement.index === transition.fromIndex + 1
+            ? transition.incoming
+            : null;
+    return {
+      id: placement.id,
+      timeUs: sceneTimeUs,
+      nodes: (scene?.nodes ?? []).map((node) => evaluateNode(node, sceneTimeUs, factors)),
+      ...(effect === null ? {} : { transition: effect }),
+    };
+  });
   return {
     timeUs: time,
-    scenes: scenesAt(composition.scenes, time).map(({ placement, timeUs: sceneTimeUs }) => {
-      const scene = composition.scenes[placement.index];
-      return {
-        id: placement.id,
-        timeUs: sceneTimeUs,
-        nodes: (scene?.nodes ?? []).map((node) => evaluateNode(node, sceneTimeUs)),
-      };
-    }),
+    scenes,
+    ...(transition?.backdrop == null ? {} : { backdrop: transition.backdrop }),
   };
 }

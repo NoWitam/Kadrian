@@ -16,6 +16,8 @@ import {
   generateReferenceAssets,
   IMAGE_SIZE,
   referenceComposition,
+  transitionsComposition,
+  videoComposition,
 } from '../src/index.js';
 
 interface Reference {
@@ -206,6 +208,22 @@ describe('asset-font', () => {
       scene.nodes.forEach(visit);
     });
     expect(texts).toEqual(['Deterministic by design', 'Kadrion']);
+    for (const character of texts.join(''))
+      expect(FONT_GLYPHS, character).toHaveProperty([character]);
+  });
+
+  it.each([
+    ['video', videoComposition],
+    ['transitions', transitionsComposition],
+  ])('covers every character of the %s composition too', (_, composition) => {
+    const texts: string[] = [];
+    const visit = (node: Node): void => {
+      if (node.type === 'text' && node.text !== undefined) texts.push(node.text);
+      node.children?.forEach(visit);
+    };
+    (composition as Reference).scenes.forEach((scene) => {
+      scene.nodes.forEach(visit);
+    });
     for (const character of texts.join(''))
       expect(FONT_GLYPHS, character).toHaveProperty([character]);
   });

@@ -32,7 +32,7 @@
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.6" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.7" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -310,11 +310,12 @@
   },
   {
     "name": "scene-second-without-duration",
-    "description": "From 0.5 a composition may hold several scenes (D54.1), each with its own durationUs and clips.",
+    "description": "From 0.5 a composition may hold several scenes (D54.1), each with its own durationUs and clips, and from 0.6 its transitions (D56.1).",
     "patch": [{ "op": "add", "path": "/scenes/-", "value": { "id": "scene-second", "nodes": [] } }],
     "expectedErrors": [
       { "code": "missing-field", "path": "/scenes/1/durationUs" },
-      { "code": "missing-field", "path": "/scenes/1/clips" }
+      { "code": "missing-field", "path": "/scenes/1/clips" },
+      { "code": "missing-field", "path": "/scenes/1/transitions" }
     ]
   },
   {
@@ -714,7 +715,8 @@
           "id": "scene-second",
           "durationUs": 1000000,
           "nodes": [],
-          "clips": []
+          "clips": [],
+          "transitions": []
         }
       }
     ],
@@ -823,5 +825,450 @@
         "path": "/scenes/0/clips/0/muted"
       }
     ]
+  },
+  {
+    "name": "scene-transition-unresolved-scene",
+    "description": "A scene transition names scenes of the composition (D56.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-two",
+          "durationUs": 3000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      { "op": "replace", "path": "/durationUs", "value": 12500000 },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromSceneId": "scene-main",
+          "toSceneId": "scene-none",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "unresolved-scene-reference", "path": "/transitions/0/toSceneId" }]
+  },
+  {
+    "name": "scene-transition-not-adjacent",
+    "description": "The incoming scene directly follows the outgoing one (D56.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-two",
+          "durationUs": 3000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      { "op": "replace", "path": "/durationUs", "value": 12500000 },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromSceneId": "scene-two",
+          "toSceneId": "scene-main",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "transition-not-adjacent", "path": "/transitions/0/toSceneId" }]
+  },
+  {
+    "name": "scene-transition-longer-than-scene",
+    "description": "A scene transition lasts at most as long as either scene (D49.4, D56.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-two",
+          "durationUs": 3000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      { "op": "replace", "path": "/durationUs", "value": 9000000 },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromSceneId": "scene-main",
+          "toSceneId": "scene-two",
+          "durationUs": 4000000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "transition-too-long", "path": "/transitions/0/durationUs" }]
+  },
+  {
+    "name": "scene-transition-duplicate",
+    "description": "A boundary carries at most one transition (D49.4, D56.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-two",
+          "durationUs": 3000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      { "op": "replace", "path": "/durationUs", "value": 12000000 },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromSceneId": "scene-main",
+          "toSceneId": "scene-two",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "transition-b",
+          "fromSceneId": "scene-main",
+          "toSceneId": "scene-two",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "duplicate-transition", "path": "/transitions/1" }]
+  },
+  {
+    "name": "scene-transition-not-subtracted",
+    "description": "The composition is shorter than its scenes by the duration of each scene transition (D56.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-two",
+          "durationUs": 3000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      { "op": "replace", "path": "/durationUs", "value": 13000000 },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromSceneId": "scene-main",
+          "toSceneId": "scene-two",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "composition-duration-mismatch", "path": "/durationUs" }]
+  },
+  {
+    "name": "scene-transition-unknown-kind",
+    "description": "A scene transition's effect is one of the closed set of kinds (D56.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-two",
+          "durationUs": 3000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      { "op": "replace", "path": "/durationUs", "value": 12500000 },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromSceneId": "scene-main",
+          "toSceneId": "scene-two",
+          "durationUs": 500000,
+          "effect": { "kind": "dissolve" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/transitions/0/effect/kind" }]
+  },
+  {
+    "name": "scene-transition-slide-without-direction",
+    "description": "A slide states its direction (D56.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-two",
+          "durationUs": 3000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      { "op": "replace", "path": "/durationUs", "value": 12500000 },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromSceneId": "scene-main",
+          "toSceneId": "scene-two",
+          "durationUs": 500000,
+          "effect": { "kind": "slide" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "missing-field", "path": "/transitions/0/effect/direction" }]
+  },
+  {
+    "name": "scene-transition-color-uppercase",
+    "description": "The colour of a fade through a colour is a lowercase #rrggbb (D56.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-two",
+          "durationUs": 3000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      { "op": "replace", "path": "/durationUs", "value": 12500000 },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromSceneId": "scene-main",
+          "toSceneId": "scene-two",
+          "durationUs": 500000,
+          "effect": { "kind": "fade-through-color", "color": "#FFFFFF" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/transitions/0/effect/color" }]
+  },
+  {
+    "name": "scene-transition-duplicate-id",
+    "description": "A transition's ID lives in the one namespace of the document (D16.3, D56.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/-",
+        "value": {
+          "id": "scene-two",
+          "durationUs": 3000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      { "op": "replace", "path": "/durationUs", "value": 12500000 },
+      {
+        "op": "add",
+        "path": "/transitions/-",
+        "value": {
+          "id": "node-title",
+          "fromSceneId": "scene-main",
+          "toSceneId": "scene-two",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "duplicate-id", "path": "/transitions/0/id" }]
+  },
+  {
+    "name": "clip-transition-unresolved-node",
+    "description": "A clip transition names nodes of its own scene (D56.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-none",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-node-reference", "path": "/scenes/0/transitions/0/toNodeId" }
+    ]
+  },
+  {
+    "name": "clip-transition-background",
+    "description": "A background takes no clip transition (D56.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-background",
+          "toNodeId": "node-title",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "transition-node-type", "path": "/scenes/0/transitions/0" }]
+  },
+  {
+    "name": "clip-transition-not-siblings",
+    "description": "The two nodes of a clip transition are children of one parent (D49.2, D56.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-image",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "transition-not-siblings", "path": "/scenes/0/transitions/0/toNodeId" }
+    ]
+  },
+  {
+    "name": "clip-transition-overlap-mismatch",
+    "description": "The two lifetimes overlap by exactly the transition's duration (D49.4, D56.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "transition-overlap-mismatch", "path": "/scenes/0/transitions/0/durationUs" }
+    ]
+  },
+  {
+    "name": "clip-transition-wipe",
+    "description": "A clip transition takes crossfade only (D56.1).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 5500000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/startUs", "value": 5000000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/durationUs", "value": 5000000 },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 500000,
+          "effect": { "kind": "wipe", "direction": "left" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/transitions/0/effect/kind" }]
+  },
+  {
+    "name": "clip-transition-duplicate",
+    "description": "A clip meets at most one transition at each of its ends (D49.4, D56.3).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 5500000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/startUs", "value": 5000000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/durationUs", "value": 5000000 },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-b",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 500000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "duplicate-transition", "path": "/scenes/0/transitions/1" }]
+  },
+  {
+    "name": "clip-transitions-longer-than-clip",
+    "description": "The two transitions of one clip together last at most as long as it (D49.4, D56.3).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/startUs", "value": 9400000 },
+      { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 1000000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/startUs", "value": 9800000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/durationUs", "value": 600000 },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-group",
+          "toNodeId": "node-title",
+          "durationUs": 600000,
+          "effect": { "kind": "crossfade" }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-b",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 600000,
+          "effect": { "kind": "crossfade" }
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "transition-too-long", "path": "/scenes/0/transitions/0" }]
   }
 ]

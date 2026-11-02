@@ -23,6 +23,22 @@ export type ValidationErrorCode =
   | 'clip-fades-exceed-duration'
   /** The composition's `durationUs` is not the sum of its scenes' `durationUs` (D49.3, D54.2). */
   | 'composition-duration-mismatch'
+  /** A scene transition names a scene the composition does not have (D56). */
+  | 'unresolved-scene-reference'
+  /** A clip transition names a node its scene does not have (D56). */
+  | 'unresolved-node-reference'
+  /** A scene transition's incoming scene does not directly follow its outgoing one (D56). */
+  | 'transition-not-adjacent'
+  /** A clip transition's two nodes are not two children of one parent (D49.2, D56). */
+  | 'transition-not-siblings'
+  /** A clip transition names a background, which has no opacity (D56). */
+  | 'transition-node-type'
+  /** A clip transition's two lifetimes do not overlap by exactly its duration (D49.4, D56). */
+  | 'transition-overlap-mismatch'
+  /** A transition is longer than a side, or the two of one side together are (D49.4, D56). */
+  | 'transition-too-long'
+  /** A side meets two transitions at one of its ends (D49.4, D56). */
+  | 'duplicate-transition'
   | 'duplicate-animation-target';
 
 export interface ValidationError {

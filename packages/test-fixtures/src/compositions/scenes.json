@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.5",
+  "schemaVersion": "0.6",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -76,7 +76,8 @@
           "color": "#ffffff"
         }
       ],
-      "clips": []
+      "clips": [],
+      "transitions": []
     },
     {
       "id": "scene-middle",
@@ -157,7 +158,8 @@
           "fadeInUs": 100000,
           "fadeOutUs": 200000
         }
-      ]
+      ],
+      "transitions": []
     },
     {
       "id": "scene-outro",
@@ -191,7 +193,8 @@
           "color": "#ffffff"
         }
       ],
-      "clips": []
+      "clips": [],
+      "transitions": []
     }
   ],
   "clips": [
@@ -206,5 +209,6 @@
       "fadeInUs": 0,
       "fadeOutUs": 500000
     }
-  ]
+  ],
+  "transitions": []
 }

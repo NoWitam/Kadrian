@@ -74,6 +74,7 @@ const OUTRO2 = Object.freeze({
     },
   ],
   clips: [],
+  transitions: [],
 });
 
 /** The fixture with a muted video in the outro, lasting the whole scene time 0 to 2 s. */

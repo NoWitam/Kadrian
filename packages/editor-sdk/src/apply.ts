@@ -3,10 +3,14 @@
  * respect to the document (§9): it never mutates its input, and the same
  * document and command always give the same result.
  */
-import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
+import {
+  validateComposition,
+  type ValidationError,
+  type ValidatedComposition,
+} from '@kadrion/schema';
 
 import type { Command } from './commands.js';
-import { fieldsOf } from './document.js';
+import { fieldsOf, isObject, transitionAt } from './document.js';
 import { EditorError } from './errors.js';
 import { checkSourceRanges, type MediaFactsLookup } from './media.js';
 import { editDocument, parseCommand } from './registry.js';
@@ -50,9 +54,11 @@ export function executeCommand(
   const result = validateComposition(edit.document);
   if (!result.ok) {
     // An entry may know what the errors mean for its command, such as the uses of
-    // a removed asset (D40.4); every other failure is `invalid-result`.
+    // a removed asset (D40.4); a command that breaks a transition it does not edit
+    // is told which (D56.7); every other failure is `invalid-result`.
     throw (
       edit.refine?.(result.errors) ??
+      transitionsInUse(parsed, edit.document, result.errors) ??
       new EditorError(
         'invalid-result',
         `The command \`${parsed.type}\` would produce a document the schema rejects.`,
@@ -98,4 +104,51 @@ export function applyCommand(
     document: edited,
   } = executeCommand(document, command, options.mediaFacts ?? null);
   return Object.freeze({ document: edited, inverse, createdIds });
+}
+
+/** The commands that edit transitions themselves: their failures are theirs to report (D56.6). */
+const TRANSITION_COMMANDS: readonly Command['type'][] = Object.freeze([
+  'AddSceneTransition',
+  'AddClipTransition',
+  'RemoveTransition',
+  'SetTransitionDuration',
+  'SetTransitionEffect',
+]);
+
+/** The validation codes that judge a transition against its sides (D56.3). */
+const TRANSITION_CODES: readonly string[] = Object.freeze([
+  'unresolved-scene-reference',
+  'unresolved-node-reference',
+  'transition-not-adjacent',
+  'transition-not-siblings',
+  'transition-node-type',
+  'transition-overlap-mismatch',
+  'transition-too-long',
+  'duplicate-transition',
+]);
+
+/**
+ * `transition-in-use` when a command other than a transition's own would
+ * leave a transition that no longer fits its sides (D56.7), with the IDs of
+ * those transitions, sorted; `null` otherwise. Nothing is removed in passing:
+ * the host removes the transition first, in the same transaction.
+ */
+function transitionsInUse(
+  command: Command,
+  candidate: object,
+  errors: readonly ValidationError[],
+): EditorError | null {
+  if (TRANSITION_COMMANDS.includes(command.type)) return null;
+  const ids = new Set<string>();
+  for (const error of errors) {
+    if (!TRANSITION_CODES.includes(error.code)) continue;
+    const transition = transitionAt(candidate, error.path);
+    if (isObject(transition) && typeof transition['id'] === 'string') ids.add(transition['id']);
+  }
+  if (ids.size === 0) return null;
+  return new EditorError(
+    'transition-in-use',
+    `The command \`${command.type}\` would break a transition; remove the transition first, in the same transaction (D56.7).`,
+    [...ids].sort(),
+  );
 }
