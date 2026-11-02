@@ -77,6 +77,7 @@ describe('the node types the bus accepts (D30.8)', () => {
   it('reads every node type of schema 0.4 out of the schema itself', () => {
     expect([...positioned.keys()].sort()).toEqual([
       'background',
+      'captions',
       'custom-html',
       'group',
       'image',
@@ -84,7 +85,7 @@ describe('the node types the bus accepts (D30.8)', () => {
       'video',
     ]);
     expect(positioned.get('background')).toBe(false);
-    expect([...positioned.values()].filter(Boolean)).toHaveLength(5);
+    expect([...positioned.values()].filter(Boolean)).toHaveLength(6);
   });
 
   it('has no nested group, which is why searching two levels deep is enough (D16)', () => {
@@ -126,7 +127,7 @@ describe('the node types the bus accepts (D30.8)', () => {
         .filter(([, has]) => has)
         .map(([type]) => type)
         .sort(),
-    ).toEqual(['custom-html', 'group', 'image', 'text', 'video']);
+    ).toEqual(['captions', 'custom-html', 'group', 'image', 'text', 'video']);
     expect([...texted].filter(([, has]) => has).map(([type]) => type)).toEqual(['text']);
   });
 
@@ -233,12 +234,20 @@ describe('the node types the commands of D40 accept (D30.8)', () => {
         .filter(([, has]) => has)
         .map(([type]) => type)
         .sort();
-    expect(carriers('scale')).toEqual(['custom-html', 'group', 'image', 'text', 'video']);
-    expect(carriers('width')).toEqual(['custom-html', 'image', 'video']);
+    expect(carriers('scale')).toEqual([
+      'captions',
+      'custom-html',
+      'group',
+      'image',
+      'text',
+      'video',
+    ]);
+    expect(carriers('width')).toEqual(['captions', 'custom-html', 'image', 'video']);
     expect(carriers('height')).toEqual(carriers('width'));
+    // The colours and the size of captions are their style's (D57).
     expect(carriers('color')).toEqual(['background', 'text']);
     expect(carriers('fontSize')).toEqual(['text']);
-    expect(carriers('fontAssetId')).toEqual(['text']);
+    expect(carriers('fontAssetId')).toEqual(['captions', 'text']);
     expect(carriers('assetId')).toEqual(['image', 'video']);
     expect(carriers('fit')).toEqual(['image', 'video']);
   });

@@ -1,15 +1,18 @@
 import {
   scenesAt,
   sourceTimeUs,
+  type CaptionsNode,
   type SceneNode,
   type ValidatedComposition,
   type VideoNode,
 } from '@kadrion/schema';
 
+import { captionAt, captionPages } from './captions.js';
 import { EvaluationError, unsupported } from './errors.js';
 import { sampleScalar, sampleVec2 } from './keyframes.js';
 import { clipTransitionFactors, sceneTransitionEffects } from './transitions.js';
 import type {
+  CaptionsNodeState,
   CompositionState,
   GroupNodeState,
   LeafNodeState,
@@ -101,6 +104,13 @@ function evaluateVideo(node: VideoNode, timeUs: number, factors: Factors): Video
   return { ...leaf, sourceTimeUs: leaf.active ? sourceTimeUs(node, timeUs) : null };
 }
 
+/** A captions leaf with the page it shows and the word being spoken while active (D57). */
+function evaluateCaptions(node: CaptionsNode, timeUs: number, factors: Factors): CaptionsNodeState {
+  const leaf = evaluateLeaf(node, timeUs, factors);
+  if (!leaf.active) return { ...leaf, page: null, word: null };
+  return { ...leaf, ...captionAt(node.words, captionPages(node.words, node.style), timeUs) };
+}
+
 /** A child of a group: an image, a text, or a video. */
 function evaluateChild(
   child: Extract<SceneNode, { readonly type: 'group' }>['children'][number],
@@ -135,6 +145,8 @@ function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeSt
       return evaluateLeaf(node, timeUs, factors);
     case 'video':
       return evaluateVideo(node, timeUs, factors);
+    case 'captions':
+      return evaluateCaptions(node, timeUs, factors);
     default:
       return unsupported(node, 'type');
   }

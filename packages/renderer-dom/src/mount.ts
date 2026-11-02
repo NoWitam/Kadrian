@@ -2,7 +2,8 @@
  * Builds the DOM tree of a document (D22.3). Only static properties of the
  * document are written here; `renderState` writes the evaluated ones.
  */
-import type { GroupNode, SceneNode, ValidatedComposition } from '@kadrion/schema';
+import { captionPages } from '@kadrion/runtime';
+import type { CaptionsNode, GroupNode, SceneNode, ValidatedComposition } from '@kadrion/schema';
 
 import { checkAssetUrls, type AssetUrls } from './assets.js';
 import { cssColor, cssPixels, fontFamily } from './css.js';
@@ -20,6 +21,11 @@ import { sandboxFrame } from './sandbox.js';
 export const STAGE_ATTRIBUTE = 'data-kadrion-composition';
 export const SCENE_ATTRIBUTE = 'data-kadrion-scene';
 export const NODE_ATTRIBUTE = 'data-kadrion-node';
+/** The index of a page of captions, and of a word in the node's `words` (D57). */
+export const CAPTION_PAGE_ATTRIBUTE = 'data-kadrion-caption-page';
+export const CAPTION_WORD_ATTRIBUTE = 'data-kadrion-caption-word';
+/** The custom property on a captions box that holds its highlight colour (D57). */
+export const HIGHLIGHT_PROPERTY = '--kadrion-caption-highlight';
 
 type Styles = Readonly<Record<string, string>>;
 
@@ -29,7 +35,7 @@ const TRANSFORMED: Styles = Object.freeze({ ...PLACED, 'transform-origin': '0px 
 
 function create(
   document: Document,
-  tag: 'div' | 'img',
+  tag: 'div' | 'img' | 'span',
   attributes: Styles,
   styles: Styles,
 ): HTMLElement {
@@ -37,6 +43,65 @@ function create(
   for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, value);
   for (const [name, value] of Object.entries(styles)) element.style.setProperty(name, value);
   return element;
+}
+
+const JUSTIFY: Readonly<Record<CaptionsNode['style']['verticalAlign'], string>> = Object.freeze({
+  top: 'flex-start',
+  middle: 'center',
+  bottom: 'flex-end',
+});
+
+/**
+ * The box of a captions node (D57): every page the runtime's `captionPages`
+ * makes, each hidden until `renderState` shows it, with its lines and, in
+ * them, one element per word, the words joined by one space. The lines are
+ * the runtime's, so the browser wraps nothing (`white-space: pre`); a page's
+ * lines lie in the box as `verticalAlign` says, each line as `align` says.
+ */
+function captionsElement(document: Document, node: CaptionsNode, address: Styles): HTMLElement {
+  const { style } = node;
+  const box = create(document, 'div', address, {
+    ...TRANSFORMED,
+    width: cssPixels(node.width),
+    height: cssPixels(node.height),
+    'font-family': fontFamily(node.fontAssetId),
+    'font-size': cssPixels(style.fontSize),
+    'line-height': cssPixels(style.lineHeight),
+    'font-weight': '400',
+    'font-style': 'normal',
+    'white-space': 'pre',
+    'text-align': style.align,
+    color: cssColor(style.color),
+    [HIGHLIGHT_PROPERTY]: cssColor(style.highlightColor),
+  });
+  captionPages(node.words, style).forEach((page, pageIndex) => {
+    const pageElement = create(
+      document,
+      'div',
+      { [CAPTION_PAGE_ATTRIBUTE]: String(pageIndex) },
+      {
+        ...PLACED,
+        width: '100%',
+        height: '100%',
+        display: 'none',
+        'flex-direction': 'column',
+        'justify-content': JUSTIFY[style.verticalAlign],
+      },
+    );
+    for (const line of page.lines) {
+      const lineElement = create(document, 'div', {}, {});
+      line.words.forEach((wordIndex, at) => {
+        if (at > 0) lineElement.append(document.createTextNode(' '));
+        const word = create(document, 'span', { [CAPTION_WORD_ATTRIBUTE]: String(wordIndex) }, {});
+        // A text node, never markup: the document's words are not parsed.
+        word.append(document.createTextNode(node.words[wordIndex]?.text ?? ''));
+        lineElement.append(word);
+      });
+      pageElement.append(lineElement);
+    }
+    box.append(pageElement);
+  });
+  return box;
 }
 
 function nodeElement(
@@ -107,6 +172,8 @@ function nodeElement(
       text.append(document.createTextNode(node.text));
       return text;
     }
+    case 'captions':
+      return captionsElement(document, node, address);
     case 'custom-html': {
       // A sized placeholder that carries the transform. Only a trusted element
       // gets the sandboxed frame inside it, the only place the document's HTML

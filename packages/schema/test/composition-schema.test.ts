@@ -155,9 +155,12 @@ describe('schema conventions', () => {
     ).toEqual([]);
   });
 
-  it('requires a stable ID for every entity: all array items except keyframes', () => {
+  it('requires a stable ID for every entity: all array items except keyframes and caption words', () => {
+    // A keyframe is addressed by its time, a caption word by its index (D57).
     const entities = all
-      .filter(({ name, schema }) => schema.type === 'array' && name !== 'keyframes')
+      .filter(
+        ({ name, schema }) => schema.type === 'array' && name !== 'keyframes' && name !== 'words',
+      )
       .flatMap(({ location, schema: { items } }) => {
         const branches = isObject(items) && Array.isArray(items.oneOf) ? items.oneOf : [items];
         return branches.map((branch, index) => ({
@@ -187,6 +190,7 @@ describe('schema conventions', () => {
     // A new site needs a rule in validate-semantics.ts and negative fixtures before it is listed here.
     expect([...new Set(sites)].sort()).toEqual([
       'audio.assetId',
+      'captions.fontAssetId',
       'image.assetId',
       'text.fontAssetId',
       'video.assetId',

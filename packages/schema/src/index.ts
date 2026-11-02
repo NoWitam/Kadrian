@@ -1,8 +1,8 @@
 /**
  * @kadrion/schema — JSON Schema, TypeScript types, validation, migrations.
  *
- * Schema 0.6, as decided by D13–D17, D42, D50, D52, D54, and D56: the one version this build
- * validates (D35.1). The schemas of 0.1 to 0.5 and the forward migration live behind the
+ * Schema 0.7, as decided by D13–D17, D42, D50, D52, D54, D56, and D57: the one version this
+ * build validates (D35.1). The schemas of 0.1 to 0.6 and the forward migration live behind the
  * entry point `@kadrion/schema/migrate`, so that the render page, which imports
  * this entry only, carries neither (D21, D42.8).
  */
@@ -39,6 +39,9 @@ export type {
   Asset,
   AudioClip,
   BackgroundNode,
+  CaptionStyle,
+  CaptionsNode,
+  CaptionWord,
   Composition,
   ClipTransition,
   ClipTransitionEffect,

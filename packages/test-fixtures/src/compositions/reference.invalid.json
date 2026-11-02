@@ -32,7 +32,7 @@
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.7" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.8" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -1270,5 +1270,225 @@
       }
     ],
     "expectedErrors": [{ "code": "transition-too-long", "path": "/scenes/0/transitions/0" }]
+  },
+  {
+    "name": "caption-words-overlap",
+    "description": "A word of a captions node starts no earlier than the word before it ends (D57).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": { "x": 40, "y": 1500 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 1000,
+          "height": 300,
+          "style": {
+            "fontSize": 64,
+            "lineHeight": 80,
+            "color": "#ffffff",
+            "highlightColor": "#ffd400",
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 20,
+            "maxLines": 2
+          },
+          "words": [
+            { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+            { "text": "renders", "startUs": 400000, "durationUs": 500000 }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "caption-words-overlap", "path": "/scenes/0/nodes/4/words/1/startUs" }
+    ]
+  },
+  {
+    "name": "caption-words-out-of-order",
+    "description": "The words of a captions node are in the order they are spoken (D57).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": { "x": 40, "y": 1500 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 1000,
+          "height": 300,
+          "style": {
+            "fontSize": 64,
+            "lineHeight": 80,
+            "color": "#ffffff",
+            "highlightColor": "#ffd400",
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 20,
+            "maxLines": 2
+          },
+          "words": [
+            { "text": "Kadrion", "startUs": 600000, "durationUs": 200000 },
+            { "text": "renders", "startUs": 0, "durationUs": 500000 }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "caption-words-overlap", "path": "/scenes/0/nodes/4/words/1/startUs" }
+    ]
+  },
+  {
+    "name": "caption-font-not-a-font",
+    "description": "A captions node names a font asset, as a text node does (D14, D57).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": { "x": 40, "y": 1500 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-image",
+          "width": 1000,
+          "height": 300,
+          "style": {
+            "fontSize": 64,
+            "lineHeight": 80,
+            "color": "#ffffff",
+            "highlightColor": "#ffd400",
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 20,
+            "maxLines": 2
+          },
+          "words": [{ "text": "Kadrion", "startUs": 0, "durationUs": 500000 }]
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "asset-type-mismatch", "path": "/scenes/0/nodes/4/fontAssetId" }]
+  },
+  {
+    "name": "caption-word-with-space",
+    "description": "A word holds no white space: the runtime joins words with one space (D57).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": { "x": 40, "y": 1500 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 1000,
+          "height": 300,
+          "style": {
+            "fontSize": 64,
+            "lineHeight": 80,
+            "color": "#ffffff",
+            "highlightColor": "#ffd400",
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 20,
+            "maxLines": 2
+          },
+          "words": [{ "text": "Kadrion renders", "startUs": 0, "durationUs": 500000 }]
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/4/words/0/text" }]
+  },
+  {
+    "name": "caption-word-empty",
+    "description": "A word has at least one character (D57).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": { "x": 40, "y": 1500 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 1000,
+          "height": 300,
+          "style": {
+            "fontSize": 64,
+            "lineHeight": 80,
+            "color": "#ffffff",
+            "highlightColor": "#ffd400",
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 20,
+            "maxLines": 2
+          },
+          "words": [{ "text": "", "startUs": 0, "durationUs": 500000 }]
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/4/words/0/text" }]
+  },
+  {
+    "name": "caption-max-lines-zero",
+    "description": "A page holds at least one line (D57).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": { "x": 40, "y": 1500 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 1000,
+          "height": 300,
+          "style": {
+            "fontSize": 64,
+            "lineHeight": 80,
+            "color": "#ffffff",
+            "highlightColor": "#ffd400",
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 20,
+            "maxLines": 0
+          },
+          "words": []
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/4/style/maxLines" }]
   }
 ]

@@ -1,6 +1,6 @@
 /**
  * The load step of the runtime build (D27.1): the asset bytes a host passes
- * become `data:` URLs, and every font a text node uses is registered as a face
+ * become `data:` URLs, and every font a text or captions node uses is registered as a face
  * from its bytes before the tree is mounted. The `FontFace` constructor is lent
  * by the host, as the timer is (D20.2): this package may not name it (D22.8).
  * Nothing is kept between calls; the font set is cleared first, so that it
@@ -101,7 +101,7 @@ export function pageAssets(assets: unknown): {
 }
 
 /**
- * Registers a face for every font asset that a text node uses, in the order of
+ * Registers a face for every font asset that a text or captions node uses, in the order of
  * the document's assets: build it from a copy of its bytes, wait for `load()`,
  * add it to the font set, and finally wait for `document.fonts.ready`
  * (D27.1). The set is cleared first. A missing font set or constructor is

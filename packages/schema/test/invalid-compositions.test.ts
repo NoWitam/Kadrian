@@ -28,6 +28,7 @@ const ERROR_CODES = [
   'transition-overlap-mismatch',
   'transition-too-long',
   'duplicate-transition',
+  'caption-words-overlap',
 ] as const;
 
 describe('negative fixtures', () => {

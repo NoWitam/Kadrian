@@ -61,8 +61,8 @@ function codeOf(run: () => unknown): string {
 
 describe('lifetimeBounds reads the metadata it is given (D42.10)', () => {
   it('reads the bounds of schema 0.3, which every node shape states alike', () => {
-    // Six node types in a scene, and image, text, and video as children of a group.
-    expect(shapesOf(compositionSchema)).toHaveLength(9);
+    // Seven node types in a scene, and image, text, and video as children of a group.
+    expect(shapesOf(compositionSchema)).toHaveLength(10);
     expect(lifetimeBounds(compositionSchema)).toEqual({
       startUs: { minimum: 0, maximum: MAX },
       durationUs: { minimum: 1, maximum: MAX },

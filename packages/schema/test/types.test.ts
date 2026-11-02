@@ -9,6 +9,9 @@ import type {
   Asset,
   AudioClip,
   BackgroundNode,
+  CaptionStyle,
+  CaptionsNode,
+  CaptionWord,
   Composition,
   CustomHtmlNode,
   GroupNode,
@@ -104,13 +107,41 @@ interface ExpectedGroupNode extends ExpectedTransform {
   readonly children: readonly (ExpectedImageNode | ExpectedTextNode | ExpectedVideoNode)[];
 }
 
+interface ExpectedCaptionWord {
+  readonly text: string;
+  readonly startUs: number;
+  readonly durationUs: number;
+}
+
+interface ExpectedCaptionStyle {
+  readonly fontSize: number;
+  readonly lineHeight: number;
+  readonly color: string;
+  readonly highlightColor: string;
+  readonly align: 'left' | 'center' | 'right';
+  readonly verticalAlign: 'top' | 'middle' | 'bottom';
+  readonly maxLineLength: number;
+  readonly maxLines: number;
+}
+
+interface ExpectedCaptionsNode extends ExpectedTransform {
+  readonly id: string;
+  readonly type: 'captions';
+  readonly fontAssetId: string;
+  readonly width: number;
+  readonly height: number;
+  readonly style: ExpectedCaptionStyle;
+  readonly words: readonly ExpectedCaptionWord[];
+}
+
 type ExpectedSceneNode =
   | ExpectedBackgroundNode
   | ExpectedGroupNode
   | ExpectedImageNode
   | ExpectedTextNode
   | ExpectedCustomHtmlNode
-  | ExpectedVideoNode;
+  | ExpectedVideoNode
+  | ExpectedCaptionsNode;
 
 interface ExpectedAsset {
   readonly id: string;
@@ -163,7 +194,7 @@ interface ExpectedScene {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.6';
+  readonly schemaVersion: '0.7';
   readonly width: number;
   readonly height: number;
   readonly fps: number;
@@ -186,6 +217,9 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<TextNode>().toEqualTypeOf<ExpectedTextNode>();
     expectTypeOf<CustomHtmlNode>().toEqualTypeOf<ExpectedCustomHtmlNode>();
     expectTypeOf<VideoNode>().toEqualTypeOf<ExpectedVideoNode>();
+    expectTypeOf<CaptionsNode>().toEqualTypeOf<ExpectedCaptionsNode>();
+    expectTypeOf<CaptionWord>().toEqualTypeOf<ExpectedCaptionWord>();
+    expectTypeOf<CaptionStyle>().toEqualTypeOf<ExpectedCaptionStyle>();
     expectTypeOf<NodeAnimation>().toEqualTypeOf<ExpectedNodeAnimation>();
     expectTypeOf<AudioClip>().toEqualTypeOf<ExpectedAudioClip>();
     expectTypeOf<SceneTransition>().toEqualTypeOf<ExpectedSceneTransition>();

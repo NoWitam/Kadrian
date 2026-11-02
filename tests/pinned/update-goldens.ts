@@ -1,7 +1,7 @@
 /**
  * `node --run goldens:update` (D26.5): renders the golden timestamps of the
- * reference composition, of the video composition (D50.8), and of the
- * transitions composition (D56) with the Producer and writes the golden frames and their manifests into
+ * reference composition, of the video composition (D50.8), of the
+ * transitions composition (D56), and of the captions composition (D57) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -25,6 +25,8 @@ import {
   generateReferenceAssets,
   goldenTimestamps,
   referenceComposition,
+  captionsComposition,
+  captionsGoldenTimestamps,
   transitionsComposition,
   transitionsGoldenTimestamps,
   VIDEO_FIXTURE,
@@ -113,6 +115,24 @@ try {
       `${JSON.stringify({ render: transitionsResult.manifest, environment, frames: transitionFrames }, null, 2)}\n`,
     );
     for (const frame of transitionFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The captions composition: before the first word, words of both pages, and a pause (D57).
+    const captionsResult = await renderFrames({
+      document: captionsComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: captionsGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const captionFrames = captionsResult.frames.map(({ index, timeUs, png }) => {
+      const file = `captions-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'captions.golden-frames.json'),
+      `${JSON.stringify({ render: captionsResult.manifest, environment, frames: captionFrames }, null, 2)}\n`,
+    );
+    for (const frame of captionFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

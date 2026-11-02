@@ -8,6 +8,7 @@ import type {
   assetSchema,
   audioClipSchema,
   backgroundNodeSchema,
+  captionsNodeSchema,
   clipTransitionSchema,
   compositionSchema,
   customHtmlNodeSchema,
@@ -50,6 +51,12 @@ export type ImageNode = Infer<typeof imageNodeSchema>;
 export type TextNode = Infer<typeof textNodeSchema>;
 export type VideoNode = Infer<typeof videoNodeSchema>;
 export type CustomHtmlNode = Infer<typeof customHtmlNodeSchema>;
+/** Captions from a transcription: timed words in a style (D57). */
+export type CaptionsNode = Infer<typeof captionsNodeSchema>;
+/** One timed word of a captions node (D57). */
+export type CaptionWord = CaptionsNode['words'][number];
+/** How a captions node shows its words (D57). */
+export type CaptionStyle = CaptionsNode['style'];
 export type NodeAnimation = Infer<typeof animationSchema>;
 export type AudioClip = Infer<typeof audioClipSchema>;
 

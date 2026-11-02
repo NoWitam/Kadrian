@@ -41,6 +41,7 @@ export function usedAssetIds(composition: ValidatedComposition): Set<string> {
         used.add(node.assetId);
         break;
       case 'text':
+      case 'captions':
         used.add(node.fontAssetId);
         break;
       case 'group':

@@ -652,6 +652,44 @@ export interface SetTransitionEffectCommand extends SetTransitionEffectArguments
   readonly type: 'SetTransitionEffect';
 }
 
+/** What a caller states for `SetCaptionWords` (D57.5). */
+export interface SetCaptionWordsArguments {
+  readonly nodeId: string;
+  /** Every word, as the document stores it, in the order they are spoken. */
+  readonly words: readonly NodeData[];
+}
+
+/** Replaces every word of a captions node: a new transcription (D57.5). */
+export interface SetCaptionWordsCommand extends SetCaptionWordsArguments {
+  readonly type: 'SetCaptionWords';
+}
+
+/** What a caller states for `SetCaptionWord` (D57.5). */
+export interface SetCaptionWordArguments {
+  readonly nodeId: string;
+  /** The index of the word in the node's `words`, from 0. */
+  readonly index: number;
+  /** The complete word, as the document stores it. */
+  readonly word: NodeData;
+}
+
+/** Replaces one word of a captions node: its text, its timing, or both (D57.5). */
+export interface SetCaptionWordCommand extends SetCaptionWordArguments {
+  readonly type: 'SetCaptionWord';
+}
+
+/** What a caller states for `SetCaptionStyle` (D57.5). */
+export interface SetCaptionStyleArguments {
+  readonly nodeId: string;
+  /** The complete style, as the document stores it. */
+  readonly style: NodeData;
+}
+
+/** Replaces the style of a captions node; no word and no time changes (D57.5). */
+export interface SetCaptionStyleCommand extends SetCaptionStyleArguments {
+  readonly type: 'SetCaptionStyle';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -702,7 +740,10 @@ export type Command =
   | AddClipTransitionCommand
   | RemoveTransitionCommand
   | SetTransitionDurationCommand
-  | SetTransitionEffectCommand;
+  | SetTransitionEffectCommand
+  | SetCaptionWordsCommand
+  | SetCaptionWordCommand
+  | SetCaptionStyleCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -874,6 +915,49 @@ export interface SetTransitionEffectArgumentsSchema {
     readonly effect: OpenObjectSchema;
   };
   readonly required: readonly (keyof SetTransitionEffectArguments)[];
+  readonly additionalProperties: false;
+}
+/** The JSON Schema of an array of objects whose shape the command does not restate (D57.5). */
+export interface OpenArraySchema {
+  readonly type: 'array';
+  readonly description: string;
+  readonly items: OpenObjectSchema;
+}
+
+/** The argument schema of `SetCaptionWords`: closed, with `words` an array of open objects (D57.5). */
+export interface SetCaptionWordsArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly words: OpenArraySchema;
+  };
+  readonly required: readonly (keyof SetCaptionWordsArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetCaptionWord`: closed, with `word` an open object (D57.5). */
+export interface SetCaptionWordArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly index: ArgumentSchema;
+    readonly word: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetCaptionWordArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetCaptionStyle`: closed, with `style` an open object (D57.5). */
+export interface SetCaptionStyleArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly style: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetCaptionStyleArguments)[];
   readonly additionalProperties: false;
 }
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
@@ -1785,6 +1869,61 @@ export const setTransitionEffectArgumentsSchema: SetTransitionEffectArgumentsSch
   additionalProperties: false,
 });
 
+const CAPTIONS_ID = 'The stable ID of a captions node.';
+
+const WORD =
+  'A word is {text, startUs, durationUs}: text is at least one character and no white space; startUs is the scene time, in integer microseconds, at which it is spoken, and durationUs how long, at least 1. A word starts no earlier than the word before it ends. Words are in scene time, like keyframes: moving the node moves them, trimming it does not.';
+
+/** The JSON Schema of the arguments of `SetCaptionWords` (D57.5): the words are the document's to judge. */
+export const setCaptionWordsArgumentsSchema: SetCaptionWordsArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces every word of a captions node, as a new transcription.',
+  properties: {
+    nodeId: { type: 'string', description: CAPTIONS_ID, minLength: 1 },
+    words: {
+      type: 'array',
+      description: `Every word of the node, in the order they are spoken; an empty list shows nothing. ${WORD}`,
+      items: { type: 'object', description: 'One word, as the document stores it.' },
+    },
+  },
+  required: ['nodeId', 'words'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetCaptionWord` (D57.5): the word is the document's to judge. */
+export const setCaptionWordArgumentsSchema: SetCaptionWordArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces one word of a captions node: its text, its timing, or both.',
+  properties: {
+    nodeId: { type: 'string', description: CAPTIONS_ID, minLength: 1 },
+    index: {
+      type: 'integer',
+      description: "The index of the word in the node's words, from 0.",
+      minimum: 0,
+      maximum: Number.MAX_SAFE_INTEGER,
+    },
+    word: { type: 'object', description: `The complete new word. ${WORD}` },
+  },
+  required: ['nodeId', 'index', 'word'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetCaptionStyle` (D57.5): the style is the document's to judge. */
+export const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces how a captions node shows its words; no word and no time changes.',
+  properties: {
+    nodeId: { type: 'string', description: CAPTIONS_ID, minLength: 1 },
+    style: {
+      type: 'object',
+      description:
+        'The complete new style: {fontSize, lineHeight, color, highlightColor, align, verticalAlign, maxLineLength, maxLines}. fontSize and lineHeight are integer composition pixels; color and highlightColor lowercase #rrggbb, the second for the word being spoken; align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100.',
+    },
+  },
+  required: ['nodeId', 'style'],
+  additionalProperties: false,
+});
+
 /**
  * The JSON Schema of the arguments of `AddNode` (D39.1). `node` is an object and
  * nothing more: its shape is the document's schema, which the full validation
@@ -1951,11 +2090,11 @@ export const setTextFontSizeArgumentsSchema: SetTextFontSizeArgumentsSchema = de
 /** The JSON Schema of the arguments of `SetTextFont` (D40.2). */
 export const setTextFontArgumentsSchema: SetTextFontArgumentsSchema = deepFreeze({
   type: 'object',
-  description: 'Points a text at another font asset of the document.',
+  description: 'Points a text or captions at another font asset of the document.',
   properties: {
     nodeId: {
       type: 'string',
-      description: `${NODE_ID} Only texts have a font.`,
+      description: `${NODE_ID} Only texts and captions have a font.`,
       minLength: 1,
     },
     fontAssetId: {
@@ -2922,5 +3061,50 @@ export function parseSetTransitionEffect(value: unknown): SetTransitionEffectCom
     type: 'SetTransitionEffect',
     transitionId,
     effect: dataOf(fields['effect'], 'effect'),
+  });
+}
+
+/** The fields of a `SetCaptionWords` (D57.5); the document's validation judges every word. */
+export function parseSetCaptionWords(value: unknown): SetCaptionWordsCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'words'], 'The command `SetCaptionWords`');
+  const nodeId = nodeIdOf(fields);
+  const words: unknown = fields['words'];
+  if (!Array.isArray(words)) {
+    throw new EditorError('invalid-argument', '`words` must be an array of words.');
+  }
+  return Object.freeze({
+    type: 'SetCaptionWords',
+    nodeId,
+    words: deepFreeze(
+      (words as readonly unknown[]).map((word, at) => dataOf(word, `words/${String(at)}`)),
+    ),
+  });
+}
+
+/** The fields of a `SetCaptionWord` (D57.5); the document's validation judges the word. */
+export function parseSetCaptionWord(value: unknown): SetCaptionWordCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'index', 'word'],
+    'The command `SetCaptionWord`',
+  );
+  const nodeId = nodeIdOf(fields);
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'SetCaptionWord',
+    nodeId,
+    index,
+    word: dataOf(fields['word'], 'word'),
+  });
+}
+
+/** The fields of a `SetCaptionStyle` (D57.5); the document's validation judges the style. */
+export function parseSetCaptionStyle(value: unknown): SetCaptionStyleCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'style'], 'The command `SetCaptionStyle`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetCaptionStyle',
+    nodeId,
+    style: dataOf(fields['style'], 'style'),
   });
 }

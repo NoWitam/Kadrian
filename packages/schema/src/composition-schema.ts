@@ -11,8 +11,10 @@
  * node (D52); 0.5 is 0.4 plus a sequence of scenes, each with its own duration
  * and its own audio clips, and every time inside a scene local to it (D49.3,
  * D54); 0.6 is 0.5 plus transitions on the boundaries between scenes and
- * between two clips of one layer (D49.4, D56). The schemas of 0.1 to 0.5 are
- * kept as data in `v0-1` to `v0-5` (D35.4).
+ * between two clips of one layer (D49.4, D56); 0.7 is 0.6 plus the node
+ * `captions`, words with their timings in a style, broken into lines and pages
+ * by the runtime (D57). The schemas of 0.1 to 0.6 are kept as data in `v0-1`
+ * to `v0-6` (D35.4).
  */
 import {
   closedObject,
@@ -23,7 +25,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.6';
+export const SCHEMA_VERSION = '0.7';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -259,6 +261,87 @@ export const textNodeSchema = closedObject('One run of text; line breaks are pre
   color,
 });
 
+/** One timed word of a caption (D57), in the time of its scene like a keyframe (D55.3). */
+export const captionWordSchema = closedObject(
+  'One word of a transcription: its text, shown from startUs for durationUs in the time of its scene; while it is spoken it carries the highlight (D57).',
+  {
+    text: {
+      type: 'string',
+      description:
+        'The word as it is shown, at least one character and no white space; words are joined by one space (D57).',
+      pattern: '^\\S+$',
+    },
+    startUs: {
+      ...timeUs,
+      description:
+        'Scene time, in integer microseconds, at which the word is spoken; a word starts no earlier than the word before it ends (D57).',
+    },
+    durationUs: {
+      ...durationUs,
+      description: 'How long the word is spoken, in integer microseconds (D57).',
+    },
+  },
+);
+
+/** How a captions node shows its words (D57). */
+export const captionStyleSchema = closedObject(
+  'How the words are shown: their font size, line height, colours, alignment in the box, and how many fit on a line and on a page (D57).',
+  {
+    fontSize: length,
+    lineHeight: {
+      ...length,
+      description: 'Height of one line, in composition pixels (D57).',
+    },
+    color,
+    highlightColor: {
+      ...color,
+      description: 'Colour of the word being spoken, lowercase #rrggbb (D57).',
+    },
+    align: {
+      type: 'string',
+      description: 'Where each line lies across the width of the box (D57).',
+      enum: ['left', 'center', 'right'],
+    },
+    verticalAlign: {
+      type: 'string',
+      description: 'Where the lines of a page lie along the height of the box (D57).',
+      enum: ['top', 'middle', 'bottom'],
+    },
+    maxLineLength: {
+      type: 'integer',
+      description:
+        'The most characters of one line, counted as Unicode code points with one space between two words; a longer word stands alone on its line (D57).',
+      minimum: 1,
+      maximum: 1000,
+    },
+    maxLines: {
+      type: 'integer',
+      description: 'The most lines of one page (D57).',
+      minimum: 1,
+      maximum: 100,
+    },
+  },
+);
+
+export const captionsNodeSchema = closedObject(
+  'Captions from a transcription (D57): the words are broken into lines and the lines into pages by the runtime, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken carries the highlight.',
+  {
+    id,
+    type: { type: 'string', const: 'captions' },
+    ...lifetime,
+    ...transform,
+    fontAssetId: assetReference,
+    width: length,
+    height: length,
+    style: captionStyleSchema,
+    words: {
+      type: 'array',
+      description: 'The words in the order they are spoken (D57).',
+      items: captionWordSchema,
+    },
+  },
+);
+
 export const customHtmlNodeSchema = closedObject(
   'Isolated, capability-limited HTML element (D05). The schema defines no capability.',
   {
@@ -295,6 +378,7 @@ export const sceneNodeSchema = {
     textNodeSchema,
     customHtmlNodeSchema,
     videoNodeSchema,
+    captionsNodeSchema,
   ],
 } as const satisfies UnionSchema;
 
@@ -484,7 +568,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.6',
+  title: 'Kadrion composition 0.7',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,
