@@ -98,7 +98,10 @@ describe.each(packageDirs)('@kadrion/%s', (dir) => {
         : {};
     const migration =
       dir === 'schema'
-        ? { './migrate': { types: './dist/migrate.d.ts', default: './dist/migrate.js' } }
+        ? {
+            './migrate': { types: './dist/migrate.d.ts', default: './dist/migrate.js' },
+            './template': { types: './dist/template.d.ts', default: './dist/template.js' },
+          }
         : {};
     const corpus =
       dir === 'test-fixtures'

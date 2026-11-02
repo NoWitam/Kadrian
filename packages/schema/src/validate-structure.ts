@@ -9,6 +9,7 @@
 import { pointer, type ValidationError } from './errors.js';
 import type {
   ArraySchema,
+  BooleanSchema,
   JsonSchema,
   NumberSchema,
   ObjectSchema,
@@ -22,6 +23,7 @@ const KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   string: ['type', 'const', 'enum', 'pattern'],
   integer: ['type', 'minimum', 'maximum'],
   number: ['type', 'minimum', 'maximum'],
+  boolean: ['type'],
   array: ['type', 'items', 'minItems', 'maxItems'],
   object: ['type', 'properties', 'required', 'additionalProperties'],
   union: ['oneOf'],
@@ -135,6 +137,18 @@ function checkNumber(
   }
 }
 
+function checkBoolean(
+  _schema: BooleanSchema,
+  value: unknown,
+  path: string,
+  errors: ValidationError[],
+): void {
+  if (typeof value !== 'boolean') {
+    const message = `Expected boolean, got ${typeNameOf(value)}.`;
+    errors.push({ code: 'invalid-type', path, message });
+  }
+}
+
 function checkArray(
   schema: ArraySchema,
   value: unknown,
@@ -219,6 +233,8 @@ function check(schema: JsonSchema, value: unknown, path: string, errors: Validat
     checkArray(schema, value, path, errors);
   } else if (schema.type === 'string') {
     checkString(schema, value, path, errors);
+  } else if (schema.type === 'boolean') {
+    checkBoolean(schema, value, path, errors);
   } else {
     checkNumber(schema, value, path, errors);
   }

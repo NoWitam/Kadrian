@@ -21,7 +21,13 @@ import {
   type PlayerAssetResolver,
   type PlayerState,
 } from '@kadrion/player';
-import type { SceneNode, ValidatedComposition, VideoNode } from '@kadrion/schema';
+import {
+  isTemplate,
+  type SceneNode,
+  type ValidatedComposition,
+  type VideoNode,
+} from '@kadrion/schema';
+import { instantiateTemplate } from '@kadrion/schema/template';
 
 /** The history the bus reaches after a change (D38.7, D44). */
 export interface SessionHistory {
@@ -213,7 +219,7 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     for (const asset of initial.assets) {
       if (asset.type === 'video' && shown.has(asset.id)) await readVideo(asset, false);
     }
-    await player.load(initial, resolveAsset);
+    await player.load(previewOf(initial), resolveAsset);
     // The sounds the document hears, after the load: a Player with sound decoded them for it (D53).
     const heard = new Set(nodes.filter(({ volume }) => volume > 0).map(({ assetId }) => assetId));
     // The composition's clips and every scene's (D54.1).
@@ -259,8 +265,9 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
         const target = bus.getDocument();
         shown = target;
         try {
-          if (player.getState().timeUs === null) await player.load(target, resolveAsset);
-          else await player.update(target, resolveAsset);
+          const preview = previewOf(target);
+          if (player.getState().timeUs === null) await player.load(preview, resolveAsset);
+          else await player.update(preview, resolveAsset);
         } catch (reason) {
           // After destroy, the Player rejects with `destroyed` and `emit` reports nothing.
           emit({
@@ -337,4 +344,21 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
       player.destroy();
     },
   });
+}
+
+/**
+ * What the preview shows of a document (D58.4): the document itself, or, for a
+ * template, its instantiation with the defaults, which no Player refuses. A
+ * template's bound targets hold their defaults (D58.3), so the preview differs
+ * from the document only in the texts of its placeholders.
+ */
+function previewOf(document: ValidatedComposition): ValidatedComposition {
+  if (!isTemplate(document)) return document;
+  const result = instantiateTemplate(document, {});
+  if (result.ok) return result.composition;
+  throw new PlayerError(
+    'invalid-document',
+    'The template does not instantiate with its defaults (D58.4).',
+    result.errors.map(({ path, message }) => `${path}: ${message}`),
+  );
 }

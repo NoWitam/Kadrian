@@ -63,6 +63,18 @@ import referenceV07 from './compatibility/v0-7/reference.json' with { type: 'jso
 import scenesV07 from './compatibility/v0-7/scenes.json' with { type: 'json' };
 import transitionsV07 from './compatibility/v0-7/transitions.json' with { type: 'json' };
 import videoV07 from './compatibility/v0-7/video.json' with { type: 'json' };
+import audioV08 from './compatibility/v0-8/audio.json' with { type: 'json' };
+import captionsV08 from './compatibility/v0-8/captions.json' with { type: 'json' };
+import extremesV08 from './compatibility/v0-8/extremes.json' with { type: 'json' };
+import inputsV08 from './compatibility/v0-8/inputs.json' with { type: 'json' };
+import lifetimeV08 from './compatibility/v0-8/lifetime.json' with { type: 'json' };
+import minimalV08 from './compatibility/v0-8/minimal.json' with { type: 'json' };
+import pairV08 from './compatibility/v0-8/pair.json' with { type: 'json' };
+import referenceV08 from './compatibility/v0-8/reference.json' with { type: 'json' };
+import scenesV08 from './compatibility/v0-8/scenes.json' with { type: 'json' };
+import templateV08 from './compatibility/v0-8/template.json' with { type: 'json' };
+import transitionsV08 from './compatibility/v0-8/transitions.json' with { type: 'json' };
+import videoV08 from './compatibility/v0-8/video.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -139,6 +151,18 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-7/scenes.json': scenesV07,
   'compatibility/v0-7/transitions.json': transitionsV07,
   'compatibility/v0-7/video.json': videoV07,
+  'compatibility/v0-8/audio.json': audioV08,
+  'compatibility/v0-8/captions.json': captionsV08,
+  'compatibility/v0-8/extremes.json': extremesV08,
+  'compatibility/v0-8/inputs.json': inputsV08,
+  'compatibility/v0-8/lifetime.json': lifetimeV08,
+  'compatibility/v0-8/minimal.json': minimalV08,
+  'compatibility/v0-8/pair.json': pairV08,
+  'compatibility/v0-8/reference.json': referenceV08,
+  'compatibility/v0-8/scenes.json': scenesV08,
+  'compatibility/v0-8/template.json': templateV08,
+  'compatibility/v0-8/transitions.json': transitionsV08,
+  'compatibility/v0-8/video.json': videoV08,
 };
 
 function fileOf(path: string): unknown {

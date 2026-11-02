@@ -13,7 +13,7 @@ import type { Command } from './commands.js';
 import { fieldsOf, isObject, transitionAt } from './document.js';
 import { EditorError } from './errors.js';
 import { checkSourceRanges, type MediaFactsLookup } from './media.js';
-import { editDocument, parseCommand } from './registry.js';
+import { bindingsAt, editDocument, parseCommand } from './registry.js';
 
 export interface CommandResult {
   /** The edited document, accepted by the full `validateComposition` (D30.6). */
@@ -59,6 +59,7 @@ export function executeCommand(
     throw (
       edit.refine?.(result.errors) ??
       transitionsInUse(parsed, edit.document, result.errors) ??
+      bindingsInUse(parsed, edit.document, result.errors) ??
       new EditorError(
         'invalid-result',
         `The command \`${parsed.type}\` would produce a document the schema rejects.`,
@@ -150,5 +151,48 @@ function transitionsInUse(
     'transition-in-use',
     `The command \`${command.type}\` would break a transition; remove the transition first, in the same transaction (D56.7).`,
     [...ids].sort(),
+  );
+}
+
+/** The commands that edit the template section itself: their failures are theirs to report (D58.6). */
+const TEMPLATE_COMMANDS: readonly Command['type'][] = Object.freeze([
+  'AddTemplateInput',
+  'RemoveTemplateInput',
+  'SetTemplateInput',
+  'AddTemplateBinding',
+  'RemoveTemplateBinding',
+]);
+
+/** The validation codes that judge a binding against its target and input (D58.2, D58.3). */
+const BINDING_CODES: readonly string[] = Object.freeze([
+  'unresolved-node-reference',
+  'unresolved-asset-reference',
+  'unresolved-input-reference',
+  'binding-type-mismatch',
+  'binding-value-mismatch',
+  'duplicate-binding-target',
+  'invalid-placeholder',
+]);
+
+/**
+ * `binding-in-use` when a command other than a template command would leave a
+ * binding that no longer fits its target (D58.6) — a removed node or asset, a
+ * bound property or asset changed away from its input's default, a bound text
+ * that is no pattern — with the IDs of those bindings, sorted; `null`
+ * otherwise. The host changes the input's default with `SetTemplateInput`, or
+ * removes the binding first, in the same transaction.
+ */
+function bindingsInUse(
+  command: Command,
+  candidate: object,
+  errors: readonly ValidationError[],
+): EditorError | null {
+  if (TEMPLATE_COMMANDS.includes(command.type)) return null;
+  const ids = bindingsAt(candidate, errors, BINDING_CODES);
+  if (ids.length === 0) return null;
+  return new EditorError(
+    'binding-in-use',
+    `The command \`${command.type}\` would break a binding of the template; set the input with SetTemplateInput, or remove the binding first, in the same transaction (D58.6).`,
+    ids,
   );
 }

@@ -14,6 +14,7 @@
 - Amended by: PR-29b (D53) on 2026-11-01: 49.6: the bus checks the source ranges the audio plan hears against audio facts (D53.4)
 - Amended by: PR-31 (D55) on 2026-11-01: 49.1: a split copies every animation to the second half, under `<newClipId>-a-<property>` (D55.3)
 - Amended by: PR-32 (D56) on 2026-11-01: 49.4: a command that would break a transition is refused with `transition-in-use` instead of removing it (D56.7); at progress 0 the incoming side is invisible and the outgoing one whole (D56.5)
+- Amended by: PR-34a (D58) on 2026-11-02: the step to `0.8` appends an empty template section, which no time value depends on (D58.5)
 - Related: D04, D13, D14, D16, D18, D19, D23, D29, D30, D35, D38, D39, D41,
   D42, D47, [roadmap of phase three](../roadmap/phase-3.md) PR-27 to PR-34b
 
@@ -252,7 +253,7 @@ of the golden manifest that change (D42).
 | `0.5`   | PR-30  | several scenes with `durationUs`; scene audio clips                                          | the one scene gets the composition's `durationUs` and an empty clip list  |
 | `0.6`   | PR-32  | transitions on scene and clip boundaries                                                     | empty lists of transitions                                                |
 | `0.7`   | PR-33  | node `captions` with words in scene time and a style                                         | none beyond the version                                                   |
-| `0.8`   | PR-34a | the template section: inputs and bindings                                                    | none beyond the version                                                   |
+| `0.8`   | PR-34a | the template section: inputs and bindings                                                    | an empty template section                                                 |
 | `0.9`   | PR-34b | conditions and repetition                                                                    | none beyond the version                                                   |
 
 - **What validates, renders** (D16.2): a field arrives in the version whose

@@ -2,6 +2,7 @@
 
 - Status: Accepted — by the project owner on 2026-09-21
 - Date: 2026-09-21
+- Amended by: PR-34a (D58) on 2026-11-02: the schema subset gains `type: "boolean"`, with no other keyword (D58.1)
 - Related: D10, D12, D16, [specification](../spike/vertical-spike.md) §5 P1 and
   open question Q17
 

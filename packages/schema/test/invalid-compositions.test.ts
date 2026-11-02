@@ -29,6 +29,12 @@ const ERROR_CODES = [
   'transition-too-long',
   'duplicate-transition',
   'caption-words-overlap',
+  'template-input-invalid',
+  'unresolved-input-reference',
+  'binding-type-mismatch',
+  'binding-value-mismatch',
+  'duplicate-binding-target',
+  'invalid-placeholder',
 ] as const;
 
 describe('negative fixtures', () => {

@@ -31,6 +31,11 @@ import {
   parseSetCaptionStyle,
   parseSetCaptionWord,
   parseSetCaptionWords,
+  parseAddTemplateBinding,
+  parseAddTemplateInput,
+  parseRemoveTemplateBinding,
+  parseRemoveTemplateInput,
+  parseSetTemplateInput,
   parseAddSceneAudioClip,
   parseJoinClips,
   parseMoveClip,
@@ -2021,7 +2026,202 @@ const DEFINITIONS = deepFreeze<Definitions>({
         };
       }),
   },
+  AddTemplateInput: {
+    parse: parseAddTemplateInput,
+    edit(document, command) {
+      const template = templateOf(document);
+      const inputs = templateList(template, 'inputs');
+      if (command.index > inputs.length) {
+        throw outOfRange(command.index, inputs.length, "the template's inputs");
+      }
+      const id: unknown = command.input['id'];
+      const createdIds = typeof id === 'string' ? [id] : [];
+      refuseTaken(document, createdIds);
+      return {
+        document: withTemplate(document, {
+          ...template,
+          inputs: inserted(inputs, command.index, command.input),
+        }),
+        // The input validated by now, so its `id` is an ID of the document's form.
+        invert: () => parseRemoveTemplateInput({ type: 'RemoveTemplateInput', inputId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveTemplateInput: {
+    parse: parseRemoveTemplateInput,
+    edit(document, command) {
+      const template = templateOf(document);
+      const inputs = templateList(template, 'inputs');
+      const index = inputs.findIndex((input) => isObject(input) && input['id'] === command.inputId);
+      const input = inputs[index];
+      if (!isObject(input)) throw unknownInput(command.inputId);
+      // A frozen copy of the input at its index, so undo restores the same bytes (D30).
+      const inverse = parseAddTemplateInput({ type: 'AddTemplateInput', index, input });
+      return {
+        document: withTemplate(document, {
+          ...template,
+          inputs: inputs.filter((_, at) => at !== index),
+        }),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [command.inputId],
+        // Its bindings and placeholders name it no longer (D58.6).
+        refine(errors) {
+          const users = bindingsAt(document, errors, ['unresolved-input-reference']);
+          if (users.length === 0) return null;
+          return new EditorError(
+            'input-in-use',
+            `The input \`${command.inputId}\` is still bound; remove its bindings first, in the same transaction (D58.6).`,
+            users,
+          );
+        },
+      };
+    },
+  },
+  SetTemplateInput: {
+    parse: parseSetTemplateInput,
+    edit(document, command) {
+      const template = templateOf(document);
+      const inputs = templateList(template, 'inputs');
+      const index = inputs.findIndex((input) => isObject(input) && input['id'] === command.inputId);
+      const input = inputs[index];
+      if (!isObject(input)) throw unknownInput(command.inputId);
+      // The tool's schema cannot state it, so the bus judges it as it judges the document.
+      if (command.input['id'] !== command.inputId) {
+        throw new EditorError(
+          'invalid-result',
+          '`input.id` must be `inputId`: an input keeps its ID; remove it and add another to rename it (D58.6).',
+          [`/template/inputs/${String(index)}/id`],
+        );
+      }
+      if (sameData(input, command.input)) return null;
+      const inverse = parseSetTemplateInput({ ...command, input });
+      // Every property and asset bound to the input takes its new default (D58.3).
+      const fallback: unknown = command.input['default'];
+      let edited: DocumentObject = withTemplate(document, {
+        ...template,
+        inputs: inputs.map((item, at) => (at === index ? command.input : item)),
+      });
+      for (const binding of templateList(template, 'bindings')) {
+        if (!isObject(binding) || binding['inputId'] !== command.inputId) continue;
+        if (binding['kind'] === 'property') {
+          const nodeId = binding['nodeId'];
+          const property = binding['property'];
+          if (typeof nodeId !== 'string' || typeof property !== 'string') continue;
+          const node = findNode(edited, nodeId);
+          if (node !== null)
+            edited = replaceNode(edited, nodeId, { ...node, [property]: fallback });
+        } else if (binding['kind'] === 'asset') {
+          const assetId = binding['assetId'];
+          if (typeof assetId !== 'string') continue;
+          edited = replaceAssets(
+            edited,
+            assetsOf(edited).map((asset) =>
+              isObject(asset) && asset['id'] === assetId
+                ? { ...asset, contentHash: fallback }
+                : asset,
+            ),
+          );
+        }
+      }
+      return { document: edited, invert: () => inverse, createdIds: [], removedIds: [] };
+    },
+  },
+  AddTemplateBinding: {
+    parse: parseAddTemplateBinding,
+    edit(document, command) {
+      const template = templateOf(document);
+      const bindings = templateList(template, 'bindings');
+      if (command.index > bindings.length) {
+        throw outOfRange(command.index, bindings.length, "the template's bindings");
+      }
+      const id: unknown = command.binding['id'];
+      const createdIds = typeof id === 'string' ? [id] : [];
+      refuseTaken(document, createdIds);
+      return {
+        document: withTemplate(document, {
+          ...template,
+          bindings: inserted(bindings, command.index, command.binding),
+        }),
+        invert: () => parseRemoveTemplateBinding({ type: 'RemoveTemplateBinding', bindingId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveTemplateBinding: {
+    parse: parseRemoveTemplateBinding,
+    edit(document, command) {
+      const template = templateOf(document);
+      const bindings = templateList(template, 'bindings');
+      const index = bindings.findIndex(
+        (binding) => isObject(binding) && binding['id'] === command.bindingId,
+      );
+      const binding = bindings[index];
+      if (!isObject(binding)) {
+        throw new EditorError(
+          'unknown-binding',
+          `The template has no binding \`${command.bindingId}\`.`,
+        );
+      }
+      const inverse = parseAddTemplateBinding({ type: 'AddTemplateBinding', index, binding });
+      return {
+        document: withTemplate(document, {
+          ...template,
+          bindings: bindings.filter((_, at) => at !== index),
+        }),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [command.bindingId],
+      };
+    },
+  },
 });
+
+/** The template section of a document (D58): an object of `inputs` and `bindings`. */
+function templateOf(document: DocumentObject): DocumentObject {
+  const template: unknown = document['template'];
+  return isObject(template) ? template : { inputs: [], bindings: [] };
+}
+
+/** The inputs or the bindings of a template section, in their order. */
+function templateList(template: DocumentObject, key: 'inputs' | 'bindings'): readonly unknown[] {
+  const list: unknown = template[key];
+  return Array.isArray(list) ? (list as readonly unknown[]) : [];
+}
+
+/** The document with `template` as its template section; every key keeps its place (D30.7). */
+function withTemplate(document: DocumentObject, template: DocumentObject): DocumentObject {
+  return { ...document, template };
+}
+
+function unknownInput(inputId: string): EditorError {
+  return new EditorError('unknown-input', `The template has no input \`${inputId}\`.`);
+}
+
+/**
+ * The IDs of the bindings whose validation errors have one of `codes`, sorted,
+ * read from the paths of the errors under `/template/bindings/<index>` of the
+ * document the bindings belong to (D58.6).
+ */
+export function bindingsAt(
+  document: object,
+  errors: readonly ValidationFinding[],
+  codes: readonly string[],
+): readonly string[] {
+  const bindings = templateList(templateOf(document as DocumentObject), 'bindings');
+  const ids = new Set<string>();
+  for (const { code, path } of errors) {
+    if (!codes.includes(code)) continue;
+    const tokens = path.split('/');
+    if (tokens[1] !== 'template' || tokens[2] !== 'bindings') continue;
+    const binding = bindings[Number(tokens[3])];
+    if (isObject(binding) && typeof binding['id'] === 'string') ids.add(binding['id']);
+  }
+  return [...ids].sort();
+}
 
 /** The words of a captions node, as the document holds them (D57). */
 function wordsOf(node: DocumentObject): readonly unknown[] {

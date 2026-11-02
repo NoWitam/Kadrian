@@ -26,9 +26,12 @@ import migration06After from './compositions/migration-0-5-to-0-6.after.json' wi
 import migration06Before from './compositions/migration-0-5-to-0-6.before.json' with { type: 'json' };
 import migration07After from './compositions/migration-0-6-to-0-7.after.json' with { type: 'json' };
 import migration07Before from './compositions/migration-0-6-to-0-7.before.json' with { type: 'json' };
+import migration08After from './compositions/migration-0-7-to-0-8.after.json' with { type: 'json' };
+import migration08Before from './compositions/migration-0-7-to-0-8.before.json' with { type: 'json' };
 import invalidCases from './compositions/reference.invalid.json' with { type: 'json' };
 import reference from './compositions/reference.json' with { type: 'json' };
 import scenes from './compositions/scenes.json' with { type: 'json' };
+import template from './compositions/template.json' with { type: 'json' };
 import transitions from './compositions/transitions.json' with { type: 'json' };
 import video from './compositions/video.json' with { type: 'json' };
 import invalidCasesV01 from './compositions/reference.v0-1.invalid.json' with { type: 'json' };
@@ -43,6 +46,8 @@ import invalidCasesV05 from './compositions/reference.v0-5.invalid.json' with { 
 import referenceV05 from './compositions/reference.v0-5.json' with { type: 'json' };
 import invalidCasesV06 from './compositions/reference.v0-6.invalid.json' with { type: 'json' };
 import referenceV06 from './compositions/reference.v0-6.json' with { type: 'json' };
+import invalidCasesV07 from './compositions/reference.v0-7.invalid.json' with { type: 'json' };
+import referenceV07 from './compositions/reference.v0-7.json' with { type: 'json' };
 
 export {
   AUDIO_SAMPLE_RATE,
@@ -161,7 +166,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.7. */
+/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.8. */
 export const referenceComposition: unknown = deepFreeze(reference);
 
 /** Patches over `referenceComposition`; the consumer applies them to a copy. */
@@ -243,7 +248,29 @@ export const invalidCompositionCasesV06 = deepFreeze(
 ) as readonly InvalidCompositionCase[];
 
 /**
- * A composition of schema 0.7 with captions (D57): 3 s, 640x360, 30 fps, one
+ * The reference composition as schema 0.7 had it, byte for byte: the file is
+ * frozen (D35.4, D35.5). `migrateComposition` must carry it to
+ * `referenceComposition`, which was written by hand and not by the migration.
+ */
+export const referenceCompositionV07: unknown = deepFreeze(referenceV07);
+
+/** The negative corpus of schema 0.7, frozen with it: patches over `referenceCompositionV07`. */
+export const invalidCompositionCasesV07 = deepFreeze(
+  invalidCasesV07,
+) as readonly InvalidCompositionCase[];
+
+/**
+ * A template of schema 0.8 (D58): a 2 s card, 640x360, 30 fps, with seven
+ * inputs — a text `name` and a number `rank` filling the placeholders of the
+ * title, a colour `brand` bound to the background, a text `tagline` bound to
+ * the tagline, an image `photo` bound to the photo's asset, a boolean
+ * `show-photo` and a list `team` that no binding reads in 0.8 — and every
+ * bound property and asset holding its input's default.
+ */
+export const templateComposition: unknown = deepFreeze(template);
+
+/**
+ * A composition of schema 0.8 with captions (D57): 3 s, 640x360, 30 fps, one
  * scene with a background and a captions node of ten words, centred at the
  * bottom of its box, at most 16 characters a line and two lines a page, so
  * that the words make four lines and two pages. The first word starts at
@@ -269,7 +296,7 @@ export const captionsGoldenTimestamps: readonly GoldenTimestamp[] = Object.freez
 );
 
 /**
- * A composition of schema 0.7 with five scenes and a transition of each kind
+ * A composition of schema 0.8 with five scenes and a transition of each kind
  * between them (D56): a crossfade, a fade through white, a slide to the left,
  * and a wipe upwards, each 400 ms, and in the last scene a crossfade of 400 ms
  * between an image and a text of one layer. Every scene and every transition
@@ -369,6 +396,16 @@ export const migrationPair06To07: MigrationPair = deepFreeze({
   after: migration07After,
 });
 
+/**
+ * The hand-written pair of the step 0.7 → 0.8 (D35.5, D58): the document the
+ * pair of 0.6 → 0.7 ends with, whose `schemaVersion` changes and which gains an
+ * empty template section at its end.
+ */
+export const migrationPair07To08: MigrationPair = deepFreeze({
+  before: migration08Before,
+  after: migration08After,
+});
+
 /** Which nodes of `lifetimeComposition` are active and which are shown at one time. */
 export interface ExpectedLifetime {
   readonly timeUs: number;
@@ -387,7 +424,7 @@ export interface ExpectedLifetimes {
   readonly times: readonly ExpectedLifetime[];
 }
 
-/** A small composition of schema 0.7 whose nodes begin and end inside it (D42.2). */
+/** A small composition of schema 0.8 whose nodes begin and end inside it (D42.2). */
 export const lifetimeComposition: unknown = deepFreeze(lifetime);
 
 /**

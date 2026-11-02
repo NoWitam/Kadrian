@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.7",
+  "schemaVersion": "0.8",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -210,5 +210,6 @@
       "fadeOutUs": 500000
     }
   ],
-  "transitions": []
+  "transitions": [],
+  "template": { "inputs": [], "bindings": [] }
 }

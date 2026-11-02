@@ -20,6 +20,7 @@
   video; video bytes stay in the host window), the protocol version 2, and the method
   `prepareVideo` (D51.2, D51.3, D51.5)
 - Amended by: PR-29b (D53) on 2026-11-01: 25.6 (with the option `audio`, the audio context is the preview clock; a seek while playing restarts the clock from the time sought) and 25.7 (`audio-invalid`, `audio-unsupported`), and `prepareAudio` (D53.2)
+- Amended by: PR-34a (D58) on 2026-11-02: the Player refuses a template with `invalid-document` (D58.4)
 - Related: D12, D13, D14, D19, D20, D21, D22, D23, D24,
   [specification](../spike/vertical-spike.md) §5 P1, §6.1, §6.2, §7, and open
   questions Q3, Q5, Q9, and Q14

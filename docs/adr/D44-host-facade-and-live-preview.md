@@ -9,6 +9,7 @@
 - Amended by: PR-28b (D51) on 2026-10-31: the session reads media facts from verified bytes
   for the bus, and `readMediaFacts` (D51.7)
 - Amended by: PR-29b (D53) on 2026-11-01: the session reads audio facts, at start for what the document hears and in `readMediaFacts` (D53.3)
+- Amended by: PR-34a (D58) on 2026-11-02: the session sends the Player a template's instantiation with its defaults (D58.4)
 - Related: D09, D13, D14, D20, D25, D30, D33, D36, D38,
   [roadmap of phase three](../roadmap/phase-3.md) PR-23
 

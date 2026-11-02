@@ -34,6 +34,14 @@ import { yuv420ToRgb } from '../src/yuv.js';
 import { createHarness, sleep, type Harness } from './harness.js';
 import { installCodecs, testMp4 } from './media.js';
 
+/** The document with one unbound input: a valid template, which no Player plays (D58.4). */
+function templateOf(document: unknown): unknown {
+  return {
+    ...(document as object),
+    template: { inputs: [{ id: 'flag', type: 'boolean', default: true }], bindings: [] },
+  };
+}
+
 const buildDirectory = new URL('../../renderer-dom/dist/runtime-build/', import.meta.url);
 const artifact = new Uint8Array(
   readFileSync(fileURLToPath(new URL('kadrion-runtime.js', buildDirectory))),
@@ -419,6 +427,7 @@ describe('typed errors before the first frame, never ready (P1, D25.7)', () => {
       'asset-invalid',
     ],
     ['an invalid document', { ...(pinned as object), fps: 0 }, resolve, 'invalid-document'],
+    ['a template (D58.4)', templateOf(pinned), resolve, 'invalid-document'],
   ])('reports %s', async (_, document, given, code) => {
     const harness = createHarness();
     const player = await started(harness);
@@ -432,6 +441,7 @@ describe('typed errors before the first frame, never ready (P1, D25.7)', () => {
     ['a missing asset', pinned, resolverOf({ ...bytesOf, 'asset-image': undefined })],
     ['bytes with another hash', pinned, resolverOf(tampered)],
     ['an invalid document', { ...(pinned as object), fps: 0 }, resolve],
+    ['a template (D58.4)', templateOf(pinned), resolve],
   ])('sends nothing to the page for %s', async (_, document, given) => {
     const harness = createHarness();
     const player = await started(harness);

@@ -41,7 +41,19 @@ export type ValidationErrorCode =
   | 'duplicate-transition'
   /** A caption word starts before the word before it ends (D57). */
   | 'caption-words-overlap'
-  | 'duplicate-animation-target';
+  | 'duplicate-animation-target'
+  /** An input's constraints contradict each other, or its default breaks them (D58.1). */
+  | 'template-input-invalid'
+  /** A binding or a placeholder names an input the template does not have (D58.2). */
+  | 'unresolved-input-reference'
+  /** A binding joins an input and a target of different types, or a target that takes no binding (D58.2). */
+  | 'binding-type-mismatch'
+  /** A bound property or asset does not hold the default of its input (D58.3). */
+  | 'binding-value-mismatch'
+  /** Two bindings write the same property or asset (D58.2). */
+  | 'duplicate-binding-target'
+  /** A bound text has a `{{` that does not begin a placeholder `{{inputId}}` (D58.2). */
+  | 'invalid-placeholder';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

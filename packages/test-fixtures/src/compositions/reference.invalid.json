@@ -32,7 +32,7 @@
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.8" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.9" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -1490,5 +1490,461 @@
       }
     ],
     "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/4/style/maxLines" }]
+  },
+  {
+    "name": "template-missing",
+    "description": "A composition of 0.8 has a template section, empty when it is no template (D58.5).",
+    "patch": [{ "op": "remove", "path": "/template" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/template" }]
+  },
+  {
+    "name": "template-input-type-unknown",
+    "description": "The input types are closed (D58.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "when", "type": "date", "default": "today" }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/template/inputs/0/type" }]
+  },
+  {
+    "name": "template-boolean-default-text",
+    "description": "The default of a boolean input is a JSON boolean, not a text (D58.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "flag", "type": "boolean", "default": "true" }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/template/inputs/0/default" }]
+  },
+  {
+    "name": "template-text-lengths-contradict",
+    "description": "A text input's maxLength is at least its minLength (D58.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "name", "type": "text", "minLength": 5, "maxLength": 2, "default": "abc" }
+      }
+    ],
+    "expectedErrors": [{ "code": "template-input-invalid", "path": "/template/inputs/0/maxLength" }]
+  },
+  {
+    "name": "template-text-default-too-long",
+    "description": "The default of a text input meets its constraints, in code points (D58.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "name",
+          "type": "text",
+          "minLength": 0,
+          "maxLength": 3,
+          "default": "Kadrion"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "template-input-invalid", "path": "/template/inputs/0/default" }]
+  },
+  {
+    "name": "template-number-default-out-of-range",
+    "description": "The default of a number input lies within its bounds (D58.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "rank", "type": "number", "minimum": 0, "maximum": 10, "default": 11 }
+      }
+    ],
+    "expectedErrors": [{ "code": "template-input-invalid", "path": "/template/inputs/0/default" }]
+  },
+  {
+    "name": "template-list-duplicate-key",
+    "description": "The fields of a list have distinct keys (D58.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "team",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "a", "type": "text", "minLength": 0, "maxLength": 5 },
+            { "key": "a", "type": "color" }
+          ],
+          "default": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "template-input-invalid", "path": "/template/inputs/0/fields/1/key" }
+    ]
+  },
+  {
+    "name": "template-list-item-wrong-field",
+    "description": "An item of a list default holds the value of each field at its place (D58.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "team",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [{ "key": "a", "type": "text", "minLength": 0, "maxLength": 5 }],
+          "default": [[{ "key": "b", "type": "text", "value": "x" }]]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "template-input-invalid", "path": "/template/inputs/0/default/0/0" }
+    ]
+  },
+  {
+    "name": "template-list-too-few-items",
+    "description": "A list default has at least minItems items (D58.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "team",
+          "type": "list",
+          "minItems": 1,
+          "maxItems": 4,
+          "fields": [{ "key": "a", "type": "color" }],
+          "default": []
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "template-input-invalid", "path": "/template/inputs/0/default" }]
+  },
+  {
+    "name": "template-input-id-taken",
+    "description": "An input's ID shares the one namespace of the document (D16, D58.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "node-title", "type": "color", "default": "#ffffff" }
+      }
+    ],
+    "expectedErrors": [{ "code": "duplicate-id", "path": "/template/inputs/0/id" }]
+  },
+  {
+    "name": "binding-input-unresolved",
+    "description": "A binding names an input of the template (D58.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-title",
+          "kind": "property",
+          "nodeId": "node-title",
+          "property": "text",
+          "inputId": "title"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-input-reference", "path": "/template/bindings/0/inputId" }
+    ]
+  },
+  {
+    "name": "binding-node-unresolved",
+    "description": "A binding names a node of the composition (D58.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "title",
+          "type": "text",
+          "minLength": 0,
+          "maxLength": 40,
+          "default": "Kadrion"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-title",
+          "kind": "property",
+          "nodeId": "node-missing",
+          "property": "text",
+          "inputId": "title"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-node-reference", "path": "/template/bindings/0/nodeId" }
+    ]
+  },
+  {
+    "name": "binding-property-not-on-node",
+    "description": "An image has no bindable colour (D58.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "brand", "type": "color", "default": "#ffffff" }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-brand",
+          "kind": "property",
+          "nodeId": "node-image",
+          "property": "color",
+          "inputId": "brand"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-type-mismatch", "path": "/template/bindings/0/property" }]
+  },
+  {
+    "name": "binding-input-wrong-type",
+    "description": "The text of a node takes a text input, not a colour (D58.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "brand", "type": "color", "default": "#ffffff" }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-title",
+          "kind": "property",
+          "nodeId": "node-title",
+          "property": "text",
+          "inputId": "brand"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-type-mismatch", "path": "/template/bindings/0/inputId" }]
+  },
+  {
+    "name": "binding-value-not-default",
+    "description": "A bound property holds the default of its input (D58.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "title",
+          "type": "text",
+          "minLength": 0,
+          "maxLength": 40,
+          "default": "Other"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-title",
+          "kind": "property",
+          "nodeId": "node-title",
+          "property": "text",
+          "inputId": "title"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-value-mismatch", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "binding-target-twice",
+    "description": "The text of a node takes one binding: its whole text, or its placeholders (D58.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "title",
+          "type": "text",
+          "minLength": 0,
+          "maxLength": 40,
+          "default": "Kadrion"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-title",
+          "kind": "property",
+          "nodeId": "node-title",
+          "property": "text",
+          "inputId": "title"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": { "id": "bind-pattern", "kind": "placeholders", "nodeId": "node-title" }
+      }
+    ],
+    "expectedErrors": [{ "code": "duplicate-binding-target", "path": "/template/bindings/1" }]
+  },
+  {
+    "name": "placeholder-unclosed",
+    "description": "Every {{ of a bound text begins a placeholder {{inputId}} (D58.2).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/text", "value": "{{oops Kadrion" },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": { "id": "bind-pattern", "kind": "placeholders", "nodeId": "node-title" }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-placeholder", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "placeholder-input-unresolved",
+    "description": "A placeholder names an input of the template (D58.2).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/text", "value": "{{who}} Kadrion" },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": { "id": "bind-pattern", "kind": "placeholders", "nodeId": "node-title" }
+      }
+    ],
+    "expectedErrors": [{ "code": "unresolved-input-reference", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "placeholder-input-boolean",
+    "description": "A placeholder takes a text or number input (D58.2).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/text", "value": "{{flag}}" },
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "flag", "type": "boolean", "default": true }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": { "id": "bind-pattern", "kind": "placeholders", "nodeId": "node-title" }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-type-mismatch", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "placeholders-on-image",
+    "description": "Only the text of a text node holds placeholders (D58.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": { "id": "bind-pattern", "kind": "placeholders", "nodeId": "node-image" }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-type-mismatch", "path": "/template/bindings/0/nodeId" }]
+  },
+  {
+    "name": "asset-binding-wrong-type",
+    "description": "An asset takes an input of its own type (D58.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "photo",
+          "type": "image",
+          "default": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-photo",
+          "kind": "asset",
+          "assetId": "asset-audio",
+          "inputId": "photo"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-type-mismatch", "path": "/template/bindings/0/inputId" }]
+  },
+  {
+    "name": "asset-binding-unresolved",
+    "description": "A binding names an asset of the composition (D58.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "photo",
+          "type": "image",
+          "default": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-photo",
+          "kind": "asset",
+          "assetId": "asset-missing",
+          "inputId": "photo"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-asset-reference", "path": "/template/bindings/0/assetId" }
+    ]
+  },
+  {
+    "name": "asset-binding-not-default",
+    "description": "A bound asset holds the default of its input as its content hash (D58.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "photo",
+          "type": "image",
+          "default": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-photo",
+          "kind": "asset",
+          "assetId": "asset-image",
+          "inputId": "photo"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-value-mismatch", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "binding-kind-unknown",
+    "description": "The kinds of binding are closed (D58.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": { "id": "bind-x", "kind": "expression", "nodeId": "node-title" }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/template/bindings/0/kind" }]
   }
 ]

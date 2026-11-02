@@ -99,9 +99,11 @@ html,body{margin:0;padding:0;overflow:hidden}
 #grip{position:absolute;box-sizing:border-box;pointer-events:auto;touch-action:none}
 </style>
 <script type="importmap">${JSON.stringify({
-    imports: Object.fromEntries(
-      PACKAGES.map((name) => [`@kadrion/${name}`, `/pkg/${name}/index.js`]),
-    ),
+    imports: {
+      ...Object.fromEntries(PACKAGES.map((name) => [`@kadrion/${name}`, `/pkg/${name}/index.js`])),
+      // The session previews a template through this entry point (D58.4).
+      '@kadrion/schema/template': '/pkg/schema/template.js',
+    },
   })}</script>
 <script type="module">
 import { sizeCanvas, wireEditor } from '/app/app.js';
