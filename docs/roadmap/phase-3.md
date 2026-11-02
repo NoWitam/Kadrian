@@ -595,6 +595,7 @@ pack` does not publish.
 
 ### PR-32 — Transitions
 
+- Status: done (PR #27, merged 2026-11-02), with its ADR D56 (accepted by the owner on 2026-11-02). Schema `0.6` adds scene transitions (`crossfade`, `fade-through-color`, `slide`, `wipe`) and the clip crossfade, with the commands `AddSceneTransition`, `AddClipTransition`, `RemoveTransition`, `SetTransitionDuration`, and `SetTransitionEffect`.
 - **Goal:** a transition between two scenes or two clips of one layer.
 - **Scope:** a closed set of kinds to start (for example `crossfade`,
   `fade-through-color`, `slide`, `wipe`), each a pure function of progress in
