@@ -632,6 +632,7 @@ pack` does not publish.
 
 ### PR-34a — Templates: inputs, bindings, instantiation
 
+- Status: done (PR #31, merged 2026-11-02), with its ADR D58 (accepted by the owner on 2026-11-02). Schema `0.8` adds the `template` section of inputs and bindings, whose bound targets hold their inputs' defaults; `instantiateTemplate` of `@kadrion/schema/template` makes a composition from a template and values; the Player and the Producer refuse a template, the session previews it with its defaults; five commands edit inputs and bindings.
 - **Goal:** a document becomes a template with declared inputs, and a pure
   function makes a composition from it and a set of values.
 - **Scope (D58):** a template section in the document with inputs (text,
