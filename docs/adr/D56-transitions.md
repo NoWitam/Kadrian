@@ -1,6 +1,7 @@
 # D56 — Transitions: schema 0.6, four scene effects, the clip crossfade, and their commands
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-02, after PR-32 was merged
+  (PR #27)
 - Date: 2026-11-01
 - Supersedes: —
 - Extends: D19 (19.4: a scene of the state carries its transition, the state a
