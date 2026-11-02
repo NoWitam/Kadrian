@@ -95,6 +95,45 @@ const BINDING_SETUP: readonly Command[] = [
   },
 ];
 
+/** The inputs of the examples of the condition and repeat tools, and those of the examples (D59.6). */
+const SWITCH_SETUP: readonly Command[] = [
+  {
+    type: 'AddTemplateInput',
+    index: 0,
+    input: { id: 'show-title', type: 'boolean', default: true },
+  },
+];
+const CONDITION_SETUP: readonly Command[] = [
+  ...SWITCH_SETUP,
+  {
+    type: 'AddTemplateCondition',
+    index: 0,
+    condition: { id: 'when-title', test: 'true', targetId: 'node-title', inputId: 'show-title' },
+  },
+];
+const LIST_SETUP: readonly Command[] = [
+  {
+    type: 'AddTemplateInput',
+    index: 0,
+    input: {
+      id: 'people',
+      type: 'list',
+      minItems: 0,
+      maxItems: 8,
+      fields: [{ key: 'name', type: 'text', minLength: 1, maxLength: 24 }],
+      default: [[{ key: 'name', type: 'text', value: 'Kim' }]],
+    },
+  },
+];
+const REPEAT_SETUP: readonly Command[] = [
+  ...LIST_SETUP,
+  {
+    type: 'AddTemplateRepeat',
+    index: 0,
+    repeat: { id: 'each-title', duration: 'target', targetId: 'node-title', inputId: 'people' },
+  },
+];
+
 /** A second scene, as the example of `AddScene` adds it. */
 const OUTRO_SETUP: readonly Command[] = [
   {
@@ -259,6 +298,10 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetTemplateInput: BINDING_SETUP,
   AddTemplateBinding: INPUT_SETUP,
   RemoveTemplateBinding: BINDING_SETUP,
+  AddTemplateCondition: SWITCH_SETUP,
+  RemoveTemplateCondition: CONDITION_SETUP,
+  AddTemplateRepeat: LIST_SETUP,
+  RemoveTemplateRepeat: REPEAT_SETUP,
 };
 
 function prepared(type: Command['type']): CommandBus {

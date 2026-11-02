@@ -1067,7 +1067,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
       'tools',
       `probe sound-0 ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.8',
+      'load 0.9',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,

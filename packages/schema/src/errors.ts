@@ -53,7 +53,23 @@ export type ValidationErrorCode =
   /** Two bindings write the same property or asset (D58.2). */
   | 'duplicate-binding-target'
   /** A bound text has a `{{` that does not begin a placeholder `{{inputId}}` (D58.2). */
-  | 'invalid-placeholder';
+  | 'invalid-placeholder'
+  /** A condition or a repeat names no scene and no node (D59.1, D59.2). */
+  | 'unresolved-target-reference'
+  /** An item binding, a placeholder, or a repeat names a key that is no field of its list (D59.2, D59.3). */
+  | 'unresolved-field-reference'
+  /** A condition's test does not fit the type of its input (D59.1). */
+  | 'condition-type-mismatch'
+  /** A repeat reads an input that is no list, or takes its duration from a field that is no number (D59.2). */
+  | 'repeat-type-mismatch'
+  /** A target is repeated twice, or lies inside another repeated target (D59.2). */
+  | 'nested-repeat'
+  /** A repeated node is a side of a clip transition, whose overlap its copies cannot keep (D59.2). */
+  | 'repeat-in-transition'
+  /** An ID has the form of the ID of a copy of a repeat, `<id>--<index>` (D59.2). */
+  | 'repeat-id-reserved'
+  /** An item binding or placeholder lies outside every repeat over its list (D59.3). */
+  | 'item-outside-repeat';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

@@ -10,7 +10,6 @@ export type ValueSpec = TemplateField | Exclude<TemplateInput, { readonly type: 
 
 const COLOR = /^#[0-9a-f]{6}$/u;
 const CONTENT_HASH = /^sha256:[0-9a-f]{64}$/u;
-const ID = /^[A-Za-z0-9_-]+$/u;
 
 /** The length of a text in Unicode code points, as the constraints count it (D58.1). */
 export function codePointLength(text: string): number {
@@ -64,15 +63,22 @@ export function constraintProblem(spec: ValueSpec): { key: string; message: stri
   return null;
 }
 
-/** One piece of a bound text: literal text, or a placeholder naming an input (D58.2). */
-export type PatternPart = string | { readonly inputId: string };
+/**
+ * One piece of a bound text: literal text, or a placeholder naming an input
+ * (D58.2) — and, for `{{inputId.key}}`, the field of the item of a list (D59.3);
+ * `key` is `null` for a placeholder of an input.
+ */
+export type PatternPart = string | { readonly inputId: string; readonly key: string | null };
+
+const PLACEHOLDER = /^([A-Za-z0-9_-]+)(?:\.([A-Za-z0-9_-]+))?$/u;
 
 /**
- * A bound text cut into literal text and placeholders (D58.2): every `{{`
- * begins a placeholder `{{inputId}}`, an ID of the document's form between
- * double braces; anything else after a `{{` makes the text no pattern, and the
- * result is `null`. There is no escape and no expression: a lone `{`, a `}`,
- * or a `}}` is text.
+ * A bound text cut into literal text and placeholders (D58.2, D59.3): every
+ * `{{` begins a placeholder, `{{inputId}}` or `{{inputId.key}}` — IDs of the
+ * document's form between double braces, the second the key of a field of a
+ * list; anything else after a `{{` makes the text no pattern, and the result
+ * is `null`. There is no escape and no expression: a lone `{`, a `}`, or a
+ * `}}` is text.
  */
 export function patternParts(text: string): readonly PatternPart[] | null {
   const parts: PatternPart[] = [];
@@ -82,10 +88,10 @@ export function patternParts(text: string): readonly PatternPart[] | null {
     if (open < 0) break;
     const close = text.indexOf('}}', open + 2);
     if (close < 0) return null;
-    const inputId = text.slice(open + 2, close);
-    if (!ID.test(inputId)) return null;
+    const match = PLACEHOLDER.exec(text.slice(open + 2, close));
+    if (match === null) return null;
     if (open > at) parts.push(text.slice(at, open));
-    parts.push({ inputId });
+    parts.push({ inputId: match[1] ?? '', key: match[2] ?? null });
     at = close + 2;
   }
   if (at < text.length) parts.push(text.slice(at));
@@ -98,13 +104,37 @@ export function numberText(value: number): string {
 }
 
 /**
- * Whether a composition is a template: its template section has an input or a
- * binding (D58.4). A template is edited and previewed, never rendered as it
- * is: the Player and the Producer refuse it, and a host renders an
- * instantiation of it, `instantiateTemplate` of `@kadrion/schema/template`.
+ * Whether a composition is a template: its template section has an input, a
+ * binding, a condition, or a repeat (D58.4, D59). A template is edited and
+ * previewed, never rendered as it is: the Player and the Producer refuse it,
+ * and a host renders an instantiation of it, `instantiateTemplate` of
+ * `@kadrion/schema/template`.
  */
 export function isTemplate(composition: {
-  readonly template: { readonly inputs: readonly unknown[]; readonly bindings: readonly unknown[] };
+  readonly template: {
+    readonly inputs: readonly unknown[];
+    readonly bindings: readonly unknown[];
+    readonly conditions: readonly unknown[];
+    readonly repeats: readonly unknown[];
+  };
 }): boolean {
-  return composition.template.inputs.length > 0 || composition.template.bindings.length > 0;
+  const { inputs, bindings, conditions, repeats } = composition.template;
+  return inputs.length + bindings.length + conditions.length + repeats.length > 0;
+}
+
+/**
+ * The ID of copy `index` of an entity of a repeat (D59.2): the template ID, two
+ * hyphens, and the index in decimal without leading zeros. Injective: the
+ * index has no hyphen, so the last `--` of a derived ID is the one added, and
+ * a template that holds an ID of this form for an ID it repeats is refused
+ * (`repeat-id-reserved`), so no copy takes an ID the document has.
+ */
+export function copyId(id: string, index: number): string {
+  return `${id}--${String(index)}`;
+}
+
+/** The ID a derived ID was made from, or `null` when the ID has no form of a copy (D59.2). */
+export function copiedFrom(id: string): string | null {
+  const match = /^(.+)--(?:0|[1-9][0-9]*)$/su.exec(id);
+  return match === null ? null : (match[1] ?? null);
 }

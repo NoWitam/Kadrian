@@ -60,12 +60,18 @@ export type EditorErrorCode =
   | 'unknown-input'
   /** The template has no binding with that ID; `details` are empty (D58.6). */
   | 'unknown-binding'
+  /** The template has no condition with that ID; `details` are empty (D59.6). */
+  | 'unknown-condition'
+  /** The template has no repeat with that ID; `details` are empty (D59.6). */
+  | 'unknown-repeat'
   /** The input is still bound or named by a placeholder; `details` list the bindings, sorted (D58.6). */
   | 'input-in-use'
   /**
-   * The command would break a binding it does not edit — remove its node or
-   * asset, change a bound property or asset away from its input's default, or
-   * make a bound text no pattern; `details` list the bindings, sorted (D58.6).
+   * The command would break a binding, a condition, or a repeat it does not
+   * edit — remove its node, scene, or asset, change a bound property or asset
+   * away from its input's default, make a bound text no pattern, move an item
+   * binding out of its repeat, or nest a repeat; `details` list their IDs,
+   * sorted (D58.6, D59.6).
    */
   | 'binding-in-use'
   /** No animation of the document has that ID; `details` are empty (D41.5). */

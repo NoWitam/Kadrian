@@ -1,5 +1,5 @@
 /**
- * Composition schema 0.8: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.9: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
@@ -15,8 +15,10 @@
  * `captions`, words with their timings in a style, broken into lines and pages
  * by the runtime (D57); 0.8 is 0.7 plus the template section, inputs with
  * their constraints and defaults and the bindings of node properties and
- * assets to them, empty in a composition that is no template (D58). The
- * schemas of 0.1 to 0.7 are kept as data in `v0-1` to `v0-7` (D35.4).
+ * assets to them, empty in a composition that is no template (D58); 0.9 is
+ * 0.8 plus the conditions and repeats of a template and the bindings of the
+ * fields of a list's items (D59). The schemas of 0.1 to 0.8 are kept as data
+ * in `v0-1` to `v0-8` (D35.4).
  */
 import {
   closedObject,
@@ -28,7 +30,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.8';
+export const SCHEMA_VERSION = '0.9';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -701,7 +703,7 @@ const DEFAULT =
   'The value of the input when the host gives none; every property or asset bound to the input holds it (D58.1, D58.3).';
 
 export const listInputSchema = closedObject(
-  'A list of items, each an object with the same fields; no binding reads it in 0.8 (D58.1).',
+  'A list of items, each an object with the same fields; a repeat makes one copy of its target for each item, and item bindings read their fields (D58.1, D59).',
   {
     id,
     type: fieldType('list'),
@@ -829,14 +831,147 @@ export const assetBindingSchema = closedObject(
   },
 );
 
+const listReference = {
+  type: 'string',
+  description: 'ID of a list input of the template (D59).',
+  pattern: '^[A-Za-z0-9_-]+$',
+} as const satisfies StringSchema;
+
+const itemKey = {
+  ...fieldKey,
+  description: 'The key of a field of the items of the list input (D59).',
+} as const satisfies StringSchema;
+
+/** A binding of a whole property of a node to a field of the items of a list (D59.3). */
+export const itemPropertyBindingSchema = closedObject(
+  'In the copy of a repeat over the list, the whole property of the node holds the value of the field of its item: the text of a text node takes a text field, the color of a text or a background a colour field (D59.3).',
+  {
+    id,
+    kind: { type: 'string', const: 'item-property' },
+    nodeId: boundNode,
+    property: {
+      type: 'string',
+      description: 'The bound property of the node (D59.3).',
+      enum: ['text', 'color'],
+    },
+    inputId: listReference,
+    key: itemKey,
+  },
+);
+
+/** A binding of an asset to a field of the items of a list (D59.3). */
+export const itemAssetBindingSchema = closedObject(
+  'The asset is copied once for each item of the list and takes the content hash of the field of its item; each copy of the repeat that uses it uses the copy of its item (D59.3).',
+  {
+    id,
+    kind: { type: 'string', const: 'item-asset' },
+    assetId: assetReference,
+    inputId: listReference,
+    key: itemKey,
+  },
+);
+
 export const templateBindingSchema = {
-  description: 'Where the value of an input goes (D58.2).',
-  oneOf: [propertyBindingSchema, placeholdersBindingSchema, assetBindingSchema],
+  description: 'Where the value of an input or of a field of an item goes (D58.2, D59.3).',
+  oneOf: [
+    propertyBindingSchema,
+    placeholdersBindingSchema,
+    assetBindingSchema,
+    itemPropertyBindingSchema,
+    itemAssetBindingSchema,
+  ],
 } as const satisfies UnionSchema;
 
-/** The template section (D58): empty in a composition that is no template. */
+const targetReference = {
+  type: 'string',
+  description: 'ID of a scene of the composition, or of a node of any scene (D59).',
+  pattern: '^[A-Za-z0-9_-]+$',
+} as const satisfies StringSchema;
+
+const testedInput = {
+  type: 'string',
+  description: 'ID of the input the test reads (D59.1).',
+  pattern: '^[A-Za-z0-9_-]+$',
+} as const satisfies StringSchema;
+
+const test = <const T extends string>(test: T) => ({ type: 'string', const: test }) as const;
+
+/** A condition: the target is kept only while its test of an input holds (D59.1). */
+export const templateConditionSchema = {
+  description:
+    'The target scene or node, with everything inside it, is kept only when the test holds; every condition of a target must hold (D59.1).',
+  oneOf: [
+    closedObject('Holds when the text input is empty or the list input has no items (D59.1).', {
+      id,
+      test: test('empty'),
+      targetId: targetReference,
+      inputId: testedInput,
+    }),
+    closedObject('Holds when the text input is not empty or the list input has an item (D59.1).', {
+      id,
+      test: test('not-empty'),
+      targetId: targetReference,
+      inputId: testedInput,
+    }),
+    closedObject('Holds when the boolean input is true (D59.1).', {
+      id,
+      test: test('true'),
+      targetId: targetReference,
+      inputId: testedInput,
+    }),
+    closedObject('Holds when the boolean input is false (D59.1).', {
+      id,
+      test: test('false'),
+      targetId: targetReference,
+      inputId: testedInput,
+    }),
+    closedObject(
+      'Holds when the text input is exactly the value, code point for code point (D59.1).',
+      {
+        id,
+        test: test('equal-text'),
+        targetId: targetReference,
+        inputId: testedInput,
+        value: textValue,
+      },
+    ),
+    closedObject('Holds when the number input is exactly the value (D59.1).', {
+      id,
+      test: test('equal-number'),
+      targetId: targetReference,
+      inputId: testedInput,
+      value: numberValue,
+    }),
+  ],
+} as const satisfies UnionSchema;
+
+/** A repeat: one copy of the target for each item of a list, one after the other (D59.2). */
+export const templateRepeatSchema = {
+  description:
+    'The target scene or node is replaced by one copy for each item of the list, in the order of the items, each copy starting where the one before it ends (D59.2).',
+  oneOf: [
+    closedObject('Every copy lasts the durationUs of the target (D59.2).', {
+      id,
+      duration: { type: 'string', const: 'target' },
+      targetId: targetReference,
+      inputId: listReference,
+    }),
+    closedObject(
+      'Every copy lasts the value of a number field of its item, a whole number of microseconds from 1 (D59.2).',
+      {
+        id,
+        duration: { type: 'string', const: 'field' },
+        targetId: targetReference,
+        inputId: listReference,
+        key: itemKey,
+      },
+    ),
+  ],
+} as const satisfies UnionSchema;
+
+/** The template section (D58, D59): empty in a composition that is no template. */
 export const templateSchema = closedObject(
-  'The inputs of a template and their bindings; both lists are empty in a composition that is no template, and instantiating one empties them (D58).',
+  'The inputs of a template, their bindings, the conditions, and the repeats; every list is empty in a composition that is no template, and instantiating one empties them (D58, D59).',
   {
     inputs: {
       type: 'array',
@@ -847,6 +982,16 @@ export const templateSchema = closedObject(
       type: 'array',
       description: 'The bindings; their order has no meaning (D58.2).',
       items: templateBindingSchema,
+    },
+    conditions: {
+      type: 'array',
+      description: 'The conditions; their order has no meaning (D59.1).',
+      items: templateConditionSchema,
+    },
+    repeats: {
+      type: 'array',
+      description: 'The repeats; their order has no meaning (D59.2).',
+      items: templateRepeatSchema,
     },
   },
 );
@@ -866,7 +1011,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.8',
+  title: 'Kadrion composition 0.9',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

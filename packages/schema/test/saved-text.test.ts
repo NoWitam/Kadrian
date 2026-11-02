@@ -168,6 +168,7 @@ describe('the supported versions (D43.5)', () => {
       '0.6',
       '0.7',
       '0.8',
+      '0.9',
     ]);
     expect(Object.isFrozen(SUPPORTED_SCHEMA_VERSIONS)).toBe(true);
     expect(SUPPORTED_SCHEMA_VERSIONS.at(-1)).toBe(SCHEMA_VERSION);
@@ -188,7 +189,8 @@ describe('the supported versions (D43.5)', () => {
   );
 
   it.each([
-    '0.9',
+    '0.10',
+    '0.90',
     '0.80',
     '0.70',
     '0.60',
@@ -197,7 +199,6 @@ describe('the supported versions (D43.5)', () => {
     '0.30',
     '0.20',
     '0.2.0',
-    '0.10',
     '0.02',
     '1.0',
     '0.2 ',
@@ -325,7 +326,7 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
       ({ name, patch }) => [`0.1: ${name}`, applyPatch(referenceCompositionV01, patch)] as const,
     ),
     ...invalidCompositionCases.map(
-      ({ name, patch }) => [`0.8: ${name}`, applyPatch(referenceComposition, patch)] as const,
+      ({ name, patch }) => [`0.9: ${name}`, applyPatch(referenceComposition, patch)] as const,
     ),
   ];
 
@@ -361,15 +362,15 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
 
 describe('the rules of JSON, and no others (D43.2)', () => {
   it('lets the last of two equal keys win, as JSON.parse does', () => {
-    // A valid 0.8 body with two versions: the later one decides.
+    // A valid 0.9 body with two versions: the later one decides.
     const current = referenceText.replace(
-      '"schemaVersion":"0.8"',
-      '"schemaVersion":"0.1","schemaVersion":"0.8"',
+      '"schemaVersion":"0.9"',
+      '"schemaVersion":"0.1","schemaVersion":"0.9"',
     );
-    expect(loaded(parseComposition(current)).versions).toEqual(['0.8']);
+    expect(loaded(parseComposition(current)).versions).toEqual(['0.9']);
     const older = referenceText.replace(
-      '"schemaVersion":"0.8"',
-      '"schemaVersion":"0.8","schemaVersion":"0.1"',
+      '"schemaVersion":"0.9"',
+      '"schemaVersion":"0.9","schemaVersion":"0.1"',
     );
     const judged = refused(parseComposition(older));
     // Judged as the 0.1 document its last key says it is, which it is not.
@@ -496,19 +497,25 @@ describe('deeply nested JSON (D43.4)', () => {
   function nestedGroups(version: string, depth: number): string {
     const lifetime = version === '0.1' ? '' : '"startUs":0,"durationUs":1,';
     // From 0.5 a scene has its own duration and clips (D54.1), from 0.6 its
-    // transitions, as the composition has (D56.1), and from 0.8 the composition
-    // has a template section (D58.5).
+    // transitions, as the composition has (D56.1), from 0.8 the composition
+    // has a template section (D58.5), and from 0.9 it has conditions and repeats (D59.5).
     const [sceneHead, sceneTail, tail] = ['0.1', '0.2', '0.3', '0.4'].includes(version)
       ? ['', '', '']
       : version === '0.5'
         ? ['"durationUs":1,', ',"clips":[]', '']
         : ['0.6', '0.7'].includes(version)
           ? ['"durationUs":1,', ',"clips":[],"transitions":[]', ',"transitions":[]']
-          : [
-              '"durationUs":1,',
-              ',"clips":[],"transitions":[]',
-              ',"transitions":[],"template":{"inputs":[],"bindings":[]}',
-            ];
+          : version === '0.8'
+            ? [
+                '"durationUs":1,',
+                ',"clips":[],"transitions":[]',
+                ',"transitions":[],"template":{"inputs":[],"bindings":[]}',
+              ]
+            : [
+                '"durationUs":1,',
+                ',"clips":[],"transitions":[]',
+                ',"transitions":[],"template":{"inputs":[],"bindings":[],"conditions":[],"repeats":[]}',
+              ];
     let open = '';
     let close = '';
     for (let level = 0; level < depth; level += 1) {
@@ -558,7 +565,7 @@ describe('ownership and freezing (D43.4, D43.3)', () => {
     [
       'a migrated 0.1 document',
       JSON.stringify(referenceCompositionV01),
-      ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', SCHEMA_VERSION],
+      ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', SCHEMA_VERSION],
     ],
     ['a current document', referenceText, [SCHEMA_VERSION]],
   ] as const;

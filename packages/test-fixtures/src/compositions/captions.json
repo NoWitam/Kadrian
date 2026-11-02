@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.8",
+  "schemaVersion": "0.9",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -111,5 +111,5 @@
   ],
   "clips": [],
   "transitions": [],
-  "template": { "inputs": [], "bindings": [] }
+  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
 }

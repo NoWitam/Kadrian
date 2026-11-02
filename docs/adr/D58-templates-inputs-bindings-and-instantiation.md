@@ -4,6 +4,7 @@
   (PR #31)
 - Date: 2026-11-02
 - Supersedes: —
+- Amended by: PR-34b (D59) on 2026-11-02: the section gains `conditions` and `repeats`, item bindings and `{{list.key}}` placeholders, and instantiation applies conditions and repeats (D59.1–D59.4)
 - Extends: D17 (the schema subset gains `type: "boolean"`), D25 (the Player
   refuses a template), D35 (the step from `0.7`), D44 (the session previews a
   template as its instantiation), and D46 (five tools), each with an

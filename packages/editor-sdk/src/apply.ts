@@ -161,6 +161,10 @@ const TEMPLATE_COMMANDS: readonly Command['type'][] = Object.freeze([
   'SetTemplateInput',
   'AddTemplateBinding',
   'RemoveTemplateBinding',
+  'AddTemplateCondition',
+  'RemoveTemplateCondition',
+  'AddTemplateRepeat',
+  'RemoveTemplateRepeat',
 ]);
 
 /** The validation codes that judge a binding against its target and input (D58.2, D58.3). */
@@ -172,14 +176,19 @@ const BINDING_CODES: readonly string[] = Object.freeze([
   'binding-value-mismatch',
   'duplicate-binding-target',
   'invalid-placeholder',
+  'unresolved-target-reference',
+  'item-outside-repeat',
+  'nested-repeat',
+  'repeat-in-transition',
 ]);
 
 /**
  * `binding-in-use` when a command other than a template command would leave a
- * binding that no longer fits its target (D58.6) — a removed node or asset, a
- * bound property or asset changed away from its input's default, a bound text
- * that is no pattern — with the IDs of those bindings, sorted; `null`
- * otherwise. The host changes the input's default with `SetTemplateInput`, or
+ * binding, a condition, or a repeat that no longer fits its target (D58.6,
+ * D59.6) — a removed node, scene, or asset, a bound property or asset changed
+ * away from its input's default, a bound text that is no pattern, an item
+ * binding moved out of its repeat, a repeat nested or made a side of a clip
+ * transition — with their IDs, sorted; `null` otherwise. The host changes the input's default with `SetTemplateInput`, or
  * removes the binding first, in the same transaction.
  */
 function bindingsInUse(
@@ -192,7 +201,7 @@ function bindingsInUse(
   if (ids.length === 0) return null;
   return new EditorError(
     'binding-in-use',
-    `The command \`${command.type}\` would break a binding of the template; set the input with SetTemplateInput, or remove the binding first, in the same transaction (D58.6).`,
+    `The command \`${command.type}\` would break a binding, a condition, or a repeat of the template; set the input with SetTemplateInput, or remove them first, in the same transaction (D58.6, D59.6).`,
     ids,
   );
 }

@@ -18,9 +18,11 @@ import type {
   sceneSchema,
   sceneTransitionSchema,
   templateBindingSchema,
+  templateConditionSchema,
   templateFieldSchema,
   templateFieldValueSchema,
   templateInputSchema,
+  templateRepeatSchema,
   templateSchema,
   textNodeSchema,
   videoNodeSchema,
@@ -85,5 +87,12 @@ export type TemplateInputType = TemplateInput['type'];
 export type TemplateField = Infer<typeof templateFieldSchema>;
 /** The value of one field of one item of a list default, as the document stores it (D58.1). */
 export type TemplateFieldValue = Infer<typeof templateFieldValueSchema>;
-/** Where the value of an input goes: a property, the placeholders of a text, or an asset (D58.2). */
+/**
+ * Where the value of an input goes — a property, the placeholders of a text,
+ * or an asset — or that of a field of the items of a list (D58.2, D59.3).
+ */
 export type TemplateBinding = Infer<typeof templateBindingSchema>;
+/** A test of an input that keeps or removes a scene or a node (D59.1). */
+export type TemplateCondition = Infer<typeof templateConditionSchema>;
+/** One copy of a scene or a node for each item of a list (D59.2). */
+export type TemplateRepeat = Infer<typeof templateRepeatSchema>;

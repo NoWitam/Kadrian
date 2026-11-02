@@ -8,10 +8,12 @@
  * a template is never rendered as it is; a host renders its instantiation.
  */
 import { pointer, type ValidationError } from './errors.js';
-import { numberText, patternParts, valueProblem } from './template-values.js';
+import { templateStructure } from './template-structure.js';
+import { copiedFrom, copyId, numberText, patternParts, valueProblem } from './template-values.js';
 import type {
   Composition,
   SceneNode,
+  TemplateCondition,
   TemplateFieldValue,
   TemplateInput,
   ValidatedComposition,
@@ -41,6 +43,8 @@ export type TemplateErrorCode =
   | 'unknown-input'
   /** A value does not have its input's type, or breaks its constraints (D58.4). */
   | 'invalid-input-value'
+  /** The copies of the repeats would hold too many IDs, or times past the safe integers (D59.4). */
+  | 'repeat-limit'
   /** The result is not a valid composition; the template allows what it must not (D58.4). */
   | 'invalid-composition';
 
@@ -139,11 +143,16 @@ function valueErrors(input: TemplateInput, value: unknown): TemplateError[] {
   return errors;
 }
 
-type MutableNode = Record<string, unknown>;
+type Mutable = Record<string, unknown>;
+
+/** The most IDs the copies of one instantiation hold together (D59.4): a typed limit. */
+export const MAX_REPEAT_IDS = 100_000;
+
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
 
 /** Every node of a composition by ID, group children included, as mutable records. */
-function nodesById(composition: Composition): Map<string, MutableNode> {
-  const nodes = new Map<string, MutableNode>();
+function nodesById(composition: Composition): Map<string, Mutable> {
+  const nodes = new Map<string, Mutable>();
   const visit = (node: SceneNode | Extract<SceneNode, { type: 'group' }>['children'][number]) => {
     nodes.set(node.id, node);
     if (node.type === 'group') node.children.forEach(visit);
@@ -152,18 +161,164 @@ function nodesById(composition: Composition): Map<string, MutableNode> {
   return nodes;
 }
 
+/** The value of a condition's test of its input's value (D59.1). */
+function holds(condition: TemplateCondition, value: unknown): boolean {
+  switch (condition.test) {
+    case 'empty':
+      return typeof value === 'string'
+        ? value.length === 0
+        : (value as readonly unknown[]).length === 0;
+    case 'not-empty':
+      return typeof value === 'string'
+        ? value.length > 0
+        : (value as readonly unknown[]).length > 0;
+    case 'true':
+      return value === true;
+    case 'false':
+      return value === false;
+    case 'equal-text':
+    case 'equal-number':
+      return value === condition.value;
+  }
+}
+
+/** The text of a pattern with its placeholders filled from the inputs and, in a copy, its item (D58.2, D59.3). */
+function filled(
+  text: string,
+  resolved: ReadonlyMap<string, unknown>,
+  item: Readonly<Record<string, unknown>> | null,
+): string {
+  const parts = patternParts(text);
+  if (parts === null) return text;
+  return parts
+    .map((part) => {
+      if (typeof part === 'string') return part;
+      const value = part.key === null ? resolved.get(part.inputId) : item?.[part.key];
+      return typeof value === 'number' ? numberText(value) : String(value);
+    })
+    .join('');
+}
+
+/** A copy of a value whose IDs, and the references to them, are those of copy `index` (D59.2). */
+function copied(
+  value: unknown,
+  renamed: ReadonlySet<string>,
+  assets: ReadonlySet<string>,
+  index: number,
+): unknown {
+  if (Array.isArray(value)) {
+    return (value as readonly unknown[]).map((item) => copied(item, renamed, assets, index));
+  }
+  if (typeof value !== 'object' || value === null) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, child]): [string, unknown] => {
+      if (typeof child === 'string') {
+        if ((key === 'id' || key === 'fromNodeId' || key === 'toNodeId') && renamed.has(child)) {
+          return [key, copyId(child, index)];
+        }
+        if (key === 'assetId' && assets.has(child)) return [key, copyId(child, index)];
+        return [key, child];
+      }
+      return [key, copied(child, renamed, assets, index)];
+    }),
+  );
+}
+
+/** Moves every scene time of a node, its children, keyframes, and words, by `offset` (D59.2). */
+function shifted(node: Mutable, offset: bigint): boolean {
+  let safe = true;
+  const move = (holder: Mutable, key: string): void => {
+    const time = BigInt(holder[key] as number) + offset;
+    if (time > MAX_SAFE) safe = false;
+    holder[key] = Number(time);
+  };
+  const visit = (member: Mutable): void => {
+    move(member, 'startUs');
+    const animations = member['animations'];
+    if (Array.isArray(animations)) {
+      for (const animation of animations as Mutable[]) {
+        for (const keyframe of animation['keyframes'] as Mutable[]) move(keyframe, 'timeUs');
+      }
+    }
+    const words = member['words'];
+    if (Array.isArray(words)) for (const word of words as Mutable[]) move(word, 'startUs');
+    const children = member['children'];
+    if (Array.isArray(children)) for (const child of children as Mutable[]) visit(child);
+  };
+  visit(node);
+  return safe;
+}
+
+/** Where an element lives: the array that holds it and its index there. */
+function placeOf(
+  composition: Composition,
+  id: string,
+): { list: unknown[]; index: number; sceneIndex: number } | null {
+  const scenes = composition.scenes as unknown as Mutable[];
+  for (const [sceneIndex, scene] of scenes.entries()) {
+    if (scene['id'] === id) return { list: scenes, index: sceneIndex, sceneIndex };
+    const nodes = scene['nodes'] as Mutable[];
+    for (const [index, node] of nodes.entries()) {
+      if (node['id'] === id) return { list: nodes, index, sceneIndex };
+      const children = node['children'];
+      if (Array.isArray(children)) {
+        const at = (children as Mutable[]).findIndex((child) => child['id'] === id);
+        if (at >= 0) return { list: children as unknown[], index: at, sceneIndex };
+      }
+    }
+  }
+  return null;
+}
+
+/** Every `id` of a value, at any depth. */
+function idsOf(value: unknown, into: Set<string>): Set<string> {
+  if (Array.isArray(value)) {
+    for (const item of value as readonly unknown[]) idsOf(item, into);
+  } else if (typeof value === 'object' && value !== null) {
+    for (const [key, child] of Object.entries(value)) {
+      if (key === 'id' && typeof child === 'string') into.add(child);
+      else idsOf(child, into);
+    }
+  }
+  return into;
+}
+
+/** Every node of a value that is a scene, a node, or a list of them. */
+function nodesIn(value: Mutable): Mutable[] {
+  const found: Mutable[] = [];
+  const visit = (node: Mutable): void => {
+    found.push(node);
+    const children = node['children'];
+    if (Array.isArray(children)) (children as Mutable[]).forEach(visit);
+  };
+  const nodes = value['nodes'];
+  if (Array.isArray(nodes)) (nodes as Mutable[]).forEach(visit);
+  else visit(value);
+  return found;
+}
+
 /**
- * Makes a composition from a template and the values of its inputs (D58.4):
+ * Makes a composition from a template and the values of its inputs (D58.4,
+ * D59.4):
  *
  * 1. the values are validated against the inputs — an own key that is no
  *    input is `unknown-input`, a value of the wrong type or outside its
  *    constraints `invalid-input-value`, each naming the input and the path of
- *    the value; an input left out takes its default;
- * 2. every binding writes its input's value: a property takes it whole, an
- *    asset takes it as its content hash, and every placeholder `{{inputId}}`
- *    of a bound text becomes the text of its value, a number as ECMAScript
- *    writes it;
- * 3. the template section is emptied, and the result is validated in full as
+ *    the value; an input left out takes its default; the duration a repeat
+ *    reads from a field must be a whole number of microseconds from 1;
+ * 2. every binding of an input writes its value: a property takes it whole,
+ *    an asset takes it as its content hash;
+ * 3. every scene and node whose conditions do not all hold is removed, with
+ *    everything inside it and every transition that names it;
+ * 4. every repeat replaces its target by one copy for each item of its list,
+ *    in their order, each starting where the one before it ends; the IDs of
+ *    copy `k` are `<id>--<k>`; item bindings and placeholders of fields write
+ *    the item of their copy, and an asset bound to a field becomes one asset
+ *    for each item; more than `MAX_REPEAT_IDS` IDs in all is `repeat-limit`;
+ * 5. every placeholder of an input becomes the text of its value, a number as
+ *    ECMAScript writes it; the composition's durationUs becomes that of its
+ *    scenes less their transitions;
+ * 6. the template section is emptied, and the result is validated in full as
  *    a composition.
  *
  * It is pure and deterministic: the same template and values give the same
@@ -186,7 +341,7 @@ export function instantiateTemplate(
       },
     ]);
   }
-  const { inputs, bindings } = template.template;
+  const { inputs, bindings, conditions, repeats } = template.template;
   const errors: TemplateError[] = [];
   const resolved = new Map<string, unknown>();
   for (const input of inputs) {
@@ -210,37 +365,181 @@ export function instantiateTemplate(
     }
   }
   if (errors.length > 0) return failure(errors);
+  const itemsOf = (inputId: string): readonly Readonly<Record<string, unknown>>[] =>
+    resolved.get(inputId) as readonly Readonly<Record<string, unknown>>[];
+  // The durations a repeat reads from its items (D59.2).
+  for (const repeat of repeats) {
+    if (repeat.duration !== 'field') continue;
+    itemsOf(repeat.inputId).forEach((item, index) => {
+      const duration = item[repeat.key];
+      if (typeof duration === 'number' && Number.isSafeInteger(duration) && duration >= 1) return;
+      errors.push({
+        code: 'invalid-input-value',
+        inputId: repeat.inputId,
+        path: pointer(pointer(pointer('', repeat.inputId), index), repeat.key),
+        message: `The duration of a copy of "${repeat.targetId}": a whole number of microseconds from 1.`,
+      });
+    });
+  }
+  if (errors.length > 0) return failure(errors);
 
   // A JSON round trip: a tree that shares nothing with the template, the caller's to keep.
   const result = JSON.parse(JSON.stringify(template)) as Composition;
+  const structure = templateStructure(result);
   const nodes = nodesById(result);
-  const assets = new Map(
-    result.assets.map((asset) => [asset.id, asset as unknown as Record<string, unknown>]),
-  );
+  const assets = new Map(result.assets.map((asset) => [asset.id, asset as unknown as Mutable]));
   for (const binding of bindings) {
     if (binding.kind === 'asset') {
       const asset = assets.get(binding.assetId);
       if (asset !== undefined) asset['contentHash'] = resolved.get(binding.inputId);
-      continue;
+    } else if (binding.kind === 'property') {
+      const node = nodes.get(binding.nodeId);
+      if (node !== undefined) node[binding.property] = resolved.get(binding.inputId);
     }
-    const node = nodes.get(binding.nodeId);
-    if (node === undefined) continue;
-    if (binding.kind === 'property') {
-      node[binding.property] = resolved.get(binding.inputId);
-      continue;
-    }
-    const text = node['text'];
-    const parts = typeof text === 'string' ? patternParts(text) : null;
-    if (parts === null) continue;
-    node['text'] = parts
-      .map((part) => {
-        if (typeof part === 'string') return part;
-        const value = resolved.get(part.inputId);
-        return typeof value === 'number' ? numberText(value) : String(value);
-      })
-      .join('');
   }
-  (result as unknown as Record<string, unknown>)['template'] = { inputs: [], bindings: [] };
+
+  // Conditions (D59.1): an element is kept only while every one of its conditions holds.
+  const removed = new Set<string>();
+  for (const condition of conditions) {
+    if (!holds(condition, resolved.get(condition.inputId))) removed.add(condition.targetId);
+  }
+  const mutable = result as unknown as Mutable;
+  if (removed.size > 0) {
+    const keep = (entity: unknown): boolean => !removed.has((entity as Mutable)['id'] as string);
+    mutable['scenes'] = (result.scenes as unknown as Mutable[]).filter(keep);
+    for (const scene of mutable['scenes'] as Mutable[]) {
+      scene['nodes'] = (scene['nodes'] as Mutable[]).filter(keep);
+      for (const node of scene['nodes'] as Mutable[]) {
+        if (Array.isArray(node['children']))
+          node['children'] = (node['children'] as Mutable[]).filter(keep);
+      }
+    }
+  }
+
+  // Repeats (D59.2): every target becomes one copy per item, and its references follow.
+  const placeholders = new Map<string, true>();
+  for (const binding of bindings)
+    if (binding.kind === 'placeholders') placeholders.set(binding.nodeId, true);
+  const assetCopies = new Map<string, Mutable[]>();
+  const firstAndLast = new Map<string, readonly [string, string] | null>();
+  let copiedIds = 0;
+  for (const repeat of repeats) {
+    const place = placeOf(result, repeat.targetId);
+    const users = (assetId: string): boolean =>
+      (structure.assetUsers.get(assetId) ?? []).some(
+        (user) => user !== null && structure.repeatHolding(user)?.id === repeat.id,
+      );
+    const itemAssets = bindings.filter(
+      (binding): binding is Extract<typeof binding, { kind: 'item-asset' }> =>
+        binding.kind === 'item-asset' &&
+        binding.inputId === repeat.inputId &&
+        users(binding.assetId),
+    );
+    for (const binding of itemAssets) assetCopies.set(binding.assetId, []);
+    if (place === null) continue;
+    const target = place.list[place.index] as Mutable;
+    const items = itemsOf(repeat.inputId);
+    const renamed = idsOf(target, new Set());
+    copiedIds += (renamed.size + itemAssets.length) * items.length;
+    if (copiedIds > MAX_REPEAT_IDS) {
+      return failure([
+        {
+          code: 'repeat-limit',
+          inputId: repeat.inputId,
+          path: pointer('', repeat.inputId),
+          message: `The copies of the repeats would hold more than ${String(MAX_REPEAT_IDS)} IDs.`,
+        },
+      ]);
+    }
+    const assetIds = new Set(itemAssets.map((binding) => binding.assetId));
+    const isScene = place.list === (mutable['scenes'] as unknown[]);
+    let offset = 0n;
+    const copies = items.map((item, index) => {
+      const copy = copied(target, renamed, assetIds, index) as Mutable;
+      const durationUs =
+        repeat.duration === 'field'
+          ? (item[repeat.key] as number)
+          : (target['durationUs'] as number);
+      if (!isScene && !shifted(copy, offset)) {
+        errors.push({
+          code: 'repeat-limit',
+          inputId: repeat.inputId,
+          path: pointer(pointer('', repeat.inputId), index),
+          message: `A copy of "${repeat.targetId}" would start past the safe integers.`,
+        });
+      }
+      copy['durationUs'] = durationUs;
+      offset += BigInt(durationUs);
+      for (const node of nodesIn(copy)) {
+        const from = copiedFrom(node['id'] as string) ?? '';
+        for (const binding of bindings) {
+          if (binding.kind === 'item-property' && binding.nodeId === from) {
+            node[binding.property] = item[binding.key];
+          }
+        }
+        if (placeholders.has(from) && typeof node['text'] === 'string') {
+          node['text'] = filled(node['text'], resolved, item);
+        }
+      }
+      for (const binding of itemAssets) {
+        const asset = assets.get(binding.assetId);
+        if (asset === undefined) continue;
+        assetCopies.get(binding.assetId)?.push({
+          ...asset,
+          id: copyId(binding.assetId, index),
+          contentHash: item[binding.key],
+        });
+      }
+      return copy;
+    });
+    place.list.splice(place.index, 1, ...copies);
+    if (isScene) {
+      const ids = copies.map((copy) => copy['id'] as string);
+      firstAndLast.set(repeat.targetId, ids.length === 0 ? null : [ids[0] ?? '', ids.at(-1) ?? '']);
+    }
+  }
+  if (errors.length > 0) return failure(errors);
+
+  // Every placeholder of an input outside the copies (D58.2).
+  for (const [id] of placeholders) {
+    const node = nodes.get(id);
+    if (node !== undefined && typeof node['text'] === 'string') {
+      node['text'] = filled(node['text'], resolved, null);
+    }
+  }
+  // An asset bound to a field is one asset per item, where it stood (D59.3).
+  if (assetCopies.size > 0) {
+    mutable['assets'] = (result.assets as unknown as Mutable[]).flatMap(
+      (asset) => assetCopies.get(asset['id'] as string) ?? [asset],
+    );
+  }
+  // Transitions follow their scenes and nodes: to the first copy, from the last, or away (D59.1, D59.2).
+  const sceneIds = new Set((mutable['scenes'] as Mutable[]).map((scene) => scene['id'] as string));
+  mutable['transitions'] = (result.transitions as unknown as Mutable[]).flatMap((transition) => {
+    let from = transition['fromSceneId'] as string;
+    let to = transition['toSceneId'] as string;
+    const outgoing = firstAndLast.get(from);
+    const incoming = firstAndLast.get(to);
+    if (outgoing === null || incoming === null) return [];
+    if (outgoing !== undefined) from = outgoing[1];
+    if (incoming !== undefined) to = incoming[0];
+    if (!sceneIds.has(from) || !sceneIds.has(to)) return [];
+    return [{ ...transition, fromSceneId: from, toSceneId: to }];
+  });
+  let totalUs = 0n;
+  for (const scene of mutable['scenes'] as Mutable[]) {
+    const ids = new Set(nodesIn(scene).map((node) => node['id'] as string));
+    scene['transitions'] = (scene['transitions'] as Mutable[]).filter(
+      (transition) =>
+        ids.has(transition['fromNodeId'] as string) && ids.has(transition['toNodeId'] as string),
+    );
+    totalUs += BigInt(scene['durationUs'] as number);
+  }
+  for (const transition of mutable['transitions'] as Mutable[]) {
+    totalUs -= BigInt(transition['durationUs'] as number);
+  }
+  if (removed.size > 0 || repeats.length > 0) mutable['durationUs'] = Number(totalUs);
+  mutable['template'] = { inputs: [], bindings: [], conditions: [], repeats: [] };
 
   const validated = validateComposition(result);
   if (!validated.ok) {

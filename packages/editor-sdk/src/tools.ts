@@ -30,6 +30,10 @@ import {
   addTemplateBindingArgumentsSchema,
   addTemplateInputArgumentsSchema,
   removeTemplateBindingArgumentsSchema,
+  addTemplateConditionArgumentsSchema,
+  removeTemplateConditionArgumentsSchema,
+  addTemplateRepeatArgumentsSchema,
+  removeTemplateRepeatArgumentsSchema,
   removeTemplateInputArgumentsSchema,
   setTemplateInputArgumentsSchema,
   deepFreeze,
@@ -84,6 +88,8 @@ import {
   type SetCaptionWordArgumentsSchema,
   type SetCaptionWordsArgumentsSchema,
   type AddTemplateBindingArgumentsSchema,
+  type AddTemplateConditionArgumentsSchema,
+  type AddTemplateRepeatArgumentsSchema,
   type AddTemplateInputArgumentsSchema,
   type SetTemplateInputArgumentsSchema,
   type ClosedObjectSchema,
@@ -114,7 +120,9 @@ export type CommandArgumentsSchema =
   | SetCaptionStyleArgumentsSchema
   | AddTemplateInputArgumentsSchema
   | SetTemplateInputArgumentsSchema
-  | AddTemplateBindingArgumentsSchema;
+  | AddTemplateBindingArgumentsSchema
+  | AddTemplateConditionArgumentsSchema
+  | AddTemplateRepeatArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -155,7 +163,7 @@ const CAPTIONS =
   'A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken takes highlightColor. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0.';
 
 const TEMPLATE =
-  "A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash); a bound property or asset always holds its input's default, so another command that changes it, removes its node or asset, or spoils the placeholders of a bound text is refused with binding-in-use and the IDs of the bindings: set the input with set_template_input instead, or remove the binding first. describe_document shows the template section.";
+  'A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section.';
 
 const PIXELS = 'Lengths and coordinates are composition pixels, rounded to integers.';
 
@@ -588,7 +596,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTemplateInputArgumentsSchema,
   },
   AddTemplateBinding: {
-    description: `Inserts a binding: {id, kind: "property", nodeId, property: "text" or "color", inputId}, {id, kind: "placeholders", nodeId}, or {id, kind: "asset", assetId, inputId}, with an ID unused in the document. The target must already hold the input's default (set it first, in the same transaction), a text with placeholders must name text or number inputs only, and at most one binding writes a target. ${TEMPLATE} Refused with index-out-of-range, id-in-use, and invalid-result.`,
+    description: `Inserts a binding: {id, kind: "property", nodeId, property: "text" or "color", inputId}, {id, kind: "placeholders", nodeId}, {id, kind: "asset", assetId, inputId}, {id, kind: "item-property", nodeId, property, inputId, key}, or {id, kind: "item-asset", assetId, inputId, key}, with an ID unused in the document. The target of an input binding must already hold the input's default (set it first, in the same transaction); a text with placeholders names text or number inputs, or {{list.key}} text or number fields of a list that repeats the node; an item binding reads a field of a list whose repeat holds its node, or every use of its asset; and at most one binding writes a target. ${TEMPLATE} Refused with index-out-of-range, id-in-use, and invalid-result.`,
     example: {
       index: 0,
       binding: {
@@ -605,6 +613,37 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Removes a binding; its property, text, or asset keeps the value it holds. ${TEMPLATE} Refused with unknown-binding.`,
     example: { bindingId: 'bind-headline' },
     argumentsSchema: removeTemplateBindingArgumentsSchema,
+  },
+  AddTemplateCondition: {
+    description: `Inserts a condition: {id, test: "empty" or "not-empty", targetId, inputId} for a text or list input, {id, test: "true" or "false", targetId, inputId} for a boolean, {id, test: "equal-text", targetId, inputId, value} for a text, or {id, test: "equal-number", targetId, inputId, value} for a number, with an ID unused in the document; targetId names a scene or a node. The template shows the target as it stands; an instantiation removes it, with everything in it and every transition that names it, when the test does not hold. ${TEMPLATE} Refused with index-out-of-range, id-in-use, and invalid-result.`,
+    example: {
+      index: 0,
+      condition: { id: 'when-title', test: 'true', targetId: 'node-title', inputId: 'show-title' },
+    },
+    argumentsSchema: addTemplateConditionArgumentsSchema,
+  },
+  RemoveTemplateCondition: {
+    description: `Removes a condition; its target is kept whatever the inputs. ${TEMPLATE} Refused with unknown-condition.`,
+    example: { conditionId: 'when-title' },
+    argumentsSchema: removeTemplateConditionArgumentsSchema,
+  },
+  AddTemplateRepeat: {
+    description: `Inserts a repeat: {id, duration: "target", targetId, inputId}, every copy as long as the target, or {id, duration: "field", targetId, inputId, key}, every copy as long as the number field key of its item names in microseconds, with an ID unused in the document; inputId names a list input and targetId a scene or a node. An instantiation replaces the target by one copy per item, in their order and one after the other, with IDs <id>--<index>: a scene copy follows the scene before it, a node copy starts where the one before it ends, its keyframes and words moved with it; transitions into a repeated scene meet its first copy and those out of it its last. A target is repeated once at most and never inside another repeated one, a repeated node is no side of a clip transition, and no ID of the document may have the form of a copy's. ${TEMPLATE} Refused with index-out-of-range, id-in-use, and invalid-result.`,
+    example: {
+      index: 0,
+      repeat: {
+        id: 'each-title',
+        duration: 'target',
+        targetId: 'node-title',
+        inputId: 'people',
+      },
+    },
+    argumentsSchema: addTemplateRepeatArgumentsSchema,
+  },
+  RemoveTemplateRepeat: {
+    description: `Removes a repeat; its target is shown once, as it stands. ${TEMPLATE} Refused with unknown-repeat, and invalid-result while an item binding or a {{list.key}} placeholder still needs it: remove those first, in the same transaction.`,
+    example: { repeatId: 'each-title' },
+    argumentsSchema: removeTemplateRepeatArgumentsSchema,
   },
 });
 

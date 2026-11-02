@@ -50,7 +50,7 @@ describe('isTemplate (D58.4)', () => {
 describe('instantiateTemplate with the defaults (D58.4)', () => {
   it('writes every default and empties the template section', () => {
     const composition = instantiated({});
-    expect(composition.template).toEqual({ inputs: [], bindings: [] });
+    expect(composition.template).toEqual({ inputs: [], bindings: [], conditions: [], repeats: [] });
     expect(nodeOf(composition, 'card-title')['text']).toBe('Kadrion dd 1');
     expect(nodeOf(composition, 'card-tagline')['text']).toBe('Made by Kadrion');
     expect(nodeOf(composition, 'card-background')['color']).toBe('#101828');

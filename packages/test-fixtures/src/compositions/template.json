@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.8",
+  "schemaVersion": "0.9",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -133,6 +133,8 @@
         "inputId": "tagline"
       },
       { "id": "bind-photo", "kind": "asset", "assetId": "asset-photo", "inputId": "photo" }
-    ]
+    ],
+    "conditions": [],
+    "repeats": []
   }
 }

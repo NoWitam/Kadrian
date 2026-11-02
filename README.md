@@ -8,7 +8,7 @@ end-user application, and it does not depend on any consumer product.
 ([`docs/spike/report.md`](docs/spike/report.md), section 10), and phase two,
 authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
 PR-18 to PR-22; the current phase is the engine under a host's video editor
-([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.8` with its forward migrations from `0.1` to `0.7`, the evaluation core, the DOM
+([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.9` with its forward migrations from `0.1` to `0.8`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -149,13 +149,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.8`
+A composition is a JSON document of schema `0.9`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.8",
+  "schemaVersion": "0.9",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -210,7 +210,7 @@ Unknown fields are errors. This one shows a text that fades in:
   ],
   "clips": [],
   "transitions": [],
-  "template": { "inputs": [], "bindings": [] }
+  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
 }
 ```
 
@@ -283,12 +283,12 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.8` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.8` document, and none of them
+`validateComposition` accepts schema `0.9` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.9` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
-holds a document of schema `0.1` to `0.7` carries it forward itself, once, and stores the
+holds a document of schema `0.1` to `0.8` carries it forward itself, once, and stores the
 result as a new version:
 
 ```ts
@@ -296,8 +296,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.8 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.7', '0.8'], or ['0.8'] for a document that was current
+  migrated.composition; // a new, validated 0.9 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.8', '0.9'], or ['0.9'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -315,6 +315,8 @@ if (migrated.ok) {
 - The step from `0.7` gives the composition an empty template section,
   `"template": { "inputs": [], "bindings": [] }`: a composition that is no
   template (D58).
+- The step from `0.8` gives the template section an empty list of
+  `conditions` and of `repeats` after its bindings (D59).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -338,8 +340,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.8 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.7', '0.8'] from 0.1, ['0.8'] when it was current
+  loaded.composition; // a new, validated 0.9 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.8', '0.9'] from 0.1, ['0.9'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -354,7 +356,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -367,7 +369,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.8"`, speaks of that.
+  supports `"0.9"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -461,10 +463,22 @@ if (result.ok) {
 templateDefaults(template); // what an input left out takes
 ```
 
+Since `0.9` a template also has `conditions` and `repeats` (D59). A condition
+keeps a scene or a node only while its test of an input holds — `empty` and
+`not-empty` (a text or a list), `true` and `false` (a boolean), `equal-text`,
+and `equal-number` — and a false one removes the element with everything in
+it and every transition that names it. A repeat replaces a scene or a node by
+one copy for each item of a list, one after the other: each copy lasts the
+`durationUs` of its target, or the number of microseconds a field of its item
+names. Copy `k` of an ID `x` is `x--k`. Inside a repeat, `{{list.key}}` and
+the bindings `item-property` and `item-asset` write the fields of the copy's
+item; an asset bound to a field becomes one asset per item. An instantiation
+whose copies would hold more than 100 000 IDs is refused with `repeat-limit`.
+
 Instantiation is pure: the same template and values give the same document,
 key for key. `@kadrion/editor-session` previews a template as its
 instantiation with the defaults, while its bus edits the template itself with
-the five template commands (D58.6).
+the nine template commands (D58.6, D59.6).
 
 ### 3. Evaluate a frame
 
