@@ -611,6 +611,7 @@ pack` does not publish.
 
 ### PR-33 — Captions
 
+- Status: done (PR #29, merged 2026-11-02), with its ADR D57 (accepted by the owner on 2026-11-02). Schema `0.7` adds the scene-level `captions` node: timed words in a style, broken into lines and pages by the runtime without measuring text, with the commands `SetCaptionWords`, `SetCaptionWord`, and `SetCaptionStyle`.
 - **Goal:** captions from a transcription with word timings and a style.
 - **Scope:** a node `captions` with a font asset, a style (size, colours,
   position, the highlight of the current word, lines and their breaking), and
