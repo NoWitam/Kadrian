@@ -13,13 +13,16 @@
  * rules of D56, which no earlier document has the field for, and subtract
  * their durations from that sum, and the captions of 0.7 add the reference to
  * their font and the order of their words (D57), which no earlier document can
- * have. `migrateComposition` applies them to
- * documents of 0.1 to 0.6 too (D35.4), which is why the document type is any
- * of the seven versions'; the negative corpus of 0.1 is kept
+ * have, and the template section of 0.8 adds the rules of its inputs and
+ * bindings (D58), which no earlier document has the field for.
+ * `migrateComposition` applies them to
+ * documents of 0.1 to 0.7 too (D35.4), which is why the document type is any
+ * of the eight versions'; the negative corpus of 0.1 is kept
  * and pins what they were. A rule that a later version changes gets its own
  * function, never a branch here.
  */
 import { pointer, type ValidationError } from './errors.js';
+import { constraintProblem, patternParts, valueProblem } from './template-values.js';
 import type {
   Asset,
   AudioClip,
@@ -27,6 +30,7 @@ import type {
   Composition,
   NodeAnimation,
   SceneNode,
+  TemplateInput,
 } from './types.js';
 // A type only: it is erased when the module is built, so the main entry reaches no
 // historical module at run time (D42.8; `migration-entry.test.ts` walks the built output).
@@ -36,6 +40,7 @@ import type { CompositionV03 } from './v0-3/composition-schema.js';
 import type { CompositionV04 } from './v0-4/composition-schema.js';
 import type { CompositionV05 } from './v0-5/composition-schema.js';
 import type { CompositionV06 } from './v0-6/composition-schema.js';
+import type { CompositionV07 } from './v0-7/composition-schema.js';
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -128,7 +133,8 @@ export function validateSemantics(
     | CompositionV03
     | CompositionV04
     | CompositionV05
-    | CompositionV06,
+    | CompositionV06
+    | CompositionV07,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -250,6 +256,9 @@ export function validateSemantics(
     });
   }
 
+  // The template section of 0.8 (D58); no earlier document has the field.
+  const templateErrors = 'template' in composition ? checkTemplate(composition) : [];
+
   return [
     ...errors,
     ...animationErrors,
@@ -258,7 +267,243 @@ export function validateSemantics(
     ...durationErrors,
     ...transitionErrors,
     ...captionErrors,
+    ...templateErrors,
   ];
+}
+
+/** The errors of one input: its constraints, then its default against them (D58.1). */
+function inputErrors(input: TemplateInput, path: string): ValidationError[] {
+  const invalid = (at: string, message: string): ValidationError => ({
+    code: 'template-input-invalid',
+    path: at,
+    message,
+  });
+  if (input.type !== 'list') {
+    const contradiction = constraintProblem(input);
+    if (contradiction !== null)
+      return [invalid(pointer(path, contradiction.key), contradiction.message)];
+    const problem = valueProblem(input, input.default);
+    return problem === null ? [] : [invalid(pointer(path, 'default'), `The default: ${problem}`)];
+  }
+  const errors: ValidationError[] = [];
+  if (input.minItems > input.maxItems) {
+    errors.push(invalid(pointer(path, 'maxItems'), 'maxItems must not be less than minItems.'));
+  }
+  const keys = new Set<string>();
+  input.fields.forEach((field, index) => {
+    const fieldPath = pointer(pointer(path, 'fields'), index);
+    if (keys.has(field.key)) {
+      errors.push(
+        invalid(
+          pointer(fieldPath, 'key'),
+          `The key "${field.key}" is already a field of this list.`,
+        ),
+      );
+    }
+    keys.add(field.key);
+    const contradiction = constraintProblem(field);
+    if (contradiction !== null) {
+      errors.push(invalid(pointer(fieldPath, contradiction.key), contradiction.message));
+    }
+  });
+  if (errors.length > 0) return errors;
+  const defaultPath = pointer(path, 'default');
+  if (input.default.length < input.minItems || input.default.length > input.maxItems) {
+    errors.push(
+      invalid(
+        defaultPath,
+        `The default has ${String(input.default.length)} items, expected ${String(input.minItems)} to ${String(input.maxItems)}.`,
+      ),
+    );
+  }
+  input.default.forEach((item, itemIndex) => {
+    const itemPath = pointer(defaultPath, itemIndex);
+    if (item.length !== input.fields.length) {
+      errors.push(
+        invalid(
+          itemPath,
+          `An item holds one value for each of the ${String(input.fields.length)} fields, in their order.`,
+        ),
+      );
+      return;
+    }
+    item.forEach((entry, entryIndex) => {
+      const field = input.fields[entryIndex];
+      const entryPath = pointer(itemPath, entryIndex);
+      if (field === undefined) return;
+      if (entry.key !== field.key || entry.type !== field.type) {
+        errors.push(
+          invalid(
+            entryPath,
+            `Expected the value of the ${field.type} field "${field.key}", the field at this place.`,
+          ),
+        );
+        return;
+      }
+      const problem = valueProblem(field, entry.value);
+      if (problem !== null) errors.push(invalid(pointer(entryPath, 'value'), problem));
+    });
+  });
+  return errors;
+}
+
+/** The node types whose property a binding may write, and the input type it takes (D58.2). */
+const BOUND_PROPERTIES = {
+  text: { nodeTypes: ['text'], inputType: 'text' },
+  color: { nodeTypes: ['text', 'background'], inputType: 'color' },
+} as const;
+
+/**
+ * The rules of the template section (D58): every input's constraints and
+ * default; every binding's target and input, which exist and agree in type;
+ * one binding per target; a bound property or asset that holds its input's
+ * default; and placeholders that parse and name a text or number input.
+ */
+function checkTemplate(composition: Composition): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const { inputs, bindings } = composition.template;
+  const inputById = new Map<string, TemplateInput>();
+  inputs.forEach((input, index) => {
+    if (!inputById.has(input.id)) inputById.set(input.id, input);
+    errors.push(...inputErrors(input, pointer(pointer('/template', 'inputs'), index)));
+  });
+  const nodes = new Map<string, Located['node']>();
+  for (const scene of composition.scenes) {
+    for (const node of scene.nodes) {
+      nodes.set(node.id, node);
+      if (node.type === 'group') for (const child of node.children) nodes.set(child.id, child);
+    }
+  }
+  const assets = new Map(composition.assets.map((asset) => [asset.id, asset]));
+  const targets = new Set<string>();
+  bindings.forEach((binding, index) => {
+    const path = pointer(pointer('/template', 'bindings'), index);
+    const push = (code: ValidationError['code'], at: string, message: string): void => {
+      errors.push({ code, path: at, message });
+    };
+    const inputOf = (inputId: string): TemplateInput | undefined => {
+      const input = inputById.get(inputId);
+      if (input === undefined) {
+        push(
+          'unresolved-input-reference',
+          pointer(path, 'inputId'),
+          `No input has the ID "${inputId}".`,
+        );
+      }
+      return input;
+    };
+    const claim = (target: string): boolean => {
+      if (targets.has(target)) {
+        push('duplicate-binding-target', path, 'Another binding writes the same target.');
+        return false;
+      }
+      targets.add(target);
+      return true;
+    };
+    if (binding.kind === 'asset') {
+      const asset = assets.get(binding.assetId);
+      if (asset === undefined) {
+        push(
+          'unresolved-asset-reference',
+          pointer(path, 'assetId'),
+          `No asset has the ID "${binding.assetId}".`,
+        );
+      }
+      const input = inputOf(binding.inputId);
+      if (asset === undefined || input === undefined) return;
+      if (input.type !== asset.type) {
+        push(
+          'binding-type-mismatch',
+          pointer(path, 'inputId'),
+          `Asset "${asset.id}" is of type ${asset.type} and takes an input of its type, not ${input.type}.`,
+        );
+        return;
+      }
+      if (!claim(`asset:${asset.id}`)) return;
+      if (asset.contentHash !== input.default) {
+        push(
+          'binding-value-mismatch',
+          path,
+          `Asset "${asset.id}" must hold the default of input "${input.id}".`,
+        );
+      }
+      return;
+    }
+    const node = nodes.get(binding.nodeId);
+    if (node === undefined) {
+      push(
+        'unresolved-node-reference',
+        pointer(path, 'nodeId'),
+        `No node has the ID "${binding.nodeId}".`,
+      );
+    }
+    if (binding.kind === 'placeholders') {
+      if (node === undefined) return;
+      if (node.type !== 'text') {
+        push(
+          'binding-type-mismatch',
+          pointer(path, 'nodeId'),
+          `A ${node.type} node has no text to fill.`,
+        );
+        return;
+      }
+      if (!claim(`node:${node.id}/text`)) return;
+      const parts = patternParts(node.text);
+      if (parts === null) {
+        push(
+          'invalid-placeholder',
+          path,
+          `The text of "${node.id}" has a {{ that does not begin a placeholder {{inputId}}.`,
+        );
+        return;
+      }
+      for (const part of parts) {
+        if (typeof part === 'string') continue;
+        const input = inputById.get(part.inputId);
+        if (input === undefined) {
+          push('unresolved-input-reference', path, `No input has the ID "${part.inputId}".`);
+        } else if (input.type !== 'text' && input.type !== 'number') {
+          push(
+            'binding-type-mismatch',
+            path,
+            `A placeholder takes a text or number input, and "${input.id}" is of type ${input.type}.`,
+          );
+        }
+      }
+      return;
+    }
+    const input = inputOf(binding.inputId);
+    if (node === undefined || input === undefined) return;
+    const rule = BOUND_PROPERTIES[binding.property];
+    if (!(rule.nodeTypes as readonly string[]).includes(node.type)) {
+      push(
+        'binding-type-mismatch',
+        pointer(path, 'property'),
+        `A ${node.type} node has no bindable ${binding.property}.`,
+      );
+      return;
+    }
+    if (input.type !== rule.inputType) {
+      push(
+        'binding-type-mismatch',
+        pointer(path, 'inputId'),
+        `The ${binding.property} takes a ${rule.inputType} input, and "${input.id}" is of type ${input.type}.`,
+      );
+      return;
+    }
+    if (!claim(`node:${node.id}/${binding.property}`)) return;
+    const stored: unknown = (node as unknown as Readonly<Record<string, unknown>>)[
+      binding.property
+    ];
+    if (stored !== input.default) {
+      push(
+        'binding-value-mismatch',
+        path,
+        `The ${binding.property} of "${node.id}" must hold the default of input "${input.id}".`,
+      );
+    }
+  });
+  return errors;
 }
 
 /** A node of a scene with where it lives: its parent's ID, or `null` for the scene itself. */
@@ -275,7 +520,9 @@ interface Located {
  * transition at each end; and a transition is at most as long as either side,
  * and the two of one side together at most as long as it.
  */
-function checkTransitions(composition: Composition | CompositionV06): ValidationError[] {
+function checkTransitions(
+  composition: Composition | CompositionV06 | CompositionV07,
+): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));
   const sideErrors = (

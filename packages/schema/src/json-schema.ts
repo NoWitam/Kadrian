@@ -3,8 +3,8 @@
  * the type-level derivation of document types from it (D17).
  *
  * The subset is deliberately closed. Objects reject unknown fields and require
- * every property (D16), numbers are bounded (D15), and a union is a `oneOf`
- * over object branches. The first need for anything else triggers the exit
+ * every property (D16), numbers are bounded (D15), a boolean is a value of
+ * its own (D58.1), and a union is a `oneOf` over object branches. The first need for anything else triggers the exit
  * criterion of D17 instead of an extension here.
  */
 
@@ -28,6 +28,11 @@ export interface NumberSchema extends Annotations {
   readonly maximum: number;
 }
 
+/** A JSON `true` or `false`; schema 0.8 needs it for the default of a boolean input (D58.1). */
+export interface BooleanSchema extends Annotations {
+  readonly type: 'boolean';
+}
+
 export interface ArraySchema extends Annotations {
   readonly type: 'array';
   readonly items: JsonSchema;
@@ -47,7 +52,8 @@ export interface UnionSchema extends Annotations {
   readonly oneOf: readonly ObjectSchema[];
 }
 
-export type JsonSchema = StringSchema | NumberSchema | ArraySchema | ObjectSchema | UnionSchema;
+export type JsonSchema =
+  StringSchema | NumberSchema | BooleanSchema | ArraySchema | ObjectSchema | UnionSchema;
 
 export interface ClosedObject<P> {
   readonly type: 'object';
@@ -86,8 +92,10 @@ export type Infer<S> = S extends { readonly const: infer C }
         ? string
         : S extends { readonly type: 'integer' | 'number' }
           ? number
-          : S extends { readonly type: 'array'; readonly items: infer I }
-            ? readonly Infer<I>[]
-            : S extends { readonly type: 'object'; readonly properties: infer P }
-              ? { readonly [K in keyof P]: Infer<P[K]> }
-              : never;
+          : S extends { readonly type: 'boolean' }
+            ? boolean
+            : S extends { readonly type: 'array'; readonly items: infer I }
+              ? readonly Infer<I>[]
+              : S extends { readonly type: 'object'; readonly properties: infer P }
+                ? { readonly [K in keyof P]: Infer<P[K]> }
+                : never;

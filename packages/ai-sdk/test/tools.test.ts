@@ -72,6 +72,29 @@ const VIDEO_SETUP: readonly Command[] = [
  * animation with a keyframe to spare. Typed by the registry, so a new command
  * without a row fails compilation.
  */
+/** The input of the examples of the template tools, and its binding (D58.6). */
+const INPUT_SETUP: readonly Command[] = [
+  {
+    type: 'AddTemplateInput',
+    index: 0,
+    input: { id: 'headline', type: 'text', minLength: 1, maxLength: 40, default: 'Kadrion' },
+  },
+];
+const BINDING_SETUP: readonly Command[] = [
+  ...INPUT_SETUP,
+  {
+    type: 'AddTemplateBinding',
+    index: 0,
+    binding: {
+      id: 'bind-headline',
+      kind: 'property',
+      nodeId: 'node-title',
+      property: 'text',
+      inputId: 'headline',
+    },
+  },
+];
+
 /** A second scene, as the example of `AddScene` adds it. */
 const OUTRO_SETUP: readonly Command[] = [
   {
@@ -231,6 +254,11 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetCaptionWords: CAPTIONS_SETUP,
   SetCaptionWord: CAPTIONS_SETUP,
   SetCaptionStyle: CAPTIONS_SETUP,
+  AddTemplateInput: [],
+  RemoveTemplateInput: INPUT_SETUP,
+  SetTemplateInput: BINDING_SETUP,
+  AddTemplateBinding: INPUT_SETUP,
+  RemoveTemplateBinding: BINDING_SETUP,
 };
 
 function prepared(type: Command['type']): CommandBus {

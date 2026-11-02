@@ -13,6 +13,10 @@
     "./migrate": {
       "types": "./dist/migrate.d.ts",
       "default": "./dist/migrate.js"
+    },
+    "./template": {
+      "types": "./dist/template.d.ts",
+      "default": "./dist/template.js"
     }
   },
   "files": [

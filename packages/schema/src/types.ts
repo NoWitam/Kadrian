@@ -17,6 +17,11 @@ import type {
   sceneNodeSchema,
   sceneSchema,
   sceneTransitionSchema,
+  templateBindingSchema,
+  templateFieldSchema,
+  templateFieldValueSchema,
+  templateInputSchema,
+  templateSchema,
   textNodeSchema,
   videoNodeSchema,
 } from './composition-schema.js';
@@ -70,3 +75,15 @@ export type SceneTransitionEffect = SceneTransition['effect'];
 export type ClipTransitionEffect = ClipTransition['effect'];
 /** The direction of a slide or a wipe (D56). */
 export type TransitionDirection = Extract<SceneTransitionEffect, { kind: 'wipe' }>['direction'];
+/** The template section of a composition (D58): empty in a composition that is no template. */
+export type Template = Infer<typeof templateSchema>;
+/** One input of a template: an ID, a type, constraints, and a default (D58.1). */
+export type TemplateInput = Infer<typeof templateInputSchema>;
+/** The type of an input (D58.1). */
+export type TemplateInputType = TemplateInput['type'];
+/** One field of the items of a list input (D58.1). */
+export type TemplateField = Infer<typeof templateFieldSchema>;
+/** The value of one field of one item of a list default, as the document stores it (D58.1). */
+export type TemplateFieldValue = Infer<typeof templateFieldValueSchema>;
+/** Where the value of an input goes: a property, the placeholders of a text, or an asset (D58.2). */
+export type TemplateBinding = Infer<typeof templateBindingSchema>;

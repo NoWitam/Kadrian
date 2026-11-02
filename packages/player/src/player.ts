@@ -26,6 +26,7 @@ import {
 import {
   frameCount,
   frameToTimeUs,
+  isTemplate,
   timeUsToFrame,
   validateComposition,
   type ValidatedComposition,
@@ -663,6 +664,16 @@ export async function createPlayer(
         ? []
         : result.errors.map(({ path, message }) => `${path}: ${message}`);
       throw fail(new PlayerError('invalid-document', 'The document is not valid.', details));
+    }
+    // A template is never played as it is; a host plays its instantiation (D58.4).
+    if (isTemplate(result.composition)) {
+      throw fail(
+        new PlayerError(
+          'invalid-document',
+          'The document is a template; instantiate it first with instantiateTemplate (D58.4).',
+          ['/template: not empty'],
+        ),
+      );
     }
     return { text, loaded: result.composition };
   };

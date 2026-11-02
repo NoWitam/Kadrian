@@ -15,7 +15,12 @@ import {
   type PlayerAudioFacts,
   type PlayerVideoFacts,
 } from '@kadrion/player';
-import { referenceComposition, VIDEO_FIXTURE, videoComposition } from '@kadrion/test-fixtures';
+import {
+  referenceComposition,
+  templateComposition,
+  VIDEO_FIXTURE,
+  videoComposition,
+} from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { createEditorSession, type SessionEvent } from '../src/index.js';
@@ -247,6 +252,41 @@ describe('edits reach the preview (D44)', () => {
     await editor.settled();
     expect(calls).toHaveLength(1);
     expect(events).toEqual([]);
+  });
+});
+
+describe('a template is previewed with its defaults (D58.4)', () => {
+  const titleOf = (document: unknown): unknown =>
+    (document as { scenes: { nodes: { id: string; text?: string }[] }[] }).scenes[0]?.nodes.find(
+      ({ id }) => id === 'card-title',
+    )?.text;
+
+  it('loads and updates the Player with the instantiation, while the bus holds the template', async () => {
+    const { player, calls } = recordingPlayer();
+    const editor = await createEditorSession({
+      document: templateComposition,
+      player,
+      resolveAsset,
+    });
+    expect(titleOf(editor.bus.getDocument())).toBe('{{name}} dd {{rank}}');
+    expect(titleOf(calls[0]?.document)).toBe('Kadrion dd 1');
+    expect(calls[0]?.document).toMatchObject({ template: { inputs: [], bindings: [] } });
+
+    const name = editor.bus.getDocument().template.inputs[0];
+    editor.bus.dispatch({
+      type: 'SetTemplateInput',
+      inputId: 'name',
+      input: { ...name, default: 'Ada' },
+    });
+    await editor.settled();
+    expect(calls.map(({ method }) => method)).toEqual(['load', 'update']);
+    expect(titleOf(calls[1]?.document)).toBe('Ada dd 1');
+    expect(titleOf(editor.bus.getDocument())).toBe('{{name}} dd {{rank}}');
+  });
+
+  it('sends a document that is no template as it is', async () => {
+    const { calls, editor } = await session();
+    expect(calls[0]?.document).toBe(editor.bus.getDocument());
   });
 });
 

@@ -99,7 +99,8 @@ describe('schema conventions', () => {
 
   it.each([
     ['an unknown keyword', { type: 'string', format: 'uuid' }],
-    ['an unsupported type', { type: 'boolean' }],
+    ['an unsupported type', { type: 'null' }],
+    ['a boolean with a keyword it does not take', { type: 'boolean', const: true }],
     [
       'an open object',
       { type: 'object', properties: {}, required: [], additionalProperties: true },
@@ -155,11 +156,19 @@ describe('schema conventions', () => {
     ).toEqual([]);
   });
 
-  it('requires a stable ID for every entity: all array items except keyframes and caption words', () => {
-    // A keyframe is addressed by its time, a caption word by its index (D57).
+  it('requires a stable ID for every entity: all array items except keyframes, caption words, and the fields and items of a list input', () => {
+    // A keyframe is addressed by its time, a caption word by its index (D57), a
+    // field of a list input by its key, an item of its default by its index, and
+    // a value of an item by its field (D58.1).
+    const values = locationsWhere(({ name }) => name === 'default').map(
+      (location) => `${location}/items`,
+    );
     const entities = all
       .filter(
-        ({ name, schema }) => schema.type === 'array' && name !== 'keyframes' && name !== 'words',
+        ({ name, location, schema }) =>
+          schema.type === 'array' &&
+          !['keyframes', 'words', 'fields', 'default'].includes(name ?? '') &&
+          !values.includes(location),
       )
       .flatMap(({ location, schema: { items } }) => {
         const branches = isObject(items) && Array.isArray(items.oneOf) ? items.oneOf : [items];
@@ -181,7 +190,12 @@ describe('schema conventions', () => {
       .filter(({ schema }) => isObject(schema.properties))
       .flatMap(({ schema: { properties } }) => {
         const fields = isObject(properties) ? properties : {};
-        const tag = isObject(fields.type) ? fields.type.const : undefined;
+        // A binding is told apart by its kind (D58.2).
+        const tag = isObject(fields.type)
+          ? fields.type.const
+          : isObject(fields.kind)
+            ? fields.kind.const
+            : undefined;
         const type = typeof tag === 'string' ? tag : 'unknown';
         return Object.keys(fields)
           .filter((name) => /assetId$/i.test(name))
@@ -189,6 +203,7 @@ describe('schema conventions', () => {
       });
     // A new site needs a rule in validate-semantics.ts and negative fixtures before it is listed here.
     expect([...new Set(sites)].sort()).toEqual([
+      'asset.assetId',
       'audio.assetId',
       'captions.fontAssetId',
       'image.assetId',

@@ -19,6 +19,11 @@ import type {
   NodeAnimation,
   Scene,
   SceneNode,
+  Template,
+  TemplateBinding,
+  TemplateField,
+  TemplateFieldValue,
+  TemplateInput,
   TextNode,
   ValidatedComposition,
   ValidationResult,
@@ -193,8 +198,86 @@ interface ExpectedScene {
   readonly transitions: readonly ExpectedClipTransition[];
 }
 
+type ExpectedField =
+  | {
+      readonly key: string;
+      readonly type: 'text';
+      readonly minLength: number;
+      readonly maxLength: number;
+    }
+  | {
+      readonly key: string;
+      readonly type: 'number';
+      readonly minimum: number;
+      readonly maximum: number;
+    }
+  | { readonly key: string; readonly type: 'boolean' }
+  | { readonly key: string; readonly type: 'color' }
+  | { readonly key: string; readonly type: 'image' }
+  | { readonly key: string; readonly type: 'video' }
+  | { readonly key: string; readonly type: 'audio' };
+
+type ExpectedFieldValue =
+  | { readonly key: string; readonly type: 'text'; readonly value: string }
+  | { readonly key: string; readonly type: 'number'; readonly value: number }
+  | { readonly key: string; readonly type: 'boolean'; readonly value: boolean }
+  | { readonly key: string; readonly type: 'color'; readonly value: string }
+  | { readonly key: string; readonly type: 'image'; readonly value: string }
+  | { readonly key: string; readonly type: 'video'; readonly value: string }
+  | { readonly key: string; readonly type: 'audio'; readonly value: string };
+
+type ExpectedInput =
+  | {
+      readonly id: string;
+      readonly type: 'text';
+      readonly minLength: number;
+      readonly maxLength: number;
+      readonly default: string;
+    }
+  | {
+      readonly id: string;
+      readonly type: 'number';
+      readonly minimum: number;
+      readonly maximum: number;
+      readonly default: number;
+    }
+  | { readonly id: string; readonly type: 'boolean'; readonly default: boolean }
+  | { readonly id: string; readonly type: 'color'; readonly default: string }
+  | { readonly id: string; readonly type: 'image'; readonly default: string }
+  | { readonly id: string; readonly type: 'video'; readonly default: string }
+  | { readonly id: string; readonly type: 'audio'; readonly default: string }
+  | {
+      readonly id: string;
+      readonly type: 'list';
+      readonly minItems: number;
+      readonly maxItems: number;
+      readonly fields: readonly ExpectedField[];
+      readonly default: readonly (readonly ExpectedFieldValue[])[];
+    };
+
+type ExpectedBinding =
+  | {
+      readonly id: string;
+      readonly kind: 'property';
+      readonly nodeId: string;
+      readonly property: 'text' | 'color';
+      readonly inputId: string;
+    }
+  | { readonly id: string; readonly kind: 'placeholders'; readonly nodeId: string }
+  | {
+      readonly id: string;
+      readonly kind: 'asset';
+      readonly assetId: string;
+      readonly inputId: string;
+    };
+
+interface ExpectedTemplate {
+  readonly inputs: readonly ExpectedInput[];
+  readonly bindings: readonly ExpectedBinding[];
+}
+
 interface ExpectedComposition {
-  readonly schemaVersion: '0.7';
+  readonly schemaVersion: '0.8';
   readonly width: number;
   readonly height: number;
   readonly fps: number;
@@ -203,6 +286,7 @@ interface ExpectedComposition {
   readonly scenes: readonly ExpectedScene[];
   readonly clips: readonly ExpectedAudioClip[];
   readonly transitions: readonly ExpectedSceneTransition[];
+  readonly template: ExpectedTemplate;
 }
 
 describe('types derived from the JSON Schema', () => {
@@ -225,6 +309,11 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<SceneTransition>().toEqualTypeOf<ExpectedSceneTransition>();
     expectTypeOf<ClipTransition>().toEqualTypeOf<ExpectedClipTransition>();
     expectTypeOf<TransitionDirection>().toEqualTypeOf<ExpectedDirection>();
+    expectTypeOf<Template>().toEqualTypeOf<ExpectedTemplate>();
+    expectTypeOf<TemplateInput>().toEqualTypeOf<ExpectedInput>();
+    expectTypeOf<TemplateField>().toEqualTypeOf<ExpectedField>();
+    expectTypeOf<TemplateFieldValue>().toEqualTypeOf<ExpectedFieldValue>();
+    expectTypeOf<TemplateBinding>().toEqualTypeOf<ExpectedBinding>();
   });
 
   it('narrow by their discriminators', () => {

@@ -68,6 +68,12 @@ export interface DocumentDescription {
   readonly clips: readonly unknown[];
   /** The transitions between scenes, as the document stores them (D56.1). */
   readonly transitions: readonly unknown[];
+  /**
+   * The template section, as the document stores it (D58): its inputs with
+   * their constraints and defaults, and its bindings; both empty in a
+   * composition that is no template.
+   */
+  readonly template: { readonly inputs: readonly unknown[]; readonly bindings: readonly unknown[] };
 }
 
 type SceneNode = Composition['scenes'][number]['nodes'][number];
@@ -143,6 +149,7 @@ export function describeDocument(
     }),
     clips: copy.clips,
     transitions: copy.transitions,
+    template: copy.template,
   });
 }
 

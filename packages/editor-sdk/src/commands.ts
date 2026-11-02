@@ -690,6 +690,68 @@ export interface SetCaptionStyleCommand extends SetCaptionStyleArguments {
   readonly type: 'SetCaptionStyle';
 }
 
+/** What a caller states for `AddTemplateInput` (D58.6). */
+export interface AddTemplateInputArguments {
+  /** The input's index in the template's inputs after the insertion. */
+  readonly index: number;
+  /** The complete input, as the document stores it. */
+  readonly input: NodeData;
+}
+
+/** Inserts an input into the template section; nothing reads it until a binding does (D58.6). */
+export interface AddTemplateInputCommand extends AddTemplateInputArguments {
+  readonly type: 'AddTemplateInput';
+}
+
+/** What a caller states for `RemoveTemplateInput` (D58.6). */
+export interface RemoveTemplateInputArguments {
+  readonly inputId: string;
+}
+
+/** Removes an input that no binding and no placeholder uses (D58.6). */
+export interface RemoveTemplateInputCommand extends RemoveTemplateInputArguments {
+  readonly type: 'RemoveTemplateInput';
+}
+
+/** What a caller states for `SetTemplateInput` (D58.6). */
+export interface SetTemplateInputArguments {
+  readonly inputId: string;
+  /** The complete input, as the document stores it, with the same ID. */
+  readonly input: NodeData;
+}
+
+/**
+ * Replaces an input — its constraints, its default, or both — and writes the
+ * new default into every property and asset bound to it, so that they keep
+ * holding it (D58.3, D58.6).
+ */
+export interface SetTemplateInputCommand extends SetTemplateInputArguments {
+  readonly type: 'SetTemplateInput';
+}
+
+/** What a caller states for `AddTemplateBinding` (D58.6). */
+export interface AddTemplateBindingArguments {
+  /** The binding's index in the template's bindings after the insertion; their order has no meaning. */
+  readonly index: number;
+  /** The complete binding, as the document stores it. */
+  readonly binding: NodeData;
+}
+
+/** Inserts a binding; its target must already hold its input's default (D58.3, D58.6). */
+export interface AddTemplateBindingCommand extends AddTemplateBindingArguments {
+  readonly type: 'AddTemplateBinding';
+}
+
+/** What a caller states for `RemoveTemplateBinding` (D58.6). */
+export interface RemoveTemplateBindingArguments {
+  readonly bindingId: string;
+}
+
+/** Removes a binding; its target keeps the value it holds (D58.6). */
+export interface RemoveTemplateBindingCommand extends RemoveTemplateBindingArguments {
+  readonly type: 'RemoveTemplateBinding';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -743,7 +805,12 @@ export type Command =
   | SetTransitionEffectCommand
   | SetCaptionWordsCommand
   | SetCaptionWordCommand
-  | SetCaptionStyleCommand;
+  | SetCaptionStyleCommand
+  | AddTemplateInputCommand
+  | RemoveTemplateInputCommand
+  | SetTemplateInputCommand
+  | AddTemplateBindingCommand
+  | RemoveTemplateBindingCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -960,6 +1027,49 @@ export interface SetCaptionStyleArgumentsSchema {
   readonly required: readonly (keyof SetCaptionStyleArguments)[];
   readonly additionalProperties: false;
 }
+/** The argument schema of `AddTemplateInput`: closed, with `input` an open object (D58.6). */
+export interface AddTemplateInputArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly index: ArgumentSchema;
+    readonly input: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddTemplateInputArguments)[];
+  readonly additionalProperties: false;
+}
+
+export type RemoveTemplateInputArgumentsSchema = ClosedObjectSchema<
+  keyof RemoveTemplateInputArguments
+>;
+
+/** The argument schema of `SetTemplateInput`: closed, with `input` an open object (D58.6). */
+export interface SetTemplateInputArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly inputId: ArgumentSchema;
+    readonly input: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetTemplateInputArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `AddTemplateBinding`: closed, with `binding` an open object (D58.6). */
+export interface AddTemplateBindingArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly index: ArgumentSchema;
+    readonly binding: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddTemplateBindingArguments)[];
+  readonly additionalProperties: false;
+}
+
+export type RemoveTemplateBindingArgumentsSchema = ClosedObjectSchema<
+  keyof RemoveTemplateBindingArguments
+>;
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
 
@@ -1923,6 +2033,96 @@ export const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema = de
   required: ['nodeId', 'style'],
   additionalProperties: false,
 });
+
+const INPUT_ID = 'The stable ID of an input of the template.';
+
+const INPUT =
+  'An input is {id, type, ...constraints, default}: a text {minLength, maxLength} in code points, a number {minimum, maximum}, a boolean, a color (lowercase #rrggbb), an image, video, or audio (the default a content hash, sha256: and 64 hex digits), or a list {minItems, maxItems, fields, default}: each field {key, type, ...constraints} of a type other than list, and each item of the default a list with one {key, type, value} for each field, in their order. The default meets the constraints.';
+
+const BINDING =
+  'A binding is {id, kind: "property", nodeId, property, inputId} — the text of a text node takes a text input, the color of a text or a background a color input —, {id, kind: "placeholders", nodeId} — every {{inputId}} in the text of a text node stands for a text or number input —, or {id, kind: "asset", assetId, inputId} — an image, video, or audio asset takes the content hash of an input of its type. A bound property or asset holds its input\'s default; at most one binding writes a target.';
+
+/** The JSON Schema of the arguments of `AddTemplateInput` (D58.6): the input is the document's to judge. */
+export const addTemplateInputArgumentsSchema: AddTemplateInputArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Inserts an input into the template section of the document.',
+  properties: {
+    index: {
+      type: 'integer',
+      description:
+        "The input's index in the template's inputs after the insertion, from 0 to their number.",
+      ...INDEX_BOUNDS,
+    },
+    input: {
+      type: 'object',
+      description: `The complete input as the document stores it, with an ID unused in the document. ${INPUT}`,
+    },
+  },
+  required: ['index', 'input'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveTemplateInput` (D58.6). */
+export const removeTemplateInputArgumentsSchema: RemoveTemplateInputArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Removes an input that no binding and no placeholder uses.',
+  properties: { inputId: { type: 'string', description: INPUT_ID, minLength: 1 } },
+  required: ['inputId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetTemplateInput` (D58.6): the input is the document's to judge. */
+export const setTemplateInputArgumentsSchema: SetTemplateInputArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Replaces an input with a complete new one of the same ID, and writes its default into every property and asset bound to it.',
+  properties: {
+    inputId: { type: 'string', description: INPUT_ID, minLength: 1 },
+    input: {
+      type: 'object',
+      description: `The complete new input, with the same ID. ${INPUT}`,
+    },
+  },
+  required: ['inputId', 'input'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `AddTemplateBinding` (D58.6): the binding is the document's to judge. */
+export const addTemplateBindingArgumentsSchema: AddTemplateBindingArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Inserts a binding from an input to a property, the placeholders of a text, or an asset.',
+  properties: {
+    index: {
+      type: 'integer',
+      description:
+        "The binding's index in the template's bindings after the insertion, from 0 to their number; their order has no meaning.",
+      ...INDEX_BOUNDS,
+    },
+    binding: {
+      type: 'object',
+      description: `The complete binding as the document stores it, with an ID unused in the document. ${BINDING}`,
+    },
+  },
+  required: ['index', 'binding'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveTemplateBinding` (D58.6). */
+export const removeTemplateBindingArgumentsSchema: RemoveTemplateBindingArgumentsSchema =
+  deepFreeze({
+    type: 'object',
+    description: 'Removes a binding; its target keeps the value it holds.',
+    properties: {
+      bindingId: {
+        type: 'string',
+        description: 'The stable ID of a binding of the template.',
+        minLength: 1,
+      },
+    },
+    required: ['bindingId'],
+    additionalProperties: false,
+  });
 
 /**
  * The JSON Schema of the arguments of `AddNode` (D39.1). `node` is an object and
@@ -3107,4 +3307,46 @@ export function parseSetCaptionStyle(value: unknown): SetCaptionStyleCommand {
     nodeId,
     style: dataOf(fields['style'], 'style'),
   });
+}
+
+/** The fields of an `AddTemplateInput` (D58.6); the document's validation judges the input. */
+export function parseAddTemplateInput(value: unknown): AddTemplateInputCommand {
+  const fields = fieldsOf(value, ['type', 'index', 'input'], 'The command `AddTemplateInput`');
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddTemplateInput',
+    index,
+    input: dataOf(fields['input'], 'input'),
+  });
+}
+
+/** The fields of a `RemoveTemplateInput` (D58.6). */
+export function parseRemoveTemplateInput(value: unknown): RemoveTemplateInputCommand {
+  const fields = fieldsOf(value, ['type', 'inputId'], 'The command `RemoveTemplateInput`');
+  return Object.freeze({ type: 'RemoveTemplateInput', inputId: nodeIdOf(fields, 'inputId') });
+}
+
+/** The fields of a `SetTemplateInput` (D58.6); the input keeps its ID, the document judges the rest. */
+export function parseSetTemplateInput(value: unknown): SetTemplateInputCommand {
+  const fields = fieldsOf(value, ['type', 'inputId', 'input'], 'The command `SetTemplateInput`');
+  const inputId = nodeIdOf(fields, 'inputId');
+  const input = dataOf(fields['input'], 'input');
+  return Object.freeze({ type: 'SetTemplateInput', inputId, input });
+}
+
+/** The fields of an `AddTemplateBinding` (D58.6); the document's validation judges the binding. */
+export function parseAddTemplateBinding(value: unknown): AddTemplateBindingCommand {
+  const fields = fieldsOf(value, ['type', 'index', 'binding'], 'The command `AddTemplateBinding`');
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddTemplateBinding',
+    index,
+    binding: dataOf(fields['binding'], 'binding'),
+  });
+}
+
+/** The fields of a `RemoveTemplateBinding` (D58.6). */
+export function parseRemoveTemplateBinding(value: unknown): RemoveTemplateBindingCommand {
+  const fields = fieldsOf(value, ['type', 'bindingId'], 'The command `RemoveTemplateBinding`');
+  return Object.freeze({ type: 'RemoveTemplateBinding', bindingId: nodeIdOf(fields, 'bindingId') });
 }

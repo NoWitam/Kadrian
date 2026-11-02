@@ -19,6 +19,7 @@ import {
 import {
   frameCount,
   frameToTimeUs,
+  isTemplate,
   timeUsToFrame,
   validateComposition,
   type ValidatedComposition,
@@ -375,6 +376,13 @@ export function validated(document: unknown): ValidatedComposition {
   if (!result.ok) {
     const details = result.errors.map(({ path, message }) => `${path}: ${message}`).join('; ');
     throw new ProducerError('invalid-document', `The document is not valid: ${details}`);
+  }
+  // A template is never rendered as it is; a host renders its instantiation (D58.4).
+  if (isTemplate(result.composition)) {
+    throw new ProducerError(
+      'invalid-document',
+      'The document is a template; instantiate it first with instantiateTemplate (D58.4).',
+    );
   }
   return result.composition;
 }

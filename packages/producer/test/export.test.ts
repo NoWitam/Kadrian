@@ -11,7 +11,11 @@ import { basename } from 'node:path';
 import { Writable } from 'node:stream';
 
 import { audioPlan } from '@kadrion/runtime';
-import { generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
+import {
+  generateReferenceAssets,
+  referenceComposition,
+  templateComposition,
+} from '@kadrion/test-fixtures';
 import { frameToTimeUs, validateComposition, type ValidatedComposition } from '@kadrion/schema';
 import type { Browser } from 'playwright-core';
 import { describe, expect, it } from 'vitest';
@@ -1063,7 +1067,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
       'tools',
       `probe sound-0 ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.7',
+      'load 0.8',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,
@@ -2250,6 +2254,11 @@ describe('the plan of an estimate (D48.5)', () => {
 
   it('refuses an invalid document and segment length with their codes', () => {
     expect(() => estimatePlan({})).toThrow(expect.objectContaining({ code: 'invalid-document' }));
+    // A template is rendered only as its instantiation (D58.4).
+    expect(() => estimatePlan(templateComposition)).toThrow(
+      expect.objectContaining({ code: 'invalid-document' }),
+    );
+    expect(() => estimatePlan(templateComposition)).toThrow(/is a template/);
     expect(() => estimatePlan(referenceComposition, 10, 0)).toThrow(
       expect.objectContaining({ code: 'segment-length-invalid' }),
     );

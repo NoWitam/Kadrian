@@ -27,6 +27,11 @@ import {
   setCaptionStyleArgumentsSchema,
   setCaptionWordArgumentsSchema,
   setCaptionWordsArgumentsSchema,
+  addTemplateBindingArgumentsSchema,
+  addTemplateInputArgumentsSchema,
+  removeTemplateBindingArgumentsSchema,
+  removeTemplateInputArgumentsSchema,
+  setTemplateInputArgumentsSchema,
   deepFreeze,
   joinClipsArgumentsSchema,
   moveClipArgumentsSchema,
@@ -78,6 +83,9 @@ import {
   type SetCaptionStyleArgumentsSchema,
   type SetCaptionWordArgumentsSchema,
   type SetCaptionWordsArgumentsSchema,
+  type AddTemplateBindingArgumentsSchema,
+  type AddTemplateInputArgumentsSchema,
+  type SetTemplateInputArgumentsSchema,
   type ClosedObjectSchema,
   type Command,
 } from './commands.js';
@@ -103,7 +111,10 @@ export type CommandArgumentsSchema =
   | SetTransitionEffectArgumentsSchema
   | SetCaptionWordsArgumentsSchema
   | SetCaptionWordArgumentsSchema
-  | SetCaptionStyleArgumentsSchema;
+  | SetCaptionStyleArgumentsSchema
+  | AddTemplateInputArgumentsSchema
+  | SetTemplateInputArgumentsSchema
+  | AddTemplateBindingArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -142,6 +153,9 @@ const TRANSITIONS =
 
 const CAPTIONS =
   'A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken takes highlightColor. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0.';
+
+const TEMPLATE =
+  "A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash); a bound property or asset always holds its input's default, so another command that changes it, removes its node or asset, or spoils the placeholders of a bound text is refused with binding-in-use and the IDs of the bindings: set the input with set_template_input instead, or remove the binding first. describe_document shows the template section.";
 
 const PIXELS = 'Lengths and coordinates are composition pixels, rounded to integers.';
 
@@ -551,6 +565,46 @@ const METADATA = deepFreeze<MetadataTable>({
       },
     },
     argumentsSchema: setCaptionStyleArgumentsSchema,
+  },
+  AddTemplateInput: {
+    description: `Inserts an input into the template: {id, type, ...constraints, default}, with an ID unused in the document. A text has minLength and maxLength in code points, a number minimum and maximum, a boolean, a color (lowercase #rrggbb), an image, video, or audio only a default content hash, and a list minItems, maxItems, fields ({key, type, ...constraints}, no list among them), and a default whose items each list one {key, type, value} per field in their order; the default meets the constraints. Nothing reads a new input until a binding does; a boolean or a list is read by no binding yet. ${TEMPLATE} Refused with index-out-of-range, id-in-use, and invalid-result when the input is not one the document can hold.`,
+    example: {
+      index: 0,
+      input: { id: 'headline', type: 'text', minLength: 1, maxLength: 40, default: 'Kadrion' },
+    },
+    argumentsSchema: addTemplateInputArgumentsSchema,
+  },
+  RemoveTemplateInput: {
+    description: `Removes an input of the template. ${TEMPLATE} Refused with unknown-input, and input-in-use with the IDs of the bindings that still use it, a placeholder included: remove them first, in the same transaction.`,
+    example: { inputId: 'headline' },
+    argumentsSchema: removeTemplateInputArgumentsSchema,
+  },
+  SetTemplateInput: {
+    description: `Replaces an input with a complete new one of the same ID — new constraints, a new default, or both — and writes its default into every property and asset bound to it, so that the preview shows it. ${TEMPLATE} Refused with invalid-argument when input.id is not inputId, unknown-input, and invalid-result when the input is not one the document can hold or no longer fits its bindings.`,
+    example: {
+      inputId: 'headline',
+      input: { id: 'headline', type: 'text', minLength: 1, maxLength: 40, default: 'Launch day' },
+    },
+    argumentsSchema: setTemplateInputArgumentsSchema,
+  },
+  AddTemplateBinding: {
+    description: `Inserts a binding: {id, kind: "property", nodeId, property: "text" or "color", inputId}, {id, kind: "placeholders", nodeId}, or {id, kind: "asset", assetId, inputId}, with an ID unused in the document. The target must already hold the input's default (set it first, in the same transaction), a text with placeholders must name text or number inputs only, and at most one binding writes a target. ${TEMPLATE} Refused with index-out-of-range, id-in-use, and invalid-result.`,
+    example: {
+      index: 0,
+      binding: {
+        id: 'bind-headline',
+        kind: 'property',
+        nodeId: 'node-title',
+        property: 'text',
+        inputId: 'headline',
+      },
+    },
+    argumentsSchema: addTemplateBindingArgumentsSchema,
+  },
+  RemoveTemplateBinding: {
+    description: `Removes a binding; its property, text, or asset keeps the value it holds. ${TEMPLATE} Refused with unknown-binding.`,
+    example: { bindingId: 'bind-headline' },
+    argumentsSchema: removeTemplateBindingArgumentsSchema,
   },
 });
 

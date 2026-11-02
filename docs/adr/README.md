@@ -65,6 +65,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D55](D55-timeline-commands.md)                               | Timeline commands: move, trim, split, and join a clip                                        | Accepted          |
 | [D56](D56-transitions.md)                                     | Transitions: schema 0.6, four scene effects, the clip crossfade, and their commands          | Accepted          |
 | [D57](D57-captions.md)                                        | Captions: schema 0.7, timed words, lines and pages from the runtime, and commands            | Accepted          |
+| [D58](D58-templates-inputs-bindings-and-instantiation.md)     | Templates: schema 0.8, inputs, bindings, and instantiation                                   | Proposed          |
 
 ## Provenance of D01–D10
 

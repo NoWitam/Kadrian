@@ -8,7 +8,7 @@ end-user application, and it does not depend on any consumer product.
 ([`docs/spike/report.md`](docs/spike/report.md), section 10), and phase two,
 authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
 PR-18 to PR-22; the current phase is the engine under a host's video editor
-([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.7` with its forward migrations from `0.1` to `0.6`, the evaluation core, the DOM
+([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.8` with its forward migrations from `0.1` to `0.7`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -149,13 +149,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.7`
+A composition is a JSON document of schema `0.8`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.7",
+  "schemaVersion": "0.8",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -209,7 +209,8 @@ Unknown fields are errors. This one shows a text that fades in:
     }
   ],
   "clips": [],
-  "transitions": []
+  "transitions": [],
+  "template": { "inputs": [], "bindings": [] }
 }
 ```
 
@@ -282,12 +283,12 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.7` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.7` document, and none of them
+`validateComposition` accepts schema `0.8` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.8` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
-holds a document of schema `0.1` to `0.5` carries it forward itself, once, and stores the
+holds a document of schema `0.1` to `0.7` carries it forward itself, once, and stores the
 result as a new version:
 
 ```ts
@@ -295,8 +296,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.7 document; the input is untouched
-  migrated.versions; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7'], or ['0.7'] for a document that was current
+  migrated.composition; // a new, validated 0.8 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.7', '0.8'], or ['0.8'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -311,6 +312,9 @@ if (migrated.ok) {
 - The step from `0.3` gives every video `volume: 0`, the silence it had, and
   every audio clip `sourceStartUs: 0`, `volume: 1`, `fadeInUs: 0`, and
   `fadeOutUs: 0`, the sound it had.
+- The step from `0.7` gives the composition an empty template section,
+  `"template": { "inputs": [], "bindings": [] }`: a composition that is no
+  template (D58).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -334,8 +338,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.7 document that belongs to the caller
-  loaded.versions; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7'] from 0.1, ['0.7'] when it was current
+  loaded.composition; // a new, validated 0.8 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.7', '0.8'] from 0.1, ['0.8'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -350,7 +354,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -363,7 +367,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7']:
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.7"`, speaks of that.
+  supports `"0.8"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -428,6 +432,39 @@ the open document in one step is this host's own code. A repository test runs
 this very example and shows that it keeps its bus, its history, and its
 listener when a load is refused. That is evidence for this example, not for a
 host written otherwise.
+
+#### Templates
+
+A composition with a non-empty `template` section is a template (D58). Its
+`inputs` declare what a host fills in — `text`, `number`, `boolean`, `color`,
+an `image`, `video`, or `audio` asset by content hash, and a `list` of items
+of those types — each with constraints and a default. Its `bindings` say where
+a value goes: a whole `text` or `color` property of a node, a text whose
+`{{inputId}}` placeholders stand for text and number inputs, or the content
+hash of an asset. A bound property or asset always holds its input's default,
+so a template is also a valid composition of its defaults.
+
+The Player and the Producer refuse a template with `invalid-document`; a host
+renders its instantiation:
+
+```ts
+import { instantiateTemplate, templateDefaults } from '@kadrion/schema/template';
+
+const result = instantiateTemplate(template, { name: 'Ada', rank: 42 });
+if (result.ok) {
+  result.composition; // a validated composition with an empty template section
+} else {
+  // invalid-values, unknown-input, invalid-input-value, or invalid-composition,
+  // each with the input it is about and the path of the value.
+  for (const error of result.errors) console.error(error.code, error.inputId, error.path);
+}
+templateDefaults(template); // what an input left out takes
+```
+
+Instantiation is pure: the same template and values give the same document,
+key for key. `@kadrion/editor-session` previews a template as its
+instantiation with the defaults, while its bus edits the template itself with
+the five template commands (D58.6).
 
 ### 3. Evaluate a frame
 

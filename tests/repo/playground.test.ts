@@ -102,9 +102,10 @@ describe('the playground application (D25.9)', () => {
     const map = /<script type="importmap">([\s\S]*?)<\/script>/.exec(html)?.[1] ?? '{}';
     const imports = (JSON.parse(map) as { imports: Record<string, string> }).imports;
     for (const [name, url] of Object.entries(imports)) {
-      const dir = name.replace('@kadrion/', '');
+      // A package, or one entry point of it such as `@kadrion/schema/template` (D58.4).
+      const [dir = '', entry = 'index'] = name.replace('@kadrion/', '').split('/');
       expect(packageDirs).toContain(dir);
-      expect(url).toBe(`/pkg/${dir}/index.js`);
+      expect(url).toBe(`/pkg/${dir}/${entry}.js`);
     }
   });
 

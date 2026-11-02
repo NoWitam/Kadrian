@@ -17,6 +17,7 @@ import { join, relative } from 'node:path';
 
 import * as mainEntry from '@kadrion/schema';
 import * as migrateEntry from '@kadrion/schema/migrate';
+import * as templateEntry from '@kadrion/schema/template';
 import { describe, expect, it } from 'vitest';
 
 import { reached, sourcesBelow, specifiers } from './module-graph.js';
@@ -40,6 +41,7 @@ const MAIN_ENTRY_MODULES = [
   'json-schema.js',
   'scenes.js',
   'source-frame.js',
+  'template-values.js',
   'validate-semantics.js',
   'validate-structure.js',
   'validate.js',
@@ -85,6 +87,15 @@ describe('the entry points of @kadrion/schema (D42.8)', () => {
     }
     // The premise: the main entry is the validator's.
     expect(Object.keys(mainEntry)).toContain('validateComposition');
+  });
+
+  it('keeps the instantiation of a template behind its own entry (D58.4)', () => {
+    expect(Object.keys(templateEntry)).toEqual(
+      expect.arrayContaining(['instantiateTemplate', 'templateDefaults', 'isTemplate']),
+    );
+    expect(Object.keys(mainEntry)).not.toContain('instantiateTemplate');
+    expect(names(reached(join(SCHEMA_DIST, 'index.js')))).not.toContain('template.js');
+    expect(names(reached(join(SCHEMA_DIST, 'template.js')))).toContain('template.js');
   });
 
   it('reaches the historical schema and the step through the migration entry', () => {

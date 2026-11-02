@@ -56,6 +56,18 @@ export type EditorErrorCode =
    * no longer fits; `details` list the IDs of those transitions, sorted (D56.7).
    */
   | 'transition-in-use'
+  /** The template has no input with that ID; `details` are empty (D58.6). */
+  | 'unknown-input'
+  /** The template has no binding with that ID; `details` are empty (D58.6). */
+  | 'unknown-binding'
+  /** The input is still bound or named by a placeholder; `details` list the bindings, sorted (D58.6). */
+  | 'input-in-use'
+  /**
+   * The command would break a binding it does not edit — remove its node or
+   * asset, change a bound property or asset away from its input's default, or
+   * make a bound text no pattern; `details` list the bindings, sorted (D58.6).
+   */
+  | 'binding-in-use'
   /** No animation of the document has that ID; `details` are empty (D41.5). */
   | 'unknown-animation'
   /** The animation has no keyframe at that time; `details` are empty (D41.5). */

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.7",
+  "schemaVersion": "0.8",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -324,5 +324,6 @@
         "direction": "up"
       }
     }
-  ]
+  ],
+  "template": { "inputs": [], "bindings": [] }
 }
