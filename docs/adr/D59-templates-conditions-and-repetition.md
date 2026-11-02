@@ -1,6 +1,7 @@
 # D59 — Templates: schema 0.9, conditions, and repetition
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-02, after PR-34b was merged
+  (PR #33)
 - Date: 2026-11-02
 - Supersedes: —
 - Extends: D35 (the step from `0.8`), D46 (four tools), and D58 (the template
