@@ -1,6 +1,7 @@
 # D57 — Captions: schema 0.7, timed words in a style, lines and pages from the runtime, and their commands
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-02, after PR-33 was merged
+  (PR #29)
 - Date: 2026-11-02
 - Supersedes: —
 - Extends: D19 (19.4: a captions node of the state carries the page it shows
