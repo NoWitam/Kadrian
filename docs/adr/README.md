@@ -63,6 +63,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D53](D53-audio-in-the-player.md)                             | Audio in the Player: the plan on the Producer's grid, the audio clock, and audio media facts | Accepted          |
 | [D54](D54-scenes-in-sequence.md)                              | Scenes in sequence: schema 0.5, scene time, and the scene commands                           | Accepted          |
 | [D55](D55-timeline-commands.md)                               | Timeline commands: move, trim, split, and join a clip                                        | Proposed          |
+| [D56](D56-transitions.md)                                     | Transitions: schema 0.6, four scene effects, the clip crossfade, and their commands          | Proposed          |
 
 ## Provenance of D01–D10
 

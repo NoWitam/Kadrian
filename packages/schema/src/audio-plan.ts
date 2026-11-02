@@ -117,7 +117,7 @@ export function audioPlan(composition: ValidatedComposition): AudioPlan {
     const entry = clipEntry(clip, 0, end);
     if (entry !== null) entries.push(entry);
   }
-  const placements = scenePlacements(composition.scenes);
+  const placements = scenePlacements(composition);
   composition.scenes.forEach((scene, index) => {
     const offset = placements[index]?.startUs ?? 0;
     for (const clip of scene.clips) {

@@ -39,7 +39,7 @@ function draft(): Draft {
 
 describe('the placements of scenes (D49.3)', () => {
   it('starts each scene at the sum of the durations before it', () => {
-    expect(scenePlacements(scenes.scenes)).toEqual([
+    expect(scenePlacements(scenes)).toEqual([
       { id: 'scene-intro', index: 0, startUs: 0, durationUs: 1_000_000 },
       { id: 'scene-middle', index: 1, startUs: 1_000_000, durationUs: 1_500_000 },
       { id: 'scene-outro', index: 2, startUs: 2_500_000, durationUs: 700_000 },
@@ -47,7 +47,7 @@ describe('the placements of scenes (D49.3)', () => {
   });
 
   it('ends the last scene at the duration of the composition', () => {
-    const last = scenePlacements(scenes.scenes).at(-1);
+    const last = scenePlacements(scenes).at(-1);
     expect((last?.startUs ?? 0) + (last?.durationUs ?? 0)).toBe(scenes.durationUs);
   });
 });
@@ -61,20 +61,20 @@ describe('the scenes evaluated at an instant (D49.3)', () => {
     [2_500_000, 'scene-outro', 0],
     [3_199_999, 'scene-outro', 699_999],
   ])('at %i is %s at scene time %i', (timeUs, id, local) => {
-    const found = scenesAt(scenes.scenes, timeUs);
+    const found = scenesAt(scenes, timeUs);
     expect(found.map(({ placement, timeUs: at }) => [placement.id, at])).toEqual([[id, local]]);
   });
 
   it('is no scene before 0 or at and after the end, which is exclusive', () => {
-    expect(scenesAt(scenes.scenes, -1)).toEqual([]);
-    expect(scenesAt(scenes.scenes, 3_200_000)).toEqual([]);
-    expect(scenesAt(scenes.scenes, Number.MAX_SAFE_INTEGER)).toEqual([]);
+    expect(scenesAt(scenes, -1)).toEqual([]);
+    expect(scenesAt(scenes, 3_200_000)).toEqual([]);
+    expect(scenesAt(scenes, Number.MAX_SAFE_INTEGER)).toEqual([]);
   });
 
   it('is exactly one scene at every frame of the composition', () => {
     for (let frame = 0; frame < 96; frame += 1) {
       const timeUs = Math.ceil((frame * 1_000_000) / 30);
-      expect(scenesAt(scenes.scenes, timeUs), String(frame)).toHaveLength(1);
+      expect(scenesAt(scenes, timeUs), String(frame)).toHaveLength(1);
     }
   });
 });

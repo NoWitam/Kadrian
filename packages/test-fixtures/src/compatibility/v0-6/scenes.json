@@ -1,0 +1,214 @@
+{
+  "schemaVersion": "0.6",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "durationUs": 3200000,
+  "assets": [
+    {
+      "id": "asset-image",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    },
+    {
+      "id": "asset-audio",
+      "type": "audio",
+      "contentHash": "sha256:a383506e57b39f51b8952cff8a82f2a058e4d07b8c970068b8af84f72d058f97"
+    },
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-intro",
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "intro-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "color": "#203040"
+        },
+        {
+          "id": "intro-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 90,
+            "y": 400
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "intro-title-a-position",
+              "property": "position",
+              "interpolation": "linear",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 0,
+                    "y": 0
+                  }
+                },
+                {
+                  "timeUs": 1000000,
+                  "value": {
+                    "x": 0,
+                    "y": 600
+                  }
+                }
+              ]
+            }
+          ],
+          "text": "Intro",
+          "fontAssetId": "asset-font",
+          "fontSize": 120,
+          "color": "#ffffff"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-middle",
+      "durationUs": 1500000,
+      "nodes": [
+        {
+          "id": "middle-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1500000,
+          "color": "#402030"
+        },
+        {
+          "id": "middle-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 1500000,
+          "position": {
+            "x": 140,
+            "y": 500
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "middle-image-a-opacity",
+              "property": "opacity",
+              "interpolation": "linear",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0
+                },
+                {
+                  "timeUs": 1500000,
+                  "value": 1
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 400,
+          "height": 400,
+          "fit": "fill"
+        },
+        {
+          "id": "middle-html",
+          "type": "custom-html",
+          "startUs": 0,
+          "durationUs": 1500000,
+          "position": {
+            "x": 90,
+            "y": 1760
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 900,
+          "height": 40,
+          "html": "<!doctype html><meta charset='utf-8'><style>html,body{margin:0;height:100%;background:#1d2939}#bar{width:0;height:100%;background:#f79009}</style><div id='bar'></div><script>(function(){var meta=document.querySelector('meta[name=kadrion-instance]');var instanceId=meta?meta.getAttribute('content'):null;var KEYS='instanceId,requestId,timeUs,type,version';function count(n){return typeof n==='number'&&Number.isSafeInteger(n)&&n>=0}addEventListener('message',function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=='object'||Array.isArray(data)||Object.keys(data).sort().join(',')!==KEYS)return;if(data.type!=='kadrion:time'||data.version!==1||instanceId===null||data.instanceId!==instanceId||!count(data.requestId)||!count(data.timeUs))return;document.getElementById('bar').style.width=data.timeUs/100000+'%';window.parent.postMessage({type:'kadrion:time-ack',version:1,instanceId:instanceId,requestId:data.requestId,timeUs:data.timeUs},'*')})})()</script>"
+        }
+      ],
+      "clips": [
+        {
+          "id": "middle-voice",
+          "type": "audio",
+          "assetId": "asset-audio",
+          "startUs": 250000,
+          "durationUs": 1000000,
+          "sourceStartUs": 1000000,
+          "volume": 0.8,
+          "fadeInUs": 100000,
+          "fadeOutUs": 200000
+        }
+      ],
+      "transitions": []
+    },
+    {
+      "id": "scene-outro",
+      "durationUs": 700000,
+      "nodes": [
+        {
+          "id": "outro-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 700000,
+          "color": "#304020"
+        },
+        {
+          "id": "outro-title",
+          "type": "text",
+          "startUs": 200000,
+          "durationUs": 2000000,
+          "position": {
+            "x": 90,
+            "y": 900
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Outro",
+          "fontAssetId": "asset-font",
+          "fontSize": 120,
+          "color": "#ffffff"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    }
+  ],
+  "clips": [
+    {
+      "id": "clip-music",
+      "type": "audio",
+      "assetId": "asset-audio",
+      "startUs": 0,
+      "durationUs": 3200000,
+      "sourceStartUs": 0,
+      "volume": 0.5,
+      "fadeInUs": 0,
+      "fadeOutUs": 500000
+    }
+  ],
+  "transitions": []
+}

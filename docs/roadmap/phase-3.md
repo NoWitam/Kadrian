@@ -600,7 +600,7 @@ pack` does not publish.
   integer or fixed-point arithmetic (D18); its duration and place as decided in
   D49; commands to add, remove, and change one.
 - **Packages and documents:** schema (`0.6`), runtime, renderer-dom,
-  editor-sdk, ai-sdk, D55.
+  editor-sdk, ai-sdk, D56.
 - **Acceptance:** at progress 0 and 1 the frames equal the frames without the
   transition; golden frames of the second reference composition in the middle
   of each kind.
@@ -615,12 +615,12 @@ pack` does not publish.
   a list of words with `startUs` and `durationUs`; grouping of words into
   lines and pages is a pure function of the document; commands to replace the
   words, edit one word, and change the style.
-- **Decisions (D56):** whether line breaking is computed by the runtime
+- **Decisions (D57):** whether line breaking is computed by the runtime
   (deterministic, without measuring text) or by the browser (measured text,
   pinned fonts, D27); the first keeps the runtime free of layout, the second
   wraps naturally.
 - **Packages and documents:** schema (`0.7`), runtime, renderer-dom,
-  editor-sdk, ai-sdk, fixtures, D56.
+  editor-sdk, ai-sdk, fixtures, D57.
 - **Acceptance:** the active word and line at every time follow from the word
   timings alone; golden frames with highlighted words.
 - **Impact:** as PR-29, with new golden frames.
@@ -631,7 +631,7 @@ pack` does not publish.
 
 - **Goal:** a document becomes a template with declared inputs, and a pure
   function makes a composition from it and a set of values.
-- **Scope (D57):** a template section in the document with inputs (text,
+- **Scope (D58):** a template section in the document with inputs (text,
   number, boolean, colour, image, video, audio asset, and a list of objects of
   those types), each with a stable ID, a type, constraints, and a default;
   bindings from node properties to inputs (a whole property, or text with
@@ -644,7 +644,7 @@ values)`, pure and deterministic, which validates the values against the
   instantiation with the defaults.
 - **Packages and documents:** schema (`0.8`, the template section and
   instantiation, possibly as an entry point `@kadrion/schema/template` like
-  `migrate`), editor-sdk, ai-sdk, editor-session (preview), fixtures, D57.
+  `migrate`), editor-sdk, ai-sdk, editor-session (preview), fixtures, D58.
 - **Acceptance:** instantiation is total over valid values and refuses invalid
   ones with typed errors naming the input; the same template and values give
   the same `compositionHash`; a template without inputs instantiates to
@@ -661,7 +661,7 @@ values)`, pure and deterministic, which validates the values against the
   of the repeats computed by a stated rule (a scene's duration per item, or a
   duration from a numeric field of the item); every ID of a repeat derived
   injectively from the template ID and the index (as D39 does for copies).
-- **Packages and documents:** schema (`0.9`), editor-sdk, ai-sdk, D58.
+- **Packages and documents:** schema (`0.9`), editor-sdk, ai-sdk, D59.
 - **Acceptance:** a list of `n` items gives `n` repeats with distinct,
   predictable IDs and contiguous times; a false condition removes the element
   and every reference to it; limits on the number of repeats are typed errors.

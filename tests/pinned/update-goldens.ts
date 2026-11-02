@@ -1,7 +1,7 @@
 /**
  * `node --run goldens:update` (D26.5): renders the golden timestamps of the
- * reference composition and of the video composition (D50.8) with the
- * Producer and writes the golden frames and their manifests into
+ * reference composition, of the video composition (D50.8), and of the
+ * transitions composition (D56) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -25,6 +25,8 @@ import {
   generateReferenceAssets,
   goldenTimestamps,
   referenceComposition,
+  transitionsComposition,
+  transitionsGoldenTimestamps,
   VIDEO_FIXTURE,
   videoComposition,
   videoGoldenTimestamps,
@@ -93,6 +95,24 @@ try {
       `${JSON.stringify({ render: videoResult.manifest, environment, frames: videoFrames }, null, 2)}\n`,
     );
     for (const frame of videoFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The transitions composition: the middle of each effect and of the clip crossfade (D56).
+    const transitionsResult = await renderFrames({
+      document: transitionsComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: transitionsGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const transitionFrames = transitionsResult.frames.map(({ index, timeUs, png }) => {
+      const file = `transitions-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'transitions.golden-frames.json'),
+      `${JSON.stringify({ render: transitionsResult.manifest, environment, frames: transitionFrames }, null, 2)}\n`,
+    );
+    for (const frame of transitionFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

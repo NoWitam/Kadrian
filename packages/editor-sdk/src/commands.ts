@@ -583,6 +583,75 @@ export interface JoinClipsCommand extends JoinClipsArguments {
   readonly type: 'JoinClips';
 }
 
+/** What a caller states for `AddSceneTransition` (D56.6). */
+export interface AddSceneTransitionArguments {
+  /** The transition's index in the composition's transitions after the insertion; their order has no meaning. */
+  readonly index: number;
+  /** The complete transition, as the document stores it. */
+  readonly transition: NodeData;
+}
+
+/**
+ * Inserts a transition on the boundary between two adjacent scenes; the
+ * composition becomes shorter by its duration, and every later scene starts
+ * that much earlier (D49.3, D56.6).
+ */
+export interface AddSceneTransitionCommand extends AddSceneTransitionArguments {
+  readonly type: 'AddSceneTransition';
+}
+
+/** What a caller states for `AddClipTransition` (D56.6). */
+export interface AddClipTransitionArguments {
+  readonly sceneId: string;
+  /** The transition's index in the scene's transitions after the insertion; their order has no meaning. */
+  readonly index: number;
+  /** The complete transition, as the document stores it. */
+  readonly transition: NodeData;
+}
+
+/** Inserts a transition between two clips of one layer of a scene; nothing moves (D49.4, D56.6). */
+export interface AddClipTransitionCommand extends AddClipTransitionArguments {
+  readonly type: 'AddClipTransition';
+}
+
+/** What a caller states for `RemoveTransition` (D56.6). */
+export interface RemoveTransitionArguments {
+  readonly transitionId: string;
+}
+
+/** Removes a scene or clip transition; a scene transition's duration is given back to the composition (D56.6). */
+export interface RemoveTransitionCommand extends RemoveTransitionArguments {
+  readonly type: 'RemoveTransition';
+}
+
+/** What a caller states for `SetTransitionDuration` (D56.6). */
+export interface SetTransitionDurationArguments {
+  readonly transitionId: string;
+  readonly durationUs: number;
+}
+
+/**
+ * Sets how long a transition lasts: a scene transition changes the
+ * composition's duration by the opposite amount; a clip transition changes the
+ * outgoing clip's duration by the same amount, so that the overlap follows
+ * (D56.6).
+ */
+export interface SetTransitionDurationCommand extends SetTransitionDurationArguments {
+  readonly type: 'SetTransitionDuration';
+}
+
+/** What a caller states for `SetTransitionEffect` (D56.6). */
+export interface SetTransitionEffectArguments {
+  readonly transitionId: string;
+  /** The complete effect, as the document stores it. */
+  readonly effect: NodeData;
+}
+
+/** Replaces how a transition combines its two sides; no time changes (D56.6). */
+export interface SetTransitionEffectCommand extends SetTransitionEffectArguments {
+  readonly type: 'SetTransitionEffect';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -628,7 +697,12 @@ export type Command =
   | TrimClipStartCommand
   | TrimClipEndCommand
   | SplitClipCommand
-  | JoinClipsCommand;
+  | JoinClipsCommand
+  | AddSceneTransitionCommand
+  | AddClipTransitionCommand
+  | RemoveTransitionCommand
+  | SetTransitionDurationCommand
+  | SetTransitionEffectCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -761,6 +835,47 @@ export type TrimClipStartArgumentsSchema = ClosedObjectSchema<keyof TrimClipStar
 export type TrimClipEndArgumentsSchema = ClosedObjectSchema<keyof TrimClipEndArguments>;
 export type SplitClipArgumentsSchema = ClosedObjectSchema<keyof SplitClipArguments>;
 export type JoinClipsArgumentsSchema = ClosedObjectSchema<keyof JoinClipsArguments>;
+export type RemoveTransitionArgumentsSchema = ClosedObjectSchema<keyof RemoveTransitionArguments>;
+export type SetTransitionDurationArgumentsSchema = ClosedObjectSchema<
+  keyof SetTransitionDurationArguments
+>;
+
+/** The argument schema of `AddSceneTransition`: closed, with `transition` an open object (D56.6). */
+export interface AddSceneTransitionArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly index: ArgumentSchema;
+    readonly transition: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddSceneTransitionArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `AddClipTransition`: closed, with `transition` an open object (D56.6). */
+export interface AddClipTransitionArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly sceneId: ArgumentSchema;
+    readonly index: ArgumentSchema;
+    readonly transition: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddClipTransitionArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetTransitionEffect`: closed, with `effect` an open object (D56.6). */
+export interface SetTransitionEffectArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly transitionId: ArgumentSchema;
+    readonly effect: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetTransitionEffectArguments)[];
+  readonly additionalProperties: false;
+}
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
 
@@ -1572,6 +1687,101 @@ export const joinClipsArgumentsSchema: JoinClipsArgumentsSchema = deepFreeze({
     },
   },
   required: ['clipId', 'nextClipId'],
+  additionalProperties: false,
+});
+
+const TRANSITION_ID = 'The stable ID of a scene transition or a clip transition of the document.';
+
+const EFFECTS =
+  'An effect is an object with its kind: {"kind":"crossfade"} (the incoming side fades in over the outgoing one), {"kind":"fade-through-color","color":"#rrggbb"} (the outgoing scene fades out to the colour, then the incoming one fades in from it), {"kind":"slide","direction":"left"|"right"|"up"|"down"} (the incoming scene slides in, moving in its direction), or {"kind":"wipe","direction":…} (an edge moving in its direction uncovers the incoming scene). A clip transition takes crossfade only.';
+
+const TRANSITION_DURATION: Bounds = {
+  minimum: compositionSchema.properties.transitions.items.properties.durationUs.minimum,
+  maximum: compositionSchema.properties.transitions.items.properties.durationUs.maximum,
+};
+
+/** The JSON Schema of the arguments of `AddSceneTransition` (D56.6): the transition is the document's to judge. */
+export const addSceneTransitionArgumentsSchema: AddSceneTransitionArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Inserts a transition on the boundary between two adjacent scenes: the incoming scene starts durationUs earlier and overlaps the end of the outgoing one, and the composition's durationUs shrinks by as much.",
+  properties: {
+    index: {
+      type: 'integer',
+      description:
+        "The transition's index in the composition's transitions after the insertion, from 0 to their number; their order has no meaning.",
+      ...INDEX_BOUNDS,
+    },
+    transition: {
+      type: 'object',
+      description: `The complete transition as the document stores it: its ID, unused in the document; fromSceneId, the outgoing scene; toSceneId, the scene directly after it; durationUs, at most the duration of either scene; and effect. ${EFFECTS}`,
+    },
+  },
+  required: ['index', 'transition'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `AddClipTransition` (D56.6): the transition is the document's to judge. */
+export const addClipTransitionArgumentsSchema: AddClipTransitionArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Inserts a transition between two clips of one layer of a scene, two children of one parent whose lifetimes already overlap by exactly its durationUs; nothing moves.',
+  properties: {
+    sceneId: { type: 'string', description: SCENE_ID, minLength: 1 },
+    index: {
+      type: 'integer',
+      description:
+        "The transition's index in the scene's transitions after the insertion, from 0 to their number; their order has no meaning.",
+      ...INDEX_BOUNDS,
+    },
+    transition: {
+      type: 'object',
+      description: `The complete transition as the document stores it: its ID, unused in the document; fromNodeId, the outgoing node, which ends durationUs after the incoming one starts; toNodeId, the incoming node; durationUs; and effect, {"kind":"crossfade"}.`,
+    },
+  },
+  required: ['sceneId', 'index', 'transition'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveTransition` (D56.6). */
+export const removeTransitionArgumentsSchema: RemoveTransitionArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Removes a transition. A scene transition's duration is given back: the incoming scene starts that much later, and the composition's durationUs grows by as much. A clip transition's clips stay where they are.",
+  properties: { transitionId: { type: 'string', description: TRANSITION_ID, minLength: 1 } },
+  required: ['transitionId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetTransitionDuration` (D56.6). */
+export const setTransitionDurationArgumentsSchema: SetTransitionDurationArgumentsSchema =
+  deepFreeze({
+    type: 'object',
+    description:
+      "Sets how long a transition lasts. For a scene transition, the incoming scene and every later one start earlier or later by the change, and the composition's durationUs changes by the opposite amount. For a clip transition, the outgoing clip's durationUs changes by the same amount, so that it still ends durationUs after the incoming clip starts.",
+    properties: {
+      transitionId: { type: 'string', description: TRANSITION_ID, minLength: 1 },
+      durationUs: {
+        type: 'integer',
+        description:
+          'The new duration of the transition, in integer microseconds, at least 1; at most the duration of either side, and the transitions into and out of one side together at most its duration.',
+        minimum: TRANSITION_DURATION.minimum,
+        maximum: TRANSITION_DURATION.maximum,
+      },
+    },
+    required: ['transitionId', 'durationUs'],
+    additionalProperties: false,
+  });
+
+/** The JSON Schema of the arguments of `SetTransitionEffect` (D56.6): the effect is the document's to judge. */
+export const setTransitionEffectArgumentsSchema: SetTransitionEffectArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces how a transition combines its two sides; no time changes.',
+  properties: {
+    transitionId: { type: 'string', description: TRANSITION_ID, minLength: 1 },
+    effect: { type: 'object', description: `The complete new effect. ${EFFECTS}` },
+  },
+  required: ['transitionId', 'effect'],
   additionalProperties: false,
 });
 
@@ -2642,5 +2852,75 @@ export function parseJoinClips(value: unknown): JoinClipsCommand {
     type: 'JoinClips',
     clipId: nodeIdOf(fields, 'clipId'),
     nextClipId: nodeIdOf(fields, 'nextClipId'),
+  });
+}
+
+/** The fields of an `AddSceneTransition` (D56.6); the document's validation judges the transition. */
+export function parseAddSceneTransition(value: unknown): AddSceneTransitionCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'index', 'transition'],
+    'The command `AddSceneTransition`',
+  );
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddSceneTransition',
+    index,
+    transition: dataOf(fields['transition'], 'transition'),
+  });
+}
+
+/** The fields of an `AddClipTransition` (D56.6); the document's validation judges the transition. */
+export function parseAddClipTransition(value: unknown): AddClipTransitionCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'sceneId', 'index', 'transition'],
+    'The command `AddClipTransition`',
+  );
+  const sceneId = nodeIdOf(fields, 'sceneId');
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddClipTransition',
+    sceneId,
+    index,
+    transition: dataOf(fields['transition'], 'transition'),
+  });
+}
+
+/** The fields of a `RemoveTransition` (D56.6). */
+export function parseRemoveTransition(value: unknown): RemoveTransitionCommand {
+  const fields = fieldsOf(value, ['type', 'transitionId'], 'The command `RemoveTransition`');
+  return Object.freeze({
+    type: 'RemoveTransition',
+    transitionId: nodeIdOf(fields, 'transitionId'),
+  });
+}
+
+/** The fields of a `SetTransitionDuration` (D56.6), with the bounds of the schema. */
+export function parseSetTransitionDuration(value: unknown): SetTransitionDurationCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'transitionId', 'durationUs'],
+    'The command `SetTransitionDuration`',
+  );
+  return Object.freeze({
+    type: 'SetTransitionDuration',
+    transitionId: nodeIdOf(fields, 'transitionId'),
+    durationUs: integerWithin(fields['durationUs'], TRANSITION_DURATION, '`durationUs`'),
+  });
+}
+
+/** The fields of a `SetTransitionEffect` (D56.6); the document's validation judges the effect. */
+export function parseSetTransitionEffect(value: unknown): SetTransitionEffectCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'transitionId', 'effect'],
+    'The command `SetTransitionEffect`',
+  );
+  const transitionId = nodeIdOf(fields, 'transitionId');
+  return Object.freeze({
+    type: 'SetTransitionEffect',
+    transitionId,
+    effect: dataOf(fields['effect'], 'effect'),
   });
 }

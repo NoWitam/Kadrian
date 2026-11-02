@@ -95,15 +95,15 @@ describe('the pinned test summary', () => {
     expect(summary).toMatchObject({
       schemaVersion: 1,
       root: ROOT,
-      testFileCount: 11,
+      testFileCount: 12,
       testFiles: [...REQUIRED_PINNED_FILES],
-      tests: 22,
-      passed: 22,
+      tests: 24,
+      passed: 24,
       failed: 0,
       skipped: 0,
       todo: 0,
       startedAt: new Date(1_000).toISOString(),
-      lastTestEndedAt: new Date(3_010).toISOString(),
+      lastTestEndedAt: new Date(3_011).toISOString(),
       success: true,
     });
     expect(pinnedSummaryProblems(summary)).toEqual([]);
@@ -187,7 +187,7 @@ describe('the pinned test summary', () => {
     [
       'a file that failed after its tests passed (an afterAll error)',
       (report) => {
-        const file = report.testResults[7];
+        const file = report.testResults[8];
         if (file !== undefined) file.status = 'failed';
       },
       'tests/pinned/export.pinned.test.ts is failed',
@@ -195,7 +195,7 @@ describe('the pinned test summary', () => {
     [
       'a load message that is not text',
       (report) => {
-        const file = report.testResults[7];
+        const file = report.testResults[8];
         if (file !== undefined) (file as { message: unknown }).message = { stack: 'boom' };
       },
       'tests/pinned/export.pinned.test.ts reported: {"stack":"boom"}',

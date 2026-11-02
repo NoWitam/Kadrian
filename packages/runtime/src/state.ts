@@ -26,7 +26,10 @@ export interface TransformState {
   /** Offset of the origin of the node relative to the origin of its parent, in composition pixels. */
   readonly position: Vec2;
   readonly scale: Vec2;
-  /** Not multiplied into children: a group is composited before its opacity applies (D15). */
+  /**
+   * Not multiplied into children: a group is composited before its opacity
+   * applies (D15). A clip transition's factor is part of it (D56).
+   */
   readonly opacity: number;
 }
 
@@ -66,6 +69,32 @@ export type NodeState =
   | LeafNodeState<'image' | 'text' | 'custom-html'>
   | VideoNodeState;
 
+/** Composition pixels cut away from each edge of the frame (D56). */
+export interface Inset {
+  readonly fromTop: number;
+  readonly fromRight: number;
+  readonly fromBottom: number;
+  readonly fromLeft: number;
+}
+
+/**
+ * What a scene transition does to one of its scenes at one instant (D49.4,
+ * D56). Only what the effect changes is present: a factor of the scene's
+ * opacity, an offset of the whole scene, or the part of the frame it is cut
+ * to. A scene outside a transition, and a side that the effect leaves as it
+ * is, has no such state.
+ */
+export interface SceneTransitionState {
+  /** The transition's ID. */
+  readonly id: string;
+  /** Factor of the whole scene's opacity, from 0 to 1; the scene is composited first. */
+  readonly opacity?: number;
+  /** Offset of the whole scene, in composition pixels. */
+  readonly offset?: Vec2;
+  /** What is cut away of the scene, in composition pixels from each edge of the frame. */
+  readonly clip?: Inset;
+}
+
 /** A scene evaluated at one instant (D49.3, D54.3). */
 export interface SceneState {
   readonly id: string;
@@ -73,11 +102,18 @@ export interface SceneState {
   readonly timeUs: number;
   /** Array order is the z-order, as in the document. */
   readonly nodes: readonly NodeState[];
+  /** Present only while a scene transition changes this scene (D56). */
+  readonly transition?: SceneTransitionState;
 }
 
 export interface CompositionState {
   /** The composition time this state was evaluated for. */
   readonly timeUs: number;
-  /** The scenes evaluated at that time, in their order: one, outside a transition (D49.3). */
+  /** The scenes evaluated at that time, in their order: one outside a transition, its two sides inside one (D49.3, D49.4). */
   readonly scenes: readonly SceneState[];
+  /**
+   * The colour under the scenes, `#rrggbb`, present only while a transition
+   * `fade-through-color` shows it (D56).
+   */
+  readonly backdrop?: string;
 }

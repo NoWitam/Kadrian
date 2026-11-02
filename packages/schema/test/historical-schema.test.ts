@@ -18,6 +18,8 @@ import {
   referenceCompositionV03,
   referenceCompositionV04,
   invalidCompositionCasesV04,
+  referenceCompositionV05,
+  invalidCompositionCasesV05,
 } from '@kadrion/test-fixtures';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
@@ -27,6 +29,7 @@ import { compositionSchemaV01, SCHEMA_VERSION_V01 } from '../src/v0-1/compositio
 import { compositionSchemaV02, SCHEMA_VERSION_V02 } from '../src/v0-2/composition-schema.js';
 import { compositionSchemaV03, SCHEMA_VERSION_V03 } from '../src/v0-3/composition-schema.js';
 import { compositionSchemaV04, SCHEMA_VERSION_V04 } from '../src/v0-4/composition-schema.js';
+import { compositionSchemaV05, SCHEMA_VERSION_V05 } from '../src/v0-5/composition-schema.js';
 import { assertSupportedSchema, validateStructure } from '../src/validate-structure.js';
 import { applyPatch } from './apply-patch.js';
 
@@ -38,6 +41,8 @@ const SCHEMA_V02_SHA256 = '3a603b03ebf08024a980edc422eca06e3549c8209df02df383ccb
 const SCHEMA_V03_SHA256 = 'd62167a646893d98f9be50855f7a357eef7a5274c9272ff8741b48aebc833259';
 /** `JSON.stringify(compositionSchema)` of commit 6bfc534, the last build of schema 0.4. */
 const SCHEMA_V04_SHA256 = '20255d0d226225eb731069d51459cbad0c1e7b88d1576fd3c5070f48b73e9137';
+/** `JSON.stringify(compositionSchema)` of commit 2959915, the last build of schema 0.5. */
+const SCHEMA_V05_SHA256 = 'd1f5225c7c3450453e79941d6699dfc8bcda6c517884e728f2da2e308c2e239d';
 
 function sha256(text: string): string {
   return createHash('sha256').update(text).digest('hex');
@@ -58,11 +63,26 @@ describe('the frozen schema of 0.1 (D35.4)', () => {
   });
 
   it('is not the current schema, whose version it precedes', () => {
-    expect(SCHEMA_VERSION).toBe('0.5');
+    expect(SCHEMA_VERSION).toBe('0.6');
     expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V01_SHA256);
     expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V02_SHA256);
     expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V03_SHA256);
     expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V04_SHA256);
+    expect(sha256(JSON.stringify(compositionSchema))).not.toBe(SCHEMA_V05_SHA256);
+  });
+
+  it('has a frozen schema of 0.5 that is, byte for byte, the schema the last build of 0.5 had', () => {
+    expect(sha256(JSON.stringify(compositionSchemaV05))).toBe(SCHEMA_V05_SHA256);
+    expect(SCHEMA_VERSION_V05).toBe('0.5');
+    expect(() => {
+      assertSupportedSchema(compositionSchemaV05);
+    }).not.toThrow();
+    const objects = everyObject(compositionSchemaV05);
+    expect(objects.filter((object) => !Object.isFrozen(object))).toEqual([]);
+    expect(validateStructure(compositionSchemaV05, referenceCompositionV05)).toEqual([]);
+    expect(
+      validateStructure(compositionSchemaV05, referenceComposition).map(({ code }) => code),
+    ).toContain('unknown-field');
   });
 
   it('has a frozen schema of 0.4 that is, byte for byte, the schema the last build of 0.4 had', () => {
@@ -126,6 +146,26 @@ describe('the frozen schema of 0.1 (D35.4)', () => {
     const errors = validateStructure(compositionSchemaV01, referenceComposition);
     expect(errors.map(({ code }) => code)).toContain('unknown-field');
     expect(errors.find(({ path }) => path === '/schemaVersion')?.code).toBe('invalid-value');
+  });
+});
+
+describe('conformance of the frozen schema of 0.5 with JSON Schema draft 2020-12 (D17.4)', () => {
+  const ajv = new Ajv2020({ strict: true, allErrors: true });
+  const accepts = ajv.compile(compositionSchemaV05);
+
+  it('agrees with the reference implementation on the frozen corpus of 0.5', () => {
+    expect(ajv.validateSchema(compositionSchemaV05)).toBe(true);
+    const documents = [
+      referenceCompositionV05,
+      ...invalidCompositionCasesV05.map(({ patch }) => applyPatch(referenceCompositionV05, patch)),
+    ];
+    const verdicts = documents.map((document) => accepts(document));
+    expect(verdicts.filter((verdict) => !verdict).length).toBeGreaterThan(20);
+    documents.forEach((document, index) => {
+      expect(validateStructure(compositionSchemaV05, document).length === 0, String(index)).toBe(
+        verdicts[index],
+      );
+    });
   });
 });
 

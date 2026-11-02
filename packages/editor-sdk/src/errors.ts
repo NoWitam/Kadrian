@@ -48,6 +48,14 @@ export type EditorErrorCode =
   | 'split-not-exact'
   /** The second clip is not directly after the first, or not what a split of the joined clip would make (D55.5). */
   | 'clips-not-joinable'
+  /** No scene or clip transition of the document has that ID; `details` are empty (D56.6). */
+  | 'unknown-transition'
+  /**
+   * The command would break a transition it does not edit — remove or move one
+   * of its sides, or change a side's time or duration so that the transition
+   * no longer fits; `details` list the IDs of those transitions, sorted (D56.7).
+   */
+  | 'transition-in-use'
   /** No animation of the document has that ID; `details` are empty (D41.5). */
   | 'unknown-animation'
   /** The animation has no keyframe at that time; `details` are empty (D41.5). */
