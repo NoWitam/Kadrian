@@ -657,6 +657,7 @@ values)`, pure and deterministic, which validates the values against the
 
 ### PR-34b — Templates: conditions and repetition
 
+- Status: done (PR #33, merged 2026-11-02), with its ADR D59 (accepted by the owner on 2026-11-02). Schema `0.9` gives the template section `conditions` and `repeats`: a condition keeps or removes a scene or node by a closed test of one input, a repeat copies a scene or node once per list item back to back with copy IDs `<id>--<k>`, item bindings and `{{list.key}}` placeholders write each copy's item, and more than 100 000 copied IDs is `repeat-limit`; four commands edit conditions and repeats.
 - **Goal:** parts of a template appear only when a condition holds, and a node
   or scene repeats for each item of a list.
 - **Scope:** a condition on a node or scene from a closed set of predicates on
