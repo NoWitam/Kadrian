@@ -6,25 +6,41 @@ PR-16 (commit `531ab79`, 2026-09-27) reopened Q14, and the evidence of its run
 closed it again on 2026-09-27. PR-21 (commit `8b2b18e`, 2026-10-03) reopened
 Q14; its run 37151313481 supplied the validated evidence, and the documentation
 commit that follows it closed Q14 again on 2026-10-03. PR-25a (D47,
-2026-10-31) reopened Q14 (below). A
+2026-10-31) reopened Q14; run 41481200563 of the main commit `bde9bb9` supplied
+the validated evidence, and the documentation commit that follows it closes Q14
+again on 2026-11-02 (below). A
 local run of the same commands, including
 `tests/pinned/container/pinned-run.sh`, does **not** verify CI.
 
-## Status after the evidence of PR-21 (2026-10-03), reopened by PR-25a (2026-10-31)
+## Status after the evidence of main after PR-34b (2026-11-02)
 
-**Status: Q14 is open.**
+**Status: Q14 is closed.**
 
-- PR-25a (D47) reopened Q14 on 2026-10-31. It changes three of the seven pinned
-  test files, `tests/pinned/export.pinned.test.ts` (range jobs, the join, and
-  still frames, with new fields of `export-report.json`),
-  `tests/pinned/player.pinned.test.ts` (`Player.update`), and
-  `tests/pinned/editor.pinned.test.ts` (the playground on the host facade), and
-  the encoders the pinned build must have. It deleted the evidence below by the
-  procedure of this file. PR-25b (D48) adds the tests of the render job
-  contract to `tests/pinned/export.pinned.test.ts` while Q14 is open, so the
-  evidence must come from a run that includes them. Q14 closes again only when a documentation commit adds
-  the evidence of a green push run of that commit. The text below records the
-  evidence of PR-21 as it was.
+- The evidence is `docs/ci/q14-evidence.json`. It is of the run
+  https://github.com/NoWitam/Kadrian/actions/runs/41481200563 (run ID
+  `41481200563`, attempt 1, event `push`) of the validated commit
+  `bde9bb9dac6de15acb561cfb9a82ace10fc0db09` (main after PR-34b, branch `main`), which
+  passed every step.
+- The owner downloaded its `kadrion-reports` artifact `13161440055` from GitHub
+  by hand and attached the ZIP to the project thread. The SHA-256 of the ZIP
+  was computed before it was extracted and equals the digest the GitHub API
+  publishes,
+  `sha256:e06e0bab510f0cf2ab8cbfaaa6f1b842a5acdc8fee63680d587087bd8e8c61d8`.
+- The validator found no problem, and each of the eight criteria below passed:
+  13 pinned test files, 153 of 153 tests, parity and the golden frames 0/0 on
+  every frame.
+- The commit that closes Q14 is a later documentation commit: it adds the
+  evidence and updates the documents that state the status of Q14. The
+  evidence is of the validated commit, not of that one.
+- Why Q14 was reopened: PR-25a (D47) reopened it on 2026-10-31. It changed
+  three of the then seven pinned test files and the encoders the pinned build
+  must have, and deleted the evidence of PR-21. PR-25b to PR-34b added pinned
+  test files and reports while Q14 was open; the evidence is of a run that
+  includes them, and the list of artifact files in `tests/repo/q14-evidence.ts`
+  follows what the pinned run writes now (64 files).
+- Local tests, including the pinned container runs, do not replace a run on a
+  GitHub runner.
+- History: Q14 was closed on 2026-10-03 by the evidence below.
 
 - The evidence is `docs/ci/q14-evidence.json`. It is of the run
   https://github.com/NoWitam/Kadrian/actions/runs/37151313481 (run ID
@@ -103,7 +119,8 @@ local run of the same commands, including
 ## What "Q14 is closed" means (2026-09-25, updated 2026-10-03)
 
 Run 37151313481 of PR-21 supplied the validated evidence, and the documentation
-commit that follows it closed Q14 (above); PR-25a reopened it on 2026-10-31.
+commit that follows it closed Q14; PR-25a reopened it on 2026-10-31, and run
+41481200563 of the main commit `bde9bb9` closed it again on 2026-11-02 (above).
 This section states what a closed Q14 means and how Q14 reopens, as it did with
 PR-16 on 2026-09-27, with PR-21 on 2026-10-03, and with PR-25a on 2026-10-31.
 
@@ -117,7 +134,7 @@ PR-16 on 2026-09-27, with PR-21 on 2026-10-03, and with PR-25a on 2026-10-31.
   `.github/workflows/ci.yml` byte for byte (its SHA-256 is in the identity,
   and that is why its header comment still reads "UNVERIFIED until Q14
   closes."), the golden-frame manifest and timestamps, the pinned image, the
-  FFmpeg pins, the thresholds of D34, the seven pinned test files, the step
+  FFmpeg pins, the thresholds of D34, the pinned test files (13 since PR-34b), the step
   names, the repository name, and the reports the identity binds. A change to
   any of them fails `check`.
 - Such a change, even one to the header comment of `ci.yml`, therefore reopens
@@ -273,7 +290,7 @@ workflow is consistent, not that it works:
 - **`vitest-pinned.json`:** the raw report of Vitest's `json` reporter.
 - **`pinned-test-summary.json`:** the Kadrion-owned summary of that run
   (`tests/ci/pinned-summary.ts`). It records:
-  - the seven pinned test files, sorted, each with its status, load message,
+  - the pinned test files, sorted, each with its status, load message,
     and counts;
   - the totals: passed, failed, skipped and pending, and todo;
   - the start time and the end of the last test;
@@ -334,8 +351,9 @@ Q14 closes only when **all** of the following exist. In every other case it
 stays open. On 2026-09-25 all eight were met by the run of PR-15, and PR-16
 reopened Q14 in its commit of 2026-09-27; on 2026-09-27 all eight were met by
 the run of PR-16, and PR-21 reopened Q14 in its commit; on 2026-10-03 all eight
-were met by the run of PR-21 (above), and PR-25a reopened Q14 in its commit of
-2026-10-31.
+were met by the run of PR-21 (above), PR-25a reopened Q14 in its commit of
+2026-10-31; on 2026-11-02 all eight were met by the run of the main commit
+`bde9bb9` (above).
 
 1. The URL of the GitHub Actions run.
 2. The SHA of a commit that matches the run and the reviewed code.
@@ -399,7 +417,7 @@ The machine checks, per criterion:
   - Every step, the job, and the run are `success`.
   - The summary, derived again from the raw report, must be equal to the one
     in the artifact.
-  - The summary must list exactly the seven pinned files, each `passed`, with
+  - The summary must list exactly the pinned files of `REQUIRED_PINNED_FILES` (13), each `passed`, with
     no load message, with at least one test, and with every test passed. There
     must be 0 failed, 0 skipped or pending, and 0 todo tests.
   - "0 skipped" alone would not do: a file that was never collected does not
@@ -435,7 +453,7 @@ The rest stays the owner's review:
   and the Player's policy is D36.
 
 What the runs must show is a rule, not a count: `check` passes with no failed
-or skipped test, and the pinned step runs exactly the seven pinned test files,
+or skipped test, and the pinned step runs exactly the pinned test files,
 each with every test passed and none skipped, as the summary checks. The
 number of tests changes from one pull request to the next and is not part of
 the evidence; a different number on the development machine and in the pinned
