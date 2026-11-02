@@ -207,6 +207,7 @@ describe('schema conventions', () => {
       'audio.assetId',
       'captions.fontAssetId',
       'image.assetId',
+      'item-asset.assetId',
       'text.fontAssetId',
       'video.assetId',
     ]);

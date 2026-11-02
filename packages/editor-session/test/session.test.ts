@@ -270,7 +270,9 @@ describe('a template is previewed with its defaults (D58.4)', () => {
     });
     expect(titleOf(editor.bus.getDocument())).toBe('{{name}} dd {{rank}}');
     expect(titleOf(calls[0]?.document)).toBe('Kadrion dd 1');
-    expect(calls[0]?.document).toMatchObject({ template: { inputs: [], bindings: [] } });
+    expect(calls[0]?.document).toMatchObject({
+      template: { inputs: [], bindings: [], conditions: [], repeats: [] },
+    });
 
     const name = editor.bus.getDocument().template.inputs[0];
     editor.bus.dispatch({

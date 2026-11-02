@@ -35,6 +35,14 @@ const ERROR_CODES = [
   'binding-value-mismatch',
   'duplicate-binding-target',
   'invalid-placeholder',
+  'unresolved-target-reference',
+  'unresolved-field-reference',
+  'condition-type-mismatch',
+  'repeat-type-mismatch',
+  'nested-repeat',
+  'repeat-in-transition',
+  'repeat-id-reserved',
+  'item-outside-repeat',
 ] as const;
 
 describe('negative fixtures', () => {

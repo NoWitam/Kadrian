@@ -21,9 +21,11 @@ import type {
   SceneNode,
   Template,
   TemplateBinding,
+  TemplateCondition,
   TemplateField,
   TemplateFieldValue,
   TemplateInput,
+  TemplateRepeat,
   TextNode,
   ValidatedComposition,
   ValidationResult,
@@ -269,15 +271,74 @@ type ExpectedBinding =
       readonly kind: 'asset';
       readonly assetId: string;
       readonly inputId: string;
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'item-property';
+      readonly nodeId: string;
+      readonly property: 'text' | 'color';
+      readonly inputId: string;
+      readonly key: string;
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'item-asset';
+      readonly assetId: string;
+      readonly inputId: string;
+      readonly key: string;
+    };
+
+interface ExpectedTest<T extends string> {
+  readonly id: string;
+  readonly test: T;
+  readonly targetId: string;
+  readonly inputId: string;
+}
+
+type ExpectedCondition =
+  | ExpectedTest<'empty'>
+  | ExpectedTest<'not-empty'>
+  | ExpectedTest<'true'>
+  | ExpectedTest<'false'>
+  | {
+      readonly id: string;
+      readonly test: 'equal-text';
+      readonly targetId: string;
+      readonly inputId: string;
+      readonly value: string;
+    }
+  | {
+      readonly id: string;
+      readonly test: 'equal-number';
+      readonly targetId: string;
+      readonly inputId: string;
+      readonly value: number;
+    };
+
+type ExpectedRepeat =
+  | {
+      readonly id: string;
+      readonly duration: 'target';
+      readonly targetId: string;
+      readonly inputId: string;
+    }
+  | {
+      readonly id: string;
+      readonly duration: 'field';
+      readonly targetId: string;
+      readonly inputId: string;
+      readonly key: string;
     };
 
 interface ExpectedTemplate {
   readonly inputs: readonly ExpectedInput[];
   readonly bindings: readonly ExpectedBinding[];
+  readonly conditions: readonly ExpectedCondition[];
+  readonly repeats: readonly ExpectedRepeat[];
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.8';
+  readonly schemaVersion: '0.9';
   readonly width: number;
   readonly height: number;
   readonly fps: number;
@@ -314,6 +375,8 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<TemplateField>().toEqualTypeOf<ExpectedField>();
     expectTypeOf<TemplateFieldValue>().toEqualTypeOf<ExpectedFieldValue>();
     expectTypeOf<TemplateBinding>().toEqualTypeOf<ExpectedBinding>();
+    expectTypeOf<TemplateCondition>().toEqualTypeOf<ExpectedCondition>();
+    expectTypeOf<TemplateRepeat>().toEqualTypeOf<ExpectedRepeat>();
   });
 
   it('narrow by their discriminators', () => {

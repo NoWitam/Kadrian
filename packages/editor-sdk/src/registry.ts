@@ -34,6 +34,10 @@ import {
   parseAddTemplateBinding,
   parseAddTemplateInput,
   parseRemoveTemplateBinding,
+  parseAddTemplateCondition,
+  parseRemoveTemplateCondition,
+  parseAddTemplateRepeat,
+  parseRemoveTemplateRepeat,
   parseRemoveTemplateInput,
   parseSetTemplateInput,
   parseAddSceneAudioClip,
@@ -2178,16 +2182,126 @@ const DEFINITIONS = deepFreeze<Definitions>({
       };
     },
   },
+  AddTemplateCondition: {
+    parse: parseAddTemplateCondition,
+    edit(document, command) {
+      const template = templateOf(document);
+      const conditions = templateList(template, 'conditions');
+      if (command.index > conditions.length) {
+        throw outOfRange(command.index, conditions.length, "the template's conditions");
+      }
+      const id: unknown = command.condition['id'];
+      const createdIds = typeof id === 'string' ? [id] : [];
+      refuseTaken(document, createdIds);
+      return {
+        document: withTemplate(document, {
+          ...template,
+          conditions: inserted(conditions, command.index, command.condition),
+        }),
+        // The condition validated by now, so its `id` is an ID of the document's form.
+        invert: () =>
+          parseRemoveTemplateCondition({ type: 'RemoveTemplateCondition', conditionId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveTemplateCondition: {
+    parse: parseRemoveTemplateCondition,
+    edit(document, command) {
+      const template = templateOf(document);
+      const conditions = templateList(template, 'conditions');
+      const index = conditions.findIndex(
+        (entry) => isObject(entry) && entry['id'] === command.conditionId,
+      );
+      const entry = conditions[index];
+      if (!isObject(entry)) {
+        throw new EditorError(
+          'unknown-condition',
+          `The template has no condition \`${command.conditionId}\`.`,
+        );
+      }
+      // A frozen copy of the condition at its index, so undo restores the same bytes (D30).
+      const inverse = parseAddTemplateCondition({
+        type: 'AddTemplateCondition',
+        index,
+        condition: entry,
+      });
+      return {
+        document: withTemplate(document, {
+          ...template,
+          conditions: conditions.filter((_, at) => at !== index),
+        }),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [command.conditionId],
+      };
+    },
+  },
+  AddTemplateRepeat: {
+    parse: parseAddTemplateRepeat,
+    edit(document, command) {
+      const template = templateOf(document);
+      const repeats = templateList(template, 'repeats');
+      if (command.index > repeats.length) {
+        throw outOfRange(command.index, repeats.length, "the template's repeats");
+      }
+      const id: unknown = command.repeat['id'];
+      const createdIds = typeof id === 'string' ? [id] : [];
+      refuseTaken(document, createdIds);
+      return {
+        document: withTemplate(document, {
+          ...template,
+          repeats: inserted(repeats, command.index, command.repeat),
+        }),
+        // The repeat validated by now, so its `id` is an ID of the document's form.
+        invert: () => parseRemoveTemplateRepeat({ type: 'RemoveTemplateRepeat', repeatId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveTemplateRepeat: {
+    parse: parseRemoveTemplateRepeat,
+    edit(document, command) {
+      const template = templateOf(document);
+      const repeats = templateList(template, 'repeats');
+      const index = repeats.findIndex(
+        (entry) => isObject(entry) && entry['id'] === command.repeatId,
+      );
+      const entry = repeats[index];
+      if (!isObject(entry)) {
+        throw new EditorError(
+          'unknown-repeat',
+          `The template has no repeat \`${command.repeatId}\`.`,
+        );
+      }
+      // A frozen copy of the repeat at its index, so undo restores the same bytes (D30).
+      const inverse = parseAddTemplateRepeat({ type: 'AddTemplateRepeat', index, repeat: entry });
+      return {
+        document: withTemplate(document, {
+          ...template,
+          repeats: repeats.filter((_, at) => at !== index),
+        }),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [command.repeatId],
+      };
+    },
+  },
 });
 
-/** The template section of a document (D58): an object of `inputs` and `bindings`. */
+/** The template section of a document (D58, D59): its inputs, bindings, conditions, and repeats. */
 function templateOf(document: DocumentObject): DocumentObject {
   const template: unknown = document['template'];
-  return isObject(template) ? template : { inputs: [], bindings: [] };
+  return isObject(template) ? template : { inputs: [], bindings: [], conditions: [], repeats: [] };
 }
 
-/** The inputs or the bindings of a template section, in their order. */
-function templateList(template: DocumentObject, key: 'inputs' | 'bindings'): readonly unknown[] {
+/** One list of a template section, in its order. */
+function templateList(
+  template: DocumentObject,
+  key: 'inputs' | 'bindings' | 'conditions' | 'repeats',
+): readonly unknown[] {
   const list: unknown = template[key];
   return Array.isArray(list) ? (list as readonly unknown[]) : [];
 }
@@ -2202,23 +2316,29 @@ function unknownInput(inputId: string): EditorError {
 }
 
 /**
- * The IDs of the bindings whose validation errors have one of `codes`, sorted,
- * read from the paths of the errors under `/template/bindings/<index>` of the
- * document the bindings belong to (D58.6).
+ * The IDs of the bindings, conditions, and repeats whose validation errors
+ * have one of `codes`, sorted, read from the paths of the errors under
+ * `/template/<list>/<index>` of the document they belong to (D58.6, D59.6).
  */
 export function bindingsAt(
   document: object,
   errors: readonly ValidationFinding[],
   codes: readonly string[],
 ): readonly string[] {
-  const bindings = templateList(templateOf(document as DocumentObject), 'bindings');
+  const template = templateOf(document as DocumentObject);
   const ids = new Set<string>();
   for (const { code, path } of errors) {
     if (!codes.includes(code)) continue;
     const tokens = path.split('/');
-    if (tokens[1] !== 'template' || tokens[2] !== 'bindings') continue;
-    const binding = bindings[Number(tokens[3])];
-    if (isObject(binding) && typeof binding['id'] === 'string') ids.add(binding['id']);
+    const list = tokens[2];
+    if (
+      tokens[1] !== 'template' ||
+      (list !== 'bindings' && list !== 'conditions' && list !== 'repeats')
+    ) {
+      continue;
+    }
+    const entry = templateList(template, list)[Number(tokens[3])];
+    if (isObject(entry) && typeof entry['id'] === 'string') ids.add(entry['id']);
   }
   return [...ids].sort();
 }

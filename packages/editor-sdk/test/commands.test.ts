@@ -85,6 +85,10 @@ describe('parseCommand (D30.3)', () => {
       'SetTemplateInput',
       'AddTemplateBinding',
       'RemoveTemplateBinding',
+      'AddTemplateCondition',
+      'RemoveTemplateCondition',
+      'AddTemplateRepeat',
+      'RemoveTemplateRepeat',
     ]);
   });
 

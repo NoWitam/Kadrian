@@ -1519,7 +1519,7 @@
   },
   {
     "name": "add_template_input",
-    "description": "Inserts an input into the template: {id, type, ...constraints, default}, with an ID unused in the document. A text has minLength and maxLength in code points, a number minimum and maximum, a boolean, a color (lowercase #rrggbb), an image, video, or audio only a default content hash, and a list minItems, maxItems, fields ({key, type, ...constraints}, no list among them), and a default whose items each list one {key, type, value} per field in their order; the default meets the constraints. Nothing reads a new input until a binding does; a boolean or a list is read by no binding yet. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash); a bound property or asset always holds its input's default, so another command that changes it, removes its node or asset, or spoils the placeholders of a bound text is refused with binding-in-use and the IDs of the bindings: set the input with set_template_input instead, or remove the binding first. describe_document shows the template section. Refused with index-out-of-range, id-in-use, and invalid-result when the input is not one the document can hold. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"input\":{\"id\":\"headline\",\"type\":\"text\",\"minLength\":1,\"maxLength\":40,\"default\":\"Kadrion\"}}",
+    "description": "Inserts an input into the template: {id, type, ...constraints, default}, with an ID unused in the document. A text has minLength and maxLength in code points, a number minimum and maximum, a boolean, a color (lowercase #rrggbb), an image, video, or audio only a default content hash, and a list minItems, maxItems, fields ({key, type, ...constraints}, no list among them), and a default whose items each list one {key, type, value} per field in their order; the default meets the constraints. Nothing reads a new input until a binding does; a boolean or a list is read by no binding yet. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with index-out-of-range, id-in-use, and invalid-result when the input is not one the document can hold. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"input\":{\"id\":\"headline\",\"type\":\"text\",\"minLength\":1,\"maxLength\":40,\"default\":\"Kadrion\"}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts an input into the template section of the document.",
@@ -1544,7 +1544,7 @@
   },
   {
     "name": "remove_template_input",
-    "description": "Removes an input of the template. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash); a bound property or asset always holds its input's default, so another command that changes it, removes its node or asset, or spoils the placeholders of a bound text is refused with binding-in-use and the IDs of the bindings: set the input with set_template_input instead, or remove the binding first. describe_document shows the template section. Refused with unknown-input, and input-in-use with the IDs of the bindings that still use it, a placeholder included: remove them first, in the same transaction. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"inputId\":\"headline\"}",
+    "description": "Removes an input of the template. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with unknown-input, and input-in-use with the IDs of the bindings that still use it, a placeholder included: remove them first, in the same transaction. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"inputId\":\"headline\"}",
     "inputSchema": {
       "type": "object",
       "description": "Removes an input that no binding and no placeholder uses.",
@@ -1563,7 +1563,7 @@
   },
   {
     "name": "set_template_input",
-    "description": "Replaces an input with a complete new one of the same ID — new constraints, a new default, or both — and writes its default into every property and asset bound to it, so that the preview shows it. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash); a bound property or asset always holds its input's default, so another command that changes it, removes its node or asset, or spoils the placeholders of a bound text is refused with binding-in-use and the IDs of the bindings: set the input with set_template_input instead, or remove the binding first. describe_document shows the template section. Refused with invalid-argument when input.id is not inputId, unknown-input, and invalid-result when the input is not one the document can hold or no longer fits its bindings. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"inputId\":\"headline\",\"input\":{\"id\":\"headline\",\"type\":\"text\",\"minLength\":1,\"maxLength\":40,\"default\":\"Launch day\"}}",
+    "description": "Replaces an input with a complete new one of the same ID — new constraints, a new default, or both — and writes its default into every property and asset bound to it, so that the preview shows it. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with invalid-argument when input.id is not inputId, unknown-input, and invalid-result when the input is not one the document can hold or no longer fits its bindings. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"inputId\":\"headline\",\"input\":{\"id\":\"headline\",\"type\":\"text\",\"minLength\":1,\"maxLength\":40,\"default\":\"Launch day\"}}",
     "inputSchema": {
       "type": "object",
       "description": "Replaces an input with a complete new one of the same ID, and writes its default into every property and asset bound to it.",
@@ -1587,7 +1587,7 @@
   },
   {
     "name": "add_template_binding",
-    "description": "Inserts a binding: {id, kind: \"property\", nodeId, property: \"text\" or \"color\", inputId}, {id, kind: \"placeholders\", nodeId}, or {id, kind: \"asset\", assetId, inputId}, with an ID unused in the document. The target must already hold the input's default (set it first, in the same transaction), a text with placeholders must name text or number inputs only, and at most one binding writes a target. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash); a bound property or asset always holds its input's default, so another command that changes it, removes its node or asset, or spoils the placeholders of a bound text is refused with binding-in-use and the IDs of the bindings: set the input with set_template_input instead, or remove the binding first. describe_document shows the template section. Refused with index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"binding\":{\"id\":\"bind-headline\",\"kind\":\"property\",\"nodeId\":\"node-title\",\"property\":\"text\",\"inputId\":\"headline\"}}",
+    "description": "Inserts a binding: {id, kind: \"property\", nodeId, property: \"text\" or \"color\", inputId}, {id, kind: \"placeholders\", nodeId}, {id, kind: \"asset\", assetId, inputId}, {id, kind: \"item-property\", nodeId, property, inputId, key}, or {id, kind: \"item-asset\", assetId, inputId, key}, with an ID unused in the document. The target of an input binding must already hold the input's default (set it first, in the same transaction); a text with placeholders names text or number inputs, or {{list.key}} text or number fields of a list that repeats the node; an item binding reads a field of a list whose repeat holds its node, or every use of its asset; and at most one binding writes a target. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"binding\":{\"id\":\"bind-headline\",\"kind\":\"property\",\"nodeId\":\"node-title\",\"property\":\"text\",\"inputId\":\"headline\"}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a binding from an input to a property, the placeholders of a text, or an asset.",
@@ -1600,7 +1600,7 @@
         },
         "binding": {
           "type": "object",
-          "description": "The complete binding as the document stores it, with an ID unused in the document. A binding is {id, kind: \"property\", nodeId, property, inputId} — the text of a text node takes a text input, the color of a text or a background a color input —, {id, kind: \"placeholders\", nodeId} — every {{inputId}} in the text of a text node stands for a text or number input —, or {id, kind: \"asset\", assetId, inputId} — an image, video, or audio asset takes the content hash of an input of its type. A bound property or asset holds its input's default; at most one binding writes a target."
+          "description": "The complete binding as the document stores it, with an ID unused in the document. A binding is {id, kind: \"property\", nodeId, property, inputId} — the text of a text node takes a text input, the color of a text or a background a color input —, {id, kind: \"placeholders\", nodeId} — every {{inputId}} in the text of a text node stands for a text or number input, and inside a repeat over a list every {{list.key}} for a text or number field of the item —, {id, kind: \"asset\", assetId, inputId} — an image, video, or audio asset takes the content hash of an input of its type —, {id, kind: \"item-property\", nodeId, property, inputId, key} — inside a repeat over the list inputId, the text or color of the node takes the field key of the item of its copy —, or {id, kind: \"item-asset\", assetId, inputId, key} — an asset used only inside a repeat over the list becomes one asset per item, with the content hash of the field key. A property or asset bound to an input holds its default; at most one binding writes a target."
         }
       },
       "required": [
@@ -1612,7 +1612,7 @@
   },
   {
     "name": "remove_template_binding",
-    "description": "Removes a binding; its property, text, or asset keeps the value it holds. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash); a bound property or asset always holds its input's default, so another command that changes it, removes its node or asset, or spoils the placeholders of a bound text is refused with binding-in-use and the IDs of the bindings: set the input with set_template_input instead, or remove the binding first. describe_document shows the template section. Refused with unknown-binding. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"bindingId\":\"bind-headline\"}",
+    "description": "Removes a binding; its property, text, or asset keeps the value it holds. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with unknown-binding. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"bindingId\":\"bind-headline\"}",
     "inputSchema": {
       "type": "object",
       "description": "Removes a binding; its target keeps the value it holds.",
@@ -1625,6 +1625,94 @@
       },
       "required": [
         "bindingId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_template_condition",
+    "description": "Inserts a condition: {id, test: \"empty\" or \"not-empty\", targetId, inputId} for a text or list input, {id, test: \"true\" or \"false\", targetId, inputId} for a boolean, {id, test: \"equal-text\", targetId, inputId, value} for a text, or {id, test: \"equal-number\", targetId, inputId, value} for a number, with an ID unused in the document; targetId names a scene or a node. The template shows the target as it stands; an instantiation removes it, with everything in it and every transition that names it, when the test does not hold. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"condition\":{\"id\":\"when-title\",\"test\":\"true\",\"targetId\":\"node-title\",\"inputId\":\"show-title\"}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Inserts a condition: its scene or node is kept only while its test of an input holds.",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "description": "The condition's index in the template's conditions after the insertion, from 0 to their number; their order has no meaning.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "condition": {
+          "type": "object",
+          "description": "The complete condition as the document stores it, with an ID unused in the document. A condition is {id, test, targetId, inputId} with test \"empty\" or \"not-empty\" (a text or list input), \"true\" or \"false\" (a boolean input), or {id, test: \"equal-text\", targetId, inputId, value: a text} or {id, test: \"equal-number\", targetId, inputId, value: a number}; targetId names a scene or a node. When a test does not hold, instantiation removes the target with everything in it and every transition that names it; every condition of a target must hold."
+        }
+      },
+      "required": [
+        "index",
+        "condition"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "remove_template_condition",
+    "description": "Removes a condition; its target is kept whatever the inputs. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with unknown-condition. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"conditionId\":\"when-title\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Removes a condition; its target is kept whatever the inputs.",
+      "properties": {
+        "conditionId": {
+          "type": "string",
+          "description": "The stable ID of a condition of the template.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "conditionId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "add_template_repeat",
+    "description": "Inserts a repeat: {id, duration: \"target\", targetId, inputId}, every copy as long as the target, or {id, duration: \"field\", targetId, inputId, key}, every copy as long as the number field key of its item names in microseconds, with an ID unused in the document; inputId names a list input and targetId a scene or a node. An instantiation replaces the target by one copy per item, in their order and one after the other, with IDs <id>--<index>: a scene copy follows the scene before it, a node copy starts where the one before it ends, its keyframes and words moved with it; transitions into a repeated scene meet its first copy and those out of it its last. A target is repeated once at most and never inside another repeated one, a repeated node is no side of a clip transition, and no ID of the document may have the form of a copy's. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"repeat\":{\"id\":\"each-title\",\"duration\":\"target\",\"targetId\":\"node-title\",\"inputId\":\"people\"}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Inserts a repeat: its scene or node is copied once for each item of a list.",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "description": "The repeat's index in the template's repeats after the insertion, from 0 to their number; their order has no meaning.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "repeat": {
+          "type": "object",
+          "description": "The complete repeat as the document stores it, with an ID unused in the document. A repeat is {id, duration: \"target\", targetId, inputId} — every copy lasts the durationUs of the target — or {id, duration: \"field\", targetId, inputId, key} — every copy lasts the microseconds a number field of its item names; inputId names a list input, targetId a scene or a node. Instantiation replaces the target by one copy for each item, one after the other, with IDs <id>--<index>; a target is repeated once at most, never inside another repeated one, and a repeated node is no side of a clip transition."
+        }
+      },
+      "required": [
+        "index",
+        "repeat"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "remove_template_repeat",
+    "description": "Removes a repeat; its target is shown once, as it stands. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with unknown-repeat, and invalid-result while an item binding or a {{list.key}} placeholder still needs it: remove those first, in the same transaction. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"repeatId\":\"each-title\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Removes a repeat; its target is shown once, as it stands.",
+      "properties": {
+        "repeatId": {
+          "type": "string",
+          "description": "The stable ID of a repeat of the template.",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "repeatId"
       ],
       "additionalProperties": false
     }
@@ -1705,7 +1793,11 @@
                   "remove_template_input",
                   "set_template_input",
                   "add_template_binding",
-                  "remove_template_binding"
+                  "remove_template_binding",
+                  "add_template_condition",
+                  "remove_template_condition",
+                  "add_template_repeat",
+                  "remove_template_repeat"
                 ]
               },
               "arguments": {

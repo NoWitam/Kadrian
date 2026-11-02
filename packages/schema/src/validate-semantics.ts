@@ -14,15 +14,17 @@
  * their durations from that sum, and the captions of 0.7 add the reference to
  * their font and the order of their words (D57), which no earlier document can
  * have, and the template section of 0.8 adds the rules of its inputs and
- * bindings (D58), which no earlier document has the field for.
- * `migrateComposition` applies them to
- * documents of 0.1 to 0.7 too (D35.4), which is why the document type is any
- * of the eight versions'; the negative corpus of 0.1 is kept
+ * bindings (D58), which no earlier document has the field for, and the
+ * conditions, repeats, and item bindings of 0.9 add the rules of D59, which no
+ * earlier document has the fields for. `migrateComposition` applies them to
+ * documents of 0.1 to 0.8 too (D35.4), which is why the document type is any
+ * of the nine versions'; the negative corpus of 0.1 is kept
  * and pins what they were. A rule that a later version changes gets its own
  * function, never a branch here.
  */
 import { pointer, type ValidationError } from './errors.js';
-import { constraintProblem, patternParts, valueProblem } from './template-values.js';
+import { templateStructure } from './template-structure.js';
+import { constraintProblem, copiedFrom, patternParts, valueProblem } from './template-values.js';
 import type {
   Asset,
   AudioClip,
@@ -30,7 +32,9 @@ import type {
   Composition,
   NodeAnimation,
   SceneNode,
+  TemplateCondition,
   TemplateInput,
+  TemplateRepeat,
 } from './types.js';
 // A type only: it is erased when the module is built, so the main entry reaches no
 // historical module at run time (D42.8; `migration-entry.test.ts` walks the built output).
@@ -41,6 +45,7 @@ import type { CompositionV04 } from './v0-4/composition-schema.js';
 import type { CompositionV05 } from './v0-5/composition-schema.js';
 import type { CompositionV06 } from './v0-6/composition-schema.js';
 import type { CompositionV07 } from './v0-7/composition-schema.js';
+import type { CompositionV08 } from './v0-8/composition-schema.js';
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -134,7 +139,8 @@ export function validateSemantics(
     | CompositionV04
     | CompositionV05
     | CompositionV06
-    | CompositionV07,
+    | CompositionV07
+    | CompositionV08,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -353,15 +359,37 @@ const BOUND_PROPERTIES = {
   color: { nodeTypes: ['text', 'background'], inputType: 'color' },
 } as const;
 
+/** The field types an item binding of a property takes (D59.3), as `BOUND_PROPERTIES`. */
+const ITEM_FIELD_TYPES = { text: 'text', color: 'color' } as const;
+
+/** The input types each test of a condition reads (D59.1). */
+const TESTED_TYPES: Readonly<Record<TemplateCondition['test'], readonly string[]>> = {
+  empty: ['text', 'list'],
+  'not-empty': ['text', 'list'],
+  true: ['boolean'],
+  false: ['boolean'],
+  'equal-text': ['text'],
+  'equal-number': ['number'],
+};
+
 /**
- * The rules of the template section (D58): every input's constraints and
+ * The rules of the template section (D58, D59): every input's constraints and
  * default; every binding's target and input, which exist and agree in type;
  * one binding per target; a bound property or asset that holds its input's
- * default; and placeholders that parse and name a text or number input.
+ * default; placeholders that parse and name a text or number input, or a text
+ * or number field of a list that repeats them; item bindings inside a repeat
+ * over their list; conditions and repeats whose targets and inputs exist and
+ * fit; no repeat inside another, none of a side of a clip transition; and no
+ * ID of the form of a copy of a repeated ID.
  */
-function checkTemplate(composition: Composition): ValidationError[] {
+function checkTemplate(composition: Composition | CompositionV08): ValidationError[] {
   const errors: ValidationError[] = [];
   const { inputs, bindings } = composition.template;
+  // The lists of 0.9 (D59); a template of 0.8 has neither.
+  const flow = 'repeats' in composition.template;
+  const conditions: readonly TemplateCondition[] = flow ? composition.template.conditions : [];
+  const repeats: readonly TemplateRepeat[] = flow ? composition.template.repeats : [];
+  const structure = templateStructure(composition);
   const inputById = new Map<string, TemplateInput>();
   inputs.forEach((input, index) => {
     if (!inputById.has(input.id)) inputById.set(input.id, input);
@@ -376,6 +404,12 @@ function checkTemplate(composition: Composition): ValidationError[] {
   }
   const assets = new Map(composition.assets.map((asset) => [asset.id, asset]));
   const targets = new Set<string>();
+  /** The field `key` of the list input `inputId`, or why there is none (D59). */
+  const fieldOf = (
+    input: TemplateInput,
+    key: string,
+  ): Extract<TemplateInput, { type: 'list' }>['fields'][number] | undefined =>
+    input.type === 'list' ? input.fields.find((field) => field.key === key) : undefined;
   bindings.forEach((binding, index) => {
     const path = pointer(pointer('/template', 'bindings'), index);
     const push = (code: ValidationError['code'], at: string, message: string): void => {
@@ -400,7 +434,30 @@ function checkTemplate(composition: Composition): ValidationError[] {
       targets.add(target);
       return true;
     };
-    if (binding.kind === 'asset') {
+    /** The field of an item binding, after its input is known to be a list (D59.3). */
+    const itemFieldOf = (
+      input: TemplateInput,
+      key: string,
+    ): Extract<TemplateInput, { type: 'list' }>['fields'][number] | undefined => {
+      if (input.type !== 'list') {
+        push(
+          'binding-type-mismatch',
+          pointer(path, 'inputId'),
+          `An item binding reads a list input, and "${input.id}" is of type ${input.type}.`,
+        );
+        return undefined;
+      }
+      const field = fieldOf(input, key);
+      if (field === undefined) {
+        push(
+          'unresolved-field-reference',
+          pointer(path, 'key'),
+          `The items of "${input.id}" have no field "${key}".`,
+        );
+      }
+      return field;
+    };
+    if (binding.kind === 'asset' || binding.kind === 'item-asset') {
       const asset = assets.get(binding.assetId);
       if (asset === undefined) {
         push(
@@ -411,6 +468,38 @@ function checkTemplate(composition: Composition): ValidationError[] {
       }
       const input = inputOf(binding.inputId);
       if (asset === undefined || input === undefined) return;
+      if (binding.kind === 'item-asset') {
+        const field = itemFieldOf(input, binding.key);
+        if (field === undefined) return;
+        if (field.type !== asset.type) {
+          push(
+            'binding-type-mismatch',
+            pointer(path, 'key'),
+            `Asset "${asset.id}" is of type ${asset.type} and takes a field of its type, not ${field.type}.`,
+          );
+          return;
+        }
+        if (!claim(`asset:${asset.id}`)) return;
+        // Every user of the asset lies in the target of one repeat over the list (D59.3).
+        const users = structure.assetUsers.get(asset.id) ?? [];
+        const holders = new Set(
+          users.map((user) => (user === null ? null : structure.repeatHolding(user))),
+        );
+        const [holder] = [...holders];
+        if (
+          holders.size !== 1 ||
+          holder === null ||
+          holder === undefined ||
+          holder.inputId !== input.id
+        ) {
+          push(
+            'item-outside-repeat',
+            path,
+            `Asset "${asset.id}" must be used, and only inside the target of one repeat over "${input.id}".`,
+          );
+        }
+        return;
+      }
       if (input.type !== asset.type) {
         push(
           'binding-type-mismatch',
@@ -449,11 +538,15 @@ function checkTemplate(composition: Composition): ValidationError[] {
       }
       if (!claim(`node:${node.id}/text`)) return;
       const parts = patternParts(node.text);
-      if (parts === null) {
+      // A field of an item is a placeholder of 0.9 (D59.3); 0.8 knew {{inputId}} only.
+      if (
+        parts === null ||
+        (!flow && parts.some((part) => typeof part !== 'string' && part.key !== null))
+      ) {
         push(
           'invalid-placeholder',
           path,
-          `The text of "${node.id}" has a {{ that does not begin a placeholder {{inputId}}.`,
+          `The text of "${node.id}" has a {{ that does not begin a placeholder {{inputId}} or {{inputId.key}}.`,
         );
         return;
       }
@@ -462,11 +555,44 @@ function checkTemplate(composition: Composition): ValidationError[] {
         const input = inputById.get(part.inputId);
         if (input === undefined) {
           push('unresolved-input-reference', path, `No input has the ID "${part.inputId}".`);
-        } else if (input.type !== 'text' && input.type !== 'number') {
+          continue;
+        }
+        if (part.key === null) {
+          if (input.type !== 'text' && input.type !== 'number') {
+            push(
+              'binding-type-mismatch',
+              path,
+              `A placeholder takes a text or number input, and "${input.id}" is of type ${input.type}.`,
+            );
+          }
+          continue;
+        }
+        if (input.type !== 'list') {
           push(
             'binding-type-mismatch',
             path,
-            `A placeholder takes a text or number input, and "${input.id}" is of type ${input.type}.`,
+            `A placeholder {{${input.id}.${part.key}}} reads a list input, and "${input.id}" is of type ${input.type}.`,
+          );
+          continue;
+        }
+        const field = fieldOf(input, part.key);
+        if (field === undefined) {
+          push(
+            'unresolved-field-reference',
+            path,
+            `The items of "${input.id}" have no field "${part.key}".`,
+          );
+        } else if (field.type !== 'text' && field.type !== 'number') {
+          push(
+            'binding-type-mismatch',
+            path,
+            `A placeholder takes a text or number field, and "${part.key}" of "${input.id}" is of type ${field.type}.`,
+          );
+        } else if (structure.repeatHolding(node.id)?.inputId !== input.id) {
+          push(
+            'item-outside-repeat',
+            path,
+            `The text of "${node.id}" reads an item of "${input.id}" outside every repeat over it.`,
           );
         }
       }
@@ -481,6 +607,27 @@ function checkTemplate(composition: Composition): ValidationError[] {
         pointer(path, 'property'),
         `A ${node.type} node has no bindable ${binding.property}.`,
       );
+      return;
+    }
+    if (binding.kind === 'item-property') {
+      const field = itemFieldOf(input, binding.key);
+      if (field === undefined) return;
+      if (field.type !== ITEM_FIELD_TYPES[binding.property]) {
+        push(
+          'binding-type-mismatch',
+          pointer(path, 'key'),
+          `The ${binding.property} takes a ${rule.inputType} field, and "${field.key}" is of type ${field.type}.`,
+        );
+        return;
+      }
+      if (!claim(`node:${node.id}/${binding.property}`)) return;
+      if (structure.repeatHolding(node.id)?.inputId !== input.id) {
+        push(
+          'item-outside-repeat',
+          path,
+          `Node "${node.id}" lies outside every repeat over "${input.id}".`,
+        );
+      }
       return;
     }
     if (input.type !== rule.inputType) {
@@ -503,7 +650,163 @@ function checkTemplate(composition: Composition): ValidationError[] {
       );
     }
   });
+
+  conditions.forEach((condition, index) => {
+    const path = pointer(pointer('/template', 'conditions'), index);
+    if (!structure.elements.has(condition.targetId)) {
+      errors.push({
+        code: 'unresolved-target-reference',
+        path: pointer(path, 'targetId'),
+        message: `No scene and no node has the ID "${condition.targetId}".`,
+      });
+    }
+    const input = inputById.get(condition.inputId);
+    if (input === undefined) {
+      errors.push({
+        code: 'unresolved-input-reference',
+        path: pointer(path, 'inputId'),
+        message: `No input has the ID "${condition.inputId}".`,
+      });
+    } else if (!TESTED_TYPES[condition.test].includes(input.type)) {
+      errors.push({
+        code: 'condition-type-mismatch',
+        path: pointer(path, 'test'),
+        message: `The test ${condition.test} reads a ${TESTED_TYPES[condition.test].join(' or ')} input, and "${input.id}" is of type ${input.type}.`,
+      });
+    }
+  });
+
+  const clipSides = new Set<string>();
+  for (const scene of composition.scenes) {
+    for (const transition of scene.transitions) {
+      clipSides.add(transition.fromNodeId);
+      clipSides.add(transition.toNodeId);
+    }
+  }
+  const repeated = new Set<string>();
+  repeats.forEach((repeat, index) => {
+    const path = pointer(pointer('/template', 'repeats'), index);
+    const element = structure.elements.get(repeat.targetId);
+    if (element === undefined) {
+      errors.push({
+        code: 'unresolved-target-reference',
+        path: pointer(path, 'targetId'),
+        message: `No scene and no node has the ID "${repeat.targetId}".`,
+      });
+    }
+    const input = inputById.get(repeat.inputId);
+    if (input === undefined) {
+      errors.push({
+        code: 'unresolved-input-reference',
+        path: pointer(path, 'inputId'),
+        message: `No input has the ID "${repeat.inputId}".`,
+      });
+    } else if (input.type !== 'list') {
+      errors.push({
+        code: 'repeat-type-mismatch',
+        path: pointer(path, 'inputId'),
+        message: `A repeat reads a list input, and "${input.id}" is of type ${input.type}.`,
+      });
+    } else if (repeat.duration === 'field') {
+      const field = fieldOf(input, repeat.key);
+      if (field === undefined) {
+        errors.push({
+          code: 'unresolved-field-reference',
+          path: pointer(path, 'key'),
+          message: `The items of "${input.id}" have no field "${repeat.key}".`,
+        });
+      } else if (field.type !== 'number') {
+        errors.push({
+          code: 'repeat-type-mismatch',
+          path: pointer(path, 'key'),
+          message: `A duration is read from a number field, and "${field.key}" is of type ${field.type}.`,
+        });
+      }
+    }
+    if (element === undefined) return;
+    const outer = structure.chain(repeat.targetId).slice(1);
+    if (repeated.has(repeat.targetId) || outer.some((id) => structure.repeatOf.has(id))) {
+      errors.push({
+        code: 'nested-repeat',
+        path: pointer(path, 'targetId'),
+        message: `"${repeat.targetId}" is repeated already, or lies inside a repeated scene or group.`,
+      });
+    }
+    repeated.add(repeat.targetId);
+    if (element.kind === 'node' && clipSides.has(repeat.targetId)) {
+      errors.push({
+        code: 'repeat-in-transition',
+        path: pointer(path, 'targetId'),
+        message: `Node "${repeat.targetId}" is a side of a clip transition, whose overlap its copies cannot keep.`,
+      });
+    }
+  });
+
+  // No ID has the form of a copy of an ID that a repeat copies (D59.2).
+  if (repeats.length > 0) {
+    const copied = new Set<string>();
+    for (const repeat of repeats) {
+      collectIds(subtreeOf(composition, repeat.targetId), copied);
+    }
+    for (const binding of bindings) {
+      if (binding.kind === 'item-asset') copied.add(binding.assetId);
+    }
+    const all: { id: string; path: string }[] = [];
+    collectIdPaths(composition, '', all);
+    for (const { id, path } of all) {
+      const from = copiedFrom(id);
+      if (from !== null && copied.has(from)) {
+        errors.push({
+          code: 'repeat-id-reserved',
+          path,
+          message: `"${id}" has the form of the ID of a copy of "${from}", which a repeat copies.`,
+        });
+      }
+    }
+  }
   return errors;
+}
+
+/** The scene or node with that ID, or `undefined`. */
+function subtreeOf(composition: Composition | CompositionV08, id: string): unknown {
+  for (const scene of composition.scenes) {
+    if (scene.id === id) return scene;
+    for (const node of scene.nodes) {
+      if (node.id === id) return node;
+      if (node.type === 'group') {
+        const child = node.children.find((member) => member.id === id);
+        if (child !== undefined) return child;
+      }
+    }
+  }
+  return undefined;
+}
+
+/** Every `id` of a value, at any depth. */
+function collectIds(value: unknown, into: Set<string>): void {
+  if (Array.isArray(value)) {
+    for (const item of value as readonly unknown[]) collectIds(item, into);
+  } else if (typeof value === 'object' && value !== null) {
+    for (const [name, child] of Object.entries(value)) {
+      if (name === 'id' && typeof child === 'string') into.add(child);
+      else collectIds(child, into);
+    }
+  }
+}
+
+/** Every `id` of a value with its path, in sorted key order like `checkUniqueIds`. */
+function collectIdPaths(value: unknown, path: string, into: { id: string; path: string }[]): void {
+  if (Array.isArray(value)) {
+    (value as readonly unknown[]).forEach((item, index) => {
+      collectIdPaths(item, pointer(path, index), into);
+    });
+  } else if (typeof value === 'object' && value !== null) {
+    for (const [name, child] of Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) {
+      if (name === 'id' && typeof child === 'string')
+        into.push({ id: child, path: pointer(path, name) });
+      else collectIdPaths(child, pointer(path, name), into);
+    }
+  }
 }
 
 /** A node of a scene with where it lives: its parent's ID, or `null` for the scene itself. */
@@ -521,7 +824,7 @@ interface Located {
  * and the two of one side together at most as long as it.
  */
 function checkTransitions(
-  composition: Composition | CompositionV06 | CompositionV07,
+  composition: Composition | CompositionV06 | CompositionV07 | CompositionV08,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

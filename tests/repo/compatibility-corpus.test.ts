@@ -150,7 +150,7 @@ describe('the boundary of the compatibility corpus (D43.6)', () => {
       } else {
         expect(record['origin'], file).toBe('written');
         expect(Object.keys(record), file).toEqual(['file', 'origin', 'in']);
-        expect(record['in'], file).toMatch(/^PR-\d+$/);
+        expect(record['in'], file).toMatch(/^PR-\d+[a-z]?$/);
       }
     }
     // The premise: the corpus holds both kinds.

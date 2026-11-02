@@ -752,6 +752,52 @@ export interface RemoveTemplateBindingCommand extends RemoveTemplateBindingArgum
   readonly type: 'RemoveTemplateBinding';
 }
 
+/** What a caller states for `AddTemplateCondition` (D59.6). */
+export interface AddTemplateConditionArguments {
+  /** The condition's index in the template's conditions after the insertion; their order has no meaning. */
+  readonly index: number;
+  /** The complete condition, as the document stores it. */
+  readonly condition: NodeData;
+}
+
+/** Inserts a condition: its scene or node is kept only while its test of an input holds (D59.1, D59.6). */
+export interface AddTemplateConditionCommand extends AddTemplateConditionArguments {
+  readonly type: 'AddTemplateCondition';
+}
+
+/** What a caller states for `RemoveTemplateCondition` (D59.6). */
+export interface RemoveTemplateConditionArguments {
+  readonly conditionId: string;
+}
+
+/** Removes a condition; its target is kept whatever the inputs (D59.6). */
+export interface RemoveTemplateConditionCommand extends RemoveTemplateConditionArguments {
+  readonly type: 'RemoveTemplateCondition';
+}
+
+/** What a caller states for `AddTemplateRepeat` (D59.6). */
+export interface AddTemplateRepeatArguments {
+  /** The repeat's index in the template's repeats after the insertion; their order has no meaning. */
+  readonly index: number;
+  /** The complete repeat, as the document stores it. */
+  readonly repeat: NodeData;
+}
+
+/** Inserts a repeat: its scene or node is copied once for each item of a list (D59.2, D59.6). */
+export interface AddTemplateRepeatCommand extends AddTemplateRepeatArguments {
+  readonly type: 'AddTemplateRepeat';
+}
+
+/** What a caller states for `RemoveTemplateRepeat` (D59.6). */
+export interface RemoveTemplateRepeatArguments {
+  readonly repeatId: string;
+}
+
+/** Removes a repeat; its target is shown once, as it stands (D59.6). */
+export interface RemoveTemplateRepeatCommand extends RemoveTemplateRepeatArguments {
+  readonly type: 'RemoveTemplateRepeat';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -810,7 +856,11 @@ export type Command =
   | RemoveTemplateInputCommand
   | SetTemplateInputCommand
   | AddTemplateBindingCommand
-  | RemoveTemplateBindingCommand;
+  | RemoveTemplateBindingCommand
+  | AddTemplateConditionCommand
+  | RemoveTemplateConditionCommand
+  | AddTemplateRepeatCommand
+  | RemoveTemplateRepeatCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -1069,6 +1119,38 @@ export interface AddTemplateBindingArgumentsSchema {
 
 export type RemoveTemplateBindingArgumentsSchema = ClosedObjectSchema<
   keyof RemoveTemplateBindingArguments
+>;
+
+/** The argument schema of `AddTemplateCondition`: closed, with `condition` an open object (D59.6). */
+export interface AddTemplateConditionArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly index: ArgumentSchema;
+    readonly condition: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddTemplateConditionArguments)[];
+  readonly additionalProperties: false;
+}
+
+export type RemoveTemplateConditionArgumentsSchema = ClosedObjectSchema<
+  keyof RemoveTemplateConditionArguments
+>;
+
+/** The argument schema of `AddTemplateRepeat`: closed, with `repeat` an open object (D59.6). */
+export interface AddTemplateRepeatArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly index: ArgumentSchema;
+    readonly repeat: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddTemplateRepeatArguments)[];
+  readonly additionalProperties: false;
+}
+
+export type RemoveTemplateRepeatArgumentsSchema = ClosedObjectSchema<
+  keyof RemoveTemplateRepeatArguments
 >;
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
@@ -2039,8 +2121,14 @@ const INPUT_ID = 'The stable ID of an input of the template.';
 const INPUT =
   'An input is {id, type, ...constraints, default}: a text {minLength, maxLength} in code points, a number {minimum, maximum}, a boolean, a color (lowercase #rrggbb), an image, video, or audio (the default a content hash, sha256: and 64 hex digits), or a list {minItems, maxItems, fields, default}: each field {key, type, ...constraints} of a type other than list, and each item of the default a list with one {key, type, value} for each field, in their order. The default meets the constraints.';
 
+const CONDITION =
+  'A condition is {id, test, targetId, inputId} with test "empty" or "not-empty" (a text or list input), "true" or "false" (a boolean input), or {id, test: "equal-text", targetId, inputId, value: a text} or {id, test: "equal-number", targetId, inputId, value: a number}; targetId names a scene or a node. When a test does not hold, instantiation removes the target with everything in it and every transition that names it; every condition of a target must hold.';
+
+const REPEAT =
+  'A repeat is {id, duration: "target", targetId, inputId} — every copy lasts the durationUs of the target — or {id, duration: "field", targetId, inputId, key} — every copy lasts the microseconds a number field of its item names; inputId names a list input, targetId a scene or a node. Instantiation replaces the target by one copy for each item, one after the other, with IDs <id>--<index>; a target is repeated once at most, never inside another repeated one, and a repeated node is no side of a clip transition.';
+
 const BINDING =
-  'A binding is {id, kind: "property", nodeId, property, inputId} — the text of a text node takes a text input, the color of a text or a background a color input —, {id, kind: "placeholders", nodeId} — every {{inputId}} in the text of a text node stands for a text or number input —, or {id, kind: "asset", assetId, inputId} — an image, video, or audio asset takes the content hash of an input of its type. A bound property or asset holds its input\'s default; at most one binding writes a target.';
+  'A binding is {id, kind: "property", nodeId, property, inputId} — the text of a text node takes a text input, the color of a text or a background a color input —, {id, kind: "placeholders", nodeId} — every {{inputId}} in the text of a text node stands for a text or number input, and inside a repeat over a list every {{list.key}} for a text or number field of the item —, {id, kind: "asset", assetId, inputId} — an image, video, or audio asset takes the content hash of an input of its type —, {id, kind: "item-property", nodeId, property, inputId, key} — inside a repeat over the list inputId, the text or color of the node takes the field key of the item of its copy —, or {id, kind: "item-asset", assetId, inputId, key} — an asset used only inside a repeat over the list becomes one asset per item, with the content hash of the field key. A property or asset bound to an input holds its default; at most one binding writes a target.';
 
 /** The JSON Schema of the arguments of `AddTemplateInput` (D58.6): the input is the document's to judge. */
 export const addTemplateInputArgumentsSchema: AddTemplateInputArgumentsSchema = deepFreeze({
@@ -2123,6 +2211,78 @@ export const removeTemplateBindingArgumentsSchema: RemoveTemplateBindingArgument
     required: ['bindingId'],
     additionalProperties: false,
   });
+
+/** The JSON Schema of the arguments of `AddTemplateCondition` (D59.6): the condition is the document's to judge. */
+export const addTemplateConditionArgumentsSchema: AddTemplateConditionArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Inserts a condition: its scene or node is kept only while its test of an input holds.',
+  properties: {
+    index: {
+      type: 'integer',
+      description:
+        "The condition's index in the template's conditions after the insertion, from 0 to their number; their order has no meaning.",
+      ...INDEX_BOUNDS,
+    },
+    condition: {
+      type: 'object',
+      description: `The complete condition as the document stores it, with an ID unused in the document. ${CONDITION}`,
+    },
+  },
+  required: ['index', 'condition'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveTemplateCondition` (D59.6). */
+export const removeTemplateConditionArgumentsSchema: RemoveTemplateConditionArgumentsSchema =
+  deepFreeze({
+    type: 'object',
+    description: 'Removes a condition; its target is kept whatever the inputs.',
+    properties: {
+      conditionId: {
+        type: 'string',
+        description: 'The stable ID of a condition of the template.',
+        minLength: 1,
+      },
+    },
+    required: ['conditionId'],
+    additionalProperties: false,
+  });
+
+/** The JSON Schema of the arguments of `AddTemplateRepeat` (D59.6): the repeat is the document's to judge. */
+export const addTemplateRepeatArgumentsSchema: AddTemplateRepeatArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Inserts a repeat: its scene or node is copied once for each item of a list.',
+  properties: {
+    index: {
+      type: 'integer',
+      description:
+        "The repeat's index in the template's repeats after the insertion, from 0 to their number; their order has no meaning.",
+      ...INDEX_BOUNDS,
+    },
+    repeat: {
+      type: 'object',
+      description: `The complete repeat as the document stores it, with an ID unused in the document. ${REPEAT}`,
+    },
+  },
+  required: ['index', 'repeat'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveTemplateRepeat` (D59.6). */
+export const removeTemplateRepeatArgumentsSchema: RemoveTemplateRepeatArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Removes a repeat; its target is shown once, as it stands.',
+  properties: {
+    repeatId: {
+      type: 'string',
+      description: 'The stable ID of a repeat of the template.',
+      minLength: 1,
+    },
+  },
+  required: ['repeatId'],
+  additionalProperties: false,
+});
 
 /**
  * The JSON Schema of the arguments of `AddNode` (D39.1). `node` is an object and
@@ -3349,4 +3509,45 @@ export function parseAddTemplateBinding(value: unknown): AddTemplateBindingComma
 export function parseRemoveTemplateBinding(value: unknown): RemoveTemplateBindingCommand {
   const fields = fieldsOf(value, ['type', 'bindingId'], 'The command `RemoveTemplateBinding`');
   return Object.freeze({ type: 'RemoveTemplateBinding', bindingId: nodeIdOf(fields, 'bindingId') });
+}
+
+/** The fields of an `AddTemplateCondition` (D59.6); the document's validation judges the condition. */
+export function parseAddTemplateCondition(value: unknown): AddTemplateConditionCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'index', 'condition'],
+    'The command `AddTemplateCondition`',
+  );
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddTemplateCondition',
+    index,
+    condition: dataOf(fields['condition'], 'condition'),
+  });
+}
+
+/** The fields of a `RemoveTemplateCondition` (D59.6). */
+export function parseRemoveTemplateCondition(value: unknown): RemoveTemplateConditionCommand {
+  const fields = fieldsOf(value, ['type', 'conditionId'], 'The command `RemoveTemplateCondition`');
+  return Object.freeze({
+    type: 'RemoveTemplateCondition',
+    conditionId: nodeIdOf(fields, 'conditionId'),
+  });
+}
+
+/** The fields of an `AddTemplateRepeat` (D59.6); the document's validation judges the repeat. */
+export function parseAddTemplateRepeat(value: unknown): AddTemplateRepeatCommand {
+  const fields = fieldsOf(value, ['type', 'index', 'repeat'], 'The command `AddTemplateRepeat`');
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddTemplateRepeat',
+    index,
+    repeat: dataOf(fields['repeat'], 'repeat'),
+  });
+}
+
+/** The fields of a `RemoveTemplateRepeat` (D59.6). */
+export function parseRemoveTemplateRepeat(value: unknown): RemoveTemplateRepeatCommand {
+  const fields = fieldsOf(value, ['type', 'repeatId'], 'The command `RemoveTemplateRepeat`');
+  return Object.freeze({ type: 'RemoveTemplateRepeat', repeatId: nodeIdOf(fields, 'repeatId') });
 }

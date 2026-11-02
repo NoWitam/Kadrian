@@ -28,9 +28,13 @@ import migration07After from './compositions/migration-0-6-to-0-7.after.json' wi
 import migration07Before from './compositions/migration-0-6-to-0-7.before.json' with { type: 'json' };
 import migration08After from './compositions/migration-0-7-to-0-8.after.json' with { type: 'json' };
 import migration08Before from './compositions/migration-0-7-to-0-8.before.json' with { type: 'json' };
+import migration09After from './compositions/migration-0-8-to-0-9.after.json' with { type: 'json' };
+import migration09Before from './compositions/migration-0-8-to-0-9.before.json' with { type: 'json' };
 import invalidCases from './compositions/reference.invalid.json' with { type: 'json' };
 import reference from './compositions/reference.json' with { type: 'json' };
 import scenes from './compositions/scenes.json' with { type: 'json' };
+import repeatsExpected from './compositions/repeats.expected.json' with { type: 'json' };
+import repeats from './compositions/repeats.json' with { type: 'json' };
 import template from './compositions/template.json' with { type: 'json' };
 import transitions from './compositions/transitions.json' with { type: 'json' };
 import video from './compositions/video.json' with { type: 'json' };
@@ -48,6 +52,8 @@ import invalidCasesV06 from './compositions/reference.v0-6.invalid.json' with { 
 import referenceV06 from './compositions/reference.v0-6.json' with { type: 'json' };
 import invalidCasesV07 from './compositions/reference.v0-7.invalid.json' with { type: 'json' };
 import referenceV07 from './compositions/reference.v0-7.json' with { type: 'json' };
+import invalidCasesV08 from './compositions/reference.v0-8.invalid.json' with { type: 'json' };
+import referenceV08 from './compositions/reference.v0-8.json' with { type: 'json' };
 
 export {
   AUDIO_SAMPLE_RATE,
@@ -166,7 +172,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.8. */
+/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.9. */
 export const referenceComposition: unknown = deepFreeze(reference);
 
 /** Patches over `referenceComposition`; the consumer applies them to a copy. */
@@ -260,17 +266,47 @@ export const invalidCompositionCasesV07 = deepFreeze(
 ) as readonly InvalidCompositionCase[];
 
 /**
- * A template of schema 0.8 (D58): a 2 s card, 640x360, 30 fps, with seven
+ * The reference composition as schema 0.8 had it, byte for byte: the file is
+ * frozen (D35.4, D35.5). `migrateComposition` must carry it to
+ * `referenceComposition`, which was written by hand and not by the migration.
+ */
+export const referenceCompositionV08: unknown = deepFreeze(referenceV08);
+
+/** The negative corpus of schema 0.8, frozen with it: patches over `referenceCompositionV08`. */
+export const invalidCompositionCasesV08 = deepFreeze(
+  invalidCasesV08,
+) as readonly InvalidCompositionCase[];
+
+/**
+ * A template of schema 0.9 (D58): a 2 s card, 640x360, 30 fps, with seven
  * inputs — a text `name` and a number `rank` filling the placeholders of the
  * title, a colour `brand` bound to the background, a text `tagline` bound to
  * the tagline, an image `photo` bound to the photo's asset, a boolean
- * `show-photo` and a list `team` that no binding reads in 0.8 — and every
- * bound property and asset holding its input's default.
+ * `show-photo` and a list `team` that nothing reads — and every bound
+ * property and asset holding its input's default.
  */
 export const templateComposition: unknown = deepFreeze(template);
 
 /**
- * A composition of schema 0.8 with captions (D57): 3 s, 640x360, 30 fps, one
+ * A template of schema 0.9 with conditions and repeats (D59): 640x360, 30 fps;
+ * an intro scene kept while the boolean `show-intro` holds, then a scene
+ * repeated for each person of the list `people` for the duration its item
+ * names, with the colour, the name, and the portrait of the item, and a
+ * credits scene whose line repeats for each person, a note kept while the list
+ * is empty, and a line kept while the text `mood` equals `stars`.
+ */
+export const repeatsComposition: unknown = deepFreeze(repeats);
+
+/**
+ * The instantiation of `repeatsComposition` with its defaults, written by hand
+ * (D59.4): two person scenes of 0.8 s and 1.2 s with the IDs of copies 0 and 1,
+ * two credit lines 0.4 s apart, one portrait asset per person, the transition
+ * into the first copy, no empty note, and 3.8 s in all.
+ */
+export const repeatsInstantiated: unknown = deepFreeze(repeatsExpected);
+
+/**
+ * A composition of schema 0.9 with captions (D57): 3 s, 640x360, 30 fps, one
  * scene with a background and a captions node of ten words, centred at the
  * bottom of its box, at most 16 characters a line and two lines a page, so
  * that the words make four lines and two pages. The first word starts at
@@ -296,7 +332,7 @@ export const captionsGoldenTimestamps: readonly GoldenTimestamp[] = Object.freez
 );
 
 /**
- * A composition of schema 0.8 with five scenes and a transition of each kind
+ * A composition of schema 0.9 with five scenes and a transition of each kind
  * between them (D56): a crossfade, a fade through white, a slide to the left,
  * and a wipe upwards, each 400 ms, and in the last scene a crossfade of 400 ms
  * between an image and a text of one layer. Every scene and every transition
@@ -406,6 +442,16 @@ export const migrationPair07To08: MigrationPair = deepFreeze({
   after: migration08After,
 });
 
+/**
+ * The hand-written pair of the step 0.8 → 0.9 (D35.5, D59): the document the
+ * pair of 0.7 → 0.8 ends with, whose `schemaVersion` changes and whose template
+ * section gains an empty list of conditions and of repeats.
+ */
+export const migrationPair08To09: MigrationPair = deepFreeze({
+  before: migration09Before,
+  after: migration09After,
+});
+
 /** Which nodes of `lifetimeComposition` are active and which are shown at one time. */
 export interface ExpectedLifetime {
   readonly timeUs: number;
@@ -424,7 +470,7 @@ export interface ExpectedLifetimes {
   readonly times: readonly ExpectedLifetime[];
 }
 
-/** A small composition of schema 0.8 whose nodes begin and end inside it (D42.2). */
+/** A small composition of schema 0.9 whose nodes begin and end inside it (D42.2). */
 export const lifetimeComposition: unknown = deepFreeze(lifetime);
 
 /**

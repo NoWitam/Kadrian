@@ -41,6 +41,7 @@ const MAIN_ENTRY_MODULES = [
   'json-schema.js',
   'scenes.js',
   'source-frame.js',
+  'template-structure.js',
   'template-values.js',
   'validate-semantics.js',
   'validate-structure.js',

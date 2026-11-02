@@ -38,7 +38,12 @@ import { installCodecs, testMp4 } from './media.js';
 function templateOf(document: unknown): unknown {
   return {
     ...(document as object),
-    template: { inputs: [{ id: 'flag', type: 'boolean', default: true }], bindings: [] },
+    template: {
+      inputs: [{ id: 'flag', type: 'boolean', default: true }],
+      bindings: [],
+      conditions: [],
+      repeats: [],
+    },
   };
 }
 

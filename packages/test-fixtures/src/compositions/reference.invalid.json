@@ -32,7 +32,7 @@
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.9" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.10" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -1946,5 +1946,696 @@
       }
     ],
     "expectedErrors": [{ "code": "invalid-value", "path": "/template/bindings/0/kind" }]
+  },
+  {
+    "name": "template-conditions-missing",
+    "description": "A template of 0.9 has a list of conditions, empty when it has none (D59.5).",
+    "patch": [{ "op": "remove", "path": "/template/conditions" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/template/conditions" }]
+  },
+  {
+    "name": "template-repeats-missing",
+    "description": "A template of 0.9 has a list of repeats, empty when it has none (D59.5).",
+    "patch": [{ "op": "remove", "path": "/template/repeats" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/template/repeats" }]
+  },
+  {
+    "name": "condition-test-unknown",
+    "description": "A condition tests with one of a closed set of predicates (D59.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "show", "type": "boolean", "default": true }
+      },
+      {
+        "op": "add",
+        "path": "/template/conditions/-",
+        "value": { "id": "when", "test": "maybe", "targetId": "node-title", "inputId": "show" }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/template/conditions/0/test" }]
+  },
+  {
+    "name": "condition-target-unresolved",
+    "description": "A condition names a scene or a node of the composition (D59.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "show", "type": "boolean", "default": true }
+      },
+      {
+        "op": "add",
+        "path": "/template/conditions/-",
+        "value": { "id": "when", "test": "true", "targetId": "node-nobody", "inputId": "show" }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-target-reference", "path": "/template/conditions/0/targetId" }
+    ]
+  },
+  {
+    "name": "condition-input-unresolved",
+    "description": "A condition tests an input of the template (D59.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/conditions/-",
+        "value": { "id": "when", "test": "true", "targetId": "node-title", "inputId": "show" }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-input-reference", "path": "/template/conditions/0/inputId" }
+    ]
+  },
+  {
+    "name": "condition-test-type-mismatch",
+    "description": "A test fits the type of its input: true reads a boolean (D59.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "headline", "type": "text", "minLength": 0, "maxLength": 9, "default": "" }
+      },
+      {
+        "op": "add",
+        "path": "/template/conditions/-",
+        "value": { "id": "when", "test": "true", "targetId": "node-title", "inputId": "headline" }
+      }
+    ],
+    "expectedErrors": [{ "code": "condition-type-mismatch", "path": "/template/conditions/0/test" }]
+  },
+  {
+    "name": "condition-equal-number-on-text",
+    "description": "equal-number reads a number input (D59.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "headline", "type": "text", "minLength": 0, "maxLength": 9, "default": "" }
+      },
+      {
+        "op": "add",
+        "path": "/template/conditions/-",
+        "value": {
+          "id": "when",
+          "test": "equal-number",
+          "targetId": "scene-main",
+          "inputId": "headline",
+          "value": 1
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "condition-type-mismatch", "path": "/template/conditions/0/test" }]
+  },
+  {
+    "name": "repeat-duration-unknown",
+    "description": "A repeat takes the duration of its target or of a field (D59.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each",
+          "duration": "forever",
+          "targetId": "node-title",
+          "inputId": "people"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/template/repeats/0/duration" }]
+  },
+  {
+    "name": "repeat-target-unresolved",
+    "description": "A repeat names a scene or a node of the composition (D59.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each",
+          "duration": "target",
+          "targetId": "node-nobody",
+          "inputId": "people"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-target-reference", "path": "/template/repeats/0/targetId" }
+    ]
+  },
+  {
+    "name": "repeat-input-not-list",
+    "description": "A repeat reads a list input (D59.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "headline", "type": "text", "minLength": 0, "maxLength": 9, "default": "" }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each",
+          "duration": "target",
+          "targetId": "node-title",
+          "inputId": "headline"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "repeat-type-mismatch", "path": "/template/repeats/0/inputId" }]
+  },
+  {
+    "name": "repeat-field-unresolved",
+    "description": "A repeat takes its duration from a field of its list (D59.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each",
+          "duration": "field",
+          "targetId": "node-title",
+          "inputId": "people",
+          "key": "seconds"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "unresolved-field-reference", "path": "/template/repeats/0/key" }]
+  },
+  {
+    "name": "repeat-field-not-number",
+    "description": "A duration is read from a number field (D59.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each",
+          "duration": "field",
+          "targetId": "node-title",
+          "inputId": "people",
+          "key": "name"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "repeat-type-mismatch", "path": "/template/repeats/0/key" }]
+  },
+  {
+    "name": "repeat-nested",
+    "description": "No repeated node lies inside a repeated scene (D59.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each-scene",
+          "duration": "target",
+          "targetId": "scene-main",
+          "inputId": "people"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each-title",
+          "duration": "target",
+          "targetId": "node-title",
+          "inputId": "people"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "nested-repeat", "path": "/template/repeats/1/targetId" }]
+  },
+  {
+    "name": "repeat-twice",
+    "description": "A target is repeated by one repeat at most (D59.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each",
+          "duration": "target",
+          "targetId": "node-title",
+          "inputId": "people"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each-again",
+          "duration": "target",
+          "targetId": "node-title",
+          "inputId": "people"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "nested-repeat", "path": "/template/repeats/1/targetId" }]
+  },
+  {
+    "name": "repeat-in-transition",
+    "description": "A repeated node is no side of a clip transition, whose overlap its copies could not keep (D59.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "title-to-html",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 10000000,
+          "effect": { "kind": "crossfade" }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each",
+          "duration": "target",
+          "targetId": "node-title",
+          "inputId": "people"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "repeat-in-transition", "path": "/template/repeats/0/targetId" }]
+  },
+  {
+    "name": "repeat-id-reserved",
+    "description": "No ID has the form of the ID of a copy of an ID a repeat copies (D59.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "node-title--3",
+          "type": "image",
+          "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each",
+          "duration": "target",
+          "targetId": "node-title",
+          "inputId": "people"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "repeat-id-reserved", "path": "/assets/3/id" }]
+  },
+  {
+    "name": "item-property-outside-repeat",
+    "description": "An item binding lies inside a repeat over its list (D59.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-accent",
+          "kind": "item-property",
+          "nodeId": "node-title",
+          "property": "color",
+          "inputId": "people",
+          "key": "accent"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "item-outside-repeat", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "item-placeholder-outside-repeat",
+    "description": "A placeholder of a field lies inside a repeat over its list (D59.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      { "op": "replace", "path": "/scenes/0/nodes/2/text", "value": "{{people.name}}" },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": { "id": "bind-title", "kind": "placeholders", "nodeId": "node-title" }
+      }
+    ],
+    "expectedErrors": [{ "code": "item-outside-repeat", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "item-placeholder-field-unresolved",
+    "description": "A placeholder of a field names a field of its list (D59.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      { "op": "replace", "path": "/scenes/0/nodes/2/text", "value": "{{people.age}}" },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": { "id": "bind-title", "kind": "placeholders", "nodeId": "node-title" }
+      },
+      {
+        "op": "add",
+        "path": "/template/repeats/-",
+        "value": {
+          "id": "each",
+          "duration": "target",
+          "targetId": "node-title",
+          "inputId": "people"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "unresolved-field-reference", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "item-placeholder-too-deep",
+    "description": "A placeholder is {{inputId}} or {{inputId.key}}, nothing deeper (D59.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      { "op": "replace", "path": "/scenes/0/nodes/2/text", "value": "{{people.name.first}}" },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": { "id": "bind-title", "kind": "placeholders", "nodeId": "node-title" }
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-placeholder", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "item-property-field-unresolved",
+    "description": "An item binding names a field of its list (D59.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-accent",
+          "kind": "item-property",
+          "nodeId": "node-title",
+          "property": "color",
+          "inputId": "people",
+          "key": "nobody"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "unresolved-field-reference", "path": "/template/bindings/0/key" }]
+  },
+  {
+    "name": "item-property-not-list",
+    "description": "An item binding reads a list input (D59.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "headline", "type": "text", "minLength": 0, "maxLength": 9, "default": "" }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-accent",
+          "kind": "item-property",
+          "nodeId": "node-title",
+          "property": "text",
+          "inputId": "headline",
+          "key": "name"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-type-mismatch", "path": "/template/bindings/0/inputId" }]
+  },
+  {
+    "name": "item-asset-field-type-mismatch",
+    "description": "An asset takes a field of its type (D59.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-portrait",
+          "kind": "item-asset",
+          "assetId": "asset-image",
+          "inputId": "people",
+          "key": "name"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-type-mismatch", "path": "/template/bindings/0/key" }]
+  },
+  {
+    "name": "item-asset-outside-repeat",
+    "description": "Every use of an asset bound to a field lies inside one repeat over its list (D59.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "people",
+          "type": "list",
+          "minItems": 0,
+          "maxItems": 4,
+          "fields": [
+            { "key": "name", "type": "text", "minLength": 0, "maxLength": 9 },
+            { "key": "accent", "type": "color" },
+            { "key": "portrait", "type": "image" }
+          ],
+          "default": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-portrait",
+          "kind": "item-asset",
+          "assetId": "asset-image",
+          "inputId": "people",
+          "key": "portrait"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "item-outside-repeat", "path": "/template/bindings/0" }]
   }
 ]
