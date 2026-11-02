@@ -44,9 +44,40 @@ export const VIDEO_NODE = Object.freeze({
   volume: 0,
 });
 
+/** The captions node `everyType` adds to the reference composition (D57). */
+export const CAPTIONS_NODE = Object.freeze({
+  id: 'node-captions',
+  type: 'captions',
+  startUs: 0,
+  durationUs: 2_000_000,
+  position: Object.freeze({ x: 40, y: 1500 }),
+  scale: Object.freeze({ x: 1, y: 1 }),
+  opacity: 1,
+  animations: Object.freeze([]),
+  fontAssetId: 'asset-font',
+  width: 1000,
+  height: 300,
+  style: Object.freeze({
+    fontSize: 64,
+    lineHeight: 80,
+    color: '#ffffff',
+    highlightColor: '#ffd400',
+    align: 'center',
+    verticalAlign: 'bottom',
+    maxLineLength: 16,
+    maxLines: 2,
+  }),
+  words: Object.freeze([
+    Object.freeze({ text: 'Kadrion', startUs: 0, durationUs: 400_000 }),
+    Object.freeze({ text: 'renders', startUs: 400_000, durationUs: 400_000 }),
+    Object.freeze({ text: 'captions', startUs: 1_000_000, durationUs: 500_000 }),
+  ]),
+});
+
 /**
- * The reference composition with one video node at the top of its scene and
- * its asset (D50.1): a document that holds a node of every type of the schema.
+ * The reference composition with one video node and one captions node at the
+ * top of its scene, and the video's asset (D50.1, D57): a document that holds
+ * a node of every type of the schema.
  */
 export function everyType(): ValidatedComposition {
   const draft = structuredClone(referenceComposition) as {
@@ -55,6 +86,7 @@ export function everyType(): ValidatedComposition {
   };
   draft.assets.push(structuredClone(VIDEO_ASSET));
   draft.scenes[0]?.nodes.push(structuredClone(VIDEO_NODE));
+  draft.scenes[0]?.nodes.push(structuredClone(CAPTIONS_NODE));
   return validated(draft);
 }
 

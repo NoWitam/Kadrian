@@ -28,6 +28,9 @@ import {
   parseRemoveTransition,
   parseSetTransitionDuration,
   parseSetTransitionEffect,
+  parseSetCaptionStyle,
+  parseSetCaptionWord,
+  parseSetCaptionWords,
   parseAddSceneAudioClip,
   parseJoinClips,
   parseMoveClip,
@@ -679,6 +682,24 @@ function refuseGroup(found: TimelineClip, clipId: string): void {
       `The node \`${clipId}\` is a group; its children have their own lifetimes, so it is not split or joined (D55.4).`,
     );
   }
+}
+
+/**
+ * Every word of a captions node moved by `deltaUs`, as its keyframes are: the
+ * words are in scene time and are content of the clip (D55.3, D57.5). Any
+ * other node is returned as it is.
+ */
+function shiftedWords(node: DocumentObject, deltaUs: number): DocumentObject {
+  const words: unknown = node['words'];
+  if (node['type'] !== 'captions' || !Array.isArray(words)) return node;
+  return {
+    ...node,
+    words: (words as readonly unknown[]).map((word) => {
+      if (!isObject(word)) return word;
+      const startUs: unknown = word['startUs'];
+      return typeof startUs === 'number' ? { ...word, startUs: startUs + deltaUs } : word;
+    }),
+  };
 }
 
 /** Every keyframe of an owner's animations moved by `deltaUs`; every key keeps its place (D55.3). */
@@ -1633,8 +1654,9 @@ const DEFINITIONS = deepFreeze<Definitions>({
       const deltaUs = command.startUs - startUs;
       let clip: DocumentObject = { ...found.clip, startUs: command.startUs };
       if (found.kind === 'node') {
-        // The content moves with the clip: its keyframes, and a group's children with theirs (D55.3).
-        clip = shiftedAnimations(clip, deltaUs);
+        // The content moves with the clip: its keyframes and words, and a group's children
+        // with theirs (D55.3, D57.5).
+        clip = shiftedWords(shiftedAnimations(clip, deltaUs), deltaUs);
         const children: unknown = clip['children'];
         if (Array.isArray(children)) {
           clip = {
@@ -1952,10 +1974,63 @@ const DEFINITIONS = deepFreeze<Definitions>({
       };
     },
   },
+  SetCaptionWords: {
+    parse: parseSetCaptionWords,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['captions'], command.nodeId);
+        const words = wordsOf(node);
+        if (sameData(words, command.words)) return null;
+        return {
+          node: { ...node, words: command.words },
+          // A frozen copy of the words as they were, so undo restores the same bytes (D30).
+          inverse: parseSetCaptionWords({ type: 'SetCaptionWords', nodeId: command.nodeId, words }),
+        };
+      }),
+  },
+  SetCaptionWord: {
+    parse: parseSetCaptionWord,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['captions'], command.nodeId);
+        const words = wordsOf(node);
+        const word = words[command.index];
+        if (word === undefined) {
+          throw outOfRange(command.index, words.length - 1, `the words of \`${command.nodeId}\``);
+        }
+        if (sameData(word, command.word)) return null;
+        return {
+          node: {
+            ...node,
+            words: words.map((item, at) => (at === command.index ? command.word : item)),
+          },
+          inverse: parseSetCaptionWord({ ...command, word }),
+        };
+      }),
+  },
+  SetCaptionStyle: {
+    parse: parseSetCaptionStyle,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['captions'], command.nodeId);
+        const style: unknown = node['style'];
+        if (sameData(style, command.style)) return null;
+        return {
+          node: { ...node, style: command.style },
+          inverse: parseSetCaptionStyle({ ...command, style }),
+        };
+      }),
+  },
 });
 
-/** Whether two effects hold the same data, key order included, so that no edit is an edit (D30.9). */
-function sameData(a: DocumentObject, b: DocumentObject): boolean {
+/** The words of a captions node, as the document holds them (D57). */
+function wordsOf(node: DocumentObject): readonly unknown[] {
+  const words: unknown = node['words'];
+  return Array.isArray(words) ? (words as readonly unknown[]) : [];
+}
+
+/** Whether two values hold the same data, key order included, so that no edit is an edit (D30.9). */
+function sameData(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 

@@ -39,6 +39,8 @@ export type ValidationErrorCode =
   | 'transition-too-long'
   /** A side meets two transitions at one of its ends (D49.4, D56). */
   | 'duplicate-transition'
+  /** A caption word starts before the word before it ends (D57). */
+  | 'caption-words-overlap'
   | 'duplicate-animation-target';
 
 export interface ValidationError {

@@ -3,11 +3,18 @@
  * found again through its addressing attributes; nothing is remembered between
  * calls, so the result depends on the mounted document and the state only.
  */
-import type { CompositionState, NodeState, SceneState } from '@kadrion/runtime';
+import type { CaptionsNodeState, CompositionState, NodeState, SceneState } from '@kadrion/runtime';
 
 import { cssColor, cssInset, cssNumber, cssPixels, cssTransform } from './css.js';
 import { RenderError, unsupportedNode } from './errors.js';
-import { NODE_ATTRIBUTE, SCENE_ATTRIBUTE, STAGE_ATTRIBUTE } from './mount.js';
+import {
+  CAPTION_PAGE_ATTRIBUTE,
+  CAPTION_WORD_ATTRIBUTE,
+  HIGHLIGHT_PROPERTY,
+  NODE_ATTRIBUTE,
+  SCENE_ATTRIBUTE,
+  STAGE_ATTRIBUTE,
+} from './mount.js';
 
 /** A node of the state together with the element that was mounted for it. */
 export interface MountedNode {
@@ -59,6 +66,17 @@ function plan(
         const childState = state.children[index];
         if (childState !== undefined) plan(child, childState, sceneTimeUs, writes);
       });
+      return;
+    }
+    case 'captions': {
+      // The page shown must be one the mount built (D57).
+      const pages = element.querySelectorAll(`[${CAPTION_PAGE_ATTRIBUTE}]`).length;
+      if (state.page !== null && state.page >= pages) {
+        mismatch(
+          `The captions \`${state.id}\` have ${String(pages)} pages mounted where the state shows page ${String(state.page)}.`,
+        );
+      }
+      writes.push({ element, state, sceneTimeUs });
       return;
     }
     case 'image':
@@ -185,15 +203,43 @@ export function renderState(root: Element, state: CompositionState): void {
     // Back to what the mount wrote, so the tree never keeps an earlier instant.
     for (const node of element.querySelectorAll<HTMLElement>(`[${NODE_ATTRIBUTE}]`)) {
       for (const property of WRITTEN) node.style.removeProperty(property);
+      writeCaptions(node, null);
     }
   }
   for (const { element, state: node } of tree.nodes) {
+    if (node.type === 'captions') writeCaptions(element, node);
     if (node.type !== 'background') {
       element.style.setProperty('transform', cssTransform(node));
       element.style.setProperty('opacity', cssNumber(node.opacity));
     }
     if (node.active) element.style.removeProperty('visibility');
     else element.style.setProperty('visibility', 'hidden');
+  }
+}
+
+/**
+ * Shows the page of a captions node that its state names and hides every other
+ * one, and gives the word being spoken the highlight colour the mount wrote
+ * on the box as a custom property, and every other
+ * word none of its own (D57). `null`, or a state without a page, is the tree as
+ * mounted: every page hidden, no word highlighted. Every page and word is
+ * written on every call, so nothing depends on what an earlier call left.
+ */
+function writeCaptions(element: HTMLElement, state: CaptionsNodeState | null): void {
+  for (const page of element.querySelectorAll<HTMLElement>(`[${CAPTION_PAGE_ATTRIBUTE}]`)) {
+    const shown =
+      state?.page != null && page.getAttribute(CAPTION_PAGE_ATTRIBUTE) === String(state.page);
+    page.style.setProperty('display', shown ? 'flex' : 'none');
+  }
+  for (const word of element.querySelectorAll<HTMLElement>(`[${CAPTION_WORD_ATTRIBUTE}]`)) {
+    const spoken =
+      state?.word != null && word.getAttribute(CAPTION_WORD_ATTRIBUTE) === String(state.word);
+    if (spoken) word.style.setProperty('color', `var(${HIGHLIGHT_PROPERTY})`);
+    else {
+      word.style.removeProperty('color');
+      // A word without a declaration carries no style attribute, as the mount built it.
+      if (word.style.length === 0) word.removeAttribute('style');
+    }
   }
 }
 

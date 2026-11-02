@@ -111,6 +111,43 @@ const TRANSITION_SETUP: readonly Command[] = [
   },
 ];
 
+/** A captions node of the examples (D57). */
+const CAPTIONS_SETUP: readonly Command[] = [
+  {
+    type: 'AddNode',
+    parentId: 'scene-main',
+    index: 4,
+    node: {
+      id: 'node-captions',
+      type: 'captions',
+      startUs: 0,
+      durationUs: 2_000_000,
+      position: { x: 40, y: 1500 },
+      scale: { x: 1, y: 1 },
+      opacity: 1,
+      animations: [],
+      fontAssetId: 'asset-font',
+      width: 1000,
+      height: 300,
+      style: {
+        fontSize: 64,
+        lineHeight: 80,
+        color: '#ffffff',
+        highlightColor: '#ffd400',
+        align: 'center',
+        verticalAlign: 'bottom',
+        maxLineLength: 16,
+        maxLines: 2,
+      },
+      words: [
+        { text: 'Made', startUs: 0, durationUs: 300_000 },
+        { text: 'with', startUs: 300_000, durationUs: 200_000 },
+        { text: 'Kadrion', startUs: 500_000, durationUs: 400_000 },
+      ],
+    },
+  },
+];
+
 const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetNodePosition: [],
   SetNodeOpacity: [],
@@ -191,6 +228,9 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   RemoveTransition: TRANSITION_SETUP,
   SetTransitionDuration: TRANSITION_SETUP,
   SetTransitionEffect: TRANSITION_SETUP,
+  SetCaptionWords: CAPTIONS_SETUP,
+  SetCaptionWord: CAPTIONS_SETUP,
+  SetCaptionStyle: CAPTIONS_SETUP,
 };
 
 function prepared(type: Command['type']): CommandBus {

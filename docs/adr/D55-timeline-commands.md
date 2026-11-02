@@ -6,6 +6,7 @@
 - Supersedes: —
 - Extends: D46 (five tools), D49 (49.1: which keyframes a split copies, and
   their IDs), each with an `Amended by: PR-31 (D55)` line
+- Amended by: PR-33 (D57) on 2026-11-02: a move carries the words of captions, a trim moves none, and a split copies them to both halves (D57.5)
 - Related: D30, D38, D39, D41, D42, D49, D52, D53, D54,
   [roadmap of phase three](../roadmap/phase-3.md) PR-31
 

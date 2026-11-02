@@ -24,6 +24,9 @@ import {
   removeTransitionArgumentsSchema,
   setTransitionDurationArgumentsSchema,
   setTransitionEffectArgumentsSchema,
+  setCaptionStyleArgumentsSchema,
+  setCaptionWordArgumentsSchema,
+  setCaptionWordsArgumentsSchema,
   deepFreeze,
   joinClipsArgumentsSchema,
   moveClipArgumentsSchema,
@@ -72,6 +75,9 @@ import {
   type AddClipTransitionArgumentsSchema,
   type AddSceneTransitionArgumentsSchema,
   type SetTransitionEffectArgumentsSchema,
+  type SetCaptionStyleArgumentsSchema,
+  type SetCaptionWordArgumentsSchema,
+  type SetCaptionWordsArgumentsSchema,
   type ClosedObjectSchema,
   type Command,
 } from './commands.js';
@@ -94,7 +100,10 @@ export type CommandArgumentsSchema =
   | AddSceneAudioClipArgumentsSchema
   | AddSceneTransitionArgumentsSchema
   | AddClipTransitionArgumentsSchema
-  | SetTransitionEffectArgumentsSchema;
+  | SetTransitionEffectArgumentsSchema
+  | SetCaptionWordsArgumentsSchema
+  | SetCaptionWordArgumentsSchema
+  | SetCaptionStyleArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -131,6 +140,9 @@ const CLIPS =
 const TRANSITIONS =
   'A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions.';
 
+const CAPTIONS =
+  'A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken takes highlightColor. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0.';
+
 const PIXELS = 'Lengths and coordinates are composition pixels, rounded to integers.';
 
 const ANIMATED =
@@ -157,7 +169,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -220,7 +232,7 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   SetTextFont: {
     description:
-      'Points a text at another font asset that the document declares (add one with add_asset first). Refused with unknown-node, unsupported-node for a node that is not a text, unknown-asset, and asset-type-mismatch when the asset is not a font.',
+      'Points a text or captions node at another font asset that the document declares (add one with add_asset first). Refused with unknown-node, unsupported-node for a node that is neither a text nor captions, unknown-asset, and asset-type-mismatch when the asset is not a font.',
     example: { nodeId: 'node-title', fontAssetId: 'asset-font-bold' },
     argumentsSchema: setTextFontArgumentsSchema,
   },
@@ -434,7 +446,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: addSceneAudioClipArgumentsSchema,
   },
   MoveClip: {
-    description: `Moves one clip — a node of any type, or an audio clip — to a new start, keeping its duration and, for a video or an audio clip, its source: it plays the same, only earlier or later. A node's keyframes move with it, and a group's children with theirs, so its animation keeps its place in the clip; set_node_lifetime is the command that changes when a node is shown without moving keyframes. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, invalid-result when a keyframe or a child would leave the times of the document, and, when a video or sound would then be seen or heard further, media-facts-missing and source-range-exceeded.`,
+    description: `Moves one clip — a node of any type, or an audio clip — to a new start, keeping its duration and, for a video or an audio clip, its source: it plays the same, only earlier or later. A node's keyframes and a captions node's words move with it, and a group's children with theirs, so its animation keeps its place in the clip; set_node_lifetime is the command that changes when a node is shown without moving keyframes. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, invalid-result when a keyframe or a child would leave the times of the document, and, when a video or sound would then be seen or heard further, media-facts-missing and source-range-exceeded.`,
     example: { clipId: 'node-title', startUs: 1_000_000 },
     argumentsSchema: moveClipArgumentsSchema,
   },
@@ -501,6 +513,44 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Replaces how a transition combines its two sides with a complete effect: {"kind":"crossfade"}, {"kind":"fade-through-color","color":"#000000"}, {"kind":"slide","direction":"left"}, or {"kind":"wipe","direction":"up"}; directions are left, right, up, and down, the way the incoming scene moves. A clip transition takes crossfade only. No time changes. ${TRANSITIONS} Refused with unknown-transition and invalid-result.`,
     example: { transitionId: 'transition-outro', effect: { kind: 'wipe', direction: 'left' } },
     argumentsSchema: setTransitionEffectArgumentsSchema,
+  },
+  SetCaptionWords: {
+    description: `Replaces every word of a captions node with a new list, as for a new transcription: each word {text, startUs, durationUs}, in the order they are spoken, each starting no earlier than the one before it ends; text is at least one character and no white space. ${CAPTIONS} ${TIME_US} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result when a word is not one the document can hold or two words overlap.`,
+    example: {
+      nodeId: 'node-captions',
+      words: [
+        { text: 'Made', startUs: 0, durationUs: 300_000 },
+        { text: 'with', startUs: 300_000, durationUs: 200_000 },
+        { text: 'Kadrion', startUs: 500_000, durationUs: 600_000 },
+      ],
+    },
+    argumentsSchema: setCaptionWordsArgumentsSchema,
+  },
+  SetCaptionWord: {
+    description: `Replaces one word of a captions node with a complete word {text, startUs, durationUs}: a corrected text, a new timing, or both; it must still start no earlier than the word before it ends and end no later than the next one starts. ${CAPTIONS} ${TIME_US} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, index-out-of-range, and invalid-result.`,
+    example: {
+      nodeId: 'node-captions',
+      index: 2,
+      word: { text: 'Kadrion', startUs: 500_000, durationUs: 600_000 },
+    },
+    argumentsSchema: setCaptionWordArgumentsSchema,
+  },
+  SetCaptionStyle: {
+    description: `Replaces the style of a captions node with a complete style {fontSize, lineHeight, color, highlightColor, align, verticalAlign, maxLineLength, maxLines}: its size and colours, where its lines lie in its box, and how many characters fit on a line and lines on a page, which changes how the words are grouped. No word and no time changes. ${CAPTIONS} ${PIXELS} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result.`,
+    example: {
+      nodeId: 'node-captions',
+      style: {
+        fontSize: 64,
+        lineHeight: 80,
+        color: '#ffffff',
+        highlightColor: '#ffd400',
+        align: 'center',
+        verticalAlign: 'bottom',
+        maxLineLength: 24,
+        maxLines: 2,
+      },
+    },
+    argumentsSchema: setCaptionStyleArgumentsSchema,
   },
 });
 

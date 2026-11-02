@@ -7,6 +7,7 @@
 - Supersedes: —
 - Amended by: PR-30 (D54) on 2026-11-01: 19.4: each scene of the state carries its scene time `timeUs`, and `scenes` lists the evaluated scenes only (D54.3)
 - Amended by: PR-32 (D56) on 2026-11-01: 19.4: a scene changed by a transition carries `transition`, and the state carries `backdrop` while a fade through a colour shows it (D56.5)
+- Amended by: PR-33 (D57) on 2026-11-02: 19.4: a captions node state carries the index of the page shown and of the word spoken, each `null` when there is none (D57.4)
 - Related: D03, D12, D14, D15, D16, D17, D18,
   [specification](../spike/vertical-spike.md) §5.1, §10, and open questions Q15
   and Q17

@@ -13,6 +13,7 @@ import {
   AUDIO_SAMPLE_RATE,
   AUDIO_SECONDS,
   FONT_GLYPHS,
+  captionsComposition,
   generateReferenceAssets,
   IMAGE_SIZE,
   referenceComposition,
@@ -226,6 +227,26 @@ describe('asset-font', () => {
     });
     for (const character of texts.join(''))
       expect(FONT_GLYPHS, character).toHaveProperty([character]);
+  });
+});
+
+describe('the captions composition (D57)', () => {
+  it('uses only characters of the glyph set in its words, and the font of the reference', () => {
+    const document = captionsComposition as {
+      assets: { id: string; contentHash: string }[];
+      scenes: { nodes: { type: string; words?: { text: string }[] }[] }[];
+    };
+    const words = document.scenes
+      .flatMap((scene) => scene.nodes)
+      .flatMap((node) => (node.type === 'captions' ? (node.words ?? []) : []))
+      .map(({ text }) => text);
+    expect(words).toHaveLength(10);
+    for (const character of words.join(' '))
+      expect(FONT_GLYPHS, character).toHaveProperty([character]);
+    const font = (referenceComposition as typeof document).assets.find(
+      ({ id }) => id === 'asset-font',
+    );
+    expect(document.assets).toEqual([font]);
   });
 });
 

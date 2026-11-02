@@ -11,14 +11,23 @@
  * and the rule that the composition lasts as long as its scenes (D54.2), which
  * no earlier scene has the fields for, and the transitions of 0.6 add the
  * rules of D56, which no earlier document has the field for, and subtract
- * their durations from that sum. `migrateComposition` applies them to
- * documents of 0.1 to 0.5 too (D35.4), which is why the document type is any
- * of the six versions'; the negative corpus of 0.1 is kept
+ * their durations from that sum, and the captions of 0.7 add the reference to
+ * their font and the order of their words (D57), which no earlier document can
+ * have. `migrateComposition` applies them to
+ * documents of 0.1 to 0.6 too (D35.4), which is why the document type is any
+ * of the seven versions'; the negative corpus of 0.1 is kept
  * and pins what they were. A rule that a later version changes gets its own
  * function, never a branch here.
  */
 import { pointer, type ValidationError } from './errors.js';
-import type { Asset, AudioClip, Composition, NodeAnimation, SceneNode } from './types.js';
+import type {
+  Asset,
+  AudioClip,
+  CaptionsNode,
+  Composition,
+  NodeAnimation,
+  SceneNode,
+} from './types.js';
 // A type only: it is erased when the module is built, so the main entry reaches no
 // historical module at run time (D42.8; `migration-entry.test.ts` walks the built output).
 import type { CompositionV01 } from './v0-1/composition-schema.js';
@@ -26,6 +35,7 @@ import type { CompositionV02 } from './v0-2/composition-schema.js';
 import type { CompositionV03 } from './v0-3/composition-schema.js';
 import type { CompositionV04 } from './v0-4/composition-schema.js';
 import type { CompositionV05 } from './v0-5/composition-schema.js';
+import type { CompositionV06 } from './v0-6/composition-schema.js';
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -88,6 +98,28 @@ function checkAnimations(
   });
 }
 
+/**
+ * The words of a captions node are spoken one after the other (D57): each
+ * starts no earlier than the one before it ends. Compared as a difference, so
+ * no end is formed past the safe integers.
+ */
+function checkCaptionWords(
+  words: CaptionsNode['words'],
+  path: string,
+  errors: ValidationError[],
+): void {
+  words.forEach((word, index) => {
+    const previous = words[index - 1];
+    if (previous !== undefined && word.startUs - previous.startUs < previous.durationUs) {
+      errors.push({
+        code: 'caption-words-overlap',
+        path: pointer(pointer(path, index), 'startUs'),
+        message: 'A word starts no earlier than the word before it ends.',
+      });
+    }
+  });
+}
+
 export function validateSemantics(
   composition:
     | Composition
@@ -95,7 +127,8 @@ export function validateSemantics(
     | CompositionV02
     | CompositionV03
     | CompositionV04
-    | CompositionV05,
+    | CompositionV05
+    | CompositionV06,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -113,6 +146,7 @@ export function validateSemantics(
   };
   const animationErrors: ValidationError[] = [];
   const sourceErrors: ValidationError[] = [];
+  const captionErrors: ValidationError[] = [];
 
   composition.scenes.forEach((scene, sceneIndex) => {
     const nodesPath = pointer(pointer(pointer('', 'scenes'), sceneIndex), 'nodes');
@@ -141,6 +175,9 @@ export function validateSemantics(
           }
         } else if (member.node.type === 'text') {
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
+        } else if (member.node.type === 'captions') {
+          checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
+          checkCaptionWords(member.node.words, pointer(member.path, 'words'), captionErrors);
         }
         if (member.node.type !== 'background') {
           const animationsPath = pointer(member.path, 'animations');
@@ -220,6 +257,7 @@ export function validateSemantics(
     ...fadeErrors,
     ...durationErrors,
     ...transitionErrors,
+    ...captionErrors,
   ];
 }
 
@@ -237,7 +275,7 @@ interface Located {
  * transition at each end; and a transition is at most as long as either side,
  * and the two of one side together at most as long as it.
  */
-function checkTransitions(composition: Composition): ValidationError[] {
+function checkTransitions(composition: Composition | CompositionV06): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));
   const sideErrors = (

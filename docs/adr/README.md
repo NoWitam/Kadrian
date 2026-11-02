@@ -64,6 +64,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D54](D54-scenes-in-sequence.md)                              | Scenes in sequence: schema 0.5, scene time, and the scene commands                           | Accepted          |
 | [D55](D55-timeline-commands.md)                               | Timeline commands: move, trim, split, and join a clip                                        | Accepted          |
 | [D56](D56-transitions.md)                                     | Transitions: schema 0.6, four scene effects, the clip crossfade, and their commands          | Proposed          |
+| [D57](D57-captions.md)                                        | Captions: schema 0.7, timed words, lines and pages from the runtime, and commands            | Proposed          |
 
 ## Provenance of D01–D10
 

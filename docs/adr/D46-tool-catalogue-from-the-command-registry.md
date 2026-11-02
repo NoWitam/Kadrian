@@ -11,6 +11,7 @@
 - Amended by: PR-30 (D54) on 2026-11-01: seven tools of scenes, and the derived start of each scene in `describe_document` (D54.6)
 - Amended by: PR-31 (D55) on 2026-11-01: five tools of the timeline (D55.7)
 - Amended by: PR-32 (D56) on 2026-11-01: five tools of transitions, and the transitions in `describe_document` (D56.8)
+- Amended by: PR-33 (D57) on 2026-11-02: three tools of captions, and `set_text_font` on captions (D57.8)
 - Related: D09, D12, D30, D31, D38, D39, D40, D41, D42,
   [roadmap of phase three](../roadmap/phase-3.md) PR-24
 

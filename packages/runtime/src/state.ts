@@ -33,7 +33,7 @@ export interface TransformState {
   readonly opacity: number;
 }
 
-export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video';
+export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video' | 'captions';
 
 export interface BackgroundNodeState extends LifetimeState {
   readonly id: string;
@@ -56,6 +56,17 @@ export interface VideoNodeState extends LeafNodeState<'video'> {
   readonly sourceTimeUs: number | null;
 }
 
+/**
+ * A captions node (D57): a leaf with the page it shows and the word being
+ * spoken, as indices of `captionPages` and of the node's `words`, while it is
+ * active; both are `null` while it is not, `page` before its first word, and
+ * `word` between two words.
+ */
+export interface CaptionsNodeState extends LeafNodeState<'captions'> {
+  readonly page: number | null;
+  readonly word: number | null;
+}
+
 export interface GroupNodeState extends LifetimeState, TransformState {
   readonly id: string;
   readonly type: 'group';
@@ -67,7 +78,8 @@ export type NodeState =
   | BackgroundNodeState
   | GroupNodeState
   | LeafNodeState<'image' | 'text' | 'custom-html'>
-  | VideoNodeState;
+  | VideoNodeState
+  | CaptionsNodeState;
 
 /** Composition pixels cut away from each edge of the frame (D56). */
 export interface Inset {
