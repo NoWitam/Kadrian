@@ -75,7 +75,7 @@ describe('the host example of the README (D43.7)', () => {
   it.each([
     ['a text that is no JSON', '{'],
     ['a byte order mark', `\uFEFF${currentText}`],
-    ['a version this build does not know', currentText.replace('"0.5"', '"0.6"')],
+    ['a version this build does not know', currentText.replace('"0.6"', '"0.7"')],
     ['an invalid document', currentText.replace('"fps":30', '"fps":0')],
     ['an invalid document of an earlier version', olderText.replace('"fps":30', '"fps":0')],
     ['a value that is no string', 5 as unknown as string],
@@ -121,7 +121,14 @@ describe('the host example of the README (D43.7)', () => {
 
     // A document of 0.1: migrated on the way in, and reported as such.
     const result = app.open(olderText);
-    expect(result.ok && result.versions).toEqual(['0.1', '0.2', '0.3', '0.4', SCHEMA_VERSION]);
+    expect(result.ok && result.versions).toEqual([
+      '0.1',
+      '0.2',
+      '0.3',
+      '0.4',
+      '0.5',
+      SCHEMA_VERSION,
+    ]);
     const second = app.bus();
     if (second === null) throw new Error('No bus.');
     expect(second).not.toBe(first);

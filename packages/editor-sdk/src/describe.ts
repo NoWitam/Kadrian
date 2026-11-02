@@ -34,7 +34,8 @@ export interface SceneDescription {
   readonly id: string;
   /**
    * Where the scene starts in composition time: the sum of the durations of the
-   * scenes before it, derived and not stored (D49.3, D54.6).
+   * scenes before it less those of the transitions between them, derived and
+   * not stored (D49.3, D54.6, D56.1).
    */
   readonly startUs: number;
   readonly durationUs: number;
@@ -42,6 +43,8 @@ export interface SceneDescription {
   readonly nodes: readonly NodeDescription[];
   /** The scene's audio clips, in scene time, as the document stores them (D54.1). */
   readonly clips: readonly unknown[];
+  /** The transitions between clips of the scene, as the document stores them (D56.1). */
+  readonly transitions: readonly unknown[];
 }
 
 /** What `describeDocument` returns; plain JSON, deep-frozen. */
@@ -63,6 +66,8 @@ export interface DocumentDescription {
   readonly assets: readonly unknown[];
   /** The composition's clips, in composition time, as the document stores them. */
   readonly clips: readonly unknown[];
+  /** The transitions between scenes, as the document stores them (D56.1). */
+  readonly transitions: readonly unknown[];
 }
 
 type SceneNode = Composition['scenes'][number]['nodes'][number];
@@ -108,7 +113,7 @@ export function describeDocument(
   // A JSON round trip gives a value that shares nothing with the document,
   // whose objects belong to the bus and its history.
   const copy = structuredJson(document);
-  const placements = scenePlacements(copy.scenes);
+  const placements = scenePlacements(copy);
   return deepFreeze<DocumentDescription>({
     schemaVersion: copy.schemaVersion,
     width: copy.width,
@@ -121,6 +126,7 @@ export function describeDocument(
       durationUs: scene.durationUs,
       nodes: scene.nodes.map((node, at) => describeNode(node, scene.id, at)),
       clips: scene.clips,
+      transitions: scene.transitions,
     })),
     assets: copy.assets.map((asset) => {
       const facts =
@@ -136,6 +142,7 @@ export function describeDocument(
       };
     }),
     clips: copy.clips,
+    transitions: copy.transitions,
   });
 }
 

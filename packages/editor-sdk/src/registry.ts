@@ -23,6 +23,11 @@ import {
   parseAddKeyframe,
   parseAddNode,
   parseAddScene,
+  parseAddClipTransition,
+  parseAddSceneTransition,
+  parseRemoveTransition,
+  parseSetTransitionDuration,
+  parseSetTransitionEffect,
   parseAddSceneAudioClip,
   parseJoinClips,
   parseMoveClip,
@@ -80,6 +85,7 @@ import {
   locateClip,
   locateNode,
   locateScene,
+  locateTransition,
   placedByTime,
   replaceAnimation,
   replaceAssets,
@@ -87,9 +93,11 @@ import {
   replaceList,
   replaceNode,
   replaceScenes,
+  replaceTransitionList,
   sceneIds,
   scenesOf,
   subtreeIds,
+  transitionListOf,
   type AnimationLocation,
   type ClipOwner,
   type ListAddress,
@@ -501,6 +509,21 @@ function duplicatedScene(source: DocumentObject, newSceneId: string): NodeData {
   const copy = copyNode(source);
   const nodes = copy['nodes'];
   const clips = copy['clips'];
+  const transitions = copy['transitions'];
+  // The new ID of every node of the scene, so that a clip transition names the copies (D56.6).
+  const renamed = new Map<unknown, string>();
+  if (Array.isArray(nodes)) {
+    (nodes as readonly unknown[]).forEach((node, at) => {
+      if (!isObject(node)) return;
+      const nodeId = `${newSceneId}-n${String(at)}`;
+      renamed.set(node['id'], nodeId);
+      const children = node['children'];
+      if (!Array.isArray(children)) return;
+      (children as readonly unknown[]).forEach((child, index) => {
+        if (isObject(child)) renamed.set(child['id'], `${nodeId}-c${String(index)}`);
+      });
+    });
+  }
   return deepFreeze({
     ...copy,
     id: newSceneId,
@@ -518,7 +541,60 @@ function duplicatedScene(source: DocumentObject, newSceneId: string): NodeData {
           ),
         }
       : {}),
+    ...(Array.isArray(transitions)
+      ? {
+          transitions: (transitions as readonly unknown[]).map((transition, at) =>
+            isObject(transition)
+              ? {
+                  ...transition,
+                  id: `${newSceneId}-t${String(at)}`,
+                  fromNodeId: renamed.get(transition['fromNodeId']) ?? transition['fromNodeId'],
+                  toNodeId: renamed.get(transition['toNodeId']) ?? transition['toNodeId'],
+                }
+              : transition,
+          ),
+        }
+      : {}),
   });
+}
+
+/** The transition with that ID and where it lives, or `unknown-transition` (D56.6). */
+function locatedTransition(
+  document: DocumentObject,
+  transitionId: string,
+): NonNullable<ReturnType<typeof locateTransition>> {
+  const found = locateTransition(document, transitionId);
+  if (found === null) {
+    throw new EditorError(
+      'unknown-transition',
+      `The document has no transition \`${transitionId}\`.`,
+    );
+  }
+  return found;
+}
+
+/**
+ * The document with the composition's `durationUs` changed by `deltaUs`, so that
+ * it stays the sum of the scenes' durations less the scene transitions' (D56.2).
+ * A document whose duration is not a number is left for the validation to refuse.
+ */
+function withDuration(document: DocumentObject, deltaUs: number): DocumentObject {
+  const durationUs: unknown = document['durationUs'];
+  return typeof durationUs === 'number'
+    ? { ...document, durationUs: durationUs + deltaUs }
+    : document;
+}
+
+/** The duration a transition states, or 0 when it states none; the validation judges the rest. */
+function transitionDuration(transition: DocumentObject): number {
+  const durationUs: unknown = transition['durationUs'];
+  return typeof durationUs === 'number' ? durationUs : 0;
+}
+
+/** The ID a transition being added carries, as the IDs it creates (D39.4). */
+function transitionIds(transition: DocumentObject): string[] {
+  const id: unknown = transition['id'];
+  return typeof id === 'string' ? [id] : [];
 }
 
 /**
@@ -1732,7 +1808,156 @@ const DEFINITIONS = deepFreeze<Definitions>({
       };
     },
   },
+  AddSceneTransition: {
+    parse: parseAddSceneTransition,
+    edit(document, command) {
+      const transitions = transitionListOf(document, null);
+      if (command.index > transitions.length) {
+        throw outOfRange(command.index, transitions.length, 'the scene transitions');
+      }
+      const createdIds = transitionIds(command.transition);
+      refuseTaken(document, createdIds);
+      const id: unknown = command.transition['id'];
+      return {
+        // The incoming scene starts earlier by the transition's duration (D49.3, D56.2).
+        document: withDuration(
+          replaceTransitionList(
+            document,
+            null,
+            inserted(transitions, command.index, command.transition),
+          ),
+          -transitionDuration(command.transition),
+        ),
+        // The transition validated by now, so its `id` is an ID of the document's form.
+        invert: () => parseRemoveTransition({ type: 'RemoveTransition', transitionId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  AddClipTransition: {
+    parse: parseAddClipTransition,
+    edit(document, command) {
+      const found = locatedScene(document, command.sceneId);
+      const owner = { sceneIndex: found.index };
+      const transitions = transitionListOf(document, owner);
+      if (command.index > transitions.length) {
+        throw outOfRange(
+          command.index,
+          transitions.length,
+          `the transitions of \`${command.sceneId}\``,
+        );
+      }
+      const createdIds = transitionIds(command.transition);
+      refuseTaken(document, createdIds);
+      const id: unknown = command.transition['id'];
+      return {
+        document: replaceTransitionList(
+          document,
+          owner,
+          inserted(transitions, command.index, command.transition),
+        ),
+        invert: () => parseRemoveTransition({ type: 'RemoveTransition', transitionId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveTransition: {
+    parse: parseRemoveTransition,
+    edit(document, command) {
+      const found = locatedTransition(document, command.transitionId);
+      const scene = found.owner === null ? null : scenesOf(document)[found.owner.sceneIndex];
+      // A frozen copy of the whole transition at its index in its own list, so undo
+      // restores the same bytes in the same place (D30, D56.6).
+      const inverse =
+        found.owner === null || !isObject(scene)
+          ? parseAddSceneTransition({
+              type: 'AddSceneTransition',
+              index: found.index,
+              transition: found.transition,
+            })
+          : parseAddClipTransition({
+              type: 'AddClipTransition',
+              sceneId: scene['id'],
+              index: found.index,
+              transition: found.transition,
+            });
+      const removed = replaceTransitionList(
+        document,
+        found.owner,
+        transitionListOf(document, found.owner).filter((_, at) => at !== found.index),
+      );
+      return {
+        document:
+          found.owner === null
+            ? withDuration(removed, transitionDuration(found.transition))
+            : removed,
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [command.transitionId],
+      };
+    },
+  },
+  SetTransitionDuration: {
+    parse: parseSetTransitionDuration,
+    edit(document, command) {
+      const found = locatedTransition(document, command.transitionId);
+      const durationUs = numberField(found.transition, 'durationUs', command.transitionId);
+      if (durationUs === command.durationUs) return null;
+      const deltaUs = command.durationUs - durationUs;
+      const transitions = transitionListOf(document, found.owner).map((transition, at) =>
+        at === found.index ? { ...found.transition, durationUs: command.durationUs } : transition,
+      );
+      let edited = replaceTransitionList(document, found.owner, transitions);
+      if (found.owner === null) {
+        // Every later scene starts earlier by the change (D49.3, D56.2).
+        edited = withDuration(edited, -deltaUs);
+      } else {
+        // The outgoing clip ends durationUs after the incoming one starts (D49.4, D56.6).
+        const fromId = stringField(found.transition, 'fromNodeId', command.transitionId);
+        const from = findNode(edited, fromId);
+        if (from === null) throw unknownNode(fromId);
+        const fromDuration = numberField(from, 'durationUs', fromId);
+        edited = replaceNode(edited, fromId, { ...from, durationUs: fromDuration + deltaUs });
+      }
+      return {
+        document: edited,
+        invert: () => parseSetTransitionDuration({ ...command, durationUs }),
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  SetTransitionEffect: {
+    parse: parseSetTransitionEffect,
+    edit(document, command) {
+      const found = locatedTransition(document, command.transitionId);
+      const effect: unknown = found.transition['effect'];
+      if (isObject(effect) && sameData(effect, command.effect)) return null;
+      // A frozen copy of the effect as it was, so undo restores the same bytes (D30).
+      const inverse = parseSetTransitionEffect({
+        type: 'SetTransitionEffect',
+        transitionId: command.transitionId,
+        effect,
+      });
+      const transitions = transitionListOf(document, found.owner).map((transition, at) =>
+        at === found.index ? { ...found.transition, effect: command.effect } : transition,
+      );
+      return {
+        document: replaceTransitionList(document, found.owner, transitions),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
 });
+
+/** Whether two effects hold the same data, key order included, so that no edit is an edit (D30.9). */
+function sameData(a: DocumentObject, b: DocumentObject): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
 /** The nodes of a scene, as the document holds them. */
 function listOf(scene: DocumentObject): readonly unknown[] {

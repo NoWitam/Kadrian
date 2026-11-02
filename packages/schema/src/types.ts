@@ -8,12 +8,14 @@ import type {
   assetSchema,
   audioClipSchema,
   backgroundNodeSchema,
+  clipTransitionSchema,
   compositionSchema,
   customHtmlNodeSchema,
   groupNodeSchema,
   imageNodeSchema,
   sceneNodeSchema,
   sceneSchema,
+  sceneTransitionSchema,
   textNodeSchema,
   videoNodeSchema,
 } from './composition-schema.js';
@@ -53,3 +55,11 @@ export type AudioClip = Infer<typeof audioClipSchema>;
 
 /** How an image or a video meets its box (D50). */
 export type Fit = ImageNode['fit'];
+export type SceneTransition = Infer<typeof sceneTransitionSchema>;
+export type ClipTransition = Infer<typeof clipTransitionSchema>;
+/** How a transition between two scenes combines them (D56). */
+export type SceneTransitionEffect = SceneTransition['effect'];
+/** How a transition between two clips combines them (D56). */
+export type ClipTransitionEffect = ClipTransition['effect'];
+/** The direction of a slide or a wipe (D56). */
+export type TransitionDirection = Extract<SceneTransitionEffect, { kind: 'wipe' }>['direction'];

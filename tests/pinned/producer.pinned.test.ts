@@ -119,7 +119,7 @@ describe('P2: the five golden timestamps (D28.4, D28.7)', () => {
     const { manifest } = baseline;
     expect(manifest).toMatchObject({
       manifestVersion: 3,
-      schemaVersion: '0.5',
+      schemaVersion: '0.6',
       preset: { name: 'frames-png', width: 1080, height: 1920, fps: 30, deviceScaleFactor: 1 },
       durationUs: 10_000_000,
       frameCount: 300,

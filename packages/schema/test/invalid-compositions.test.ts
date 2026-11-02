@@ -20,6 +20,14 @@ const ERROR_CODES = [
   'source-time-out-of-range',
   'clip-fades-exceed-duration',
   'composition-duration-mismatch',
+  'unresolved-scene-reference',
+  'unresolved-node-reference',
+  'transition-not-adjacent',
+  'transition-not-siblings',
+  'transition-node-type',
+  'transition-overlap-mismatch',
+  'transition-too-long',
+  'duplicate-transition',
 ] as const;
 
 describe('negative fixtures', () => {

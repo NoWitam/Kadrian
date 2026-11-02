@@ -8,7 +8,7 @@ end-user application, and it does not depend on any consumer product.
 ([`docs/spike/report.md`](docs/spike/report.md), section 10), and phase two,
 authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
 PR-18 to PR-22; the current phase is the engine under a host's video editor
-([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.5` with its forward migrations from `0.1` to `0.4`, the evaluation core, the DOM
+([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)). Schema `0.6` with its forward migrations from `0.1` to `0.5`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -149,13 +149,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.5`
+A composition is a JSON document of schema `0.6`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.5",
+  "schemaVersion": "0.6",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -204,10 +204,12 @@ Unknown fields are errors. This one shows a text that fades in:
           "color": "#ffffff"
         }
       ],
-      "clips": []
+      "clips": [],
+      "transitions": []
     }
   ],
-  "clips": []
+  "clips": [],
+  "transitions": []
 }
 ```
 
@@ -217,6 +219,13 @@ Unknown fields are errors. This one shows a text that fades in:
   and the composition's `durationUs` must be the sum of the scenes' (D49, D54).
   Every time inside a scene is scene time, from 0 at the scene's start, so a
   scene renders alone exactly as it does in the sequence.
+- **Transitions:** the composition's `transitions` sit on boundaries between
+  adjacent scenes: during a transition's `durationUs` the incoming scene
+  already plays over the end of the outgoing one, so it starts that much
+  earlier and the composition is that much shorter. Its `effect` is
+  `crossfade`, `fade-through-color` with a `color`, or `slide` or `wipe` with
+  a `direction`. A scene's own `transitions` crossfade two clips of one layer
+  whose lifetimes overlap by exactly the transition's duration (D49, D56).
 - **Nodes:** `background`, `text`, `image`, `video`, `group`, and
   `custom-html`. Array order is the z-order. An image or a video fills its box
   by `fit`: `fill`, `contain`, or `cover`.
@@ -273,12 +282,12 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.5` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.5` document, and none of them
+`validateComposition` accepts schema `0.6` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.6` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
-holds a document of schema `0.1` to `0.4` carries it forward itself, once, and stores the
+holds a document of schema `0.1` to `0.5` carries it forward itself, once, and stores the
 result as a new version:
 
 ```ts
@@ -286,8 +295,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.5 document; the input is untouched
-  migrated.versions; // ['0.1', '0.2', '0.3', '0.4', '0.5'], or ['0.5'] for a document that was current
+  migrated.composition; // a new, validated 0.6 document; the input is untouched
+  migrated.versions; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6'], or ['0.6'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -325,8 +334,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.5 document that belongs to the caller
-  loaded.versions; // ['0.1', '0.2', '0.3', '0.4', '0.5'] from 0.1, ['0.5'] when it was current
+  loaded.composition; // a new, validated 0.6 document that belongs to the caller
+  loaded.versions; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6'] from 0.1, ['0.6'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -341,7 +350,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -354,7 +363,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5']: what this bui
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.5"`, speaks of that.
+  supports `"0.6"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:

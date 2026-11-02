@@ -1,0 +1,328 @@
+{
+  "schemaVersion": "0.6",
+  "width": 640,
+  "height": 360,
+  "fps": 30,
+  "durationUs": 3600000,
+  "assets": [
+    {
+      "id": "asset-image",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    },
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-a",
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "a-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "color": "#203040"
+        },
+        {
+          "id": "a-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 60,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "a",
+          "fontAssetId": "asset-font",
+          "fontSize": 72,
+          "color": "#ffffff"
+        },
+        {
+          "id": "a-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 360,
+            "y": 80
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 240,
+          "height": 240,
+          "fit": "cover"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-b",
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "b-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "color": "#f79009"
+        },
+        {
+          "id": "b-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 40,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 240,
+          "height": 240,
+          "fit": "cover"
+        },
+        {
+          "id": "b-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 420,
+            "y": 200
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "b",
+          "fontAssetId": "asset-font",
+          "fontSize": 72,
+          "color": "#101828"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-c",
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "c-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "color": "#12b76a"
+        },
+        {
+          "id": "c-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 280,
+            "y": 120
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "c",
+          "fontAssetId": "asset-font",
+          "fontSize": 72,
+          "color": "#ffffff"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-d",
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "d-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "color": "#7a5af8"
+        },
+        {
+          "id": "d-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 200,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 240,
+          "height": 240,
+          "fit": "cover"
+        },
+        {
+          "id": "d-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 60,
+            "y": 240
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "d",
+          "fontAssetId": "asset-font",
+          "fontSize": 72,
+          "color": "#ffffff"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-e",
+      "durationUs": 1200000,
+      "nodes": [
+        {
+          "id": "e-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1200000,
+          "color": "#101828"
+        },
+        {
+          "id": "e-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 800000,
+          "position": {
+            "x": 200,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 240,
+          "height": 240,
+          "fit": "cover"
+        },
+        {
+          "id": "e-title",
+          "type": "text",
+          "startUs": 400000,
+          "durationUs": 800000,
+          "position": {
+            "x": 260,
+            "y": 120
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "e",
+          "fontAssetId": "asset-font",
+          "fontSize": 72,
+          "color": "#ffffff"
+        }
+      ],
+      "clips": [],
+      "transitions": [
+        {
+          "id": "transition-e",
+          "fromNodeId": "e-image",
+          "toNodeId": "e-title",
+          "durationUs": 400000,
+          "effect": {
+            "kind": "crossfade"
+          }
+        }
+      ]
+    }
+  ],
+  "clips": [],
+  "transitions": [
+    {
+      "id": "transition-crossfade",
+      "fromSceneId": "scene-a",
+      "toSceneId": "scene-b",
+      "durationUs": 400000,
+      "effect": {
+        "kind": "crossfade"
+      }
+    },
+    {
+      "id": "transition-fade",
+      "fromSceneId": "scene-b",
+      "toSceneId": "scene-c",
+      "durationUs": 400000,
+      "effect": {
+        "kind": "fade-through-color",
+        "color": "#ffffff"
+      }
+    },
+    {
+      "id": "transition-slide",
+      "fromSceneId": "scene-c",
+      "toSceneId": "scene-d",
+      "durationUs": 400000,
+      "effect": {
+        "kind": "slide",
+        "direction": "left"
+      }
+    },
+    {
+      "id": "transition-wipe",
+      "fromSceneId": "scene-d",
+      "toSceneId": "scene-e",
+      "durationUs": 400000,
+      "effect": {
+        "kind": "wipe",
+        "direction": "up"
+      }
+    }
+  ]
+}

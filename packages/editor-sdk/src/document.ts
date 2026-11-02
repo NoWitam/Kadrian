@@ -265,7 +265,8 @@ export function locateScene(
 /**
  * The IDs a scene carries, in the order of D39.4 carried to scenes (D54.5): the
  * scene's own, then the IDs of each node's subtree in the order of its list,
- * then the IDs of its clips. Reads only where the shapes are arrays of objects.
+ * then the IDs of its clips, then those of its transitions (D56.6). Reads only
+ * where the shapes are arrays of objects.
  */
 export function sceneIds(scene: DocumentObject): readonly string[] {
   const own = typeof scene['id'] === 'string' ? [scene['id']] : [];
@@ -273,7 +274,63 @@ export function sceneIds(scene: DocumentObject): readonly string[] {
   const clips = objectsIn(scene['clips'])
     .map((clip) => clip['id'])
     .filter((id): id is string => typeof id === 'string');
-  return [...own, ...nodes, ...clips];
+  const transitions = objectsIn(scene['transitions'])
+    .map((transition) => transition['id'])
+    .filter((id): id is string => typeof id === 'string');
+  return [...own, ...nodes, ...clips, ...transitions];
+}
+
+/**
+ * Where a list of transitions lives (D56.1): the composition's, for scene
+ * transitions, or the scene at that index, for clip transitions.
+ */
+export type TransitionOwner = { readonly sceneIndex: number } | null;
+
+/** The transitions of an owner, in their order. */
+export function transitionListOf(document: object, owner: TransitionOwner): readonly unknown[] {
+  if (owner === null) return asArray(fieldsOf(document)['transitions']) ?? [];
+  const scene = scenesOf(document)[owner.sceneIndex];
+  return isObject(scene) ? (asArray(scene['transitions']) ?? []) : [];
+}
+
+/** The document with `transitions` in place of the transitions of an owner; everything else keeps its identity. */
+export function replaceTransitionList(
+  document: object,
+  owner: TransitionOwner,
+  transitions: readonly unknown[],
+): DocumentObject {
+  if (owner === null) return { ...fieldsOf(document), transitions };
+  return replaceScenes(
+    document,
+    scenesOf(document).map((scene, at) =>
+      at === owner.sceneIndex && isObject(scene) ? { ...scene, transitions } : scene,
+    ),
+  );
+}
+
+/** A transition with its owner and its index in the owner's list (D56.6). */
+export interface TransitionLocation {
+  readonly transition: DocumentObject;
+  readonly owner: TransitionOwner;
+  readonly index: number;
+}
+
+/** The scene or clip transition with that ID, or `null` (D56.6). */
+export function locateTransition(
+  document: object,
+  transitionId: string,
+): TransitionLocation | null {
+  const owners: TransitionOwner[] = [
+    null,
+    ...scenesOf(document).map((_, sceneIndex) => ({ sceneIndex })),
+  ];
+  for (const owner of owners) {
+    const list = transitionListOf(document, owner);
+    const index = list.findIndex((item) => isObject(item) && item['id'] === transitionId);
+    const transition = list[index];
+    if (isObject(transition)) return { transition, owner, index };
+  }
+  return null;
 }
 
 /** Where a list of audio clips lives: the composition's, or the scene at that index (D54.1). */
@@ -462,4 +519,19 @@ export function replaceAnimation(
       ? location.animations.filter((_, at) => at !== location.index)
       : location.animations.map((item, at) => (at === location.index ? animation : item));
   return replaceNode(document, location.ownerId, { ...location.owner, animations });
+}
+
+/**
+ * The transition a validation error's path points into (D56.7):
+ * `/transitions/<i>…` or `/scenes/<k>/transitions/<i>…`, or `undefined`.
+ */
+export function transitionAt(document: object, path: string): unknown {
+  const tokens = path.split('/').slice(1);
+  if (tokens[0] === 'transitions') {
+    return transitionListOf(document, null)[Number(tokens[1])];
+  }
+  if (tokens[0] === 'scenes' && tokens[2] === 'transitions') {
+    return transitionListOf(document, { sceneIndex: Number(tokens[1]) })[Number(tokens[3])];
+  }
+  return undefined;
 }

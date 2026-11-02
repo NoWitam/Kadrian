@@ -1,21 +1,23 @@
 /**
- * The placement of scenes in a composition (D49.3, D54): what the order and the
- * `durationUs` of the scenes mean. A scene has no `startUs`; its start is the
- * sum of the durations before it, so reordering or resizing one scene can never
- * leave two starts that disagree. Until transitions exist (PR-32), scenes meet
- * end to end:
+ * The placement of scenes in a composition (D49.3, D54, D56): what the order and
+ * the `durationUs` of the scenes, and the transitions between them, mean. A
+ * scene has no `startUs`; its start follows from the order, the durations, and
+ * the transitions, so reordering or resizing one scene can never leave two
+ * starts that disagree. With `T(k)` the duration of the transition between
+ * scene `k` and scene `k + 1`, or 0 where there is none:
  *
  * ```text
  * start(0)     = 0
- * start(k + 1) = start(k) + D(k)
+ * start(k + 1) = start(k) + D(k) − T(k)
  * durationUs   = start(last) + D(last)
  * ```
  *
  * Like the frame grid (D13.3) and the source frame (D49.5), these are pure
  * functions every host shares: the runtime evaluates by them, the Producer and
  * the Player choose video frames and place sounds by them, and the command bus
- * checks by them. Every sum is exact: a validated document's durations add up
- * to its own `durationUs`, a safe integer (D54.2).
+ * checks by them. Every sum is exact: a validated document's start of every
+ * scene is at most its own `durationUs`, a safe integer (D54.2, D56), and
+ * `D(k) − T(k)` is never negative.
  */
 
 import type { SceneNode, ValidatedComposition, VideoNode } from './types.js';
@@ -26,12 +28,26 @@ export interface SceneSpan {
   readonly durationUs: number;
 }
 
+/** The part of a scene transition that places the scenes (D56). */
+export interface TransitionSpan {
+  readonly id: string;
+  readonly fromSceneId: string;
+  readonly toSceneId: string;
+  readonly durationUs: number;
+}
+
+/** What places the scenes: their order and durations, and the transitions between them. */
+export interface SceneSequence {
+  readonly scenes: readonly SceneSpan[];
+  readonly transitions: readonly TransitionSpan[];
+}
+
 /** Where one scene lies in composition time. */
 export interface ScenePlacement {
   readonly id: string;
   /** Its index among the scenes. */
   readonly index: number;
-  /** Composition time of its first instant: the sum of the durations before it. */
+  /** Composition time of its first instant (D49.3, D56). */
   readonly startUs: number;
   readonly durationUs: number;
 }
@@ -43,29 +59,81 @@ export interface SceneInstant {
   readonly timeUs: number;
 }
 
-/** Every scene with its start, in their order (D49.3). */
-export function scenePlacements(scenes: readonly SceneSpan[]): ScenePlacement[] {
+/**
+ * The transition between scene `k` and scene `k + 1`, the one whose sides are
+ * these two scenes; a validated document has at most one (D56).
+ */
+function transitionAfter(sequence: SceneSequence, index: number): TransitionSpan | undefined {
+  const from = sequence.scenes[index];
+  const to = sequence.scenes[index + 1];
+  if (from === undefined || to === undefined) return undefined;
+  return sequence.transitions.find(
+    (transition) => transition.fromSceneId === from.id && transition.toSceneId === to.id,
+  );
+}
+
+/** Every scene with its start, in their order (D49.3, D56). */
+export function scenePlacements(sequence: SceneSequence): ScenePlacement[] {
   let startUs = 0;
-  return scenes.map((scene, index) => {
+  return sequence.scenes.map((scene, index) => {
     const placement = { id: scene.id, index, startUs, durationUs: scene.durationUs };
-    startUs += scene.durationUs;
+    // `D(k) − T(k)` first: never negative in a validated document, and the start it
+    // leads to is at most the composition's durationUs.
+    startUs += scene.durationUs - (transitionAfter(sequence, index)?.durationUs ?? 0);
     return placement;
   });
 }
 
 /**
  * The scenes evaluated at composition time `timeUs` (D49.3): scene `k` exactly
- * when `0 ≤ timeUs − start(k) < D(k)`. Scenes meet end to end, so that is one
- * scene inside the composition and none at or after its end. The result is a
- * list because a transition (PR-32) will make it two.
+ * when `0 ≤ timeUs − start(k) < D(k)`. That is one scene inside the composition
+ * outside the transitions, the two sides of a transition inside it (D49.4), in
+ * their order, and none at or after the composition's end.
  */
-export function scenesAt(scenes: readonly SceneSpan[], timeUs: number): SceneInstant[] {
-  return scenePlacements(scenes)
+export function scenesAt(sequence: SceneSequence, timeUs: number): SceneInstant[] {
+  return scenePlacements(sequence)
     .filter(
       (placement) =>
         timeUs >= placement.startUs && timeUs - placement.startUs < placement.durationUs,
     )
     .map((placement) => ({ placement, timeUs: timeUs - placement.startUs }));
+}
+
+/** A scene transition at one instant (D49.4, D56). */
+export interface TransitionInstant {
+  readonly id: string;
+  /** The index of the outgoing scene; the incoming one is the next. */
+  readonly fromIndex: number;
+  /** Time since the incoming scene started: from 0 to less than `durationUs`. */
+  readonly elapsedUs: number;
+  readonly durationUs: number;
+}
+
+/**
+ * The scene transition under way at composition time `timeUs`, or `null`: the
+ * one whose incoming scene started at most `durationUs` before (D49.4). Two
+ * transitions never overlap, because the two of one scene together are at most
+ * its duration (D56).
+ */
+export function sceneTransitionAt(
+  sequence: SceneSequence,
+  timeUs: number,
+): TransitionInstant | null {
+  const placements = scenePlacements(sequence);
+  for (const [index, placement] of placements.entries()) {
+    const transition = transitionAfter(sequence, index);
+    const next = placements[index + 1];
+    if (transition === undefined || next === undefined) continue;
+    if (timeUs >= next.startUs && timeUs - next.startUs < transition.durationUs) {
+      return {
+        id: transition.id,
+        fromIndex: placement.index,
+        elapsedUs: timeUs - next.startUs,
+        durationUs: transition.durationUs,
+      };
+    }
+  }
+  return null;
 }
 
 /** A video node with the scene it belongs to (D49.3, D54.3). */
@@ -76,7 +144,7 @@ export interface PlacedVideo {
 
 /** Every video node of a composition, group children included, in document order, with its scene. */
 export function placedVideos(composition: ValidatedComposition): PlacedVideo[] {
-  const placements = scenePlacements(composition.scenes);
+  const placements = scenePlacements(composition);
   const found: PlacedVideo[] = [];
   composition.scenes.forEach((scene, index) => {
     const placement = placements[index];

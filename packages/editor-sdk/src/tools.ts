@@ -19,6 +19,11 @@ import {
   addNodeArgumentsSchema,
   addSceneArgumentsSchema,
   addSceneAudioClipArgumentsSchema,
+  addClipTransitionArgumentsSchema,
+  addSceneTransitionArgumentsSchema,
+  removeTransitionArgumentsSchema,
+  setTransitionDurationArgumentsSchema,
+  setTransitionEffectArgumentsSchema,
   deepFreeze,
   joinClipsArgumentsSchema,
   moveClipArgumentsSchema,
@@ -64,6 +69,9 @@ import {
   type AddNodeArgumentsSchema,
   type AddSceneArgumentsSchema,
   type AddSceneAudioClipArgumentsSchema,
+  type AddClipTransitionArgumentsSchema,
+  type AddSceneTransitionArgumentsSchema,
+  type SetTransitionEffectArgumentsSchema,
   type ClosedObjectSchema,
   type Command,
 } from './commands.js';
@@ -83,7 +91,10 @@ export type CommandArgumentsSchema =
   | AddKeyframeArgumentsSchema
   | AddAudioClipArgumentsSchema
   | AddSceneArgumentsSchema
-  | AddSceneAudioClipArgumentsSchema;
+  | AddSceneAudioClipArgumentsSchema
+  | AddSceneTransitionArgumentsSchema
+  | AddClipTransitionArgumentsSchema
+  | SetTransitionEffectArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -112,10 +123,13 @@ const TIME_US =
   "Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time.";
 
 const SCENES =
-  "Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, and the composition's durationUs is the sum of the scenes' durations, which every scene command keeps.";
+  "Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, less the duration of a transition between them, and the composition's durationUs is the sum of the scenes' durations less those of the scene transitions, which every scene command keeps. A command that would break a transition — remove or move one of its scenes or nodes, or shorten one so that it no longer fits — is refused with transition-in-use and the IDs of those transitions: remove them first, in the same transaction.";
 
 const CLIPS =
-  'A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene.';
+  'A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID.';
+
+const TRANSITIONS =
+  'A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions.';
 
 const PIXELS = 'Lengths and coordinates are composition pixels, rounded to integers.';
 
@@ -370,6 +384,7 @@ const METADATA = deepFreeze<MetadataTable>({
           },
         ],
         clips: [],
+        transitions: [],
       },
     },
     argumentsSchema: addSceneArgumentsSchema,
@@ -442,6 +457,50 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Joins two halves of a split back into one clip: nextClipId must be directly after clipId in the same list, start where it ends, and be exactly what split_clip would make of the joined clip (same fields, its source continuing, its animations those of the first under its own ID). The joined clip keeps clipId and the second is removed. ${CLIPS} Refused with unknown-clip, unsupported-node for a group, clips-not-joinable, invalid-result, media-facts-missing, and source-range-exceeded.`,
     example: { clipId: 'node-title', nextClipId: 'node-title-tail' },
     argumentsSchema: joinClipsArgumentsSchema,
+  },
+  AddSceneTransition: {
+    description: `Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide or wipe with a direction (left, right, up, down). Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. ${TRANSITIONS} ${TIME_US} Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes.`,
+    example: {
+      index: 0,
+      transition: {
+        id: 'transition-outro',
+        fromSceneId: 'scene-main',
+        toSceneId: 'scene-outro',
+        durationUs: 500_000,
+        effect: { kind: 'crossfade' },
+      },
+    },
+    argumentsSchema: addSceneTransitionArgumentsSchema,
+  },
+  AddClipTransition: {
+    description: `Adds a crossfade between two clips of one layer of a scene — two children of one parent, neither a background — whose lifetimes already overlap by exactly durationUs: the outgoing node ends durationUs after the incoming one starts. During the overlap the incoming node fades in, and the outgoing one fades out if it lies above the incoming one; nothing moves. Make the overlap first with move_clip, trim_clip_start, or trim_clip_end. ${TRANSITIONS} ${TIME_US} Refused with unknown-scene, index-out-of-range, id-in-use, and invalid-result when the nodes are not siblings of this scene, a background, or do not overlap by exactly durationUs.`,
+    example: {
+      sceneId: 'scene-main',
+      index: 0,
+      transition: {
+        id: 'transition-title',
+        fromNodeId: 'node-title',
+        toNodeId: 'node-custom-html',
+        durationUs: 500_000,
+        effect: { kind: 'crossfade' },
+      },
+    },
+    argumentsSchema: addClipTransitionArgumentsSchema,
+  },
+  RemoveTransition: {
+    description: `Removes a scene or clip transition. Without a scene transition the incoming scene starts where the outgoing one ends again: every later scene starts durationUs later and the composition grows by as much. Without a clip transition the two clips stay where they are and simply overlap. ${TRANSITIONS} Refused with unknown-transition.`,
+    example: { transitionId: 'transition-outro' },
+    argumentsSchema: removeTransitionArgumentsSchema,
+  },
+  SetTransitionDuration: {
+    description: `Sets how long a transition lasts. A longer scene transition makes the incoming scene, and every later one, start earlier, and the composition shorter, by the change. A longer clip transition makes the outgoing clip last longer by the change, so that it still ends durationUs after the incoming one starts: a video then shows more of its source. ${TRANSITIONS} ${TIME_US} Refused with invalid-argument, unknown-transition, invalid-result when it would not fit its sides, media-facts-missing, and source-range-exceeded.`,
+    example: { transitionId: 'transition-outro', durationUs: 1_000_000 },
+    argumentsSchema: setTransitionDurationArgumentsSchema,
+  },
+  SetTransitionEffect: {
+    description: `Replaces how a transition combines its two sides with a complete effect: {"kind":"crossfade"}, {"kind":"fade-through-color","color":"#000000"}, {"kind":"slide","direction":"left"}, or {"kind":"wipe","direction":"up"}; directions are left, right, up, and down, the way the incoming scene moves. A clip transition takes crossfade only. No time changes. ${TRANSITIONS} Refused with unknown-transition and invalid-result.`,
+    example: { transitionId: 'transition-outro', effect: { kind: 'wipe', direction: 'left' } },
+    argumentsSchema: setTransitionEffectArgumentsSchema,
   },
 });
 

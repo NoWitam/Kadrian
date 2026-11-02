@@ -20,6 +20,9 @@ import type {
   ValidatedComposition,
   ValidationResult,
   VideoNode,
+  ClipTransition,
+  SceneTransition,
+  TransitionDirection,
 } from '../src/index.js';
 
 interface Vec2 {
@@ -127,15 +130,40 @@ interface ExpectedAudioClip {
   readonly fadeOutUs: number;
 }
 
+type ExpectedDirection = 'left' | 'right' | 'up' | 'down';
+
+type ExpectedSceneTransitionEffect =
+  | { readonly kind: 'crossfade' }
+  | { readonly kind: 'fade-through-color'; readonly color: string }
+  | { readonly kind: 'slide'; readonly direction: ExpectedDirection }
+  | { readonly kind: 'wipe'; readonly direction: ExpectedDirection };
+
+interface ExpectedSceneTransition {
+  readonly id: string;
+  readonly fromSceneId: string;
+  readonly toSceneId: string;
+  readonly durationUs: number;
+  readonly effect: ExpectedSceneTransitionEffect;
+}
+
+interface ExpectedClipTransition {
+  readonly id: string;
+  readonly fromNodeId: string;
+  readonly toNodeId: string;
+  readonly durationUs: number;
+  readonly effect: { readonly kind: 'crossfade' };
+}
+
 interface ExpectedScene {
   readonly id: string;
   readonly durationUs: number;
   readonly nodes: readonly ExpectedSceneNode[];
   readonly clips: readonly ExpectedAudioClip[];
+  readonly transitions: readonly ExpectedClipTransition[];
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.5';
+  readonly schemaVersion: '0.6';
   readonly width: number;
   readonly height: number;
   readonly fps: number;
@@ -143,6 +171,7 @@ interface ExpectedComposition {
   readonly assets: readonly ExpectedAsset[];
   readonly scenes: readonly ExpectedScene[];
   readonly clips: readonly ExpectedAudioClip[];
+  readonly transitions: readonly ExpectedSceneTransition[];
 }
 
 describe('types derived from the JSON Schema', () => {
@@ -159,6 +188,9 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<VideoNode>().toEqualTypeOf<ExpectedVideoNode>();
     expectTypeOf<NodeAnimation>().toEqualTypeOf<ExpectedNodeAnimation>();
     expectTypeOf<AudioClip>().toEqualTypeOf<ExpectedAudioClip>();
+    expectTypeOf<SceneTransition>().toEqualTypeOf<ExpectedSceneTransition>();
+    expectTypeOf<ClipTransition>().toEqualTypeOf<ExpectedClipTransition>();
+    expectTypeOf<TransitionDirection>().toEqualTypeOf<ExpectedDirection>();
   });
 
   it('narrow by their discriminators', () => {

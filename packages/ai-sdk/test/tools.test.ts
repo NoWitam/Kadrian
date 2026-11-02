@@ -90,6 +90,23 @@ const OUTRO_SETUP: readonly Command[] = [
         },
       ],
       clips: [],
+      transitions: [],
+    },
+  },
+];
+
+/** A transition between the reference scene and the second scene (D56). */
+const TRANSITION_SETUP: readonly Command[] = [
+  ...OUTRO_SETUP,
+  {
+    type: 'AddSceneTransition',
+    index: 0,
+    transition: {
+      id: 'transition-outro',
+      fromSceneId: 'scene-main',
+      toSceneId: 'scene-outro',
+      durationUs: 500_000,
+      effect: { kind: 'crossfade' },
     },
   },
 ];
@@ -166,6 +183,14 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   JoinClips: [
     { type: 'SplitClip', clipId: 'node-title', atUs: 5_000_000, newClipId: 'node-title-tail' },
   ],
+  AddSceneTransition: OUTRO_SETUP,
+  AddClipTransition: [
+    { type: 'TrimClipEnd', clipId: 'node-title', endUs: 5_000_000 },
+    { type: 'TrimClipStart', clipId: 'node-custom-html', startUs: 4_500_000 },
+  ],
+  RemoveTransition: TRANSITION_SETUP,
+  SetTransitionDuration: TRANSITION_SETUP,
+  SetTransitionEffect: TRANSITION_SETUP,
 };
 
 function prepared(type: Command['type']): CommandBus {

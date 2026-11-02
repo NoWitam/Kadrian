@@ -3,9 +3,9 @@
  * found again through its addressing attributes; nothing is remembered between
  * calls, so the result depends on the mounted document and the state only.
  */
-import type { CompositionState, NodeState } from '@kadrion/runtime';
+import type { CompositionState, NodeState, SceneState } from '@kadrion/runtime';
 
-import { cssNumber, cssTransform } from './css.js';
+import { cssColor, cssInset, cssNumber, cssPixels, cssTransform } from './css.js';
 import { RenderError, unsupportedNode } from './errors.js';
 import { NODE_ATTRIBUTE, SCENE_ATTRIBUTE, STAGE_ATTRIBUTE } from './mount.js';
 
@@ -19,6 +19,9 @@ export interface MountedNode {
 
 /** The declarations `renderState` writes on a node; the mount writes none of them. */
 const WRITTEN = ['transform', 'opacity', 'visibility'] as const;
+
+/** The declarations of a scene transition on a scene element (D56); the mount writes none of them. */
+const TRANSITION_WRITTEN = ['opacity', 'transform', 'clip-path'] as const;
 
 function mismatch(message: string): never {
   throw new RenderError('state-mismatch', message);
@@ -72,11 +75,13 @@ function plan(
 /** A mounted scene, and whether the state evaluates it. */
 interface MountedScene {
   readonly element: HTMLElement;
-  readonly evaluated: boolean;
+  /** The state of the scene, when the state evaluates it. */
+  readonly state: SceneState | null;
 }
 
 /** The mounted tree checked against a state: every scene element, and the nodes of the evaluated ones. */
 interface MountedTree {
+  readonly stage: HTMLElement;
   readonly scenes: readonly MountedScene[];
   readonly nodes: readonly MountedNode[];
 }
@@ -121,9 +126,10 @@ function mountedTree(root: Element, state: CompositionState): MountedTree {
   });
   return {
     // An element that carries the attribute of this renderer is one of its HTML elements.
+    stage: stage as HTMLElement,
     scenes: (elements as HTMLElement[]).map((element, at) => ({
       element,
-      evaluated: positions.includes(at),
+      state: state.scenes[positions.indexOf(at)] ?? null,
     })),
     nodes,
   };
@@ -160,11 +166,18 @@ export function mountedNodes(root: Element, state: CompositionState): MountedNod
  * evaluated one loses the declaration (D54.3). The nodes of a scene that is
  * not evaluated lose what an earlier call wrote on them, so that the tree is
  * that of a fresh mount rendered at this state, whatever came before.
+ *
+ * A scene transition (D56) writes on the scene elements of its two sides what
+ * their `transition` states say, and the state's `backdrop` is the stage's
+ * background colour; both are removed when the state has none.
  */
 export function renderState(root: Element, state: CompositionState): void {
   const tree = mountedTree(root, state);
-  for (const { element, evaluated } of tree.scenes) {
-    if (evaluated) {
+  if (state.backdrop === undefined) tree.stage.style.removeProperty('background-color');
+  else tree.stage.style.setProperty('background-color', cssColor(state.backdrop));
+  for (const { element, state: scene } of tree.scenes) {
+    writeSceneTransition(element, scene?.transition);
+    if (scene !== null) {
       element.style.removeProperty('visibility');
       continue;
     }
@@ -182,4 +195,29 @@ export function renderState(root: Element, state: CompositionState): void {
     if (node.active) element.style.removeProperty('visibility');
     else element.style.setProperty('visibility', 'hidden');
   }
+}
+
+/**
+ * Writes what a scene transition does to a scene element (D56), and only that:
+ * a factor of its opacity, an offset, or the part of the frame it is cut to;
+ * every other declaration of a transition is removed, so a scene outside a
+ * transition carries none of them.
+ */
+function writeSceneTransition(
+  element: HTMLElement,
+  transition: SceneState['transition'] | undefined,
+): void {
+  for (const property of TRANSITION_WRITTEN) element.style.removeProperty(property);
+  if (transition === undefined) return;
+  if (transition.opacity !== undefined) {
+    element.style.setProperty('opacity', cssNumber(transition.opacity));
+  }
+  if (transition.offset !== undefined) {
+    element.style.setProperty(
+      'transform',
+      `translate(${cssPixels(transition.offset.x)}, ${cssPixels(transition.offset.y)})`,
+    );
+  }
+  if (transition.clip !== undefined)
+    element.style.setProperty('clip-path', cssInset(transition.clip));
 }

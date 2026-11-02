@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.5",
+  "schemaVersion": "0.6",
   "width": 1920,
   "height": 1080,
   "fps": 24,
@@ -106,7 +106,8 @@
           "color": "#98a2b3"
         }
       ],
-      "clips": []
+      "clips": [],
+      "transitions": []
     }
   ],
   "clips": [
@@ -121,5 +122,6 @@
       "fadeInUs": 0,
       "fadeOutUs": 0
     }
-  ]
+  ],
+  "transitions": []
 }

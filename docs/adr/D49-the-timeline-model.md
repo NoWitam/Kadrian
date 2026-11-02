@@ -13,6 +13,7 @@
 - Amended by: PR-29a (D52) on 2026-10-31: 49.7: the step to `0.4` gives a video node `volume: 0`, not `muted: true`; the schema has no boolean (D52.1)
 - Amended by: PR-29b (D53) on 2026-11-01: 49.6: the bus checks the source ranges the audio plan hears against audio facts (D53.4)
 - Amended by: PR-31 (D55) on 2026-11-01: 49.1: a split copies every animation to the second half, under `<newClipId>-a-<property>` (D55.3)
+- Amended by: PR-32 (D56) on 2026-11-01: 49.4: a command that would break a transition is refused with `transition-in-use` instead of removing it (D56.7); at progress 0 the incoming side is invisible and the outgoing one whole (D56.5)
 - Related: D04, D13, D14, D16, D18, D19, D23, D29, D30, D35, D38, D39, D41,
   D42, D47, [roadmap of phase three](../roadmap/phase-3.md) PR-27 to PR-34b
 

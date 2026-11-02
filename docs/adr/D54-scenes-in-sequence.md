@@ -10,6 +10,7 @@
   tools), D50 (50.3 and 50.5: a video samples what its scene shows), and D52
   (52.4: the clips of scenes in the audio plan), each with an
   `Amended by: PR-30 (D54)` line
+- Amended by: PR-32 (D56) on 2026-11-01: 54.2: the composition's `durationUs` is the sum of the scenes' less the scene transitions', computed in `BigInt` (D56.2)
 - Related: D04, D13, D16, D17, D30, D38, D39, D42, D43, D47, D49, D53,
   [roadmap of phase three](../roadmap/phase-3.md) PR-30
 

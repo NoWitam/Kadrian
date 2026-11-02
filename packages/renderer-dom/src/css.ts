@@ -4,7 +4,7 @@
  * reads back as the same double, so every engine writes the same text for the
  * same bits. Nothing is rounded or fixed to a number of digits.
  */
-import type { TransformState } from '@kadrion/runtime';
+import type { Inset, TransformState } from '@kadrion/runtime';
 
 /** `-0` becomes `"0"`; below 1e-6 the text has an exponent, a valid CSS number token. */
 export function cssNumber(value: number): string {
@@ -33,4 +33,10 @@ export function cssColor(hex: string): string {
 /** The font family a text node names (D22.6); asset IDs are valid CSS identifier characters. */
 export function fontFamily(fontAssetId: string): string {
   return `kadrion-font-${fontAssetId}`;
+}
+
+/** What a scene transition cuts away of a scene, as CSS `clip-path` (D56). */
+export function cssInset(inset: Inset): string {
+  const sides = [inset.fromTop, inset.fromRight, inset.fromBottom, inset.fromLeft];
+  return `inset(${sides.map(cssPixels).join(' ')})`;
 }

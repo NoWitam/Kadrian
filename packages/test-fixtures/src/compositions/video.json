@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.5",
+  "schemaVersion": "0.6",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -175,8 +175,10 @@
           ]
         }
       ],
-      "clips": []
+      "clips": [],
+      "transitions": []
     }
   ],
-  "clips": []
+  "clips": [],
+  "transitions": []
 }
