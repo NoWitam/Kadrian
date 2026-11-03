@@ -34,7 +34,7 @@ export const SMOKE_ESBUILD_VERSION = '0.28.2';
 
 /** A composition without assets, so the smoke test needs no bytes but the release's. */
 export const SMOKE_COMPOSITION = Object.freeze({
-  schemaVersion: '0.3',
+  schemaVersion: '0.9',
   width: 320,
   height: 240,
   fps: 30,
@@ -63,9 +63,14 @@ export const SMOKE_COMPOSITION = Object.freeze({
           children: [],
         },
       ],
+      durationUs: 1_000_000,
+      clips: [],
+      transitions: [],
     },
   ],
   clips: [],
+  transitions: [],
+  template: { inputs: [], bindings: [], conditions: [], repeats: [] },
 });
 
 /** The Node part of the smoke test, run in the clean project as `node smoke-node.mjs`. */
