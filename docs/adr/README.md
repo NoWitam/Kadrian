@@ -68,7 +68,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D58](D58-templates-inputs-bindings-and-instantiation.md)     | Templates: schema 0.8, inputs, bindings, and instantiation                                   | Accepted          |
 | [D59](D59-templates-conditions-and-repetition.md)             | Templates: schema 0.9, conditions, and repetition                                            | Accepted          |
 | [D60](D60-api-reports-and-document-object.md)                 | API reports and the name `DocumentObject`                                                    | Accepted          |
-| [D61](D61-player-playback-events.md)                          | The Player's playback events                                                                 | Proposed          |
+| [D61](D61-player-playback-events.md)                          | The Player's playback events                                                                 | Accepted          |
 
 ## Provenance of D01–D10
 
