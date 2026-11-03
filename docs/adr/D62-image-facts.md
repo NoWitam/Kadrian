@@ -1,6 +1,7 @@
 # D62 — Image facts: the size of an image from its header
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-03, after PR-39a was merged
+  (PR #42)
 - Date: 2026-11-03
 - Supersedes: —
 - Amends: D27 (27.3: verifying an image asset of a media type whose header
