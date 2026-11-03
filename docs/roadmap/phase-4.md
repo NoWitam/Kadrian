@@ -112,6 +112,7 @@ items that reopen it (first-run.md). PR-36 is this document.
 
 ### PR-37 — The public surface and the name of `NodeData`
 
+- Status: done (PR #38, merged 2026-11-03), with its ADR D60 (accepted by the owner on 2026-11-03). Every package commits `api-report.txt`, generated from its built `.d.ts` by `tests/api/api-report.ts` over the TypeScript compiler API; `node --run api:update` writes the reports and `check` fails when a report and the build differ. `NodeData` is renamed to `DocumentObject`, without an alias.
 - **Goal:** the host compiles against names that will not change for naming
   reasons, and every later change of the surface is visible in review.
 - **Scope:**
