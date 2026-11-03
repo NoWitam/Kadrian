@@ -81,10 +81,17 @@ corepack pnpm run check
 | `test:pinned`    | Builds, then the browser and export tests of `tests/pinned` (D26–D34)   |
 | `ffmpeg:fetch`   | Downloads and verifies the pinned FFmpeg build (D29.1); needs a network |
 | `goldens:update` | Writes the golden frames; refuses outside the pinned container (D26.5)  |
+| `api:update`     | Builds, then writes `packages/*/api-report.txt` from the `.d.ts` (D60)  |
 | `clean`          | Removes TypeScript build output                                         |
 
 After installation the scripts also run without pnpm, for example
 `node --run check`.
+
+Each package commits an API report, `api-report.txt`: every export of its
+`exports` map with its declaration, generated from the built `.d.ts`. `check`
+fails when a report and the build differ (`tests/api/api-report.test.ts`), so a
+pull request that changes the public surface changes the report in the same
+diff and says whether the change is additive or breaking (D60).
 
 The playground (D25.9, D32) shows the engine in a browser. After
 `node --run build`:

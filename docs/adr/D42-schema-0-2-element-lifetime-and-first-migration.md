@@ -377,6 +377,8 @@ and the repair of `audioPlan` in the Producer, which adds a clip's `startUs` and
 `durationUs` and so can leave the safe-integer range for a valid document — a
 debt recorded in the roadmap, found by reading the code.
 
+Closed by PR-37 (D60): the neutral name is `DocumentObject`, without an alias.
+
 ## Alternatives considered
 
 - **A node-local animation clock** — an animation would move with its node, but

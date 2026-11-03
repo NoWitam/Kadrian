@@ -203,7 +203,6 @@ export type {
   MoveKeyframeArguments,
   MoveKeyframeArgumentsSchema,
   MoveKeyframeCommand,
-  NodeData,
   OpenArraySchema,
   OpenObjectSchema,
   RemoveAnimationArguments,
@@ -286,6 +285,7 @@ export type {
   SetVideoVolumeCommand,
 } from './commands.js';
 export { describeDocument } from './describe.js';
+export type { DocumentObject } from './document.js';
 export type { DocumentDescription, NodeDescription, SceneDescription } from './describe.js';
 export { EditorError } from './errors.js';
 export type { AudioFacts, MediaFacts, MediaFactsLookup, VideoFacts } from './media.js';

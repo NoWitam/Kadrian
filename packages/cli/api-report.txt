@@ -1,0 +1,309 @@
+API report of @kadrion/cli
+Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by hand.
+
+==== Entry "."
+
+---- AUDIO_MANIFEST_NAME
+export declare const AUDIO_MANIFEST_NAME = "audio.manifest.json";
+
+---- CANCEL_GRACE_MS
+export declare const CANCEL_GRACE_MS = 10000;
+
+---- CliHosts (type only)
+export interface CliHosts {
+    readonly render: Render;
+    readonly exportMp4: Export;
+    readonly renderRange: RenderRange;
+    readonly renderAudio: RenderAudio;
+    readonly join: Join;
+    readonly renderStill: RenderStill;
+    readonly fetchFfmpeg: FetchFfmpeg;
+    readonly doctor: Doctor;
+    readonly env: Readonly<Record<string, string | undefined>>;
+    readonly signal: AbortSignal | undefined;
+    readonly now: () => number;
+    readonly startTimer: StartTimer;
+}
+
+---- CliIo (type only)
+export interface CliIo {
+    readonly out: (line: string) => void;
+    readonly err: (line: string) => void;
+}
+
+---- DOCTOR_CHECKS
+export declare const DOCTOR_CHECKS: readonly [
+    "platform",
+    "image",
+    "playwright",
+    "chromium",
+    "ffmpeg",
+    "network",
+    "runtime"
+];
+
+---- DOCTOR_REPORT_VERSION
+export declare const DOCTOR_REPORT_VERSION = 1;
+
+---- Decompressor (type only)
+export interface Decompressor {
+    readonly name: 'xz' | 'python3';
+    readonly command: string;
+    readonly probe: readonly string[];
+    args(archive: string): string[];
+}
+
+---- Doctor (type only)
+export type Doctor = (ffmpeg: Partial<FfmpegPaths>) => Promise<DoctorReport>;
+
+---- DoctorCheck (type only)
+export interface DoctorCheck {
+    readonly id: DoctorCheckId;
+    readonly ok: boolean;
+    readonly detail: string;
+}
+
+---- DoctorCheckId (type only)
+export type DoctorCheckId = (typeof DOCTOR_CHECKS)[number];
+
+---- DoctorHost (type only)
+export interface DoctorHost {
+    readonly platform: string;
+    readonly arch: string;
+    readonly env: Readonly<Record<string, string | undefined>>;
+    playwright(): {
+        readonly version: string;
+        readonly revision: string | null;
+        readonly browserVersion: string | null;
+    };
+    chromium(): Promise<string>;
+    verifyFfmpeg(paths: FfmpegPaths): Promise<{
+        ffmpegSha256: string;
+        ffprobeSha256: string;
+    }>;
+    networkInterfaces(): readonly string[];
+    runtimeHash(): string;
+}
+
+---- DoctorReport (type only)
+export interface DoctorReport {
+    readonly reportVersion: typeof DOCTOR_REPORT_VERSION;
+    readonly reference: boolean;
+    readonly checks: readonly DoctorCheck[];
+}
+
+---- EXIT_CANCELLED
+export declare const EXIT_CANCELLED = 5;
+
+---- EXIT_LIMIT_EXCEEDED
+export declare const EXIT_LIMIT_EXCEEDED = 4;
+
+---- EXIT_NOT_REFERENCE
+export declare const EXIT_NOT_REFERENCE = 3;
+
+---- EXIT_OK
+export declare const EXIT_OK = 0;
+
+---- EXIT_PRODUCER_ERROR
+export declare const EXIT_PRODUCER_ERROR = 1;
+
+---- EXIT_USAGE
+export declare const EXIT_USAGE = 2;
+
+---- Export (type only)
+export type Export = (request: ExportRequest) => Promise<ExportResult>;
+
+---- FFMPEG_INSTALL_ERROR_CODES
+export declare const FFMPEG_INSTALL_ERROR_CODES: readonly [
+    "download-failed",
+    "archive-hash-mismatch",
+    "no-decompressor",
+    "extract-failed",
+    "binary-hash-mismatch"
+];
+
+---- FFMPEG_VARIABLE
+export declare const FFMPEG_VARIABLE = "KADRION_FFMPEG";
+
+---- FFPROBE_VARIABLE
+export declare const FFPROBE_VARIABLE = "KADRION_FFPROBE";
+
+---- FetchFfmpeg (type only)
+export type FetchFfmpeg = (options: FetchFfmpegOptions) => Promise<Installed>;
+
+---- FetchFfmpegOptions (type only)
+export interface FetchFfmpegOptions {
+    readonly dir: string;
+    readonly log: (line: string) => void;
+    readonly download?: () => Promise<Uint8Array>;
+}
+
+---- FfmpegInstallError
+export declare class FfmpegInstallError extends Error {
+    readonly code: FfmpegInstallErrorCode;
+    constructor(code: FfmpegInstallErrorCode, message: string);
+}
+
+---- FfmpegInstallErrorCode (type only)
+export type FfmpegInstallErrorCode = (typeof FFMPEG_INSTALL_ERROR_CODES)[number];
+
+---- InstallOptions (type only)
+export interface InstallOptions {
+    readonly cache: string;
+    readonly asset: string;
+    readonly release: string;
+    readonly archiveSha256: string;
+    readonly ffmpegSha256: string;
+    readonly ffprobeSha256: string;
+    download(): Promise<Uint8Array>;
+    readonly probe: Probe;
+    readonly spawn: Spawn;
+    readonly log: (line: string) => void;
+}
+
+---- Installed (type only)
+export interface Installed {
+    readonly ffmpeg: string;
+    readonly ffprobe: string;
+    readonly reused: boolean;
+    readonly decompressor: Decompressor['name'] | null;
+}
+
+---- JOB_COMMANDS
+export declare const JOB_COMMANDS: readonly [
+    "render-frames",
+    "export",
+    "render-range",
+    "render-audio",
+    "join",
+    "render-still",
+    "estimate"
+];
+
+---- JobLine (type only)
+export type JobLine = ProgressEvent | {
+    readonly event: 'file';
+    readonly file: string;
+} | {
+    readonly event: 'estimate';
+    readonly samples: number;
+    readonly setupMs: number;
+    readonly msPerFrame: number;
+    readonly segmentFrames: number;
+    readonly msPerSegment: number;
+    readonly segments: number;
+    readonly segmentsInBudget: number | null;
+} | {
+    readonly event: 'done';
+    readonly manifest: string | null;
+} | {
+    readonly event: 'error';
+    readonly code: string;
+    readonly exitCode: number;
+};
+
+---- Join (type only)
+export type Join = (request: JoinRequest) => Promise<JoinResult>;
+
+---- PYTHON_LZMA
+export declare const PYTHON_LZMA: Decompressor;
+
+---- PYTHON_LZMA_SCRIPT
+export declare const PYTHON_LZMA_SCRIPT = "import lzma, shutil, sys\nwith lzma.open(sys.argv[1]) as source:\n    shutil.copyfileobj(source, sys.stdout.buffer)";
+
+---- Probe (type only)
+export type Probe = (command: string, args: readonly string[]) => boolean;
+
+---- RENDER_MANIFEST_NAME
+export declare const RENDER_MANIFEST_NAME = "render-manifest.json";
+
+---- Render (type only)
+export type Render = (request: RenderRequest) => Promise<RenderResult>;
+
+---- RenderAudio (type only)
+export type RenderAudio = (request: AudioRequest) => Promise<AudioResult>;
+
+---- RenderRange (type only)
+export type RenderRange = (request: SegmentsRequest) => Promise<SegmentsResult>;
+
+---- RenderStill (type only)
+export type RenderStill = (request: StillRequest) => Promise<StillResult>;
+
+---- Spawn (type only)
+export type Spawn = (command: string, args: readonly string[], options: {
+    readonly cwd: string;
+    readonly stdio: readonly [
+        'ignore' | 'pipe',
+        'pipe' | 'inherit',
+        'inherit'
+    ];
+}) => SpawnedProcess;
+
+---- SpawnedProcess (type only)
+export interface SpawnedProcess {
+    readonly stdin: Writable | null;
+    readonly stdout: Readable | null;
+    kill(): boolean;
+    on(event: 'error', listener: (error: Error) => void): this;
+    on(event: 'close', listener: (code: number | null, signal: string | null) => void): this;
+}
+
+---- StartTimer (type only)
+export type StartTimer = (fire: () => void, milliseconds: number) => () => void;
+
+---- USAGE
+export declare const USAGE: string;
+
+---- XZ
+export declare const XZ: Decompressor;
+
+---- archiveMembers
+export declare function archiveMembers(asset: string): string[];
+
+---- chooseDecompressor
+export declare function chooseDecompressor(probe: Probe): Decompressor;
+
+---- exportFileNames
+export declare function exportFileNames(preset: string): {
+    readonly video: string;
+    readonly manifest: string;
+};
+
+---- extractArchive
+export declare function extractArchive(spawn: Spawn, decompressor: Decompressor, archive: string, tarArgs: readonly string[], cwd: string): Promise<void>;
+
+---- fetchFfmpeg
+export declare function fetchFfmpeg(options: FetchFfmpegOptions): Promise<Installed>;
+
+---- frameFileName
+export declare function frameFileName(index: number): string;
+
+---- installFfmpeg
+export declare function installFfmpeg(options: InstallOptions): Promise<Installed>;
+
+---- parseAssetMap
+export declare function parseAssetMap(text: string): ReadonlyMap<string, AssetEntry>;
+
+---- parseTimes
+export declare function parseTimes(text: string): number[];
+
+---- runCli
+export declare function runCli(argv: readonly string[], io: CliIo, hosts?: Partial<CliHosts>): Promise<number>;
+
+---- runDoctor
+export declare function runDoctor(ffmpeg: Partial<FfmpegPaths>, host?: DoctorHost): Promise<DoctorReport>;
+
+---- segmentsManifestName
+export declare function segmentsManifestName(first: number, last: number): string;
+
+---- stillFileNames
+export declare function stillFileNames(index: number, format: StillFormat): {
+    readonly image: string;
+    readonly manifest: string;
+};
+
+---- systemDoctorHost
+export declare const systemDoctorHost: DoctorHost;
+
+---- tarArguments
+export declare function tarArguments(staging: string, asset: string): string[];

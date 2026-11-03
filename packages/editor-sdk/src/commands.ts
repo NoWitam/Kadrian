@@ -11,6 +11,7 @@ import { compositionSchema, type Asset, type Fit } from '@kadrion/schema';
 
 import { keyframeTimeBounds } from './animations.js';
 import { lifetimeBounds, type Bounds } from './lifetimes.js';
+import type { DocumentObject } from './document.js';
 import { EditorError } from './errors.js';
 
 export interface CommandPosition {
@@ -51,12 +52,6 @@ export interface SetTextContentCommand extends SetTextContentArguments {
   readonly type: 'SetTextContent';
 }
 
-/**
- * A node as a command carries it: a deep-frozen copy of composition data. Its
- * shape is the schema's, checked by the full validation, not restated here (D39.1).
- */
-export type NodeData = Readonly<Record<string, unknown>>;
-
 /** What a caller states for `AddNode` (D39.1). */
 export interface AddNodeArguments {
   /** The scene, or a group, whose list receives the node. */
@@ -64,7 +59,7 @@ export interface AddNodeArguments {
   /** The node's index in that list after the insertion, from 0 to the list's length. */
   readonly index: number;
   /** The complete node, with every ID of its subtree and its `animations` arrays. */
-  readonly node: NodeData;
+  readonly node: DocumentObject;
 }
 
 /** Inserts a complete node, with its animations and children, into a list (D39.1). */
@@ -217,7 +212,7 @@ export interface AddAnimationArguments {
   /** The animation's index in the node's `animations` after the insertion, from 0 to the length. */
   readonly index: number;
   /** The complete animation, with its ID and its keyframes, as exact data (D41.3). */
-  readonly animation: NodeData;
+  readonly animation: DocumentObject;
 }
 
 /** Inserts a complete animation into a node's `animations` (D41.1). */
@@ -275,7 +270,7 @@ export interface SetScaleKeyframeCommand extends SetScaleKeyframeArguments {
 export interface AddKeyframeArguments {
   readonly animationId: string;
   /** The keyframe as exact data; its `timeUs` is checked, the rest is the validator's (D41.3). */
-  readonly keyframe: NodeData;
+  readonly keyframe: DocumentObject;
 }
 
 /** Inserts a keyframe given as exact data, at the place its time gives it (D41.1). */
@@ -379,7 +374,7 @@ export interface AddAudioClipArguments {
   /** The clip's index in `clips` after the insertion, from 0 to their number. */
   readonly index: number;
   /** The complete clip, as the document stores it. */
-  readonly clip: NodeData;
+  readonly clip: DocumentObject;
 }
 
 /** Inserts a complete audio clip into the document's clips (D52.6); their order is not heard. */
@@ -437,7 +432,7 @@ export interface AddSceneArguments {
   /** The scene's index in `scenes` after the insertion, from 0 to their number. */
   readonly index: number;
   /** The complete scene, with its duration, nodes, and clips, as the document stores it. */
-  readonly scene: NodeData;
+  readonly scene: DocumentObject;
 }
 
 /** Inserts a complete scene into the sequence; the composition grows by its duration (D54.5). */
@@ -509,7 +504,7 @@ export interface AddSceneAudioClipArguments {
   /** The clip's index in the scene's clips after the insertion, from 0 to their number. */
   readonly index: number;
   /** The complete clip, as the document stores it, in scene time. */
-  readonly clip: NodeData;
+  readonly clip: DocumentObject;
 }
 
 /** Inserts a complete audio clip into a scene's clips (D54.5); it moves with the scene. */
@@ -588,7 +583,7 @@ export interface AddSceneTransitionArguments {
   /** The transition's index in the composition's transitions after the insertion; their order has no meaning. */
   readonly index: number;
   /** The complete transition, as the document stores it. */
-  readonly transition: NodeData;
+  readonly transition: DocumentObject;
 }
 
 /**
@@ -606,7 +601,7 @@ export interface AddClipTransitionArguments {
   /** The transition's index in the scene's transitions after the insertion; their order has no meaning. */
   readonly index: number;
   /** The complete transition, as the document stores it. */
-  readonly transition: NodeData;
+  readonly transition: DocumentObject;
 }
 
 /** Inserts a transition between two clips of one layer of a scene; nothing moves (D49.4, D56.6). */
@@ -644,7 +639,7 @@ export interface SetTransitionDurationCommand extends SetTransitionDurationArgum
 export interface SetTransitionEffectArguments {
   readonly transitionId: string;
   /** The complete effect, as the document stores it. */
-  readonly effect: NodeData;
+  readonly effect: DocumentObject;
 }
 
 /** Replaces how a transition combines its two sides; no time changes (D56.6). */
@@ -656,7 +651,7 @@ export interface SetTransitionEffectCommand extends SetTransitionEffectArguments
 export interface SetCaptionWordsArguments {
   readonly nodeId: string;
   /** Every word, as the document stores it, in the order they are spoken. */
-  readonly words: readonly NodeData[];
+  readonly words: readonly DocumentObject[];
 }
 
 /** Replaces every word of a captions node: a new transcription (D57.5). */
@@ -670,7 +665,7 @@ export interface SetCaptionWordArguments {
   /** The index of the word in the node's `words`, from 0. */
   readonly index: number;
   /** The complete word, as the document stores it. */
-  readonly word: NodeData;
+  readonly word: DocumentObject;
 }
 
 /** Replaces one word of a captions node: its text, its timing, or both (D57.5). */
@@ -682,7 +677,7 @@ export interface SetCaptionWordCommand extends SetCaptionWordArguments {
 export interface SetCaptionStyleArguments {
   readonly nodeId: string;
   /** The complete style, as the document stores it. */
-  readonly style: NodeData;
+  readonly style: DocumentObject;
 }
 
 /** Replaces the style of a captions node; no word and no time changes (D57.5). */
@@ -695,7 +690,7 @@ export interface AddTemplateInputArguments {
   /** The input's index in the template's inputs after the insertion. */
   readonly index: number;
   /** The complete input, as the document stores it. */
-  readonly input: NodeData;
+  readonly input: DocumentObject;
 }
 
 /** Inserts an input into the template section; nothing reads it until a binding does (D58.6). */
@@ -717,7 +712,7 @@ export interface RemoveTemplateInputCommand extends RemoveTemplateInputArguments
 export interface SetTemplateInputArguments {
   readonly inputId: string;
   /** The complete input, as the document stores it, with the same ID. */
-  readonly input: NodeData;
+  readonly input: DocumentObject;
 }
 
 /**
@@ -734,7 +729,7 @@ export interface AddTemplateBindingArguments {
   /** The binding's index in the template's bindings after the insertion; their order has no meaning. */
   readonly index: number;
   /** The complete binding, as the document stores it. */
-  readonly binding: NodeData;
+  readonly binding: DocumentObject;
 }
 
 /** Inserts a binding; its target must already hold its input's default (D58.3, D58.6). */
@@ -757,7 +752,7 @@ export interface AddTemplateConditionArguments {
   /** The condition's index in the template's conditions after the insertion; their order has no meaning. */
   readonly index: number;
   /** The complete condition, as the document stores it. */
-  readonly condition: NodeData;
+  readonly condition: DocumentObject;
 }
 
 /** Inserts a condition: its scene or node is kept only while its test of an input holds (D59.1, D59.6). */
@@ -780,7 +775,7 @@ export interface AddTemplateRepeatArguments {
   /** The repeat's index in the template's repeats after the insertion; their order has no meaning. */
   readonly index: number;
   /** The complete repeat, as the document stores it. */
-  readonly repeat: NodeData;
+  readonly repeat: DocumentObject;
 }
 
 /** Inserts a repeat: its scene or node is copied once for each item of a list (D59.2, D59.6). */
@@ -2720,7 +2715,7 @@ export function parseAddNode(value: unknown): AddNodeCommand {
   if (!isPlainObject(node) || !isDataObject(node)) {
     throw new EditorError('invalid-argument', '`node` must be an object.');
   }
-  const copy = deepFreeze(copyData(node, '`node`', []) as NodeData);
+  const copy = deepFreeze(copyData(node, '`node`', []) as DocumentObject);
   return Object.freeze({ type: 'AddNode', parentId, index, node: copy });
 }
 
@@ -2935,7 +2930,7 @@ export function parseAddAnimation(value: unknown): AddAnimationCommand {
   if (!isPlainObject(animation) || !isDataObject(animation)) {
     throw new EditorError('invalid-argument', '`animation` must be an object.');
   }
-  const copy = deepFreeze(copyData(animation, '`animation`', []) as NodeData);
+  const copy = deepFreeze(copyData(animation, '`animation`', []) as DocumentObject);
   return Object.freeze({ type: 'AddAnimation', nodeId, index, animation: copy });
 }
 
@@ -3147,7 +3142,7 @@ export function parseAddAudioClip(value: unknown): AddAudioClipCommand {
   if (!isPlainObject(clip) || !isDataObject(clip)) {
     throw new EditorError('invalid-argument', '`clip` must be an object.');
   }
-  const copy = deepFreeze(copyData(clip, '`clip`', []) as NodeData);
+  const copy = deepFreeze(copyData(clip, '`clip`', []) as DocumentObject);
   return Object.freeze({ type: 'AddAudioClip', index, clip: copy });
 }
 
@@ -3195,11 +3190,11 @@ export function parseSetClipSource(value: unknown): SetClipSourceCommand {
 }
 
 /** A complete entity a command carries: copied as exact data and deep-frozen (D39.5). */
-function dataOf(value: unknown, name: string): NodeData {
+function dataOf(value: unknown, name: string): DocumentObject {
   if (!isPlainObject(value) || !isDataObject(value)) {
     throw new EditorError('invalid-argument', `\`${name}\` must be an object.`);
   }
-  return deepFreeze(copyData(value, `\`${name}\``, []) as NodeData);
+  return deepFreeze(copyData(value, `\`${name}\``, []) as DocumentObject);
 }
 
 /** The fields of an `AddScene` (D54.5); the document's validation judges the scene. */

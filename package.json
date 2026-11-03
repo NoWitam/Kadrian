@@ -10,6 +10,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "api:update": "node --run build && node --experimental-strip-types tests/api/update-api-reports.ts",
     "build": "tsc -b && node --experimental-strip-types packages/renderer-dom/scripts/build-runtime.ts",
     "check": "node --run typecheck && node --run lint && node --run format:check && node --run build && node --run test",
     "clean": "tsc -b --clean",

@@ -1,0 +1,1487 @@
+API report of @kadrion/editor-sdk
+Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by hand.
+
+==== Entry "."
+
+---- AddAnimationArguments (type only)
+export interface AddAnimationArguments {
+    readonly nodeId: string;
+    readonly index: number;
+    readonly animation: DocumentObject;
+}
+
+---- AddAnimationArgumentsSchema (type only)
+export interface AddAnimationArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly index: ArgumentSchema;
+        readonly animation: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddAnimationArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddAnimationCommand (type only)
+export interface AddAnimationCommand extends AddAnimationArguments {
+    readonly type: 'AddAnimation';
+}
+
+---- AddAssetArguments (type only)
+export interface AddAssetArguments {
+    readonly asset: AssetData;
+    readonly index: number;
+}
+
+---- AddAssetArgumentsSchema (type only)
+export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
+
+---- AddAssetCommand (type only)
+export interface AddAssetCommand extends AddAssetArguments {
+    readonly type: 'AddAsset';
+}
+
+---- AddAudioClipArguments (type only)
+export interface AddAudioClipArguments {
+    readonly index: number;
+    readonly clip: DocumentObject;
+}
+
+---- AddAudioClipArgumentsSchema (type only)
+export interface AddAudioClipArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly index: ArgumentSchema;
+        readonly clip: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddAudioClipArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddAudioClipCommand (type only)
+export interface AddAudioClipCommand extends AddAudioClipArguments {
+    readonly type: 'AddAudioClip';
+}
+
+---- AddClipTransitionArguments (type only)
+export interface AddClipTransitionArguments {
+    readonly sceneId: string;
+    readonly index: number;
+    readonly transition: DocumentObject;
+}
+
+---- AddClipTransitionArgumentsSchema (type only)
+export interface AddClipTransitionArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly sceneId: ArgumentSchema;
+        readonly index: ArgumentSchema;
+        readonly transition: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddClipTransitionArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddClipTransitionCommand (type only)
+export interface AddClipTransitionCommand extends AddClipTransitionArguments {
+    readonly type: 'AddClipTransition';
+}
+
+---- AddKeyframeArguments (type only)
+export interface AddKeyframeArguments {
+    readonly animationId: string;
+    readonly keyframe: DocumentObject;
+}
+
+---- AddKeyframeArgumentsSchema (type only)
+export interface AddKeyframeArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly animationId: ArgumentSchema;
+        readonly keyframe: KeyframePayloadSchema;
+    };
+    readonly required: readonly (keyof AddKeyframeArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddKeyframeCommand (type only)
+export interface AddKeyframeCommand extends AddKeyframeArguments {
+    readonly type: 'AddKeyframe';
+}
+
+---- AddNodeArguments (type only)
+export interface AddNodeArguments {
+    readonly parentId: string;
+    readonly index: number;
+    readonly node: DocumentObject;
+}
+
+---- AddNodeArgumentsSchema (type only)
+export interface AddNodeArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly parentId: ArgumentSchema;
+        readonly index: ArgumentSchema;
+        readonly node: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddNodeArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddNodeCommand (type only)
+export interface AddNodeCommand extends AddNodeArguments {
+    readonly type: 'AddNode';
+}
+
+---- AddSceneArguments (type only)
+export interface AddSceneArguments {
+    readonly index: number;
+    readonly scene: DocumentObject;
+}
+
+---- AddSceneArgumentsSchema (type only)
+export interface AddSceneArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly index: ArgumentSchema;
+        readonly scene: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddSceneArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddSceneAudioClipArguments (type only)
+export interface AddSceneAudioClipArguments {
+    readonly sceneId: string;
+    readonly index: number;
+    readonly clip: DocumentObject;
+}
+
+---- AddSceneAudioClipArgumentsSchema (type only)
+export interface AddSceneAudioClipArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly sceneId: ArgumentSchema;
+        readonly index: ArgumentSchema;
+        readonly clip: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddSceneAudioClipArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddSceneAudioClipCommand (type only)
+export interface AddSceneAudioClipCommand extends AddSceneAudioClipArguments {
+    readonly type: 'AddSceneAudioClip';
+}
+
+---- AddSceneCommand (type only)
+export interface AddSceneCommand extends AddSceneArguments {
+    readonly type: 'AddScene';
+}
+
+---- AddSceneTransitionArguments (type only)
+export interface AddSceneTransitionArguments {
+    readonly index: number;
+    readonly transition: DocumentObject;
+}
+
+---- AddSceneTransitionArgumentsSchema (type only)
+export interface AddSceneTransitionArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly index: ArgumentSchema;
+        readonly transition: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddSceneTransitionArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddSceneTransitionCommand (type only)
+export interface AddSceneTransitionCommand extends AddSceneTransitionArguments {
+    readonly type: 'AddSceneTransition';
+}
+
+---- AddTemplateBindingArguments (type only)
+export interface AddTemplateBindingArguments {
+    readonly index: number;
+    readonly binding: DocumentObject;
+}
+
+---- AddTemplateBindingArgumentsSchema (type only)
+export interface AddTemplateBindingArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly index: ArgumentSchema;
+        readonly binding: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddTemplateBindingArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddTemplateBindingCommand (type only)
+export interface AddTemplateBindingCommand extends AddTemplateBindingArguments {
+    readonly type: 'AddTemplateBinding';
+}
+
+---- AddTemplateConditionArguments (type only)
+export interface AddTemplateConditionArguments {
+    readonly index: number;
+    readonly condition: DocumentObject;
+}
+
+---- AddTemplateConditionArgumentsSchema (type only)
+export interface AddTemplateConditionArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly index: ArgumentSchema;
+        readonly condition: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddTemplateConditionArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddTemplateConditionCommand (type only)
+export interface AddTemplateConditionCommand extends AddTemplateConditionArguments {
+    readonly type: 'AddTemplateCondition';
+}
+
+---- AddTemplateInputArguments (type only)
+export interface AddTemplateInputArguments {
+    readonly index: number;
+    readonly input: DocumentObject;
+}
+
+---- AddTemplateInputArgumentsSchema (type only)
+export interface AddTemplateInputArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly index: ArgumentSchema;
+        readonly input: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddTemplateInputArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddTemplateInputCommand (type only)
+export interface AddTemplateInputCommand extends AddTemplateInputArguments {
+    readonly type: 'AddTemplateInput';
+}
+
+---- AddTemplateRepeatArguments (type only)
+export interface AddTemplateRepeatArguments {
+    readonly index: number;
+    readonly repeat: DocumentObject;
+}
+
+---- AddTemplateRepeatArgumentsSchema (type only)
+export interface AddTemplateRepeatArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly index: ArgumentSchema;
+        readonly repeat: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddTemplateRepeatArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddTemplateRepeatCommand (type only)
+export interface AddTemplateRepeatCommand extends AddTemplateRepeatArguments {
+    readonly type: 'AddTemplateRepeat';
+}
+
+---- AnyCommandToolMetadata (type only)
+export type AnyCommandToolMetadata = {
+    readonly [T in Command['type']]: CommandToolMetadata<T>;
+}[Command['type']];
+
+---- ApplyOptions (type only)
+export interface ApplyOptions {
+    readonly mediaFacts?: MediaFactsLookup;
+}
+
+---- ArgumentSchema (type only)
+export type ArgumentSchema = {
+    readonly type: 'string';
+    readonly description: string;
+    readonly minLength: number;
+} | {
+    readonly type: 'string';
+    readonly description: string;
+    readonly pattern: string;
+} | {
+    readonly type: 'string';
+    readonly description: string;
+    readonly enum: readonly string[];
+} | {
+    readonly type: 'string';
+    readonly description: string;
+} | {
+    readonly type: 'number';
+    readonly description: string;
+} | {
+    readonly type: 'number';
+    readonly description: string;
+    readonly minimum: number;
+    readonly maximum: number;
+} | {
+    readonly type: 'integer';
+    readonly description: string;
+    readonly minimum: number;
+    readonly maximum: number;
+} | ClosedObjectSchema<string>;
+
+---- AssetData (type only)
+export interface AssetData {
+    readonly id: string;
+    readonly type: AssetType;
+    readonly contentHash: string;
+}
+
+---- AssetType (type only)
+export type AssetType = Asset['type'];
+
+---- AudioFacts (type only)
+export interface AudioFacts {
+    readonly type: 'audio';
+    readonly durationUs: number;
+}
+
+---- BusChange (type only)
+export interface BusChange {
+    readonly kind: 'dispatch' | 'transaction' | 'undo' | 'redo';
+    readonly document: ValidatedComposition;
+    readonly commands: readonly Command[];
+    readonly inverses: readonly Command[];
+    readonly createdIds: readonly string[];
+    readonly canUndo: boolean;
+    readonly canRedo: boolean;
+    readonly undoDepth: number;
+    readonly redoDepth: number;
+}
+
+---- BusListener (type only)
+export type BusListener = (change: BusChange) => void;
+
+---- COMMAND_TOOL_METADATA
+export declare const COMMAND_TOOL_METADATA: readonly AnyCommandToolMetadata[];
+
+---- COMMAND_TYPES
+export declare const COMMAND_TYPES: readonly Command['type'][];
+
+---- ClosedObjectSchema (type only)
+export interface ClosedObjectSchema<K extends string> {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly [P in K]: ArgumentSchema;
+    };
+    readonly required: readonly K[];
+    readonly additionalProperties: false;
+}
+
+---- Command (type only)
+export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand;
+
+---- CommandArguments (type only)
+export type CommandArguments<T extends Command['type']> = Omit<Extract<Command, {
+    type: T;
+}>, 'type'>;
+
+---- CommandArgumentsSchema (type only)
+export type CommandArgumentsSchema = ClosedObjectSchema<string> | AddNodeArgumentsSchema | AddAnimationArgumentsSchema | AddKeyframeArgumentsSchema | AddAudioClipArgumentsSchema | AddSceneArgumentsSchema | AddSceneAudioClipArgumentsSchema | AddSceneTransitionArgumentsSchema | AddClipTransitionArgumentsSchema | SetTransitionEffectArgumentsSchema | SetCaptionWordsArgumentsSchema | SetCaptionWordArgumentsSchema | SetCaptionStyleArgumentsSchema | AddTemplateInputArgumentsSchema | SetTemplateInputArgumentsSchema | AddTemplateBindingArgumentsSchema | AddTemplateConditionArgumentsSchema | AddTemplateRepeatArgumentsSchema;
+
+---- CommandBus (type only)
+export interface CommandBus {
+    getDocument(): ValidatedComposition;
+    canUndo(): boolean;
+    canRedo(): boolean;
+    mediaFactsOf(contentHash: string): MediaFacts | null;
+    dispatch(command: unknown): CommandResult;
+    dispatchTransaction(commands: unknown): TransactionResult;
+    undo(): TransactionResult;
+    redo(): TransactionResult;
+    subscribe(listener: BusListener): () => void;
+}
+
+---- CommandBusOptions (type only)
+export interface CommandBusOptions {
+    readonly historyLimit?: number;
+    readonly onListenerError?: ListenerErrorHandler;
+    readonly mediaFacts?: MediaFactsLookup;
+}
+
+---- CommandPosition (type only)
+export interface CommandPosition {
+    readonly x: number;
+    readonly y: number;
+}
+
+---- CommandResult (type only)
+export interface CommandResult {
+    readonly document: ValidatedComposition;
+    readonly inverse: Command | null;
+    readonly createdIds: readonly string[];
+}
+
+---- CommandScale (type only)
+export interface CommandScale {
+    readonly x: number;
+    readonly y: number;
+}
+
+---- CommandToolMetadata (type only)
+export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
+    readonly commandType: T;
+    readonly description: string;
+    readonly example: CommandArguments<T>;
+    readonly argumentsSchema: CommandArgumentsSchema;
+}
+
+---- DocumentDescription (type only)
+export interface DocumentDescription {
+    readonly schemaVersion: string;
+    readonly width: number;
+    readonly height: number;
+    readonly fps: number;
+    readonly durationUs: number;
+    readonly scenes: readonly SceneDescription[];
+    readonly assets: readonly unknown[];
+    readonly clips: readonly unknown[];
+    readonly transitions: readonly unknown[];
+    readonly template: {
+        readonly inputs: readonly unknown[];
+        readonly bindings: readonly unknown[];
+    };
+}
+
+---- DocumentObject (type only)
+export type DocumentObject = Readonly<Record<string, unknown>>;
+
+---- DuplicateNodeArguments (type only)
+export interface DuplicateNodeArguments {
+    readonly nodeId: string;
+    readonly newNodeId: string;
+}
+
+---- DuplicateNodeArgumentsSchema (type only)
+export type DuplicateNodeArgumentsSchema = ClosedObjectSchema<keyof DuplicateNodeArguments>;
+
+---- DuplicateNodeCommand (type only)
+export interface DuplicateNodeCommand extends DuplicateNodeArguments {
+    readonly type: 'DuplicateNode';
+}
+
+---- DuplicateSceneArguments (type only)
+export interface DuplicateSceneArguments {
+    readonly sceneId: string;
+    readonly newSceneId: string;
+}
+
+---- DuplicateSceneArgumentsSchema (type only)
+export type DuplicateSceneArgumentsSchema = ClosedObjectSchema<keyof DuplicateSceneArguments>;
+
+---- DuplicateSceneCommand (type only)
+export interface DuplicateSceneCommand extends DuplicateSceneArguments {
+    readonly type: 'DuplicateScene';
+}
+
+---- EditorError
+export declare class EditorError extends Error {
+    readonly code: EditorErrorCode;
+    readonly details: readonly string[];
+    constructor(code: EditorErrorCode, message: string, details?: readonly string[]);
+}
+
+---- EditorErrorCode (type only)
+export type EditorErrorCode = 'invalid-document' | 'unknown-command' | 'invalid-argument' | 'unknown-node' | 'unsupported-node' | 'invalid-result' | 'nothing-to-undo' | 'nothing-to-redo' | 'busy' | 'unknown-parent' | 'index-out-of-range' | 'id-in-use' | 'unknown-asset' | 'asset-type-mismatch' | 'asset-in-use' | 'unknown-scene' | 'last-scene' | 'unknown-clip' | 'time-outside-clip' | 'split-not-exact' | 'clips-not-joinable' | 'unknown-transition' | 'transition-in-use' | 'unknown-input' | 'unknown-binding' | 'unknown-condition' | 'unknown-repeat' | 'input-in-use' | 'binding-in-use' | 'unknown-animation' | 'unknown-keyframe' | 'keyframe-exists' | 'too-few-keyframes' | 'animation-property-mismatch' | 'duplicate-animation-target' | 'media-facts-missing' | 'source-range-exceeded';
+
+---- JoinClipsArguments (type only)
+export interface JoinClipsArguments {
+    readonly clipId: string;
+    readonly nextClipId: string;
+}
+
+---- JoinClipsArgumentsSchema (type only)
+export type JoinClipsArgumentsSchema = ClosedObjectSchema<keyof JoinClipsArguments>;
+
+---- JoinClipsCommand (type only)
+export interface JoinClipsCommand extends JoinClipsArguments {
+    readonly type: 'JoinClips';
+}
+
+---- KeyframePayloadSchema (type only)
+export interface KeyframePayloadSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly timeUs: ArgumentSchema;
+    };
+    readonly required: readonly [
+        'timeUs'
+    ];
+}
+
+---- ListenerErrorHandler (type only)
+export type ListenerErrorHandler = (error: unknown, change: BusChange) => void;
+
+---- MediaFacts (type only)
+export type MediaFacts = VideoFacts | AudioFacts;
+
+---- MediaFactsLookup (type only)
+export type MediaFactsLookup = (contentHash: string) => MediaFacts | null;
+
+---- MoveClipArguments (type only)
+export interface MoveClipArguments {
+    readonly clipId: string;
+    readonly startUs: number;
+}
+
+---- MoveClipArgumentsSchema (type only)
+export type MoveClipArgumentsSchema = ClosedObjectSchema<keyof MoveClipArguments>;
+
+---- MoveClipCommand (type only)
+export interface MoveClipCommand extends MoveClipArguments {
+    readonly type: 'MoveClip';
+}
+
+---- MoveKeyframeArguments (type only)
+export interface MoveKeyframeArguments {
+    readonly animationId: string;
+    readonly timeUs: number;
+    readonly toTimeUs: number;
+}
+
+---- MoveKeyframeArgumentsSchema (type only)
+export type MoveKeyframeArgumentsSchema = ClosedObjectSchema<keyof MoveKeyframeArguments>;
+
+---- MoveKeyframeCommand (type only)
+export interface MoveKeyframeCommand extends MoveKeyframeArguments {
+    readonly type: 'MoveKeyframe';
+}
+
+---- MoveNodeToSceneArguments (type only)
+export interface MoveNodeToSceneArguments {
+    readonly nodeId: string;
+    readonly sceneId: string;
+    readonly index: number;
+}
+
+---- MoveNodeToSceneArgumentsSchema (type only)
+export type MoveNodeToSceneArgumentsSchema = ClosedObjectSchema<keyof MoveNodeToSceneArguments>;
+
+---- MoveNodeToSceneCommand (type only)
+export interface MoveNodeToSceneCommand extends MoveNodeToSceneArguments {
+    readonly type: 'MoveNodeToScene';
+}
+
+---- NodeDescription (type only)
+export interface NodeDescription {
+    readonly id: string;
+    readonly type: string;
+    readonly parentId: string;
+    readonly layer: number;
+    readonly startUs: number;
+    readonly durationUs: number;
+    readonly fields: Readonly<Record<string, unknown>>;
+    readonly children?: readonly NodeDescription[];
+}
+
+---- OpenArraySchema (type only)
+export interface OpenArraySchema {
+    readonly type: 'array';
+    readonly description: string;
+    readonly items: OpenObjectSchema;
+}
+
+---- OpenObjectSchema (type only)
+export interface OpenObjectSchema {
+    readonly type: 'object';
+    readonly description: string;
+}
+
+---- RemoveAnimationArguments (type only)
+export interface RemoveAnimationArguments {
+    readonly animationId: string;
+}
+
+---- RemoveAnimationArgumentsSchema (type only)
+export type RemoveAnimationArgumentsSchema = ClosedObjectSchema<keyof RemoveAnimationArguments>;
+
+---- RemoveAnimationCommand (type only)
+export interface RemoveAnimationCommand extends RemoveAnimationArguments {
+    readonly type: 'RemoveAnimation';
+}
+
+---- RemoveAssetArguments (type only)
+export interface RemoveAssetArguments {
+    readonly assetId: string;
+}
+
+---- RemoveAssetArgumentsSchema (type only)
+export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
+
+---- RemoveAssetCommand (type only)
+export interface RemoveAssetCommand extends RemoveAssetArguments {
+    readonly type: 'RemoveAsset';
+}
+
+---- RemoveAudioClipArguments (type only)
+export interface RemoveAudioClipArguments {
+    readonly clipId: string;
+}
+
+---- RemoveAudioClipArgumentsSchema (type only)
+export type RemoveAudioClipArgumentsSchema = ClosedObjectSchema<keyof RemoveAudioClipArguments>;
+
+---- RemoveAudioClipCommand (type only)
+export interface RemoveAudioClipCommand extends RemoveAudioClipArguments {
+    readonly type: 'RemoveAudioClip';
+}
+
+---- RemoveKeyframeArguments (type only)
+export interface RemoveKeyframeArguments {
+    readonly animationId: string;
+    readonly timeUs: number;
+}
+
+---- RemoveKeyframeArgumentsSchema (type only)
+export type RemoveKeyframeArgumentsSchema = ClosedObjectSchema<keyof RemoveKeyframeArguments>;
+
+---- RemoveKeyframeCommand (type only)
+export interface RemoveKeyframeCommand extends RemoveKeyframeArguments {
+    readonly type: 'RemoveKeyframe';
+}
+
+---- RemoveNodeArguments (type only)
+export interface RemoveNodeArguments {
+    readonly nodeId: string;
+}
+
+---- RemoveNodeArgumentsSchema (type only)
+export type RemoveNodeArgumentsSchema = ClosedObjectSchema<keyof RemoveNodeArguments>;
+
+---- RemoveNodeCommand (type only)
+export interface RemoveNodeCommand extends RemoveNodeArguments {
+    readonly type: 'RemoveNode';
+}
+
+---- RemoveSceneArguments (type only)
+export interface RemoveSceneArguments {
+    readonly sceneId: string;
+}
+
+---- RemoveSceneArgumentsSchema (type only)
+export type RemoveSceneArgumentsSchema = ClosedObjectSchema<keyof RemoveSceneArguments>;
+
+---- RemoveSceneCommand (type only)
+export interface RemoveSceneCommand extends RemoveSceneArguments {
+    readonly type: 'RemoveScene';
+}
+
+---- RemoveTemplateBindingArguments (type only)
+export interface RemoveTemplateBindingArguments {
+    readonly bindingId: string;
+}
+
+---- RemoveTemplateBindingArgumentsSchema (type only)
+export type RemoveTemplateBindingArgumentsSchema = ClosedObjectSchema<keyof RemoveTemplateBindingArguments>;
+
+---- RemoveTemplateBindingCommand (type only)
+export interface RemoveTemplateBindingCommand extends RemoveTemplateBindingArguments {
+    readonly type: 'RemoveTemplateBinding';
+}
+
+---- RemoveTemplateConditionArguments (type only)
+export interface RemoveTemplateConditionArguments {
+    readonly conditionId: string;
+}
+
+---- RemoveTemplateConditionArgumentsSchema (type only)
+export type RemoveTemplateConditionArgumentsSchema = ClosedObjectSchema<keyof RemoveTemplateConditionArguments>;
+
+---- RemoveTemplateConditionCommand (type only)
+export interface RemoveTemplateConditionCommand extends RemoveTemplateConditionArguments {
+    readonly type: 'RemoveTemplateCondition';
+}
+
+---- RemoveTemplateInputArguments (type only)
+export interface RemoveTemplateInputArguments {
+    readonly inputId: string;
+}
+
+---- RemoveTemplateInputArgumentsSchema (type only)
+export type RemoveTemplateInputArgumentsSchema = ClosedObjectSchema<keyof RemoveTemplateInputArguments>;
+
+---- RemoveTemplateInputCommand (type only)
+export interface RemoveTemplateInputCommand extends RemoveTemplateInputArguments {
+    readonly type: 'RemoveTemplateInput';
+}
+
+---- RemoveTemplateRepeatArguments (type only)
+export interface RemoveTemplateRepeatArguments {
+    readonly repeatId: string;
+}
+
+---- RemoveTemplateRepeatArgumentsSchema (type only)
+export type RemoveTemplateRepeatArgumentsSchema = ClosedObjectSchema<keyof RemoveTemplateRepeatArguments>;
+
+---- RemoveTemplateRepeatCommand (type only)
+export interface RemoveTemplateRepeatCommand extends RemoveTemplateRepeatArguments {
+    readonly type: 'RemoveTemplateRepeat';
+}
+
+---- RemoveTransitionArguments (type only)
+export interface RemoveTransitionArguments {
+    readonly transitionId: string;
+}
+
+---- RemoveTransitionArgumentsSchema (type only)
+export type RemoveTransitionArgumentsSchema = ClosedObjectSchema<keyof RemoveTransitionArguments>;
+
+---- RemoveTransitionCommand (type only)
+export interface RemoveTransitionCommand extends RemoveTransitionArguments {
+    readonly type: 'RemoveTransition';
+}
+
+---- ReorderNodeArguments (type only)
+export interface ReorderNodeArguments {
+    readonly nodeId: string;
+    readonly index: number;
+}
+
+---- ReorderNodeArgumentsSchema (type only)
+export type ReorderNodeArgumentsSchema = ClosedObjectSchema<keyof ReorderNodeArguments>;
+
+---- ReorderNodeCommand (type only)
+export interface ReorderNodeCommand extends ReorderNodeArguments {
+    readonly type: 'ReorderNode';
+}
+
+---- ReorderSceneArguments (type only)
+export interface ReorderSceneArguments {
+    readonly sceneId: string;
+    readonly index: number;
+}
+
+---- ReorderSceneArgumentsSchema (type only)
+export type ReorderSceneArgumentsSchema = ClosedObjectSchema<keyof ReorderSceneArguments>;
+
+---- ReorderSceneCommand (type only)
+export interface ReorderSceneCommand extends ReorderSceneArguments {
+    readonly type: 'ReorderScene';
+}
+
+---- SceneDescription (type only)
+export interface SceneDescription {
+    readonly id: string;
+    readonly startUs: number;
+    readonly durationUs: number;
+    readonly nodes: readonly NodeDescription[];
+    readonly clips: readonly unknown[];
+    readonly transitions: readonly unknown[];
+}
+
+---- SetCaptionStyleArguments (type only)
+export interface SetCaptionStyleArguments {
+    readonly nodeId: string;
+    readonly style: DocumentObject;
+}
+
+---- SetCaptionStyleArgumentsSchema (type only)
+export interface SetCaptionStyleArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly style: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetCaptionStyleArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetCaptionStyleCommand (type only)
+export interface SetCaptionStyleCommand extends SetCaptionStyleArguments {
+    readonly type: 'SetCaptionStyle';
+}
+
+---- SetCaptionWordArguments (type only)
+export interface SetCaptionWordArguments {
+    readonly nodeId: string;
+    readonly index: number;
+    readonly word: DocumentObject;
+}
+
+---- SetCaptionWordArgumentsSchema (type only)
+export interface SetCaptionWordArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly index: ArgumentSchema;
+        readonly word: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetCaptionWordArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetCaptionWordCommand (type only)
+export interface SetCaptionWordCommand extends SetCaptionWordArguments {
+    readonly type: 'SetCaptionWord';
+}
+
+---- SetCaptionWordsArguments (type only)
+export interface SetCaptionWordsArguments {
+    readonly nodeId: string;
+    readonly words: readonly DocumentObject[];
+}
+
+---- SetCaptionWordsArgumentsSchema (type only)
+export interface SetCaptionWordsArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly words: OpenArraySchema;
+    };
+    readonly required: readonly (keyof SetCaptionWordsArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetCaptionWordsCommand (type only)
+export interface SetCaptionWordsCommand extends SetCaptionWordsArguments {
+    readonly type: 'SetCaptionWords';
+}
+
+---- SetClipFadesArguments (type only)
+export interface SetClipFadesArguments {
+    readonly clipId: string;
+    readonly fadeInUs: number;
+    readonly fadeOutUs: number;
+}
+
+---- SetClipFadesArgumentsSchema (type only)
+export type SetClipFadesArgumentsSchema = ClosedObjectSchema<keyof SetClipFadesArguments>;
+
+---- SetClipFadesCommand (type only)
+export interface SetClipFadesCommand extends SetClipFadesArguments {
+    readonly type: 'SetClipFades';
+}
+
+---- SetClipSourceArguments (type only)
+export interface SetClipSourceArguments {
+    readonly clipId: string;
+    readonly assetId: string;
+    readonly sourceStartUs: number;
+}
+
+---- SetClipSourceArgumentsSchema (type only)
+export type SetClipSourceArgumentsSchema = ClosedObjectSchema<keyof SetClipSourceArguments>;
+
+---- SetClipSourceCommand (type only)
+export interface SetClipSourceCommand extends SetClipSourceArguments {
+    readonly type: 'SetClipSource';
+}
+
+---- SetClipVolumeArguments (type only)
+export interface SetClipVolumeArguments {
+    readonly clipId: string;
+    readonly volume: number;
+}
+
+---- SetClipVolumeArgumentsSchema (type only)
+export type SetClipVolumeArgumentsSchema = ClosedObjectSchema<keyof SetClipVolumeArguments>;
+
+---- SetClipVolumeCommand (type only)
+export interface SetClipVolumeCommand extends SetClipVolumeArguments {
+    readonly type: 'SetClipVolume';
+}
+
+---- SetImageAssetArguments (type only)
+export interface SetImageAssetArguments {
+    readonly nodeId: string;
+    readonly assetId: string;
+}
+
+---- SetImageAssetArgumentsSchema (type only)
+export type SetImageAssetArgumentsSchema = ClosedObjectSchema<keyof SetImageAssetArguments>;
+
+---- SetImageAssetCommand (type only)
+export interface SetImageAssetCommand extends SetImageAssetArguments {
+    readonly type: 'SetImageAsset';
+}
+
+---- SetNodeColorArguments (type only)
+export interface SetNodeColorArguments {
+    readonly nodeId: string;
+    readonly color: string;
+}
+
+---- SetNodeColorArgumentsSchema (type only)
+export type SetNodeColorArgumentsSchema = ClosedObjectSchema<keyof SetNodeColorArguments>;
+
+---- SetNodeColorCommand (type only)
+export interface SetNodeColorCommand extends SetNodeColorArguments {
+    readonly type: 'SetNodeColor';
+}
+
+---- SetNodeFitArguments (type only)
+export interface SetNodeFitArguments {
+    readonly nodeId: string;
+    readonly fit: Fit;
+}
+
+---- SetNodeFitArgumentsSchema (type only)
+export type SetNodeFitArgumentsSchema = ClosedObjectSchema<keyof SetNodeFitArguments>;
+
+---- SetNodeFitCommand (type only)
+export interface SetNodeFitCommand extends SetNodeFitArguments {
+    readonly type: 'SetNodeFit';
+}
+
+---- SetNodeLifetimeArguments (type only)
+export interface SetNodeLifetimeArguments {
+    readonly nodeId: string;
+    readonly startUs: number;
+    readonly durationUs: number;
+}
+
+---- SetNodeLifetimeArgumentsSchema (type only)
+export type SetNodeLifetimeArgumentsSchema = ClosedObjectSchema<keyof SetNodeLifetimeArguments>;
+
+---- SetNodeLifetimeCommand (type only)
+export interface SetNodeLifetimeCommand extends SetNodeLifetimeArguments {
+    readonly type: 'SetNodeLifetime';
+}
+
+---- SetNodeOpacityArguments (type only)
+export interface SetNodeOpacityArguments {
+    readonly nodeId: string;
+    readonly opacity: number;
+}
+
+---- SetNodeOpacityArgumentsSchema (type only)
+export type SetNodeOpacityArgumentsSchema = ClosedObjectSchema<keyof SetNodeOpacityArguments>;
+
+---- SetNodeOpacityCommand (type only)
+export interface SetNodeOpacityCommand extends SetNodeOpacityArguments {
+    readonly type: 'SetNodeOpacity';
+}
+
+---- SetNodePositionArguments (type only)
+export interface SetNodePositionArguments {
+    readonly nodeId: string;
+    readonly position: CommandPosition;
+}
+
+---- SetNodePositionArgumentsSchema (type only)
+export interface SetNodePositionArgumentsSchema extends ClosedObjectSchema<keyof SetNodePositionArguments> {
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly position: ClosedObjectSchema<keyof CommandPosition>;
+    };
+}
+
+---- SetNodePositionCommand (type only)
+export interface SetNodePositionCommand extends SetNodePositionArguments {
+    readonly type: 'SetNodePosition';
+}
+
+---- SetNodeScaleArguments (type only)
+export interface SetNodeScaleArguments {
+    readonly nodeId: string;
+    readonly scale: CommandScale;
+}
+
+---- SetNodeScaleArgumentsSchema (type only)
+export type SetNodeScaleArgumentsSchema = ClosedObjectSchema<keyof SetNodeScaleArguments>;
+
+---- SetNodeScaleCommand (type only)
+export interface SetNodeScaleCommand extends SetNodeScaleArguments {
+    readonly type: 'SetNodeScale';
+}
+
+---- SetNodeSizeArguments (type only)
+export interface SetNodeSizeArguments {
+    readonly nodeId: string;
+    readonly width: number;
+    readonly height: number;
+}
+
+---- SetNodeSizeArgumentsSchema (type only)
+export type SetNodeSizeArgumentsSchema = ClosedObjectSchema<keyof SetNodeSizeArguments>;
+
+---- SetNodeSizeCommand (type only)
+export interface SetNodeSizeCommand extends SetNodeSizeArguments {
+    readonly type: 'SetNodeSize';
+}
+
+---- SetOpacityKeyframeArguments (type only)
+export interface SetOpacityKeyframeArguments {
+    readonly animationId: string;
+    readonly timeUs: number;
+    readonly opacity: number;
+}
+
+---- SetOpacityKeyframeArgumentsSchema (type only)
+export type SetOpacityKeyframeArgumentsSchema = ClosedObjectSchema<keyof SetOpacityKeyframeArguments>;
+
+---- SetOpacityKeyframeCommand (type only)
+export interface SetOpacityKeyframeCommand extends SetOpacityKeyframeArguments {
+    readonly type: 'SetOpacityKeyframe';
+}
+
+---- SetPositionKeyframeArguments (type only)
+export interface SetPositionKeyframeArguments {
+    readonly animationId: string;
+    readonly timeUs: number;
+    readonly offset: CommandPosition;
+}
+
+---- SetPositionKeyframeArgumentsSchema (type only)
+export type SetPositionKeyframeArgumentsSchema = ClosedObjectSchema<keyof SetPositionKeyframeArguments>;
+
+---- SetPositionKeyframeCommand (type only)
+export interface SetPositionKeyframeCommand extends SetPositionKeyframeArguments {
+    readonly type: 'SetPositionKeyframe';
+}
+
+---- SetScaleKeyframeArguments (type only)
+export interface SetScaleKeyframeArguments {
+    readonly animationId: string;
+    readonly timeUs: number;
+    readonly factor: CommandScale;
+}
+
+---- SetScaleKeyframeArgumentsSchema (type only)
+export type SetScaleKeyframeArgumentsSchema = ClosedObjectSchema<keyof SetScaleKeyframeArguments>;
+
+---- SetScaleKeyframeCommand (type only)
+export interface SetScaleKeyframeCommand extends SetScaleKeyframeArguments {
+    readonly type: 'SetScaleKeyframe';
+}
+
+---- SetSceneDurationArguments (type only)
+export interface SetSceneDurationArguments {
+    readonly sceneId: string;
+    readonly durationUs: number;
+}
+
+---- SetSceneDurationArgumentsSchema (type only)
+export type SetSceneDurationArgumentsSchema = ClosedObjectSchema<keyof SetSceneDurationArguments>;
+
+---- SetSceneDurationCommand (type only)
+export interface SetSceneDurationCommand extends SetSceneDurationArguments {
+    readonly type: 'SetSceneDuration';
+}
+
+---- SetTemplateInputArguments (type only)
+export interface SetTemplateInputArguments {
+    readonly inputId: string;
+    readonly input: DocumentObject;
+}
+
+---- SetTemplateInputArgumentsSchema (type only)
+export interface SetTemplateInputArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly inputId: ArgumentSchema;
+        readonly input: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetTemplateInputArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetTemplateInputCommand (type only)
+export interface SetTemplateInputCommand extends SetTemplateInputArguments {
+    readonly type: 'SetTemplateInput';
+}
+
+---- SetTextContentArguments (type only)
+export interface SetTextContentArguments {
+    readonly nodeId: string;
+    readonly text: string;
+}
+
+---- SetTextContentArgumentsSchema (type only)
+export type SetTextContentArgumentsSchema = ClosedObjectSchema<keyof SetTextContentArguments>;
+
+---- SetTextContentCommand (type only)
+export interface SetTextContentCommand extends SetTextContentArguments {
+    readonly type: 'SetTextContent';
+}
+
+---- SetTextFontArguments (type only)
+export interface SetTextFontArguments {
+    readonly nodeId: string;
+    readonly fontAssetId: string;
+}
+
+---- SetTextFontArgumentsSchema (type only)
+export type SetTextFontArgumentsSchema = ClosedObjectSchema<keyof SetTextFontArguments>;
+
+---- SetTextFontCommand (type only)
+export interface SetTextFontCommand extends SetTextFontArguments {
+    readonly type: 'SetTextFont';
+}
+
+---- SetTextFontSizeArguments (type only)
+export interface SetTextFontSizeArguments {
+    readonly nodeId: string;
+    readonly fontSize: number;
+}
+
+---- SetTextFontSizeArgumentsSchema (type only)
+export type SetTextFontSizeArgumentsSchema = ClosedObjectSchema<keyof SetTextFontSizeArguments>;
+
+---- SetTextFontSizeCommand (type only)
+export interface SetTextFontSizeCommand extends SetTextFontSizeArguments {
+    readonly type: 'SetTextFontSize';
+}
+
+---- SetTransitionDurationArguments (type only)
+export interface SetTransitionDurationArguments {
+    readonly transitionId: string;
+    readonly durationUs: number;
+}
+
+---- SetTransitionDurationArgumentsSchema (type only)
+export type SetTransitionDurationArgumentsSchema = ClosedObjectSchema<keyof SetTransitionDurationArguments>;
+
+---- SetTransitionDurationCommand (type only)
+export interface SetTransitionDurationCommand extends SetTransitionDurationArguments {
+    readonly type: 'SetTransitionDuration';
+}
+
+---- SetTransitionEffectArguments (type only)
+export interface SetTransitionEffectArguments {
+    readonly transitionId: string;
+    readonly effect: DocumentObject;
+}
+
+---- SetTransitionEffectArgumentsSchema (type only)
+export interface SetTransitionEffectArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly transitionId: ArgumentSchema;
+        readonly effect: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetTransitionEffectArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetTransitionEffectCommand (type only)
+export interface SetTransitionEffectCommand extends SetTransitionEffectArguments {
+    readonly type: 'SetTransitionEffect';
+}
+
+---- SetVideoAssetArguments (type only)
+export interface SetVideoAssetArguments {
+    readonly nodeId: string;
+    readonly assetId: string;
+}
+
+---- SetVideoAssetArgumentsSchema (type only)
+export type SetVideoAssetArgumentsSchema = ClosedObjectSchema<keyof SetVideoAssetArguments>;
+
+---- SetVideoAssetCommand (type only)
+export interface SetVideoAssetCommand extends SetVideoAssetArguments {
+    readonly type: 'SetVideoAsset';
+}
+
+---- SetVideoSourceArguments (type only)
+export interface SetVideoSourceArguments {
+    readonly nodeId: string;
+    readonly sourceStartUs: number;
+}
+
+---- SetVideoSourceArgumentsSchema (type only)
+export type SetVideoSourceArgumentsSchema = ClosedObjectSchema<keyof SetVideoSourceArguments>;
+
+---- SetVideoSourceCommand (type only)
+export interface SetVideoSourceCommand extends SetVideoSourceArguments {
+    readonly type: 'SetVideoSource';
+}
+
+---- SetVideoVolumeArguments (type only)
+export interface SetVideoVolumeArguments {
+    readonly nodeId: string;
+    readonly volume: number;
+}
+
+---- SetVideoVolumeArgumentsSchema (type only)
+export type SetVideoVolumeArgumentsSchema = ClosedObjectSchema<keyof SetVideoVolumeArguments>;
+
+---- SetVideoVolumeCommand (type only)
+export interface SetVideoVolumeCommand extends SetVideoVolumeArguments {
+    readonly type: 'SetVideoVolume';
+}
+
+---- SplitClipArguments (type only)
+export interface SplitClipArguments {
+    readonly clipId: string;
+    readonly atUs: number;
+    readonly newClipId: string;
+}
+
+---- SplitClipArgumentsSchema (type only)
+export type SplitClipArgumentsSchema = ClosedObjectSchema<keyof SplitClipArguments>;
+
+---- SplitClipCommand (type only)
+export interface SplitClipCommand extends SplitClipArguments {
+    readonly type: 'SplitClip';
+}
+
+---- TransactionResult (type only)
+export interface TransactionResult {
+    readonly document: ValidatedComposition;
+    readonly commands: readonly Command[];
+    readonly inverses: readonly Command[];
+    readonly createdIds: readonly string[];
+}
+
+---- TrimClipEndArguments (type only)
+export interface TrimClipEndArguments {
+    readonly clipId: string;
+    readonly endUs: number;
+}
+
+---- TrimClipEndArgumentsSchema (type only)
+export type TrimClipEndArgumentsSchema = ClosedObjectSchema<keyof TrimClipEndArguments>;
+
+---- TrimClipEndCommand (type only)
+export interface TrimClipEndCommand extends TrimClipEndArguments {
+    readonly type: 'TrimClipEnd';
+}
+
+---- TrimClipStartArguments (type only)
+export interface TrimClipStartArguments {
+    readonly clipId: string;
+    readonly startUs: number;
+}
+
+---- TrimClipStartArgumentsSchema (type only)
+export type TrimClipStartArgumentsSchema = ClosedObjectSchema<keyof TrimClipStartArguments>;
+
+---- TrimClipStartCommand (type only)
+export interface TrimClipStartCommand extends TrimClipStartArguments {
+    readonly type: 'TrimClipStart';
+}
+
+---- VideoFacts (type only)
+export interface VideoFacts {
+    readonly type: 'video';
+    readonly durationUs: number;
+    readonly audioDurationUs?: number | null;
+}
+
+---- addAnimationArgumentsSchema
+export declare const addAnimationArgumentsSchema: AddAnimationArgumentsSchema;
+
+---- addAssetArgumentsSchema
+export declare const addAssetArgumentsSchema: AddAssetArgumentsSchema;
+
+---- addAudioClipArgumentsSchema
+export declare const addAudioClipArgumentsSchema: AddAudioClipArgumentsSchema;
+
+---- addClipTransitionArgumentsSchema
+export declare const addClipTransitionArgumentsSchema: AddClipTransitionArgumentsSchema;
+
+---- addKeyframeArgumentsSchema
+export declare const addKeyframeArgumentsSchema: AddKeyframeArgumentsSchema;
+
+---- addNodeArgumentsSchema
+export declare const addNodeArgumentsSchema: AddNodeArgumentsSchema;
+
+---- addSceneArgumentsSchema
+export declare const addSceneArgumentsSchema: AddSceneArgumentsSchema;
+
+---- addSceneAudioClipArgumentsSchema
+export declare const addSceneAudioClipArgumentsSchema: AddSceneAudioClipArgumentsSchema;
+
+---- addSceneTransitionArgumentsSchema
+export declare const addSceneTransitionArgumentsSchema: AddSceneTransitionArgumentsSchema;
+
+---- addTemplateBindingArgumentsSchema
+export declare const addTemplateBindingArgumentsSchema: AddTemplateBindingArgumentsSchema;
+
+---- addTemplateConditionArgumentsSchema
+export declare const addTemplateConditionArgumentsSchema: AddTemplateConditionArgumentsSchema;
+
+---- addTemplateInputArgumentsSchema
+export declare const addTemplateInputArgumentsSchema: AddTemplateInputArgumentsSchema;
+
+---- addTemplateRepeatArgumentsSchema
+export declare const addTemplateRepeatArgumentsSchema: AddTemplateRepeatArgumentsSchema;
+
+---- applyCommand
+export declare function applyCommand(document: ValidatedComposition, command: Command, options?: ApplyOptions): CommandResult;
+
+---- createCommandBus
+export declare function createCommandBus(document: unknown, options?: CommandBusOptions): CommandBus;
+
+---- describeDocument
+export declare function describeDocument(document: ValidatedComposition, mediaFactsOf?: (contentHash: string) => MediaFacts | null): DocumentDescription;
+
+---- duplicateNodeArgumentsSchema
+export declare const duplicateNodeArgumentsSchema: DuplicateNodeArgumentsSchema;
+
+---- duplicateSceneArgumentsSchema
+export declare const duplicateSceneArgumentsSchema: DuplicateSceneArgumentsSchema;
+
+---- joinClipsArgumentsSchema
+export declare const joinClipsArgumentsSchema: JoinClipsArgumentsSchema;
+
+---- moveClipArgumentsSchema
+export declare const moveClipArgumentsSchema: MoveClipArgumentsSchema;
+
+---- moveKeyframeArgumentsSchema
+export declare const moveKeyframeArgumentsSchema: MoveKeyframeArgumentsSchema;
+
+---- moveNodeToSceneArgumentsSchema
+export declare const moveNodeToSceneArgumentsSchema: MoveNodeToSceneArgumentsSchema;
+
+---- parseCommand
+export declare function parseCommand(value: unknown): Command;
+
+---- removeAnimationArgumentsSchema
+export declare const removeAnimationArgumentsSchema: RemoveAnimationArgumentsSchema;
+
+---- removeAssetArgumentsSchema
+export declare const removeAssetArgumentsSchema: RemoveAssetArgumentsSchema;
+
+---- removeAudioClipArgumentsSchema
+export declare const removeAudioClipArgumentsSchema: RemoveAudioClipArgumentsSchema;
+
+---- removeKeyframeArgumentsSchema
+export declare const removeKeyframeArgumentsSchema: RemoveKeyframeArgumentsSchema;
+
+---- removeNodeArgumentsSchema
+export declare const removeNodeArgumentsSchema: RemoveNodeArgumentsSchema;
+
+---- removeSceneArgumentsSchema
+export declare const removeSceneArgumentsSchema: RemoveSceneArgumentsSchema;
+
+---- removeTemplateBindingArgumentsSchema
+export declare const removeTemplateBindingArgumentsSchema: RemoveTemplateBindingArgumentsSchema;
+
+---- removeTemplateConditionArgumentsSchema
+export declare const removeTemplateConditionArgumentsSchema: RemoveTemplateConditionArgumentsSchema;
+
+---- removeTemplateInputArgumentsSchema
+export declare const removeTemplateInputArgumentsSchema: RemoveTemplateInputArgumentsSchema;
+
+---- removeTemplateRepeatArgumentsSchema
+export declare const removeTemplateRepeatArgumentsSchema: RemoveTemplateRepeatArgumentsSchema;
+
+---- removeTransitionArgumentsSchema
+export declare const removeTransitionArgumentsSchema: RemoveTransitionArgumentsSchema;
+
+---- reorderNodeArgumentsSchema
+export declare const reorderNodeArgumentsSchema: ReorderNodeArgumentsSchema;
+
+---- reorderSceneArgumentsSchema
+export declare const reorderSceneArgumentsSchema: ReorderSceneArgumentsSchema;
+
+---- setCaptionStyleArgumentsSchema
+export declare const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema;
+
+---- setCaptionWordArgumentsSchema
+export declare const setCaptionWordArgumentsSchema: SetCaptionWordArgumentsSchema;
+
+---- setCaptionWordsArgumentsSchema
+export declare const setCaptionWordsArgumentsSchema: SetCaptionWordsArgumentsSchema;
+
+---- setClipFadesArgumentsSchema
+export declare const setClipFadesArgumentsSchema: SetClipFadesArgumentsSchema;
+
+---- setClipSourceArgumentsSchema
+export declare const setClipSourceArgumentsSchema: SetClipSourceArgumentsSchema;
+
+---- setClipVolumeArgumentsSchema
+export declare const setClipVolumeArgumentsSchema: SetClipVolumeArgumentsSchema;
+
+---- setImageAssetArgumentsSchema
+export declare const setImageAssetArgumentsSchema: SetImageAssetArgumentsSchema;
+
+---- setNodeColorArgumentsSchema
+export declare const setNodeColorArgumentsSchema: SetNodeColorArgumentsSchema;
+
+---- setNodeFitArgumentsSchema
+export declare const setNodeFitArgumentsSchema: SetNodeFitArgumentsSchema;
+
+---- setNodeLifetimeArgumentsSchema
+export declare const setNodeLifetimeArgumentsSchema: SetNodeLifetimeArgumentsSchema;
+
+---- setNodeOpacityArgumentsSchema
+export declare const setNodeOpacityArgumentsSchema: SetNodeOpacityArgumentsSchema;
+
+---- setNodePositionArgumentsSchema
+export declare const setNodePositionArgumentsSchema: SetNodePositionArgumentsSchema;
+
+---- setNodeScaleArgumentsSchema
+export declare const setNodeScaleArgumentsSchema: SetNodeScaleArgumentsSchema;
+
+---- setNodeSizeArgumentsSchema
+export declare const setNodeSizeArgumentsSchema: SetNodeSizeArgumentsSchema;
+
+---- setOpacityKeyframeArgumentsSchema
+export declare const setOpacityKeyframeArgumentsSchema: SetOpacityKeyframeArgumentsSchema;
+
+---- setPositionKeyframeArgumentsSchema
+export declare const setPositionKeyframeArgumentsSchema: SetPositionKeyframeArgumentsSchema;
+
+---- setScaleKeyframeArgumentsSchema
+export declare const setScaleKeyframeArgumentsSchema: SetScaleKeyframeArgumentsSchema;
+
+---- setSceneDurationArgumentsSchema
+export declare const setSceneDurationArgumentsSchema: SetSceneDurationArgumentsSchema;
+
+---- setTemplateInputArgumentsSchema
+export declare const setTemplateInputArgumentsSchema: SetTemplateInputArgumentsSchema;
+
+---- setTextContentArgumentsSchema
+export declare const setTextContentArgumentsSchema: SetTextContentArgumentsSchema;
+
+---- setTextFontArgumentsSchema
+export declare const setTextFontArgumentsSchema: SetTextFontArgumentsSchema;
+
+---- setTextFontSizeArgumentsSchema
+export declare const setTextFontSizeArgumentsSchema: SetTextFontSizeArgumentsSchema;
+
+---- setTransitionDurationArgumentsSchema
+export declare const setTransitionDurationArgumentsSchema: SetTransitionDurationArgumentsSchema;
+
+---- setTransitionEffectArgumentsSchema
+export declare const setTransitionEffectArgumentsSchema: SetTransitionEffectArgumentsSchema;
+
+---- setVideoAssetArgumentsSchema
+export declare const setVideoAssetArgumentsSchema: SetVideoAssetArgumentsSchema;
+
+---- setVideoSourceArgumentsSchema
+export declare const setVideoSourceArgumentsSchema: SetVideoSourceArgumentsSchema;
+
+---- setVideoVolumeArgumentsSchema
+export declare const setVideoVolumeArgumentsSchema: SetVideoVolumeArgumentsSchema;
+
+---- splitClipArgumentsSchema
+export declare const splitClipArgumentsSchema: SplitClipArgumentsSchema;
+
+---- trimClipEndArgumentsSchema
+export declare const trimClipEndArgumentsSchema: TrimClipEndArgumentsSchema;
+
+---- trimClipStartArgumentsSchema
+export declare const trimClipStartArgumentsSchema: TrimClipStartArgumentsSchema;

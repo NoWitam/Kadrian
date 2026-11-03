@@ -1,0 +1,59 @@
+API report of @kadrion/editor-session
+Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by hand.
+
+==== Entry "."
+
+---- EditorSession (type only)
+export interface EditorSession {
+    readonly bus: CommandBus;
+    seek(timeUs: number): Promise<void>;
+    play(): void;
+    pause(): void;
+    getPlaybackState(): PlayerState;
+    getHistory(): SessionHistory;
+    settled(): Promise<void>;
+    readMediaFacts(asset: PlayerAssetRequest): Promise<MediaFacts | null>;
+    subscribe(listener: SessionListener): () => void;
+    destroy(): void;
+}
+
+---- EditorSessionOptions (type only)
+export interface EditorSessionOptions {
+    readonly document: unknown;
+    readonly player: Player;
+    readonly resolveAsset: PlayerAssetResolver;
+    readonly historyLimit?: number;
+    readonly onListenerError?: SessionListenerErrorHandler;
+}
+
+---- SessionEvent (type only)
+export type SessionEvent = {
+    readonly type: 'document';
+    readonly change: BusChange;
+} | {
+    readonly type: 'history';
+    readonly history: SessionHistory;
+} | {
+    readonly type: 'playback';
+    readonly state: PlayerState;
+} | {
+    readonly type: 'error';
+    readonly error: PlayerError;
+};
+
+---- SessionHistory (type only)
+export interface SessionHistory {
+    readonly canUndo: boolean;
+    readonly canRedo: boolean;
+    readonly undoDepth: number;
+    readonly redoDepth: number;
+}
+
+---- SessionListener (type only)
+export type SessionListener = (event: SessionEvent) => void;
+
+---- SessionListenerErrorHandler (type only)
+export type SessionListenerErrorHandler = (error: unknown, event: SessionEvent) => void;
+
+---- createEditorSession
+export declare function createEditorSession(options: EditorSessionOptions): Promise<EditorSession>;

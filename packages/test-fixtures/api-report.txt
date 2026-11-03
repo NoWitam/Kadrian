@@ -1,0 +1,313 @@
+API report of @kadrion/test-fixtures
+Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by hand.
+
+==== Entry "."
+
+---- AUDIO_SAMPLE_RATE
+export declare const AUDIO_SAMPLE_RATE = 48000;
+
+---- AUDIO_SECONDS
+export declare const AUDIO_SECONDS = 10;
+
+---- ExpectedCustomHtmlExchange
+export interface ExpectedCustomHtmlExchange {
+    readonly nodeId: string;
+    readonly post: ExpectedCustomHtmlMessage;
+    readonly acknowledgement: ExpectedCustomHtmlMessage;
+}
+
+---- ExpectedCustomHtmlMessage
+export interface ExpectedCustomHtmlMessage {
+    readonly type: string;
+    readonly version: number;
+    readonly instanceId: string;
+    readonly requestId: number;
+    readonly timeUs: number;
+}
+
+---- ExpectedElement
+export interface ExpectedElement {
+    readonly tag: string;
+    readonly attributes: Readonly<Record<string, string>>;
+    readonly style: Readonly<Record<string, string>>;
+    readonly children: readonly (ExpectedElement | ExpectedText)[];
+}
+
+---- ExpectedGoldenRender
+export interface ExpectedGoldenRender {
+    readonly timeUs: number;
+    readonly derivation: readonly string[];
+    readonly tree: ExpectedElement;
+    readonly customHtml: readonly ExpectedCustomHtmlExchange[];
+}
+
+---- ExpectedGoldenState
+export interface ExpectedGoldenState {
+    readonly timeUs: number;
+    readonly derivation: readonly string[];
+    readonly state: unknown;
+}
+
+---- ExpectedLifetime
+export interface ExpectedLifetime {
+    readonly timeUs: number;
+    readonly active: readonly string[];
+    readonly shown: readonly string[];
+    readonly positionX: number;
+}
+
+---- ExpectedLifetimes
+export interface ExpectedLifetimes {
+    readonly description: string;
+    readonly rule: readonly string[];
+    readonly times: readonly ExpectedLifetime[];
+}
+
+---- ExpectedRender
+export interface ExpectedRender {
+    readonly description: string;
+    readonly rule: readonly string[];
+    readonly assetUrls: Readonly<Record<string, string>>;
+    readonly golden: readonly ExpectedGoldenRender[];
+}
+
+---- ExpectedStates
+export interface ExpectedStates {
+    readonly description: string;
+    readonly rule: readonly string[];
+    readonly golden: readonly ExpectedGoldenState[];
+}
+
+---- ExpectedText
+export interface ExpectedText {
+    readonly text: string;
+}
+
+---- FONT_FAMILY_NAME
+export declare const FONT_FAMILY_NAME = "Kadrion Fixture";
+
+---- FONT_GLYPHS
+export declare const FONT_GLYPHS: Readonly<Record<string, readonly string[]>>;
+
+---- FONT_UNITS_PER_EM
+export declare const FONT_UNITS_PER_EM = 1000;
+
+---- FixtureAsset (type only)
+export interface FixtureAsset {
+    readonly id: string;
+    readonly mediaType: string;
+    readonly bytes: Uint8Array;
+}
+
+---- FixturePatchOperation
+export interface FixturePatchOperation {
+    readonly op: 'add' | 'replace' | 'remove';
+    readonly path: string;
+    readonly value?: unknown;
+}
+
+---- GoldenTimestamp
+export interface GoldenTimestamp {
+    readonly timeUs: number;
+    readonly frame: number;
+}
+
+---- IMAGE_SIZE
+export declare const IMAGE_SIZE = 128;
+
+---- InvalidCompositionCase
+export interface InvalidCompositionCase {
+    readonly name: string;
+    readonly description: string;
+    readonly patch: readonly FixturePatchOperation[];
+    readonly expectedErrors: readonly {
+        readonly code: string;
+        readonly path: string;
+    }[];
+}
+
+---- MigrationPair
+export interface MigrationPair {
+    readonly before: unknown;
+    readonly after: unknown;
+}
+
+---- VIDEO_FIXTURE
+export declare const VIDEO_FIXTURE: Readonly<{
+    id: "asset-video";
+    mediaType: "video/mp4";
+    contentHash: "sha256:2defeadc24e956a808f058058c9ae10e4fad87d05b33be9b9d5ea6da2b45d1e0";
+    width: 320;
+    height: 180;
+    frames: 75;
+    timeBase: Readonly<{
+        num: 1;
+        den: 12800;
+    }>;
+    frameTicks: 512;
+    sourceDurationUs: 3000000;
+}>;
+
+---- VIDEO_SOUND_FIXTURE
+export declare const VIDEO_SOUND_FIXTURE: Readonly<{
+    id: "asset-video-sound";
+    mediaType: "video/mp4";
+    contentHash: "sha256:95f5bd4d2f95207842f32a517f6289437d4e41688505c096d1297eca9e430239";
+    width: 320;
+    height: 180;
+    frames: 75;
+    sourceDurationUs: 3000000;
+    toneHz: 440;
+    sampleRate: 48000;
+}>;
+
+---- captionsComposition
+export declare const captionsComposition: unknown;
+
+---- captionsGoldenTimestamps
+export declare const captionsGoldenTimestamps: readonly GoldenTimestamp[];
+
+---- generateReferenceAssets
+export declare function generateReferenceAssets(): readonly FixtureAsset[];
+
+---- goldenTimestamps
+export declare const goldenTimestamps: readonly GoldenTimestamp[];
+
+---- invalidCompositionCases
+export declare const invalidCompositionCases: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV01
+export declare const invalidCompositionCasesV01: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV02
+export declare const invalidCompositionCasesV02: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV03
+export declare const invalidCompositionCasesV03: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV04
+export declare const invalidCompositionCasesV04: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV05
+export declare const invalidCompositionCasesV05: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV06
+export declare const invalidCompositionCasesV06: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV07
+export declare const invalidCompositionCasesV07: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV08
+export declare const invalidCompositionCasesV08: readonly InvalidCompositionCase[];
+
+---- lifetimeComposition
+export declare const lifetimeComposition: unknown;
+
+---- lifetimeExpected
+export declare const lifetimeExpected: ExpectedLifetimes;
+
+---- migrationPair01To02
+export declare const migrationPair01To02: MigrationPair;
+
+---- migrationPair02To03
+export declare const migrationPair02To03: MigrationPair;
+
+---- migrationPair03To04
+export declare const migrationPair03To04: MigrationPair;
+
+---- migrationPair04To05
+export declare const migrationPair04To05: MigrationPair;
+
+---- migrationPair05To06
+export declare const migrationPair05To06: MigrationPair;
+
+---- migrationPair06To07
+export declare const migrationPair06To07: MigrationPair;
+
+---- migrationPair07To08
+export declare const migrationPair07To08: MigrationPair;
+
+---- migrationPair08To09
+export declare const migrationPair08To09: MigrationPair;
+
+---- referenceComposition
+export declare const referenceComposition: unknown;
+
+---- referenceCompositionV01
+export declare const referenceCompositionV01: unknown;
+
+---- referenceCompositionV02
+export declare const referenceCompositionV02: unknown;
+
+---- referenceCompositionV03
+export declare const referenceCompositionV03: unknown;
+
+---- referenceCompositionV04
+export declare const referenceCompositionV04: unknown;
+
+---- referenceCompositionV05
+export declare const referenceCompositionV05: unknown;
+
+---- referenceCompositionV06
+export declare const referenceCompositionV06: unknown;
+
+---- referenceCompositionV07
+export declare const referenceCompositionV07: unknown;
+
+---- referenceCompositionV08
+export declare const referenceCompositionV08: unknown;
+
+---- referenceExpectedRender
+export declare const referenceExpectedRender: ExpectedRender;
+
+---- referenceExpectedStates
+export declare const referenceExpectedStates: ExpectedStates;
+
+---- repeatsComposition
+export declare const repeatsComposition: unknown;
+
+---- repeatsInstantiated
+export declare const repeatsInstantiated: unknown;
+
+---- scenesComposition
+export declare const scenesComposition: unknown;
+
+---- templateComposition
+export declare const templateComposition: unknown;
+
+---- transitionsComposition
+export declare const transitionsComposition: unknown;
+
+---- transitionsGoldenTimestamps
+export declare const transitionsGoldenTimestamps: readonly GoldenTimestamp[];
+
+---- videoComposition
+export declare const videoComposition: unknown;
+
+---- videoFixtureArguments
+export declare function videoFixtureArguments(output: string): readonly string[];
+
+---- videoGoldenTimestamps
+export declare const videoGoldenTimestamps: readonly GoldenTimestamp[];
+
+---- videoSoundFixtureArguments
+export declare function videoSoundFixtureArguments(output: string): readonly string[];
+
+==== Entry "./compatibility"
+
+---- CompatibilityEntry
+export interface CompatibilityEntry {
+    readonly id: string;
+    readonly schemaVersion: string;
+    readonly input: unknown;
+    readonly inputFile: string;
+    readonly inputSha256: string;
+    readonly versions: readonly string[];
+    readonly expected: unknown;
+    readonly expectedFile: string;
+    readonly expectedSha256: string;
+    readonly expectedCompositionHash: string;
+}
+
+---- compatibilityCorpus
+export declare const compatibilityCorpus: readonly CompatibilityEntry[];
