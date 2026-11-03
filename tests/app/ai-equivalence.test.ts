@@ -75,7 +75,14 @@ async function drag(start: unknown, dx: number, dy: number): Promise<Gesture> {
     seek: () => Promise.resolve(),
     play: () => undefined,
     pause: () => undefined,
-    getState: () => ({ status: 'ready', timeUs: 0, runtimeHash: 'sha256:stub', error: null }),
+    setPlayRange: () => undefined,
+    getState: () => ({
+      status: 'ready',
+      timeUs: 0,
+      runtimeHash: 'sha256:stub',
+      error: null,
+      playRange: null,
+    }),
     subscribe: () => () => undefined,
     destroy: () => undefined,
   };

@@ -48,6 +48,8 @@ export type PlayerErrorCode =
   | 'audio-unsupported'
   /** The time is not an integer in `[0, durationUs)` (D13, D25.6). */
   | 'time-out-of-range'
+  /** A play range that is not inside the document or not on its frame grid (D61.2). */
+  | 'invalid-play-range'
   /** A seek was requested before a document was loaded. */
   | 'not-loaded'
   /** A newer seek replaced this one before it was sent (D25.6). */
@@ -57,20 +59,44 @@ export type PlayerErrorCode =
   /** Anything else the page reported. */
   | 'page-error';
 
+/** The asset of the document a failure is about (D61.4). */
+export interface PlayerErrorAsset {
+  readonly id: string;
+  readonly contentHash: string;
+}
+
 /**
  * A typed failure of the Player (D25.7). Check `code` instead of `instanceof`,
  * which fails across realms. `details` lists validation errors as `path: message`.
+ * `asset` names the asset of the document that failed, when one did (D61.4).
  */
 export class PlayerError extends Error {
   readonly code: PlayerErrorCode;
   readonly details: readonly string[];
+  readonly asset: PlayerErrorAsset | null;
 
-  constructor(code: PlayerErrorCode, message: string, details: readonly string[] = []) {
+  constructor(
+    code: PlayerErrorCode,
+    message: string,
+    details: readonly string[] = [],
+    asset: PlayerErrorAsset | null = null,
+  ) {
     super(message);
     this.name = 'PlayerError';
     this.code = code;
     this.details = details;
+    this.asset =
+      asset === null ? null : Object.freeze({ id: asset.id, contentHash: asset.contentHash });
   }
+}
+
+/**
+ * `error` naming `asset`, unless it names one already: the innermost asset is
+ * the one that failed (D61.4).
+ */
+export function withAsset(error: PlayerError, asset: PlayerErrorAsset): PlayerError {
+  if (error.asset !== null) return error;
+  return new PlayerError(error.code, error.message, error.details, asset);
 }
 
 const PAGE_CODES: readonly PlayerErrorCode[] = [

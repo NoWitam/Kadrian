@@ -9,7 +9,7 @@
  */
 import { AUDIO_SAMPLE_RATE, type AudioLayout, type SoundLayout } from '@kadrion/runtime';
 
-import { PlayerError } from './errors.js';
+import { PlayerError, type PlayerErrorAsset } from './errors.js';
 
 /** The facts of a decoded sound: the length of its decoded samples at the grid's rate. */
 export interface PlayerAudioFacts {
@@ -78,19 +78,32 @@ export function soundFacts(buffer: DecodedSound): PlayerAudioFacts {
 /**
  * Checks that every sound of the layout reads only samples its decoded source
  * holds (D49.6): a sound that would read past its end is
- * `source-range-exceeded`, before anything plays. The details name the sounds.
+ * `source-range-exceeded`, before anything plays. The details name the sounds;
+ * the error names the asset of the first, with its hash from `hashes` (D61.4).
  */
 export function checkSoundRanges(
   layout: AudioLayout,
   buffers: ReadonlyMap<string, DecodedSound>,
+  hashes: ReadonlyMap<string, string> = new Map(),
 ): void {
   const exceeded: string[] = [];
+  let first: PlayerErrorAsset | null = null;
+  const assetOf = (id: string): PlayerErrorAsset | null => {
+    const contentHash = hashes.get(id);
+    return contentHash === undefined ? null : { id, contentHash };
+  };
   for (const sound of layout.sounds) {
     const buffer = buffers.get(sound.entry.assetId);
     if (buffer === undefined) {
-      throw new PlayerError('asset-missing', `The sound "${sound.entry.assetId}" was not decoded.`);
+      throw new PlayerError(
+        'asset-missing',
+        `The sound "${sound.entry.assetId}" was not decoded.`,
+        [],
+        assetOf(sound.entry.assetId),
+      );
     }
     if (sound.sourceStartSample + sound.sampleCount > buffer.length) {
+      first ??= assetOf(sound.entry.assetId);
       exceeded.push(
         `${sound.entry.id}: samples ${String(sound.sourceStartSample)} to ${String(sound.sourceStartSample + sound.sampleCount)} of "${sound.entry.assetId}", which holds ${String(buffer.length)} at 48 kHz`,
       );
@@ -101,6 +114,7 @@ export function checkSoundRanges(
       'source-range-exceeded',
       'A sound reads past the end of its source (D49.6).',
       exceeded,
+      first,
     );
   }
 }
@@ -142,7 +156,8 @@ function fadeGain(
  * heard at context time `when` (D53): every sound that is heard at or after
  * it starts at its own sample, from its own source sample, and plays to the
  * end of the samples it is heard, with its volume and fades as gain
- * automation on the grid. The result stops them all.
+ * automation on the grid. With `toSample`, nothing at or after that output
+ * sample is heard: one pass of a play range (D61.2). The result stops them all.
  */
 export function scheduleSounds(
   context: SoundContext,
@@ -150,6 +165,7 @@ export function scheduleSounds(
   buffers: ReadonlyMap<string, AudioBuffer>,
   fromSample: number,
   when: number,
+  toSample: number = Number.POSITIVE_INFINITY,
 ): ScheduledSounds {
   const rate = AUDIO_SAMPLE_RATE;
   const playing: { source: AudioBufferSourceNode; nodes: AudioNode[] }[] = [];
@@ -158,8 +174,11 @@ export function scheduleSounds(
     if (buffer === undefined) continue;
     const skip = Math.max(0, fromSample - sound.startSample);
     if (skip >= sound.sampleCount) continue;
+    // The samples of the sound before `toSample`; a sound that starts there is not heard.
+    const heard = Math.min(sound.sampleCount, toSample - sound.startSample);
+    if (skip >= heard) continue;
     const at = (k: number): number => when + (sound.startSample + k - fromSample) / rate;
-    playing.push(schedule(context, sound, buffer, skip, at));
+    playing.push(schedule(context, sound, buffer, skip, heard, at));
   }
   let stopped = false;
   return {
@@ -183,6 +202,7 @@ function schedule(
   sound: SoundLayout,
   buffer: AudioBuffer,
   skip: number,
+  heard: number,
   at: (sample: number) => number,
 ): { source: AudioBufferSourceNode; nodes: AudioNode[] } {
   const rate = AUDIO_SAMPLE_RATE;
@@ -209,10 +229,6 @@ function schedule(
     previous = node;
   }
   previous.connect(context.destination);
-  source.start(
-    at(skip),
-    (sound.sourceStartSample + skip) / rate,
-    (sound.sampleCount - skip) / rate,
-  );
+  source.start(at(skip), (sound.sourceStartSample + skip) / rate, (heard - skip) / rate);
   return { source, nodes };
 }

@@ -16,10 +16,10 @@ Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
 of the Player and the Producer is measured and gated
 ([`docs/spike/report.md`](docs/spike/report.md)). The workflow runs on a
-GitHub runner in the pinned image, and Q14 is closed: the run 41481200563 of
-the validated main commit bde9bb9 met every criterion, with its evidence in
-[`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
-([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
+GitHub runner in the pinned image. Q14 is open again: the run 41481200563 of
+the validated main commit bde9bb9 met every criterion, and PR-38 (D61)
+changed a pinned test file, so its evidence was deleted until a green run of a
+later commit ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 repository is publicly visible, but the project is not open source: no licence
 is granted, and the packages are private and unpublished (D37). The APIs below
 are those of the spike and may still change.
@@ -28,8 +28,8 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D54; all accepted except D54, which is proposed, and
-  D10, superseded by D37)
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D61; all accepted except D61, which is proposed,
+  and D10, superseded by D37)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
@@ -527,7 +527,8 @@ await player.load(documentJson, ({ id }) => assets.get(id) ?? null);
 await player.seek(2_500_000);
 player.play();
 player.pause();
-player.getState(); // { status, timeUs, runtimeHash, error }
+player.setPlayRange({ startUs: 1_000_000, endUs: 2_000_000, loop: true });
+player.getState(); // { status, timeUs, runtimeHash, error, playRange }
 player.destroy();
 ```
 
@@ -539,6 +540,14 @@ player.destroy();
   the Player does not hold yet, and it plays on if it was playing (D44.5).
   `player.subscribe(listener)` reports every change of the state; it needs the
   option `onListenerError` of `createPlayer`.
+- Playback events (D61): the status is `ended` once a play reached the last
+  frame of the document or of the play range, and `waiting` while the frame
+  the clock is at, or the sound, is not ready yet; the frames the clock asks
+  for leave the status `playing`. `setPlayRange({ startUs, endUs, loop })`
+  keeps playback inside a range on the frame grid, and with `loop` restarts it
+  at `startUs`, sound included, sample for sample; `null` is the whole
+  document. A `PlayerError` about an asset names it in
+  `asset: { id, contentHash }`.
 
 **Sound in the Player.** A Player plays no sound unless the host passes an
 `AudioContext` at 48 kHz, created on a gesture of the user:
@@ -753,8 +762,10 @@ session.destroy();
   into the document. Edits made while an update runs are coalesced: only the
   latest document is sent.
 - `history` carries `canUndo`, `canRedo`, `undoDepth`, and `redoDepth`;
-  `playback` the Player's state; `error` a `PlayerError` when the preview could
-  not show a document, which stays on the bus all the same.
+  `playback` the Player's state, with `ended`, `waiting`, and the play range
+  (D61); `error` a `PlayerError` when the preview could not show a document,
+  which stays on the bus all the same. `session.setPlayRange` passes a play
+  range to the Player.
 
 ### 6. Let a model edit through the same bus
 

@@ -26,7 +26,7 @@ import {
   type VideoNode,
 } from '@kadrion/schema';
 
-import { PlayerError } from './errors.js';
+import { PlayerError, withAsset } from './errors.js';
 import { readMp4VideoTrack, type ByteSource, type Mp4VideoTrack } from './mp4.js';
 import { Sha256 } from './sha256.js';
 import { yuv420ToRgb } from './yuv.js';
@@ -208,8 +208,12 @@ export function checkSourceRanges(
   const hashes = new Map(composition.assets.map((asset) => [asset.id, asset.contentHash]));
   for (const { node, scene } of placedVideos(composition)) {
     const video = videos.get(hashes.get(node.assetId) ?? '');
+    const contentHash = hashes.get(node.assetId) ?? '';
     if (video === undefined) {
-      throw new PlayerError('asset-missing', `The video "${node.assetId}" was not resolved.`);
+      throw new PlayerError('asset-missing', `The video "${node.assetId}" was not resolved.`, [], {
+        id: node.assetId,
+        contentHash,
+      });
     }
     const duration = video.facts.durationUs;
     // The lifetime cut to its scene (D49.6, D54.3).
@@ -218,6 +222,8 @@ export function checkSourceRanges(
       throw new PlayerError(
         'source-range-exceeded',
         `${node.id}: samples ${String(range.startUs)} to ${String(range.startUs + range.durationUs)} µs of a source of ${String(duration)} µs (D49.6).`,
+        [],
+        { id: node.assetId, contentHash },
       );
     }
   }
@@ -281,6 +287,8 @@ export async function checkDecodable(view: Window, videos: Iterable<VerifiedVide
       throw new PlayerError(
         'video-unsupported',
         `The browser cannot decode ${video.track.codec} at ${String(video.track.width)}x${String(video.track.height)} (${video.contentHash}).`,
+        [],
+        { id: video.id, contentHash: video.contentHash },
       );
     }
   }
@@ -494,12 +502,23 @@ export function createVideoFrameSource(
       const frames: VideoFrameMessage[] = [];
       for (const { node, sceneTimeUs } of nodes) {
         const video = videos.get(hashes.get(node.assetId) ?? '');
+        const asset = { id: node.assetId, contentHash: hashes.get(node.assetId) ?? '' };
         if (video === undefined) {
-          throw new PlayerError('asset-missing', `The video "${node.assetId}" was not resolved.`);
+          throw new PlayerError(
+            'asset-missing',
+            `The video "${node.assetId}" was not resolved.`,
+            [],
+            asset,
+          );
         }
         const { timestamps, timeBase } = video.track;
         const index = sourceFrameIndex(timestamps, timeBase, sourceTimeUs(node, sceneTimeUs));
-        const png = await pngOf(codecs, video, index);
+        let png: Uint8Array;
+        try {
+          png = await pngOf(codecs, video, index);
+        } catch (reason) {
+          throw reason instanceof PlayerError ? withAsset(reason, asset) : reason;
+        }
         frames.push({ nodeId: node.id, mediaType: 'image/png', bytes: png.slice().buffer });
       }
       return frames;

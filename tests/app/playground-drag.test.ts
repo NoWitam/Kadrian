@@ -50,6 +50,7 @@ function stubPlayer(): StubPlayer {
     timeUs: player.timeUs,
     runtimeHash: 'sha256:stub',
     error: null,
+    playRange: null,
   });
   const player: StubPlayer = {
     loaded: [],
@@ -73,6 +74,7 @@ function stubPlayer(): StubPlayer {
       return Promise.resolve();
     },
     play: () => undefined,
+    setPlayRange: () => undefined,
     pause: () => undefined,
     getState: state,
     subscribe: () => () => undefined,

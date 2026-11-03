@@ -7,14 +7,22 @@ closed it again on 2026-09-27. PR-21 (commit `8b2b18e`, 2026-10-03) reopened
 Q14; its run 37151313481 supplied the validated evidence, and the documentation
 commit that follows it closed Q14 again on 2026-10-03. PR-25a (D47,
 2026-10-31) reopened Q14; run 41481200563 of the main commit `bde9bb9` supplied
-the validated evidence, and the documentation commit that follows it closes Q14
-again on 2026-11-02 (below). A
+the validated evidence, and the documentation commit that follows it closed Q14
+again on 2026-11-02. PR-38 (D61, 2026-11-03) reopened Q14 (below). A
 local run of the same commands, including
 `tests/pinned/container/pinned-run.sh`, does **not** verify CI.
 
-## Status after the evidence of main after PR-34b (2026-11-02)
+## Status after the evidence of main after PR-34b (2026-11-02), reopened by PR-38 (2026-11-03)
 
-**Status: Q14 is closed.**
+**Status: Q14 is open.**
+
+- PR-38 (D61) reopened Q14 on 2026-11-03. It changes one of the 13 pinned test
+  files, `tests/pinned/audio.pinned.test.ts` (the loop of a play range in the
+  Player's graph against the Producer's mix of the range). It deleted the
+  evidence below by the procedure of this file. Q14 closes again only when a
+  documentation commit adds the evidence of a green push run of a commit that
+  includes it. The text below records the evidence of main after PR-34b as it
+  was.
 
 - The evidence is `docs/ci/q14-evidence.json`. It is of the run
   https://github.com/NoWitam/Kadrian/actions/runs/41481200563 (run ID
@@ -119,10 +127,11 @@ local run of the same commands, including
 ## What "Q14 is closed" means (2026-09-25, updated 2026-10-03)
 
 Run 37151313481 of PR-21 supplied the validated evidence, and the documentation
-commit that follows it closed Q14; PR-25a reopened it on 2026-10-31, and run
-41481200563 of the main commit `bde9bb9` closed it again on 2026-11-02 (above).
-This section states what a closed Q14 means and how Q14 reopens, as it did with
-PR-16 on 2026-09-27, with PR-21 on 2026-10-03, and with PR-25a on 2026-10-31.
+commit that follows it closed Q14; PR-25a reopened it on 2026-10-31, run
+41481200563 of the main commit `bde9bb9` closed it again on 2026-11-02 (above),
+and PR-38 reopened it on 2026-11-03. This section states what a closed Q14
+means and how Q14 reopens, as it did with PR-16 on 2026-09-27, with PR-21 on
+2026-10-03, with PR-25a on 2026-10-31, and with PR-38 on 2026-11-03.
 
 - One push run of the reviewed commit on a GitHub runner, in the pinned image,
   met all eight criteria below, and the evidence of that run is in the
@@ -353,7 +362,7 @@ reopened Q14 in its commit of 2026-09-27; on 2026-09-27 all eight were met by
 the run of PR-16, and PR-21 reopened Q14 in its commit; on 2026-10-03 all eight
 were met by the run of PR-21 (above), PR-25a reopened Q14 in its commit of
 2026-10-31; on 2026-11-02 all eight were met by the run of the main commit
-`bde9bb9` (above).
+`bde9bb9` (above), and PR-38 reopened Q14 in its commit of 2026-11-03.
 
 1. The URL of the GitHub Actions run.
 2. The SHA of a commit that matches the run and the reviewed code.
