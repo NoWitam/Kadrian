@@ -10,6 +10,7 @@ export interface Player {
     seek(timeUs: number): Promise<void>;
     play(): void;
     pause(): void;
+    setPlayRange(range: PlayerPlayRange | null): void;
     getState(): PlayerState;
     subscribe(listener: PlayerListener): () => void;
     prepareVideo(asset: PlayerAssetRequest, resolveAsset: PlayerAssetResolver): Promise<PlayerVideoFacts>;
@@ -44,11 +45,18 @@ export type PlayerCustomHtmlPolicy = CustomHtmlPolicy;
 export declare class PlayerError extends Error {
     readonly code: PlayerErrorCode;
     readonly details: readonly string[];
-    constructor(code: PlayerErrorCode, message: string, details?: readonly string[]);
+    readonly asset: PlayerErrorAsset | null;
+    constructor(code: PlayerErrorCode, message: string, details?: readonly string[], asset?: PlayerErrorAsset | null);
+}
+
+---- PlayerErrorAsset (type only)
+export interface PlayerErrorAsset {
+    readonly id: string;
+    readonly contentHash: string;
 }
 
 ---- PlayerErrorCode (type only)
-export type PlayerErrorCode = 'runtime-hash-mismatch' | 'runtime-unsafe' | 'page-timeout' | 'invalid-document' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'asset-decode-failed' | 'readiness-unsupported' | 'font-load-failed' | 'invalid-options' | 'custom-html-timeout' | 'custom-html-navigated' | 'video-unsupported' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'audio-invalid' | 'audio-unsupported' | 'time-out-of-range' | 'not-loaded' | 'superseded' | 'destroyed' | 'page-error';
+export type PlayerErrorCode = 'runtime-hash-mismatch' | 'runtime-unsafe' | 'page-timeout' | 'invalid-document' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'asset-decode-failed' | 'readiness-unsupported' | 'font-load-failed' | 'invalid-options' | 'custom-html-timeout' | 'custom-html-navigated' | 'video-unsupported' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'audio-invalid' | 'audio-unsupported' | 'time-out-of-range' | 'invalid-play-range' | 'not-loaded' | 'superseded' | 'destroyed' | 'page-error';
 
 ---- PlayerListener (type only)
 export type PlayerListener = (state: PlayerState) => void;
@@ -66,6 +74,13 @@ export interface PlayerOptions {
     readonly timers?: PlayerTimers;
     readonly onListenerError?: PlayerListenerErrorHandler;
     readonly audio?: PlayerAudio;
+}
+
+---- PlayerPlayRange (type only)
+export interface PlayerPlayRange {
+    readonly startUs: number;
+    readonly endUs: number;
+    readonly loop: boolean;
 }
 
 ---- PlayerRuntime (type only)
@@ -87,10 +102,11 @@ export interface PlayerState {
     readonly timeUs: number | null;
     readonly runtimeHash: string;
     readonly error: PlayerError | null;
+    readonly playRange: PlayerPlayRange | null;
 }
 
 ---- PlayerStatus (type only)
-export type PlayerStatus = 'empty' | 'loading' | 'seeking' | 'ready' | 'playing' | 'error';
+export type PlayerStatus = 'empty' | 'loading' | 'seeking' | 'ready' | 'playing' | 'waiting' | 'ended' | 'error';
 
 ---- PlayerTimers (type only)
 export interface PlayerTimers {
@@ -132,4 +148,4 @@ export declare function createPlayer(container: HTMLElement, options: PlayerOpti
 export declare function decodeSound(context: Pick<SoundContext, 'decodeAudioData' | 'sampleRate'>, id: string, bytes: ArrayBuffer): Promise<AudioBuffer>;
 
 ---- scheduleSounds
-export declare function scheduleSounds(context: SoundContext, layout: AudioLayout, buffers: ReadonlyMap<string, AudioBuffer>, fromSample: number, when: number): ScheduledSounds;
+export declare function scheduleSounds(context: SoundContext, layout: AudioLayout, buffers: ReadonlyMap<string, AudioBuffer>, fromSample: number, when: number, toSample?: number): ScheduledSounds;

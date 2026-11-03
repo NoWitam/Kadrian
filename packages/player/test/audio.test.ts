@@ -262,6 +262,23 @@ describe('scheduleSounds (D53)', () => {
     ]);
   });
 
+  it('hears nothing at or after toSample: one pass of a play range (D61.2)', () => {
+    const { context, sources } = fakeContext();
+    const layout = layoutOf(
+      withClips([CLIP, { ...CLIP, id: 'clip-b', startUs: 2_000_000, fadeInUs: 0, fadeOutUs: 0 }]),
+    );
+    // To 2 s: clip-a stops 1 s in, clip-b starts there and is not heard at all.
+    scheduleSounds(
+      asContext(context),
+      layout,
+      new Map([['asset-audio', buffer(10 * R)]]),
+      60_000,
+      10,
+      96_000,
+    );
+    expect(sources().map(({ started }) => started)).toEqual([[10, 0.75, 0.75]]);
+  });
+
   it('stops and disconnects every sound once', () => {
     const { context, sources, nodes } = fakeContext();
     const scheduled = scheduleSounds(
@@ -501,6 +518,69 @@ describe('playing with sound: the audio clock drives the picture (D53)', () => {
     expect(fake.sources()).toHaveLength(0);
     await Promise.resolve();
     expect(fake.sources()).toHaveLength(1);
+  });
+
+  it('is waiting until a suspended context runs, then playing (D61.3)', async () => {
+    const { player } = await playing('suspended');
+    player.play();
+    expect(player.getState().status).toBe('waiting');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(player.getState().status).toBe('playing');
+  });
+
+  it('loops a range with its sound: each pass heard right after the one before, from the same samples (D61.2)', async () => {
+    const { clock, fake, harness, player } = await playing();
+    player.setPlayRange({ startUs: 1_000_000, endUs: 2_000_000, loop: true });
+    fake.context.currentTime = 3;
+    player.play();
+    // The pass heard and the one after it, each the range's second of the clip's source.
+    expect(fake.sources().map(({ started }) => started)).toEqual([
+      [3.05, 1, 1],
+      [4.05, 1, 1],
+    ]);
+    // Half a second into the second pass: the picture is at 1.5 s, and the third pass is
+    // scheduled.
+    fake.context.currentTime = 4.55;
+    clock.advance(1);
+    await harness.settle();
+    await sleep(5);
+    expect(seeks(harness).at(-1)).toBe(1_500_000);
+    expect(fake.sources().map(({ started }) => started?.[0])).toEqual([3.05, 4.05, 5.05]);
+    // In the third pass, then the fourth: the passes two behind are stopped, the next scheduled.
+    fake.context.currentTime = 5.3;
+    clock.advance(1);
+    await harness.settle();
+    await sleep(5);
+    fake.context.currentTime = 6.3;
+    clock.advance(1);
+    await harness.settle();
+    await sleep(5);
+    expect(seeks(harness).at(-1)).toBe(1_233_333);
+    const [first, second, third] = fake.sources();
+    expect([first?.stopped, second?.stopped, third?.stopped]).toEqual([true, true, false]);
+    expect(fake.sources().map(({ started }) => started?.[0])).toEqual([
+      3.05, 4.05, 5.05, 6.05, 7.05,
+    ]);
+    player.pause();
+    expect(fake.sources().every(({ stopped }) => stopped)).toBe(true);
+  });
+
+  it('plays a range to its end with the sound cut there, then ends (D61.1)', async () => {
+    const { clock, fake, harness, player } = await playing();
+    player.setPlayRange({ startUs: 1_000_000, endUs: 2_000_000, loop: false });
+    fake.context.currentTime = 3;
+    player.play();
+    expect(fake.sources().map(({ started }) => started)).toEqual([[3.05, 1, 1]]);
+    fake.context.currentTime = 4.2;
+    clock.advance(1);
+    await harness.settle();
+    await sleep(5);
+    expect(player.getState()).toMatchObject({ status: 'ended', timeUs: 1_966_666 });
+    // The sound of the last frame plays to the range's end; the next play stops it.
+    expect(fake.sources()[0]?.stopped).toBe(false);
+    player.play();
+    expect(fake.sources()[0]?.stopped).toBe(true);
   });
 
   it('plays the picture alone without the option audio', async () => {

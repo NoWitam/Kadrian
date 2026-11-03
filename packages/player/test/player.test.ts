@@ -86,6 +86,15 @@ async function pinnedTo(
 
 const pinned = await pinnedTo(referenceComposition, bytesOf);
 
+/** The content hash `document` gives asset `id`. */
+function hashIn(document: unknown, id: string): string {
+  const asset = (document as { assets: { id: string; contentHash: string }[] }).assets.find(
+    (candidate) => candidate.id === id,
+  );
+  if (asset === undefined) throw new Error(`No asset ${id}.`);
+  return asset.contentHash;
+}
+
 /** A resolver over a map, recording what it was asked for. */
 function resolverOf(
   map: Readonly<Record<string, PlayerAsset | undefined>>,
@@ -195,6 +204,7 @@ describe('the render page the Player creates (D25.2, D25.5)', () => {
       timeUs: null,
       runtimeHash: manifest.contentHash,
       error: null,
+      playRange: null,
     });
   });
 
@@ -419,9 +429,10 @@ describe('typed errors before the first frame, never ready (P1, D25.7)', () => {
       pinned,
       resolverOf({ ...bytesOf, 'asset-image': undefined }),
       'asset-missing',
+      'asset-image',
     ],
-    ['a resolver that fails', pinned, failing, 'asset-missing'],
-    ['bytes with another hash', pinned, resolverOf(tampered), 'asset-hash-mismatch'],
+    ['a resolver that fails', pinned, failing, 'asset-missing', 'asset-audio'],
+    ['bytes with another hash', pinned, resolverOf(tampered), 'asset-hash-mismatch', 'asset-font'],
     [
       'an asset without a media type',
       pinned,
@@ -430,14 +441,19 @@ describe('typed errors before the first frame, never ready (P1, D25.7)', () => {
         'asset-font': { bytes: new Uint8Array([0, 1, 0, 0]), mediaType: 'font' },
       }),
       'asset-invalid',
+      'asset-font',
     ],
-    ['an invalid document', { ...(pinned as object), fps: 0 }, resolve, 'invalid-document'],
-    ['a template (D58.4)', templateOf(pinned), resolve, 'invalid-document'],
-  ])('reports %s', async (_, document, given, code) => {
+    ['an invalid document', { ...(pinned as object), fps: 0 }, resolve, 'invalid-document', null],
+    ['a template (D58.4)', templateOf(pinned), resolve, 'invalid-document', null],
+  ])('reports %s', async (_, document, given, code, assetId) => {
     const harness = createHarness();
     const player = await started(harness);
     await expect(player.load(document, given)).rejects.toMatchObject({ name: 'PlayerError', code });
     expect(player.getState()).toMatchObject({ status: 'error', timeUs: null, error: { code } });
+    // The asset that failed is named, with the hash the document gives it (D61.4).
+    expect(player.getState().error?.asset).toEqual(
+      assetId === null ? null : { id: assetId, contentHash: hashIn(pinned, assetId) },
+    );
     expect(shownTree(harness)).toEqual([]);
   });
 
@@ -472,6 +488,8 @@ describe('typed errors before the first frame, never ready (P1, D25.7)', () => {
     const player = await started(harness);
     await expect(player.load(pinned, resolve)).rejects.toMatchObject({
       code: 'font-load-failed',
+      // Named from the page's report of the runtime build (D61.4).
+      asset: { id: 'asset-font', contentHash: hashIn(pinned, 'asset-font') },
     });
     expect(player.getState()).toMatchObject({ status: 'error', timeUs: null });
     expect(shownTree(harness)).toEqual([]);
@@ -483,6 +501,8 @@ describe('typed errors before the first frame, never ready (P1, D25.7)', () => {
     const player = await started(harness);
     await expect(player.load(pinned, resolve)).rejects.toMatchObject({
       code: 'asset-decode-failed',
+      // The page names the image node; the Player names its asset (D61.4).
+      asset: { id: 'asset-image', contentHash: hashIn(pinned, 'asset-image') },
     });
     expect(player.getState().status).toBe('error');
   });
@@ -702,7 +722,7 @@ describe('play and pause with the preview clock (D25.6)', () => {
     await harness.settle();
     expect(seeks().at(-1)).toBe(9_966_666);
     expect(clock.frames()).toBe(0);
-    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: 9_966_666 });
+    expect(player.getState()).toMatchObject({ status: 'ended', timeUs: 9_966_666 });
   });
 
   it('stops when paused', async () => {
@@ -1490,3 +1510,222 @@ function nodeOf(draft: VideoDraft, id: string): { sourceStartUs?: number } {
 function nodeHash(bytes: Uint8Array): string {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
+
+describe('playback events (D61)', () => {
+  /** The frame duration at 30 fps, in milliseconds of the injected clock. */
+  const FRAME_MS = 100 / 3;
+
+  const seekTimes = (harness: Harness): number[] =>
+    harness.log
+      .filter((delivery) => (delivery.data as { type?: string }).type === 'kadrion-player:seek')
+      .map((delivery) => (delivery.data as { timeUs: number }).timeUs);
+
+  /** Advances the clock and lets the frame that the tick asked for land. */
+  async function step(clock: ReturnType<typeof manualScheduler>, harness: Harness, ms: number) {
+    clock.advance(ms);
+    await harness.settle();
+    await sleep(5);
+    await harness.settle();
+  }
+
+  async function loadedWithClock() {
+    const harness = createHarness();
+    const clock = manualScheduler();
+    const states: string[] = [];
+    const player = await started(harness, {
+      scheduler: clock.scheduler,
+      onListenerError: () => undefined,
+    });
+    player.subscribe((state) => states.push(`${state.status} ${String(state.timeUs)}`));
+    await player.load(pinned, resolve);
+    return { harness, clock, player, states };
+  }
+
+  /** Plays from now, one tick per frame for `ticks` frames, and returns the frames sought. */
+  async function playFrames(
+    player: Player,
+    clock: ReturnType<typeof manualScheduler>,
+    harness: Harness,
+    ticks: number,
+  ): Promise<number[]> {
+    const before = seekTimes(harness).length;
+    player.play();
+    await step(clock, harness, 0);
+    for (let tick = 1; tick < ticks; tick += 1) await step(clock, harness, FRAME_MS);
+    return seekTimes(harness).slice(before);
+  }
+
+  const RANGE_FRAMES = [1_000_000, 1_033_333, 1_066_666, 1_100_000, 1_133_333, 1_166_666];
+
+  it('reports ended once per play, at the last frame, and plays again from the start', async () => {
+    const { harness, clock, player, states } = await loadedWithClock();
+    player.play();
+    await step(clock, harness, 20_000);
+    expect(player.getState()).toMatchObject({ status: 'ended', timeUs: 9_966_666 });
+    expect(states.filter((state) => state.startsWith('ended'))).toEqual(['ended 9966666']);
+    // A pause after the end changes nothing; a seek leaves the end.
+    player.pause();
+    expect(player.getState().status).toBe('ended');
+    player.play();
+    expect(player.getState().status).toBe('playing');
+    await step(clock, harness, 0);
+    expect(seekTimes(harness).at(-1)).toBe(0);
+    await step(clock, harness, 20_000);
+    expect(states.filter((state) => state.startsWith('ended'))).toHaveLength(2);
+    await player.seek(5_000_000);
+    expect(player.getState().status).toBe('ready');
+  });
+
+  it('checks a play range against the document and its frame grid, and states it', async () => {
+    const harness = createHarness();
+    const player = await started(harness, { onListenerError: () => undefined });
+    expect(() => {
+      player.setPlayRange({ startUs: 0, endUs: 1_000_000, loop: false });
+    }).toThrow(expect.objectContaining({ code: 'not-loaded' }) as Error);
+    await player.load(pinned, resolve);
+    const ranges: unknown[] = [];
+    player.subscribe((state) => ranges.push(state.playRange));
+    for (const invalid of [
+      { startUs: 1, endUs: 1_000_000, loop: false },
+      { startUs: 0, endUs: 1_000_001, loop: false },
+      { startUs: 0, endUs: 10_033_333, loop: false },
+      { startUs: 1_000_000, endUs: 1_000_000, loop: false },
+      { startUs: -33_333, endUs: 1_000_000, loop: false },
+      { startUs: 0, endUs: 1_000_000, loop: 'yes' },
+      { startUs: 0, endUs: 1_000_000 },
+    ]) {
+      expect(() => {
+        player.setPlayRange(invalid as never);
+      }, JSON.stringify(invalid)).toThrow(
+        expect.objectContaining({ code: 'invalid-play-range' }) as Error,
+      );
+    }
+    expect(ranges).toEqual([]);
+    const given = { startUs: 1_000_000, endUs: 10_000_000, loop: true };
+    player.setPlayRange(given);
+    const { playRange } = player.getState();
+    expect(playRange).toEqual(given);
+    expect(playRange).not.toBe(given);
+    expect(Object.isFrozen(playRange)).toBe(true);
+    player.setPlayRange(null);
+    expect(ranges).toEqual([given, null]);
+  });
+
+  it('plays a range from its start and ends at its last frame', async () => {
+    const { harness, clock, player, states } = await loadedWithClock();
+    player.setPlayRange({ startUs: 1_000_000, endUs: 1_200_000, loop: false });
+    expect(await playFrames(player, clock, harness, 6)).toEqual(RANGE_FRAMES);
+    expect(player.getState()).toMatchObject({ status: 'ended', timeUs: 1_166_666 });
+    expect(clock.frames()).toBe(0);
+    expect(states.filter((state) => state.startsWith('ended'))).toEqual(['ended 1166666']);
+  });
+
+  it('presents the same frames in n passes of a loop as in n plays of the range', async () => {
+    const plays = await loadedWithClock();
+    plays.player.setPlayRange({ startUs: 1_000_000, endUs: 1_200_000, loop: false });
+    const twice = [
+      ...(await playFrames(plays.player, plays.clock, plays.harness, 6)),
+      ...(await playFrames(plays.player, plays.clock, plays.harness, 6)),
+      ...(await playFrames(plays.player, plays.clock, plays.harness, 6)),
+    ];
+    const looped = await loadedWithClock();
+    looped.player.setPlayRange({ startUs: 1_000_000, endUs: 1_200_000, loop: true });
+    const passes = await playFrames(looped.player, looped.clock, looped.harness, 18);
+    expect(passes).toEqual([...RANGE_FRAMES, ...RANGE_FRAMES, ...RANGE_FRAMES]);
+    expect(passes).toEqual(twice);
+    // A loop never ends.
+    expect(looped.player.getState().status).toBe('playing');
+    expect(looped.states.some((state) => state.startsWith('ended'))).toBe(false);
+  });
+
+  it('plays on from a seek inside the range, and stops at a seek outside it', async () => {
+    const { harness, clock, player } = await loadedWithClock();
+    player.setPlayRange({ startUs: 1_000_000, endUs: 2_000_000, loop: true });
+    player.play();
+    await step(clock, harness, 0);
+    await player.seek(1_500_000);
+    expect(player.getState().status).toBe('playing');
+    expect(clock.frames()).toBe(1);
+    await player.seek(5_000_000);
+    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: 5_000_000 });
+    expect(clock.frames()).toBe(0);
+    // Played again, it starts at the range.
+    player.play();
+    await step(clock, harness, 0);
+    expect(seekTimes(harness).at(-1)).toBe(1_000_000);
+  });
+
+  it('goes on inside a range set while playing, from the frame shown', async () => {
+    const { harness, clock, player } = await loadedWithClock();
+    await player.seek(1_500_000);
+    player.play();
+    await step(clock, harness, 0);
+    player.setPlayRange({ startUs: 1_000_000, endUs: 2_000_000, loop: false });
+    await step(clock, harness, 100);
+    expect(seekTimes(harness).at(-1)).toBe(1_600_000);
+    player.setPlayRange({ startUs: 3_000_000, endUs: 4_000_000, loop: false });
+    await step(clock, harness, 0);
+    expect(seekTimes(harness).at(-1)).toBe(3_000_000);
+  });
+
+  it('keeps a range across an update while the document holds it, cuts it, or clears it', async () => {
+    const harness = createHarness();
+    const player = await started(harness);
+    await player.load(pinned, resolve);
+    const kept = { startUs: 1_000_000, endUs: 2_000_000, loop: true };
+    player.setPlayRange(kept);
+    const before = player.getState().playRange;
+    await player.update(shortened, resolve);
+    expect(player.getState().playRange).toBe(before);
+    await player.update(pinned, resolve);
+    player.setPlayRange({ startUs: 4_000_000, endUs: 6_000_000, loop: false });
+    await player.update(shortened, resolve);
+    expect(player.getState().playRange).toEqual({
+      startUs: 4_000_000,
+      endUs: 5_000_000,
+      loop: false,
+    });
+    await player.update(pinned, resolve);
+    player.setPlayRange({ startUs: 6_000_000, endUs: 7_000_000, loop: false });
+    await player.update(shortened, resolve);
+    expect(player.getState().playRange).toBeNull();
+    player.setPlayRange(kept);
+    await player.load(pinned, resolve);
+    expect(player.getState().playRange).toBeNull();
+  });
+
+  it('is waiting while the clock is ahead of the frame in flight, and playing once it is shown', async () => {
+    const { harness, clock, player, states } = await loadedWithClock();
+    player.play();
+    const from = states.length;
+    // Frame 3 is asked for; before it is shown, the clock is at frame 6.
+    clock.advance(100);
+    expect(player.getState().status).toBe('playing');
+    clock.advance(100);
+    expect(player.getState()).toMatchObject({ status: 'waiting', timeUs: 0 });
+    await harness.settle();
+    await sleep(5);
+    await harness.settle();
+    expect(player.getState()).toMatchObject({ status: 'playing', timeUs: 100_000 });
+    await step(clock, harness, 1);
+    expect(player.getState()).toMatchObject({ status: 'playing', timeUs: 200_000 });
+    // The frames of the clock leave the status as it is: no seeking between them.
+    expect(states.slice(from)).toEqual(['waiting 0', 'playing 100000', 'playing 200000']);
+  });
+
+  it('gives the same events for the same operations and the same answers', async () => {
+    const run = async () => {
+      const { harness, clock, player, states } = await loadedWithClock();
+      player.setPlayRange({ startUs: 1_000_000, endUs: 1_200_000, loop: false });
+      await playFrames(player, clock, harness, 6);
+      player.play();
+      clock.advance(0);
+      clock.advance(100);
+      await step(clock, harness, 0);
+      player.pause();
+      await harness.settle();
+      return states;
+    };
+    expect(await run()).toEqual(await run());
+  });
+});

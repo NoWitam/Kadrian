@@ -24,7 +24,6 @@ import {
   type AudioLayout,
 } from '@kadrion/runtime';
 import {
-  frameCount,
   frameToTimeUs,
   isTemplate,
   timeUsToFrame,
@@ -42,7 +41,7 @@ import {
   type ScheduledSounds,
   type SoundContext,
 } from './audio.js';
-import { playerCode, PlayerError } from './errors.js';
+import { playerCode, PlayerError, withAsset, type PlayerErrorAsset } from './errors.js';
 import {
   checkDecodable,
   checkSourceRanges,
@@ -153,7 +152,27 @@ export interface PlayerOptions {
   readonly audio?: PlayerAudio;
 }
 
-export type PlayerStatus = 'empty' | 'loading' | 'seeking' | 'ready' | 'playing' | 'error';
+/**
+ * `waiting`: playing, but the frame the clock is at is not shown yet, because
+ * the frame before it (its video frames, its page render) or the sound is not
+ * ready; the frame shown is still a frame of the document (D61.3). `ended`:
+ * playback reached the last frame of the document or of the play range and
+ * stopped, reported once per play (D61.1).
+ */
+export type PlayerStatus =
+  'empty' | 'loading' | 'seeking' | 'ready' | 'playing' | 'waiting' | 'ended' | 'error';
+
+/**
+ * The part of the document playback stays in (D61.2): from `startUs`, a time
+ * of the frame grid, to `endUs`, exclusive, a time of the frame grid or the
+ * document's duration. With `loop`, playback restarts at `startUs` after the
+ * last frame of the range instead of ending.
+ */
+export interface PlayerPlayRange {
+  readonly startUs: number;
+  readonly endUs: number;
+  readonly loop: boolean;
+}
 
 export interface PlayerState {
   readonly status: PlayerStatus;
@@ -162,6 +181,8 @@ export interface PlayerState {
   /** The verified content hash of the runtime build that the page runs (D25.5). */
   readonly runtimeHash: string;
   readonly error: PlayerError | null;
+  /** The play range, or `null` for the whole document (D61.2). */
+  readonly playRange: PlayerPlayRange | null;
 }
 
 export type PlayerListener = (state: PlayerState) => void;
@@ -182,11 +203,20 @@ export interface Player {
   seek(timeUs: number): Promise<void>;
   play(): void;
   pause(): void;
+  /**
+   * Bounds playback to `range`, or to the whole document with `null` (D61.2).
+   * It needs a loaded document (`not-loaded`) and a range inside it on its
+   * frame grid (`invalid-play-range`). While playing, the clock goes on from
+   * the frame shown if the range holds it, else from the range's start. `load`
+   * clears the range; `update` keeps it while the new document holds it,
+   * cut to its end when the document became shorter, and clears it otherwise.
+   */
+  setPlayRange(range: PlayerPlayRange | null): void;
   getState(): PlayerState;
   /**
    * Calls `listener` with the new state after every change of `status`,
-   * `timeUs`, or `error`, until the returned function is called. Needs the
-   * option `onListenerError` (D44).
+   * `timeUs`, `error`, or `playRange`, until the returned function is called.
+   * Needs the option `onListenerError` (D44, D61).
    */
   subscribe(listener: PlayerListener): () => void;
   /**
@@ -307,8 +337,53 @@ function pageDocument(script: string): string {
   }
 }
 
-function failureError(failure: PageFailure): PlayerError {
-  return new PlayerError(playerCode(failure.code), failure.message, failure.details);
+/** The nodes of a document, group children included, in document order. */
+interface AnyNode {
+  readonly id: string;
+  readonly type: string;
+  readonly assetId?: string;
+  readonly children?: readonly AnyNode[];
+}
+
+function nodesOf(composition: ValidatedComposition): AnyNode[] {
+  const found: AnyNode[] = [];
+  const visit = (node: AnyNode): void => {
+    found.push(node);
+    node.children?.forEach(visit);
+  };
+  for (const scene of composition.scenes) scene.nodes.forEach(visit);
+  return found;
+}
+
+/**
+ * The asset a failure of the page is about (D61.4). The page reports it in
+ * the message of the runtime build only: `The font "<id>"` for a font, and
+ * `The image of "<node id>"` for an image, which names the node; the forms
+ * are pinned by a test against the renderer's own errors.
+ */
+export function pageFailureAsset(
+  failure: PageFailure,
+  composition: ValidatedComposition | null,
+): PlayerErrorAsset | null {
+  if (composition === null) return null;
+  let id: string | undefined;
+  if (failure.code === 'font-load-failed' || failure.code === 'asset-url-missing') {
+    id = /^The font "([^"]*)"/.exec(failure.message)?.[1];
+  } else if (failure.code === 'asset-decode-failed') {
+    const nodeId = /^The image of "([^"]*)"/.exec(failure.message)?.[1];
+    id = nodesOf(composition).find((node) => node.id === nodeId)?.assetId;
+  }
+  const asset = composition.assets.find((candidate) => candidate.id === id);
+  return asset === undefined ? null : { id: asset.id, contentHash: asset.contentHash };
+}
+
+function failureError(failure: PageFailure, composition: ValidatedComposition | null): PlayerError {
+  return new PlayerError(
+    playerCode(failure.code),
+    failure.message,
+    failure.details,
+    pageFailureAsset(failure, composition),
+  );
 }
 
 interface AssetMessage {
@@ -380,47 +455,71 @@ async function prepareAssets(
   try {
     for (const asset of composition.assets) {
       const { id, type, contentHash } = asset;
-      if (type === 'video') {
-        const blob =
-          known.videos.get(contentHash) ??
-          known.blobs.get(contentHash) ??
-          (await verifyVideo(asset, resolveAsset, BlobOf));
-        prepared.blobs.set(contentHash, { ...blob, id });
-        continue;
+      try {
+        if (type === 'video') {
+          const blob =
+            known.videos.get(contentHash) ??
+            known.blobs.get(contentHash) ??
+            (await verifyVideo(asset, resolveAsset, BlobOf));
+          prepared.blobs.set(contentHash, { ...blob, id });
+          continue;
+        }
+        const cached = known.bytes.get(contentHash);
+        const verified = await resolveOneAsset(
+          asset,
+          (request) => {
+            if (cached !== undefined) return cached;
+            const given = resolveAsset(request);
+            // A Blob is accepted for a video only; the shared check refuses it here.
+            return given as PlayerAsset | null | Promise<PlayerAsset | null>;
+          },
+          sha256,
+        );
+        prepared.bytes.set(contentHash, {
+          mediaType: verified.mediaType,
+          bytes: verified.bytes.slice(),
+        });
+        prepared.messages.push({
+          id,
+          mediaType: verified.mediaType,
+          bytes: verified.bytes.buffer as ArrayBuffer,
+        });
+      } catch (reason) {
+        throw withAsset(typed(reason), { id, contentHash });
       }
-      const cached = known.bytes.get(contentHash);
-      const verified = await resolveOneAsset(
-        asset,
-        (request) => {
-          if (cached !== undefined) return cached;
-          const given = resolveAsset(request);
-          // A Blob is accepted for a video only; the shared check refuses it here.
-          return given as PlayerAsset | null | Promise<PlayerAsset | null>;
-        },
-        sha256,
-      );
-      prepared.bytes.set(contentHash, {
-        mediaType: verified.mediaType,
-        bytes: verified.bytes.slice(),
-      });
-      prepared.messages.push({
-        id,
-        mediaType: verified.mediaType,
-        bytes: verified.bytes.buffer as ArrayBuffer,
-      });
     }
     const hashes = new Map(composition.assets.map((asset) => [asset.id, asset.contentHash]));
     for (const node of videoNodes(composition)) {
       const contentHash = hashes.get(node.assetId) ?? '';
       if (prepared.videos.has(contentHash)) continue;
+      const asset = { id: node.assetId, contentHash };
       const blob = prepared.blobs.get(contentHash);
       if (blob === undefined) {
-        throw new PlayerError('asset-missing', `The video "${node.assetId}" was not resolved.`);
+        throw new PlayerError(
+          'asset-missing',
+          `The video "${node.assetId}" was not resolved.`,
+          [],
+          asset,
+        );
       }
-      prepared.videos.set(contentHash, known.videos.get(contentHash) ?? (await readVideo(blob)));
+      try {
+        prepared.videos.set(contentHash, known.videos.get(contentHash) ?? (await readVideo(blob)));
+      } catch (reason) {
+        throw withAsset(typed(reason), asset);
+      }
     }
     checkSourceRanges(composition, prepared.videos);
-    if (prepared.videos.size > 0) await checkDecodable(view, prepared.videos.values());
+    if (prepared.videos.size > 0) {
+      // Named by the document's own asset ID, whichever ID prepared the video.
+      const ids = new Map(composition.assets.map((asset) => [asset.contentHash, asset.id]));
+      await checkDecodable(
+        view,
+        [...prepared.videos.values()].map((video) => ({
+          ...video,
+          id: ids.get(video.contentHash) ?? video.id,
+        })),
+      );
+    }
     if (decoder !== null)
       prepared.audio = await prepareSounds(composition, prepared, known, decoder);
   } catch (reason) {
@@ -449,33 +548,60 @@ async function prepareSounds(
           ? await blob.blob.arrayBuffer()
           : prepared.bytes.get(contentHash)?.bytes.slice().buffer;
       if (bytes === undefined) {
-        throw new PlayerError('asset-missing', `The sound "${id}" was not resolved.`);
+        throw new PlayerError('asset-missing', `The sound "${id}" was not resolved.`, [], {
+          id,
+          contentHash,
+        });
       }
-      buffer = await decodeSound(decoder, id, bytes);
+      try {
+        buffer = await decodeSound(decoder, id, bytes);
+      } catch (reason) {
+        throw withAsset(typed(reason), { id, contentHash });
+      }
     }
     prepared.sounds.set(contentHash, buffer);
     buffers.set(id, buffer);
   }
-  checkSoundRanges(layout, buffers);
+  checkSoundRanges(
+    layout,
+    buffers,
+    new Map(composition.assets.map((asset) => [asset.id, asset.contentHash])),
+  );
   return { layout, buffers };
 }
 
 /** The sound of one run of the clock: when its first sample is heard, once scheduled. */
 interface PlayingSound {
   when: number | null;
-  sounds: ScheduledSounds | null;
+  /** The passes scheduled so far, by number; a run without a loop has pass 0 only (D61.2). */
+  readonly passes: Map<number, ScheduledSounds>;
 }
 
-/** One run of the preview clock, from `startUs`. */
+/**
+ * What one run of the clock plays (D61.2): from `startUs` to the exclusive
+ * `endUs`, whose last frame starts at `lastUs`; with `loop`, again from
+ * `startUs` after it.
+ */
+interface Bounds {
+  readonly startUs: number;
+  readonly endUs: number;
+  readonly lastUs: number;
+  readonly loop: boolean;
+  /** Whether a play range set them; the whole document's sound plays to its own end. */
+  readonly ranged: boolean;
+}
+
+/** One run of the preview clock, from `startUs` inside `bounds`. */
 interface Playing {
   startNow: number;
   readonly startUs: number;
+  readonly bounds: Bounds;
   handle: number;
   /** With sound, the audio context is the clock (D53); otherwise `null`. */
   sound: PlayingSound | null;
 }
 
-interface Waiting {
+interface Queued {
   readonly timeUs: number;
   readonly resolve: () => void;
   readonly reject: (error: PlayerError) => void;
@@ -483,7 +609,97 @@ interface Waiting {
 
 interface Pending {
   readonly requestId: number;
+  /** The document the request is about, to name the asset of a failure (D61.4). */
+  readonly document: ValidatedComposition | null;
   readonly settle: (error: PlayerError | null) => void;
+}
+
+/** The time of the last frame that starts before `endUs` (D13). */
+function lastFrameUs(endUs: number, fps: number): number {
+  return frameToTimeUs(timeUsToFrame(endUs - 1, fps), fps);
+}
+
+/** Whether `timeUs` is the time of a frame of the grid (D13). */
+function onGrid(timeUs: number, fps: number): boolean {
+  return frameToTimeUs(timeUsToFrame(timeUs, fps), fps) === timeUs;
+}
+
+/**
+ * A play range checked against `composition` (D61.2), as a frozen copy: whole
+ * microseconds, `0 <= startUs < endUs <= durationUs`, `startUs` on the frame
+ * grid, `endUs` on it or the document's end, and a boolean `loop`.
+ */
+function checkedRange(value: unknown, composition: ValidatedComposition): PlayerPlayRange {
+  const { startUs, endUs, loop } = (
+    typeof value === 'object' && value !== null ? value : {}
+  ) as Partial<Record<keyof PlayerPlayRange, unknown>>;
+  const { durationUs, fps } = composition;
+  if (
+    typeof startUs !== 'number' ||
+    typeof endUs !== 'number' ||
+    typeof loop !== 'boolean' ||
+    !Number.isSafeInteger(startUs) ||
+    !Number.isSafeInteger(endUs) ||
+    startUs < 0 ||
+    endUs <= startUs ||
+    endUs > durationUs ||
+    !onGrid(startUs, fps) ||
+    (endUs !== durationUs && !onGrid(endUs, fps))
+  ) {
+    throw new PlayerError(
+      'invalid-play-range',
+      `A play range is { startUs, endUs, loop }: integers with 0 <= startUs < endUs <= ${String(durationUs)}, startUs a frame time and endUs a frame time or the end, at ${String(fps)} fps (D61.2).`,
+    );
+  }
+  return Object.freeze({ startUs, endUs, loop });
+}
+
+/** What the clock plays: the play range, or the whole document. */
+function boundsOf(composition: ValidatedComposition, range: PlayerPlayRange | null): Bounds {
+  const startUs = range?.startUs ?? 0;
+  const endUs = range?.endUs ?? composition.durationUs;
+  return {
+    startUs,
+    endUs,
+    lastUs: lastFrameUs(endUs, composition.fps),
+    loop: range?.loop ?? false,
+    ranged: range !== null,
+  };
+}
+
+/**
+ * The range kept by an update (D61.2): the same values while the new document
+ * holds them, with `endUs` cut to a shorter document's end; otherwise `null`.
+ */
+function keptRange(
+  range: PlayerPlayRange | null,
+  composition: ValidatedComposition,
+): PlayerPlayRange | null {
+  if (range === null) return null;
+  const endUs = Math.min(range.endUs, composition.durationUs);
+  try {
+    const kept = checkedRange({ ...range, endUs }, composition);
+    return kept.endUs === range.endUs ? range : kept;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Where a run is after `elapsed` (in microseconds, or in samples with sound):
+ * its pass, and how far into it. Pass 0 runs from the run's start to the
+ * range's end; every later pass is the whole range (D61.2).
+ */
+function passAt(
+  elapsed: number,
+  first: number,
+  length: number,
+  loop: boolean,
+): { pass: number; offset: number } | null {
+  if (elapsed < first) return { pass: 0, offset: elapsed };
+  if (!loop) return null;
+  const after = elapsed - first;
+  return { pass: 1 + Math.floor(after / length), offset: after % length };
 }
 
 /**
@@ -530,12 +746,19 @@ export async function createPlayer(
   let status: PlayerStatus = 'empty';
   let timeUs: number | null = null;
   let error: PlayerError | null = null;
+  let playRange: PlayerPlayRange | null = null;
   let composition: ValidatedComposition | null = null;
   let nextRequestId = 1;
   let pending: Pending | null = null;
   let seeking = false;
-  let waiting: Waiting | null = null;
+  /** The time of the frame in flight, while `seeking`. */
+  let seekingTo: number | null = null;
+  let queued: Queued | null = null;
   let playing: Playing | null = null;
+  /** The clock is at a newer frame than the one in flight: playback is held (D61.3). */
+  let late = false;
+  /** The last play reached its last frame and stopped (D61.1). */
+  let ended = false;
   /** The sounds of a run that reached its last frame, left to end on their own (D53). */
   let lingering: ScheduledSounds | null = null;
   /** Sounds decoded by `prepareAudio`, by content hash (D53). */
@@ -558,7 +781,8 @@ export async function createPlayer(
   const listeners = new Set<{ readonly listener: PlayerListener }>();
   let reported: PlayerState | null = null;
 
-  const snapshot = (): PlayerState => Object.freeze({ status, timeUs, runtimeHash, error });
+  const snapshot = (): PlayerState =>
+    Object.freeze({ status, timeUs, runtimeHash, error, playRange });
 
   /**
    * Tells every listener about the state, unless it equals the one reported
@@ -569,7 +793,8 @@ export async function createPlayer(
       reported !== null &&
       reported.status === status &&
       reported.timeUs === timeUs &&
-      reported.error === error
+      reported.error === error &&
+      reported.playRange === playRange
     ) {
       return;
     }
@@ -600,14 +825,20 @@ export async function createPlayer(
     }
     const result = readResult(event.data);
     if (result === undefined || pending === null || result.requestId !== pending.requestId) return;
-    const { settle } = pending;
+    const { settle, document } = pending;
     pending = null;
-    settle(result.error === null ? null : failureError(result.error));
+    settle(result.error === null ? null : failureError(result.error, document));
   };
   view.addEventListener('message', onMessage);
 
-  /** Sends one request and waits for its result, bounded by the request timeout. */
-  const request = (message: Record<string, unknown>): Promise<void> =>
+  /**
+   * Sends one request about `document` and waits for its result, bounded by
+   * the request timeout.
+   */
+  const request = (
+    message: Record<string, unknown>,
+    document: ValidatedComposition | null,
+  ): Promise<void> =>
     new Promise<void>((resolve, reject) => {
       if (destroyed) {
         reject(new PlayerError('destroyed', 'The Player was destroyed.'));
@@ -626,6 +857,7 @@ export async function createPlayer(
       }, requestTimeoutMs);
       pending = {
         requestId,
+        document,
         settle: (failure) => {
           timers.clearTimeout(handle);
           if (failure === null) resolve();
@@ -720,24 +952,52 @@ export async function createPlayer(
     return offlineDecoder;
   };
 
-  const settledStatus = (): PlayerStatus => (playing !== null ? 'playing' : 'ready');
+  /**
+   * The status once nothing the host asked for is in flight (D61): playing,
+   * or waiting while the clock is ahead of the frame shown or its sound has
+   * not started; ended after a play reached its last frame; ready otherwise.
+   */
+  const settledStatus = (): PlayerStatus => {
+    if (playing !== null) return late || playing.sound?.when === null ? 'waiting' : 'playing';
+    return ended ? 'ended' : 'ready';
+  };
 
-  const startSeek = (target: number, done: Waiting | null): void => {
-    seeking = true;
-    status = 'seeking';
+  /** Settles the status after something changed while no request of the host is in flight. */
+  const resettle = (): void => {
+    if (!seeking && error === null && composition !== null) status = settledStatus();
     notify();
+  };
+
+  /** The marker of a queued frame that the clock, not the host, asked for. */
+  const clockFrame = (): void => undefined;
+
+  /**
+   * Renders the frame at `target`. A seek of the host (`byClock` false) shows
+   * the status `seeking` until it is ready; a frame of the clock leaves the
+   * status as it is, so playing stays playing (D61.3).
+   */
+  const startSeek = (target: number, done: Queued | null, byClock = false): void => {
+    seeking = true;
+    seekingTo = target;
+    if (!byClock) {
+      status = 'seeking';
+      notify();
+    }
     const requestId = nextRequestId++;
     const shown = composition;
     const source = videoSource;
     const sent = (async () => {
       const videoFrames = await framesOf(source, shown, target);
-      await request({
-        type: SEEK,
-        version: PROTOCOL_VERSION,
-        requestId,
-        timeUs: target,
-        videoFrames,
-      });
+      await request(
+        {
+          type: SEEK,
+          version: PROTOCOL_VERSION,
+          requestId,
+          timeUs: target,
+          videoFrames,
+        },
+        shown,
+      );
     })();
     inFlight = sent.then(
       () => undefined,
@@ -746,6 +1006,8 @@ export async function createPlayer(
     sent.then(
       () => {
         seeking = false;
+        seekingTo = null;
+        late = false;
         timeUs = target;
         error = null;
         done?.resolve();
@@ -754,6 +1016,8 @@ export async function createPlayer(
       },
       (reason: unknown) => {
         seeking = false;
+        seekingTo = null;
+        late = false;
         const failure = fail(reason);
         stopClock();
         done?.reject(failure);
@@ -764,16 +1028,16 @@ export async function createPlayer(
 
   /** After a seek: start the one that waits, or settle the status. */
   const next = (): void => {
-    if (waiting !== null) {
-      const queued = waiting;
-      waiting = null;
+    if (queued !== null) {
+      const waiting = queued;
+      queued = null;
       // It was checked against the document of its time; an update may have shortened it.
-      if (composition !== null && queued.timeUs >= composition.durationUs) {
-        queued.reject(outOfRange(queued.timeUs));
+      if (composition !== null && waiting.timeUs >= composition.durationUs) {
+        waiting.reject(outOfRange(waiting.timeUs));
         next();
         return;
       }
-      startSeek(queued.timeUs, queued);
+      startSeek(waiting.timeUs, waiting, waiting.resolve === clockFrame);
       return;
     }
     if (error === null) status = settledStatus();
@@ -805,14 +1069,16 @@ export async function createPlayer(
     const { text, loaded } = parsed(document);
     const resumes = playing !== null;
     stopClock();
-    waiting?.reject(new PlayerError('superseded', 'A new document replaced this seek.'));
-    waiting = null;
+    ended = false;
+    queued?.reject(new PlayerError('superseded', 'A new document replaced this seek.'));
+    queued = null;
     // A seek that is still in flight finishes first; its time is the one kept.
     await inFlight;
     const shown = Math.min(timeUs ?? 0, loaded.durationUs - 1);
     const target = frameToTimeUs(timeUsToFrame(shown, loaded.fps), loaded.fps);
     // `timeUs` keeps the frame shown until the new one is.
     seeking = true;
+    seekingTo = target;
     status = 'loading';
     notify();
     let staged: { assets: PreparedAssets; source: VideoFrameSource | null } | null = null;
@@ -829,17 +1095,20 @@ export async function createPlayer(
       const videoFrames = await framesOf(source, loaded, target);
       frame.style.setProperty('width', `${String(loaded.width)}px`);
       frame.style.setProperty('height', `${String(loaded.height)}px`);
-      await request({
-        type: UPDATE,
-        version: PROTOCOL_VERSION,
-        requestId: nextRequestId++,
-        document: text,
-        assets: assets.messages,
-        ackTimeoutMs,
-        customHtml: { mode: customHtml.mode },
-        timeUs: target,
-        videoFrames,
-      });
+      await request(
+        {
+          type: UPDATE,
+          version: PROTOCOL_VERSION,
+          requestId: nextRequestId++,
+          document: text,
+          assets: assets.messages,
+          ackTimeoutMs,
+          customHtml: { mode: customHtml.mode },
+          timeUs: target,
+          videoFrames,
+        },
+        loaded,
+      );
     })();
     inFlight = sent.then(
       () => undefined,
@@ -849,18 +1118,23 @@ export async function createPlayer(
       await sent;
     } catch (reason) {
       seeking = false;
+      seekingTo = null;
       // What the page holds is not known any more: a new load is needed.
       composition = null;
       timeUs = null;
+      playRange = null;
       shownAssets = null;
       videoSource = null;
       // A seek may have been requested while the update was in flight.
-      (waiting as Waiting | null)?.reject(new PlayerError('superseded', 'The update failed.'));
-      waiting = null;
+      (queued as Queued | null)?.reject(new PlayerError('superseded', 'The update failed.'));
+      queued = null;
       throw fail(reason);
     }
     seeking = false;
+    seekingTo = null;
     composition = loaded;
+    // The range is kept while the new document holds it (D61.2).
+    playRange = keptRange(playRange, loaded);
     const accepted = staged as { assets: PreparedAssets; source: VideoFrameSource | null } | null;
     shownAssets = accepted?.assets ?? null;
     videoSource = accepted?.source ?? null;
@@ -874,50 +1148,83 @@ export async function createPlayer(
   const seek = (target: number): Promise<void> =>
     new Promise<void>((resolve, reject) => {
       const checked = checkedTime(target);
-      // While playing, the clock goes on from the time sought, with its sound (D53).
-      if (playing !== null) startClock(checked);
+      ended = false;
+      if (playing !== null) {
+        // While playing, the clock goes on from the time sought, with its sound (D53); a
+        // time outside the play range stops it, since playback stays inside (D61.2).
+        const { bounds } = playing;
+        if (checked >= bounds.startUs && checked < bounds.endUs) startClock(checked, bounds);
+        else stopClock();
+      }
       if (!seeking) {
         startSeek(checked, { timeUs: checked, resolve, reject });
         return;
       }
       // One seek at a time; a newer one supersedes the one that waits (D25.6).
-      waiting?.reject(new PlayerError('superseded', 'A newer seek replaced this one.'));
-      waiting = { timeUs: checked, resolve, reject };
+      queued?.reject(new PlayerError('superseded', 'A newer seek replaced this one.'));
+      queued = { timeUs: checked, resolve, reject };
+      // The frame in flight is the clock's: the status says that the host's seek runs.
+      status = 'seeking';
+      notify();
     });
 
   const stopClock = (): void => {
     if (playing !== null) {
       scheduler.cancelFrame(playing.handle);
-      playing.sound?.sounds?.stop();
+      for (const pass of playing.sound?.passes.values() ?? []) pass.stop();
     }
     playing = null;
+    late = false;
     lingering?.stop();
     lingering = null;
   };
 
   /**
-   * Starts the preview clock at `startUs`, in place of a running one. With
-   * sound to play, the clock is the audio context's (D53): the plan is
-   * scheduled from the sample of `startUs` a little ahead of the context's
-   * time, and the picture follows what is heard. A context that is not
-   * running is resumed first; one that cannot be leaves the picture to the
-   * scheduler, without sound.
+   * Schedules pass `pass` of a run's sound (D61.2): pass 0 from the run's
+   * start, every later one the whole range, each heard right after the one
+   * before, sample for sample, as a seek to the range's start would schedule
+   * it (D53).
    */
-  const startClock = (startUs: number): void => {
+  const schedulePass = (run: Playing, sound: PlayingSound, pass: number): void => {
+    const audio = shownAssets?.audio ?? null;
+    if (audioContext === null || audio === null || sound.when === null) return;
+    const { bounds } = run;
+    const runStart = Number(sampleAt(BigInt(run.startUs)));
+    const rangeStart = Number(sampleAt(BigInt(bounds.startUs)));
+    const rangeEnd = bounds.ranged ? Number(sampleAt(BigInt(bounds.endUs))) : undefined;
+    const fromSample = pass === 0 ? runStart : rangeStart;
+    const before =
+      pass === 0 ? 0 : (rangeEnd ?? 0) - runStart + (pass - 1) * ((rangeEnd ?? 0) - rangeStart);
+    const when = sound.when + before / AUDIO_SAMPLE_RATE;
+    sound.passes.set(
+      pass,
+      scheduleSounds(audioContext, audio.layout, audio.buffers, fromSample, when, rangeEnd),
+    );
+  };
+
+  /**
+   * Starts the preview clock at `startUs` inside `bounds`, in place of a
+   * running one. With sound to play, the clock is the audio context's (D53):
+   * the plan is scheduled from the sample of `startUs` a little ahead of the
+   * context's time, and the picture follows what is heard; a loop schedules
+   * the pass after the one heard (D61.2). A context that is not running is
+   * resumed first, and the status is `waiting` until it is (D61.3); one that
+   * cannot be resumed leaves the picture to the scheduler, without sound.
+   */
+  const startClock = (startUs: number, bounds: Bounds): void => {
     stopClock();
-    const run: Playing = { startNow: scheduler.now(), startUs, handle: 0, sound: null };
+    const run: Playing = { startNow: scheduler.now(), startUs, bounds, handle: 0, sound: null };
     playing = run;
     const audio = shownAssets?.audio ?? null;
     if (audioContext !== null && audio !== null && audio.layout.sounds.length > 0) {
       const context = audioContext;
-      const sound: PlayingSound = { when: null, sounds: null };
+      const sound: PlayingSound = { when: null, passes: new Map() };
       run.sound = sound;
       const begin = (): void => {
         if (playing !== run) return;
-        const when = context.currentTime + SOUND_LEAD_S;
-        const fromSample = Number(sampleAt(BigInt(startUs)));
-        sound.sounds = scheduleSounds(context, audio.layout, audio.buffers, fromSample, when);
-        sound.when = when;
+        sound.when = context.currentTime + SOUND_LEAD_S;
+        schedulePass(run, sound, 0);
+        if (bounds.loop) schedulePass(run, sound, 1);
       };
       const resumable = context as SoundContext & {
         readonly state?: string;
@@ -925,58 +1232,131 @@ export async function createPlayer(
       };
       if (resumable.state === 'running' || typeof resumable.resume !== 'function') begin();
       else {
-        resumable.resume().then(begin, () => {
-          // The browser keeps the context stopped: the picture plays on without sound.
-          if (playing !== run) return;
-          run.sound = null;
-          run.startNow = scheduler.now();
-        });
+        resumable.resume().then(
+          () => {
+            begin();
+            if (playing === run) resettle();
+          },
+          () => {
+            // The browser keeps the context stopped: the picture plays on without sound.
+            if (playing !== run) return;
+            run.sound = null;
+            run.startNow = scheduler.now();
+            resettle();
+          },
+        );
       }
     }
     run.handle = scheduler.requestFrame(tick);
   };
 
-  /** The microseconds played since the clock started: heard ones, with sound (D53). */
-  const elapsedOf = (run: Playing): number => {
-    if (run.sound === null) return Math.round((scheduler.now() - run.startNow) * 1_000);
+  /**
+   * Where the run is (D61.2): its pass and the time in it, or `null` once a
+   * run without a loop is past its end. Without sound the scheduler's
+   * milliseconds count; with sound, the samples heard, so that the passes of
+   * the picture are those of the sound.
+   */
+  const positionOf = (run: Playing): { pass: number; timeUs: number } | null => {
+    const { bounds, startUs } = run;
+    if (run.sound === null) {
+      const elapsedUs = Math.max(0, Math.round((scheduler.now() - run.startNow) * 1_000));
+      const at = passAt(
+        elapsedUs,
+        bounds.endUs - startUs,
+        bounds.endUs - bounds.startUs,
+        bounds.loop,
+      );
+      if (at === null) return null;
+      return { pass: at.pass, timeUs: (at.pass === 0 ? startUs : bounds.startUs) + at.offset };
+    }
     const { when } = run.sound;
-    if (when === null || audioContext === null) return 0;
+    if (when === null || audioContext === null) return { pass: 0, timeUs: startUs };
     const latency = (audioContext as { readonly outputLatency?: unknown }).outputLatency;
     const heard = audioContext.currentTime - (typeof latency === 'number' ? latency : 0);
-    return Math.round((heard - when) * 1_000_000);
+    const elapsed = Math.max(0, (heard - when) * AUDIO_SAMPLE_RATE);
+    const runStart = Number(sampleAt(BigInt(startUs)));
+    const rangeStart = Number(sampleAt(BigInt(bounds.startUs)));
+    const rangeEnd = Number(sampleAt(BigInt(bounds.endUs)));
+    const at = passAt(elapsed, rangeEnd - runStart, rangeEnd - rangeStart, bounds.loop);
+    if (at === null) return null;
+    const offsetUs = Math.round((at.offset * 1_000_000) / AUDIO_SAMPLE_RATE);
+    return { pass: at.pass, timeUs: (at.pass === 0 ? startUs : bounds.startUs) + offsetUs };
+  };
+
+  /**
+   * The end of a play (D61.1): the clock stops, the sound of the last frame
+   * plays to its end, the last frame is shown, and then the status is `ended`.
+   */
+  const finish = (run: Playing, target: number): void => {
+    const passes = [...(run.sound?.passes.values() ?? [])];
+    run.sound = null;
+    stopClock();
+    lingering = {
+      stop() {
+        for (const pass of passes) pass.stop();
+      },
+    };
+    ended = true;
+    if (!seeking) {
+      if (target === timeUs) resettle();
+      else startSeek(target, null, true);
+      return;
+    }
+    // The last frame follows the frame in flight, in place of a frame that waits.
+    if (seekingTo !== target) {
+      queued?.reject(new PlayerError('superseded', 'Playback reached its last frame.'));
+      queued = { timeUs: target, resolve: clockFrame, reject: clockFrame };
+    }
   };
 
   const tick = (): void => {
     if (playing === null || composition === null) return;
-    const { fps, durationUs } = composition;
-    const last = frameCount(durationUs, fps) - 1;
-    const elapsedUs = Math.max(0, elapsedOf(playing));
-    const index = Math.min(timeUsToFrame(playing.startUs + elapsedUs, fps), last);
-    const target = frameToTimeUs(index, fps);
-    if (!seeking && target !== timeUs) {
-      // Skipped while a seek is in flight, so requests never pile up (D25.6).
-      startSeek(target, null);
-    }
-    if (index === last) {
-      // The sound of the last frame plays to its end; the next start stops it.
-      const sounds = playing.sound?.sounds ?? null;
-      playing.sound = null;
-      stopClock();
-      lingering = sounds;
+    const run = playing;
+    const { fps } = composition;
+    const { bounds } = run;
+    const at = positionOf(run);
+    const shownAt = at === null ? bounds.lastUs : Math.min(at.timeUs, bounds.lastUs);
+    const target = frameToTimeUs(timeUsToFrame(shownAt, fps), fps);
+    if (at === null || (!bounds.loop && target === bounds.lastUs)) {
+      finish(run, target);
       return;
     }
-    playing.handle = scheduler.requestFrame(tick);
+    // The pass after the one heard is always scheduled; passes before the last one are over.
+    const { sound } = run;
+    if (sound !== null && bounds.loop && sound.when !== null) {
+      if (!sound.passes.has(at.pass + 1)) schedulePass(run, sound, at.pass + 1);
+      for (const [pass, scheduled] of sound.passes) {
+        if (pass < at.pass - 1) {
+          scheduled.stop();
+          sound.passes.delete(pass);
+        }
+      }
+    }
+    if (target !== timeUs && target !== seekingTo) {
+      if (!seeking) startSeek(target, null, true);
+      else if (!late) {
+        // The frame before is not ready yet: playback is held, not late (D61.3).
+        late = true;
+        if (status === 'playing') {
+          status = 'waiting';
+          notify();
+        }
+      }
+    }
+    run.handle = scheduler.requestFrame(tick);
   };
 
   const player: Player = {
     async load(document, resolveAsset) {
       const { text, loaded } = parsed(document);
       stopClock();
-      waiting?.reject(new PlayerError('superseded', 'A new document was loaded.'));
-      waiting = null;
+      ended = false;
+      queued?.reject(new PlayerError('superseded', 'A new document was loaded.'));
+      queued = null;
       status = 'loading';
       composition = null;
       timeUs = null;
+      playRange = null;
       notify();
       // A seek that is still in flight finishes first; the page takes one request at a time.
       await inFlight;
@@ -988,15 +1368,18 @@ export async function createPlayer(
         assets = await prepareAssets(view, loaded, resolveAsset, knownAssets(false), audioContext);
         frame.style.setProperty('width', `${String(loaded.width)}px`);
         frame.style.setProperty('height', `${String(loaded.height)}px`);
-        await request({
-          type: LOAD,
-          version: PROTOCOL_VERSION,
-          requestId: nextRequestId++,
-          document: text,
-          assets: assets.messages,
-          ackTimeoutMs,
-          customHtml: { mode: customHtml.mode },
-        });
+        await request(
+          {
+            type: LOAD,
+            version: PROTOCOL_VERSION,
+            requestId: nextRequestId++,
+            document: text,
+            assets: assets.messages,
+            ackTimeoutMs,
+            customHtml: { mode: customHtml.mode },
+          },
+          loaded,
+        );
       } catch (reason) {
         throw fail(reason);
       }
@@ -1013,16 +1396,38 @@ export async function createPlayer(
     seek,
     play() {
       if (composition === null || playing !== null) return;
-      const { fps, durationUs } = composition;
-      const last = frameToTimeUs(frameCount(durationUs, fps) - 1, fps);
-      const startUs = timeUs === null || timeUs >= last ? 0 : timeUs;
-      startClock(startUs);
-      if (!seeking && error === null) status = 'playing';
+      const bounds = boundsOf(composition, playRange);
+      // From the frame shown while the range holds it before its last frame, else from its start.
+      const startUs =
+        timeUs !== null && timeUs >= bounds.startUs && timeUs < bounds.lastUs
+          ? timeUs
+          : bounds.startUs;
+      ended = false;
+      startClock(startUs, bounds);
+      if (!seeking && error === null) status = settledStatus();
       notify();
     },
     pause() {
       stopClock();
-      if (!seeking && error === null && status === 'playing') status = 'ready';
+      if (error === null && (status === 'playing' || status === 'waiting')) {
+        status = seeking ? 'seeking' : 'ready';
+      }
+      notify();
+    },
+    setPlayRange(range) {
+      if (destroyed) throw new PlayerError('destroyed', 'The Player was destroyed.');
+      if (composition === null) throw new PlayerError('not-loaded', 'No document is loaded.');
+      const checked = range === null ? null : checkedRange(range, composition);
+      playRange = checked;
+      if (playing !== null) {
+        const bounds = boundsOf(composition, playRange);
+        const from =
+          timeUs !== null && timeUs >= bounds.startUs && timeUs < bounds.endUs
+            ? timeUs
+            : bounds.startUs;
+        startClock(from, bounds);
+        if (!seeking && error === null) status = settledStatus();
+      }
       notify();
     },
     getState: snapshot,
@@ -1057,7 +1462,7 @@ export async function createPlayer(
         preparedVideos.set(contentHash, video);
         return video.facts;
       } catch (reason) {
-        throw typed(reason);
+        throw withAsset(typed(reason), { id, contentHash });
       }
     },
     async prepareAudio(asset, resolveAsset) {
@@ -1112,7 +1517,7 @@ export async function createPlayer(
         preparedSounds.set(contentHash, buffer);
         return soundFacts(buffer);
       } catch (reason) {
-        throw typed(reason);
+        throw withAsset(typed(reason), { id, contentHash });
       }
     },
     subscribe(listener) {
@@ -1133,8 +1538,8 @@ export async function createPlayer(
       stopClock();
       view.removeEventListener('message', onMessage);
       const gone = new PlayerError('destroyed', 'The Player was destroyed.');
-      waiting?.reject(gone);
-      waiting = null;
+      queued?.reject(gone);
+      queued = null;
       pending?.settle(gone);
       pending = null;
       readyPage?.(gone);

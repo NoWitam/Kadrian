@@ -44,7 +44,7 @@
     "width": 640,
     "height": 360
   },
-  "playerDistTreeSha256": "sha256:f715c4c599eb864294e79ce0eae8ed4b3c5893e9161009bf1257a383cb5a27d1",
+  "playerDistTreeSha256": "sha256:53ee659bae6cbabcbe044eaf20469308d706c3cfff72e136374fbdfea2159e79",
   "playerDistManifest": [
     {
       "path": "packages/player/dist/agent.js",
@@ -53,8 +53,8 @@
     },
     {
       "path": "packages/player/dist/audio.js",
-      "size": 6761,
-      "sha256": "sha256:11c25313db99d6196130516e93710fa80f6763a280b9e85ef115796db43d9b45"
+      "size": 7495,
+      "sha256": "sha256:43dc5cb793af6f665e3755337550acbf68b3a6bea62c8ce92405917434483ea9"
     },
     {
       "path": "packages/player/dist/avc.js",
@@ -63,8 +63,8 @@
     },
     {
       "path": "packages/player/dist/errors.js",
-      "size": 1063,
-      "sha256": "sha256:73b22a8c111b6bb8e5c1bbedb540e7773f711bacbd6740a0a28a827a14664723"
+      "size": 1580,
+      "sha256": "sha256:36a8cc0397433b50ca569a2612505c6e5d0c3a3af70ccde15c40437ead6e67b7"
     },
     {
       "path": "packages/player/dist/index.js",
@@ -78,8 +78,8 @@
     },
     {
       "path": "packages/player/dist/player.js",
-      "size": 35045,
-      "sha256": "sha256:a949ba8b22345af493eeca80e9cf5cc73328480e9ba5a18ecbf7c155550d9262"
+      "size": 47840,
+      "sha256": "sha256:71a93f2dc9abafdb5550ba7b58597ba1652776d9ba367e4a3e34c15c3e9587e7"
     },
     {
       "path": "packages/player/dist/protocol.js",
@@ -93,8 +93,8 @@
     },
     {
       "path": "packages/player/dist/video.js",
-      "size": 16311,
-      "sha256": "sha256:294fea8d1bc911061874413f0622fcbdc55d60c9563f7a47acf32b46a20292ba"
+      "size": 16874,
+      "sha256": "sha256:d2528d94fcbdb4cb6493accf7a54e768bb2fda6dc96ca5995c94558a34de2eff"
     },
     {
       "path": "packages/player/dist/yuv.js",

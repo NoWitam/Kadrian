@@ -56,6 +56,7 @@ function recordingPlayer(
     timeUs: null,
     runtimeHash: 'sha256:test',
     error: null,
+    playRange: null,
   });
   let destroyed = false;
   const set = (next: Partial<PlayerState>): void => {
@@ -91,6 +92,9 @@ function recordingPlayer(
     },
     pause: () => {
       set({ status: 'ready' });
+    },
+    setPlayRange: (playRange) => {
+      set({ playRange });
     },
     getState: () => state,
     prepareVideo(asset) {
@@ -325,6 +329,17 @@ describe('the events (D44)', () => {
       'playback ready 2500000',
     ]);
     expect(events.every((event) => Object.isFrozen(event))).toBe(true);
+  });
+
+  it('passes the play range through and reports it with playback (D61.2)', async () => {
+    const { editor, events } = await session();
+    const range = { startUs: 1_000_000, endUs: 2_000_000, loop: true };
+    editor.setPlayRange(range);
+    expect(editor.getPlaybackState().playRange).toEqual(range);
+    editor.setPlayRange(null);
+    expect(
+      events.map((event) => (event.type === 'playback' ? event.state.playRange : event.type)),
+    ).toEqual([range, null]);
   });
 
   it('gives what a listener threw to the handler, and tells the other listeners all the same', async () => {

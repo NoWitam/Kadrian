@@ -272,15 +272,19 @@ function wavFloats(bytes: Uint8Array): { channels: number; rate: number; samples
  * Run in the conformance host (D33.2): the Player's graph for a document,
  * scheduled from output sample `fromSample` at time 0 of an offline context at
  * 48 kHz, through the built packages the host serves; the rendered samples
- * interleaved, and the decoded length of each source (D53).
+ * interleaved, and the decoded length of each source (D53). With `toSample`,
+ * the graph of a loop of the play range `[fromSample, toSample)` (D61.2):
+ * `passes` passes, each scheduled right after the one before, as the Player
+ * schedules them.
  */
 const PLAYED = `(async () => {
-  const { text, sources, fromSample } = INPUT;
+  const { text, sources, fromSample, toSample, passes } = INPUT;
   const player = await import('@kadrion/player');
   const runtime = await import('@kadrion/runtime');
   const schema = await import('@kadrion/schema');
   const layout = runtime.audioLayout(runtime.audioPlan(schema.validateComposition(JSON.parse(text)).composition));
-  const context = new OfflineAudioContext(2, layout.totalSamples - fromSample, 48000);
+  const pass = (toSample ?? layout.totalSamples) - fromSample;
+  const context = new OfflineAudioContext(2, pass * (passes ?? 1), 48000);
   const buffers = new Map();
   const lengths = {};
   for (const [id, base64] of sources) {
@@ -289,7 +293,12 @@ const PLAYED = `(async () => {
     buffers.set(id, decoded);
     lengths[id] = decoded.length;
   }
-  player.scheduleSounds(context, layout, buffers, fromSample, 0);
+  if (toSample === undefined) player.scheduleSounds(context, layout, buffers, fromSample, 0);
+  else {
+    for (let k = 0; k < passes; k += 1) {
+      player.scheduleSounds(context, layout, buffers, fromSample, (k * pass) / 48000, toSample);
+    }
+  }
   const rendered = await context.startRendering();
   const left = rendered.getChannelData(0);
   const right = rendered.getChannelData(1);
@@ -414,9 +423,10 @@ describe.skipIf(!available)('the audio mix of the Producer (D52.5)', () => {
     let chromium: LaunchedChromium;
     let host: ConformanceHost;
 
-    /** `PLAYED` for the document of this file, from output sample `from`. */
+    /** `PLAYED` for the document of this file, from output sample `from`, or a loop to `to`. */
     const played = async (
       from: number,
+      loop?: { readonly to: number; readonly passes: number },
     ): Promise<{ samples: number[]; lengths: Record<string, number> }> => {
       const input = JSON.stringify({
         text: JSON.stringify(document(VIDEO_SOUND_FIXTURE.contentHash)),
@@ -426,6 +436,8 @@ describe.skipIf(!available)('the audio mix of the Producer (D52.5)', () => {
           ['asset-video', Buffer.from(video).toString('base64')],
         ],
         fromSample: from,
+        toSample: loop?.to,
+        passes: loop?.passes,
       });
       // A script of its own, so that no transform of this file touches its imports.
       return host.page.evaluate(PLAYED.replace('INPUT', input));
@@ -470,6 +482,26 @@ describe.skipIf(!available)('the audio mix of the Producer (D52.5)', () => {
         expect(lengths['asset-video']).toBeGreaterThanOrEqual(14_400 + 48_000);
       }
       writeReport('audio-player-report.json', report);
+    }, 120_000);
+
+    it("loops a play range as the Producer's mix of the range, pass after pass (D61.2)", async () => {
+      // 1.0 s to 1.52 s at 25 fps: across the voice's start, the video's end, and the music's
+      // fade-out start; three passes, each heard right after the one before.
+      const from = 48_000;
+      const to = 72_960;
+      const passes = 3;
+      const { samples } = await played(from, { to, passes });
+      const length = to - from;
+      expect(samples).toHaveLength(length * passes * 2);
+      let worst = { at: -1, difference: 0 };
+      for (let index = 0; index < samples.length; index += 1) {
+        const inPass = index % (length * 2);
+        const difference = Math.abs(
+          (samples[index] ?? Number.NaN) - (mixed.samples[from * 2 + inPass] ?? Number.NaN),
+        );
+        if (!(difference <= worst.difference)) worst = { at: index, difference };
+      }
+      expect(worst.difference).toBeLessThan(1e-4);
     }, 120_000);
   });
 

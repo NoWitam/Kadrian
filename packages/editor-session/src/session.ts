@@ -19,6 +19,7 @@ import {
   type Player,
   type PlayerAssetRequest,
   type PlayerAssetResolver,
+  type PlayerPlayRange,
   type PlayerState,
 } from '@kadrion/player';
 import {
@@ -42,7 +43,9 @@ export interface SessionHistory {
  *
  * - `document`: the bus committed a change; delivered synchronously, after the commit.
  * - `history`: what undo and redo reach changed; right after its `document` event.
- * - `playback`: the Player's state changed (status, time, error).
+ * - `playback`: the Player's state changed (status, time, error, play range); its
+ *   status says when playback is `waiting` for a frame or its sound and when a
+ *   play has `ended`, and an error of an asset names it (D61).
  * - `error`: the preview could not show a document; the bus holds it all the same.
  */
 export type SessionEvent =
@@ -81,6 +84,8 @@ export interface EditorSession {
   seek(timeUs: number): Promise<void>;
   play(): void;
   pause(): void;
+  /** Bounds playback to `range`, or to the whole document with `null`, as the Player does (D61.2). */
+  setPlayRange(range: PlayerPlayRange | null): void;
   getPlaybackState(): PlayerState;
   getHistory(): SessionHistory;
   /**
@@ -307,6 +312,9 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     },
     pause: () => {
       player.pause();
+    },
+    setPlayRange: (range) => {
+      player.setPlayRange(range);
     },
     getPlaybackState: () => player.getState(),
     getHistory: () => history,

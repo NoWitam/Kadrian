@@ -11,7 +11,7 @@
  * and its clock drives the picture (D53).
  */
 export { PlayerError } from './errors.js';
-export type { PlayerErrorCode } from './errors.js';
+export type { PlayerErrorAsset, PlayerErrorCode } from './errors.js';
 export { createPlayer } from './player.js';
 export type {
   Player,
@@ -24,6 +24,7 @@ export type {
   PlayerListener,
   PlayerListenerErrorHandler,
   PlayerOptions,
+  PlayerPlayRange,
   PlayerRuntime,
   PlayerScheduler,
   PlayerState,

@@ -9,6 +9,7 @@ export interface EditorSession {
     seek(timeUs: number): Promise<void>;
     play(): void;
     pause(): void;
+    setPlayRange(range: PlayerPlayRange | null): void;
     getPlaybackState(): PlayerState;
     getHistory(): SessionHistory;
     settled(): Promise<void>;
