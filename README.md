@@ -28,7 +28,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D61; all accepted except D10, superseded by
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D62; all accepted except D10, superseded by
   D37)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence

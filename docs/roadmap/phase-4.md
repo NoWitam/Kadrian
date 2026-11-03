@@ -182,6 +182,7 @@ loop })`, validated on the frame grid (D13); playback stays inside the range,
 
 ### PR-39a — Image facts
 
+- Status: done (PR #42, merged 2026-11-03), with its ADR D62 (accepted by the owner on 2026-11-03). `readImageSize` of `@kadrion/renderer-dom` reads the size of a PNG, JPEG, or WebP image from its header, with the EXIF orientation of a JPEG or a PNG applied as the pinned Chromium applies it and the EXIF of a WebP ignored; verification refuses a file that is not whole (`image-invalid`); `Player.prepareImage` and `session.readMediaFacts` return the size, `describe_document` reports it, and the bus checks nothing with it; the Producer compares each image's header with the pinned Chromium's decode (`image-size-mismatch`). The Player's dist tree changed and parity was measured again (0/0); the runtime build stayed byte for byte.
 - **Goal:** the host knows an image's size before it places it, as it knows a
   video's size since D51.3, so it can offer "fit to frame" and keep an aspect
   ratio without decoding the image itself.
