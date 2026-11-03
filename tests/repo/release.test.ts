@@ -17,7 +17,7 @@ import {
   FFPROBE_SHA256,
   PINNED_IMAGE,
 } from '@kadrion/producer';
-import { SCHEMA_VERSION } from '@kadrion/schema';
+import { SCHEMA_VERSION, validateComposition } from '@kadrion/schema';
 import { SUPPORTED_SCHEMA_VERSIONS } from '@kadrion/schema/migrate';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -32,7 +32,7 @@ import {
   tarballProblems,
   type ReleaseManifest,
 } from '../release/release.js';
-import { lockfileProblems } from '../release/smoke.js';
+import { lockfileProblems, SMOKE_COMPOSITION } from '../release/smoke.js';
 
 import { packageDirs, readJson, readText, repoPath } from './repo.js';
 
@@ -245,5 +245,12 @@ describe('the release workflow (D45)', () => {
     for (const line of workflow.split('\n').filter((entry) => entry.includes('uses:'))) {
       expect(line).toMatch(/uses: [\w/-]+@[0-9a-f]{40} # v\d/);
     }
+  });
+});
+
+describe('release smoke composition', () => {
+  it('is a valid composition of the current schema, as the clean-project smoke test asserts', () => {
+    expect(SMOKE_COMPOSITION.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(validateComposition(SMOKE_COMPOSITION).ok).toBe(true);
   });
 });
