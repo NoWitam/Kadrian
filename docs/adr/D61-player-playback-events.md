@@ -1,6 +1,7 @@
 # D61 — The Player's playback events: ended, play range and loop, waiting, and the asset of an error
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-03, after PR-38 was merged
+  (PR #40)
 - Date: 2026-11-03
 - Supersedes: —
 - Amends: D25 (25.6 and 25.7: the statuses `waiting` and `ended`, the play

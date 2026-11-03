@@ -142,6 +142,7 @@ items that reopen it (first-run.md). PR-36 is this document.
 
 ### PR-38 — The Player's playback events
 
+- Status: done (PR #40, merged 2026-11-03), with its ADR D61 (accepted by the owner on 2026-11-03). The Player reports `ended` once per play and `waiting` while the frame due or the sound is not ready; `setPlayRange({ startUs, endUs, loop })` bounds and loops playback, each pass of the sound scheduled right after the one before; `PlayerError.asset` names the failed asset. The play range is Player state, passed through by the session; `waiting` is a status; an update keeps, cuts, or clears the range. The loop test in `tests/pinned/audio.pinned.test.ts` reopened Q14.
 - **Goal:** a host's transport controls and playhead follow the Player without
   polling and without reading a clock of their own.
 - **Scope (D61):** rows added to the table of events of D44.4, reported through
