@@ -10,7 +10,9 @@
  * waits for their acknowledgements with a timer lent by the host (D23);
  * `awaitMediaReady` waits until the frame's images are decoded and its fonts
  * have settled; `resolveAssets` asks the host for the bytes of every asset and
- * verifies their hashes before anything reaches the page (D27.3). None of them
+ * verifies their hashes before anything reaches the page (D27.3);
+ * `readImageSize` reads the size of a PNG, JPEG, or WebP image from its header
+ * (D62). None of them
  * reads a clock or keeps anything between calls: the host supplies the state,
  * the timer, the digest, and the font constructor, and the DOM is the only
  * memory. The
@@ -34,6 +36,8 @@ export {
   RENDER_ROOT_ID,
   renderPageDocument,
 } from './render-page.js';
+export { IMAGE_SIZE_MEDIA_TYPES, imageSizeKnown, readImageSize } from './image-size.js';
+export type { ImageSize } from './image-size.js';
 export { MEDIA_TYPE, mediaTypeFits } from './media-type.js';
 export { resolveAssets, resolveOneAsset } from './resolve.js';
 export type {

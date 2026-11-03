@@ -98,10 +98,15 @@ export interface EditorSession {
    * for a video, the Player resolves and verifies it, reads its track, and the
    * bus knows its source duration from then on, so commands that sample it are
    * checked, and the length of its sound, `null` when it has none (D53); for
-   * a sound, the Player decodes it and the bus knows its length (D53). Call it
+   * a sound, the Player decodes it and the bus knows its length (D53); for an
+   * image, the Player resolves and verifies it and reads its size from its
+   * header, without a decode, as the Producer reads it (D62):
+   * `image-unsupported` for a media type other than PNG, JPEG, or WebP, and
+   * `image-invalid` for bytes that are not a whole file of theirs. Call it
    * before dispatching a command that makes a node show a video, or a clip or
-   * node hear a source, that the document did not use yet. Images and fonts
-   * have no facts and resolve with `null`.
+   * node hear a source, that the document did not use yet, and before placing
+   * an image whose size the host needs. Fonts have no facts and resolve with
+   * `null`.
    */
   readMediaFacts(asset: PlayerAssetRequest): Promise<MediaFacts | null>;
   /** Calls `listener` with every event until the returned function is called. */
@@ -185,7 +190,8 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     const known = facts.get(asset.contentHash);
     if (known?.type === 'video' && (!sound || known.audioDurationUs !== undefined)) return known;
     const durationUs =
-      known?.durationUs ?? (await player.prepareVideo(asset, resolveAsset)).durationUs;
+      (known === undefined || known.type === 'image' ? undefined : known.durationUs) ??
+      (await player.prepareVideo(asset, resolveAsset)).durationUs;
     const audioDurationUs = sound ? await soundOf(asset) : undefined;
     const read: MediaFacts = Object.freeze(
       audioDurationUs === undefined
@@ -200,6 +206,15 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     if (known?.type === 'audio') return known;
     const { durationUs } = await player.prepareAudio(asset, resolveAsset);
     const read: MediaFacts = Object.freeze({ type: 'audio', durationUs });
+    facts.set(asset.contentHash, read);
+    return read;
+  };
+
+  const readImage = async (asset: PlayerAssetRequest): Promise<MediaFacts> => {
+    const known = facts.get(asset.contentHash);
+    if (known?.type === 'image') return known;
+    const { width, height } = await player.prepareImage(asset, resolveAsset);
+    const read: MediaFacts = Object.freeze({ type: 'image', width, height });
     facts.set(asset.contentHash, read);
     return read;
   };
@@ -324,7 +339,8 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
       const type = (asset as Partial<PlayerAssetRequest> | null)?.type;
       if (type === 'video') return readVideo(asset, true);
       if (type === 'audio') return readAudio(asset);
-      if (type === 'image' || type === 'font') return null;
+      if (type === 'image') return readImage(asset);
+      if (type === 'font') return null;
       throw new PlayerError(
         'invalid-options',
         'readMediaFacts needs an asset { id, type, contentHash }.',

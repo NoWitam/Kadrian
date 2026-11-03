@@ -2,13 +2,14 @@
  * The Producer's page agent (D28.3): its script inside the render page, next to
  * the runtime build. Like the Player's, it is serialised with `String(fn)`, so it
  * must stay self-contained. Its transport is CDP evaluation, not `postMessage`:
- * it exposes `kadrionProducer.load` and `kadrionProducer.frame`, which the
- * Producer calls through Playwright, and nothing else. It holds no pixel logic:
+ * it exposes `kadrionProducer.load`, `kadrionProducer.frame`, and
+ * `kadrionProducer.imageSize` (D62.3), which the Producer calls through
+ * Playwright, and nothing else. It holds no pixel logic:
  * it decodes the base64 of the asset bytes and of the video frames that CDP
  * carries, and calls
  * `KadrionRuntime.load`, with the policy `trusted` stated explicitly (D36, decision 5),
  * and `KadrionRuntime.frame` (D25.3, D27.1). The
- * `FontFace` constructor and the timer are captured when it starts, so a page
+ * `FontFace` and `Image` constructors and the timer are captured when it starts, so a page
  * whose clocks are replaced later still gets them (§6.1).
  */
 export function producerAgent(): void {
@@ -44,6 +45,7 @@ export function producerAgent(): void {
   const startTimeout = window.setTimeout.bind(window);
   const stopTimeout = window.clearTimeout.bind(window);
   const Face = (window as unknown as { FontFace?: typeof FontFace }).FontFace;
+  const Picture = (window as unknown as { Image?: typeof Image }).Image;
   const fontHost =
     Face === undefined
       ? {}
@@ -141,6 +143,19 @@ export function producerAgent(): void {
     },
     stats() {
       return { loads: state.loads, frames: state.frames };
+    },
+    // The natural size the browser decodes an image to, or null when it cannot (D62.3).
+    imageSize(
+      mediaType: string,
+      base64: string,
+    ): Promise<{ width: number; height: number } | null> {
+      if (Picture === undefined) return Promise.resolve(null);
+      const image = new Picture();
+      image.src = `data:${mediaType};base64,${base64}`;
+      return image.decode().then(
+        () => ({ width: image.naturalWidth, height: image.naturalHeight }),
+        () => null,
+      );
     },
   };
 

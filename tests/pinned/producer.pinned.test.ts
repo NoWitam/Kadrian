@@ -387,7 +387,29 @@ describe('typed errors before the first frame (D28.6)', () => {
   const silent = variant((draft) => {
     customHtmlNode(draft).html = '<p>no answer</p>';
   });
+  // A whole PNG file whose header states 1 x 1 (D62.1) and whose image data is not zlib.
+  const pngChunk = (type: string, data: readonly number[]): number[] => [
+    0,
+    0,
+    0,
+    data.length,
+    ...Array.from(type, (char) => char.charCodeAt(0)),
+    ...data,
+    0,
+    0,
+    0,
+    0,
+  ];
   const corruptImage = variant(() => undefined, {
+    'asset-image': Uint8Array.from([
+      ...[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+      ...pngChunk('IHDR', [0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]),
+      ...pngChunk('IDAT', [1, 2, 3, 4, 5, 6, 7, 8]),
+      ...pngChunk('IEND', []),
+    ]),
+  });
+  // A PNG file cut inside its header: refused when it is resolved (D62.3).
+  const cutImage = variant(() => undefined, {
     'asset-image': Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13),
   });
   const corruptFont = variant(() => undefined, { 'asset-font': Uint8Array.of(0, 1, 0, 0, 0, 0) });
@@ -395,6 +417,7 @@ describe('typed errors before the first frame (D28.6)', () => {
   it.each([
     ['a Custom HTML element that never answers', silent, 'custom-html-timeout'],
     ['an image that does not decode', corruptImage, 'asset-decode-failed'],
+    ['an image cut short', cutImage, 'image-invalid'],
     ['a font that does not load', corruptFont, 'font-load-failed'],
     [
       'a missing asset',

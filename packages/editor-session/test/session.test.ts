@@ -13,6 +13,7 @@ import {
   type PlayerListener,
   type PlayerState,
   type PlayerAudioFacts,
+  type PlayerImageFacts,
   type PlayerVideoFacts,
 } from '@kadrion/player';
 import {
@@ -47,6 +48,7 @@ function recordingPlayer(
   auto = true,
   videoFacts: Readonly<Record<string, PlayerVideoFacts | PlayerError>> = {},
   audioFacts: Readonly<Record<string, PlayerAudioFacts | PlayerError>> = {},
+  imageFacts: Readonly<Record<string, PlayerImageFacts | PlayerError>> = {},
 ) {
   const calls: Call[] = [];
   const prepared: PlayerAssetRequest[] = [];
@@ -111,6 +113,15 @@ function recordingPlayer(
       if (facts instanceof PlayerError) return Promise.reject(facts);
       if (facts === undefined) {
         return Promise.reject(new PlayerError('audio-unsupported', 'No Web Audio here.'));
+      }
+      return Promise.resolve(facts);
+    },
+    prepareImage(asset) {
+      prepared.push(asset);
+      const facts = imageFacts[asset.contentHash];
+      if (facts instanceof PlayerError) return Promise.reject(facts);
+      if (facts === undefined) {
+        return Promise.reject(new PlayerError('asset-missing', `No bytes for ${asset.id}.`));
       }
       return Promise.resolve(facts);
     },
@@ -476,10 +487,58 @@ describe('media facts from verified bytes (D49.6, D51.5)', () => {
     expect(editor.bus.mediaFactsOf(CLIP)).toEqual({ type: 'video', durationUs: 500_000 });
   });
 
-  it('has no facts for other assets yet, and refuses what is not an asset', async () => {
+  it('reads the size of an image through the Player, once, and the bus reports it (D62)', async () => {
+    const recording = recordingPlayer(
+      true,
+      { [VIDEO_FIXTURE.contentHash]: fixtureFacts },
+      {},
+      { [CLIP]: { width: 640, height: 480 } },
+    );
+    const editor = await createEditorSession({
+      document: videoComposition,
+      player: recording.player,
+      resolveAsset,
+    });
+    const image = { id: 'asset-photo', type: 'image', contentHash: CLIP } as const;
+    await expect(editor.readMediaFacts(image)).resolves.toEqual({
+      type: 'image',
+      width: 640,
+      height: 480,
+    });
+    await editor.readMediaFacts(image);
+    expect(recording.prepared.filter(({ contentHash }) => contentHash === CLIP)).toEqual([image]);
+    expect(editor.bus.mediaFactsOf(CLIP)).toEqual({ type: 'image', width: 640, height: 480 });
+    // The bus checks nothing with it: an image has no source range.
+    editor.bus.dispatch({ type: 'AddAsset', asset: image, index: 0 });
+  });
+
+  it('rejects with the Player error of an image it cannot read (D62)', async () => {
+    const recording = recordingPlayer(
+      true,
+      { [VIDEO_FIXTURE.contentHash]: fixtureFacts },
+      {},
+      {
+        [CLIP]: new PlayerError('image-invalid', 'The bytes are not a PNG file.', [], {
+          id: 'asset-photo',
+          contentHash: CLIP,
+        }),
+      },
+    );
+    const editor = await createEditorSession({
+      document: videoComposition,
+      player: recording.player,
+      resolveAsset,
+    });
+    await expect(
+      editor.readMediaFacts({ id: 'asset-photo', type: 'image', contentHash: CLIP }),
+    ).rejects.toMatchObject({ code: 'image-invalid', asset: { id: 'asset-photo' } });
+    expect(editor.bus.mediaFactsOf(CLIP)).toBeNull();
+  });
+
+  it('has no facts for fonts, and refuses what is not an asset', async () => {
     const { editor } = await videoSession({ [VIDEO_FIXTURE.contentHash]: fixtureFacts });
     await expect(
-      editor.readMediaFacts({ id: 'asset-image', type: 'image', contentHash: CLIP }),
+      editor.readMediaFacts({ id: 'asset-font', type: 'font', contentHash: CLIP }),
     ).resolves.toBeNull();
     await expect(editor.readMediaFacts({} as PlayerAssetRequest)).rejects.toMatchObject({
       code: 'invalid-options',

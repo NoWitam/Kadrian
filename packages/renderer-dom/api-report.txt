@@ -35,6 +35,15 @@ export interface FontHost {
     readonly createFont?: (family: string, bytes: ArrayBuffer) => LoadableFont;
 }
 
+---- IMAGE_SIZE_MEDIA_TYPES
+export declare const IMAGE_SIZE_MEDIA_TYPES: readonly string[];
+
+---- ImageSize (type only)
+export interface ImageSize {
+    readonly width: number;
+    readonly height: number;
+}
+
 ---- LoadableFont (type only)
 export interface LoadableFont {
     load(): Promise<unknown>;
@@ -83,7 +92,7 @@ export declare class RenderError extends Error {
 }
 
 ---- RenderErrorCode (type only)
-export type RenderErrorCode = 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'not-mounted' | 'custom-html-timeout' | 'custom-html-navigated' | 'invalid-options' | 'invalid-request' | 'asset-decode-failed' | 'readiness-unsupported' | 'font-load-failed' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'unsafe-script' | 'video-frames-invalid' | 'state-mismatch' | 'invalid-document';
+export type RenderErrorCode = 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'not-mounted' | 'custom-html-timeout' | 'custom-html-navigated' | 'invalid-options' | 'invalid-request' | 'asset-decode-failed' | 'readiness-unsupported' | 'font-load-failed' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'image-unsupported' | 'image-invalid' | 'unsafe-script' | 'video-frames-invalid' | 'state-mismatch' | 'invalid-document';
 
 ---- ResolvedAsset (type only)
 export interface ResolvedAsset {
@@ -122,11 +131,17 @@ export declare function base64(bytes: Uint8Array): string;
 ---- fontFamily
 export declare function fontFamily(fontAssetId: string): string;
 
+---- imageSizeKnown
+export declare function imageSizeKnown(mediaType: string): boolean;
+
 ---- mediaTypeFits
 export declare function mediaTypeFits(type: Asset['type'], mediaType: string): boolean;
 
 ---- mountComposition
 export declare function mountComposition(root: Element, composition: ValidatedComposition, assetUrls: AssetUrls, options: MountOptions): void;
+
+---- readImageSize
+export declare function readImageSize(bytes: Uint8Array, mediaType: string): ImageSize;
 
 ---- renderPageDocument
 export declare function renderPageDocument(scripts: readonly string[]): string;

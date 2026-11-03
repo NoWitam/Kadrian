@@ -15,6 +15,7 @@ export interface Player {
     subscribe(listener: PlayerListener): () => void;
     prepareVideo(asset: PlayerAssetRequest, resolveAsset: PlayerAssetResolver): Promise<PlayerVideoFacts>;
     prepareAudio(asset: PlayerAssetRequest, resolveAsset: PlayerAssetResolver): Promise<PlayerAudioFacts>;
+    prepareImage(asset: PlayerAssetRequest, resolveAsset: PlayerAssetResolver): Promise<PlayerImageFacts>;
     destroy(): void;
 }
 
@@ -56,7 +57,13 @@ export interface PlayerErrorAsset {
 }
 
 ---- PlayerErrorCode (type only)
-export type PlayerErrorCode = 'runtime-hash-mismatch' | 'runtime-unsafe' | 'page-timeout' | 'invalid-document' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'asset-decode-failed' | 'readiness-unsupported' | 'font-load-failed' | 'invalid-options' | 'custom-html-timeout' | 'custom-html-navigated' | 'video-unsupported' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'audio-invalid' | 'audio-unsupported' | 'time-out-of-range' | 'invalid-play-range' | 'not-loaded' | 'superseded' | 'destroyed' | 'page-error';
+export type PlayerErrorCode = 'runtime-hash-mismatch' | 'runtime-unsafe' | 'page-timeout' | 'invalid-document' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'asset-decode-failed' | 'readiness-unsupported' | 'image-unsupported' | 'image-invalid' | 'font-load-failed' | 'invalid-options' | 'custom-html-timeout' | 'custom-html-navigated' | 'video-unsupported' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'audio-invalid' | 'audio-unsupported' | 'time-out-of-range' | 'invalid-play-range' | 'not-loaded' | 'superseded' | 'destroyed' | 'page-error';
+
+---- PlayerImageFacts (type only)
+export interface PlayerImageFacts {
+    readonly width: number;
+    readonly height: number;
+}
 
 ---- PlayerListener (type only)
 export type PlayerListener = (state: PlayerState) => void;

@@ -23,6 +23,10 @@ export type PlayerErrorCode =
   | 'asset-decode-failed'
   /** The page cannot wait for images or fonts (D25.3). */
   | 'readiness-unsupported'
+  /** An image of a media type whose size Kadrion does not read: not PNG, JPEG, or WebP (D62.1). */
+  | 'image-unsupported'
+  /** The bytes of an image are not a whole file of its media type (D62.1). */
+  | 'image-invalid'
   /** The bytes of a font asset are not a font the browser can load (D27.1). */
   | 'font-load-failed'
   /** The Custom HTML policy is not exactly one of its forms (D36). */
@@ -109,6 +113,8 @@ const PAGE_CODES: readonly PlayerErrorCode[] = [
   'asset-url-invalid',
   'asset-decode-failed',
   'readiness-unsupported',
+  'image-unsupported',
+  'image-invalid',
   'font-load-failed',
   'invalid-options',
   'custom-html-timeout',

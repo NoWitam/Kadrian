@@ -14,7 +14,8 @@ const sha256 = (bytes: Uint8Array): Promise<string> =>
   Promise.resolve(`sha256:${createHash('sha256').update(bytes).digest('hex')}`);
 
 const given: Readonly<Record<string, { bytes: Uint8Array; mediaType: string } | undefined>> = {
-  'asset-image': { bytes: Uint8Array.of(1, 2, 3), mediaType: 'image/png' },
+  // A media type whose header Kadrion does not read, so these bytes need not be an image (D62.1).
+  'asset-image': { bytes: Uint8Array.of(1, 2, 3), mediaType: 'image/gif' },
   'asset-audio': { bytes: Uint8Array.of(4, 5), mediaType: 'audio/wav' },
   'asset-font': { bytes: Uint8Array.of(6), mediaType: 'font/ttf' },
 };
@@ -43,7 +44,7 @@ describe('resolveAssets (D14, D27.3)', () => {
     );
     expect(asked.every((request) => Object.isFrozen(request))).toBe(true);
     expect(verified.map(({ id, mediaType, bytes }) => [id, mediaType, [...bytes]])).toEqual([
-      ['asset-image', 'image/png', [1, 2, 3]],
+      ['asset-image', 'image/gif', [1, 2, 3]],
       ['asset-audio', 'audio/wav', [4, 5]],
       ['asset-font', 'font/ttf', [6]],
     ]);
@@ -58,7 +59,7 @@ describe('resolveAssets (D14, D27.3)', () => {
       setTimeout(() => {
         bytes[0] = 9;
       }, 0);
-      return { bytes, mediaType: 'image/png' };
+      return { bytes, mediaType: 'image/gif' };
     };
     const verified = await resolveAssets(pinned, resolver, sha256);
     await new Promise((resolve) => setTimeout(resolve, 5));
@@ -104,11 +105,29 @@ describe('resolveAssets (D14, D27.3)', () => {
       (() => ({ bytes: [1, 2, 3], mediaType: 'image/png' })) as unknown as AssetResolver,
       'asset-invalid',
     ],
+    [
+      'a PNG image whose bytes are not a PNG file (D62.1)',
+      resolverOf({
+        ...given,
+        'asset-image': { bytes: Uint8Array.of(1, 2, 3), mediaType: 'image/png' },
+      }),
+      'image-invalid',
+    ],
   ])('refuses %s with a typed error', async (_, resolver, code) => {
     await expect(resolveAssets(pinned, resolver, sha256)).rejects.toMatchObject({
       name: 'RenderError',
       code,
     });
+  });
+
+  it('names the image whose header it cannot read, and reads only PNG, JPEG, and WebP (D62.1)', async () => {
+    const cut = resolverOf({
+      ...given,
+      'asset-image': { bytes: Uint8Array.of(1, 2, 3), mediaType: 'image/jpeg' },
+    });
+    await expect(resolveAssets(pinned, cut, sha256)).rejects.toThrow(/"asset-image"/);
+    // Another media type is passed on unread, as before.
+    await expect(resolveAssets(pinned, resolverOf(given), sha256)).resolves.toHaveLength(3);
   });
 
   it('stops at the first failing asset and asks for nothing after it', async () => {

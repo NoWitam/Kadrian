@@ -3,6 +3,8 @@
 - Status: Accepted — by the project owner on 2026-09-22, without a change of substance
 - Amended by: PR-16 (D36) on 2026-09-27 at the owner's request, 27.1 (`load` takes the host's
   Custom HTML policy)
+- Amended by: PR-39a (D62) on 2026-11-03: 27.3: verifying a PNG, JPEG, or WebP image also reads its
+  header, and bytes that are not a whole file of its media type are `image-invalid` (D62.3)
 - Date: 2026-09-22
 - Supersedes: —
 - Amends (accepted with this ADR): D22.5 ("The renderer never verifies a hash"), D22.6, and

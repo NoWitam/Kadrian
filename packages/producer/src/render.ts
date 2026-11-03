@@ -11,6 +11,8 @@ import {
   RENDER_PAGE_SANDBOX,
   RenderError,
   fontFamily,
+  imageSizeKnown,
+  readImageSize,
   renderPageDocument,
   resolveAssets,
   type AssetResolver,
@@ -102,6 +104,7 @@ interface AgentWindow {
       videoFrames: readonly { nodeId: string; mediaType: string; base64: string }[],
     ): Promise<Outcome>;
     stats(): { loads: number; frames: number };
+    imageSize(mediaType: string, base64: string): Promise<{ width: number; height: number } | null>;
   };
 }
 
@@ -303,6 +306,33 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
           'load',
         );
         checked(outcome);
+        noRequests();
+        // The size read from every image's header is the size the pinned Chromium decodes (D62.3).
+        for (const { id, type, mediaType, bytes } of assets) {
+          if (type !== 'image' || !imageSizeKnown(mediaType)) continue;
+          const read = readImageSize(bytes, mediaType);
+          const decoded = await within(
+            renderFrame.evaluate(
+              ([given, data]) =>
+                (window as unknown as AgentWindow).kadrionProducer.imageSize(given, data),
+              [mediaType, base64Of(bytes)] as const,
+            ),
+            pageTimeoutMs,
+            'decode an image',
+          );
+          if (decoded === null) {
+            throw new ProducerError(
+              'asset-decode-failed',
+              `The image "${id}" could not be decoded.`,
+            );
+          }
+          if (decoded.width !== read.width || decoded.height !== read.height) {
+            throw new ProducerError(
+              'image-size-mismatch',
+              `The header of the image "${id}" states ${String(read.width)} x ${String(read.height)}, and the pinned Chromium decodes it to ${String(decoded.width)} x ${String(decoded.height)} (D62.3).`,
+            );
+          }
+        }
         noRequests();
         loaded = true;
       },
