@@ -1,0 +1,779 @@
+API report of @kadrion/producer
+Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by hand.
+
+==== Entry "."
+
+---- AUDIO_FILE_NAME
+export declare const AUDIO_FILE_NAME = "audio.wav";
+
+---- AudioManifest (type only)
+export interface AudioManifest {
+    readonly manifestVersion: number;
+    readonly kind: 'audio';
+    readonly compositionHash: string;
+    readonly schemaVersion: string;
+    readonly durationUs: number;
+    readonly frameCount: number;
+    readonly fps: number;
+    readonly range: ManifestRange;
+    readonly audio: ManifestAudioPass | null;
+    readonly ffmpeg: ManifestFfmpegBuild & {
+        readonly audioArgs: readonly string[] | null;
+    };
+    readonly identity: FfmpegIdentityBlock;
+}
+
+---- AudioRequest (type only)
+export interface AudioRequest extends EncoderSettings, JobOptions {
+    readonly document: unknown;
+    readonly resolveAsset: AssetResolver;
+    readonly range?: RangeRequest;
+    readonly outputDirectory: string;
+    readonly ffmpeg: FfmpegPaths;
+}
+
+---- AudioResult (type only)
+export interface AudioResult {
+    readonly manifest: AudioManifest;
+}
+
+---- CHROMIUM_ARGS
+export declare const CHROMIUM_ARGS: readonly string[];
+
+---- CHROMIUM_CHANNEL
+export declare const CHROMIUM_CHANNEL = "chromium";
+
+---- CHROMIUM_REVISION
+export declare const CHROMIUM_REVISION = "1243";
+
+---- CHROMIUM_VERSION
+export declare const CHROMIUM_VERSION = "153.0.8010.12";
+
+---- DEFAULT_ESTIMATE_SAMPLES
+export declare const DEFAULT_ESTIMATE_SAMPLES = 10;
+
+---- DEFAULT_SEGMENT_FRAMES
+export declare const DEFAULT_SEGMENT_FRAMES = 60;
+
+---- DEVICE_SCALE_FACTOR
+export declare const DEVICE_SCALE_FACTOR = 1;
+
+---- EXPORT_MANIFEST_VERSION
+export declare const EXPORT_MANIFEST_VERSION = 5;
+
+---- EnvironmentFacts (type only)
+export interface EnvironmentFacts {
+    readonly image: string | undefined;
+    readonly platform: string;
+    readonly arch: string;
+    readonly reportedVersion: string;
+    readonly networkInterfaces: readonly string[];
+}
+
+---- EnvironmentManifest (type only)
+export interface EnvironmentManifest {
+    readonly pinned: boolean;
+    readonly image: string | null;
+    readonly pinnedPlatform: string;
+    readonly os: string;
+    readonly arch: string;
+    readonly node: string;
+    readonly playwrightCore: string;
+    readonly chromiumRevision: string;
+    readonly chromiumVersion: string;
+    readonly reportedVersion: string;
+    readonly channel: string;
+    readonly args: readonly string[];
+    readonly locale: string;
+    readonly timezone: string;
+    readonly viewport: {
+        readonly width: number;
+        readonly height: number;
+    };
+    readonly deviceScaleFactor: number;
+    readonly network: NetworkFacts;
+}
+
+---- EstimatePlan (type only)
+export interface EstimatePlan {
+    readonly range: {
+        readonly fromUs: number;
+        readonly toUs: number;
+    };
+    readonly sampleSegmentFrames: number;
+    readonly frames: number;
+    readonly segmentFrames: number;
+    readonly segments: number;
+}
+
+---- ExportManifest (type only)
+export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
+    readonly kind: 'export';
+    readonly preset: ManifestMp4Preset;
+    readonly segmentFrames: number;
+    readonly range: ManifestRange;
+    readonly segments: readonly Omit<ManifestSegment, 'file'>[];
+    readonly ffmpeg: ManifestFfmpeg;
+    readonly audio: ManifestAudio | null;
+    readonly identity: RenderIdentity;
+}
+
+---- ExportRequest (type only)
+export interface ExportRequest extends RenderTimeouts, EncoderSettings, JobOptions {
+    readonly document: unknown;
+    readonly resolveAsset: AssetResolver;
+    readonly preset: string;
+    readonly segmentFrames?: number;
+    readonly outputPath: string;
+    readonly ffmpeg: FfmpegPaths;
+    readonly chromium?: LaunchedChromium;
+    readonly runtime?: RuntimeBuild;
+}
+
+---- ExportResult (type only)
+export interface ExportResult {
+    readonly outputPath: string;
+    readonly manifest: ExportManifest;
+    readonly stats: ExportStats;
+}
+
+---- ExportStats (type only)
+export interface ExportStats {
+    readonly framesWritten: number;
+    readonly maxFramesInFlight: number;
+}
+
+---- FFMPEG_ARCHIVE_SHA256
+export declare const FFMPEG_ARCHIVE_SHA256 = "sha256:dfe7728e01099e22a6fc7a65355ed4f1b65468e1dbe0015f07c45286b486cc59";
+
+---- FFMPEG_ASSET
+export declare const FFMPEG_ASSET = "ffmpeg-n8.1.3-linux64-gpl-8.1.tar.xz";
+
+---- FFMPEG_DOWNLOAD_URL
+export declare const FFMPEG_DOWNLOAD_URL = "https://github.com/NoWitam/Kadrian/releases/download/ffmpeg-n8.1.3-20260921/ffmpeg-n8.1.3-linux64-gpl-8.1.tar.xz";
+
+---- FFMPEG_RELEASE
+export declare const FFMPEG_RELEASE = "autobuild-2026-09-21-13-55";
+
+---- FFMPEG_SHA256
+export declare const FFMPEG_SHA256 = "sha256:b8404b6fe11bfa0d4970d031b6eb8108d230075e3f3be5fde7fada250f003c54";
+
+---- FFMPEG_URL
+export declare const FFMPEG_URL = "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-21-13-55/ffmpeg-n8.1.3-linux64-gpl-8.1.tar.xz";
+
+---- FFPROBE_SHA256
+export declare const FFPROBE_SHA256 = "sha256:a037cf8856a567f6c8e25837786bd8dbfb27f57738d9c42331c48a46f423f270";
+
+---- FfmpegIdentity (type only)
+export interface FfmpegIdentity {
+    readonly ffmpegSha256: string;
+    readonly ffprobeSha256: string;
+    readonly version: string;
+    readonly configuration: string;
+    readonly encoders: readonly string[];
+}
+
+---- FfmpegIdentityBlock (type only)
+export type FfmpegIdentityBlock = Pick<RenderIdentity, 'ffmpegSha256' | 'ffprobeSha256' | 'ffmpegVersion' | 'ffmpegBuildConfiguration'>;
+
+---- FfmpegPaths (type only)
+export interface FfmpegPaths {
+    readonly ffmpegPath: string;
+    readonly ffprobePath: string;
+}
+
+---- FrameRange (type only)
+export interface FrameRange {
+    readonly fromUs: number;
+    readonly toUs: number;
+    readonly firstFrame: number;
+    readonly frameCount: number;
+}
+
+---- JOB_LIMITS
+export declare const JOB_LIMITS: readonly [
+    "maxDocumentBytes",
+    "maxDurationUs",
+    "maxFrames",
+    "maxAssets",
+    "maxAssetBytes",
+    "maxTotalAssetBytes"
+];
+
+---- JobLimits (type only)
+export interface JobLimits {
+    readonly maxDocumentBytes?: number;
+    readonly maxDurationUs?: number;
+    readonly maxFrames?: number;
+    readonly maxAssets?: number;
+    readonly maxAssetBytes?: number;
+    readonly maxTotalAssetBytes?: number;
+}
+
+---- JobOptions (type only)
+export interface JobOptions {
+    readonly signal?: AbortSignal;
+    readonly onProgress?: ProgressListener;
+    readonly limits?: JobLimits;
+}
+
+---- JoinPart (type only)
+export interface JoinPart<M> {
+    readonly manifest: M;
+    readonly directory: string;
+}
+
+---- JoinPlan (type only)
+export interface JoinPlan {
+    readonly first: SegmentsManifest;
+    readonly range: AudioManifest['range'];
+    readonly segments: readonly JoinSegment[];
+    readonly frames: readonly ManifestFrame[];
+    readonly blockedRequests: readonly string[];
+    readonly audioPath: string | null;
+}
+
+---- JoinRequest (type only)
+export interface JoinRequest extends EncoderSettings, Pick<JobOptions, 'signal'> {
+    readonly segments: readonly JoinPart<SegmentsManifest>[];
+    readonly audio: JoinPart<AudioManifest>;
+    readonly outputPath: string;
+    readonly ffmpeg: FfmpegPaths;
+}
+
+---- JoinResult (type only)
+export interface JoinResult {
+    readonly outputPath: string;
+    readonly manifest: ExportManifest;
+}
+
+---- JoinSegment (type only)
+export interface JoinSegment extends ManifestSegment {
+    readonly path: string;
+}
+
+---- LOCALE
+export declare const LOCALE = "en-US";
+
+---- LaunchOptions (type only)
+export interface LaunchOptions {
+    readonly extraArgs?: readonly string[];
+}
+
+---- LaunchedChromium (type only)
+export interface LaunchedChromium {
+    readonly browser: Browser;
+    readonly reportedVersion: string;
+}
+
+---- MANIFEST_VERSION
+export declare const MANIFEST_VERSION = 3;
+
+---- MAX_SEGMENT_FRAMES
+export declare const MAX_SEGMENT_FRAMES = 1000000;
+
+---- ManifestAsset (type only)
+export interface ManifestAsset {
+    readonly id: string;
+    readonly type: string;
+    readonly mediaType: string;
+    readonly contentHash: string;
+    readonly family?: string;
+}
+
+---- ManifestAudio (type only)
+export interface ManifestAudio {
+    readonly sampleRate: number;
+    readonly totalSamples: number;
+    readonly sounds: readonly ManifestSound[];
+    readonly rangeStartSample: number;
+    readonly rangeSampleCount: number;
+    readonly channelLayout: string;
+    readonly codec: string;
+    readonly bitrate: string;
+    readonly intermediate: {
+        readonly codec: string;
+        readonly format: string;
+        readonly sha256: string;
+    };
+}
+
+---- ManifestAudioPass (type only)
+export interface ManifestAudioPass {
+    readonly sampleRate: number;
+    readonly totalSamples: number;
+    readonly sounds: readonly ManifestSound[];
+    readonly rangeStartSample: number;
+    readonly rangeSampleCount: number;
+    readonly channelLayout: string;
+    readonly codec: string;
+    readonly format: string;
+    readonly file: string;
+    readonly sha256: string;
+}
+
+---- ManifestFfmpeg (type only)
+export interface ManifestFfmpeg extends ManifestFfmpegBuild {
+    readonly segmentArgs: readonly string[];
+    readonly audioArgs: readonly string[] | null;
+    readonly joinArgs: readonly string[];
+}
+
+---- ManifestFfmpegBuild (type only)
+export interface ManifestFfmpegBuild {
+    readonly release: string;
+    readonly asset: string;
+    readonly url: string;
+    readonly archiveSha256: string;
+    readonly ffmpegSha256: string;
+    readonly ffprobeSha256: string;
+    readonly version: string;
+    readonly configuration: string;
+    readonly encoders: readonly string[];
+}
+
+---- ManifestFrame (type only)
+export interface ManifestFrame {
+    readonly index: number;
+    readonly timeUs: number;
+    readonly sha256: string;
+}
+
+---- ManifestMp4Preset (type only)
+export interface ManifestMp4Preset {
+    readonly name: 'mp4-1080p' | 'mp4-720p';
+    readonly width: number;
+    readonly height: number;
+    readonly sourceWidth: number;
+    readonly sourceHeight: number;
+    readonly fps: number;
+    readonly deviceScaleFactor: number;
+    readonly videoGraph: string;
+}
+
+---- ManifestRange (type only)
+export interface ManifestRange {
+    readonly fromUs: number;
+    readonly toUs: number;
+    readonly firstFrame: number;
+    readonly frameCount: number;
+}
+
+---- ManifestSegment (type only)
+export interface ManifestSegment {
+    readonly index: number;
+    readonly firstFrame: number;
+    readonly frameCount: number;
+    readonly file: string;
+    readonly sha256: string;
+}
+
+---- ManifestVideo (type only)
+export interface ManifestVideo {
+    readonly decoder: ManifestFfmpegBuild;
+    readonly decodeArgs: readonly string[];
+    readonly sources: readonly ManifestVideoSource[];
+}
+
+---- ManifestVideoSource (type only)
+export interface ManifestVideoSource {
+    readonly assetId: string;
+    readonly contentHash: string;
+    readonly width: number;
+    readonly height: number;
+    readonly frames: number;
+    readonly timeBase: string;
+    readonly sourceDurationUs: number;
+}
+
+---- NetworkFacts (type only)
+export interface NetworkFacts {
+    readonly interfaces: readonly string[];
+    readonly loopbackOnly: boolean;
+}
+
+---- PARTIAL_SUFFIX
+export declare const PARTIAL_SUFFIX = ".partial";
+
+---- PINNED_IMAGE
+export declare const PINNED_IMAGE = "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27";
+
+---- PINNED_IMAGE_VARIABLE
+export declare const PINNED_IMAGE_VARIABLE = "KADRION_PINNED_IMAGE";
+
+---- PINNED_PLATFORM
+export declare const PINNED_PLATFORM = "linux/amd64";
+
+---- PLAYWRIGHT_CORE_VERSION
+export declare const PLAYWRIGHT_CORE_VERSION = "1.63.0";
+
+---- PRODUCER_AGENT_SCRIPT
+export declare const PRODUCER_AGENT_SCRIPT: string;
+
+---- PresentationSessions (type only)
+export interface PresentationSessions {
+    readonly page: CDPSession;
+    readonly all: readonly CDPSession[];
+    readonly outOfProcessFrames: number;
+    detach(): Promise<void>;
+}
+
+---- ProducerError
+export declare class ProducerError extends Error {
+    readonly code: ProducerErrorCode;
+    constructor(code: ProducerErrorCode, message: string);
+}
+
+---- ProducerErrorCode (type only)
+export type ProducerErrorCode = 'invalid-document' | 'frame-out-of-range' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'runtime-hash-mismatch' | 'runtime-unsafe' | 'chromium-missing' | 'chromium-mismatch' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'font-load-failed' | 'asset-decode-failed' | 'readiness-unsupported' | 'custom-html-timeout' | 'custom-html-navigated' | 'page-timeout' | 'presentation-timeout' | 'network-request' | 'ffmpeg-missing' | 'ffmpeg-mismatch' | 'encode-failed' | 'audio-invalid' | 'preset-unsupported' | 'segment-length-invalid' | 'range-invalid' | 'join-invalid' | 'still-format-unsupported' | 'limit-exceeded' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'cancelled' | 'page-error';
+
+---- ProgressEvent (type only)
+export type ProgressEvent = {
+    readonly event: 'start';
+    readonly frames: number;
+    readonly segments: number;
+} | {
+    readonly event: 'frame';
+    readonly frame: number;
+    readonly done: number;
+    readonly frames: number;
+} | {
+    readonly event: 'segment';
+    readonly segment: number;
+    readonly done: number;
+    readonly segments: number;
+};
+
+---- ProgressListener (type only)
+export type ProgressListener = (event: ProgressEvent) => void;
+
+---- RangeRequest (type only)
+export interface RangeRequest {
+    readonly fromUs: number;
+    readonly toUs: number;
+}
+
+---- RenderIdentity (type only)
+export interface RenderIdentity {
+    readonly playwrightImageDigest: string | null;
+    readonly playwrightVersion: string;
+    readonly chromiumRevision: string;
+    readonly ffmpegSha256: string;
+    readonly ffprobeSha256: string;
+    readonly ffmpegVersion: string;
+    readonly ffmpegBuildConfiguration: string;
+}
+
+---- RenderManifest (type only)
+export interface RenderManifest {
+    readonly manifestVersion: number;
+    readonly compositionHash: string;
+    readonly schemaVersion: string;
+    readonly runtime: {
+        readonly contentHash: string;
+        readonly bundler: string;
+        readonly compiler: string;
+    };
+    readonly chromium: {
+        readonly playwrightCore: string;
+        readonly revision: string;
+        readonly expectedVersion: string;
+        readonly reportedVersion: string;
+        readonly channel: string;
+        readonly args: readonly string[];
+    };
+    readonly environment: EnvironmentManifest;
+    readonly assets: readonly ManifestAsset[];
+    readonly preset: {
+        readonly name: 'frames-png';
+        readonly width: number;
+        readonly height: number;
+        readonly fps: number;
+        readonly deviceScaleFactor: number;
+    };
+    readonly durationUs: number;
+    readonly frameCount: number;
+    readonly frames: readonly ManifestFrame[];
+    readonly blockedRequests: readonly string[];
+    readonly video: ManifestVideo | null;
+    readonly ffmpeg: null;
+}
+
+---- RenderRequest (type only)
+export interface RenderRequest extends RenderTimeouts, JobOptions {
+    readonly document: unknown;
+    readonly resolveAsset: AssetResolver;
+    readonly timesUs: readonly number[];
+    readonly chromium?: LaunchedChromium;
+    readonly runtime?: RuntimeBuild;
+    readonly ffmpeg?: FfmpegPaths;
+}
+
+---- RenderResult (type only)
+export interface RenderResult {
+    readonly frames: readonly RenderedFrame[];
+    readonly manifest: RenderManifest;
+}
+
+---- RenderSession (type only)
+export interface RenderSession {
+    readonly page: Page;
+    readonly renderFrame: Frame;
+    readonly requests: readonly string[];
+    readonly blockedRequests: readonly string[];
+    readonly runtime: RuntimeBuild;
+    load(documentJson: string, assets: readonly VerifiedAsset[]): Promise<void>;
+    frame(index: number, timeUs: number, videoFrames?: readonly NodeVideoFrame[]): Promise<Uint8Array>;
+    stats(): Promise<{
+        loads: number;
+        frames: number;
+    }>;
+    outOfProcessFrames(): Promise<number>;
+    close(): Promise<void>;
+}
+
+---- RenderSessionOptions (type only)
+export interface RenderSessionOptions extends RenderTimeouts {
+    readonly chromium: LaunchedChromium;
+    readonly width: number;
+    readonly height: number;
+    readonly customHtmlNodes: number;
+    readonly runtime?: RuntimeBuild;
+}
+
+---- RenderTimeouts (type only)
+export interface RenderTimeouts {
+    readonly ackTimeoutMs?: number;
+    readonly pageTimeoutMs?: number;
+    readonly presentationTimeoutMs?: number;
+}
+
+---- RenderedFrame (type only)
+export interface RenderedFrame {
+    readonly index: number;
+    readonly timeUs: number;
+    readonly png: Uint8Array;
+}
+
+---- RuntimeBuild (type only)
+export interface RuntimeBuild {
+    readonly script: string;
+    readonly contentHash: string;
+    readonly bundler: string;
+    readonly compiler: string;
+}
+
+---- STILL_FORMATS
+export declare const STILL_FORMATS: Readonly<{
+    readonly png: {
+        readonly mediaType: "image/png";
+        readonly extension: "png";
+    };
+    readonly jpeg: {
+        readonly mediaType: "image/jpeg";
+        readonly extension: "jpg";
+    };
+    readonly webp: {
+        readonly mediaType: "image/webp";
+        readonly extension: "webp";
+    };
+}>;
+
+---- Segment (type only)
+export interface Segment {
+    readonly index: number;
+    readonly firstFrame: number;
+    readonly frameCount: number;
+}
+
+---- SegmentsManifest (type only)
+export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
+    readonly kind: 'segments';
+    readonly preset: ManifestMp4Preset;
+    readonly segmentFrames: number;
+    readonly range: ManifestRange;
+    readonly segments: readonly ManifestSegment[];
+    readonly ffmpeg: ManifestFfmpegBuild & {
+        readonly segmentArgs: readonly string[];
+    };
+    readonly identity: RenderIdentity;
+}
+
+---- SegmentsRequest (type only)
+export interface SegmentsRequest extends RenderTimeouts, EncoderSettings, JobOptions {
+    readonly document: unknown;
+    readonly resolveAsset: AssetResolver;
+    readonly preset: string;
+    readonly segmentFrames?: number;
+    readonly range?: RangeRequest;
+    readonly outputDirectory: string;
+    readonly ffmpeg: FfmpegPaths;
+    readonly chromium?: LaunchedChromium;
+    readonly runtime?: RuntimeBuild;
+}
+
+---- SegmentsResult (type only)
+export interface SegmentsResult {
+    readonly manifest: SegmentsManifest;
+    readonly stats: ExportStats;
+}
+
+---- StillFormat (type only)
+export type StillFormat = keyof typeof STILL_FORMATS;
+
+---- StillManifest (type only)
+export interface StillManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
+    readonly kind: 'still';
+    readonly preset: {
+        readonly name: 'still-png' | 'still-jpeg' | 'still-webp';
+        readonly width: number;
+        readonly height: number;
+        readonly fps: number;
+        readonly deviceScaleFactor: number;
+    };
+    readonly output: {
+        readonly mediaType: string;
+        readonly sha256: string;
+    };
+    readonly ffmpeg: (ManifestFfmpegBuild & {
+        readonly args: readonly string[];
+    }) | null;
+}
+
+---- StillRequest (type only)
+export interface StillRequest extends RenderTimeouts, JobOptions {
+    readonly document: unknown;
+    readonly resolveAsset: AssetResolver;
+    readonly timeUs: number;
+    readonly format: string;
+    readonly ffmpeg?: FfmpegPaths;
+    readonly chromium?: LaunchedChromium;
+    readonly runtime?: RuntimeBuild;
+    readonly encoderTimeoutMs?: number;
+}
+
+---- StillResult (type only)
+export interface StillResult {
+    readonly format: StillFormat;
+    readonly mediaType: string;
+    readonly bytes: Uint8Array;
+    readonly manifest: StillManifest;
+}
+
+---- TIMEZONE
+export declare const TIMEZONE = "UTC";
+
+---- VideoProbe (type only)
+export interface VideoProbe {
+    readonly width: number;
+    readonly height: number;
+    readonly timeBase: {
+        readonly num: number;
+        readonly den: number;
+    };
+    readonly timestamps: readonly number[];
+    readonly lastDuration: number;
+}
+
+---- awaitPresented
+export declare function awaitPresented(page: Page, timeoutMs: number): Promise<number>;
+
+---- canonicalJson
+export declare function canonicalJson(value: unknown): string;
+
+---- captureFrame
+export declare function captureFrame(page: Page, width: number, height: number): Promise<Uint8Array>;
+
+---- checkedSegmentFrames
+export declare function checkedSegmentFrames(value: number | undefined): number;
+
+---- contextOptions
+export declare function contextOptions(width: number, height: number): BrowserContextOptions;
+
+---- environmentManifest
+export declare function environmentManifest(reportedVersion: string, viewport: {
+    readonly width: number;
+    readonly height: number;
+}, facts?: Partial<EnvironmentFacts>): EnvironmentManifest;
+
+---- estimatePlan
+export declare function estimatePlan(document: unknown, samples?: number, segmentFrames?: number): EstimatePlan;
+
+---- exportMp4
+export declare function exportMp4(request: ExportRequest): Promise<ExportResult>;
+
+---- frameIndexOf
+export declare function frameIndexOf(composition: ValidatedComposition, timeUs: number): number;
+
+---- frameRange
+export declare function frameRange(composition: ValidatedComposition, range: {
+    readonly fromUs: number;
+    readonly toUs: number;
+} | undefined, segmentFrames?: number): FrameRange;
+
+---- goldenRefusal
+export declare function goldenRefusal(environment: EnvironmentManifest): string | null;
+
+---- hostDocument
+export declare function hostDocument(runtimeScript: string, width: number, height: number): string;
+
+---- installedPlaywright
+export declare function installedPlaywright(): {
+    readonly version: string;
+    readonly revision: string | null;
+    readonly browserVersion: string | null;
+};
+
+---- isPinned
+export declare function isPinned(facts: Omit<EnvironmentFacts, 'networkInterfaces'>): boolean;
+
+---- joinPlan
+export declare function joinPlan(parts: readonly JoinPart<SegmentsManifest>[], audio: JoinPart<AudioManifest>): JoinPlan;
+
+---- joinSegments
+export declare function joinSegments(request: JoinRequest): Promise<JoinResult>;
+
+---- launchChromium
+export declare function launchChromium(options?: LaunchOptions): Promise<LaunchedChromium>;
+
+---- loadRuntimeBuild
+export declare function loadRuntimeBuild(): RuntimeBuild;
+
+---- networkFacts
+export declare function networkFacts(interfaces: readonly string[]): NetworkFacts;
+
+---- openRenderSession
+export declare function openRenderSession(options: RenderSessionOptions): Promise<RenderSession>;
+
+---- presentationSessions
+export declare function presentationSessions(page: Page): Promise<PresentationSessions>;
+
+---- rangeSegmentsOf
+export declare function rangeSegmentsOf(composition: ValidatedComposition, segmentFrames: number, range: FrameRange): Segment[];
+
+---- renderAudio
+export declare function renderAudio(request: AudioRequest): Promise<AudioResult>;
+
+---- renderFrames
+export declare function renderFrames(request: RenderRequest): Promise<RenderResult>;
+
+---- renderSegments
+export declare function renderSegments(request: SegmentsRequest): Promise<SegmentsResult>;
+
+---- renderStill
+export declare function renderStill(request: StillRequest): Promise<StillResult>;
+
+---- segmentFileName
+export declare function segmentFileName(index: number): string;
+
+---- segmentsOf
+export declare function segmentsOf(composition: ValidatedComposition, segmentFrames: number): Segment[];
+
+---- sha256
+export declare function sha256(bytes: Uint8Array | string): string;
+
+---- verifiedScript
+export declare function verifiedScript(bytes: Uint8Array, contentHash: string): string;
+
+---- verifyFfmpeg
+export declare function verifyFfmpeg(paths: FfmpegPaths, host?: FfmpegHost): Promise<FfmpegIdentity>;

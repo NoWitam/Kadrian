@@ -1,0 +1,81 @@
+API report of @kadrion/ai-sdk
+Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by hand.
+
+==== Entry "."
+
+---- RunTransactionInputSchema (type only)
+export interface RunTransactionInputSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly calls: {
+            readonly type: 'array';
+            readonly description: string;
+            readonly minItems: 1;
+            readonly items: {
+                readonly type: 'object';
+                readonly description: string;
+                readonly properties: {
+                    readonly name: {
+                        readonly type: 'string';
+                        readonly description: string;
+                        readonly enum: readonly string[];
+                    };
+                    readonly arguments: {
+                        readonly type: 'object';
+                        readonly description: string;
+                    };
+                };
+                readonly required: readonly [
+                    'name',
+                    'arguments'
+                ];
+                readonly additionalProperties: false;
+            };
+        };
+    };
+    readonly required: readonly [
+        'calls'
+    ];
+    readonly additionalProperties: false;
+}
+
+---- TOOL_CATALOGUE
+export declare const TOOL_CATALOGUE: readonly ToolDefinition[];
+
+---- ToolBus (type only)
+export type ToolBus = Pick<CommandBus, 'getDocument' | 'dispatch' | 'dispatchTransaction'> & Partial<Pick<CommandBus, 'mediaFactsOf'>>;
+
+---- ToolDefinition (type only)
+export interface ToolDefinition {
+    readonly name: string;
+    readonly description: string;
+    readonly inputSchema: ToolInputSchema;
+}
+
+---- ToolInputSchema (type only)
+export type ToolInputSchema = CommandArgumentsSchema | ClosedObjectSchema<never> | RunTransactionInputSchema;
+
+---- ToolResult (type only)
+export type ToolResult = {
+    readonly kind: 'command';
+    readonly result: CommandResult;
+} | {
+    readonly kind: 'transaction';
+    readonly result: TransactionResult;
+} | {
+    readonly kind: 'description';
+    readonly description: DocumentDescription;
+};
+
+---- executeSetNodePosition
+export declare function executeSetNodePosition(bus: Pick<CommandBus, 'dispatch'>, args: unknown): CommandResult;
+
+---- executeTool
+export declare function executeTool(bus: ToolBus, name: unknown, args: unknown): ToolResult;
+
+---- setNodePositionTool
+export declare const setNodePositionTool: ToolDefinition;
+
+---- toolNameOf
+export declare function toolNameOf(commandType: Command['type']): string;

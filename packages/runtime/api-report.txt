@@ -1,0 +1,178 @@
+API report of @kadrion/runtime
+Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by hand.
+
+==== Entry "."
+
+---- AUDIO_SAMPLE_RATE
+export declare const AUDIO_SAMPLE_RATE = 48000;
+
+---- AudioLayout (type only)
+export interface AudioLayout {
+    readonly totalSamples: number;
+    readonly sounds: readonly SoundLayout[];
+}
+
+---- AudioPlan (type only)
+export interface AudioPlan {
+    readonly durationUs: number;
+    readonly entries: readonly AudioPlanEntry[];
+}
+
+---- AudioPlanEntry (type only)
+export interface AudioPlanEntry {
+    readonly kind: 'clip' | 'video';
+    readonly id: string;
+    readonly assetId: string;
+    readonly startUs: number;
+    readonly durationUs: number;
+    readonly sourceStartUs: number;
+    readonly volume: number;
+    readonly lifetimeUs: number;
+    readonly fadeInUs: number;
+    readonly fadeOutUs: number;
+}
+
+---- BackgroundNodeState (type only)
+export interface BackgroundNodeState extends LifetimeState {
+    readonly id: string;
+    readonly type: 'background';
+}
+
+---- CaptionInstant (type only)
+export interface CaptionInstant {
+    readonly page: number | null;
+    readonly word: number | null;
+}
+
+---- CaptionLine (type only)
+export interface CaptionLine {
+    readonly words: readonly number[];
+}
+
+---- CaptionPage (type only)
+export interface CaptionPage {
+    readonly lines: readonly CaptionLine[];
+    readonly firstWord: number;
+}
+
+---- CaptionsNodeState (type only)
+export interface CaptionsNodeState extends LeafNodeState<'captions'> {
+    readonly page: number | null;
+    readonly word: number | null;
+}
+
+---- CompositionState (type only)
+export interface CompositionState {
+    readonly timeUs: number;
+    readonly scenes: readonly SceneState[];
+    readonly backdrop?: string;
+}
+
+---- EvaluationError
+export declare class EvaluationError extends RangeError {
+    readonly code: EvaluationErrorCode;
+    constructor(code: EvaluationErrorCode, message: string);
+}
+
+---- EvaluationErrorCode (type only)
+export type EvaluationErrorCode = 'time-not-integer' | 'time-out-of-range' | 'invalid-document';
+
+---- GroupNodeState (type only)
+export interface GroupNodeState extends LifetimeState, TransformState {
+    readonly id: string;
+    readonly type: 'group';
+    readonly children: readonly (LeafNodeState<'image' | 'text'> | VideoNodeState)[];
+}
+
+---- Inset (type only)
+export interface Inset {
+    readonly fromTop: number;
+    readonly fromRight: number;
+    readonly fromBottom: number;
+    readonly fromLeft: number;
+}
+
+---- LeafNodeState (type only)
+export interface LeafNodeState<Type extends LeafNodeType = LeafNodeType> extends LifetimeState, TransformState {
+    readonly id: string;
+    readonly type: Type;
+}
+
+---- LeafNodeType (type only)
+export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video' | 'captions';
+
+---- LifetimeState (type only)
+export interface LifetimeState {
+    readonly active: boolean;
+}
+
+---- NodeState (type only)
+export type NodeState = BackgroundNodeState | GroupNodeState | LeafNodeState<'image' | 'text' | 'custom-html'> | VideoNodeState | CaptionsNodeState;
+
+---- SampleFade (type only)
+export interface SampleFade {
+    readonly startSample: number;
+    readonly sampleCount: number;
+}
+
+---- SceneState (type only)
+export interface SceneState {
+    readonly id: string;
+    readonly timeUs: number;
+    readonly nodes: readonly NodeState[];
+    readonly transition?: SceneTransitionState;
+}
+
+---- SceneTransitionState (type only)
+export interface SceneTransitionState {
+    readonly id: string;
+    readonly opacity?: number;
+    readonly offset?: Vec2;
+    readonly clip?: Inset;
+}
+
+---- SoundLayout (type only)
+export interface SoundLayout {
+    readonly entry: AudioPlanEntry;
+    readonly startSample: number;
+    readonly sampleCount: number;
+    readonly sourceStartSample: number;
+    readonly fadeIn: SampleFade | null;
+    readonly fadeOut: SampleFade | null;
+}
+
+---- TransformState (type only)
+export interface TransformState {
+    readonly position: Vec2;
+    readonly scale: Vec2;
+    readonly opacity: number;
+}
+
+---- Vec2 (type only)
+export interface Vec2 {
+    readonly x: number;
+    readonly y: number;
+}
+
+---- VideoNodeState (type only)
+export interface VideoNodeState extends LeafNodeState<'video'> {
+    readonly sourceTimeUs: number | null;
+}
+
+---- audioLayout
+export declare function audioLayout(plan: AudioPlan): AudioLayout;
+
+---- audioPlan
+export declare function audioPlan(composition: ValidatedComposition): AudioPlan;
+
+---- captionAt
+export declare function captionAt(words: CaptionsNode['words'], pages: readonly CaptionPage[], timeUs: number): CaptionInstant;
+
+---- captionPages
+export declare function captionPages(words: readonly CaptionWord[], style: Pick<CaptionStyle, 'maxLineLength' | 'maxLines'>): CaptionPage[];
+
+---- evaluateComposition
+export declare function evaluateComposition(composition: ValidatedComposition, timeUs: number): CompositionState;
+
+---- sampleAt
+export declare function sampleAt(timeUs: bigint): bigint;

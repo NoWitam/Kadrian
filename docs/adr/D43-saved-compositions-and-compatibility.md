@@ -242,6 +242,8 @@ image `fit`, the public `NodeData` name, playground showcases, and the repair of
 `audioPlan` in the Producer, with any tighter bound on an audio clip that it
 may need. No historical schema is changed by this ADR.
 
+Closed by PR-37 (D60): the public `NodeData` name is now `DocumentObject`.
+
 ## Alternatives considered
 
 - **An envelope with a format version** — room for metadata, at the price of a

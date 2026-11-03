@@ -1,0 +1,152 @@
+API report of @kadrion/renderer-dom
+Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by hand.
+
+==== Entry "."
+
+---- AssetRequest (type only)
+export interface AssetRequest {
+    readonly id: string;
+    readonly type: AssetType;
+    readonly contentHash: string;
+}
+
+---- AssetResolver (type only)
+export type AssetResolver = (asset: AssetRequest) => ResolvedAsset | null | Promise<ResolvedAsset | null>;
+
+---- AssetUrls (type only)
+export type AssetUrls = Readonly<Record<string, string>>;
+
+---- CustomHtmlHost (type only)
+export interface CustomHtmlHost {
+    readonly messageTarget: MessageTarget;
+    readonly startTimer: (expire: () => void) => () => void;
+    readonly requestId: number;
+}
+
+---- CustomHtmlPolicy (type only)
+export type CustomHtmlPolicy = {
+    readonly mode: 'disabled';
+} | {
+    readonly mode: 'trusted';
+};
+
+---- FontHost (type only)
+export interface FontHost {
+    readonly createFont?: (family: string, bytes: ArrayBuffer) => LoadableFont;
+}
+
+---- LoadableFont (type only)
+export interface LoadableFont {
+    load(): Promise<unknown>;
+}
+
+---- MEDIA_TYPE
+export declare const MEDIA_TYPE: RegExp;
+
+---- MessageListener (type only)
+export type MessageListener = (event: MessageEvent) => void;
+
+---- MessageTarget (type only)
+export interface MessageTarget {
+    addEventListener(type: 'message', listener: MessageListener): void;
+    removeEventListener(type: 'message', listener: MessageListener): void;
+}
+
+---- MountOptions (type only)
+export interface MountOptions {
+    readonly customHtml: CustomHtmlPolicy;
+}
+
+---- PageAsset (type only)
+export interface PageAsset {
+    readonly id: string;
+    readonly mediaType: string;
+    readonly bytes: ArrayBuffer;
+}
+
+---- RENDER_PAGE_FRAME_STYLE
+export declare const RENDER_PAGE_FRAME_STYLE: Readonly<Record<string, string>>;
+
+---- RENDER_PAGE_POLICY
+export declare const RENDER_PAGE_POLICY: string;
+
+---- RENDER_PAGE_SANDBOX
+export declare const RENDER_PAGE_SANDBOX = "allow-scripts";
+
+---- RENDER_ROOT_ID
+export declare const RENDER_ROOT_ID = "kadrion-root";
+
+---- RenderError
+export declare class RenderError extends Error {
+    readonly code: RenderErrorCode;
+    constructor(code: RenderErrorCode, message: string);
+}
+
+---- RenderErrorCode (type only)
+export type RenderErrorCode = 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'not-mounted' | 'custom-html-timeout' | 'custom-html-navigated' | 'invalid-options' | 'invalid-request' | 'asset-decode-failed' | 'readiness-unsupported' | 'font-load-failed' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'unsafe-script' | 'video-frames-invalid' | 'state-mismatch' | 'invalid-document';
+
+---- ResolvedAsset (type only)
+export interface ResolvedAsset {
+    readonly bytes: Uint8Array;
+    readonly mediaType: string;
+}
+
+---- Sha256 (type only)
+export type Sha256 = (bytes: Uint8Array) => Promise<string>;
+
+---- VerifiedAsset (type only)
+export interface VerifiedAsset {
+    readonly id: string;
+    readonly type: AssetType;
+    readonly mediaType: string;
+    readonly contentHash: string;
+    readonly bytes: Uint8Array;
+}
+
+---- VideoFrame (type only)
+export interface VideoFrame {
+    readonly nodeId: string;
+    readonly mediaType: string;
+    readonly bytes: ArrayBuffer;
+}
+
+---- applyVideoFrames
+export declare function applyVideoFrames(root: Element, state: CompositionState, frames: unknown): void;
+
+---- awaitMediaReady
+export declare function awaitMediaReady(root: Element): Promise<void>;
+
+---- base64
+export declare function base64(bytes: Uint8Array): string;
+
+---- fontFamily
+export declare function fontFamily(fontAssetId: string): string;
+
+---- mediaTypeFits
+export declare function mediaTypeFits(type: Asset['type'], mediaType: string): boolean;
+
+---- mountComposition
+export declare function mountComposition(root: Element, composition: ValidatedComposition, assetUrls: AssetUrls, options: MountOptions): void;
+
+---- renderPageDocument
+export declare function renderPageDocument(scripts: readonly string[]): string;
+
+---- renderState
+export declare function renderState(root: Element, state: CompositionState): void;
+
+---- resolveAssets
+export declare function resolveAssets(composition: ValidatedComposition, resolveAsset: AssetResolver, sha256: Sha256): Promise<VerifiedAsset[]>;
+
+---- resolveOneAsset
+export declare function resolveOneAsset(asset: AssetRequest, resolveAsset: AssetResolver, sha256: Sha256): Promise<VerifiedAsset>;
+
+---- synchronizeCustomHtml
+export declare function synchronizeCustomHtml(root: Element, state: CompositionState, host: CustomHtmlHost): Promise<void>;
+
+==== Entry "./runtime-build/kadrion-runtime.js"
+
+Untyped file: ./dist/runtime-build/kadrion-runtime.js
+
+==== Entry "./runtime-build/kadrion-runtime.json"
+
+Untyped file: ./dist/runtime-build/kadrion-runtime.json

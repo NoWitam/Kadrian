@@ -81,7 +81,6 @@ import {
   parseSetVideoVolume,
   type Command,
   type CommandPosition,
-  type NodeData,
 } from './commands.js';
 import {
   assetUsers,
@@ -287,7 +286,7 @@ function renamedAnimations(owner: DocumentObject, ownerId: string): DocumentObje
  * followed by `-a-<property>`. Only the `id` fields change; texts, HTML, and
  * every other value are copied as they are. Spreading keeps every key in place.
  */
-function duplicated(source: DocumentObject, newNodeId: string): NodeData {
+function duplicated(source: DocumentObject, newNodeId: string): DocumentObject {
   const copy = copyNode(source);
   const root = renamedAnimations({ ...copy, id: newNodeId }, newNodeId);
   const children = root['children'];
@@ -517,7 +516,7 @@ function sceneDuration(scene: DocumentObject): number {
  * followed by `-a-<property>`, and the clip at index k is `S-k<k>`. Only the
  * `id` fields change.
  */
-function duplicatedScene(source: DocumentObject, newSceneId: string): NodeData {
+function duplicatedScene(source: DocumentObject, newSceneId: string): DocumentObject {
   const copy = copyNode(source);
   const nodes = copy['nodes'];
   const clips = copy['clips'];
@@ -764,7 +763,7 @@ function splitHalves(
   atUs: number,
   newClipId: string,
   clipId: string,
-): { readonly first: DocumentObject; readonly second: NodeData } {
+): { readonly first: DocumentObject; readonly second: DocumentObject } {
   const clip = found.clip;
   const startUs = numberField(clip, 'startUs', clipId);
   const durationUs = numberField(clip, 'durationUs', clipId);

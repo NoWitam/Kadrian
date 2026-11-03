@@ -11,7 +11,12 @@
  * already exists keeps its place and the key order of the input survives.
  */
 
-/** A JSON object of the document, as this module reads it. */
+/**
+ * A JSON object of the document: a node, an animation, a keyframe, a clip, a
+ * scene, an asset, or any other object of the composition, read as a bag of
+ * unknown fields. A command carries one as a deep-frozen copy; its shape is
+ * the schema's, checked by the full validation, not restated here (D39.1, D60).
+ */
 export type DocumentObject = Readonly<Record<string, unknown>>;
 
 export function isObject(value: unknown): value is DocumentObject {

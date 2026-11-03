@@ -1,0 +1,135 @@
+API report of @kadrion/player
+Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by hand.
+
+==== Entry "."
+
+---- Player (type only)
+export interface Player {
+    load(document: unknown, resolveAsset: PlayerAssetResolver): Promise<void>;
+    update(document: unknown, resolveAsset: PlayerAssetResolver): Promise<void>;
+    seek(timeUs: number): Promise<void>;
+    play(): void;
+    pause(): void;
+    getState(): PlayerState;
+    subscribe(listener: PlayerListener): () => void;
+    prepareVideo(asset: PlayerAssetRequest, resolveAsset: PlayerAssetResolver): Promise<PlayerVideoFacts>;
+    prepareAudio(asset: PlayerAssetRequest, resolveAsset: PlayerAssetResolver): Promise<PlayerAudioFacts>;
+    destroy(): void;
+}
+
+---- PlayerAsset (type only)
+export type PlayerAsset = ResolvedAsset;
+
+---- PlayerAssetRequest (type only)
+export type PlayerAssetRequest = AssetRequest;
+
+---- PlayerAssetResolver (type only)
+export type PlayerAssetResolver = (asset: PlayerAssetRequest) => PlayerAsset | PlayerVideoAsset | null | Promise<PlayerAsset | PlayerVideoAsset | null>;
+
+---- PlayerAudio (type only)
+export interface PlayerAudio {
+    readonly context: AudioContext;
+}
+
+---- PlayerAudioFacts (type only)
+export interface PlayerAudioFacts {
+    readonly type: 'audio';
+    readonly durationUs: number;
+}
+
+---- PlayerCustomHtmlPolicy (type only)
+export type PlayerCustomHtmlPolicy = CustomHtmlPolicy;
+
+---- PlayerError
+export declare class PlayerError extends Error {
+    readonly code: PlayerErrorCode;
+    readonly details: readonly string[];
+    constructor(code: PlayerErrorCode, message: string, details?: readonly string[]);
+}
+
+---- PlayerErrorCode (type only)
+export type PlayerErrorCode = 'runtime-hash-mismatch' | 'runtime-unsafe' | 'page-timeout' | 'invalid-document' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'asset-decode-failed' | 'readiness-unsupported' | 'font-load-failed' | 'invalid-options' | 'custom-html-timeout' | 'custom-html-navigated' | 'video-unsupported' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'audio-invalid' | 'audio-unsupported' | 'time-out-of-range' | 'not-loaded' | 'superseded' | 'destroyed' | 'page-error';
+
+---- PlayerListener (type only)
+export type PlayerListener = (state: PlayerState) => void;
+
+---- PlayerListenerErrorHandler (type only)
+export type PlayerListenerErrorHandler = (error: unknown, state: PlayerState) => void;
+
+---- PlayerOptions (type only)
+export interface PlayerOptions {
+    readonly runtime: PlayerRuntime;
+    readonly customHtml?: PlayerCustomHtmlPolicy;
+    readonly ackTimeoutMs?: number;
+    readonly requestTimeoutMs?: number;
+    readonly scheduler?: PlayerScheduler;
+    readonly timers?: PlayerTimers;
+    readonly onListenerError?: PlayerListenerErrorHandler;
+    readonly audio?: PlayerAudio;
+}
+
+---- PlayerRuntime (type only)
+export interface PlayerRuntime {
+    readonly bytes: Uint8Array;
+    readonly contentHash: string;
+}
+
+---- PlayerScheduler (type only)
+export interface PlayerScheduler {
+    now(): number;
+    requestFrame(callback: () => void): number;
+    cancelFrame(handle: number): void;
+}
+
+---- PlayerState (type only)
+export interface PlayerState {
+    readonly status: PlayerStatus;
+    readonly timeUs: number | null;
+    readonly runtimeHash: string;
+    readonly error: PlayerError | null;
+}
+
+---- PlayerStatus (type only)
+export type PlayerStatus = 'empty' | 'loading' | 'seeking' | 'ready' | 'playing' | 'error';
+
+---- PlayerTimers (type only)
+export interface PlayerTimers {
+    setTimeout(callback: () => void, milliseconds: number): number;
+    clearTimeout(handle: number): void;
+}
+
+---- PlayerVideoAsset (type only)
+export type PlayerVideoAsset = PlayerVideoBlob;
+
+---- PlayerVideoFacts (type only)
+export interface PlayerVideoFacts {
+    readonly type: 'video';
+    readonly durationUs: number;
+    readonly width: number;
+    readonly height: number;
+    readonly frames: number;
+}
+
+---- ScheduledSounds (type only)
+export interface ScheduledSounds {
+    stop(): void;
+}
+
+---- SoundContext (type only)
+export interface SoundContext {
+    readonly sampleRate: number;
+    readonly currentTime: number;
+    readonly destination: AudioNode;
+    decodeAudioData(data: ArrayBuffer): Promise<AudioBuffer>;
+    createBufferSource(): AudioBufferSourceNode;
+    createGain(): GainNode;
+}
+
+---- createPlayer
+export declare function createPlayer(container: HTMLElement, options: PlayerOptions): Promise<Player>;
+
+---- decodeSound
+export declare function decodeSound(context: Pick<SoundContext, 'decodeAudioData' | 'sampleRate'>, id: string, bytes: ArrayBuffer): Promise<AudioBuffer>;
+
+---- scheduleSounds
+export declare function scheduleSounds(context: SoundContext, layout: AudioLayout, buffers: ReadonlyMap<string, AudioBuffer>, fromSample: number, when: number): ScheduledSounds;

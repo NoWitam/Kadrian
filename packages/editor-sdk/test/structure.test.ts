@@ -14,7 +14,7 @@ import {
   parseCommand,
   type Command,
   type CommandBus,
-  type NodeData,
+  type DocumentObject,
 } from '../src/index.js';
 
 import { codeOf, errorOf, json, nodeOf, reference, validated } from './support.js';
@@ -340,7 +340,7 @@ describe('RemoveNode (D39.1)', () => {
       type: string;
       parentId: string;
       index: number;
-      node: NodeData;
+      node: DocumentObject;
     };
     expect(inverse.type).toBe('AddNode');
     expect(inverse.parentId).toBe(SCENE);
