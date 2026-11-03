@@ -264,6 +264,51 @@ describe('the agent of D28.3', () => {
     expect(policies).toEqual([{ customHtml: { mode: 'trusted' } }]);
   });
 
+  it('decodes an image with the Image constructor it captured, and reports its natural size (D62.3)', async () => {
+    const sources: string[] = [];
+    class Picture {
+      src = '';
+      naturalWidth = 0;
+      naturalHeight = 0;
+      decode(): Promise<void> {
+        sources.push(this.src);
+        if (this.src.endsWith(',broken')) return Promise.reject(new Error('no'));
+        this.naturalWidth = 20;
+        this.naturalHeight = 40;
+        return Promise.resolve();
+      }
+    }
+    const page: Record<string, unknown> = {
+      setTimeout,
+      clearTimeout,
+      Image: Picture,
+      KadrionRuntime: {
+        load: () => Promise.resolve({ ok: true }),
+        frame: () => Promise.resolve({ ok: true }),
+      },
+    };
+    const globals = globalThis as { window?: unknown; document?: unknown };
+    const saved = { window: globals.window, document: globals.document };
+    globals.window = page;
+    globals.document = { getElementById: () => ({}) };
+    try {
+      producerAgent();
+    } finally {
+      globals.window = saved.window;
+      globals.document = saved.document;
+    }
+    // Replaced after the start: the agent keeps the constructor it captured.
+    page['Image'] = undefined;
+    const api = (
+      page as unknown as {
+        kadrionProducer: { imageSize(mediaType: string, base64: string): Promise<unknown> };
+      }
+    ).kadrionProducer;
+    await expect(api.imageSize('image/jpeg', 'AAAA')).resolves.toEqual({ width: 20, height: 40 });
+    await expect(api.imageSize('image/jpeg', 'broken')).resolves.toBeNull();
+    expect(sources).toEqual(['data:image/jpeg;base64,AAAA', 'data:image/jpeg;base64,broken']);
+  });
+
   it('only calls load and frame of the artifact, with a font constructor and a timer it captured', () => {
     expect(PRODUCER_AGENT_SCRIPT.startsWith('(function producerAgent()')).toBe(true);
     expect(PRODUCER_AGENT_SCRIPT).toContain('.load(root');

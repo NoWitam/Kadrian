@@ -32,7 +32,7 @@ import { playerCode } from '../src/errors.js';
 import { encodePng } from '../src/video.js';
 import { yuv420ToRgb } from '../src/yuv.js';
 import { createHarness, sleep, type Harness } from './harness.js';
-import { installCodecs, testMp4 } from './media.js';
+import { headerPng, installCodecs, testMp4 } from './media.js';
 
 /** The document with one unbound input: a valid template, which no Player plays (D58.4). */
 function templateOf(document: unknown): unknown {
@@ -56,7 +56,7 @@ const manifest = JSON.parse(
 ) as { contentHash: string };
 const runtime = { bytes: artifact, contentHash: manifest.contentHash };
 
-const image = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
+const image = headerPng(1);
 const bytesOf: Readonly<Record<string, PlayerAsset>> = {
   'asset-image': { bytes: image, mediaType: 'image/png' },
   'asset-font': { bytes: new Uint8Array([0, 1, 0, 0]), mediaType: 'font/ttf' },
@@ -859,7 +859,7 @@ describe('update in the same page (D44)', () => {
     const harness = createHarness();
     const player = await started(harness);
     await player.load(pinned, resolve);
-    const other = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 9, 9, 9]);
+    const other = headerPng(9);
     const otherBytes = { ...bytesOf, 'asset-image': { bytes: other, mediaType: 'image/png' } };
     const reimaged = await edited(pinned, () => undefined, otherBytes);
     const asked: PlayerAssetRequest[] = [];
@@ -876,7 +876,7 @@ describe('update in the same page (D44)', () => {
     const harness = createHarness();
     const player = await started(harness);
     await player.load(pinned, resolve);
-    const other = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 9, 9, 9]);
+    const other = headerPng(9);
     const reimaged = await edited(pinned, () => undefined, {
       ...bytesOf,
       'asset-image': { bytes: other, mediaType: 'image/png' },
@@ -1727,5 +1727,59 @@ describe('playback events (D61)', () => {
       return states;
     };
     expect(await run()).toEqual(await run());
+  });
+});
+
+describe('prepareImage (D62)', () => {
+  const request = (bytes: Uint8Array) =>
+    hashOf(bytes).then(
+      (contentHash) => ({ id: 'asset-image', type: 'image', contentHash }) as const,
+    );
+
+  it('verifies one image and reads its size from its header, and a load asks for it no more', async () => {
+    const player = await started(createHarness());
+    const asked: PlayerAssetRequest[] = [];
+    const asset = await request(image);
+    expect(asset.contentHash).toBe(hashIn(pinned, 'asset-image'));
+    const facts = await player.prepareImage(asset, resolverOf(bytesOf, asked));
+    expect(facts).toEqual({ width: 1, height: 1 });
+    expect(Object.isFrozen(facts)).toBe(true);
+    await expect(player.prepareImage(asset, () => null)).resolves.toEqual({ width: 1, height: 1 });
+    expect(asked.map(({ id }) => id)).toEqual(['asset-image']);
+    asked.length = 0;
+    await player.load(pinned, resolverOf(bytesOf, asked));
+    expect(asked.map(({ id }) => id)).not.toContain('asset-image');
+  });
+
+  it('refuses bytes that are not a whole file of their media type, naming the asset', async () => {
+    const player = await started(createHarness());
+    const cut = image.subarray(0, image.length - 4);
+    const asset = await request(cut);
+    await expect(
+      player.prepareImage(asset, () => ({ bytes: cut, mediaType: 'image/png' })),
+    ).rejects.toMatchObject({
+      code: 'image-invalid',
+      asset: { id: 'asset-image', contentHash: asset.contentHash },
+    });
+    // Mislabelled: PNG bytes served as JPEG.
+    await expect(
+      player.prepareImage(await request(image), () => ({ bytes: image, mediaType: 'image/jpeg' })),
+    ).rejects.toMatchObject({ code: 'image-invalid' });
+  });
+
+  it('refuses a media type whose header it does not read, another hash, and what is not an image', async () => {
+    const player = await started(createHarness());
+    const asset = await request(image);
+    await expect(
+      player.prepareImage(asset, () => ({ bytes: image, mediaType: 'image/gif' })),
+    ).rejects.toMatchObject({ code: 'image-unsupported', asset: { id: 'asset-image' } });
+    await expect(
+      player.prepareImage(asset, () => ({ bytes: headerPng(2), mediaType: 'image/png' })),
+    ).rejects.toMatchObject({ code: 'asset-hash-mismatch' });
+    await expect(player.prepareImage({ ...asset, type: 'video' }, resolve)).rejects.toMatchObject({
+      code: 'invalid-options',
+    });
+    player.destroy();
+    await expect(player.prepareImage(asset, resolve)).rejects.toMatchObject({ code: 'destroyed' });
   });
 });

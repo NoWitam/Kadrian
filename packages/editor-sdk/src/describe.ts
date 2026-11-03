@@ -61,7 +61,9 @@ export interface DocumentDescription {
    * The declared assets, as the document stores them. A video or audio asset
    * whose facts the host supplied also states its `sourceDurationUs` (D49.6,
    * D50.6, D53); a video whose sound the host read states its
-   * `soundDurationUs`, `null` when it has none (D53).
+   * `soundDurationUs`, `null` when it has none (D53). An image asset whose
+   * facts the host supplied states its `width` and `height` as an image node
+   * lays it out (D62).
    */
   readonly assets: readonly unknown[];
   /** The composition's clips, in composition time, as the document stores them. */
@@ -109,7 +111,8 @@ function describeNode(
 
 /**
  * Describes a validated document (D46.3), with the source duration of every
- * video and audio asset whose facts `mediaFactsOf` knows (D49.6, D53). The result shares no object with the
+ * video and audio asset, and the size of every image, whose facts `mediaFactsOf`
+ * knows (D49.6, D53, D62). The result shares no object with the
  * document's arrays it lists — it is a fresh JSON value — and is deep-frozen.
  */
 export function describeDocument(
@@ -135,9 +138,9 @@ export function describeDocument(
       transitions: scene.transitions,
     })),
     assets: copy.assets.map((asset) => {
-      const facts =
-        asset.type === 'video' || asset.type === 'audio' ? mediaFactsOf(asset.contentHash) : null;
+      const facts = asset.type === 'font' ? null : mediaFactsOf(asset.contentHash);
       if (facts === null || facts.type !== asset.type) return asset;
+      if (facts.type === 'image') return { ...asset, width: facts.width, height: facts.height };
       if (facts.type === 'audio' || facts.audioDurationUs === undefined) {
         return { ...asset, sourceDurationUs: facts.durationUs };
       }

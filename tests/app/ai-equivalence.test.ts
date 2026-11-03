@@ -68,6 +68,7 @@ async function drag(start: unknown, dx: number, dy: number): Promise<Gesture> {
     prepareVideo: () => Promise.reject(new Error('The test document has no video.')),
     prepareAudio: () =>
       Promise.reject(Object.assign(new Error('No Web Audio here.'), { code: 'audio-unsupported' })),
+    prepareImage: () => Promise.reject(new Error('The test reads no image facts.')),
     update(next) {
       loaded.push(next);
       return Promise.resolve();

@@ -30,6 +30,10 @@ export type RenderErrorCode =
   | 'asset-hash-mismatch'
   /** The resolver returned something that is not bytes with a media type (D27.3). */
   | 'asset-invalid'
+  /** An image asset of a media type whose header Kadrion does not read: not PNG, JPEG, or WebP (D62.1). */
+  | 'image-unsupported'
+  /** The bytes of an image asset are not a whole file of its media type: mislabelled, empty, or cut short (D62.1). */
+  | 'image-invalid'
   /** A script for the render page would end or reinterpret its script element (D25.2). */
   | 'unsafe-script'
   /**

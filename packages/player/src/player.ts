@@ -10,6 +10,7 @@
 import {
   RENDER_PAGE_FRAME_STYLE,
   RENDER_PAGE_SANDBOX,
+  readImageSize,
   renderPageDocument,
   resolveOneAsset,
   type AssetRequest,
@@ -97,6 +98,12 @@ export type PlayerAssetResolver = (
 
 /** The media facts of a verified video (D49.6, D51.5), and of a decoded sound (D53). */
 export type { PlayerAudioFacts, PlayerVideoFacts };
+
+/** The size of a verified image as an image node lays it out, read from its header (D62.1). */
+export interface PlayerImageFacts {
+  readonly width: number;
+  readonly height: number;
+}
 
 /**
  * The sound of the preview (D53): the Web Audio context the Player plays the
@@ -241,6 +248,18 @@ export interface Player {
     asset: PlayerAssetRequest,
     resolveAsset: PlayerAssetResolver,
   ): Promise<PlayerAudioFacts>;
+  /**
+   * Resolves and verifies one image asset and reads its size from its header
+   * (D62.1), before any document uses it, without decoding it: the size is
+   * the same as the Producer reads. The verified bytes are kept for a later
+   * `load` or `update`. A media type other than PNG, JPEG, or WebP is
+   * `image-unsupported`; bytes that are not a whole file of their media type
+   * are `image-invalid`.
+   */
+  prepareImage(
+    asset: PlayerAssetRequest,
+    resolveAsset: PlayerAssetResolver,
+  ): Promise<PlayerImageFacts>;
   destroy(): void;
 }
 
@@ -772,6 +791,8 @@ export async function createPlayer(
   let shownAssets: PreparedAssets | null = null;
   /** Videos verified and read by `prepareVideo`, by content hash (D51.5). */
   const preparedVideos = new Map<string, VerifiedVideo>();
+  /** Images verified by `prepareImage`, by content hash (D62). */
+  const preparedImages = new Map<string, PlayerAsset>();
   /** The decoders of the document shown now, or `null` without video nodes (D51.4). */
   let videoSource: VideoFrameSource | null = null;
   /** Updates run one after another, each after the one before has settled. */
@@ -932,10 +953,13 @@ export async function createPlayer(
       for (const [hash, video] of shownAssets.videos) videos.set(hash, video);
       for (const [hash, sound] of shownAssets.sounds) sounds.set(hash, sound);
     }
+    const bytes = new Map(preparedImages);
+    if (includeShown && shownAssets !== null) {
+      for (const [hash, asset] of shownAssets.bytes) bytes.set(hash, asset);
+    }
     return {
       sounds,
-      bytes:
-        includeShown && shownAssets !== null ? shownAssets.bytes : new Map<string, PlayerAsset>(),
+      bytes,
       blobs:
         includeShown && shownAssets !== null ? shownAssets.blobs : new Map<string, VerifiedBlob>(),
       videos,
@@ -1520,6 +1544,42 @@ export async function createPlayer(
         throw withAsset(typed(reason), { id, contentHash });
       }
     },
+    async prepareImage(asset, resolveAsset) {
+      if (destroyed) throw new PlayerError('destroyed', 'The Player was destroyed.');
+      const given: unknown = asset;
+      const { id, type, contentHash } = (
+        typeof given === 'object' && given !== null ? given : {}
+      ) as Partial<PlayerAssetRequest>;
+      if (
+        typeof id !== 'string' ||
+        type !== 'image' ||
+        typeof contentHash !== 'string' ||
+        !CONTENT_HASH.test(contentHash)
+      ) {
+        throw new PlayerError(
+          'invalid-options',
+          'prepareImage needs { id, type: "image", contentHash } with a sha256 content hash.',
+        );
+      }
+      try {
+        const cached = preparedImages.get(contentHash) ?? shownAssets?.bytes.get(contentHash);
+        const verified = await resolveOneAsset(
+          { id, type, contentHash },
+          (request) =>
+            cached ?? (resolveAsset(request) as PlayerAsset | null | Promise<PlayerAsset | null>),
+          sha256,
+        );
+        // Checked here too: `resolveOneAsset` reads the header only for the media types it knows.
+        const { width, height } = readImageSize(verified.bytes, verified.mediaType);
+        preparedImages.set(contentHash, {
+          mediaType: verified.mediaType,
+          bytes: verified.bytes.slice(),
+        });
+        return Object.freeze({ width, height });
+      } catch (reason) {
+        throw withAsset(typed(reason), { id, contentHash });
+      }
+    },
     subscribe(listener) {
       if (onListenerError === undefined) {
         throw new PlayerError(
@@ -1549,6 +1609,7 @@ export async function createPlayer(
       videoSource = null;
       preparedVideos.clear();
       preparedSounds.clear();
+      preparedImages.clear();
       frame.remove();
     },
   };

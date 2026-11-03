@@ -29,6 +29,10 @@ export type ProducerErrorCode =
   | 'asset-decode-failed'
   /** The page cannot wait for images or fonts (D25.3). */
   | 'readiness-unsupported'
+  /** The bytes of a PNG, JPEG, or WebP image are not a whole file of its media type (D62.1). */
+  | 'image-invalid'
+  /** The pinned Chromium decodes an image to another size than its header states (D62.3). */
+  | 'image-size-mismatch'
   /** A Custom HTML element did not acknowledge the time (D23.4). */
   | 'custom-html-timeout'
   /** A Custom HTML element loaded another document than its shell; the render ends (D23.9). */
@@ -95,6 +99,7 @@ const PAGE_CODES: readonly ProducerErrorCode[] = [
   'font-load-failed',
   'asset-decode-failed',
   'readiness-unsupported',
+  'image-invalid',
   'custom-html-timeout',
   'custom-html-navigated',
   'video-frames-invalid',

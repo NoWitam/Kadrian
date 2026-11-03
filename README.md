@@ -560,6 +560,18 @@ reads these facts, so the bus refuses a clip or a heard video that reads past
 its source (`source-range-exceeded`) or whose source it does not know
 (`media-facts-missing`).
 
+**The size of an image.** `player.prepareImage(asset, resolveAsset)` verifies
+one image asset and returns `{ width, height }`, read from its PNG, JPEG, or
+WebP header by Kadrion's own parser, with no decode; `session.readMediaFacts`
+of an image returns `{ type: 'image', width, height }` the same way (D62). The
+size is the one an image node lays out: the EXIF orientation of a JPEG or a
+PNG is applied as the pinned Chromium applies it, and a WebP's is ignored, as
+Chromium ignores it. Another media type is `image-unsupported`, and bytes that
+are not a whole file of their media type are `image-invalid`, in both hosts,
+which refuse such an image when they resolve it. The Producer compares each
+image's header with the pinned Chromium's decode before the first frame
+(`image-size-mismatch`).
+
 **Custom HTML in the Player.** Custom HTML is disabled by default (D36). A
 Player created without `customHtml` never runs it: every Custom HTML element
 is an empty box of its size and place, with no frame, so none of its script,

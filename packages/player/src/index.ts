@@ -21,6 +21,7 @@ export type {
   PlayerAudio,
   PlayerAudioFacts,
   PlayerCustomHtmlPolicy,
+  PlayerImageFacts,
   PlayerListener,
   PlayerListenerErrorHandler,
   PlayerOptions,

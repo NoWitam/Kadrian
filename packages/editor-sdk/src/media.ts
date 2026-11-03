@@ -1,6 +1,7 @@
 /**
- * Media facts at the command bus (D49.6, D50.6, D53). A fact of a source — the
- * duration of a video, or of a sound — is a pure function of its bytes, and
+ * Media facts at the command bus (D49.6, D50.6, D53, D62). A fact of a source —
+ * the duration of a video, or of a sound, or the size of an image — is a pure
+ * function of its bytes, and
  * therefore of its `contentHash` (D14); the document never stores one. A host
  * that has verified the bytes supplies the facts by hash, and every command
  * whose result changes the sampled source range of a video node, or the source
@@ -40,8 +41,21 @@ export interface AudioFacts {
   readonly durationUs: number;
 }
 
+/**
+ * What a host knows of an image's bytes (D62): its size as an image node lays
+ * it out, read from its header. The bus checks nothing with it, since an
+ * image has no source range; `describeDocument` reports it.
+ */
+export interface ImageFacts {
+  readonly type: 'image';
+  /** In pixels, a whole number of at least 1. */
+  readonly width: number;
+  /** In pixels, a whole number of at least 1. */
+  readonly height: number;
+}
+
 /** The facts of one asset. */
-export type MediaFacts = VideoFacts | AudioFacts;
+export type MediaFacts = VideoFacts | AudioFacts | ImageFacts;
 
 /** The facts of the bytes with this content hash, or `null` when the host has none. */
 export type MediaFactsLookup = (contentHash: string) => MediaFacts | null;
@@ -84,11 +98,20 @@ function isDuration(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 
+function isSize(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
+}
+
 /** Reads a host's facts once, as plain data: anything else is no facts. */
 export function factsOf(lookup: MediaFactsLookup, contentHash: string): MediaFacts | null {
   const facts: unknown = lookup(contentHash);
   if (typeof facts !== 'object' || facts === null) return null;
-  const { type, durationUs, audioDurationUs } = facts as Partial<Record<string, unknown>>;
+  const { type, durationUs, audioDurationUs, width, height } = facts as Partial<
+    Record<string, unknown>
+  >;
+  if (type === 'image') {
+    return isSize(width) && isSize(height) ? { type, width, height } : null;
+  }
   if (!isDuration(durationUs)) return null;
   if (type === 'audio') return { type, durationUs };
   if (type !== 'video') return null;
@@ -100,7 +123,7 @@ export function factsOf(lookup: MediaFactsLookup, contentHash: string): MediaFac
 
 /** The source length a sound of the plan reads from, `null` for none, or `undefined` if unknown. */
 function soundLength(entry: AudioPlanEntry, facts: MediaFacts | null): number | null | undefined {
-  if (facts === null) return undefined;
+  if (facts === null || facts.type === 'image') return undefined;
   if (entry.kind === 'clip') return facts.type === 'audio' ? facts.durationUs : undefined;
   return facts.type === 'video' ? facts.audioDurationUs : undefined;
 }
@@ -145,7 +168,7 @@ export function checkSourceRanges(
     }
     if (video.range === null) continue;
     const facts = lookup === null ? null : factsOf(lookup, video.contentHash);
-    if (facts === null) missing.push(video.nodeId);
+    if (facts === null || facts.type === 'image') missing.push(video.nodeId);
     else if (!sourceRangeFits(video.range, facts.durationUs)) {
       exceeded.push(
         `${video.nodeId}: samples ${String(video.range.startUs)} to ${String(video.range.startUs + video.range.durationUs)} µs of a source of ${String(facts.durationUs)} µs`,

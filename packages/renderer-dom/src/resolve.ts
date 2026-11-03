@@ -9,6 +9,7 @@
 import type { Asset, ValidatedComposition } from '@kadrion/schema';
 
 import { RenderError } from './errors.js';
+import { readImageSize, imageSizeKnown } from './image-size.js';
 import { mediaTypeFits } from './media-type.js';
 
 type AssetType = Asset['type'];
@@ -56,8 +57,9 @@ function messageOf(reason: unknown): string {
  * Resolves every asset of the document through the host's resolver and verifies
  * its hash: for each asset, in the document's order, the resolver is called once
  * with a frozen request. A missing asset, a failing resolver, something that is
- * not bytes with a media type, or a hash mismatch is a `RenderError` before any
- * later asset is asked for. Only declared assets are asked for.
+ * not bytes with a media type, a hash mismatch, or a PNG, JPEG, or WebP image
+ * whose header is not a whole file of its media type (`image-invalid`, D62.1)
+ * is a `RenderError` before any later asset is asked for. Only declared assets are asked for.
  */
 export async function resolveAssets(
   composition: ValidatedComposition,
@@ -107,6 +109,15 @@ export async function resolveOneAsset(
       'asset-hash-mismatch',
       `The bytes of "${id}" have ${actual}, not ${contentHash}.`,
     );
+  }
+  // An image whose header Kadrion reads must be a whole file of its media type (D62.1).
+  if (type === 'image' && imageSizeKnown(mediaType)) {
+    try {
+      readImageSize(copy, mediaType);
+    } catch (reason) {
+      if (!(reason instanceof RenderError)) throw reason;
+      throw new RenderError(reason.code, `The image "${id}" cannot be read: ${reason.message}`);
+    }
   }
   return { id, type, mediaType, contentHash, bytes: copy };
 }

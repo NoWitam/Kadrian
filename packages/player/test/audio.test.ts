@@ -27,6 +27,7 @@ import {
   type PlayerScheduler,
 } from '../src/index.js';
 import { createHarness, sleep } from './harness.js';
+import { headerPng } from './media.js';
 
 const R = 48_000;
 
@@ -363,7 +364,7 @@ const runtime = {
 
 const bytesOf: Readonly<Record<string, PlayerAsset>> = {
   'asset-image': {
-    bytes: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]),
+    bytes: headerPng(1),
     mediaType: 'image/png',
   },
   'asset-font': { bytes: new Uint8Array([0, 1, 0, 0]), mediaType: 'font/ttf' },

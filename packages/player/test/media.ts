@@ -329,3 +329,29 @@ export function installCodecs(view: object, options: { supported?: boolean } = {
   Object.defineProperty(view, 'EncodedVideoChunk', { configurable: true, value: Chunk });
   return log;
 }
+
+/**
+ * A 1 x 1 PNG whose chunks are whole, so its header can be read (D62.1);
+ * `seed` is its only byte of image data. jsdom decodes no image, so its pixels
+ * do not matter, and each seed makes other bytes with another hash.
+ */
+export function headerPng(seed: number): Uint8Array {
+  const chunk = (type: string, data: readonly number[]): number[] => [
+    0,
+    0,
+    0,
+    data.length,
+    ...Array.from(type, (char) => char.charCodeAt(0)),
+    ...data,
+    0,
+    0,
+    0,
+    0,
+  ];
+  return Uint8Array.from([
+    ...[137, 80, 78, 71, 13, 10, 26, 10],
+    ...chunk('IHDR', [0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0]),
+    ...chunk('IDAT', [seed]),
+    ...chunk('IEND', []),
+  ]);
+}
