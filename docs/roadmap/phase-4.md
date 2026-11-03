@@ -1,8 +1,9 @@
 # Phase four: a host integrates the engine
 
-- Status: Proposed (PR-36, 2026-11-02). Accepting this roadmap approves no
-  pull request: each one below has its own plan, review, and decisions, and
-  its ADR is accepted on its own.
+- Status: Accepted as a direction by the project owner on 2026-11-03 (PR-36,
+  merged as PR #36), with every recommendation of the questions at the end.
+  Accepting this roadmap approves no pull request: each one below has its own
+  plan, review, and decisions, and its ADR is accepted on its own.
 - Starting point: `main` at `c0d7120`. Phase three is complete (PR-23 to
   PR-34b, D44 to D59), schema `0.9`, 62 AI tools, Q14 closed by the evidence of
   the push run of `bde9bb9` (PR #35).
@@ -358,6 +359,12 @@ loop })`, validated on the frame grid (D13); playback stays inside the range,
   and thumbnails for a host's timeline (question 7).
 
 ## Questions for the owner, with recommendations
+
+Answered by the owner on 2026-11-03: every question as recommended. Question
+1 is carried out with the acceptance of this plan (`AGENTS.md` names phase
+four as current); question 4 keeps PR-39b in the plan as schema `0.10`;
+question 6 leaves the tag `v0.1.0` to the owner. The other answers are
+directions for the ADRs named in them; each ADR is still accepted on its own.
 
 1. **`AGENTS.md` for phase four.** It names phase three as current.
    Recommendation: on acceptance of this plan, "Current phase" names phase four
