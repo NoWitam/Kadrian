@@ -36,6 +36,8 @@ are those of the spike and may still change.
   two: authoring and the integration contract for the Taskio editor
 - [`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md) — the plan of phase
   three: the engine under a host's video editor
+- [`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md) — the proposed plan of
+  phase four: a host integrates the engine
 - [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, and how
   Q14 closes and reopens
 - [`docs/architecture/package-boundaries.json`](docs/architecture/package-boundaries.json)
