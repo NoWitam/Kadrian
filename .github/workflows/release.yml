@@ -48,6 +48,8 @@ jobs:
           name: kadrion-release
           path: .kadrion-release/
           if-no-files-found: error
+          # The directory starts with a dot, which upload-artifact v4 skips by default.
+          include-hidden-files: true
 
   publish:
     needs: pack
@@ -78,4 +80,10 @@ jobs:
             echo
             echo "No licence is granted: the code is proprietary, and these files are not published to any registry (D37)."
           } > notes.md
-          gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "Kadrion $GITHUB_REF_NAME" --notes-file notes.md
+          # A release the owner already made in the GitHub UI for this tag gets the files attached; otherwise it is created.
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "Kadrion $GITHUB_REF_NAME" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" release/* --repo "$GITHUB_REPOSITORY" --verify-tag --title "Kadrion $GITHUB_REF_NAME" --notes-file notes.md
+          fi

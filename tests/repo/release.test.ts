@@ -241,6 +241,10 @@ describe('the release workflow (D45)', () => {
     expect(workflow).toContain('tests/release/pack-release.ts');
     expect(workflow).toContain('tests/release/smoke-release.ts --dir .kadrion-release --render');
     expect(workflow).toContain('gh release create');
+    // The pack directory is hidden; without this the artifact is empty and the release fails.
+    expect(workflow).toContain('include-hidden-files: true');
+    // A release already made in the UI for the tag gets the files instead of failing.
+    expect(workflow).toContain('gh release upload');
     // Every action is pinned by its commit.
     for (const line of workflow.split('\n').filter((entry) => entry.includes('uses:'))) {
       expect(line).toMatch(/uses: [\w/-]+@[0-9a-f]{40} # v\d/);
