@@ -24,12 +24,16 @@ end-to-end path:
 5. The Producer exports an H.264 MP4 without storing all intermediate frames.
 
 Phase two (authoring, `docs/roadmap/phase-2.md`) delivered PR-18 to PR-22.
-The current phase is phase three: the engine under a host's video editor
-(video, audio, scenes, transitions, captions, templates, and rendering in
-range jobs). `docs/roadmap/phase-3.md` holds the plan; every pull request of it
+Phase three (`docs/roadmap/phase-3.md`) delivered the engine under a host's
+video editor (video, audio, scenes, transitions, captions, templates, and
+rendering in range jobs), PR-23 to PR-34b. The current phase is phase four: a
+host integrates the engine (the public surface, the Player's playback events,
+image facts and the focus point of `cover`, media read by path in the
+Producer, `kadrion migrate`, showcases, and the host flow on released
+tarballs). `docs/roadmap/phase-4.md` holds the plan; every pull request of it
 is approved separately.
 
-Do not turn phase three into an end-user editor, a media platform, a plugin
+Do not turn phase four into an end-user editor, a media platform, a plugin
 ecosystem, a render service, or a Taskio integration inside this repository.
 
 ## Accepted architectural decisions
