@@ -1,5 +1,5 @@
 /**
- * Composition schema 0.9: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.10: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
@@ -17,8 +17,9 @@
  * their constraints and defaults and the bindings of node properties and
  * assets to them, empty in a composition that is no template (D58); 0.9 is
  * 0.8 plus the conditions and repeats of a template and the bindings of the
- * fields of a list's items (D59). The schemas of 0.1 to 0.8 are kept as data
- * in `v0-1` to `v0-8` (D35.4).
+ * fields of a list's items (D59); 0.10 is 0.9 plus the focus point of images
+ * and videos (D63). The schemas of 0.1 to 0.9 are kept as data in `v0-1` to
+ * `v0-9` (D35.4).
  */
 import {
   closedObject,
@@ -30,7 +31,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.9';
+export const SCHEMA_VERSION = '0.10';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -216,9 +217,27 @@ const fadeUs = {
 const fit = {
   type: 'string',
   description:
-    'How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture (D50).',
+    'How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and place the picture by its focus (D50, D63).',
   enum: ['fill', 'contain', 'cover'],
 } as const satisfies StringSchema;
+
+/** One coordinate of a focus point, in per mille of the side of the picture (D63.1). */
+const focusCoordinate = {
+  type: 'integer',
+  description:
+    'Per mille of the side of the picture, from 0 at its left or top edge to 1000 at its right or bottom edge (D63.1).',
+  minimum: 0,
+  maximum: 1000,
+} as const satisfies NumberSchema;
+
+/** Which point of the picture `fit` keeps in place, as CSS `object-position` (D63). */
+const focus = closedObject(
+  'The point of the picture that stays in the box: the point at x per mille of its width and y per mille of its height lies at the same fraction of the width and height of the box. It chooses what cover crops and where contain leaves its bars; under fill the picture is the box, so it changes nothing. 500, 500 is the centre (D63).',
+  {
+    x: focusCoordinate,
+    y: focusCoordinate,
+  },
+);
 
 export const imageNodeSchema = closedObject('An image asset fitted to the box of the node.', {
   id,
@@ -229,6 +248,7 @@ export const imageNodeSchema = closedObject('An image asset fitted to the box of
   width: length,
   height: length,
   fit,
+  focus,
 });
 
 export const videoNodeSchema = closedObject(
@@ -247,6 +267,7 @@ export const videoNodeSchema = closedObject(
     width: length,
     height: length,
     fit,
+    focus,
     volume: {
       ...volume,
       description:
@@ -1011,7 +1032,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.9',
+  title: 'Kadrion composition 0.10',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

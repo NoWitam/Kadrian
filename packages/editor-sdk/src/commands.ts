@@ -7,7 +7,7 @@
  * (D31.2). `parseCommand` (in `registry.ts`) is the only way a command comes
  * into existence; the parsers here read the fields of one command type.
  */
-import { compositionSchema, type Asset, type Fit } from '@kadrion/schema';
+import { compositionSchema, type Asset, type Fit, type Focus } from '@kadrion/schema';
 
 import { keyframeTimeBounds } from './animations.js';
 import { lifetimeBounds, type Bounds } from './lifetimes.js';
@@ -327,6 +327,20 @@ export interface SetNodeFitArguments {
 /** How an image or a video meets its box: `fill`, `contain`, or `cover` (D50.1, D50.6). */
 export interface SetNodeFitCommand extends SetNodeFitArguments {
   readonly type: 'SetNodeFit';
+}
+
+/** What a caller states for `SetNodeFocus` (D63.4). */
+export interface SetNodeFocusArguments {
+  readonly nodeId: string;
+  readonly focus: Focus;
+}
+
+/**
+ * Which point of the picture of an image or a video its fit keeps in place, in
+ * per mille of the picture's width and height (D63.1, D63.4).
+ */
+export interface SetNodeFocusCommand extends SetNodeFocusArguments {
+  readonly type: 'SetNodeFocus';
 }
 
 /** What a caller states for `SetVideoAsset` (D50.6). */
@@ -819,6 +833,7 @@ export type Command =
   | MoveKeyframeCommand
   | SetNodeLifetimeCommand
   | SetNodeFitCommand
+  | SetNodeFocusCommand
   | SetVideoAssetCommand
   | SetVideoSourceCommand
   | SetVideoVolumeCommand
@@ -934,6 +949,15 @@ export type SetTextFontSizeArgumentsSchema = ClosedObjectSchema<keyof SetTextFon
 export type SetTextFontArgumentsSchema = ClosedObjectSchema<keyof SetTextFontArguments>;
 export type SetImageAssetArgumentsSchema = ClosedObjectSchema<keyof SetImageAssetArguments>;
 export type SetNodeFitArgumentsSchema = ClosedObjectSchema<keyof SetNodeFitArguments>;
+/** The argument schema of `SetNodeFocus`, typed by the fields of its arguments. */
+export interface SetNodeFocusArgumentsSchema extends ClosedObjectSchema<
+  keyof SetNodeFocusArguments
+> {
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly focus: ClosedObjectSchema<keyof Focus>;
+  };
+}
 export type SetVideoAssetArgumentsSchema = ClosedObjectSchema<keyof SetVideoAssetArguments>;
 export type SetVideoSourceArgumentsSchema = ClosedObjectSchema<keyof SetVideoSourceArguments>;
 export type SetVideoVolumeArgumentsSchema = ClosedObjectSchema<keyof SetVideoVolumeArguments>;
@@ -1337,6 +1361,11 @@ const VIDEO_SHAPE = NODE_SHAPES.find(
 if (VIDEO_SHAPE === undefined) throw new Error('The schema has no video node.');
 /** The values of `fit`, read from the schema (D50.1); images and videos share them. */
 const FITS: readonly Fit[] = VIDEO_SHAPE.properties.fit.enum;
+/** The bounds of a coordinate of `focus`, read from the schema (D63.1); images and videos share them. */
+const FOCUS: Bounds = {
+  minimum: VIDEO_SHAPE.properties.focus.properties.x.minimum,
+  maximum: VIDEO_SHAPE.properties.focus.properties.x.maximum,
+};
 /** The bounds of `sourceStartUs`, read from the schema (D50.1). */
 const SOURCE_START: Bounds = {
   minimum: VIDEO_SHAPE.properties.sourceStartUs.minimum,
@@ -1356,11 +1385,54 @@ export const setNodeFitArgumentsSchema: SetNodeFitArgumentsSchema = deepFreeze({
     fit: {
       type: 'string',
       description:
-        'fill stretches the picture to the box; contain shows all of it inside the box; cover fills the box and crops. contain and cover keep the aspect ratio and centre the picture.',
+        'fill stretches the picture to the box; contain shows all of it inside the box; cover fills the box and crops. contain and cover keep the aspect ratio and place the picture by its focus, the centre unless set_node_focus moved it.',
       enum: FITS,
     },
   },
   required: ['nodeId', 'fit'],
+  additionalProperties: false,
+});
+
+const FOCUS_COORDINATE = `An integer from ${String(FOCUS.minimum)} to ${String(FOCUS.maximum)}, per mille`;
+
+/**
+ * The JSON Schema of the arguments of `SetNodeFocus` (D63.4). The coordinates
+ * are integers in the document's bounds: nothing is rounded or clamped, so the
+ * schema states the bounds and `parseCommand` refuses a value outside them as
+ * `invalid-argument`.
+ */
+export const setNodeFocusArgumentsSchema: SetNodeFocusArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets which point of the picture of an image or a video stays in its box.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only images and videos have a focus.`,
+      minLength: 1,
+    },
+    focus: {
+      type: 'object',
+      description:
+        'The focus point, in per mille of the picture: the point at x per mille of its width and y per mille of its height lies at the same fraction of the box. 500, 500 is the centre.',
+      properties: {
+        x: {
+          type: 'integer',
+          description: `${FOCUS_COORDINATE} of the width of the picture, from its left edge.`,
+          minimum: FOCUS.minimum,
+          maximum: FOCUS.maximum,
+        },
+        y: {
+          type: 'integer',
+          description: `${FOCUS_COORDINATE} of the height of the picture, from its top edge.`,
+          minimum: FOCUS.minimum,
+          maximum: FOCUS.maximum,
+        },
+      },
+      required: ['x', 'y'],
+      additionalProperties: false,
+    },
+  },
+  required: ['nodeId', 'focus'],
   additionalProperties: false,
 });
 
@@ -3084,6 +3156,38 @@ export function parseSetNodeFit(value: unknown): SetNodeFitCommand {
     throw new EditorError('invalid-argument', `\`fit\` must be one of ${FITS.join(', ')}.`);
   }
   return Object.freeze({ type: 'SetNodeFit', nodeId, fit: known });
+}
+
+/** One coordinate of a focus point: an integer in the bounds of the schema (D63.1). */
+function focusCoordinate(value: unknown, what: string): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < FOCUS.minimum ||
+    value > FOCUS.maximum
+  ) {
+    throw new EditorError(
+      'invalid-argument',
+      `${what} must be an integer from ${String(FOCUS.minimum)} to ${String(FOCUS.maximum)}, not ${typeof value === 'number' ? String(value) : typeof value}.`,
+    );
+  }
+  // -0 is an integer in the bounds; the document stores 0 (see `integerPixels`).
+  return value === 0 ? 0 : value;
+}
+
+/** The fields of a `SetNodeFocus` (D63.4): closed, a non-empty ID, integer per mille. */
+export function parseSetNodeFocus(value: unknown): SetNodeFocusCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'focus'], 'The command `SetNodeFocus`');
+  const nodeId = nodeIdOf(fields);
+  const focus = fieldsOf(fields['focus'], ['x', 'y'], '`focus`');
+  return Object.freeze({
+    type: 'SetNodeFocus',
+    nodeId,
+    focus: Object.freeze({
+      x: focusCoordinate(focus['x'], '`focus.x`'),
+      y: focusCoordinate(focus['y'], '`focus.y`'),
+    }),
+  });
 }
 
 /** The fields of a `SetVideoAsset` (D50.6): the asset is looked up when the command applies. */

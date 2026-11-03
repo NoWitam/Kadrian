@@ -94,6 +94,7 @@ describe('videos with their scene (D54.3)', () => {
     width: 320,
     height: 180,
     fit: 'contain',
+    focus: { x: 500, y: 500 },
     volume: 0.5,
   };
   const withVideo = (() => {

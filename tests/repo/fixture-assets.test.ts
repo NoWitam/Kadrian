@@ -12,8 +12,8 @@ const PLACEHOLDER_HASH = /^sha256:0{56}/;
 const CONTENT_HASH = /^sha256:[0-9a-f]{64}$/;
 /** The only place where committed binaries may live: the golden frames of D26.5. */
 const GOLDEN_DIRECTORY = 'packages/test-fixtures/src/golden-frames/';
-/** The golden manifests: the reference composition, the video composition of D50.8, the transitions composition of D56, and the captions composition of D57. */
-const GOLDEN_MANIFESTS = ['reference', 'video', 'transitions', 'captions'].map(
+/** The golden manifests: the reference composition, the video composition of D50.8, the transitions composition of D56, the captions composition of D57, and the focus composition of D63. */
+const GOLDEN_MANIFESTS = ['reference', 'video', 'transitions', 'captions', 'focus'].map(
   (name) => `${GOLDEN_DIRECTORY}${name}.golden-frames.json`,
 );
 

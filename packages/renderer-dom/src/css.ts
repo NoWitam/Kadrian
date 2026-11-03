@@ -30,6 +30,16 @@ export function cssColor(hex: string): string {
   return `rgb(${channels.join(', ')})`;
 }
 
+/**
+ * The `object-position` of a focus point (D63.2): per mille of the picture's
+ * sides as a percentage, which CSS reads as the same fraction of the picture and
+ * of the box, so the focus point lies at that fraction of the box. The centre,
+ * 500 per mille, is `50% 50%`, the initial value the renderer had before 0.10.
+ */
+export function cssObjectPosition(focus: { readonly x: number; readonly y: number }): string {
+  return `${cssNumber(focus.x / 10)}% ${cssNumber(focus.y / 10)}%`;
+}
+
 /** The font family a text node names (D22.6); asset IDs are valid CSS identifier characters. */
 export function fontFamily(fontAssetId: string): string {
   return `kadrion-font-${fontAssetId}`;

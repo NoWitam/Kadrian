@@ -167,6 +167,12 @@ export declare const captionsComposition: unknown;
 ---- captionsGoldenTimestamps
 export declare const captionsGoldenTimestamps: readonly GoldenTimestamp[];
 
+---- focusComposition
+export declare const focusComposition: unknown;
+
+---- focusGoldenTimestamps
+export declare const focusGoldenTimestamps: readonly GoldenTimestamp[];
+
 ---- generateReferenceAssets
 export declare function generateReferenceAssets(): readonly FixtureAsset[];
 
@@ -200,6 +206,9 @@ export declare const invalidCompositionCasesV07: readonly InvalidCompositionCase
 ---- invalidCompositionCasesV08
 export declare const invalidCompositionCasesV08: readonly InvalidCompositionCase[];
 
+---- invalidCompositionCasesV09
+export declare const invalidCompositionCasesV09: readonly InvalidCompositionCase[];
+
 ---- lifetimeComposition
 export declare const lifetimeComposition: unknown;
 
@@ -230,6 +239,9 @@ export declare const migrationPair07To08: MigrationPair;
 ---- migrationPair08To09
 export declare const migrationPair08To09: MigrationPair;
 
+---- migrationPair09To10
+export declare const migrationPair09To10: MigrationPair;
+
 ---- referenceComposition
 export declare const referenceComposition: unknown;
 
@@ -256,6 +268,9 @@ export declare const referenceCompositionV07: unknown;
 
 ---- referenceCompositionV08
 export declare const referenceCompositionV08: unknown;
+
+---- referenceCompositionV09
+export declare const referenceCompositionV09: unknown;
 
 ---- referenceExpectedRender
 export declare const referenceExpectedRender: ExpectedRender;

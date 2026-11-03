@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.9",
+  "schemaVersion": "0.10",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -48,6 +48,7 @@
           "width": 320,
           "height": 180,
           "fit": "fill",
+          "focus": { "x": 500, "y": 500 },
           "volume": 0
         },
         {
@@ -68,7 +69,8 @@
           "assetId": "asset-image",
           "width": 150,
           "height": 160,
-          "fit": "contain"
+          "fit": "contain",
+          "focus": { "x": 500, "y": 500 }
         },
         {
           "id": "node-video-cover",
@@ -90,6 +92,7 @@
           "width": 160,
           "height": 160,
           "fit": "cover",
+          "focus": { "x": 500, "y": 500 },
           "volume": 0
         },
         {
@@ -150,6 +153,7 @@
               "width": 280,
               "height": 200,
               "fit": "contain",
+              "focus": { "x": 500, "y": 500 },
               "volume": 0
             },
             {
@@ -170,7 +174,8 @@
               "assetId": "asset-image",
               "width": 280,
               "height": 120,
-              "fit": "cover"
+              "fit": "cover",
+              "focus": { "x": 500, "y": 500 }
             }
           ]
         }

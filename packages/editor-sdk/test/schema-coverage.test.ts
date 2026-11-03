@@ -212,6 +212,15 @@ const EDITED = [
     command: (nodeId: string): Command => ({ type: 'SetNodeFit', nodeId, fit: 'cover' }),
     expected: 'cover',
   },
+  {
+    field: 'focus',
+    command: (nodeId: string): Command => ({
+      type: 'SetNodeFocus',
+      nodeId,
+      focus: { x: 250, y: 750 },
+    }),
+    expected: { x: 250, y: 750 },
+  },
 ] as const;
 
 /**
@@ -250,6 +259,7 @@ describe('the node types the commands of D40 accept (D30.8)', () => {
     expect(carriers('fontAssetId')).toEqual(['captions', 'text']);
     expect(carriers('assetId')).toEqual(['image', 'video']);
     expect(carriers('fit')).toEqual(['image', 'video']);
+    expect(carriers('focus')).toEqual(['image', 'video']);
   });
 
   for (const row of EDITED) {

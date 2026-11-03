@@ -56,6 +56,9 @@ export type CustomHtmlNode = Infer<typeof customHtmlNodeSchema>;
 ---- Fit (type only)
 export type Fit = ImageNode['fit'];
 
+---- Focus (type only)
+export type Focus = ImageNode['focus'];
+
 ---- GroupNode (type only)
 export type GroupNode = Infer<typeof groupNodeSchema>;
 
@@ -72,7 +75,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.9";
+export declare const SCHEMA_VERSION = "0.10";
 
 ---- Scene (type only)
 export type Scene = Infer<typeof sceneSchema>;
@@ -216,7 +219,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.9";
+            readonly const: "0.10";
         };
         readonly width: {
             readonly type: "integer";
@@ -341,13 +344,27 @@ export declare const compositionSchema: {
                                                 };
                                                 readonly fit: {
                                                     readonly type: "string";
-                                                    readonly description: "How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture (D50).";
+                                                    readonly description: "How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and place the picture by its focus (D50, D63).";
                                                     readonly enum: readonly [
                                                         "fill",
                                                         "contain",
                                                         "cover"
                                                     ];
                                                 };
+                                                readonly focus: import("./json-schema.js").ClosedObject<{
+                                                    readonly x: {
+                                                        readonly type: "integer";
+                                                        readonly description: "Per mille of the side of the picture, from 0 at its left or top edge to 1000 at its right or bottom edge (D63.1).";
+                                                        readonly minimum: 0;
+                                                        readonly maximum: 1000;
+                                                    };
+                                                    readonly y: {
+                                                        readonly type: "integer";
+                                                        readonly description: "Per mille of the side of the picture, from 0 at its left or top edge to 1000 at its right or bottom edge (D63.1).";
+                                                        readonly minimum: 0;
+                                                        readonly maximum: 1000;
+                                                    };
+                                                }>;
                                                 readonly position: import("./json-schema.js").ClosedObject<{
                                                     readonly x: {
                                                         readonly type: "integer";
@@ -772,13 +789,27 @@ export declare const compositionSchema: {
                                                 };
                                                 readonly fit: {
                                                     readonly type: "string";
-                                                    readonly description: "How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture (D50).";
+                                                    readonly description: "How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and place the picture by its focus (D50, D63).";
                                                     readonly enum: readonly [
                                                         "fill",
                                                         "contain",
                                                         "cover"
                                                     ];
                                                 };
+                                                readonly focus: import("./json-schema.js").ClosedObject<{
+                                                    readonly x: {
+                                                        readonly type: "integer";
+                                                        readonly description: "Per mille of the side of the picture, from 0 at its left or top edge to 1000 at its right or bottom edge (D63.1).";
+                                                        readonly minimum: 0;
+                                                        readonly maximum: 1000;
+                                                    };
+                                                    readonly y: {
+                                                        readonly type: "integer";
+                                                        readonly description: "Per mille of the side of the picture, from 0 at its left or top edge to 1000 at its right or bottom edge (D63.1).";
+                                                        readonly minimum: 0;
+                                                        readonly maximum: 1000;
+                                                    };
+                                                }>;
                                                 readonly volume: {
                                                     readonly description: "Linear factor of the amplitude of the sound of the video, from 0 to 1. At 0 the video is silent and its source needs no sound; above 0 it needs exactly one audio stream (D52).";
                                                     readonly type: "number";
@@ -1186,13 +1217,27 @@ export declare const compositionSchema: {
                                 };
                                 readonly fit: {
                                     readonly type: "string";
-                                    readonly description: "How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture (D50).";
+                                    readonly description: "How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and place the picture by its focus (D50, D63).";
                                     readonly enum: readonly [
                                         "fill",
                                         "contain",
                                         "cover"
                                     ];
                                 };
+                                readonly focus: import("./json-schema.js").ClosedObject<{
+                                    readonly x: {
+                                        readonly type: "integer";
+                                        readonly description: "Per mille of the side of the picture, from 0 at its left or top edge to 1000 at its right or bottom edge (D63.1).";
+                                        readonly minimum: 0;
+                                        readonly maximum: 1000;
+                                    };
+                                    readonly y: {
+                                        readonly type: "integer";
+                                        readonly description: "Per mille of the side of the picture, from 0 at its left or top edge to 1000 at its right or bottom edge (D63.1).";
+                                        readonly minimum: 0;
+                                        readonly maximum: 1000;
+                                    };
+                                }>;
                                 readonly position: import("./json-schema.js").ClosedObject<{
                                     readonly x: {
                                         readonly type: "integer";
@@ -1823,13 +1868,27 @@ export declare const compositionSchema: {
                                 };
                                 readonly fit: {
                                     readonly type: "string";
-                                    readonly description: "How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture (D50).";
+                                    readonly description: "How the picture meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and place the picture by its focus (D50, D63).";
                                     readonly enum: readonly [
                                         "fill",
                                         "contain",
                                         "cover"
                                     ];
                                 };
+                                readonly focus: import("./json-schema.js").ClosedObject<{
+                                    readonly x: {
+                                        readonly type: "integer";
+                                        readonly description: "Per mille of the side of the picture, from 0 at its left or top edge to 1000 at its right or bottom edge (D63.1).";
+                                        readonly minimum: 0;
+                                        readonly maximum: 1000;
+                                    };
+                                    readonly y: {
+                                        readonly type: "integer";
+                                        readonly description: "Per mille of the side of the picture, from 0 at its left or top edge to 1000 at its right or bottom edge (D63.1).";
+                                        readonly minimum: 0;
+                                        readonly maximum: 1000;
+                                    };
+                                }>;
                                 readonly volume: {
                                     readonly description: "Linear factor of the amplitude of the sound of the video, from 0 to 1. At 0 the video is silent and its source needs no sound; above 0 it needs exactly one audio stream (D52).";
                                     readonly type: "number";
@@ -3287,7 +3346,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.9";
+    readonly title: "Kadrion composition 0.10";
 };
 
 ---- frameCount
@@ -3360,7 +3419,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

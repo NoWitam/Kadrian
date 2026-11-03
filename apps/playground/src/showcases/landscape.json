@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.9",
+  "schemaVersion": "0.10",
   "width": 1920,
   "height": 1080,
   "fps": 24,
@@ -55,7 +55,8 @@
           "assetId": "asset-image",
           "width": 600,
           "height": 600,
-          "fit": "fill"
+          "fit": "fill",
+          "focus": { "x": 500, "y": 500 }
         },
         {
           "id": "node-title",

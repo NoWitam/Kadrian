@@ -2,11 +2,11 @@
  * Video nodes and `fit` in the rendered tree (D50.1, D50.4): a video is an
  * image without a source until the host supplies the frame of the instant, an
  * inactive video loses its source, and the fit of images and videos is their
- * `object-fit`. What a browser paints for them is measured in the pinned
+ * `object-fit`, and their focus their `object-position` (D63.2). What a browser paints for them is measured in the pinned
  * environment; here the tree is checked.
  */
 import { evaluateComposition } from '@kadrion/runtime';
-import { videoComposition } from '@kadrion/test-fixtures';
+import { focusComposition, videoComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { applyVideoFrames, mountComposition, renderState } from '../src/index.js';
@@ -54,6 +54,40 @@ describe('the mounted tree of video nodes (D50.4)', () => {
     );
     expect(elementOf(root, 'node-image-cover').style.getPropertyValue('object-fit')).toBe('cover');
     expect(elementOf(root, 'node-image-cover').getAttribute('src')).toBe(urls['asset-image']);
+  });
+
+  it('maps the focus of an image and a video to its object-position in percent (D63.2)', () => {
+    const root = mounted();
+    expect(elementOf(root, 'node-video-cover').style.getPropertyValue('object-position')).toBe(
+      '50% 50%',
+    );
+    const focused = createRoot();
+    mountComposition(focused, validated(focusComposition), urls, TRUSTED);
+    const positions = Object.fromEntries(
+      ['node-image-cover', 'node-image-contain', 'node-video-cover', 'node-video-contain'].map(
+        (id) => [id, elementOf(focused, id).style.getPropertyValue('object-position')],
+      ),
+    );
+    expect(positions).toEqual({
+      'node-image-cover': '0% 50%',
+      'node-image-contain': '100% 0%',
+      'node-video-cover': '85% 50%',
+      'node-video-contain': '50% 100%',
+    });
+  });
+
+  it('writes a focus of any per mille as the shortest percentage, never rounded (D22.1)', () => {
+    const draft = structuredClone(focusComposition) as {
+      scenes: { nodes: { id: string; focus?: { x: number; y: number } }[] }[];
+    };
+    const node = draft.scenes[0]?.nodes.find(({ id }) => id === 'node-image-cover');
+    if (node === undefined) throw new Error('No image.');
+    node.focus = { x: 333, y: 1 };
+    const root = createRoot();
+    mountComposition(root, validated(draft), urls, TRUSTED);
+    expect(elementOf(root, 'node-image-cover').style.getPropertyValue('object-position')).toBe(
+      '33.3% 0.1%',
+    );
   });
 
   it('needs no URL for a video asset: its pixels never arrive as one', () => {

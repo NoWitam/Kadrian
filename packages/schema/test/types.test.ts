@@ -78,6 +78,7 @@ interface ExpectedImageNode extends ExpectedTransform {
   readonly width: number;
   readonly height: number;
   readonly fit: 'fill' | 'contain' | 'cover';
+  readonly focus: { readonly x: number; readonly y: number };
 }
 
 interface ExpectedVideoNode extends ExpectedTransform {
@@ -88,6 +89,7 @@ interface ExpectedVideoNode extends ExpectedTransform {
   readonly width: number;
   readonly height: number;
   readonly fit: 'fill' | 'contain' | 'cover';
+  readonly focus: { readonly x: number; readonly y: number };
   readonly volume: number;
 }
 
@@ -338,7 +340,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.9';
+  readonly schemaVersion: '0.10';
   readonly width: number;
   readonly height: number;
   readonly fps: number;

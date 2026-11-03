@@ -475,6 +475,7 @@ export const ARTIFACT_FILES = Object.freeze([
   'exports/jobs/inputs/composition.json',
   'exports/video-1080p.mp4',
   'exports/video-720p.mp4',
+  'focus/golden-comparison.json',
   'golden-comparison.json',
   'parity/parity-measurement.json',
   'pinned-test-summary.json',

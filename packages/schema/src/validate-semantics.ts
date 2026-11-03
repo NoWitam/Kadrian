@@ -46,6 +46,10 @@ import type { CompositionV05 } from './v0-5/composition-schema.js';
 import type { CompositionV06 } from './v0-6/composition-schema.js';
 import type { CompositionV07 } from './v0-7/composition-schema.js';
 import type { CompositionV08 } from './v0-8/composition-schema.js';
+import type { CompositionV09 } from './v0-9/composition-schema.js';
+
+/** A node of a scene of 0.9, whose images and videos have no focus (D63). */
+type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -140,7 +144,8 @@ export function validateSemantics(
     | CompositionV05
     | CompositionV06
     | CompositionV07
-    | CompositionV08,
+    | CompositionV08
+    | CompositionV09,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -382,7 +387,9 @@ const TESTED_TYPES: Readonly<Record<TemplateCondition['test'], readonly string[]
  * fit; no repeat inside another, none of a side of a clip transition; and no
  * ID of the form of a copy of a repeated ID.
  */
-function checkTemplate(composition: Composition | CompositionV08): ValidationError[] {
+function checkTemplate(
+  composition: Composition | CompositionV09 | CompositionV08,
+): ValidationError[] {
   const errors: ValidationError[] = [];
   const { inputs, bindings } = composition.template;
   // The lists of 0.9 (D59); a template of 0.8 has neither.
@@ -768,7 +775,10 @@ function checkTemplate(composition: Composition | CompositionV08): ValidationErr
 }
 
 /** The scene or node with that ID, or `undefined`. */
-function subtreeOf(composition: Composition | CompositionV08, id: string): unknown {
+function subtreeOf(
+  composition: Composition | CompositionV09 | CompositionV08,
+  id: string,
+): unknown {
   for (const scene of composition.scenes) {
     if (scene.id === id) return scene;
     for (const node of scene.nodes) {
@@ -811,7 +821,11 @@ function collectIdPaths(value: unknown, path: string, into: { id: string; path: 
 
 /** A node of a scene with where it lives: its parent's ID, or `null` for the scene itself. */
 interface Located {
-  readonly node: SceneNode | Extract<SceneNode, { type: 'group' }>['children'][number];
+  readonly node:
+    | SceneNode
+    | Extract<SceneNode, { type: 'group' }>['children'][number]
+    | SceneNodeV09
+    | Extract<SceneNodeV09, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -824,7 +838,7 @@ interface Located {
  * and the two of one side together at most as long as it.
  */
 function checkTransitions(
-  composition: Composition | CompositionV06 | CompositionV07 | CompositionV08,
+  composition: Composition | CompositionV06 | CompositionV07 | CompositionV08 | CompositionV09,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

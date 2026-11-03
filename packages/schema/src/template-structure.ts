@@ -5,6 +5,7 @@
  */
 import type { Composition, TemplateRepeat } from './types.js';
 import type { CompositionV08 } from './v0-8/composition-schema.js';
+import type { CompositionV09 } from './v0-9/composition-schema.js';
 
 /** A scene, or a node with the scene and the group it lies in. */
 export interface TemplateElement {
@@ -31,9 +32,15 @@ export interface TemplateStructure {
   repeatHolding(id: string): TemplateRepeat | null;
 }
 
+/** A node of the current version or of 0.9, whose images and videos have no focus (D63). */
 type AnyNode =
   | Composition['scenes'][number]['nodes'][number]
-  | Extract<Composition['scenes'][number]['nodes'][number], { type: 'group' }>['children'][number];
+  | Extract<Composition['scenes'][number]['nodes'][number], { type: 'group' }>['children'][number]
+  | CompositionV09['scenes'][number]['nodes'][number]
+  | Extract<
+      CompositionV09['scenes'][number]['nodes'][number],
+      { type: 'group' }
+    >['children'][number];
 
 /** The assets a node uses: its picture or its font (D14). */
 export function assetsOfNode(node: AnyNode): readonly string[] {
@@ -43,10 +50,12 @@ export function assetsOfNode(node: AnyNode): readonly string[] {
 }
 
 /**
- * The structure of a composition of 0.9; a document of 0.8 or earlier, which
- * has no repeats, has none.
+ * The structure of a composition of 0.9 or later; a document of 0.8 or
+ * earlier, which has no repeats, has none.
  */
-export function templateStructure(composition: Composition | CompositionV08): TemplateStructure {
+export function templateStructure(
+  composition: Composition | CompositionV09 | CompositionV08,
+): TemplateStructure {
   const elements = new Map<string, TemplateElement>();
   const assetUsers = new Map<string, (string | null)[]>();
   const use = (assetId: string, user: string | null): void => {

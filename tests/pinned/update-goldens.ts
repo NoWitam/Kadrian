@@ -1,7 +1,8 @@
 /**
  * `node --run goldens:update` (D26.5): renders the golden timestamps of the
  * reference composition, of the video composition (D50.8), of the
- * transitions composition (D56), and of the captions composition (D57) with the Producer and writes the golden frames and their manifests into
+ * transitions composition (D56), of the captions composition (D57), and of
+ * the focus composition (D63) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -27,6 +28,8 @@ import {
   referenceComposition,
   captionsComposition,
   captionsGoldenTimestamps,
+  focusComposition,
+  focusGoldenTimestamps,
   transitionsComposition,
   transitionsGoldenTimestamps,
   VIDEO_FIXTURE,
@@ -133,6 +136,28 @@ try {
       `${JSON.stringify({ render: captionsResult.manifest, environment, frames: captionFrames }, null, 2)}\n`,
     );
     for (const frame of captionFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The focus composition: images and videos placed off their centre (D63).
+    const focusResult = await renderFrames({
+      document: focusComposition,
+      resolveAsset: ({ id }) =>
+        id === VIDEO_FIXTURE.id
+          ? { bytes: video, mediaType: VIDEO_FIXTURE.mediaType }
+          : (assets[id] ?? null),
+      timesUs: focusGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+      ffmpeg: { ffmpegPath, ffprobePath },
+    });
+    const focusFrames = focusResult.frames.map(({ index, timeUs, png }) => {
+      const file = `focus-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'focus.golden-frames.json'),
+      `${JSON.stringify({ render: focusResult.manifest, environment, frames: focusFrames }, null, 2)}\n`,
+    );
+    for (const frame of focusFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

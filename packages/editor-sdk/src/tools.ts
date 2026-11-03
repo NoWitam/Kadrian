@@ -61,6 +61,7 @@ import {
   setImageAssetArgumentsSchema,
   setNodeColorArgumentsSchema,
   setNodeFitArgumentsSchema,
+  setNodeFocusArgumentsSchema,
   setNodeLifetimeArgumentsSchema,
   setNodeOpacityArgumentsSchema,
   setNodePositionArgumentsSchema,
@@ -342,9 +343,15 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   SetNodeFit: {
     description:
-      'Sets how the picture of an image or a video meets the box of its node: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture. Refused with invalid-argument for another fit, unknown-node, and unsupported-node for a node that is neither an image nor a video.',
+      'Sets how the picture of an image or a video meets the box of its node: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and place the picture by its focus (set_node_focus), the centre by default. Refused with invalid-argument for another fit, unknown-node, and unsupported-node for a node that is neither an image nor a video.',
     example: { nodeId: 'node-image', fit: 'cover' },
     argumentsSchema: setNodeFitArgumentsSchema,
+  },
+  SetNodeFocus: {
+    description:
+      'Sets the focus point of an image or a video: the point of its picture that its fit keeps in place, as integers in per mille of the picture, x of its width from the left edge and y of its height from the top edge; 500, 500 is the centre. The point lies at the same fraction of the box, so under cover it chooses which part is cropped away and always stays in frame, under contain it moves the picture towards that side of its bars, and under fill, where the picture is the box, it changes nothing. It is not animated. Refused with invalid-argument for a coordinate that is not an integer from 0 to 1000, unknown-node, and unsupported-node for a node that is neither an image nor a video.',
+    example: { nodeId: 'node-image', focus: { x: 500, y: 250 } },
+    argumentsSchema: setNodeFocusArgumentsSchema,
   },
   SetVideoAsset: {
     description: `Points a video node at another video asset that the document declares (add one with add_asset first); its source start, size, and fit stay. The part of the source the node samples must lie inside the new video: describe_document reports a video's sourceDurationUs when the host knows it. Refused with unknown-node, unsupported-node for a node that is not a video, unknown-asset, asset-type-mismatch when the asset is not a video, media-facts-missing when the host does not know the video's duration, and source-range-exceeded when the node would sample past its end.`,
