@@ -1,6 +1,7 @@
 # D60 — API reports and the name `DocumentObject`
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-03, after PR-37 was merged
+  (PR #38)
 - Date: 2026-11-03
 - Supersedes: —
 - Closes: the open items of D42.11 and D43.8 that name the public `NodeData`
