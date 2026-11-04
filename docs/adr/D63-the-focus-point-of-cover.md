@@ -1,6 +1,7 @@
 # D63 — The focus point of images and videos: schema 0.10
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-04, after PR-39b was merged
+  (PR #46)
 - Date: 2026-11-03
 - Supersedes: —
 - Amends: D35 (the step from `0.9` to `0.10` and the frozen `0.9` schema),
