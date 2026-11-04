@@ -1,0 +1,281 @@
+{
+  "schemaVersion": "0.10",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "durationUs": 6500000,
+  "assets": [
+    {
+      "id": "asset-image",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    },
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-intro",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "intro-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#203040"
+        },
+        {
+          "id": "intro-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 120,
+            "y": 300
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion",
+          "fontAssetId": "asset-font",
+          "fontSize": 120,
+          "color": "#ffffff"
+        },
+        {
+          "id": "intro-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 800,
+            "y": 160
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 400,
+          "height": 400,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-scenes",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "scenes-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#f79009"
+        },
+        {
+          "id": "scenes-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 80,
+            "y": 160
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 400,
+          "height": 400,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "scenes-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 640,
+            "y": 300
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "scenes",
+          "fontAssetId": "asset-font",
+          "fontSize": 120,
+          "color": "#101828"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-stories",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "stories-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#12b76a"
+        },
+        {
+          "id": "stories-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 400,
+            "y": 300
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "stories",
+          "fontAssetId": "asset-font",
+          "fontSize": 120,
+          "color": "#ffffff"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-end",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "end-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#7a5af8"
+        },
+        {
+          "id": "end-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 1200000,
+          "position": {
+            "x": 440,
+            "y": 160
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 400,
+          "height": 400,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "end-title",
+          "type": "text",
+          "startUs": 800000,
+          "durationUs": 1200000,
+          "position": {
+            "x": 500,
+            "y": 300
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "end",
+          "fontAssetId": "asset-font",
+          "fontSize": 120,
+          "color": "#ffffff"
+        }
+      ],
+      "clips": [],
+      "transitions": [
+        {
+          "id": "transition-end-clips",
+          "fromNodeId": "end-image",
+          "toNodeId": "end-title",
+          "durationUs": 400000,
+          "effect": {
+            "kind": "crossfade"
+          }
+        }
+      ]
+    }
+  ],
+  "clips": [],
+  "transitions": [
+    {
+      "id": "transition-crossfade",
+      "fromSceneId": "scene-intro",
+      "toSceneId": "scene-scenes",
+      "durationUs": 500000,
+      "effect": {
+        "kind": "crossfade"
+      }
+    },
+    {
+      "id": "transition-fade",
+      "fromSceneId": "scene-scenes",
+      "toSceneId": "scene-stories",
+      "durationUs": 500000,
+      "effect": {
+        "kind": "fade-through-color",
+        "color": "#ffffff"
+      }
+    },
+    {
+      "id": "transition-slide",
+      "fromSceneId": "scene-stories",
+      "toSceneId": "scene-end",
+      "durationUs": 500000,
+      "effect": {
+        "kind": "slide",
+        "direction": "left"
+      }
+    }
+  ],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

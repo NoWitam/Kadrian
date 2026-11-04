@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "goldens:update": "node --run build && node --experimental-strip-types tests/pinned/update-goldens.ts",
     "lint": "eslint . --max-warnings=0",
+    "playground:media": "node --run build && node --experimental-strip-types apps/playground/scripts/media.ts",
     "test": "node --run build && vitest run",
     "test:pinned": "node --run build && vitest run --config vitest.pinned.config.ts",
     "typecheck": "tsc -b"

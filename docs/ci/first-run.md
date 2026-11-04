@@ -10,15 +10,25 @@ commit that follows it closed Q14 again on 2026-10-03. PR-25a (D47,
 the validated evidence, and the documentation commit that follows it closed Q14
 again on 2026-11-02. PR-38 (D61, 2026-11-03) reopened Q14; run 41814956253
 of the main commit `10573cf` supplied the validated evidence, and the
-documentation commit that follows it closed Q14 again on 2026-11-04. A
+documentation commit that follows it closed Q14 again on 2026-11-04. PR-42
+(2026-11-04) reopened Q14: it added a pinned test file. A
 local run of the same commands, including
 `tests/pinned/container/pinned-run.sh`, does **not** verify CI.
 
 ## Status after the evidence of main after PR-40 (2026-11-04)
 
-**Status: Q14 is closed.**
+**Status: Q14 is open.**
 
-- The evidence is `docs/ci/q14-evidence.json`. It is of the run
+- PR-42 reopened Q14 on 2026-11-04: it added the pinned test file
+  `tests/pinned/showcases.pinned.test.ts`, which loads every showcase of the
+  playground in Chromium (D32.10), so the list of pinned test files the
+  evidence is checked against changed, and it deleted the evidence below. Q14
+  closes again by the evidence of a green push run of a later commit, by the
+  procedure below.
+
+The evidence of 2026-11-04, as it was:
+
+- The evidence was `docs/ci/q14-evidence.json`. It is of the run
   https://github.com/NoWitam/Kadrian/actions/runs/41814956253 (run ID
   `41814956253`, attempt 1, event `push`) of the validated commit
   `10573cfa69663474e025191d64e8c56a9e7f0bc4` (main after PR-40, branch `main`), which
@@ -150,10 +160,12 @@ local run of the same commands, including
 Run 37151313481 of PR-21 supplied the validated evidence, and the documentation
 commit that follows it closed Q14; PR-25a reopened it on 2026-10-31, run
 41481200563 of the main commit `bde9bb9` closed it again on 2026-11-02 (above),
-PR-38 reopened it on 2026-11-03, and run 41814956253 of the main commit
-`10573cf` closed it again on 2026-11-04 (above). This section states what a closed Q14
+PR-38 reopened it on 2026-11-03, run 41814956253 of the main commit
+`10573cf` closed it again on 2026-11-04 (above), and PR-42 reopened it on
+2026-11-04. This section states what a closed Q14
 means and how Q14 reopens, as it did with PR-16 on 2026-09-27, with PR-21 on
-2026-10-03, with PR-25a on 2026-10-31, and with PR-38 on 2026-11-03.
+2026-10-03, with PR-25a on 2026-10-31, with PR-38 on 2026-11-03, and with
+PR-42 on 2026-11-04.
 
 - One push run of the reviewed commit on a GitHub runner, in the pinned image,
   met all eight criteria below, and the evidence of that run is in the
@@ -165,7 +177,7 @@ means and how Q14 reopens, as it did with PR-16 on 2026-09-27, with PR-21 on
   `.github/workflows/ci.yml` byte for byte (its SHA-256 is in the identity,
   and that is why its header comment still reads "UNVERIFIED until Q14
   closes."), the golden-frame manifest and timestamps, the pinned image, the
-  FFmpeg pins, the thresholds of D34, the pinned test files (13 since PR-34b), the step
+  FFmpeg pins, the thresholds of D34, the pinned test files (15 since PR-42), the step
   names, the repository name, and the reports the identity binds. A change to
   any of them fails `check`.
 - Such a change, even one to the header comment of `ci.yml`, therefore reopens

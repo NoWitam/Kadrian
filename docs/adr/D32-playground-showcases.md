@@ -7,6 +7,9 @@
   policy of D36; it qualifies the last paragraph of D32.2 and the one Player of D32.3)
 - Amended by: PR-25a on 2026-10-31, D32.3 and D32.7 (the page runs on the host
   facade of D44)
+- Amended by: PR-42 on 2026-11-04, D32.1, D32.2, D32.5, D32.7, D32.8, and the
+  new D32.10 (showcases of phase three, their media, any tool of the catalogue,
+  template values, and the check in Chromium that replaces the manual one)
 - Related: D13, D14, D23, D25, D27, D30, D31, D36,
   [specification](../spike/vertical-spike.md) §5 P1, P3, P4
 
@@ -39,6 +42,10 @@ text and shows it as the source it loads.
 The feature labels are text for a reader. They are not a capability registry,
 and nothing in the page branches on them.
 
+(Amended by: PR-42. The example tool call is a call of any tool of the
+catalogue of D46, and a template's entry also carries values to instantiate it
+with, other than its defaults; `null` for a document that is not a template.)
+
 ### D32.2 Any valid document can be loaded; nothing falls back
 
 The page loads a pasted or uploaded JSON through the same path as a showcase:
@@ -57,6 +64,12 @@ A Custom HTML element of a user's document runs user code, inside the same
 `allow-scripts`-only sandbox as every other (D23, D25.2); the page says that too.
 (Amended by PR-17, D32.9: only when the page trusts Custom HTML; by default it
 runs none.)
+
+(Amended by: PR-42. The assets also include the video of the fixtures, which
+the page serves under `/media/` once it has been made (D32.10); a document can
+use it by its ID and hash. The page gives every Player an audio context of
+48 kHz (D53), so a document with sound is heard; the browser starts it
+suspended, and the Player resumes it on Play, which is a click.)
 
 ### D32.3 One Player; a new bus and editor per document
 
@@ -81,6 +94,12 @@ The panel parses a tool call `{ name, arguments }`, refuses a name other than
 `set_node_position`, and runs `executeSetNodePosition` with a frozen object that
 has the bus's `dispatch` alone (D31.5). The edit lands in the same history as the
 drag, so Undo and Redo cover it. The page shows the inverse or the typed error.
+
+(Amended by: PR-42. The panel runs any tool of `TOOL_CATALOGUE` through
+`executeTool` of `@kadrion/ai-sdk` (D46), with a frozen object that has the
+bus's `getDocument`, `dispatch`, `dispatchTransaction`, and `mediaFactsOf`
+alone, the capabilities the tools need; it lists the tools' names. A
+description, a command, or a transaction is shown as the tool returns it.)
 
 ### D32.6 Time comes from the frame grid
 
@@ -107,6 +126,11 @@ mounts the render frame before the grip appears, and Chromium then sends the
 pointer over the grip to that out-of-process frame, which the pinned editor
 test measured.)
 
+(Amended by: PR-42. The page also imports `@kadrion/schema/template`, to
+instantiate a template with values (D58.4), and the server gains the route
+`/media/` to `.kadrion-cache/playground-media/`, for files of the type
+`video/mp4` only.)
+
 ### D32.8 Showcases are kept current by a test
 
 `tests/repo/showcases.test.ts` fails when a showcase stops being a valid
@@ -115,6 +139,15 @@ font lacks, names a node the grip may not drag, carries a tool call that the
 tool refuses, or when a JSON file and the manifest disagree. A schema change
 therefore forces the showcases to follow it, and a feature that is visible to a
 user lands with a showcase or an update of one.
+
+(Amended by: PR-42. The test also fails when a showcase reads a medium outside
+its source, uses a glyph the font lacks in a caption or in the document a
+template makes with its defaults or its values, carries a tool call of a tool
+outside the catalogue or one that changes nothing, carries template values
+without being a template (or the reverse), or when the showcases stop showing
+a feature of phase three: a video in each fit, audio clips with fades, scenes
+with scene and clip transitions, captions, and a template with a condition
+and a repeat.)
 
 ### D32.9 The page's Custom HTML policy (amendment of PR-17, implementing D36)
 
@@ -142,6 +175,43 @@ built.
 - Verification: `tests/repo/playground.test.ts`, "the Custom HTML policy of the
   playground (D36)".
 
+### D32.10 Showcases of phase three and their check in Chromium (amendment of PR-42)
+
+- **The showcases.** `video` (three clips of the fixture video in `fill`,
+  `contain`, and `cover` with a focus point), `audio` (two clips of the
+  generated tone with fades and volumes), `scenes` (four scenes with a
+  crossfade, a fade through a colour, a slide, and a clip transition),
+  `captions` (timed words), and `template` (inputs, bindings, a condition, and a
+  repeat, previewed with its defaults and instantiated with the values of its
+  entry). Each carries a tool call of its feature: `set_node_fit`,
+  `set_clip_fades`, `set_transition_effect`, `set_caption_word`, and
+  `set_template_input`.
+- **Their media are the fixtures' own.** The page needs no medium the tests do
+  not already make: the image, the tone, and the font are generated in
+  TypeScript (D27.5), and the video is made by the pinned FFmpeg with the
+  committed recipe `videoFixtureArguments` and kept only with the committed
+  SHA-256 of `VIDEO_FIXTURE` (D50.8). `apps/playground/scripts/media.ts`
+  (`node --run playground:media`, FFmpeg from `KADRION_FFMPEG` or `--ffmpeg`)
+  writes it to `.kadrion-cache/playground-media/`, which Git ignores; a file
+  with other bytes is removed, never served. A second set of recipes would be a
+  second thing to keep reproducible for no gain. Until the video is made, the
+  video showcase reports `asset-missing`, and the page says how to make it.
+- **A template on the page.** The session previews a template with its defaults
+  (D58.4). Next to it the page shows the entry's values as JSON; "Instantiate
+  with these values" runs `instantiateTemplate` and opens the result as a new
+  document, through the path of D32.2, with a new history. The template's
+  errors are listed with their codes.
+- **The check in Chromium.** `tests/pinned/showcases.pinned.test.ts` serves the
+  page with the playground's own server and media script, opens every showcase
+  in the pinned Chromium, waits for `ready`, plays it to `ended` with a click on
+  Play, runs its tool call and undoes it, instantiates a template with its values
+  and plays the result, and requires that the page, its console, and its
+  uncaught exceptions report no error. It also loads a document whose asset has
+  another hash and an invalid document, and requires their codes. It is a
+  pinned test file, not a test of `tests/app`, because the browser tests of the
+  repository run there (D26), and adding it reopened Q14. Without
+  `KADRION_FFMPEG` it is skipped, and where the run is pinned it is required.
+
 ## Alternatives considered
 
 - **A `/showcases/` route to the source directory** — simpler, but it serves
@@ -156,7 +226,8 @@ built.
 - The playground stays free of domain rules: it parses JSON, hands it to the bus
   and the Player, and shows what they report.
 - A showcase is only as varied as the generated assets allow: one image, one
-  font with the glyphs ` DKabcdegimnorsty`, and one audio track.
+  font with the glyphs ` DKabcdegimnorsty`, one audio track, and, since PR-42,
+  the fixture video, made by the pinned FFmpeg.
 
 ## Verification
 
@@ -165,6 +236,9 @@ built.
   routes of D32.7.
 - A manual check in Chromium loads every showcase, a document with a missing
   asset, and an invalid document, drags, runs a tool call, and undoes it.
+  (Amended by: PR-42. Replaced by `tests/pinned/showcases.pinned.test.ts`,
+  D32.10, except the drag, which `tests/pinned/editor.pinned.test.ts` measures
+  in Chromium.)
 - `tests/repo/playground.test.ts`, "the Custom HTML policy of the playground
   (D36)", for D32.9.
 
@@ -175,4 +249,5 @@ Known limits at acceptance (2026-09-28), recorded as debt of phase two
   only; no automated test drives that path of the page.
 - No test forbids time arithmetic in the page (D32.6); the rule is kept by
   review and by the page importing the frame grid of `@kadrion/schema`.
-- No record of the manual Chromium check exists in the repository.
+- No record of the manual Chromium check exists in the repository. (Closed by
+  PR-42: the pinned run records the test of D32.10.)

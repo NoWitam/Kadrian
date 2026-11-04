@@ -11,9 +11,14 @@
     "./**/*.ts",
     "../parity/parity.ts",
     "../ci/diagnostic.ts",
-    "../../vitest.pinned.config.ts"
+    "../../vitest.pinned.config.ts",
+    "../../apps/playground/scripts/media.ts",
+    "../../apps/playground/scripts/serve.ts"
   ],
   "references": [
+    {
+      "path": "../../apps/playground"
+    },
     {
       "path": "../../packages/cli"
     },
