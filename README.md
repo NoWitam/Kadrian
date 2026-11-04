@@ -16,10 +16,10 @@ Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
 of the Player and the Producer is measured and gated
 ([`docs/spike/report.md`](docs/spike/report.md)). The workflow runs on a
-GitHub runner in the pinned image. Q14 is open again: the run 41814956253 of
-the validated main commit 10573cf met every criterion, and PR-42 added a
-pinned test file, so its evidence was deleted until a green run of a later
-commit ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
+GitHub runner in the pinned image, and Q14 is closed: the run 41857750361 of
+the validated main commit 062f532 met every criterion, with its evidence in
+[`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
+([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 repository is publicly visible, but the project is not open source: no licence
 is granted, and the packages are private and unpublished (D37). The APIs below
 are those of the spike and may still change.
