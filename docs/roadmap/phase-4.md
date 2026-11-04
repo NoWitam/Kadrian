@@ -288,6 +288,7 @@ loop })`, validated on the frame grid (D13); playback stays inside the range,
 
 ### PR-42 — Showcases of phase three and their automated check
 
+- Status: done (PR #52, merged 2026-11-04), without an ADR of its own, as planned: D32 is amended (D32.10). Five showcases (`video`, `audio`, `scenes`, `captions`, `template`) each carry a tool call of their feature, and the AI panel runs any tool of the catalogue; a template is previewed with its defaults and instantiated with the values of its entry. The media are the fixtures' own: `node --run playground:media` makes the fixture video with the pinned FFmpeg into `.kadrion-cache/playground-media/`, served under `/media/`. The check in Chromium is `tests/pinned/showcases.pinned.test.ts`, not a test of `tests/app`, because the browser tests run in the pinned suite (D26); as a new pinned test file it reopened Q14.
 - **Goal:** every feature of phase three can be seen and tried in the
   playground, and the check of D32 that each showcase loads stops being a
   manual step that no record keeps.
