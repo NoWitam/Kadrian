@@ -138,7 +138,7 @@ are complete, working examples of everything below.
 | `@kadrion/editor-session` | join the bus and the Player: every edit reaches the preview, one table of events |
 | `@kadrion/ai-sdk`         | give a model tools that dispatch the same commands                               |
 | `@kadrion/producer`       | render frames and export MP4 in the pinned Chromium, from Node.js                |
-| `@kadrion/cli`            | render and export from the command line as jobs; fetch FFmpeg; check the setup   |
+| `@kadrion/cli`            | render, export, and migrate as jobs; fetch FFmpeg; check the setup               |
 | `@kadrion/test-fixtures`  | the reference composition, its generated assets, and the golden frames           |
 
 `@kadrion/test-fixtures/compatibility` is a second entry of the fixtures: the
@@ -344,8 +344,9 @@ The saved form of a composition is the composition itself as JSON text: no
 envelope, and no version of a file format beside `schemaVersion` (D43).
 Whatever a host keeps around a document is the host's own. Two functions of
 `@kadrion/schema/migrate` read and write that text; a host calls them itself,
-and neither makes the Player, the Producer, the CLI, or the command bus accept
-an older document.
+or runs `kadrion migrate` (section 9), and neither makes the Player, the
+Producer, the render commands of the CLI, or the command bus accept an older
+document.
 
 ```ts
 import {
@@ -963,8 +964,8 @@ Each of these commands is a job a host's queue can run (D48):
   before rendering; `--max-wall-ms` cancels the job when its time is up.
   `join` takes only `--max-wall-ms`.
 - **Exit codes:** 0 for success, 1 for an error of the Producer or of the FFmpeg
-  installation, 2 for a usage error, 4 for an exceeded limit, and 5 for a
-  cancelled job.
+  installation, 2 for a usage error, 4 for an exceeded limit, 5 for a
+  cancelled job, and 6 for a document `migrate --check` finds not current.
 - **`estimate`:** renders and encodes a few frames, keeps none of them, and
   reports the time per frame and how many segments fit into `--budget-ms`:
 
@@ -975,6 +976,32 @@ Each of these commands is a job a host's queue can run (D48):
 
 In the library, every job takes `signal` (an `AbortSignal`), `onProgress`, and
 `limits`.
+
+Stored documents are migrated by a job too (D43, amended by PR-41):
+
+```bash
+node packages/cli/dist/bin.js migrate saved.json --out migrated.json
+node packages/cli/dist/bin.js migrate saved.json --check
+```
+
+- **`migrate`:** reads one saved document with `parseComposition`, reports the
+  versions it passed through in a `versions` line, and writes
+  `serializeComposition` of the result to `--out`, which may be the input
+  itself; the file is written under a temporary name and renamed.
+- **`--check`:** writes nothing; it exits 0 when the document is current and 6
+  (`not-current`) when it is valid but of an earlier version.
+- **A refused document:** an `invalid` line carries what `parseComposition`
+  reported (`stage`, and the text error or the document's `version`,
+  `versions`, and every validation error), then the `error` line
+  `invalid-document` with exit 1. Nothing is written.
+- It takes no limit of a render, only `--max-wall-ms`. A directory or a
+  database is the host's loop.
+
+  ```text
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10"]}
+  {"event":"file","file":"migrated.json"}
+  {"event":"done","manifest":null}
+  ```
 
 For a host's worker (D45):
 

@@ -98,6 +98,9 @@ export declare const EXIT_CANCELLED = 5;
 ---- EXIT_LIMIT_EXCEEDED
 export declare const EXIT_LIMIT_EXCEEDED = 4;
 
+---- EXIT_NOT_CURRENT
+export declare const EXIT_NOT_CURRENT = 6;
+
 ---- EXIT_NOT_REFERENCE
 export declare const EXIT_NOT_REFERENCE = 3;
 
@@ -147,6 +150,9 @@ export declare class FfmpegInstallError extends Error {
 ---- FfmpegInstallErrorCode (type only)
 export type FfmpegInstallErrorCode = (typeof FFMPEG_INSTALL_ERROR_CODES)[number];
 
+---- INVALID_DOCUMENT
+export declare const INVALID_DOCUMENT = "invalid-document";
+
 ---- InstallOptions (type only)
 export interface InstallOptions {
     readonly cache: string;
@@ -169,6 +175,19 @@ export interface Installed {
     readonly decompressor: Decompressor['name'] | null;
 }
 
+---- InvalidLine (type only)
+export type InvalidLine = {
+    readonly event: 'invalid';
+    readonly stage: 'text';
+    readonly error: CompositionTextError;
+} | {
+    readonly event: 'invalid';
+    readonly stage: 'document';
+    readonly version: SchemaVersion | null;
+    readonly versions: readonly SchemaVersion[];
+    readonly errors: readonly ValidationError[];
+};
+
 ---- JOB_COMMANDS
 export declare const JOB_COMMANDS: readonly [
     "render-frames",
@@ -177,7 +196,8 @@ export declare const JOB_COMMANDS: readonly [
     "render-audio",
     "join",
     "render-still",
-    "estimate"
+    "estimate",
+    "migrate"
 ];
 
 ---- JobLine (type only)
@@ -193,7 +213,7 @@ export type JobLine = ProgressEvent | {
     readonly msPerSegment: number;
     readonly segments: number;
     readonly segmentsInBudget: number | null;
-} | {
+} | MigrateLine | {
     readonly event: 'done';
     readonly manifest: string | null;
 } | {
@@ -204,6 +224,29 @@ export type JobLine = ProgressEvent | {
 
 ---- Join (type only)
 export type Join = (request: JoinRequest) => Promise<JoinResult>;
+
+---- MigrateLine (type only)
+export type MigrateLine = {
+    readonly event: 'versions';
+    readonly versions: readonly SchemaVersion[];
+} | InvalidLine;
+
+---- MigrateOutcome (type only)
+export type MigrateOutcome = {
+    readonly ok: true;
+    readonly line: {
+        readonly event: 'versions';
+        readonly versions: readonly SchemaVersion[];
+    };
+    readonly current: boolean;
+    readonly text: string;
+} | {
+    readonly ok: false;
+    readonly line: InvalidLine;
+};
+
+---- NOT_CURRENT
+export declare const NOT_CURRENT = "not-current";
 
 ---- PYTHON_LZMA
 export declare const PYTHON_LZMA: Decompressor;
@@ -280,6 +323,9 @@ export declare function frameFileName(index: number): string;
 
 ---- installFfmpeg
 export declare function installFfmpeg(options: InstallOptions): Promise<Installed>;
+
+---- migrateText
+export declare function migrateText(text: string): MigrateOutcome;
 
 ---- parseAssetMap
 export declare function parseAssetMap(text: string): ReadonlyMap<string, AssetEntry>;

@@ -15,6 +15,7 @@
  *                  --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]
  *   kadrion estimate --composition <file> --assets <file> --preset <1080p|720p>
  *                  [--samples <n>] [--segment-frames <n>] [--budget-ms <ms>] [--ffmpeg …] [--ffprobe …]
+ *   kadrion migrate <file> (--out <file> | --check)
  *   kadrion fetch-ffmpeg --dir <dir>
  *   kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]
  *
@@ -23,8 +24,9 @@
  * end), its diagnostics go to standard error, `SIGTERM` or `SIGINT` cancel it,
  * it takes the limits `--max-document-bytes`, `--max-duration-us`,
  * `--max-frames`, `--max-assets`, `--max-asset-bytes`,
- * `--max-total-asset-bytes` (not `join`, which reads no document), and
- * `--max-wall-ms`, and its exit code is one of the table of D48.3.
+ * `--max-total-asset-bytes` (not `join`, which reads no document, nor
+ * `migrate`, which renders nothing), and `--max-wall-ms`, and its exit code is
+ * one of the table of D48.3.
  *
  * `render-frames` renders frame times of a composition to `frame-<index>.png` and
  * writes `render-manifest.json`. `export` writes `video-<preset>.mp4` and
@@ -43,6 +45,9 @@
  * written under a temporary name and renamed when complete (D47.6).
  * `estimate` renders and encodes a few frames into a temporary directory and
  * reports the time per frame and how many segments fit into a budget (D48.5).
+ * `migrate` reads one saved document, reports the versions it passed through,
+ * and writes it in the current version to `--out`, or with `--check` writes
+ * nothing and exits 6 when the document is not current (D43, amended by PR-41).
  * `fetch-ffmpeg` installs the pinned FFmpeg into a directory and prints the two
  * paths; `doctor` prints a JSON report of whether this process is the reference
  * environment, and exits 3 when it is not (D45).
@@ -91,6 +96,13 @@ import {
 } from '@kadrion/producer';
 
 import { runDoctor, type DoctorReport } from './doctor.js';
+import {
+  EXIT_NOT_CURRENT,
+  INVALID_DOCUMENT,
+  migrateText,
+  NOT_CURRENT,
+  type MigrateLine,
+} from './migrate.js';
 import { fetchFfmpeg, type FetchFfmpegOptions } from './fetch-ffmpeg.js';
 import { FfmpegInstallError, type Installed } from './ffmpeg-install.js';
 
@@ -105,6 +117,8 @@ export const EXIT_NOT_REFERENCE = 3;
 export const EXIT_LIMIT_EXCEEDED = 4;
 /** The job was cancelled by `SIGTERM` or `SIGINT` (`cancelled`). */
 export const EXIT_CANCELLED = 5;
+/** `kadrion migrate --check` only: the document is valid and of an earlier version (`not-current`). */
+export { EXIT_NOT_CURRENT };
 
 /** How long a cancelled job may take to clean up before the process exits anyway (D48.2). */
 export const CANCEL_GRACE_MS = 10_000;
@@ -118,6 +132,7 @@ export const JOB_COMMANDS = [
   'join',
   'render-still',
   'estimate',
+  'migrate',
 ] as const;
 
 /**
@@ -138,6 +153,7 @@ export type JobLine =
       readonly segments: number;
       readonly segmentsInBudget: number | null;
     }
+  | MigrateLine
   | { readonly event: 'done'; readonly manifest: string | null }
   | { readonly event: 'error'; readonly code: string; readonly exitCode: number };
 
@@ -149,6 +165,7 @@ export const USAGE = [
   '       kadrion join --in <dir> [--in <dir> ...] --out <dir> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion render-still --composition <file> --assets <file> --out <dir> --time-us <t> --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion estimate --composition <file> --assets <file> --preset <1080p|720p> [--samples <n>] [--segment-frames <n>] [--budget-ms <ms>] [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion migrate <file> (--out <file> | --check)',
   '       kadrion fetch-ffmpeg --dir <dir>',
   '       kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]',
   'Limits of a job: [--max-document-bytes <n>] [--max-duration-us <n>] [--max-frames <n>] [--max-assets <n>] [--max-asset-bytes <n>] [--max-total-asset-bytes <n>] [--max-wall-ms <n>]',
@@ -195,6 +212,16 @@ export interface CliHosts {
 }
 
 class UsageError extends Error {}
+
+/** A failure of a job that is no `ProducerError`: `not-current` of `migrate --check`. */
+class JobFailure extends Error {
+  readonly code: typeof NOT_CURRENT;
+
+  constructor(code: typeof NOT_CURRENT, message: string) {
+    super(message);
+    this.code = code;
+  }
+}
 
 /** What a job command runs with besides its arguments (D48). */
 interface Job {
@@ -790,6 +817,63 @@ async function estimateCommand(args: readonly string[], job: Job): Promise<numbe
   return EXIT_OK;
 }
 
+/**
+ * `kadrion migrate` (D43, amended by PR-41): `parseComposition` of the input
+ * text, then `serializeComposition` of the result to `--out`, written under a
+ * temporary name and renamed (D47.6), so a refused document or a cancelled job
+ * leaves no file. `--out` may name the input itself. Without `--check` an
+ * earlier version is migrated and succeeds; with it nothing is written.
+ */
+async function migrateCommand(args: readonly string[], job: Job): Promise<number> {
+  const { values, positionals } = parseArgs({
+    args: [...args],
+    options: { out: { type: 'string' }, check: { type: 'boolean' } },
+    strict: true,
+    allowPositionals: true,
+  });
+  const [input, ...more] = positionals;
+  if (input === undefined || more.length > 0) {
+    throw new UsageError('migrate takes exactly one document file.');
+  }
+  const check = values.check === true;
+  const { out } = values;
+  if (check === (out !== undefined)) throw new UsageError('Give either --out <file> or --check.');
+  if (out === '') throw new UsageError('--out takes a file.');
+  let text: string;
+  try {
+    text = await readFile(input, 'utf8');
+  } catch (reason) {
+    throw new UsageError(`Cannot read the document: ${String(reason)}`);
+  }
+  const outcome = migrateText(text);
+  job.emit(outcome.line);
+  if (!outcome.ok) {
+    throw new ProducerError(
+      INVALID_DOCUMENT,
+      `The ${outcome.line.stage === 'text' ? 'text' : 'document'} of ${input} was refused; the invalid line holds why.`,
+    );
+  }
+  if (check) {
+    if (!outcome.current) {
+      throw new JobFailure(
+        NOT_CURRENT,
+        `${input} is valid, but of an earlier version than the current one.`,
+      );
+    }
+  } else if (out !== undefined) {
+    if (job.signal?.aborted === true) {
+      throw job.signal.reason instanceof ProducerError
+        ? job.signal.reason
+        : new ProducerError('cancelled', 'The job was cancelled.');
+    }
+    await mkdir(dirname(resolve(out)), { recursive: true });
+    await writeComplete(out, outcome.text);
+    job.emit({ event: 'file', file: out });
+  }
+  job.emit({ event: 'done', manifest: null });
+  return EXIT_OK;
+}
+
 async function fetchFfmpegCommand(
   args: readonly string[],
   io: CliIo,
@@ -852,6 +936,7 @@ function wallLimit(args: readonly string[]): {
 function exitCodeOf(code: string): number {
   if (code === 'limit-exceeded') return EXIT_LIMIT_EXCEEDED;
   if (code === 'cancelled') return EXIT_CANCELLED;
+  if (code === NOT_CURRENT) return EXIT_NOT_CURRENT;
   return EXIT_PRODUCER_ERROR;
 }
 
@@ -865,6 +950,7 @@ const JOBS: Readonly<
   join: joinCommand,
   'render-still': renderStillCommand,
   estimate: estimateCommand,
+  migrate: migrateCommand,
 };
 
 function isJob(command: string | undefined): command is (typeof JOB_COMMANDS)[number] {
@@ -915,7 +1001,11 @@ async function runJob(
     }
     return await JOBS[command](rest, { hosts, signal, emit });
   } catch (reason) {
-    if (reason instanceof ProducerError || reason instanceof FfmpegInstallError) {
+    if (
+      reason instanceof ProducerError ||
+      reason instanceof FfmpegInstallError ||
+      reason instanceof JobFailure
+    ) {
       const exitCode = exitCodeOf(reason.code);
       io.err(`error ${reason.code}: ${reason.message}`);
       emit({ event: 'error', code: reason.code, exitCode });

@@ -4,7 +4,9 @@
  * — reaches neither a historical schema nor a step, by a static or a dynamic
  * import, so a change of a migration changes neither the runtime artifact nor
  * the Player's dist tree. No source of a package or an application imports the
- * migration entry: migrating is the host's explicit act (D35.3, D42.9).
+ * migration entry but the module of `kadrion migrate`: migrating is the host's
+ * explicit act (D35.3, D42.9), and running that command is one (D43.7, amended
+ * by PR-41).
  *
  * The saved text of D43 — `parseComposition`, `serializeComposition`, and the
  * list of supported versions — lives behind the same entry. The modules of the
@@ -114,7 +116,7 @@ describe('the entry points of @kadrion/schema (D42.8)', () => {
 });
 
 describe('who migrates (D35.3, D42.9)', () => {
-  it('is the host: no package or application source imports the migration entry', () => {
+  it('is the host: no package or application source but `kadrion migrate` imports the migration entry', () => {
     const roots = [
       ...listDirs('packages').map((name) => repoPath('packages', name, 'src')),
       ...listDirs('apps').map((name) => repoPath('apps', name, 'src')),
@@ -124,6 +126,6 @@ describe('who migrates (D35.3, D42.9)', () => {
       .flatMap(sourcesBelow)
       .filter((path) => /['"]@kadrion\/schema\/migrate['"]/.test(readFileSync(path, 'utf8')))
       .map((path) => relative(repoPath(), path).replaceAll('\\', '/'));
-    expect(importers).toEqual([]);
+    expect(importers).toEqual(['packages/cli/src/migrate.ts']);
   });
 });
