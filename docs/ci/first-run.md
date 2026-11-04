@@ -8,23 +8,44 @@ Q14; its run 37151313481 supplied the validated evidence, and the documentation
 commit that follows it closed Q14 again on 2026-10-03. PR-25a (D47,
 2026-10-31) reopened Q14; run 41481200563 of the main commit `bde9bb9` supplied
 the validated evidence, and the documentation commit that follows it closed Q14
-again on 2026-11-02. PR-38 (D61, 2026-11-03) reopened Q14 (below). A
+again on 2026-11-02. PR-38 (D61, 2026-11-03) reopened Q14; run 41814956253
+of the main commit `10573cf` supplied the validated evidence, and the
+documentation commit that follows it closed Q14 again on 2026-11-04. A
 local run of the same commands, including
 `tests/pinned/container/pinned-run.sh`, does **not** verify CI.
 
-## Status after the evidence of main after PR-34b (2026-11-02), reopened by PR-38 (2026-11-03)
+## Status after the evidence of main after PR-40 (2026-11-04)
 
-**Status: Q14 is open.**
-
-- PR-38 (D61) reopened Q14 on 2026-11-03. It changes one of the 13 pinned test
-  files, `tests/pinned/audio.pinned.test.ts` (the loop of a play range in the
-  Player's graph against the Producer's mix of the range). It deleted the
-  evidence below by the procedure of this file. Q14 closes again only when a
-  documentation commit adds the evidence of a green push run of a commit that
-  includes it. The text below records the evidence of main after PR-34b as it
-  was.
+**Status: Q14 is closed.**
 
 - The evidence is `docs/ci/q14-evidence.json`. It is of the run
+  https://github.com/NoWitam/Kadrian/actions/runs/41814956253 (run ID
+  `41814956253`, attempt 1, event `push`) of the validated commit
+  `10573cfa69663474e025191d64e8c56a9e7f0bc4` (main after PR-40, branch `main`), which
+  passed every step.
+- Its `kadrion-reports` artifact `13314004975` was downloaded from the
+  download URL the GitHub API gives for it. The SHA-256 of the ZIP was computed
+  before it was extracted and equals the digest the GitHub API publishes,
+  `sha256:d0eea89fa1f7bb123c3392b65dcf1bdbb162293fbd103cf2de1ce0e792ba0de3`.
+- The validator found no problem, and each of the eight criteria below passed:
+  14 pinned test files, 167 of 167 tests, parity and the golden frames 0/0 on
+  every frame.
+- The commit that closes Q14 is a later documentation commit: it adds the
+  evidence and updates the documents that state the status of Q14. The
+  evidence is of the validated commit, not of that one.
+- Why Q14 was reopened: PR-38 (D61) reopened it on 2026-11-03. It changed one
+  of the then 13 pinned test files, `tests/pinned/audio.pinned.test.ts` (the
+  loop of a play range in the Player's graph against the Producer's mix of the
+  range), and deleted the evidence of main after PR-34b. PR-39a to PR-40 changed
+  and added pinned test files and reports while Q14 was open; the evidence is
+  of a run that includes them, and the list of artifact files in
+  `tests/repo/q14-evidence.ts` follows what the pinned run writes now (65
+  files).
+- Local tests, including the pinned container runs, do not replace a run on a
+  GitHub runner.
+- History: Q14 was closed on 2026-11-02 by the evidence below.
+
+- The evidence was `docs/ci/q14-evidence.json`. It is of the run
   https://github.com/NoWitam/Kadrian/actions/runs/41481200563 (run ID
   `41481200563`, attempt 1, event `push`) of the validated commit
   `bde9bb9dac6de15acb561cfb9a82ace10fc0db09` (main after PR-34b, branch `main`), which
@@ -129,7 +150,8 @@ local run of the same commands, including
 Run 37151313481 of PR-21 supplied the validated evidence, and the documentation
 commit that follows it closed Q14; PR-25a reopened it on 2026-10-31, run
 41481200563 of the main commit `bde9bb9` closed it again on 2026-11-02 (above),
-and PR-38 reopened it on 2026-11-03. This section states what a closed Q14
+PR-38 reopened it on 2026-11-03, and run 41814956253 of the main commit
+`10573cf` closed it again on 2026-11-04 (above). This section states what a closed Q14
 means and how Q14 reopens, as it did with PR-16 on 2026-09-27, with PR-21 on
 2026-10-03, with PR-25a on 2026-10-31, and with PR-38 on 2026-11-03.
 

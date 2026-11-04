@@ -1,6 +1,7 @@
 # D64 — Video and audio read by path in the Producer
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-04, after PR-40 was merged
+  (PR #48)
 - Date: 2026-11-04
 - Supersedes: —
 - Amends: D50 (50.5: a video read by path gets no private copy) and D52
