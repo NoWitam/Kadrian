@@ -8,7 +8,7 @@
   line, additively: a second explicit function of the host
 - Amended by: PR-41 on 2026-11-04: 43.7 (`kadrion migrate`, the one source of
   a package that imports the migration entry) and 43.8 (the command is no
-  longer undecided); D48 is amended with it (the job `migrate`)
+  longer undecided); D48 is amended with it (the job `migrate`); in force since the owner merged PR-41 (PR #50) on 2026-11-04
 - Related: D02, D13, D16, D17, D24, D28, D30, D32, D38,
   [roadmap of phase two](../roadmap/phase-2.md) PR-22
 
