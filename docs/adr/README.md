@@ -71,6 +71,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D61](D61-player-playback-events.md)                          | The Player's playback events                                                                 | Accepted          |
 | [D62](D62-image-facts.md)                                     | Image facts                                                                                  | Accepted          |
 | [D63](D63-the-focus-point-of-cover.md)                        | The focus point of images and videos: schema 0.10                                            | Accepted          |
+| [D64](D64-video-and-audio-read-by-path.md)                    | Video and audio read by path in the Producer                                                 | Proposed          |
 
 ## Provenance of D01–D10
 

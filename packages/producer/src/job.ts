@@ -8,6 +8,7 @@ import type { ValidatedComposition } from '@kadrion/schema';
 
 import { ProducerError } from './errors.js';
 import { canonicalJson } from './manifest.js';
+import { assetSize, type ProducerAsset } from './media-path.js';
 
 /**
  * What a job reports while it runs (D48.1), in this order: one `start`, then a
@@ -57,7 +58,7 @@ export interface JobLimits {
   readonly maxFrames?: number;
   /** The assets the document declares. */
   readonly maxAssets?: number;
-  /** The bytes of any one asset, as the resolver returned them. */
+  /** The bytes of any one asset, as the resolver returned them or as its file holds them (D64.1). */
   readonly maxAssetBytes?: number;
   /** The bytes of all assets together. */
   readonly maxTotalAssetBytes?: number;
@@ -127,20 +128,27 @@ export function checkDocumentLimits(
   within(limits, 'maxAssets', composition.assets.length);
 }
 
-/** The limits of the resolved asset bytes, checked before a page opens (D48.4). */
+/**
+ * The limits of the resolved assets, checked before a page opens (D48.4): the
+ * size of bytes as given, and of a file as verified (D64.1).
+ */
 export function checkAssetLimits(
   limits: JobLimits | undefined,
-  assets: readonly { readonly id: string; readonly bytes: Uint8Array }[],
+  assets: readonly ProducerAsset[],
 ): void {
   if (limits === undefined) return;
   let total = 0;
-  for (const { id, bytes } of assets) {
+  for (const asset of assets) {
+    const size = assetSize(asset);
     try {
-      within(limits, 'maxAssetBytes', bytes.byteLength);
+      within(limits, 'maxAssetBytes', size);
     } catch (reason) {
-      throw new ProducerError('limit-exceeded', `The asset "${id}": ${(reason as Error).message}`);
+      throw new ProducerError(
+        'limit-exceeded',
+        `The asset "${asset.id}": ${(reason as Error).message}`,
+      );
     }
-    total += bytes.byteLength;
+    total += size;
   }
   within(limits, 'maxTotalAssetBytes', total);
 }

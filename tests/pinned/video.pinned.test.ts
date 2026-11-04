@@ -4,11 +4,19 @@
  * facts, every frame of a video node shows exactly the source frame the rule
  * of D49.5 selects as FFmpeg decodes it, the frames do not depend on the order
  * of the render, the golden frames of the video composition are met in the
- * pinned environment, and every problem of a video is typed before the first
- * frame. Skipped without `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where
+ * pinned environment, the frames are the same when the video is read by path
+ * (D64), and every problem of a video is typed before the first frame. Skipped without `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where
  * the run is pinned.
  */
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
@@ -18,6 +26,7 @@ import {
   renderFrames,
   sha256,
   type LaunchedChromium,
+  type ProducerAssetResolver,
   type RenderResult,
 } from '@kadrion/producer';
 import type { AssetResolver } from '@kadrion/renderer-dom';
@@ -229,6 +238,65 @@ describe.skipIf(!available)('video nodes in the Producer (D49, D50)', () => {
     for (const { timeUs, difference: found } of report) {
       expect(found?.differingPixels, String(timeUs)).toBe(0);
     }
+  });
+
+  describe('the video read by path (D64)', () => {
+    // The host's storage: a directory of its own, outside the outputs of the run.
+    const HOST = mkdtempSync(join(tmpdir(), 'kadrion-host-'));
+    const file = join(HOST, 'clip.mp4');
+    const byPath: ProducerAssetResolver = ({ id }) =>
+      id === VIDEO_FIXTURE.id
+        ? { path: file, mediaType: VIDEO_FIXTURE.mediaType }
+        : (generated[id] ?? null);
+
+    beforeAll(() => {
+      writeFileSync(file, video);
+    });
+
+    afterAll(() => {
+      rmSync(HOST, { recursive: true, force: true });
+    });
+
+    it('renders the same frames and the same manifest as the delivery of its bytes', async () => {
+      const result = await renderFrames({
+        document: videoComposition,
+        resolveAsset: byPath,
+        timesUs: TIMES,
+        chromium,
+        ffmpeg: FFMPEG,
+      });
+      expect(result.frames.map(({ png }) => sha256(png))).toEqual(
+        baseline.frames.map(({ png }) => sha256(png)),
+      );
+      expect(result.manifest).toEqual(baseline.manifest);
+      // The host's file is read where it is: neither changed nor removed.
+      expect(sha256(new Uint8Array(readFileSync(file)))).toBe(VIDEO_FIXTURE.contentHash);
+    });
+
+    it('refuses a file changed between its verification and its decode with asset-changed', async () => {
+      const changed = join(HOST, 'changed.mp4');
+      writeFileSync(changed, video);
+      try {
+        await expect(
+          renderFrames({
+            document: videoComposition,
+            resolveAsset: ({ id }) =>
+              id === VIDEO_FIXTURE.id
+                ? { path: changed, mediaType: VIDEO_FIXTURE.mediaType }
+                : (generated[id] ?? null),
+            timesUs: TIMES,
+            chromium,
+            ffmpeg: FFMPEG,
+            // After the checks before the page and before the first frame is decoded.
+            onProgress: (event) => {
+              if (event.event === 'start') appendFileSync(changed, new Uint8Array(1));
+            },
+          }),
+        ).rejects.toMatchObject({ code: 'asset-changed' });
+      } finally {
+        rmSync(changed, { force: true });
+      }
+    });
   });
 
   describe('typed errors before the first frame (D49.6, D50.5)', () => {

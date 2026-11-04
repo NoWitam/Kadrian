@@ -11,6 +11,7 @@
   an `Amended by: PR-29a (D52)` line
 - Amended by: PR-29b (D53) on 2026-11-01: 52.4 (the plan lives in `@kadrion/schema`, re-exported by the runtime; the sample grid in the runtime) and 52.6 (the bus checks the ranges of clips and of the sound of videos) (D53.1, D53.4)
 - Amended by: PR-30 (D54) on 2026-11-01: 52.4: the plan holds the clips of each scene, placed at the scene start and cut to its end (D54.3)
+- Amended by: PR-40 (D64) on 2026-11-04: 52.5: a sound source read by path gets no private copy (D64.6)
 - Related: D04, D13, D14, D15, D17, D19, D30, D38, D42, D43, D48,
   [roadmap of phase three](../roadmap/phase-3.md) PR-29
 

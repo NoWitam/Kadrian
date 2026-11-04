@@ -83,6 +83,7 @@ export {
   STILL_FORMATS,
 } from './segments.js';
 export type { FrameRange, Segment, StillFormat } from './segments.js';
+export type { ProducerAssetResolver, ResolvedPath } from './media-path.js';
 export { renderStill } from './still.js';
 export type { StillRequest, StillResult } from './still.js';
 export {

@@ -14,9 +14,6 @@ import {
   imageSizeKnown,
   readImageSize,
   renderPageDocument,
-  resolveAssets,
-  type AssetResolver,
-  type VerifiedAsset,
 } from '@kadrion/renderer-dom';
 import {
   frameCount,
@@ -57,9 +54,16 @@ import {
   failure,
   onCancel,
   throwIfCancelled,
+  type JobLimits,
   type JobOptions,
 } from './job.js';
 import { canonicalJson, MANIFEST_VERSION, sha256, type RenderManifest } from './manifest.js';
+import {
+  isBytesAsset,
+  resolveProducerAsset,
+  type ProducerAsset,
+  type ProducerAssetResolver,
+} from './media-path.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
 import { prepareVideos, videoNodes, type NodeVideoFrame, type VideoLibrary } from './video.js';
 
@@ -126,9 +130,10 @@ export interface RenderSession {
   readonly runtime: RuntimeBuild;
   /**
    * Loads the document with its verified assets into the render page (D27.1);
-   * the bytes of video assets stay outside the page (D50.5).
+   * only images and fonts enter it: video and audio assets stay outside the
+   * page, however they were delivered (D50.5, D64.2).
    */
-  load(documentJson: string, assets: readonly VerifiedAsset[]): Promise<void>;
+  load(documentJson: string, assets: readonly ProducerAsset[]): Promise<void>;
   /**
    * Renders, waits until painted, and captures one frame (D28.4, D28.5), with
    * the frame of every video node active at `timeUs` (D50.4).
@@ -290,13 +295,14 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
       blockedRequests,
       runtime,
       async load(documentJson, assets) {
-        const messages = assets
-          .filter(({ type }) => type !== 'video')
-          .map(({ id, mediaType, bytes }) => ({
-            id,
-            mediaType,
-            base64: base64Of(bytes),
-          }));
+        const visual = assets
+          .filter(isBytesAsset)
+          .filter(({ type }) => type === 'image' || type === 'font');
+        const messages = visual.map(({ id, mediaType, bytes }) => ({
+          id,
+          mediaType,
+          base64: base64Of(bytes),
+        }));
         const outcome = await within(
           renderFrame.evaluate(
             ([json, given]) => (window as unknown as AgentWindow).kadrionProducer.load(json, given),
@@ -308,7 +314,7 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
         checked(outcome);
         noRequests();
         // The size read from every image's header is the size the pinned Chromium decodes (D62.3).
-        for (const { id, type, mediaType, bytes } of assets) {
+        for (const { id, type, mediaType, bytes } of visual) {
           if (type !== 'image' || !imageSizeKnown(mediaType)) continue;
           const read = readImageSize(bytes, mediaType);
           const decoded = await within(
@@ -380,7 +386,8 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
 
 export interface RenderRequest extends RenderTimeouts, JobOptions {
   readonly document: unknown;
-  readonly resolveAsset: AssetResolver;
+  /** Bytes for every asset, or a path for a video or an audio asset (D14, D64.1). */
+  readonly resolveAsset: ProducerAssetResolver;
   /** Frame times of the composition, rendered in this order (D28.4). */
   readonly timesUs: readonly number[];
   /** A browser from `launchChromium` to reuse; otherwise one is launched and closed. */
@@ -436,14 +443,29 @@ export function frameIndexOf(composition: ValidatedComposition, timeUs: number):
   return index;
 }
 
+/**
+ * Resolves and verifies every asset of the document, in its order, each asked
+ * for once (D14, D27.3): bytes, or a file of a video or an audio asset, whose
+ * size is checked against `maxAssetBytes` before it is read (D64.1).
+ */
 export async function verifiedAssets(
   composition: ValidatedComposition,
-  resolveAsset: AssetResolver,
-): Promise<VerifiedAsset[]> {
+  resolveAsset: ProducerAssetResolver,
+  limits?: JobLimits,
+): Promise<ProducerAsset[]> {
   try {
-    return await resolveAssets(composition, resolveAsset, (bytes) =>
-      Promise.resolve(sha256(bytes)),
-    );
+    const verified: ProducerAsset[] = [];
+    for (const asset of composition.assets) {
+      verified.push(
+        await resolveProducerAsset(
+          asset,
+          resolveAsset,
+          (bytes) => Promise.resolve(sha256(bytes)),
+          limits?.maxAssetBytes,
+        ),
+      );
+    }
+    return verified;
   } catch (reason) {
     if (reason instanceof RenderError)
       throw new ProducerError(producerCode(reason.code), reason.message);
@@ -454,7 +476,7 @@ export async function verifiedAssets(
 /** Everything a render needs that can be checked before a page opens (D28, D29.3). */
 export interface PreparedRender {
   readonly composition: ValidatedComposition;
-  readonly assets: readonly VerifiedAsset[];
+  readonly assets: readonly ProducerAsset[];
   readonly runtime: RuntimeBuild;
   /** The checked videos of the document; absent or `null` without video nodes (D50.5). */
   readonly videos?: VideoLibrary | null;
@@ -613,7 +635,7 @@ async function framesOf(request: RenderRequest): Promise<RenderResult> {
     timeUs,
   }));
   checkDocumentLimits(request.limits, composition, grid.length);
-  const assets = await verifiedAssets(composition, request.resolveAsset);
+  const assets = await verifiedAssets(composition, request.resolveAsset, request.limits);
   checkAssetLimits(request.limits, assets);
   const tools =
     request.ffmpeg !== undefined && videoNodes(composition).length > 0

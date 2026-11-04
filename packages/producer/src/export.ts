@@ -21,7 +21,6 @@
 import { rename, rm } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 
-import type { AssetResolver } from '@kadrion/renderer-dom';
 import { frameCount, frameToTimeUs, type ValidatedComposition } from '@kadrion/schema';
 
 import { audioPlan } from '@kadrion/runtime';
@@ -99,8 +98,9 @@ import {
   type RenderedFrame,
   type RenderTimeouts,
 } from './render.js';
+import type { ProducerAssetResolver } from './media-path.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
-import { prepareVideos, privateCopies, type PrivateCopies } from './video.js';
+import { mediaFiles, prepareVideos, type MediaFiles } from './video.js';
 import {
   AUDIO_INTERMEDIATE_CODEC,
   AUDIO_INTERMEDIATE_FORMAT,
@@ -134,7 +134,8 @@ interface EncoderSettings {
 
 export interface SegmentsRequest extends RenderTimeouts, EncoderSettings, JobOptions {
   readonly document: unknown;
-  readonly resolveAsset: AssetResolver;
+  /** Bytes for every asset, or a path for a video or an audio asset (D14, D64.1). */
+  readonly resolveAsset: ProducerAssetResolver;
   /** `1080p` or `720p` (D29.5). */
   readonly preset: string;
   /** Frames per segment (D47.1); `DEFAULT_SEGMENT_FRAMES` if not given. */
@@ -164,7 +165,8 @@ export interface SegmentsResult {
 
 export interface AudioRequest extends EncoderSettings, JobOptions {
   readonly document: unknown;
-  readonly resolveAsset: AssetResolver;
+  /** Bytes for every asset, or a path for a video or an audio asset (D14, D64.1). */
+  readonly resolveAsset: ProducerAssetResolver;
   /** The range of frame times; the whole composition if not given (D47.4). */
   readonly range?: RangeRequest;
   /** An existing directory; the audio is written there as `audio.wav`. */
@@ -199,7 +201,8 @@ export interface JoinResult {
 
 export interface ExportRequest extends RenderTimeouts, EncoderSettings, JobOptions {
   readonly document: unknown;
-  readonly resolveAsset: AssetResolver;
+  /** Bytes for every asset, or a path for a video or an audio asset (D14, D64.1). */
+  readonly resolveAsset: ProducerAssetResolver;
   /** `1080p` or `720p` (D29.5). */
   readonly preset: string;
   /** Frames per segment (D47.1); `DEFAULT_SEGMENT_FRAMES` if not given. */
@@ -271,12 +274,14 @@ function within<T>(
   });
 }
 
-/** The checked sounds of a render: their layout, a private copy of each source, and their hashes. */
+/** The checked sounds of a render: their layout, the file of each source, and their hashes. */
 interface CheckedAudio {
   readonly layout: AudioLayout;
   /** The file each sound is read from, in the order of the layout. */
   readonly inputs: readonly string[];
   readonly hashes: ReadonlyMap<string, string>;
+  /** Checks that every source read by path is still the file verified (D64.3). */
+  check(): Promise<void>;
   /** Removes the private copies; every caller calls it when the audio pass is done or failed. */
   close(): Promise<void>;
 }
@@ -289,7 +294,8 @@ function sameStart(a: StreamStart, b: StreamStart): boolean {
 /**
  * The sounds of the document, checked with the pinned ffprobe before the render
  * (D29.6, D49.6, D52.5): the audio plan of `@kadrion/runtime` on the sample
- * grid, a private copy of every source a sound reads, and for each sound a
+ * grid, the file of every source a sound reads (a private copy of bytes, or
+ * the host's file read by path, D64), and for each sound a
  * source with exactly one audio stream and a sample rate, which covers every
  * source time it is heard at; the sound of a video starts where its picture
  * does. `null` when nothing is heard: the export then has no audio stream.
@@ -308,10 +314,12 @@ async function checkedAudio(
       throw new ProducerError('asset-missing', `The asset "${id}" was not resolved.`);
     }
   }
-  const copies: PrivateCopies = await privateCopies(sources);
+  const copies: MediaFiles = await mediaFiles(sources, 'sound');
   try {
     const probes = new Map<string, AudioProbe>();
     for (const [id, file] of copies.files) probes.set(id, await tools.probeAudio(file));
+    // What ffprobe read is used only if every file is still the one verified (D64.3).
+    await copies.check();
     for (const { entry } of layout.sounds) {
       const probe = probes.get(entry.assetId);
       const name = `${entry.kind === 'clip' ? 'The clip' : 'The video node'} "${entry.id}"`;
@@ -348,6 +356,7 @@ async function checkedAudio(
       layout,
       inputs: layout.sounds.map(({ entry }) => copies.files.get(entry.assetId) ?? ''),
       hashes: new Map(sources.map(({ id, contentHash }) => [id, contentHash])),
+      check: () => copies.check(),
       close: () => copies.remove(),
     };
   } catch (reason) {
@@ -620,7 +629,7 @@ async function preparedSegments(
   const segmentFrames = checkedSegmentFrames(request.segmentFrames);
   const frames = frameRange(composition, range, segmentFrames);
   checkDocumentLimits(request.limits, composition, frames.frameCount);
-  const assets = await verifiedAssets(composition, request.resolveAsset);
+  const assets = await verifiedAssets(composition, request.resolveAsset, request.limits);
   checkAssetLimits(request.limits, assets);
   const tools = await dependencies.tools(request.ffmpeg);
   throwIfCancelled(request.signal);
@@ -766,6 +775,8 @@ async function audioWith(options: {
         `The audio pass wrote ${stream.codec} at ${String(stream.sampleRate)} Hz with ${String(stream.channels)} channels and ${String(stream.samples)} samples, not ${AUDIO_INTERMEDIATE_CODEC} at ${String(SAMPLE_RATE)} Hz with 2 and ${String(samples.sampleCount)}.`,
       );
     }
+    // The pass is kept only if every source it read is still the file verified (D64.3).
+    await audio.check();
     const hash = await tools.sha256File(partial);
     throwIfCancelled(signal);
     await dependencies.renameFile(partial, path);
@@ -809,7 +820,7 @@ export async function renderAudioWith(
     const composition = validated(request.document);
     const range = frameRange(composition, request.range);
     checkDocumentLimits(request.limits, composition, range.frameCount);
-    const assets = await verifiedAssets(composition, request.resolveAsset);
+    const assets = await verifiedAssets(composition, request.resolveAsset, request.limits);
     checkAssetLimits(request.limits, assets);
     const tools = await dependencies.tools(request.ffmpeg);
     const prepared: PreparedRender = { composition, assets, runtime: loadRuntimeBuild() };

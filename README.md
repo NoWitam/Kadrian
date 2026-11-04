@@ -848,6 +848,13 @@ try {
   the source frames, and the manifest records how (`video`, D50). Every sampled
   source range is checked against the video before the page opens
   (`source-range-exceeded`).
+- A video or an audio asset may also come by path: the resolver returns
+  `{ path, mediaType }` with an absolute path, and the Producer reads the file
+  where it is, without holding it in memory or copying it. It verifies the
+  file's SHA-256 by streaming it, checks `maxAssetBytes` against its size before
+  reading it, and refuses a file that changes after that with `asset-changed`
+  (D64). Images and fonts always come as bytes. The CLI hands video and audio of
+  its asset map to the Producer by path.
 - Only a render in the pinned container is the reference output. Anywhere else,
   the pixels are informative (D26).
 
