@@ -1,0 +1,227 @@
+{
+  "schemaVersion": "0.10",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "durationUs": 3000000,
+  "assets": [
+    {
+      "id": "asset-image",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    },
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-intro",
+      "durationUs": 1500000,
+      "nodes": [
+        {
+          "id": "intro-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1500000,
+          "color": "#101828"
+        },
+        {
+          "id": "intro-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1500000,
+          "position": {
+            "x": 120,
+            "y": 300
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion",
+          "fontAssetId": "asset-font",
+          "fontSize": 120,
+          "color": "#ffffff"
+        },
+        {
+          "id": "intro-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 1500000,
+          "position": {
+            "x": 800,
+            "y": 160
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 400,
+          "height": 400,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-person",
+      "durationUs": 1500000,
+      "nodes": [
+        {
+          "id": "person-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1500000,
+          "color": "#f79009"
+        },
+        {
+          "id": "person-name",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1500000,
+          "position": {
+            "x": 160,
+            "y": 300
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "{{people.name}}",
+          "fontAssetId": "asset-font",
+          "fontSize": 120,
+          "color": "#101828"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "template": {
+    "inputs": [
+      {
+        "id": "title",
+        "type": "text",
+        "minLength": 1,
+        "maxLength": 24,
+        "default": "Kadrion"
+      },
+      {
+        "id": "brand",
+        "type": "color",
+        "default": "#101828"
+      },
+      {
+        "id": "show-intro",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "id": "people",
+        "type": "list",
+        "minItems": 1,
+        "maxItems": 8,
+        "fields": [
+          {
+            "key": "name",
+            "type": "text",
+            "minLength": 1,
+            "maxLength": 24
+          },
+          {
+            "key": "accent",
+            "type": "color"
+          }
+        ],
+        "default": [
+          [
+            {
+              "key": "name",
+              "type": "text",
+              "value": "Dina"
+            },
+            {
+              "key": "accent",
+              "type": "color",
+              "value": "#f79009"
+            }
+          ],
+          [
+            {
+              "key": "name",
+              "type": "text",
+              "value": "Kian"
+            },
+            {
+              "key": "accent",
+              "type": "color",
+              "value": "#12b76a"
+            }
+          ]
+        ]
+      }
+    ],
+    "bindings": [
+      {
+        "id": "bind-brand",
+        "kind": "property",
+        "nodeId": "intro-background",
+        "property": "color",
+        "inputId": "brand"
+      },
+      {
+        "id": "bind-title",
+        "kind": "property",
+        "nodeId": "intro-title",
+        "property": "text",
+        "inputId": "title"
+      },
+      {
+        "id": "bind-name",
+        "kind": "placeholders",
+        "nodeId": "person-name"
+      },
+      {
+        "id": "bind-accent",
+        "kind": "item-property",
+        "nodeId": "person-background",
+        "property": "color",
+        "inputId": "people",
+        "key": "accent"
+      }
+    ],
+    "conditions": [
+      {
+        "id": "when-intro",
+        "test": "true",
+        "targetId": "scene-intro",
+        "inputId": "show-intro"
+      }
+    ],
+    "repeats": [
+      {
+        "id": "repeat-person",
+        "duration": "target",
+        "targetId": "scene-person",
+        "inputId": "people"
+      }
+    ]
+  }
+}

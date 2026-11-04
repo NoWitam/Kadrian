@@ -16,10 +16,10 @@ Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
 of the Player and the Producer is measured and gated
 ([`docs/spike/report.md`](docs/spike/report.md)). The workflow runs on a
-GitHub runner in the pinned image, and Q14 is closed: the run 41814956253 of
-the validated main commit 10573cf met every criterion, with its evidence in
-[`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
-([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
+GitHub runner in the pinned image. Q14 is open again: the run 41814956253 of
+the validated main commit 10573cf met every criterion, and PR-42 added a
+pinned test file, so its evidence was deleted until a green run of a later
+commit ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 repository is publicly visible, but the project is not open source: no licence
 is granted, and the packages are private and unpublished (D37). The APIs below
 are those of the spike and may still change.
@@ -97,23 +97,32 @@ The playground (D25.9, D32) shows the engine in a browser. After
 `node --run build`:
 
 ```bash
+KADRION_FFMPEG=<the pinned ffmpeg> node --run playground:media   # once, for the video showcase
 node --experimental-strip-types apps/playground/scripts/serve.ts
 ```
 
 It serves http://127.0.0.1:4520/ (set `PORT` to change it). The page offers:
 
 - **Showcases** — the reference composition, keyframes, a group transform,
-  sandboxed Custom HTML, and a landscape canvas at 24 fps. Each shows the JSON it
+  sandboxed Custom HTML, a landscape canvas at 24 fps, and the features of
+  phase three: a video in each `fit`, audio clips with fades, scenes with
+  transitions, captions, and a template previewed with its defaults and
+  instantiated with values. Each shows the JSON it
   loads and where that file lives; `http://127.0.0.1:4520/#<id>` opens one
   directly. The sources are `apps/playground/src/showcases/*.json`, listed in
   `apps/playground/src/showcases.ts`; `tests/repo/showcases.test.ts` keeps them
-  valid.
+  valid, and `tests/pinned/showcases.pinned.test.ts` opens and plays each one in
+  Chromium (D32.10). The video is made by the pinned FFmpeg from the recipe of
+  the test fixtures into `.kadrion-cache/playground-media/`, which Git ignores;
+  without it the video showcase reports `asset-missing`.
 - **Your own JSON** — edit the shown JSON, paste another, or load a file. It is
   validated in full; errors are listed as the bus and the Player report them. A
   document can use the assets listed on the page (one image, one font with the
-  glyphs ` DKabcdegimnorsty`, one audio track).
-- **Editing** — drag a node on the canvas, run a `set_node_position` tool call
-  (the AI tool of D31), and undo or redo either on the one command bus.
+  glyphs ` DKabcdegimnorsty`, one audio track, and the fixture video).
+- **Editing** — drag a node on the canvas, run a call of any tool of the AI
+  catalogue (D46), and undo or redo either on the one command bus. A template
+  can be instantiated with values of your own; the result opens as a new
+  document.
 - **Run Custom HTML** — off by default. Checking it makes the page run the
   code of the loaded document's Custom HTML elements; that is the page's
   decision, not the document's, and it is not network isolation (D32.9, D36).

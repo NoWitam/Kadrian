@@ -6,7 +6,8 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "serve": "node --experimental-strip-types scripts/serve.ts"
+    "serve": "node --experimental-strip-types scripts/serve.ts",
+    "media": "node --experimental-strip-types scripts/media.ts"
   },
   "dependencies": {
     "@kadrion/ai-sdk": "workspace:*",

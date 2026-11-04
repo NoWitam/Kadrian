@@ -5,5 +5,10 @@
     "types": ["node"],
     "tsBuildInfoFile": "../../../node_modules/.cache/tsbuildinfo/playground-scripts.tsbuildinfo"
   },
-  "include": ["./**/*.ts"]
+  "include": ["./**/*.ts"],
+  "references": [
+    {
+      "path": "../../../packages/test-fixtures"
+    }
+  ]
 }

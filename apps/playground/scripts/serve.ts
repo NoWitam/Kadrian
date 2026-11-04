@@ -1,17 +1,21 @@
 /**
  * A local static server for the playground (D25.9). It serves only the page,
  * the playground's own build, the built output of the packages the page needs,
- * and the runtime build artifact — nothing else in the repository, and never a
+ * the runtime build artifact, and the media `scripts/media.ts` makes into a
+ * directory Git ignores (D32.10) — nothing else in the repository, and never a
  * path outside those directories.
  *
  *   node --run build && node --experimental-strip-types apps/playground/scripts/serve.ts
  */
 import { readFileSync, statSync } from 'node:fs';
-import { createServer } from 'node:http';
+import { createServer, type Server } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../../..', import.meta.url));
+
+/** Where `scripts/media.ts` writes the playground's media; `.kadrion-cache/` is ignored by Git. */
+export const MEDIA_DIRECTORY = '.kadrion-cache/playground-media';
 
 /** URL prefix → directory under the repository root. */
 export const ROUTES: Readonly<Record<string, string>> = {
@@ -24,12 +28,14 @@ export const ROUTES: Readonly<Record<string, string>> = {
   '/pkg/runtime/': 'packages/runtime/dist',
   '/pkg/schema/': 'packages/schema/dist',
   '/pkg/test-fixtures/': 'packages/test-fixtures/dist',
+  '/media/': MEDIA_DIRECTORY,
 };
 
 const TYPES: Readonly<Record<string, string>> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.mp4': 'video/mp4',
 };
 
 /**
@@ -63,8 +69,9 @@ export function resolveRequest(pathname: string): string | null {
   return null;
 }
 
-function serve(port: number): void {
-  createServer((request, response) => {
+/** The server of the page, not yet listening; the showcase test runs this one (D32.10). */
+export function createPlaygroundServer(): Server {
+  return createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://localhost');
     const file = request.method === 'GET' ? resolveRequest(url.pathname) : null;
     if (file === null || !statSync(file, { throwIfNoEntry: false })?.isFile()) {
@@ -78,7 +85,11 @@ function serve(port: number): void {
         'cache-control': 'no-store',
       })
       .end(readFileSync(file));
-  }).listen(port, '127.0.0.1', () => {
+  });
+}
+
+function serve(port: number): void {
+  createPlaygroundServer().listen(port, '127.0.0.1', () => {
     console.log(`Kadrion playground on http://127.0.0.1:${String(port)}/`);
   });
 }

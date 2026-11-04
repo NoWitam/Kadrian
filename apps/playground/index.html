@@ -59,6 +59,7 @@
       }
       #controls button,
       #json-actions button,
+      #template button,
       #ai button {
         margin: 0 4px 8px 0;
       }
@@ -68,6 +69,8 @@
       #status,
       #errors,
       #tool-result,
+      #template-result,
+      #tools,
       #assets {
         white-space: pre-wrap;
         font-family: ui-monospace, monospace;
@@ -197,16 +200,33 @@
           sandbox.
         </div>
         <pre id="current" hidden></pre>
-        <h2>AI tool call (set_node_position)</h2>
+        <div id="template" hidden>
+          <h2>Template values</h2>
+          <div class="note">
+            The preview shows the template with its defaults. These values make another document; it
+            opens as a new document with a new undo history (D58.4).
+          </div>
+          <textarea id="template-values" rows="10" spellcheck="false"></textarea>
+          <button id="instantiate" type="button">Instantiate with these values</button>
+          <div id="template-result"></div>
+        </div>
+        <h2>AI tool call</h2>
         <div id="ai">
           <textarea id="tool-call" rows="7" spellcheck="false"></textarea>
           <button id="run-tool" type="button">Run tool call</button>
           <div class="note">
-            Runs on the same command bus as the drag, so Undo and Redo cover it (D31, D32.5).
+            Any tool of the AI catalogue, on the same command bus as the drag, so Undo and Redo
+            cover it (D31, D32.5, D46). The tools:
           </div>
+          <div id="tools"></div>
           <div id="tool-result"></div>
         </div>
         <h2>Assets a document can use</h2>
+        <div class="note">
+          The videos are made by the pinned FFmpeg from the recipes of the test fixtures: run "node
+          --run playground:media" once (D32.10). Without them the Player reports asset-missing for a
+          video.
+        </div>
         <div id="assets"></div>
       </section>
     </div>

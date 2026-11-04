@@ -1,0 +1,142 @@
+{
+  "schemaVersion": "0.10",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "durationUs": 2500000,
+  "assets": [
+    {
+      "id": "asset-video",
+      "type": "video",
+      "contentHash": "sha256:2defeadc24e956a808f058058c9ae10e4fad87d05b33be9b9d5ea6da2b45d1e0"
+    },
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-video",
+      "durationUs": 2500000,
+      "nodes": [
+        {
+          "id": "video-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2500000,
+          "color": "#101828"
+        },
+        {
+          "id": "video-fill",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2500000,
+          "position": {
+            "x": 40,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "width": 560,
+          "height": 315,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "volume": 0
+        },
+        {
+          "id": "video-contain",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2500000,
+          "position": {
+            "x": 680,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "width": 560,
+          "height": 560,
+          "fit": "contain",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "volume": 0
+        },
+        {
+          "id": "video-cover",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2500000,
+          "position": {
+            "x": 40,
+            "y": 420
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 500000,
+          "width": 560,
+          "height": 240,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 200
+          },
+          "volume": 0
+        },
+        {
+          "id": "video-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 2500000,
+          "position": {
+            "x": 700,
+            "y": 640
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion contain",
+          "fontAssetId": "asset-font",
+          "fontSize": 40,
+          "color": "#e4e7ec"
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

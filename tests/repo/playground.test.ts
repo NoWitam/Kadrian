@@ -45,6 +45,7 @@ describe('the playground application (D25.9)', () => {
         file.endsWith('.ts') && !file.includes('/dist/') && !file.includes('/node_modules/'),
     );
     expect(sources).toEqual([
+      'apps/playground/scripts/media.ts',
       'apps/playground/scripts/serve.ts',
       'apps/playground/src/app.ts',
       'apps/playground/src/drag.ts',
@@ -59,12 +60,17 @@ describe('the playground application (D25.9)', () => {
       '@kadrion/editor-session',
       '@kadrion/player',
       '@kadrion/schema',
+      '@kadrion/schema/template',
       '@kadrion/test-fixtures',
     ]);
     // The manifest of the showcases is data: it imports nothing (D32.1).
     expect(specifiers(readText('apps', 'playground', 'src', 'showcases.ts'))).toEqual([]);
     for (const specifier of specifiers(readText('apps', 'playground', 'scripts', 'serve.ts'))) {
       expect(specifier).toMatch(/^node:/);
+    }
+    // The media script takes the recipes of the fixtures and nothing else (D32.10).
+    for (const specifier of specifiers(readText('apps', 'playground', 'scripts', 'media.ts'))) {
+      expect(specifier).toMatch(/^node:|^@kadrion\/test-fixtures$/);
     }
   });
 
@@ -133,6 +139,9 @@ describe('the playground server (D25.9)', () => {
     '/pkg/player/index.js',
     '/pkg/renderer-dom/runtime-build/kadrion-runtime.js',
     '/pkg/test-fixtures/compositions/reference.json',
+    '/media/video.mp4',
+    '/media/video.mp4.partial.mp4/../video.mp4',
+    '/media/notes.txt',
     '/pkg/player/',
     '/pkg/player/../../../package.json',
     '/pkg/player/..',
@@ -156,7 +165,7 @@ describe('the playground server (D25.9)', () => {
     ),
   ) as (string | null)[];
 
-  it('serves the page, its build, and the built packages it needs, and nothing else', () => {
+  it('serves the page, its build, the built packages it needs, its media, and nothing else', () => {
     expect(Object.fromEntries(probe.map((path, index) => [path, resolved[index]]))).toEqual({
       '/': '/apps/playground/index.html',
       '/app/main.js': '/apps/playground/dist/main.js',
@@ -169,6 +178,10 @@ describe('the playground server (D25.9)', () => {
         '/packages/renderer-dom/dist/runtime-build/kadrion-runtime.js',
       '/pkg/test-fixtures/compositions/reference.json':
         '/packages/test-fixtures/dist/compositions/reference.json',
+      // The media of the showcases, made into a directory Git ignores (D32.10).
+      '/media/video.mp4': '/.kadrion-cache/playground-media/video.mp4',
+      '/media/video.mp4.partial.mp4/../video.mp4': null,
+      '/media/notes.txt': null,
       '/pkg/player/': null,
       '/pkg/player/../../../package.json': null,
       '/pkg/player/..': null,
@@ -206,7 +219,7 @@ describe('the Custom HTML policy of the playground (D36)', () => {
     // One Player is made, in `replaceSession`, with the policy the checkbox gives now.
     const calls = [
       ...main.matchAll(
-        /createPlayer\(elements\.stage, \{\s*runtime,\s*customHtml: (\w+),\s*onListenerError: report,\s*\}\)/g,
+        /createPlayer\(elements\.stage, \{\s*runtime,\s*customHtml: (\w+),\s*audio,\s*onListenerError: report,\s*\}\)/g,
       ),
     ];
     expect(calls.map((match) => match[1])).toEqual(['policy']);

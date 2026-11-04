@@ -9,8 +9,14 @@
  *
  * Nothing here is a domain rule. A document goes through `JSON.parse`, the bus
  * (the full `validateComposition`), and the session's first `load`; whatever
- * they refuse is shown as they report it. Assets are the bytes `@kadrion/test-fixtures`
- * generates, looked up by ID with no fallback (D32.2).
+ * they refuse is shown as they report it. Assets are looked up by ID with no
+ * fallback (D32.2).
+ *
+ * Assets are the bytes `@kadrion/test-fixtures` generates and, for the video
+ * showcase, the video its committed recipe makes with the pinned FFmpeg
+ * (`node --run playground:media`), served under `/media/` from a directory Git
+ * ignores (D32.10). The page gives the Player an audio context, so a document
+ * with sound is heard; its clock drives the picture while playing (D53).
  *
  * Custom HTML is the page's decision, never the document's (D36): the page
  * starts with it disabled, and only the "Run Custom HTML" checkbox makes a
@@ -18,12 +24,18 @@
  * Player over the current document; its undo history starts again, because a
  * session owns its bus (D44).
  */
-import { executeSetNodePosition, setNodePositionTool } from '@kadrion/ai-sdk';
+import { executeTool, setNodePositionTool, TOOL_CATALOGUE, type ToolResult } from '@kadrion/ai-sdk';
 import { createCommandBus, type CommandBus } from '@kadrion/editor-sdk';
 import { createEditorSession, type EditorSession } from '@kadrion/editor-session';
 import { createPlayer, type PlayerCustomHtmlPolicy } from '@kadrion/player';
 import { frameCount, frameToTimeUs, timeUsToFrame } from '@kadrion/schema';
-import { FONT_GLYPHS, generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
+import { instantiateTemplate, isTemplate } from '@kadrion/schema/template';
+import {
+  FONT_GLYPHS,
+  generateReferenceAssets,
+  referenceComposition,
+  VIDEO_FIXTURE,
+} from '@kadrion/test-fixtures';
 
 import { draggableNodes, positionOf, sizeCanvas, wireEditor, type Editor } from './app.js';
 import { SHOWCASES, type Showcase } from './showcases.js';
@@ -35,6 +47,20 @@ const MANIFEST = '/pkg/renderer-dom/runtime-build/kadrion-runtime.json';
 const SCALE = 0.35;
 /** The grip's box in composition pixels. It is an affordance of this page, not a node property. */
 const GRIP = 140;
+/**
+ * The video the page serves, made by `node --run playground:media` from the
+ * recipes of the fixtures (D32.10): asset ID → URL. Their hashes are the
+ * fixtures' own, so the Player verifies them as it verifies every asset.
+ */
+const MEDIA: Readonly<Record<string, { url: string; type: 'video'; contentHash: string }>> = {
+  [VIDEO_FIXTURE.id]: {
+    url: '/media/video.mp4',
+    type: 'video',
+    contentHash: VIDEO_FIXTURE.contentHash,
+  },
+};
+/** The sample rate of the Player's sound (D53). */
+const SAMPLE_RATE = 48_000;
 
 function element(id: string): HTMLElement {
   const found = document.getElementById(id);
@@ -92,6 +118,20 @@ function button(parent: HTMLElement, label: string, action: () => unknown): HTML
   return control;
 }
 
+/** What a tool did, as the panel shows it (D46). */
+function describeOutcome(outcome: ToolResult): string {
+  switch (outcome.kind) {
+    case 'description':
+      return JSON.stringify(outcome.description, null, 2);
+    case 'transaction':
+      return `Applied as one transaction: ${String(outcome.result.commands.length)} commands, one undo step.`;
+    case 'command':
+      return outcome.result.inverse === null
+        ? 'No change: the document already is so.'
+        : `Applied. Undo would dispatch:\n${JSON.stringify(outcome.result.inverse, null, 2)}`;
+  }
+}
+
 /** One document on screen: its session, the drag editor over it, and the node the grip drags. */
 interface Session {
   readonly facade: EditorSession;
@@ -130,8 +170,25 @@ async function main(): Promise<void> {
   /** The policy of the Player on screen, which the status line reports. */
   let shown: PlayerCustomHtmlPolicy = customHtml();
   const assets = new Map(generateReferenceAssets().map((asset) => [asset.id, asset]));
-  // A lookup by ID and nothing else: an unknown ID is the Player's asset-missing (D32.2).
-  const resolve = ({ id }: { id: string }) => assets.get(id) ?? null;
+  /**
+   * A lookup by ID and nothing else: an unknown ID, or a video the page has not
+   * been given, is the Player's asset-missing (D32.2). A video is handed over as
+   * a Blob, which the Player hashes without reading it whole (D51.2).
+   */
+  const resolve = async ({ id }: { id: string }) => {
+    const generated = assets.get(id);
+    if (generated !== undefined) return generated;
+    const media = MEDIA[id];
+    if (media === undefined) return null;
+    const response = await fetch(media.url);
+    if (!response.ok) return null;
+    return { blob: await response.blob(), mediaType: 'video/mp4' };
+  };
+  /**
+   * The sound of every Player of the page (D53). A browser starts it suspended;
+   * the Player resumes it on Play, which is a click.
+   */
+  const audio = { context: new AudioContext({ sampleRate: SAMPLE_RATE }) };
 
   let session: Session | null = null;
 
@@ -161,6 +218,7 @@ async function main(): Promise<void> {
     const player = await createPlayer(elements.stage, {
       runtime,
       customHtml: policy,
+      audio,
       onListenerError: report,
     });
     const facade = await createEditorSession({
@@ -205,6 +263,15 @@ async function main(): Promise<void> {
       gripSize: GRIP,
       onError: report,
     });
+  };
+
+  /** The template on screen and the values the page offers for it, or null (D58.4). */
+  const templateValues = element('template-values') as HTMLTextAreaElement;
+  const showTemplate = (composition: unknown, values: unknown): void => {
+    const template = isTemplate(composition as Parameters<typeof isTemplate>[0]);
+    element('template').hidden = !template;
+    templateValues.value = template ? JSON.stringify(values ?? {}, null, 2) : '';
+    element('template-result').textContent = '';
   };
 
   const exampleCall = (bus: CommandBus, nodeId: string | null): unknown => {
@@ -262,6 +329,7 @@ async function main(): Promise<void> {
     dragSelect.value = nodeId ?? '';
     attachGrip(nodeId);
     toolCall.value = JSON.stringify(showcase?.toolCall ?? exampleCall(bus, nodeId), null, 2);
+    showTemplate(composition, showcase?.templateValues ?? null);
   };
 
   const selectShowcase = async (showcase: Showcase): Promise<void> => {
@@ -386,7 +454,7 @@ async function main(): Promise<void> {
     current.textContent = JSON.stringify(session.bus.getDocument(), null, 2);
   });
 
-  // The AI tool of D31 on the page's bus (D32.5).
+  // The AI tools of D46 on the page's bus (D32.5): any tool of the catalogue.
   element('run-tool').addEventListener('click', () => {
     const result = element('tool-result');
     result.textContent = '';
@@ -403,24 +471,49 @@ async function main(): Promise<void> {
         throw new Error('A tool call is an object with "name" and "arguments".');
       }
       const { name, arguments: args } = call;
-      if (name !== setNodePositionTool.name) {
-        throw new Error(
-          `This page offers one tool, ${setNodePositionTool.name}, not ${String(name)}.`,
-        );
-      }
-      // The one capability the tool needs, and nothing else (D31.5).
-      const outcome = executeSetNodePosition(
-        Object.freeze({ dispatch: (command: unknown) => bus.dispatch(command) }),
+      // The capabilities the tools need, and nothing else (D31.5, D46).
+      const outcome = executeTool(
+        Object.freeze({
+          getDocument: () => bus.getDocument(),
+          dispatch: (command: unknown) => bus.dispatch(command),
+          dispatchTransaction: (commands: unknown) => bus.dispatchTransaction(commands),
+          mediaFactsOf: (contentHash: string) => bus.mediaFactsOf(contentHash),
+        }),
+        name,
         args,
       );
-      result.textContent =
-        outcome.inverse === null
-          ? 'No change: the node already has that position.'
-          : `Applied. Undo would dispatch:\n${JSON.stringify(outcome.inverse, null, 2)}`;
+      result.textContent = describeOutcome(outcome);
       rerender().catch(report);
     } catch (reason: unknown) {
       result.textContent = `Refused: ${describe(reason)}`;
     }
+  });
+  element('tools').textContent = TOOL_CATALOGUE.map((tool) => tool.name).join(', ');
+
+  // A template's values (D58.4): the preview shows its defaults; this opens the
+  // document the values make, as a new document with a new history.
+  element('instantiate').addEventListener('click', () => {
+    const out = element('template-result');
+    out.textContent = '';
+    if (session === null) return;
+    const template = session.bus.getDocument();
+    let values: unknown;
+    try {
+      values = JSON.parse(templateValues.value);
+    } catch (reason: unknown) {
+      out.textContent = `The values do not parse: ${describe(reason)}`;
+      return;
+    }
+    const made = instantiateTemplate(template, values);
+    if (!made.ok) {
+      out.textContent = `Refused:\n${made.errors.map((error) => `${error.code}: ${error.message}`).join('\n')}`;
+      return;
+    }
+    const text = JSON.stringify(made.composition, null, 2);
+    source.value = text;
+    element('source-info').textContent =
+      `Source: the document instantiated from ${session.label} with the values below it.`;
+    open(text, `instantiated from ${session.label}`, null).catch(report);
   });
 
   // What a document can use (D32.2): the IDs, types, and hashes of the generated bytes.
@@ -430,7 +523,11 @@ async function main(): Promise<void> {
   element('assets').textContent = [
     ...declared.map(
       (asset) =>
-        `${asset.id.padEnd(12)} ${asset.type.padEnd(6)} ${asset.contentHash}  (${assets.get(asset.id)?.mediaType ?? '?'})`,
+        `${asset.id.padEnd(17)} ${asset.type.padEnd(6)} ${asset.contentHash}  (${assets.get(asset.id)?.mediaType ?? '?'})`,
+    ),
+    ...Object.entries(MEDIA).map(
+      ([id, media]) =>
+        `${id.padEnd(17)} ${media.type.padEnd(6)} ${media.contentHash}  (video/mp4 from ${media.url})`,
     ),
     '',
     `Glyphs of the generated font: "${Object.keys(FONT_GLYPHS).join('')}"`,
