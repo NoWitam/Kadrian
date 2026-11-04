@@ -637,6 +637,13 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
         expect(joined['720p']?.manifest.frames).toEqual(full.manifest.frames);
       });
 
+      it('exports the same MP4 from the CLI, which reads the audio by path, as from its bytes (D64)', () => {
+        const cli = onePass['1080p'];
+        if (cli === undefined) throw new Error('The jobs did not run.');
+        expect(fileHash(cli.file)).toBe(fileHash(full.outputPath));
+        expect(cli.manifest).toEqual(full.manifest);
+      });
+
       it('passes the self-check of D29.3 on the joined file', async () => {
         const file = joined['1080p']?.file ?? '';
         expect(await videoTimestamps(file)).toEqual(Array.from({ length: 300 }, (_, i) => i * 512));

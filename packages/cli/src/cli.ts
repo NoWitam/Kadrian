@@ -32,7 +32,8 @@
  * from the flags or from `KADRION_FFMPEG` and `KADRION_FFPROBE`, never from
  * `PATH` (D29.1). The asset file maps asset IDs to `{ path, mediaType }`,
  * with paths relative to that file: where bytes live is the host's business,
- * never the document's (D14). The CLI knows no golden timestamp (D12).
+ * never the document's (D14). Images and fonts are read into memory; video and
+ * audio are handed to the Producer by path and read where they are (D64). The CLI knows no golden timestamp (D12).
  * `render-range`, `render-audio`, and `join` are the export split into jobs of
  * a host's queue (D47): a range of whole segments with its
  * `segments-<first>-<last>.manifest.json`, the audio of a range with
@@ -308,10 +309,13 @@ async function readInputs(
   const map = parseAssetMap(assetText);
   return {
     document,
-    resolveAsset: async ({ id }) => {
+    resolveAsset: async ({ id, type }) => {
       const entry = map.get(id);
       if (entry === undefined) return null;
-      const bytes = await readFile(resolve(dirname(assetFile), entry.path));
+      const path = resolve(dirname(assetFile), entry.path);
+      // Video and audio are read by path, never held in memory (D64.1); images and fonts as bytes.
+      if (type === 'video' || type === 'audio') return { path, mediaType: entry.mediaType };
+      const bytes = await readFile(path);
       return { bytes: new Uint8Array(bytes), mediaType: entry.mediaType };
     },
   };

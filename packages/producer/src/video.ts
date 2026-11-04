@@ -1,23 +1,24 @@
 /**
- * Video nodes in the Producer (D50.5). The bytes of a video asset arrive through
- * the resolver and are verified like every other asset (D27.3); the Producer
- * then writes a private copy into a directory of its own, because a container
- * such as MP4 is read by seeking, never from a pipe. The pinned ffprobe reads
- * the media facts of D49.6 from that copy, every sampled source range is
+ * Video nodes in the Producer (D50.5). A video asset arrives through the
+ * resolver as bytes or, read by path, as a file of the host's (D64); either is
+ * verified first (D27.3, D64.1). Bytes get a private copy in a directory of
+ * the Producer's own, because a container such as MP4 is read by seeking,
+ * never from a pipe; a file is read where it is, and after each read of FFmpeg
+ * the Producer checks that it is still the file verified (D64.3). The pinned
+ * ffprobe reads the media facts of D49.6, every sampled source range is
  * checked against them before the first frame (D49.6), and for each frame the
  * source frame of every active video node is chosen by the rule of
  * `@kadrion/schema` (D49.5), decoded by the pinned FFmpeg, and handed to the
  * page as a PNG (D50.4). The copies are removed when the frame loop ends.
  *
- * The sound sources of the audio pass get private copies by the same means
- * (`privateCopies`, D52.5): this module alone writes them.
+ * The sound sources of the audio pass are given to FFmpeg by the same means
+ * (`mediaFiles`, D52.5, D64): this module alone writes copies.
  */
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
 
-import type { VerifiedAsset } from '@kadrion/renderer-dom';
 import {
   placedVideos,
   sampledSourceRange,
@@ -44,6 +45,7 @@ import {
   type VideoProbe,
 } from './ffmpeg.js';
 import type { ManifestVideo } from './manifest.js';
+import { checkUnchanged, isPathAsset, type ProducerAsset } from './media-path.js';
 
 /** The frame of one video node as the page receives it (D50.4). */
 export interface NodeVideoFrame {
@@ -107,49 +109,45 @@ export function encodePng(width: number, height: number, rgb: Uint8Array): Uint8
   );
 }
 
-async function withDirectory<T>(work: (directory: string) => Promise<T>): Promise<T> {
-  const directory = await mkdtemp(join(tmpdir(), 'kadrion-video-'));
-  try {
-    return await work(directory);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-}
-
-async function writeCopies(
-  directory: string,
-  assets: readonly VerifiedAsset[],
-  prefix = 'video',
-): Promise<ReadonlyMap<string, string>> {
-  const files = new Map<string, string>();
-  for (const [at, asset] of assets.entries()) {
-    const file = join(directory, `${prefix}-${String(at)}`);
-    await writeFile(file, asset.bytes, { mode: 0o600, flag: 'wx' });
-    files.set(asset.id, file);
-  }
-  return files;
-}
-
-/** Private copies of verified assets, by asset ID, until `remove` is called. */
-export interface PrivateCopies {
+/** The file FFmpeg reads for each asset, by asset ID, until `remove` is called. */
+export interface MediaFiles {
   readonly files: ReadonlyMap<string, string>;
+  /** Checks that every file read by path is still the file verified (D64.3). */
+  check(): Promise<void>;
   remove(): Promise<void>;
 }
 
 /**
- * Writes a private copy of each asset, mode `0600`, into a new directory of
- * the Producer's own (D50.5, D52.5); `remove` deletes the directory, and a
- * failure while writing deletes it at once.
+ * The file FFmpeg reads for each asset: a file read by path is read where it
+ * is (D64), and the bytes of any other asset get a private copy, mode `0600`,
+ * in a new directory of the Producer's own (D50.5, D52.5), created only when
+ * there is a copy to write. `remove` deletes that directory, and a failure
+ * while writing deletes it at once.
  */
-export async function privateCopies(assets: readonly VerifiedAsset[]): Promise<PrivateCopies> {
-  const directory = await mkdtemp(join(tmpdir(), 'kadrion-sound-'));
+export async function mediaFiles(
+  assets: readonly ProducerAsset[],
+  prefix: string,
+): Promise<MediaFiles> {
+  const files = new Map<string, string>();
+  const read = assets.filter(isPathAsset);
+  for (const asset of read) files.set(asset.id, asset.path);
+  const copied = assets.filter((asset) => !isPathAsset(asset));
+  const check = (): Promise<void> => checkUnchanged(read);
+  if (copied.length === 0) return { files, check, remove: () => Promise.resolve() };
+  const directory = await mkdtemp(join(tmpdir(), `kadrion-${prefix}-`));
   const remove = (): Promise<void> => rm(directory, { recursive: true, force: true });
   try {
-    return { files: await writeCopies(directory, assets, 'sound'), remove };
+    for (const [at, asset] of assets.entries()) {
+      if (isPathAsset(asset)) continue;
+      const file = join(directory, `${prefix}-${String(at)}`);
+      await writeFile(file, asset.bytes, { mode: 0o600, flag: 'wx' });
+      files.set(asset.id, file);
+    }
   } catch (reason) {
     await remove();
     throw reason;
   }
+  return { files, check, remove };
 }
 
 /**
@@ -159,7 +157,7 @@ export async function privateCopies(assets: readonly VerifiedAsset[]): Promise<P
  */
 export async function prepareVideos(
   composition: ValidatedComposition,
-  assets: readonly VerifiedAsset[],
+  assets: readonly ProducerAsset[],
   tools: FfmpegTools | null,
 ): Promise<VideoLibrary | null> {
   const nodes = videoNodes(composition);
@@ -173,10 +171,14 @@ export async function prepareVideos(
   const used = new Set(nodes.map(({ assetId }) => assetId));
   const videos = assets.filter(({ id, type }) => type === 'video' && used.has(id));
   const probes = new Map<string, VideoProbe>();
-  await withDirectory(async (directory) => {
-    const files = await writeCopies(directory, videos);
-    for (const [id, file] of files) probes.set(id, await tools.probeVideo(file));
-  });
+  const media = await mediaFiles(videos, 'video');
+  try {
+    for (const [id, file] of media.files) probes.set(id, await tools.probeVideo(file));
+    // What ffprobe read is used only if every file is still the one verified (D64.3).
+    await media.check();
+  } finally {
+    await media.remove();
+  }
   const durations = new Map<string, number>();
   for (const [id, probe] of probes) {
     durations.set(id, sourceDurationUs(probe.timestamps, probe.lastDuration, probe.timeBase));
@@ -242,19 +244,13 @@ interface NodeDecoder {
 
 async function openFrameSource(
   nodes: readonly PlacedVideo[],
-  videos: readonly VerifiedAsset[],
+  videos: readonly ProducerAsset[],
   probes: ReadonlyMap<string, VideoProbe>,
   tools: FfmpegTools,
 ): Promise<VideoFrameSource> {
-  const directory = await mkdtemp(join(tmpdir(), 'kadrion-video-'));
   const decoders = new Map<string, NodeDecoder>();
-  let files: ReadonlyMap<string, string>;
-  try {
-    files = await writeCopies(directory, videos);
-  } catch (reason) {
-    await rm(directory, { recursive: true, force: true });
-    throw reason;
-  }
+  const media = await mediaFiles(videos, 'video');
+  const { files } = media;
   /** The PNG of source frame `index` of a node: read forward, restarted to go back. */
   const frameOf = async (
     node: VideoNode,
@@ -306,12 +302,14 @@ async function openFrameSource(
           bytes: await frameOf(node, probe, index),
         });
       }
+      // No frame decoded from a file changed after its verification reaches the page (D64.3).
+      if (frames.length > 0) await media.check();
       return frames;
     },
     async close() {
       for (const { decoder } of decoders.values()) decoder?.close();
       decoders.clear();
-      await rm(directory, { recursive: true, force: true });
+      await media.remove();
     },
   };
 }

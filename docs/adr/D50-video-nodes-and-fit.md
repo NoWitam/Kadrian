@@ -15,6 +15,7 @@
 - Amended by: PR-29a (D52) on 2026-10-31: D50.1: `0.4` adds `volume` to video nodes and no `muted` (D52.1)
 - Amended by: PR-30 (D54) on 2026-11-01: 50.3 and 50.5: a video samples its lifetime cut to its scene and shows the frame of its scene time (D54.3)
 - Amended by: PR-39b (D63) on 2026-11-03: 50.1: `contain` and `cover` place the picture by its `focus`, `0.10` (D63.2)
+- Amended by: PR-40 (D64) on 2026-11-04: 50.5: a video read by path gets no private copy (D64.6)
 - Related: D04, D13, D18, D19, D30, D34, D38, D40, D42, D43, D48, D49,
   [roadmap of phase three](../roadmap/phase-3.md) PR-28
 

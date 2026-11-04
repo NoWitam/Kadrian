@@ -26,7 +26,7 @@ export interface AudioManifest {
 ---- AudioRequest (type only)
 export interface AudioRequest extends EncoderSettings, JobOptions {
     readonly document: unknown;
-    readonly resolveAsset: AssetResolver;
+    readonly resolveAsset: ProducerAssetResolver;
     readonly range?: RangeRequest;
     readonly outputDirectory: string;
     readonly ffmpeg: FfmpegPaths;
@@ -121,7 +121,7 @@ export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'
 ---- ExportRequest (type only)
 export interface ExportRequest extends RenderTimeouts, EncoderSettings, JobOptions {
     readonly document: unknown;
-    readonly resolveAsset: AssetResolver;
+    readonly resolveAsset: ProducerAssetResolver;
     readonly preset: string;
     readonly segmentFrames?: number;
     readonly outputPath: string;
@@ -418,6 +418,9 @@ export interface PresentationSessions {
     detach(): Promise<void>;
 }
 
+---- ProducerAssetResolver (type only)
+export type ProducerAssetResolver = (asset: AssetRequest) => ResolvedAsset | ResolvedPath | null | Promise<ResolvedAsset | ResolvedPath | null>;
+
 ---- ProducerError
 export declare class ProducerError extends Error {
     readonly code: ProducerErrorCode;
@@ -425,7 +428,7 @@ export declare class ProducerError extends Error {
 }
 
 ---- ProducerErrorCode (type only)
-export type ProducerErrorCode = 'invalid-document' | 'frame-out-of-range' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'runtime-hash-mismatch' | 'runtime-unsafe' | 'chromium-missing' | 'chromium-mismatch' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'font-load-failed' | 'asset-decode-failed' | 'readiness-unsupported' | 'image-invalid' | 'image-size-mismatch' | 'custom-html-timeout' | 'custom-html-navigated' | 'page-timeout' | 'presentation-timeout' | 'network-request' | 'ffmpeg-missing' | 'ffmpeg-mismatch' | 'encode-failed' | 'audio-invalid' | 'preset-unsupported' | 'segment-length-invalid' | 'range-invalid' | 'join-invalid' | 'still-format-unsupported' | 'limit-exceeded' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'cancelled' | 'page-error';
+export type ProducerErrorCode = 'invalid-document' | 'frame-out-of-range' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-changed' | 'runtime-hash-mismatch' | 'runtime-unsafe' | 'chromium-missing' | 'chromium-mismatch' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'font-load-failed' | 'asset-decode-failed' | 'readiness-unsupported' | 'image-invalid' | 'image-size-mismatch' | 'custom-html-timeout' | 'custom-html-navigated' | 'page-timeout' | 'presentation-timeout' | 'network-request' | 'ffmpeg-missing' | 'ffmpeg-mismatch' | 'encode-failed' | 'audio-invalid' | 'preset-unsupported' | 'segment-length-invalid' | 'range-invalid' | 'join-invalid' | 'still-format-unsupported' | 'limit-exceeded' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'cancelled' | 'page-error';
 
 ---- ProgressEvent (type only)
 export type ProgressEvent = {
@@ -502,7 +505,7 @@ export interface RenderManifest {
 ---- RenderRequest (type only)
 export interface RenderRequest extends RenderTimeouts, JobOptions {
     readonly document: unknown;
-    readonly resolveAsset: AssetResolver;
+    readonly resolveAsset: ProducerAssetResolver;
     readonly timesUs: readonly number[];
     readonly chromium?: LaunchedChromium;
     readonly runtime?: RuntimeBuild;
@@ -522,7 +525,7 @@ export interface RenderSession {
     readonly requests: readonly string[];
     readonly blockedRequests: readonly string[];
     readonly runtime: RuntimeBuild;
-    load(documentJson: string, assets: readonly VerifiedAsset[]): Promise<void>;
+    load(documentJson: string, assets: readonly ProducerAsset[]): Promise<void>;
     frame(index: number, timeUs: number, videoFrames?: readonly NodeVideoFrame[]): Promise<Uint8Array>;
     stats(): Promise<{
         loads: number;
@@ -553,6 +556,12 @@ export interface RenderedFrame {
     readonly index: number;
     readonly timeUs: number;
     readonly png: Uint8Array;
+}
+
+---- ResolvedPath (type only)
+export interface ResolvedPath {
+    readonly path: string;
+    readonly mediaType: string;
 }
 
 ---- RuntimeBuild (type only)
@@ -602,7 +611,7 @@ export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpe
 ---- SegmentsRequest (type only)
 export interface SegmentsRequest extends RenderTimeouts, EncoderSettings, JobOptions {
     readonly document: unknown;
-    readonly resolveAsset: AssetResolver;
+    readonly resolveAsset: ProducerAssetResolver;
     readonly preset: string;
     readonly segmentFrames?: number;
     readonly range?: RangeRequest;
@@ -643,7 +652,7 @@ export interface StillManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'>
 ---- StillRequest (type only)
 export interface StillRequest extends RenderTimeouts, JobOptions {
     readonly document: unknown;
-    readonly resolveAsset: AssetResolver;
+    readonly resolveAsset: ProducerAssetResolver;
     readonly timeUs: number;
     readonly format: string;
     readonly ffmpeg?: FfmpegPaths;

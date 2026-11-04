@@ -5,7 +5,7 @@
  * node — equals a mix computed here, sample for sample, from the sources as
  * the pinned FFmpeg decodes them. The sample positions are written out by hand
  * from the rules of D52.5, not taken from the implementation; the mix is
- * summed in TypeScript. Every problem of a sound is typed before any pass.
+ * summed in TypeScript. Read by path (D64), the sources give the same bytes. Every problem of a sound is typed before any pass.
  *
  * The Player plays the same plan with Web Audio (D53): in pinned Chromium, its
  * graph rendered offline from the start and from a sample in the middle equals
@@ -14,7 +14,15 @@
  * `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where the run is pinned.
  */
 import { execFile } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import process from 'node:process';
@@ -28,6 +36,7 @@ import {
   renderAudio,
   sha256,
   type AudioManifest,
+  type ProducerAssetResolver,
   type LaunchedChromium,
 } from '@kadrion/producer';
 import type { AssetResolver } from '@kadrion/renderer-dom';
@@ -381,6 +390,47 @@ describe.skipIf(!available)('the audio mix of the Producer (D52.5)', () => {
         fadeOut: sound.fadeOut,
       })),
     ).toEqual(SOUNDS);
+  });
+
+  it('writes the same intermediate and manifest when every source is read by path (D64)', async () => {
+    // The host's storage: a directory of its own, outside the outputs of the run.
+    const host = mkdtempSync(join(tmpdir(), 'kadrion-host-'));
+    try {
+      const sources: Record<string, { bytes: Uint8Array; mediaType: string }> = {
+        'asset-music': { bytes: MUSIC, mediaType: 'audio/wav' },
+        'asset-voice': { bytes: VOICE, mediaType: 'audio/wav' },
+        'asset-video': { bytes: video, mediaType: 'video/mp4' },
+      };
+      for (const [id, { bytes }] of Object.entries(sources)) writeFileSync(join(host, id), bytes);
+      const byPath: ProducerAssetResolver = ({ id }) => {
+        const source = sources[id];
+        return source === undefined ? null : { path: join(host, id), mediaType: source.mediaType };
+      };
+      const out = join(host, 'out');
+      mkdirSync(out);
+      const result = await renderAudio({
+        document: document(VIDEO_SOUND_FIXTURE.contentHash),
+        resolveAsset: byPath,
+        outputDirectory: out,
+        ffmpeg: FFMPEG,
+      });
+      expect(result.manifest).toEqual(manifest);
+      expect(
+        readFileSync(join(out, AUDIO_FILE_NAME)).equals(
+          readFileSync(join(DIRECTORY, AUDIO_FILE_NAME)),
+        ),
+      ).toBe(true);
+      // The host's files stay where they were, and the job wrote only its output.
+      expect(readdirSync(host).sort()).toEqual([
+        'asset-music',
+        'asset-video',
+        'asset-voice',
+        'out',
+      ]);
+      expect(readdirSync(out)).toEqual([AUDIO_FILE_NAME]);
+    } finally {
+      rmSync(host, { recursive: true, force: true });
+    }
   });
 
   it('writes 96 000 stereo samples of 32-bit float at 48 kHz', () => {

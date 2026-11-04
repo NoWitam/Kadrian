@@ -132,7 +132,9 @@ describe('kadrion render-frames (D28.8)', () => {
     const font = await seen[0]?.resolveAsset({ id: 'asset-font', type: 'font', contentHash: 'x' });
     expect(font?.mediaType).toBe('font/ttf');
     expect(
-      Buffer.from(font?.bytes ?? []).equals(Buffer.from(generateReferenceAssets()[2]?.bytes ?? [])),
+      Buffer.from(font !== null && font !== undefined && 'bytes' in font ? font.bytes : []).equals(
+        Buffer.from(generateReferenceAssets()[2]?.bytes ?? []),
+      ),
     ).toBe(true);
     await expect(
       seen[0]?.resolveAsset({ id: 'asset-other', type: 'image', contentHash: 'x' }),
@@ -249,7 +251,8 @@ describe('kadrion export (D29.10)', () => {
       type: 'audio',
       contentHash: 'x',
     });
-    expect(audio?.mediaType).toBe('audio/wav');
+    // Video and audio are handed over by path, never read into memory (D64.1).
+    expect(audio).toEqual({ path: join(dir, 'asset-audio.bin'), mediaType: 'audio/wav' });
     expect(readdirSync(join(dir, 'out')).sort()).toEqual([
       'video-720p.mp4',
       'video-720p.render-manifest.json',

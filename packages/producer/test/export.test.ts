@@ -6,8 +6,10 @@
  * written out by hand from D29 and D47, not derived from the implementation.
  */
 import { createHash } from 'node:crypto';
+import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
 import { Writable } from 'node:stream';
 
 import { audioPlan } from '@kadrion/runtime';
@@ -2262,5 +2264,82 @@ describe('the plan of an estimate (D48.5)', () => {
     expect(() => estimatePlan(referenceComposition, 10, 0)).toThrow(
       expect.objectContaining({ code: 'segment-length-invalid' }),
     );
+  });
+});
+
+describe('the audio of a file read by path (D64)', () => {
+  /** The reference sound in a file of the host's, and a resolver that names it. */
+  function hostFile(): {
+    readonly path: string;
+    readonly resolveAsset: AudioRequest['resolveAsset'];
+    readonly done: () => void;
+  } {
+    const dir = mkdtempSync(join(tmpdir(), 'kadrion-host-'));
+    const audio = ASSETS['asset-audio'];
+    if (audio === undefined) throw new Error('no reference audio');
+    const path = join(dir, 'sound.wav');
+    writeFileSync(path, audio.bytes);
+    return {
+      path,
+      resolveAsset: ({ id, type }) =>
+        type === 'audio' ? { path, mediaType: audio.mediaType } : (ASSETS[id] ?? null),
+      done: () => {
+        rmSync(dir, { recursive: true, force: true });
+      },
+    };
+  }
+
+  it('reads the host file itself and writes the manifest of the delivery as bytes', async () => {
+    const host = hostFile();
+    try {
+      const byPath = fakeRun();
+      const fromPath = await audioJob(byPath, '/jobs/audio', { resolveAsset: host.resolveAsset });
+      expect(byPath.log).toContain(
+        `probe sound.wav ${String(ASSETS['asset-audio']?.bytes.length)}`,
+      );
+      const asBytes = fakeRun();
+      const fromBytes = await audioJob(asBytes, '/jobs/audio');
+      expect(fromPath.manifest).toEqual(fromBytes.manifest);
+      expect(byPath.files.get('/jobs/audio/audio.wav')).toEqual(
+        asBytes.files.get('/jobs/audio/audio.wav'),
+      );
+    } finally {
+      host.done();
+    }
+  });
+
+  it('refuses a file changed during the audio pass and keeps nothing under the final name', async () => {
+    const host = hostFile();
+    try {
+      const run = fakeRun({
+        onPass: () => {
+          appendFileSync(host.path, 'x');
+        },
+      });
+      await expect(
+        audioJob(run, '/jobs/audio', { resolveAsset: host.resolveAsset }),
+      ).rejects.toMatchObject({ code: 'asset-changed' });
+      expect(run.files.has('/jobs/audio/audio.wav')).toBe(false);
+      expect(run.log.some((line) => line.startsWith('rename'))).toBe(false);
+    } finally {
+      host.done();
+    }
+  });
+
+  it('checks the size of the file against the job limits before it is read', async () => {
+    const host = hostFile();
+    try {
+      await expect(
+        audioJob(fakeRun(), '/jobs/audio', {
+          resolveAsset: host.resolveAsset,
+          limits: { maxAssetBytes: (ASSETS['asset-audio']?.bytes.length ?? 0) - 1 },
+        }),
+      ).rejects.toMatchObject({
+        code: 'limit-exceeded',
+        message: expect.stringContaining('"asset-audio"') as unknown,
+      });
+    } finally {
+      host.done();
+    }
   });
 });

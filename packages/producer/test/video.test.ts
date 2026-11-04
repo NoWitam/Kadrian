@@ -5,7 +5,17 @@
  * PNG it hands to the page, and the private copies it removes. The pinned
  * FFmpeg itself is exercised in `tests/pinned`.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import {
+  appendFileSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { inflateSync } from 'node:zlib';
 
 import type { VerifiedAsset } from '@kadrion/renderer-dom';
@@ -14,6 +24,7 @@ import { VIDEO_FIXTURE, referenceComposition, videoComposition } from '@kadrion/
 import { describe, expect, it } from 'vitest';
 
 import type { FfmpegTools, VideoProbe } from '../src/ffmpeg.js';
+import { isPathAsset, resolveProducerAsset, type PathAsset } from '../src/media-path.js';
 import { encodePng, prepareVideos, videoNodes } from '../src/video.js';
 
 function composition(document: unknown): ValidatedComposition {
@@ -226,6 +237,91 @@ describe('the frames of a frame loop (D49.5, D50.4)', () => {
     if (source === undefined) throw new Error('no source');
     await expect(source.framesAt(1_000_000)).rejects.toMatchObject({ code: 'video-undecodable' });
     await source.close();
+  });
+});
+
+describe('a video read by path (D64)', () => {
+  /** The video's bytes in a file of the host's, verified by path. */
+  async function pathAsset(): Promise<{ readonly asset: PathAsset; readonly done: () => void }> {
+    const dir = mkdtempSync(join(tmpdir(), 'kadrion-host-'));
+    const path = join(dir, 'clip.mp4');
+    writeFileSync(path, BYTES);
+    const asset = await resolveProducerAsset(
+      {
+        id: VIDEO_FIXTURE.id,
+        type: 'video',
+        contentHash: `sha256:${createHash('sha256').update(BYTES).digest('hex')}`,
+      },
+      () => ({ path, mediaType: VIDEO_FIXTURE.mediaType }),
+      () => Promise.reject(new Error('bytes are not hashed here')),
+      undefined,
+    );
+    if (!isPathAsset(asset)) throw new Error('not read by path');
+    return {
+      asset,
+      done: () => {
+        rmSync(dir, { recursive: true, force: true });
+      },
+    };
+  }
+
+  it('probes and decodes the host file itself, and gives the same frames as bytes', async () => {
+    const { asset, done } = await pathAsset();
+    try {
+      const run = fakeTools();
+      const library = await prepareVideos(VIDEO, [asset], run.tools);
+      const source = await library?.open();
+      if (source === undefined) throw new Error('no source');
+      const frames = await source.framesAt(1_000_000);
+      expect(frames.map(({ bytes }) => pixelOf(bytes))).toEqual([25, 37, 37]);
+      await source.close();
+      expect(new Set(run.files)).toEqual(new Set([asset.path]));
+      // The host's file stays; nothing of it was copied or removed.
+      expect(existsSync(asset.path)).toBe(true);
+      const copied = fakeTools();
+      const fromBytes = await (await prepareVideos(VIDEO, [VIDEO_ASSET], copied.tools))?.open();
+      const same = await fromBytes?.framesAt(1_000_000);
+      await fromBytes?.close();
+      expect(same?.map(({ bytes }) => [...bytes])).toEqual(frames.map(({ bytes }) => [...bytes]));
+    } finally {
+      done();
+    }
+  });
+
+  it('refuses a file changed after the probe before any frame of it reaches the page', async () => {
+    const { asset, done } = await pathAsset();
+    try {
+      const library = await prepareVideos(VIDEO, [asset], fakeTools().tools);
+      const source = await library?.open();
+      if (source === undefined) throw new Error('no source');
+      await source.framesAt(0);
+      appendFileSync(asset.path, 'x');
+      await expect(source.framesAt(400_000)).rejects.toMatchObject({ code: 'asset-changed' });
+      await source.close();
+    } finally {
+      done();
+    }
+  });
+
+  it('refuses a file changed while it was probed', async () => {
+    const { asset, done } = await pathAsset();
+    try {
+      const run = fakeTools();
+      const probe = run.tools.probeVideo.bind(run.tools);
+      const tools = {
+        ...run.tools,
+        probeVideo: async (path: string) => {
+          const facts = await probe(path);
+          appendFileSync(path, 'x');
+          return facts;
+        },
+      };
+      await expect(prepareVideos(VIDEO, [asset], tools)).rejects.toMatchObject({
+        code: 'asset-changed',
+      });
+    } finally {
+      done();
+    }
   });
 });
 

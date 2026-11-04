@@ -5,7 +5,6 @@
  * FFmpeg with fixed quality settings, on pipes, so the Producer still writes
  * no file. The manifest names the frame, the output, and the encoder.
  */
-import type { AssetResolver } from '@kadrion/renderer-dom';
 
 import { asProducerError, ProducerError } from './errors.js';
 import type { LaunchedChromium } from './environment.js';
@@ -27,13 +26,15 @@ import {
   type RenderResult,
   type RenderTimeouts,
 } from './render.js';
+import type { ProducerAssetResolver } from './media-path.js';
 import type { RuntimeBuild } from './runtime.js';
 import { videoNodes } from './video.js';
 import { checkedStillFormat, STILL_FORMATS, stillArgs, type StillFormat } from './segments.js';
 
 export interface StillRequest extends RenderTimeouts, JobOptions {
   readonly document: unknown;
-  readonly resolveAsset: AssetResolver;
+  /** Bytes for every asset, or a path for a video or an audio asset (D14, D64.1). */
+  readonly resolveAsset: ProducerAssetResolver;
   /** A frame time of the composition (D13.2). */
   readonly timeUs: number;
   /** `png`, `jpeg`, or `webp`. */

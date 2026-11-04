@@ -3,12 +3,14 @@ export type ProducerErrorCode =
   | 'invalid-document'
   /** A requested time is not a frame time of the composition (D13.2, D28.4). */
   | 'frame-out-of-range'
-  /** The resolver has no bytes for an asset, or failed (D14, D27.3). */
+  /** The resolver has no bytes for an asset, its file cannot be read, or it failed (D14, D27.3, D64.1). */
   | 'asset-missing'
   /** The bytes of an asset do not have its content hash (D14, D27.3). */
   | 'asset-hash-mismatch'
-  /** The resolver returned something that is not bytes with a media type (D27.3). */
+  /** The resolver returned something that is not bytes, or a path of a video or audio asset, with a media type (D27.3, D64.1). */
   | 'asset-invalid'
+  /** A file read by path changed after it was verified, or while it was (D64.3). */
+  | 'asset-changed'
   /** The runtime build does not have the hash of its manifest (D28.2). */
   | 'runtime-hash-mismatch'
   /** The runtime build is not UTF-8, or would not stay one script element (D25.2). */
