@@ -40,6 +40,8 @@ are those of the spike and may still change.
   three: the engine under a host's video editor
 - [`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md) — the plan of phase
   four: a host integrates the engine
+- [`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md) — the proposed plan
+  of phase five: motion graphics, effects, and reusable elements
 - [`docs/integration/host-guide.md`](docs/integration/host-guide.md) — for a
   host: per task, the call, its errors, its limits, and the ADR that rules it
 - [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, and how
