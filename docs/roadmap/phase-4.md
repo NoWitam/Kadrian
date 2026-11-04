@@ -314,6 +314,7 @@ loop })`, validated on the frame grid (D13); playback stays inside the range,
 
 ### PR-43 — The host flow on released tarballs, and the host guide
 
+- Status: done (PR #54, merged 2026-11-04); no new ADR. `tests/release/host-flow.ts` runs in the clean project of the release smoke test (`smoke-release.ts --flow --ffmpeg-dir`) and in the release workflow before it publishes: a `0.1` document is migrated, edited in `editor-session` in the pinned Chromium and by `executeTool` on the same bus, undone and redone, saved, instantiated as a template, estimated, rendered in `render-range` and `render-audio` jobs, joined (byte for byte the MP4 of one `export`), and a still is rendered. `docs/integration/host-guide.md` follows the flow, each rule linked to its accepted ADR. Every package is version `0.2.0`; the tag `v0.2.0` is pushed by the owner.
 - **Goal:** the flow a host editor runs is tested end to end on the tarballs of
   a release, and a host has one guide to it.
 - **Scope:**
