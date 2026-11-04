@@ -233,6 +233,7 @@ loop })`, validated on the frame grid (D13); playback stays inside the range,
 
 ### PR-40 — Video and audio read by path in the Producer
 
+- Status: done (PR #48, merged 2026-11-04), with its ADR D64 (accepted by the owner on 2026-11-04). The Producer's resolver may return `{ path, mediaType }` for a video or an audio asset; the file is verified by streaming its SHA-256 after `maxAssetBytes` is checked against its size, FFmpeg reads it where it is without a private copy, and after every read of FFmpeg the Producer checks the file's device, inode, size, and times again (`asset-changed`). Images and fonts stay bytes; the CLI hands video and audio over by path. The manifests do not record the delivery (D64.5), so both deliveries give the same manifests and outputs. The pinned tests in `video`, `audio`, and `export` changed, so Q14 reopened.
 - **Goal:** a worker renders long or large media from the host's storage
   mounted read-only, without holding the bytes in memory and without a private
   copy per job.
