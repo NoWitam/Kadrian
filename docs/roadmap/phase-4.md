@@ -210,6 +210,7 @@ loop })`, validated on the frame grid (D13); playback stays inside the range,
 
 ### PR-39b — The focus point of `cover` (if question 4 is yes)
 
+- Status: done (PR #46, merged 2026-11-04), with its ADR D63 (accepted by the owner on 2026-11-04). Schema `0.10` gives every image and video a required `focus` `{ x, y }` in per mille after `fit`, written as `object-position: <x/10>% <y/10>%` for every fit (no effect under `fill`), not animated; the step from `0.9` adds the centre, so the twenty-two golden frames stayed byte for byte; `SetNodeFocus` and its tool make 63 tools; the focus composition has golden frames of its own. The runtime build and the Player's dist tree changed and parity was measured again (0/0); Q14 stays open until the evidence of a later push run of `main`.
 - **Goal:** an image or video in `cover` keeps the part the user chose in
   frame, which `fit` alone cannot do: today `cover` always keeps the centre.
 - **Scope (D63):** schema `0.10` adds `focus` `{ x, y }` to image and video
