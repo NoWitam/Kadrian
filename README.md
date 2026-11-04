@@ -40,6 +40,8 @@ are those of the spike and may still change.
   three: the engine under a host's video editor
 - [`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md) — the plan of phase
   four: a host integrates the engine
+- [`docs/integration/host-guide.md`](docs/integration/host-guide.md) — for a
+  host: per task, the call, its errors, its limits, and the ADR that rules it
 - [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, and how
   Q14 closes and reopens
 - [`docs/architecture/package-boundaries.json`](docs/architecture/package-boundaries.json)
@@ -133,7 +135,8 @@ The packages are workspace packages: an application in this repository depends
 on them with `"@kadrion/<name>": "workspace:*"` and imports them by name. They
 are ESM, and they resolve to `dist`, so run `node --run build` first. A host
 outside this repository installs the tarballs of a release instead (section 10,
-D45). The
+D45), and the [host guide](docs/integration/host-guide.md) lists its tasks in
+order, each with its call, errors, limits, and ADR. The
 playground (`apps/playground`) and the tests of `tests/app` and `tests/pinned`
 are complete, working examples of everything below.
 
@@ -1041,7 +1044,12 @@ versions its migration accepts (D43), the hash of the runtime build, and the
 pinned image and FFmpeg of the reference environment. `@kadrion/test-fixtures`
 is not shipped. The release workflow
 ([`.github/workflows/release.yml`](.github/workflows/release.yml)) installs the
-tarballs into a clean project and renders a frame before it attaches them.
+tarballs into a clean project, renders a frame, and runs the host flow there
+(`tests/release/host-flow.ts`: load a saved `0.1` document, edit it in the
+session and by a tool, save it, instantiate it, estimate, render it in jobs
+and join them, compare with a one-pass export, and render a still) before it
+attaches them. The [host guide](docs/integration/host-guide.md) follows the
+same flow, task by task.
 
 Pin every Kadrion package, also the ones you do not import, because the
 tarballs name each other by version, and no `@kadrion` name may resolve from a
@@ -1051,12 +1059,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.1.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.1.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.2.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.2.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.1.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.1.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.2.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.2.0.tgz"
   }
 }
 ```

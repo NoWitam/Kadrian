@@ -40,8 +40,12 @@ jobs:
         run: node --experimental-strip-types tests/release/pack-release.ts --tag "$GITHUB_REF_NAME" --out .kadrion-release
       # A clean project outside the workspace installs the tarballs by integrity,
       # validates, dispatches, renders one frame, and bundles the browser packages.
-      - name: Install smoke test
-        run: node --experimental-strip-types tests/release/smoke-release.ts --dir .kadrion-release --render
+      # Then the host flow of PR-43 runs there: a saved 0.1 document is migrated,
+      # edited in the session and by a tool, saved, instantiated, and rendered in
+      # jobs whose join must equal a one-pass export; `kadrion fetch-ffmpeg` of the
+      # installed CLI downloads the pinned FFmpeg into the given directory.
+      - name: Install smoke test and host flow
+        run: node --experimental-strip-types tests/release/smoke-release.ts --dir .kadrion-release --render --flow --ffmpeg-dir .kadrion-cache/release-ffmpeg
       - name: Release files
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
