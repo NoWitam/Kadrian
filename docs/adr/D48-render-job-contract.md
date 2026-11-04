@@ -7,7 +7,7 @@
   output of the CLI), with an `Amended by: PR-25b (D48)` line
 - Amended by: PR-41 on 2026-11-04: 48.1 (the job `migrate` and its lines
   `versions` and `invalid`) and 48.3 (exit 6, `not-current`); the command is
-  D43.7
+  D43.7; in force since the owner merged PR-41 (PR #50) on 2026-11-04
 - Related: D04, D06, D12, D26, D28, D29, D47,
   [roadmap of phase three](../roadmap/phase-3.md) PR-25b
 

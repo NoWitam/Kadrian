@@ -267,6 +267,7 @@ loop })`, validated on the frame grid (D13); playback stays inside the range,
 
 ### PR-41 — `kadrion migrate`
 
+- Status: done (PR #50, merged 2026-11-04), without an ADR of its own, as planned: D43.7 and D48 (48.1, 48.3) are amended. `kadrion migrate <file> (--out <file> | --check)` is a job of D48 over `parseComposition` and `serializeComposition`; `--out` is required unless `--check`, because standard output carries JSON lines only. It reports a `versions` line, writes the bytes of `serializeComposition(parseComposition(…))` under a temporary name, and `--check` exits 6 (`not-current`) for a valid document of an earlier version; a refused text or document gives an `invalid` line with the typed errors and `invalid-document` (exit 1). Its module is the one package source that imports `@kadrion/schema/migrate`, and the release smoke runs it from the tarballs.
 - **Goal:** a host migrates stored documents in a batch job, and a developer
   checks a document's version, without writing code against
   `@kadrion/schema/migrate`.
