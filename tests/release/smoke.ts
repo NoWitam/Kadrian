@@ -11,7 +11,8 @@
  *    with the integrity of the manifest.
  * 3. In Node: the schema validates and migrates, the bus dispatches, the AI
  *    tool dispatches on the same bus, the runtime build has the manifest's
- *    hash, and `kadrion doctor` reports. With `render`, the Producer renders
+ *    hash, `kadrion doctor` reports, and `kadrion migrate --check` finds the
+ *    smoke composition current. With `render`, the Producer renders
  *    one frame, which needs the pinned Chromium (the release workflow runs in
  *    the pinned image).
  * 4. A bundler builds the browser packages for the browser.
@@ -119,6 +120,18 @@ assert.ok(doctor.status === 0 || doctor.status === 3, doctor.stderr);
 const report = JSON.parse(doctor.stdout);
 assert.deepEqual(report.checks.map((check) => check.id), [...DOCTOR_CHECKS]);
 console.log('doctor reference ' + String(report.reference));
+
+const migrate = spawnSync(
+  process.execPath,
+  ['node_modules/@kadrion/cli/dist/bin.js', 'migrate', 'composition.json', '--check'],
+  { encoding: 'utf8' },
+);
+assert.equal(migrate.status, 0, migrate.stderr);
+assert.deepEqual(
+  migrate.stdout.trim().split('\\n').map((line) => JSON.parse(line)),
+  [{ event: 'versions', versions: [SCHEMA_VERSION] }, { event: 'done', manifest: null }],
+);
+console.log('migrate --check current');
 
 if (process.argv.includes('--render')) {
   const { frames, manifest } = await renderFrames({

@@ -5,6 +5,9 @@
 - Supersedes: —
 - Extends: D28 (28.6, two error codes; 28.8, the exit codes and standard
   output of the CLI), with an `Amended by: PR-25b (D48)` line
+- Amended by: PR-41 on 2026-11-04: 48.1 (the job `migrate` and its lines
+  `versions` and `invalid`) and 48.3 (exit 6, `not-current`); the command is
+  D43.7
 - Related: D04, D06, D12, D26, D28, D29, D47,
   [roadmap of phase three](../roadmap/phase-3.md) PR-25b
 
@@ -48,6 +51,15 @@ CLI's wall-time limit and `kadrion estimate`.
 - The jobs are `render-frames`, `export`, `render-range`, `render-audio`,
   `join`, `render-still`, and `estimate`. `fetch-ffmpeg` and `doctor` are set-up
   tools, not jobs, and keep their output (D45).
+- (Amended by: PR-41.) `migrate` (D43.7) is a job too. It renders nothing, so
+  it reports no `start`, `frame`, or `segment`, and takes no limit of D48.4 but
+  `--max-wall-ms`. Its own lines are `versions` (key `versions`: the versions
+  the document passed through, oldest first, the last one current) and
+  `invalid` (keys `stage` and, by stage, `error`, or `version`, `versions`, and
+  `errors`: what `parseComposition` refused); its `file` names the `--out`
+  path as given, and its `done` has `manifest: null`. The code of its `error`
+  line is `invalid-document`, `not-current`, `cancelled`, `limit-exceeded`, or
+  `usage`.
 - A job's standard output is JSON lines and nothing else: one object per line,
   with the key `event` and a fixed set of keys for each event. Diagnostics,
   including the message of an error, go to standard error.
@@ -108,6 +120,7 @@ CLI's wall-time limit and `kadrion estimate`.
 |    3 | `doctor` only: not the reference environment (D45)                      | fix the worker                     |
 |    4 | `limit-exceeded`, the wall time included                                | not retry with the same limits     |
 |    5 | `cancelled`                                                             | nothing: it asked for it           |
+|    6 | `migrate --check` only: the document is valid but not current (PR-41)   | migrate it                         |
 
 The `error` line carries the code and the exit code; the code is the one a
 library caller sees on the `ProducerError`.

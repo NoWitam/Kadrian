@@ -20,7 +20,8 @@
     "kadrion": "./dist/bin.js"
   },
   "dependencies": {
-    "@kadrion/producer": "workspace:*"
+    "@kadrion/producer": "workspace:*",
+    "@kadrion/schema": "workspace:*"
   },
   "devDependencies": {
     "@kadrion/test-fixtures": "workspace:*"

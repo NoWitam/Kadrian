@@ -108,6 +108,9 @@ importers:
       '@kadrion/producer':
         specifier: workspace:*
         version: link:../producer
+      '@kadrion/schema':
+        specifier: workspace:*
+        version: link:../schema
     devDependencies:
       '@kadrion/test-fixtures':
         specifier: workspace:*

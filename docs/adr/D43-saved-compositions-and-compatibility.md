@@ -6,6 +6,9 @@
 - Supersedes: —
 - Amends: D35 (35.3) and D42 (D42.9), each with an `Amended by: PR-22 (D43)`
   line, additively: a second explicit function of the host
+- Amended by: PR-41 on 2026-11-04: 43.7 (`kadrion migrate`, the one source of
+  a package that imports the migration entry) and 43.8 (the command is no
+  longer undecided); D48 is amended with it (the job `migrate`)
 - Related: D02, D13, D16, D17, D24, D28, D30, D32, D38,
   [roadmap of phase two](../roadmap/phase-2.md) PR-22
 
@@ -234,10 +237,40 @@ function parseComposition(text: string): ParseCompositionResult;
   host written otherwise.
 - The command bus is unchanged: it has no way to replace its document.
 
+(Amended by: PR-41.) **`kadrion migrate`.** A host that migrates stored
+documents in a batch, or a developer who checks the version of one, runs the
+command instead of writing code against the migration entry:
+
+```text
+kadrion migrate <file> (--out <file> | --check)
+```
+
+- It is a thin layer over this ADR: `parseComposition` of the file's UTF-8
+  text, then `serializeComposition` of the result, so the bytes it writes are
+  exactly those a library caller gets from the same two calls (D43.3), with no
+  trailing newline. `--out` may name the input itself.
+- It is a job of D48 (D48.1, D48.3): a `versions` line with the versions the
+  document passed through, then `file` and `done`. `--check` writes nothing,
+  ends with `done` for a current document, and with the `error` line
+  `not-current` and exit 6 for a valid document of an earlier version. A
+  refused text or document gives one `invalid` line, which carries what
+  `parseComposition` returned — `stage`, and the text error, or the
+  document's `version`, `versions`, and every `ValidationError` — then the
+  `error` line `invalid-document` (the Producer's code for a refused document)
+  with exit 1. The file is written under a temporary name and renamed
+  (D47.6), so a refusal, a failure, or a cancellation leaves no file.
+- Its module, `packages/cli/src/migrate.ts`, is the one source of a package or
+  an application that imports `@kadrion/schema/migrate`; the boundary of
+  D42.9 stands for everything else. Running the command is the host's explicit
+  act of migrating, like the call. The render commands of the CLI still accept
+  the current version only.
+- It reads one file. A directory, a database, or the storage of a new version
+  of the document (D02) is the host's loop around it.
+
 ### D43.8 What this ADR does not decide
 
 Metadata around a document, and any envelope for it; a `migrate` command of the
-CLI; replacing the document of a living bus (PR-23); a public `canonicalJson`;
+CLI (decided by PR-41, D43.7); replacing the document of a living bus (PR-23); a public `canonicalJson`;
 image `fit`, the public `NodeData` name, playground showcases, and the repair of
 `audioPlan` in the Producer, with any tighter bound on an audio clip that it
 may need. No historical schema is changed by this ADR.
