@@ -69,6 +69,8 @@ export type AudioClip = Infer<typeof audioClipSchema>;
 
 /** How an image or a video meets its box (D50). */
 export type Fit = ImageNode['fit'];
+/** The point of an image or a video that its fit keeps in place, in per mille (D63). */
+export type Focus = ImageNode['focus'];
 export type SceneTransition = Infer<typeof sceneTransitionSchema>;
 export type ClipTransition = Infer<typeof clipTransitionSchema>;
 /** How a transition between two scenes combines them (D56). */

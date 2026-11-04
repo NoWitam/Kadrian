@@ -1,5 +1,5 @@
 /**
- * The commands of video and fit (D50.6) and the check of sampled source ranges
+ * The commands of video, fit, and focus (D50.6, D63.4) and the check of sampled source ranges
  * against the media facts a host supplies (D49.6). The facts are given here
  * by hand: the video of `everyType` lasts 3 s.
  */
@@ -30,6 +30,18 @@ function withClip() {
     asset: { id: 'asset-clip', type: 'video', contentHash: CLIP_HASH },
     index: 0,
   }).document;
+}
+
+/** A node of the first scene, or a child of one of its groups, by its ID. */
+function nodeOf(document: unknown, id: string): Record<string, unknown> {
+  const nodes = (document as { scenes: { nodes: Record<string, unknown>[] }[] }).scenes[0]?.nodes;
+  const all = (nodes ?? []).flatMap((node) => [
+    node,
+    ...((node['children'] as Record<string, unknown>[] | undefined) ?? []),
+  ]);
+  const found = all.find((node) => node['id'] === id);
+  if (found === undefined) throw new Error(`No node ${id}.`);
+  return found;
 }
 
 function videoField(document: unknown, field: string): unknown {
@@ -72,6 +84,80 @@ describe('SetNodeFit (D50.6)', () => {
     expect(
       codeOf(() =>
         applyCommand(everyType(), { type: 'SetNodeFit', nodeId: 'node-title', fit: 'cover' }),
+      ),
+    ).toBe('unsupported-node');
+  });
+});
+
+describe('SetNodeFocus (D63.4)', () => {
+  it.each([
+    ['an image', 'node-image'],
+    ['a video', 'node-video'],
+  ])('sets the focus of %s in its place, with the inverse that restores it', (_, nodeId) => {
+    const focus = { x: 0, y: 1000 };
+    const result = applyCommand(everyType(), { type: 'SetNodeFocus', nodeId, focus });
+    expect(result.inverse).toEqual({ type: 'SetNodeFocus', nodeId, focus: { x: 500, y: 500 } });
+    const node = nodeOf(result.document, nodeId);
+    expect(node['focus']).toEqual(focus);
+    const keys = Object.keys(node);
+    expect(keys[keys.indexOf('fit') + 1]).toBe('focus');
+    const restored = applyCommand(result.document, result.inverse as Command).document;
+    expect(JSON.stringify(restored)).toBe(JSON.stringify(everyType()));
+  });
+
+  it('changes nothing, and writes no inverse, for the focus the node has', () => {
+    const document = everyType();
+    const result = applyCommand(document, {
+      type: 'SetNodeFocus',
+      nodeId: 'node-image',
+      focus: { x: 500, y: 500 },
+    });
+    expect(result.document).toBe(document);
+    expect(result.inverse).toBeNull();
+  });
+
+  it('is undone and redone through the bus like every edit', () => {
+    const bus = createCommandBus(everyType());
+    bus.dispatch({ type: 'SetNodeFocus', nodeId: 'node-video', focus: { x: 850, y: 120 } });
+    expect(videoField(bus.getDocument(), 'focus')).toEqual({ x: 850, y: 120 });
+    bus.undo();
+    expect(videoField(bus.getDocument(), 'focus')).toEqual({ x: 500, y: 500 });
+    bus.redo();
+    expect(videoField(bus.getDocument(), 'focus')).toEqual({ x: 850, y: 120 });
+  });
+
+  it.each([
+    ['above 1000', { x: 1001, y: 500 }],
+    ['below 0', { x: 500, y: -1 }],
+    ['a fraction', { x: 250.5, y: 500 }],
+    ['not a number', { x: '500', y: 500 }],
+    ['not finite', { x: Number.POSITIVE_INFINITY, y: 500 }],
+    ['a field too many', { x: 500, y: 500, z: 0 }],
+    ['a field too few', { x: 500 }],
+    ['no object', 500],
+  ])('refuses a focus %s with invalid-argument', (_, focus) => {
+    expect(
+      codeOf(() =>
+        applyCommand(everyType(), { type: 'SetNodeFocus', nodeId: 'node-image', focus } as never),
+      ),
+    ).toBe('invalid-argument');
+  });
+
+  it('stores -0 as 0, and refuses a node without a focus', () => {
+    const result = applyCommand(everyType(), {
+      type: 'SetNodeFocus',
+      nodeId: 'node-video',
+      focus: { x: -0, y: 0 },
+    });
+    const focus = videoField(result.document, 'focus') as { x: number; y: number };
+    expect(Object.is(focus.x, 0)).toBe(true);
+    expect(
+      codeOf(() =>
+        applyCommand(everyType(), {
+          type: 'SetNodeFocus',
+          nodeId: 'node-title',
+          focus: { x: 0, y: 0 },
+        }),
       ),
     ).toBe('unsupported-node');
   });

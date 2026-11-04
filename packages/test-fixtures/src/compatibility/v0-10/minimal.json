@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.10",
+  "width": 1,
+  "height": 1,
+  "fps": 1,
+  "durationUs": 1,
+  "assets": [],
+  "scenes": [
+    {
+      "id": "minimal-scene",
+      "durationUs": 1,
+      "nodes": [],
+      "clips": [],
+      "transitions": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+}

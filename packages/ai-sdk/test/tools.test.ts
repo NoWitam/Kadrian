@@ -61,6 +61,7 @@ const VIDEO_SETUP: readonly Command[] = [
       width: 320,
       height: 180,
       fit: 'contain',
+      focus: { x: 500, y: 500 },
       volume: 0,
     },
   },
@@ -253,6 +254,7 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   MoveKeyframe: [],
   SetNodeLifetime: [],
   SetNodeFit: [],
+  SetNodeFocus: [],
   SetVideoAsset: [
     ...VIDEO_SETUP,
     {

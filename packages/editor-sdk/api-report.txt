@@ -392,7 +392,7 @@ export interface ClosedObjectSchema<K extends string> {
 }
 
 ---- Command (type only)
-export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand;
+export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetNodeFocusCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand;
 
 ---- CommandArguments (type only)
 export type CommandArguments<T extends Command['type']> = Omit<Extract<Command, {
@@ -957,6 +957,25 @@ export interface SetNodeFitCommand extends SetNodeFitArguments {
     readonly type: 'SetNodeFit';
 }
 
+---- SetNodeFocusArguments (type only)
+export interface SetNodeFocusArguments {
+    readonly nodeId: string;
+    readonly focus: Focus;
+}
+
+---- SetNodeFocusArgumentsSchema (type only)
+export interface SetNodeFocusArgumentsSchema extends ClosedObjectSchema<keyof SetNodeFocusArguments> {
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly focus: ClosedObjectSchema<keyof Focus>;
+    };
+}
+
+---- SetNodeFocusCommand (type only)
+export interface SetNodeFocusCommand extends SetNodeFocusArguments {
+    readonly type: 'SetNodeFocus';
+}
+
 ---- SetNodeLifetimeArguments (type only)
 export interface SetNodeLifetimeArguments {
     readonly nodeId: string;
@@ -1429,6 +1448,9 @@ export declare const setNodeColorArgumentsSchema: SetNodeColorArgumentsSchema;
 
 ---- setNodeFitArgumentsSchema
 export declare const setNodeFitArgumentsSchema: SetNodeFitArgumentsSchema;
+
+---- setNodeFocusArgumentsSchema
+export declare const setNodeFocusArgumentsSchema: SetNodeFocusArgumentsSchema;
 
 ---- setNodeLifetimeArgumentsSchema
 export declare const setNodeLifetimeArgumentsSchema: SetNodeLifetimeArgumentsSchema;

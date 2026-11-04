@@ -65,6 +65,7 @@ import {
   parseSetImageAsset,
   parseSetNodeColor,
   parseSetNodeFit,
+  parseSetNodeFocus,
   parseSetNodeLifetime,
   parseSetNodeOpacity,
   parseSetNodePosition,
@@ -308,6 +309,19 @@ function numberField(node: DocumentObject, field: string, nodeId: string): numbe
     throw new EditorError('unsupported-node', `The node \`${nodeId}\` has no ${field}.`);
   }
   return value;
+}
+
+/** The point `{x, y}` a node holds in `field`, or `unsupported-node` (D63.4). */
+function pointField(
+  node: DocumentObject,
+  field: string,
+  nodeId: string,
+): { readonly x: number; readonly y: number } {
+  const value = node[field];
+  if (!isObject(value)) {
+    throw new EditorError('unsupported-node', `The node \`${nodeId}\` has no ${field}.`);
+  }
+  return { x: numberField(value, 'x', nodeId), y: numberField(value, 'y', nodeId) };
 }
 
 /** The string a node holds in `field`, or `unsupported-node` (D30.8). */
@@ -1330,6 +1344,20 @@ const DEFINITIONS = deepFreeze<Definitions>({
         return {
           node: { ...node, fit: command.fit },
           inverse: parseSetNodeFit({ ...command, fit }),
+        };
+      }),
+  },
+  SetNodeFocus: {
+    parse: parseSetNodeFocus,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['image', 'video'], command.nodeId);
+        const focus = pointField(node, 'focus', command.nodeId);
+        if (focus.x === command.focus.x && focus.y === command.focus.y) return null;
+        return {
+          // `focus` keeps its place, and every other value its identity (D42.10).
+          node: { ...node, focus: command.focus },
+          inverse: parseSetNodeFocus({ ...command, focus }),
         };
       }),
   },

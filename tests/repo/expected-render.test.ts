@@ -181,6 +181,7 @@ function element(node: DocumentNode, state: StateNode): ExpectedElement {
           width: px(node.width ?? 0),
           height: px(node.height ?? 0),
           'object-fit': 'fill',
+          'object-position': '50% 50%',
           ...dynamic(state),
         },
         children: [],

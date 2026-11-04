@@ -3,7 +3,7 @@
   "rule": [
     "Numbers (D22.1): an evaluated number is written as String(n), the ECMAScript Number::toString; a length appends px. Nothing is rounded.",
     "Transform and opacity (D22.2): every transformed node gets transform: translate(<x>px, <y>px) scale(<sx>, <sy>) and opacity: <o> from its own state, and transform-origin: 0px 0px. No element gets a z-index; DOM order is the array order.",
-    "Elements (D22.3): stage div [data-kadrion-composition=\"\"] with position relative, width and height of the canvas, overflow hidden; one scene div [data-kadrion-scene] per scene, absolute at 0px 0px with the canvas size; background div with the scene styles plus background-color; group div with position absolute, left 0px, top 0px, transform-origin 0px 0px; image img [src, alt=\"\"] with the group styles plus display block, width, height, object-fit fill; text div with the group styles plus white-space pre, font-family kadrion-font-<fontAssetId>, font-size, line-height 1.25, font-weight 400, font-style normal, color, and one text node; custom-html div with the group styles plus width and height and exactly one child, the iframe of D23.1.",
+    "Elements (D22.3): stage div [data-kadrion-composition=\"\"] with position relative, width and height of the canvas, overflow hidden; one scene div [data-kadrion-scene] per scene, absolute at 0px 0px with the canvas size; background div with the scene styles plus background-color; group div with position absolute, left 0px, top 0px, transform-origin 0px 0px; image img [src, alt=\"\"] with the group styles plus display block, width, height, object-fit fill, object-position 50% 50% (D63.2: the focus 500, 500 as percentages); text div with the group styles plus white-space pre, font-family kadrion-font-<fontAssetId>, font-size, line-height 1.25, font-weight 400, font-style normal, color, and one text node; custom-html div with the group styles plus width and height and exactly one child, the iframe of D23.1.",
     "Colours: #rrggbb is written as rgb(r, g, b) with decimal channels: #0b1020 is rgb(11, 16, 32), #d0d5dd is rgb(208, 213, 221), #ffffff is rgb(255, 255, 255).",
     "Asset URLs: the host passes `assetUrls` below; src of the image is its entry, and the font URL is required but registers no font face (D22.6).",
     "Static values from reference.json: canvas 1080 x 1920; node-image 400 x 400, asset-image; node-caption 56px, #d0d5dd, \"Deterministic by design\"; node-title 144px, #ffffff, \"Kadrion\"; both texts use asset-font; node-custom-html 900 x 40.",
@@ -95,6 +95,7 @@
                       "width": "400px",
                       "height": "400px",
                       "object-fit": "fill",
+                      "object-position": "50% 50%",
                       "transform": "translate(0px, 0px) scale(1.25, 1.25)",
                       "opacity": "1"
                     },
@@ -293,6 +294,7 @@
                       "width": "400px",
                       "height": "400px",
                       "object-fit": "fill",
+                      "object-position": "50% 50%",
                       "transform": "translate(0px, 0px) scale(1.25, 1.25)",
                       "opacity": "1"
                     },
@@ -491,6 +493,7 @@
                       "width": "400px",
                       "height": "400px",
                       "object-fit": "fill",
+                      "object-position": "50% 50%",
                       "transform": "translate(0px, 0px) scale(1.5625, 1.40625)",
                       "opacity": "1"
                     },
@@ -689,6 +692,7 @@
                       "width": "400px",
                       "height": "400px",
                       "object-fit": "fill",
+                      "object-position": "50% 50%",
                       "transform": "translate(0px, 0px) scale(1.875, 1.5625)",
                       "opacity": "1"
                     },
@@ -887,6 +891,7 @@
                       "width": "400px",
                       "height": "400px",
                       "object-fit": "fill",
+                      "object-position": "50% 50%",
                       "transform": "translate(0px, 0px) scale(2.175, 1.7125000000000001)",
                       "opacity": "1"
                     },

@@ -115,19 +115,21 @@ describe('runtime build artifact (D21)', () => {
     const modules = [...text.matchAll(/^ {2}\/\/ (\S+)$/gm)].map((match) => match[1] ?? '');
     // The premise: the schema is in the artifact, with its title as written.
     expect(modules).toContain('packages/schema/dist/composition-schema.js');
-    expect(text).toContain('Kadrion composition 0.9');
+    expect(text).toContain('Kadrion composition 0.10');
     // The page imports the main entry of `@kadrion/schema` only; the migration
     // entry and what only it reaches are no part of the runtime build.
     expect(
       modules.filter((path) => /migrat|v0-1|v0-2|v0-3|v0-4|v0-5|detached|step-/.test(path)),
     ).toEqual([]);
-    expect(text).not.toContain('Kadrion composition 0.1');
+    // 0.10 begins with the text of 0.1, so the title of 0.1 is the one not followed by a digit.
+    expect(text).not.toMatch(/Kadrion composition 0\.1(?!\d)/);
     expect(text).not.toContain('Kadrion composition 0.2');
     expect(text).not.toContain('Kadrion composition 0.3');
     expect(text).not.toContain('Kadrion composition 0.4');
     expect(text).not.toContain('Kadrion composition 0.5');
     expect(text).not.toContain('Kadrion composition 0.7');
     expect(text).not.toContain('Kadrion composition 0.8');
+    expect(text).not.toContain('Kadrion composition 0.9');
     for (const name of [
       'migrateComposition',
       'migrateThrough',
@@ -143,6 +145,8 @@ describe('runtime build artifact (D21)', () => {
       'compositionSchemaV05',
       'compositionSchemaV07',
       'step07To08',
+      'compositionSchemaV09',
+      'step09To10',
       // The instantiation of a template is the host's (D58.4).
       'instantiateTemplate',
       'templateDefaults',

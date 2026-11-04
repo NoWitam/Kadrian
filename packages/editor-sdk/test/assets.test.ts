@@ -300,6 +300,7 @@ describe('RemoveAsset (D40.3, D40.4)', () => {
             width: 10,
             height: 10,
             fit: 'fill',
+            focus: { x: 500, y: 500 },
           },
         });
         return { bus, users: ['top-image'] };

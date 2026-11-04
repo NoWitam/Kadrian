@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.9",
+  "schemaVersion": "0.10",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -102,7 +102,8 @@
           "assetId": "asset-portrait--0",
           "width": 200,
           "height": 200,
-          "fit": "cover"
+          "fit": "cover",
+          "focus": { "x": 500, "y": 500 }
         },
         {
           "id": "person-name--0",
@@ -173,7 +174,8 @@
           "assetId": "asset-portrait--1",
           "width": 200,
           "height": 200,
-          "fit": "cover"
+          "fit": "cover",
+          "focus": { "x": 500, "y": 500 }
         },
         {
           "id": "person-name--1",

@@ -6,7 +6,7 @@ import { captionPages } from '@kadrion/runtime';
 import type { CaptionsNode, GroupNode, SceneNode, ValidatedComposition } from '@kadrion/schema';
 
 import { checkAssetUrls, type AssetUrls } from './assets.js';
-import { cssColor, cssPixels, fontFamily } from './css.js';
+import { cssColor, cssObjectPosition, cssPixels, fontFamily } from './css.js';
 import { unsupportedNode } from './errors.js';
 import {
   CUSTOM_HTML_ATTRIBUTE,
@@ -139,6 +139,7 @@ function nodeElement(
           width: cssPixels(node.width),
           height: cssPixels(node.height),
           'object-fit': node.fit,
+          'object-position': cssObjectPosition(node.focus),
         },
       );
     case 'video':
@@ -155,6 +156,7 @@ function nodeElement(
           width: cssPixels(node.width),
           height: cssPixels(node.height),
           'object-fit': node.fit,
+          'object-position': cssObjectPosition(node.focus),
         },
       );
     case 'text': {

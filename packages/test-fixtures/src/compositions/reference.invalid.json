@@ -32,7 +32,7 @@
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.10" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.11" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -479,6 +479,72 @@
     "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/1/children/0/fit" }]
   },
   {
+    "name": "focus-missing-on-image",
+    "description": "Every image states its focus; there is no default (D16.1, D63.1).",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/1/children/0/focus" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/1/children/0/focus" }]
+  },
+  {
+    "name": "focus-above-range",
+    "description": "A coordinate of a focus is at most 1000 per mille (D63.1).",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/1/children/0/focus/x", "value": 1001 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/1/children/0/focus/x" }]
+  },
+  {
+    "name": "focus-negative",
+    "description": "A coordinate of a focus is at least 0 per mille (D63.1).",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/1/children/0/focus/y", "value": -1 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/1/children/0/focus/y" }]
+  },
+  {
+    "name": "focus-fractional",
+    "description": "A coordinate of a focus is an integer number of per mille (D15, D63.1).",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/1/children/0/focus/x", "value": 250.5 }],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/scenes/0/nodes/1/children/0/focus/x" }]
+  },
+  {
+    "name": "focus-unknown-field",
+    "description": "A focus is a closed object of x and y (D63.1).",
+    "patch": [{ "op": "add", "path": "/scenes/0/nodes/1/children/0/focus/z", "value": 0 }],
+    "expectedErrors": [{ "code": "unknown-field", "path": "/scenes/0/nodes/1/children/0/focus/z" }]
+  },
+  {
+    "name": "video-focus-missing",
+    "description": "Every video states its focus too; there is no default (D63.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "volume": 0
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/4/focus" }]
+  },
+  {
     "name": "video-source-start-missing",
     "description": "A video node states where its source starts; there is no default (D49.1, D50.1).",
     "patch": [
@@ -507,6 +573,7 @@
           "width": 320,
           "height": 180,
           "fit": "contain",
+          "focus": { "x": 500, "y": 500 },
           "volume": 0
         }
       }
@@ -543,6 +610,7 @@
           "width": 320,
           "height": 180,
           "fit": "contain",
+          "focus": { "x": 500, "y": 500 },
           "muted": true,
           "volume": 0
         }
@@ -571,6 +639,7 @@
           "width": 320,
           "height": 180,
           "fit": "contain",
+          "focus": { "x": 500, "y": 500 },
           "volume": 0
         }
       }
@@ -607,6 +676,7 @@
           "width": 320,
           "height": 180,
           "fit": "contain",
+          "focus": { "x": 500, "y": 500 },
           "volume": 0
         }
       }
@@ -645,6 +715,7 @@
           "width": 320,
           "height": 180,
           "fit": "contain",
+          "focus": { "x": 500, "y": 500 },
           "volume": 2
         }
       }
@@ -681,6 +752,7 @@
           "width": 320,
           "height": 180,
           "fit": "none",
+          "focus": { "x": 500, "y": 500 },
           "volume": 0
         }
       }

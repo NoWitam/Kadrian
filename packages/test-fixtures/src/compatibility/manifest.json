@@ -36,6 +36,76 @@
       "commit": "e4e80ce2a33da2870ec2bebb5b2bbc7fe8de83c1"
     },
     {
+      "file": "compatibility/v0-10/audio.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/captions.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/extremes.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/focus.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/inputs.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/lifetime.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/minimal.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/pair.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/reference.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/repeats.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/scenes.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/template.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/transitions.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
+      "file": "compatibility/v0-10/video.json",
+      "origin": "written",
+      "in": "PR-39b"
+    },
+    {
       "file": "compatibility/v0-2/extremes.json",
       "origin": "written",
       "in": "PR-22"
@@ -395,740 +465,880 @@
       "schemaVersion": "0.1",
       "input": "compatibility/v0-1/reference.json",
       "inputSha256": "sha256:ed9f0bc45d6e2b1248b50be131edc50cfc334d16e3070ceadbcfaabbcb2c70ed",
-      "versions": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/reference.json",
-      "expectedSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "expectedCompositionHash": "sha256:d6a1e9dcedfa52b789ea1cc8902a8a01f0c471f729c622bf83a233849d15081b"
+      "versions": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
     },
     {
       "id": "pair-0-1",
       "schemaVersion": "0.1",
       "input": "compatibility/v0-1/pair.json",
       "inputSha256": "sha256:6f76f1c6a20973ceead5eeb790c36f64b43cb847331a2baa5c252eb51df49f0f",
-      "versions": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/pair.json",
-      "expectedSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "expectedCompositionHash": "sha256:21ee1997bf34051e419ba8fdf76256a68237df9a149a4430cc344421dd322e1c"
+      "versions": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
     },
     {
       "id": "minimal-0-1",
       "schemaVersion": "0.1",
       "input": "compatibility/v0-1/minimal.json",
       "inputSha256": "sha256:5b40cb7b7b64dd7299b98fcce67bdfadeda0602eb4dd1ec29b215ebfaf131488",
-      "versions": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/minimal.json",
-      "expectedSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "expectedCompositionHash": "sha256:b46140ab850962f94710839d395d58e8001ba26823ffe957e6ac5448363be4cd"
+      "versions": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
     },
     {
       "id": "extremes-0-1",
       "schemaVersion": "0.1",
       "input": "compatibility/v0-1/extremes.json",
       "inputSha256": "sha256:032203572e6a76f142d8800d5bea4d472fcc81ea59db12f69bbb44430e1d3945",
-      "versions": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/extremes.json",
-      "expectedSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "expectedCompositionHash": "sha256:3110f921c98936bc393eb03c6b4e20f920be100a7f3cb36dd7219ed2c222608e"
+      "versions": ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
     },
     {
       "id": "reference-0-2",
       "schemaVersion": "0.2",
       "input": "compatibility/v0-2/reference.json",
       "inputSha256": "sha256:0d66dd243d83790ece2afd1a40c48ca1e33add462068c046aba1797693ed5088",
-      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/reference.json",
-      "expectedSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "expectedCompositionHash": "sha256:d6a1e9dcedfa52b789ea1cc8902a8a01f0c471f729c622bf83a233849d15081b"
+      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
     },
     {
       "id": "pair-0-2",
       "schemaVersion": "0.2",
       "input": "compatibility/v0-2/pair.json",
       "inputSha256": "sha256:61fde55204fac61e3a33c3587943fd59b186c5084c61ce7c52ff969fceef555b",
-      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/pair.json",
-      "expectedSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "expectedCompositionHash": "sha256:21ee1997bf34051e419ba8fdf76256a68237df9a149a4430cc344421dd322e1c"
+      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
     },
     {
       "id": "lifetime-0-2",
       "schemaVersion": "0.2",
       "input": "compatibility/v0-2/lifetime.json",
       "inputSha256": "sha256:140ed5bf5a5e0f71c8f8a12312a8d946f461d8fe9aacc8d31bedef28c4ffd890",
-      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/lifetime.json",
-      "expectedSha256": "sha256:608053e05d80c8c6da6c0aefb9bc4c5ad28bed7e321c63bcce084f95010e7e7c",
-      "expectedCompositionHash": "sha256:cb068040f6c45e3309c4935fc721cf916c46e80c9e522aa9b4447cbf7304032e"
+      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/lifetime.json",
+      "expectedSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "expectedCompositionHash": "sha256:8b3ac77e32aa430ffbcb6ba604a4d5279e2d6e73ed93379c11cb4047747695c5"
     },
     {
       "id": "minimal-0-2",
       "schemaVersion": "0.2",
       "input": "compatibility/v0-2/minimal.json",
       "inputSha256": "sha256:34d1c7504f0c2f1b814aeb5c1fc624429ac92b13466ec85d05cbaaf018ceb64c",
-      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/minimal.json",
-      "expectedSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "expectedCompositionHash": "sha256:b46140ab850962f94710839d395d58e8001ba26823ffe957e6ac5448363be4cd"
+      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
     },
     {
       "id": "extremes-0-2",
       "schemaVersion": "0.2",
       "input": "compatibility/v0-2/extremes.json",
       "inputSha256": "sha256:17f195212d0781dbf36e486b6288e6840b9c1dc59a2536693b83fff1829bbcb3",
-      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/extremes.json",
-      "expectedSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "expectedCompositionHash": "sha256:3110f921c98936bc393eb03c6b4e20f920be100a7f3cb36dd7219ed2c222608e"
+      "versions": ["0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
     },
     {
       "id": "reference-0-3",
       "schemaVersion": "0.3",
       "input": "compatibility/v0-3/reference.json",
       "inputSha256": "sha256:935dfb7b49e3c4a8f41521fd0e63bc57142aeebbc0ec03b16e4cf9f756091f7f",
-      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/reference.json",
-      "expectedSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "expectedCompositionHash": "sha256:d6a1e9dcedfa52b789ea1cc8902a8a01f0c471f729c622bf83a233849d15081b"
+      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
     },
     {
       "id": "pair-0-3",
       "schemaVersion": "0.3",
       "input": "compatibility/v0-3/pair.json",
       "inputSha256": "sha256:b8eb93a95861ca52c571883d6244d9c147be10be54f0fa65e9b219c9460ded03",
-      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/pair.json",
-      "expectedSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "expectedCompositionHash": "sha256:21ee1997bf34051e419ba8fdf76256a68237df9a149a4430cc344421dd322e1c"
+      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
     },
     {
       "id": "lifetime-0-3",
       "schemaVersion": "0.3",
       "input": "compatibility/v0-3/lifetime.json",
       "inputSha256": "sha256:1c660f906fc19566a2bab0b96f8e6674c3327f02f842995d368a4ad40eb32463",
-      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/lifetime.json",
-      "expectedSha256": "sha256:608053e05d80c8c6da6c0aefb9bc4c5ad28bed7e321c63bcce084f95010e7e7c",
-      "expectedCompositionHash": "sha256:cb068040f6c45e3309c4935fc721cf916c46e80c9e522aa9b4447cbf7304032e"
+      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/lifetime.json",
+      "expectedSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "expectedCompositionHash": "sha256:8b3ac77e32aa430ffbcb6ba604a4d5279e2d6e73ed93379c11cb4047747695c5"
     },
     {
       "id": "minimal-0-3",
       "schemaVersion": "0.3",
       "input": "compatibility/v0-3/minimal.json",
       "inputSha256": "sha256:ca70225a5f56fa7609bbed0c23b0b075fd84ce8de38043e469dd833723f6b533",
-      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/minimal.json",
-      "expectedSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "expectedCompositionHash": "sha256:b46140ab850962f94710839d395d58e8001ba26823ffe957e6ac5448363be4cd"
+      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
     },
     {
       "id": "extremes-0-3",
       "schemaVersion": "0.3",
       "input": "compatibility/v0-3/extremes.json",
       "inputSha256": "sha256:5a854b557c0984d571fc4aeeecf614cf4a3c189a857677b78aa579396df522cf",
-      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/extremes.json",
-      "expectedSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "expectedCompositionHash": "sha256:3110f921c98936bc393eb03c6b4e20f920be100a7f3cb36dd7219ed2c222608e"
+      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
     },
     {
       "id": "video-0-3",
       "schemaVersion": "0.3",
       "input": "compatibility/v0-3/video.json",
       "inputSha256": "sha256:72a3046f9900ad523c8b394d951f9515f160299ccb0c69b825ad1d3afcea4ac7",
-      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/video.json",
-      "expectedSha256": "sha256:48f1c56e7ae6b5313dc02a39868bfa4e779b5e42de5c2a5d071d2b9dee194e37",
-      "expectedCompositionHash": "sha256:254fc48a7a094abaa2bebd75369054744e3f9a054249067dfbce4eac0789a883"
+      "versions": ["0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/video.json",
+      "expectedSha256": "sha256:42c3b5746f6e7f0e399d75389fefa238ac41d7defba0973a3294d0147157f943",
+      "expectedCompositionHash": "sha256:f7b457dca3f98be0305d7e874ba02d171172ccec33f11007d215742670694121"
     },
     {
       "id": "reference-0-4",
       "schemaVersion": "0.4",
       "input": "compatibility/v0-4/reference.json",
       "inputSha256": "sha256:e0179956ec9d9bbe3bcf033472a5ecc039a0969703dea36af8451a760cd6ce41",
-      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/reference.json",
-      "expectedSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "expectedCompositionHash": "sha256:d6a1e9dcedfa52b789ea1cc8902a8a01f0c471f729c622bf83a233849d15081b"
+      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
     },
     {
       "id": "audio-0-4",
       "schemaVersion": "0.4",
       "input": "compatibility/v0-4/audio.json",
       "inputSha256": "sha256:9a2628aacbe661e71f84527cccd4f020a4d88a83505f24b107c4fad4c0f0d202",
-      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/audio.json",
-      "expectedSha256": "sha256:f109ff7c7abef678d6f69a8f33952e76333c8cc0509c1240e7f71bcc0f52da56",
-      "expectedCompositionHash": "sha256:e59e140022b3f4bb058915de66cfef55f8f950db356653656c7634698758f311"
+      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/audio.json",
+      "expectedSha256": "sha256:a9babc2fe8ba1a5663b2d34f924cc5c1a9324487d843f54ef7055e985cc26729",
+      "expectedCompositionHash": "sha256:0c6d8586b7e8ad400ebd635670277428d53eb39a1cfb69e82bca8d4368b5c4f1"
     },
     {
       "id": "pair-0-4",
       "schemaVersion": "0.4",
       "input": "compatibility/v0-4/pair.json",
       "inputSha256": "sha256:31238bd2802d6b6e2cb16fc9b104e684f6784b81064c67a5722560b60e0fe442",
-      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/pair.json",
-      "expectedSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "expectedCompositionHash": "sha256:21ee1997bf34051e419ba8fdf76256a68237df9a149a4430cc344421dd322e1c"
+      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
     },
     {
       "id": "lifetime-0-4",
       "schemaVersion": "0.4",
       "input": "compatibility/v0-4/lifetime.json",
       "inputSha256": "sha256:4931431b714fd569f957f625ca11d0730bb2ec1cbea4c4341545209917cea262",
-      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/lifetime.json",
-      "expectedSha256": "sha256:608053e05d80c8c6da6c0aefb9bc4c5ad28bed7e321c63bcce084f95010e7e7c",
-      "expectedCompositionHash": "sha256:cb068040f6c45e3309c4935fc721cf916c46e80c9e522aa9b4447cbf7304032e"
+      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/lifetime.json",
+      "expectedSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "expectedCompositionHash": "sha256:8b3ac77e32aa430ffbcb6ba604a4d5279e2d6e73ed93379c11cb4047747695c5"
     },
     {
       "id": "minimal-0-4",
       "schemaVersion": "0.4",
       "input": "compatibility/v0-4/minimal.json",
       "inputSha256": "sha256:51e9d04fb5ca7ea22e049093cc5ef43484fc5e255f10357cb7c4e0877d74189f",
-      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/minimal.json",
-      "expectedSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "expectedCompositionHash": "sha256:b46140ab850962f94710839d395d58e8001ba26823ffe957e6ac5448363be4cd"
+      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
     },
     {
       "id": "extremes-0-4",
       "schemaVersion": "0.4",
       "input": "compatibility/v0-4/extremes.json",
       "inputSha256": "sha256:7f1d731be1bfbf41ad12365e9c1c130ae19bb65c6fd39f7c8241c9437b21858c",
-      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/extremes.json",
-      "expectedSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "expectedCompositionHash": "sha256:3110f921c98936bc393eb03c6b4e20f920be100a7f3cb36dd7219ed2c222608e"
+      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
     },
     {
       "id": "video-0-4",
       "schemaVersion": "0.4",
       "input": "compatibility/v0-4/video.json",
       "inputSha256": "sha256:f52fdee1e60df9c7bb0b122e12b5d9de59d9f5e10583dc15a5154b23bb9eacec",
-      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/video.json",
-      "expectedSha256": "sha256:48f1c56e7ae6b5313dc02a39868bfa4e779b5e42de5c2a5d071d2b9dee194e37",
-      "expectedCompositionHash": "sha256:254fc48a7a094abaa2bebd75369054744e3f9a054249067dfbce4eac0789a883"
+      "versions": ["0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/video.json",
+      "expectedSha256": "sha256:42c3b5746f6e7f0e399d75389fefa238ac41d7defba0973a3294d0147157f943",
+      "expectedCompositionHash": "sha256:f7b457dca3f98be0305d7e874ba02d171172ccec33f11007d215742670694121"
     },
     {
       "id": "reference-0-5",
       "schemaVersion": "0.5",
       "input": "compatibility/v0-5/reference.json",
       "inputSha256": "sha256:bb15a14f4a46e66d97fe8749e2daadb96a70875a94437534324cf01c6f387dba",
-      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/reference.json",
-      "expectedSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "expectedCompositionHash": "sha256:d6a1e9dcedfa52b789ea1cc8902a8a01f0c471f729c622bf83a233849d15081b"
+      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
     },
     {
       "id": "audio-0-5",
       "schemaVersion": "0.5",
       "input": "compatibility/v0-5/audio.json",
       "inputSha256": "sha256:6db29d3db87449d087bdddc657ff7bc2372017c79baca60e373d57c816bb15f4",
-      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/audio.json",
-      "expectedSha256": "sha256:f109ff7c7abef678d6f69a8f33952e76333c8cc0509c1240e7f71bcc0f52da56",
-      "expectedCompositionHash": "sha256:e59e140022b3f4bb058915de66cfef55f8f950db356653656c7634698758f311"
+      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/audio.json",
+      "expectedSha256": "sha256:a9babc2fe8ba1a5663b2d34f924cc5c1a9324487d843f54ef7055e985cc26729",
+      "expectedCompositionHash": "sha256:0c6d8586b7e8ad400ebd635670277428d53eb39a1cfb69e82bca8d4368b5c4f1"
     },
     {
       "id": "pair-0-5",
       "schemaVersion": "0.5",
       "input": "compatibility/v0-5/pair.json",
       "inputSha256": "sha256:c5012ef08f14f783e686974118367c4e9365646137dc8f939584732c7fb708bd",
-      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/pair.json",
-      "expectedSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "expectedCompositionHash": "sha256:21ee1997bf34051e419ba8fdf76256a68237df9a149a4430cc344421dd322e1c"
+      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
     },
     {
       "id": "lifetime-0-5",
       "schemaVersion": "0.5",
       "input": "compatibility/v0-5/lifetime.json",
       "inputSha256": "sha256:97c073541cf20019b86b3247e7e90bbbbdba4a27bd06d86bab68b57a4079cc9d",
-      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/lifetime.json",
-      "expectedSha256": "sha256:608053e05d80c8c6da6c0aefb9bc4c5ad28bed7e321c63bcce084f95010e7e7c",
-      "expectedCompositionHash": "sha256:cb068040f6c45e3309c4935fc721cf916c46e80c9e522aa9b4447cbf7304032e"
+      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/lifetime.json",
+      "expectedSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "expectedCompositionHash": "sha256:8b3ac77e32aa430ffbcb6ba604a4d5279e2d6e73ed93379c11cb4047747695c5"
     },
     {
       "id": "minimal-0-5",
       "schemaVersion": "0.5",
       "input": "compatibility/v0-5/minimal.json",
       "inputSha256": "sha256:438168981b0cf97a8c71a40a06044a021f0a702ad0f8cc1371057b3615edccf7",
-      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/minimal.json",
-      "expectedSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "expectedCompositionHash": "sha256:b46140ab850962f94710839d395d58e8001ba26823ffe957e6ac5448363be4cd"
+      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
     },
     {
       "id": "extremes-0-5",
       "schemaVersion": "0.5",
       "input": "compatibility/v0-5/extremes.json",
       "inputSha256": "sha256:c118191c671b734e9e47ec3a4aaf7538542452c07ae8bf5128ef8e5be7160d60",
-      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/extremes.json",
-      "expectedSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "expectedCompositionHash": "sha256:3110f921c98936bc393eb03c6b4e20f920be100a7f3cb36dd7219ed2c222608e"
+      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
     },
     {
       "id": "video-0-5",
       "schemaVersion": "0.5",
       "input": "compatibility/v0-5/video.json",
       "inputSha256": "sha256:f78762035b116ac4d3ed05f24969915156d19d3465915cdc6c8cf2eb2a32a97e",
-      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/video.json",
-      "expectedSha256": "sha256:48f1c56e7ae6b5313dc02a39868bfa4e779b5e42de5c2a5d071d2b9dee194e37",
-      "expectedCompositionHash": "sha256:254fc48a7a094abaa2bebd75369054744e3f9a054249067dfbce4eac0789a883"
+      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/video.json",
+      "expectedSha256": "sha256:42c3b5746f6e7f0e399d75389fefa238ac41d7defba0973a3294d0147157f943",
+      "expectedCompositionHash": "sha256:f7b457dca3f98be0305d7e874ba02d171172ccec33f11007d215742670694121"
     },
     {
       "id": "scenes-0-5",
       "schemaVersion": "0.5",
       "input": "compatibility/v0-5/scenes.json",
       "inputSha256": "sha256:7e0fc9629c5aa65d7db1823b74180b3496c4b95f77b4bef39b2635c8bfdc98a7",
-      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/scenes.json",
-      "expectedSha256": "sha256:5c45c83a88e74d6c81a36cf2a92f481293b48a59fe0f0d4e90d9536bb55d30a5",
-      "expectedCompositionHash": "sha256:46a368259bc7595eb78b414b4963ad7c10740e9b9966b72d4478cd05a3e84451"
+      "versions": ["0.5", "0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/scenes.json",
+      "expectedSha256": "sha256:c1fbb60ed9d85790bfd598188db5b8f11fbfe1a6250c3bf9aee942fb05d87cd2",
+      "expectedCompositionHash": "sha256:0338f0277396ff98ab436b661555cbae2f9e033c2c9f6674b5fcc0292af1d144"
     },
     {
       "id": "reference-0-6",
       "schemaVersion": "0.6",
       "input": "compatibility/v0-6/reference.json",
       "inputSha256": "sha256:d05e20019316e2dd8ead9cbaae3b96dbbee976b6d0002c8a5ae689bbff75418b",
-      "versions": ["0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/reference.json",
-      "expectedSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "expectedCompositionHash": "sha256:d6a1e9dcedfa52b789ea1cc8902a8a01f0c471f729c622bf83a233849d15081b"
+      "versions": ["0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
     },
     {
       "id": "transitions-0-6",
       "schemaVersion": "0.6",
       "input": "compatibility/v0-6/transitions.json",
       "inputSha256": "sha256:cbe3a18cf35da01c7d83a3eb6136ff12eeec4b3e2eb38d24c7cb5b817e0691d1",
-      "versions": ["0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/transitions.json",
-      "expectedSha256": "sha256:8631e30a31811be0bee312015695aad84782052a5137eadf65854c5bd9185cbe",
-      "expectedCompositionHash": "sha256:2faefcf311b131a42491a1c0c2971eb10deff1301d9843cdd975639261f4d1b2"
+      "versions": ["0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/transitions.json",
+      "expectedSha256": "sha256:3790e9186481d48cd86f9242093f2edf1f4b23ebf4718bf82584591263526859",
+      "expectedCompositionHash": "sha256:fe79d682315dcccc448292e3b112e37de29479dd520f2c434fa617782f0b3045"
     },
     {
       "id": "audio-0-6",
       "schemaVersion": "0.6",
       "input": "compatibility/v0-6/audio.json",
       "inputSha256": "sha256:5472761b7f54e5af0e220d3dcce28d8fa0e62b3dec657d887d617b73f37d9800",
-      "versions": ["0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/audio.json",
-      "expectedSha256": "sha256:f109ff7c7abef678d6f69a8f33952e76333c8cc0509c1240e7f71bcc0f52da56",
-      "expectedCompositionHash": "sha256:e59e140022b3f4bb058915de66cfef55f8f950db356653656c7634698758f311"
+      "versions": ["0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/audio.json",
+      "expectedSha256": "sha256:a9babc2fe8ba1a5663b2d34f924cc5c1a9324487d843f54ef7055e985cc26729",
+      "expectedCompositionHash": "sha256:0c6d8586b7e8ad400ebd635670277428d53eb39a1cfb69e82bca8d4368b5c4f1"
     },
     {
       "id": "pair-0-6",
       "schemaVersion": "0.6",
       "input": "compatibility/v0-6/pair.json",
       "inputSha256": "sha256:7f717574fd83a8c377a2cef85f06dcf8b3116e6bdb7d3bfc496eca3036859098",
-      "versions": ["0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/pair.json",
-      "expectedSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "expectedCompositionHash": "sha256:21ee1997bf34051e419ba8fdf76256a68237df9a149a4430cc344421dd322e1c"
+      "versions": ["0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
     },
     {
       "id": "lifetime-0-6",
       "schemaVersion": "0.6",
       "input": "compatibility/v0-6/lifetime.json",
       "inputSha256": "sha256:1b085fc7f9fa665c1f35d3328249577f9de94e69b79403be075bc14815710939",
-      "versions": ["0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/lifetime.json",
-      "expectedSha256": "sha256:608053e05d80c8c6da6c0aefb9bc4c5ad28bed7e321c63bcce084f95010e7e7c",
-      "expectedCompositionHash": "sha256:cb068040f6c45e3309c4935fc721cf916c46e80c9e522aa9b4447cbf7304032e"
+      "versions": ["0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/lifetime.json",
+      "expectedSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "expectedCompositionHash": "sha256:8b3ac77e32aa430ffbcb6ba604a4d5279e2d6e73ed93379c11cb4047747695c5"
     },
     {
       "id": "minimal-0-6",
       "schemaVersion": "0.6",
       "input": "compatibility/v0-6/minimal.json",
       "inputSha256": "sha256:fef361a6a5c25351852f6f6a503da17a26f926e3583a4fc6088f3e9ee940e08a",
-      "versions": ["0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/minimal.json",
-      "expectedSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "expectedCompositionHash": "sha256:b46140ab850962f94710839d395d58e8001ba26823ffe957e6ac5448363be4cd"
+      "versions": ["0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
     },
     {
       "id": "extremes-0-6",
       "schemaVersion": "0.6",
       "input": "compatibility/v0-6/extremes.json",
       "inputSha256": "sha256:faa50a7ffe03e5482048792dc07abb5bbf27245d626313b3c6cbc762d47694b6",
-      "versions": ["0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/extremes.json",
-      "expectedSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "expectedCompositionHash": "sha256:3110f921c98936bc393eb03c6b4e20f920be100a7f3cb36dd7219ed2c222608e"
+      "versions": ["0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
     },
     {
       "id": "video-0-6",
       "schemaVersion": "0.6",
       "input": "compatibility/v0-6/video.json",
       "inputSha256": "sha256:48e814bed07d72d274133f781b7cdd299366fc514e7fc80f5ad07030b8d62c2a",
-      "versions": ["0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/video.json",
-      "expectedSha256": "sha256:48f1c56e7ae6b5313dc02a39868bfa4e779b5e42de5c2a5d071d2b9dee194e37",
-      "expectedCompositionHash": "sha256:254fc48a7a094abaa2bebd75369054744e3f9a054249067dfbce4eac0789a883"
+      "versions": ["0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/video.json",
+      "expectedSha256": "sha256:42c3b5746f6e7f0e399d75389fefa238ac41d7defba0973a3294d0147157f943",
+      "expectedCompositionHash": "sha256:f7b457dca3f98be0305d7e874ba02d171172ccec33f11007d215742670694121"
     },
     {
       "id": "scenes-0-6",
       "schemaVersion": "0.6",
       "input": "compatibility/v0-6/scenes.json",
       "inputSha256": "sha256:f880e63ceeadde45d5f26c458cfb9f994f529d1240834f0e1bdc45321ea24b88",
-      "versions": ["0.6", "0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/scenes.json",
-      "expectedSha256": "sha256:5c45c83a88e74d6c81a36cf2a92f481293b48a59fe0f0d4e90d9536bb55d30a5",
-      "expectedCompositionHash": "sha256:46a368259bc7595eb78b414b4963ad7c10740e9b9966b72d4478cd05a3e84451"
+      "versions": ["0.6", "0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/scenes.json",
+      "expectedSha256": "sha256:c1fbb60ed9d85790bfd598188db5b8f11fbfe1a6250c3bf9aee942fb05d87cd2",
+      "expectedCompositionHash": "sha256:0338f0277396ff98ab436b661555cbae2f9e033c2c9f6674b5fcc0292af1d144"
     },
     {
       "id": "reference-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/reference.json",
       "inputSha256": "sha256:63981df5c5c84e3b9e6092a46c3c013be6fc33a00a901681a98b8a2e6af285a0",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/reference.json",
-      "expectedSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "expectedCompositionHash": "sha256:d6a1e9dcedfa52b789ea1cc8902a8a01f0c471f729c622bf83a233849d15081b"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
     },
     {
       "id": "captions-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/captions.json",
       "inputSha256": "sha256:559980a4353afa984a6ce013a4c6563c860bcbcc715df148db40c541940aa51f",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/captions.json",
-      "expectedSha256": "sha256:18bccf481b34226a91c27d9893a53c86431fc3670c0ef381e30adca451592fa2",
-      "expectedCompositionHash": "sha256:875a82e792abdf2409c2159469df7ea72e65cab6b3dfc39ab037f1b947c58bb6"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/captions.json",
+      "expectedSha256": "sha256:e45bb08d14e858aea4064339723d5e7751f3d63516e43835a0214fdd479b13e8",
+      "expectedCompositionHash": "sha256:3506b5a7f20c0ee1601ce2df754245123f3f2ed5b951e76303e544cb10346ace"
     },
     {
       "id": "transitions-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/transitions.json",
       "inputSha256": "sha256:88e1ed6b085ee6fbd3ecd45a67a7d71d73d580357c39f97215b140a8e13f1fef",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/transitions.json",
-      "expectedSha256": "sha256:8631e30a31811be0bee312015695aad84782052a5137eadf65854c5bd9185cbe",
-      "expectedCompositionHash": "sha256:2faefcf311b131a42491a1c0c2971eb10deff1301d9843cdd975639261f4d1b2"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/transitions.json",
+      "expectedSha256": "sha256:3790e9186481d48cd86f9242093f2edf1f4b23ebf4718bf82584591263526859",
+      "expectedCompositionHash": "sha256:fe79d682315dcccc448292e3b112e37de29479dd520f2c434fa617782f0b3045"
     },
     {
       "id": "audio-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/audio.json",
       "inputSha256": "sha256:4a31753591dfe974506afe072a450ffc44c1e6f46dc7138049c6d66f3e21f6d9",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/audio.json",
-      "expectedSha256": "sha256:f109ff7c7abef678d6f69a8f33952e76333c8cc0509c1240e7f71bcc0f52da56",
-      "expectedCompositionHash": "sha256:e59e140022b3f4bb058915de66cfef55f8f950db356653656c7634698758f311"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/audio.json",
+      "expectedSha256": "sha256:a9babc2fe8ba1a5663b2d34f924cc5c1a9324487d843f54ef7055e985cc26729",
+      "expectedCompositionHash": "sha256:0c6d8586b7e8ad400ebd635670277428d53eb39a1cfb69e82bca8d4368b5c4f1"
     },
     {
       "id": "pair-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/pair.json",
       "inputSha256": "sha256:60ae7a5ec7d32d0827fd4d441efe0921c1da8ea4f0057fac2b8128d25f4b5560",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/pair.json",
-      "expectedSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "expectedCompositionHash": "sha256:21ee1997bf34051e419ba8fdf76256a68237df9a149a4430cc344421dd322e1c"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
     },
     {
       "id": "lifetime-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/lifetime.json",
       "inputSha256": "sha256:a6a9d4d57746c6ba3cba9de42ca141b6a52c2c54278979596fcf0b5632064eeb",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/lifetime.json",
-      "expectedSha256": "sha256:608053e05d80c8c6da6c0aefb9bc4c5ad28bed7e321c63bcce084f95010e7e7c",
-      "expectedCompositionHash": "sha256:cb068040f6c45e3309c4935fc721cf916c46e80c9e522aa9b4447cbf7304032e"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/lifetime.json",
+      "expectedSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "expectedCompositionHash": "sha256:8b3ac77e32aa430ffbcb6ba604a4d5279e2d6e73ed93379c11cb4047747695c5"
     },
     {
       "id": "minimal-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/minimal.json",
       "inputSha256": "sha256:7b30ce9ceca1f0e1b64bfe3b3a64226f9d2aee401766d5467fb3e36fcb087f01",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/minimal.json",
-      "expectedSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "expectedCompositionHash": "sha256:b46140ab850962f94710839d395d58e8001ba26823ffe957e6ac5448363be4cd"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
     },
     {
       "id": "extremes-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/extremes.json",
       "inputSha256": "sha256:3e3081cb88be3bf071b195a6a980afd68bb277829521a53667718755e6e3f128",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/extremes.json",
-      "expectedSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "expectedCompositionHash": "sha256:3110f921c98936bc393eb03c6b4e20f920be100a7f3cb36dd7219ed2c222608e"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
     },
     {
       "id": "video-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/video.json",
       "inputSha256": "sha256:770e1edb0667f32e58d0f54e22e8ff7b05b5249cfb3bc0878968a68bfabee1c1",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/video.json",
-      "expectedSha256": "sha256:48f1c56e7ae6b5313dc02a39868bfa4e779b5e42de5c2a5d071d2b9dee194e37",
-      "expectedCompositionHash": "sha256:254fc48a7a094abaa2bebd75369054744e3f9a054249067dfbce4eac0789a883"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/video.json",
+      "expectedSha256": "sha256:42c3b5746f6e7f0e399d75389fefa238ac41d7defba0973a3294d0147157f943",
+      "expectedCompositionHash": "sha256:f7b457dca3f98be0305d7e874ba02d171172ccec33f11007d215742670694121"
     },
     {
       "id": "scenes-0-7",
       "schemaVersion": "0.7",
       "input": "compatibility/v0-7/scenes.json",
       "inputSha256": "sha256:b66bd9c26b80c41fb8460dac8cc45e5fb5d34c570cb91c7fbc9e0545158d9c3d",
-      "versions": ["0.7", "0.8", "0.9"],
-      "expected": "compatibility/v0-9/scenes.json",
-      "expectedSha256": "sha256:5c45c83a88e74d6c81a36cf2a92f481293b48a59fe0f0d4e90d9536bb55d30a5",
-      "expectedCompositionHash": "sha256:46a368259bc7595eb78b414b4963ad7c10740e9b9966b72d4478cd05a3e84451"
+      "versions": ["0.7", "0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/scenes.json",
+      "expectedSha256": "sha256:c1fbb60ed9d85790bfd598188db5b8f11fbfe1a6250c3bf9aee942fb05d87cd2",
+      "expectedCompositionHash": "sha256:0338f0277396ff98ab436b661555cbae2f9e033c2c9f6674b5fcc0292af1d144"
     },
     {
       "id": "template-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/template.json",
       "inputSha256": "sha256:148381dda78e8ac321305be97b1bdcc476ed7bd0686e26edbfd3527aa456fc05",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/template.json",
-      "expectedSha256": "sha256:eea2fd247a084edb037ce47f52566da88b38f27791b00a91c4d4c8cb61644477",
-      "expectedCompositionHash": "sha256:d66382d4ab99d6e7e6e93f208dc3974d091d905d981a9d689d794f1e2f3bf935"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/template.json",
+      "expectedSha256": "sha256:5db7a4025da1056404297b084557bb23f352418209fb8f511026f3bd34531b45",
+      "expectedCompositionHash": "sha256:7fa18d45f79e053ad5e1aabdbe6a43fa7054f32a9df380b6adeed24681410cd0"
     },
     {
       "id": "inputs-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/inputs.json",
       "inputSha256": "sha256:503159b41a63fda394a46a1bcad9362588adb04e2ea19bd9f25b3217e565397e",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/inputs.json",
-      "expectedSha256": "sha256:bdcad0ca6069dcd516a1fee822d5fb9b2cee21c7c9f1d126bbbb066fab93e9fa",
-      "expectedCompositionHash": "sha256:12c50f4699109045ef8dc08e276e208885064529152efa7820801cb88c95fb19"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/inputs.json",
+      "expectedSha256": "sha256:d6863e791481a9aa24038cb69837ca761c8aa227df9a6111e207190a0e30c0b3",
+      "expectedCompositionHash": "sha256:2d1fb7f9d7d21d9496cb53a261e2951cf1a72f0e16ff6853b97c62709acda7a0"
     },
     {
       "id": "reference-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/reference.json",
       "inputSha256": "sha256:2ef50e7c6f44e9f2fba2f8327b5cd80f9cb9223a92304713a1c3eee935668e87",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/reference.json",
-      "expectedSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "expectedCompositionHash": "sha256:d6a1e9dcedfa52b789ea1cc8902a8a01f0c471f729c622bf83a233849d15081b"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
     },
     {
       "id": "captions-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/captions.json",
       "inputSha256": "sha256:f4dddef28b7a8246f25242459b3a358d916ef7d291d4d90b2f586458fa2179f8",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/captions.json",
-      "expectedSha256": "sha256:18bccf481b34226a91c27d9893a53c86431fc3670c0ef381e30adca451592fa2",
-      "expectedCompositionHash": "sha256:875a82e792abdf2409c2159469df7ea72e65cab6b3dfc39ab037f1b947c58bb6"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/captions.json",
+      "expectedSha256": "sha256:e45bb08d14e858aea4064339723d5e7751f3d63516e43835a0214fdd479b13e8",
+      "expectedCompositionHash": "sha256:3506b5a7f20c0ee1601ce2df754245123f3f2ed5b951e76303e544cb10346ace"
     },
     {
       "id": "transitions-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/transitions.json",
       "inputSha256": "sha256:725ecf81d4d667e1d8ae05090968892e5dcd2da91b1044517a61a81a6cfdfabe",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/transitions.json",
-      "expectedSha256": "sha256:8631e30a31811be0bee312015695aad84782052a5137eadf65854c5bd9185cbe",
-      "expectedCompositionHash": "sha256:2faefcf311b131a42491a1c0c2971eb10deff1301d9843cdd975639261f4d1b2"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/transitions.json",
+      "expectedSha256": "sha256:3790e9186481d48cd86f9242093f2edf1f4b23ebf4718bf82584591263526859",
+      "expectedCompositionHash": "sha256:fe79d682315dcccc448292e3b112e37de29479dd520f2c434fa617782f0b3045"
     },
     {
       "id": "audio-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/audio.json",
       "inputSha256": "sha256:5fd85531746097942f6b3f1a83643862af794b77e5bef4dafbcdcdaf1ee8e123",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/audio.json",
-      "expectedSha256": "sha256:f109ff7c7abef678d6f69a8f33952e76333c8cc0509c1240e7f71bcc0f52da56",
-      "expectedCompositionHash": "sha256:e59e140022b3f4bb058915de66cfef55f8f950db356653656c7634698758f311"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/audio.json",
+      "expectedSha256": "sha256:a9babc2fe8ba1a5663b2d34f924cc5c1a9324487d843f54ef7055e985cc26729",
+      "expectedCompositionHash": "sha256:0c6d8586b7e8ad400ebd635670277428d53eb39a1cfb69e82bca8d4368b5c4f1"
     },
     {
       "id": "pair-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/pair.json",
       "inputSha256": "sha256:c1eaafeb630c6261e262784b4edf3b047fb3675e9bf27b80ee4e817efef6b65e",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/pair.json",
-      "expectedSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "expectedCompositionHash": "sha256:21ee1997bf34051e419ba8fdf76256a68237df9a149a4430cc344421dd322e1c"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
     },
     {
       "id": "lifetime-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/lifetime.json",
       "inputSha256": "sha256:24fda820824a48dbfa84313b4afca846a3b72284d370f92777f1e704c49a458d",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/lifetime.json",
-      "expectedSha256": "sha256:608053e05d80c8c6da6c0aefb9bc4c5ad28bed7e321c63bcce084f95010e7e7c",
-      "expectedCompositionHash": "sha256:cb068040f6c45e3309c4935fc721cf916c46e80c9e522aa9b4447cbf7304032e"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/lifetime.json",
+      "expectedSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "expectedCompositionHash": "sha256:8b3ac77e32aa430ffbcb6ba604a4d5279e2d6e73ed93379c11cb4047747695c5"
     },
     {
       "id": "minimal-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/minimal.json",
       "inputSha256": "sha256:8eecf30f59f70cfb30147e7a464bda059d7c22a6abb822b49fa7160fe4014559",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/minimal.json",
-      "expectedSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "expectedCompositionHash": "sha256:b46140ab850962f94710839d395d58e8001ba26823ffe957e6ac5448363be4cd"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
     },
     {
       "id": "extremes-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/extremes.json",
       "inputSha256": "sha256:02a19ac0ffc05d533e9a10e720398e404cf50690eea6e6a3e0ebe0d6d22a6d2d",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/extremes.json",
-      "expectedSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "expectedCompositionHash": "sha256:3110f921c98936bc393eb03c6b4e20f920be100a7f3cb36dd7219ed2c222608e"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
     },
     {
       "id": "video-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/video.json",
       "inputSha256": "sha256:64502da6bb2e26462b0094965e594996d401b1b3c1f2c4efb3270b9794008286",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/video.json",
-      "expectedSha256": "sha256:48f1c56e7ae6b5313dc02a39868bfa4e779b5e42de5c2a5d071d2b9dee194e37",
-      "expectedCompositionHash": "sha256:254fc48a7a094abaa2bebd75369054744e3f9a054249067dfbce4eac0789a883"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/video.json",
+      "expectedSha256": "sha256:42c3b5746f6e7f0e399d75389fefa238ac41d7defba0973a3294d0147157f943",
+      "expectedCompositionHash": "sha256:f7b457dca3f98be0305d7e874ba02d171172ccec33f11007d215742670694121"
     },
     {
       "id": "scenes-0-8",
       "schemaVersion": "0.8",
       "input": "compatibility/v0-8/scenes.json",
       "inputSha256": "sha256:2da2c9dfc34cb2f6f550a21d65b12953b57f7b783d4c87dd72f03d7d299e3fa4",
-      "versions": ["0.8", "0.9"],
-      "expected": "compatibility/v0-9/scenes.json",
-      "expectedSha256": "sha256:5c45c83a88e74d6c81a36cf2a92f481293b48a59fe0f0d4e90d9536bb55d30a5",
-      "expectedCompositionHash": "sha256:46a368259bc7595eb78b414b4963ad7c10740e9b9966b72d4478cd05a3e84451"
+      "versions": ["0.8", "0.9", "0.10"],
+      "expected": "compatibility/v0-10/scenes.json",
+      "expectedSha256": "sha256:c1fbb60ed9d85790bfd598188db5b8f11fbfe1a6250c3bf9aee942fb05d87cd2",
+      "expectedCompositionHash": "sha256:0338f0277396ff98ab436b661555cbae2f9e033c2c9f6674b5fcc0292af1d144"
     },
     {
       "id": "reference-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/reference.json",
       "inputSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/reference.json",
-      "expectedSha256": "sha256:6e32be78684e23eaef2c06f48212f158bcdeb6ce368b6cd40193c18f93a7d91b",
-      "expectedCompositionHash": "sha256:d6a1e9dcedfa52b789ea1cc8902a8a01f0c471f729c622bf83a233849d15081b"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
     },
     {
       "id": "captions-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/captions.json",
       "inputSha256": "sha256:18bccf481b34226a91c27d9893a53c86431fc3670c0ef381e30adca451592fa2",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/captions.json",
-      "expectedSha256": "sha256:18bccf481b34226a91c27d9893a53c86431fc3670c0ef381e30adca451592fa2",
-      "expectedCompositionHash": "sha256:875a82e792abdf2409c2159469df7ea72e65cab6b3dfc39ab037f1b947c58bb6"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/captions.json",
+      "expectedSha256": "sha256:e45bb08d14e858aea4064339723d5e7751f3d63516e43835a0214fdd479b13e8",
+      "expectedCompositionHash": "sha256:3506b5a7f20c0ee1601ce2df754245123f3f2ed5b951e76303e544cb10346ace"
     },
     {
       "id": "transitions-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/transitions.json",
       "inputSha256": "sha256:8631e30a31811be0bee312015695aad84782052a5137eadf65854c5bd9185cbe",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/transitions.json",
-      "expectedSha256": "sha256:8631e30a31811be0bee312015695aad84782052a5137eadf65854c5bd9185cbe",
-      "expectedCompositionHash": "sha256:2faefcf311b131a42491a1c0c2971eb10deff1301d9843cdd975639261f4d1b2"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/transitions.json",
+      "expectedSha256": "sha256:3790e9186481d48cd86f9242093f2edf1f4b23ebf4718bf82584591263526859",
+      "expectedCompositionHash": "sha256:fe79d682315dcccc448292e3b112e37de29479dd520f2c434fa617782f0b3045"
     },
     {
       "id": "audio-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/audio.json",
       "inputSha256": "sha256:f109ff7c7abef678d6f69a8f33952e76333c8cc0509c1240e7f71bcc0f52da56",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/audio.json",
-      "expectedSha256": "sha256:f109ff7c7abef678d6f69a8f33952e76333c8cc0509c1240e7f71bcc0f52da56",
-      "expectedCompositionHash": "sha256:e59e140022b3f4bb058915de66cfef55f8f950db356653656c7634698758f311"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/audio.json",
+      "expectedSha256": "sha256:a9babc2fe8ba1a5663b2d34f924cc5c1a9324487d843f54ef7055e985cc26729",
+      "expectedCompositionHash": "sha256:0c6d8586b7e8ad400ebd635670277428d53eb39a1cfb69e82bca8d4368b5c4f1"
     },
     {
       "id": "pair-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/pair.json",
       "inputSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/pair.json",
-      "expectedSha256": "sha256:d5d52345cc28d24d776e00edc46fb881e6a7752a57e5aa68e6e392a2bbe6ae5a",
-      "expectedCompositionHash": "sha256:21ee1997bf34051e419ba8fdf76256a68237df9a149a4430cc344421dd322e1c"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
     },
     {
       "id": "lifetime-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/lifetime.json",
       "inputSha256": "sha256:608053e05d80c8c6da6c0aefb9bc4c5ad28bed7e321c63bcce084f95010e7e7c",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/lifetime.json",
-      "expectedSha256": "sha256:608053e05d80c8c6da6c0aefb9bc4c5ad28bed7e321c63bcce084f95010e7e7c",
-      "expectedCompositionHash": "sha256:cb068040f6c45e3309c4935fc721cf916c46e80c9e522aa9b4447cbf7304032e"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/lifetime.json",
+      "expectedSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "expectedCompositionHash": "sha256:8b3ac77e32aa430ffbcb6ba604a4d5279e2d6e73ed93379c11cb4047747695c5"
     },
     {
       "id": "minimal-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/minimal.json",
       "inputSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/minimal.json",
-      "expectedSha256": "sha256:ce1bfc63d40982a7ad1e12722d07ff72b0a8f2ce427f9f851abcdae0b8d5dd17",
-      "expectedCompositionHash": "sha256:b46140ab850962f94710839d395d58e8001ba26823ffe957e6ac5448363be4cd"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
     },
     {
       "id": "extremes-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/extremes.json",
       "inputSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/extremes.json",
-      "expectedSha256": "sha256:af3399ee7c6bcd5a8177dcf6c6aa828308f8b78210941ee7f87c4bfdb3bd47d2",
-      "expectedCompositionHash": "sha256:3110f921c98936bc393eb03c6b4e20f920be100a7f3cb36dd7219ed2c222608e"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
     },
     {
       "id": "video-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/video.json",
       "inputSha256": "sha256:48f1c56e7ae6b5313dc02a39868bfa4e779b5e42de5c2a5d071d2b9dee194e37",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/video.json",
-      "expectedSha256": "sha256:48f1c56e7ae6b5313dc02a39868bfa4e779b5e42de5c2a5d071d2b9dee194e37",
-      "expectedCompositionHash": "sha256:254fc48a7a094abaa2bebd75369054744e3f9a054249067dfbce4eac0789a883"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/video.json",
+      "expectedSha256": "sha256:42c3b5746f6e7f0e399d75389fefa238ac41d7defba0973a3294d0147157f943",
+      "expectedCompositionHash": "sha256:f7b457dca3f98be0305d7e874ba02d171172ccec33f11007d215742670694121"
     },
     {
       "id": "scenes-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/scenes.json",
       "inputSha256": "sha256:5c45c83a88e74d6c81a36cf2a92f481293b48a59fe0f0d4e90d9536bb55d30a5",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/scenes.json",
-      "expectedSha256": "sha256:5c45c83a88e74d6c81a36cf2a92f481293b48a59fe0f0d4e90d9536bb55d30a5",
-      "expectedCompositionHash": "sha256:46a368259bc7595eb78b414b4963ad7c10740e9b9966b72d4478cd05a3e84451"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/scenes.json",
+      "expectedSha256": "sha256:c1fbb60ed9d85790bfd598188db5b8f11fbfe1a6250c3bf9aee942fb05d87cd2",
+      "expectedCompositionHash": "sha256:0338f0277396ff98ab436b661555cbae2f9e033c2c9f6674b5fcc0292af1d144"
     },
     {
       "id": "template-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/template.json",
       "inputSha256": "sha256:eea2fd247a084edb037ce47f52566da88b38f27791b00a91c4d4c8cb61644477",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/template.json",
-      "expectedSha256": "sha256:eea2fd247a084edb037ce47f52566da88b38f27791b00a91c4d4c8cb61644477",
-      "expectedCompositionHash": "sha256:d66382d4ab99d6e7e6e93f208dc3974d091d905d981a9d689d794f1e2f3bf935"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/template.json",
+      "expectedSha256": "sha256:5db7a4025da1056404297b084557bb23f352418209fb8f511026f3bd34531b45",
+      "expectedCompositionHash": "sha256:7fa18d45f79e053ad5e1aabdbe6a43fa7054f32a9df380b6adeed24681410cd0"
     },
     {
       "id": "inputs-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/inputs.json",
       "inputSha256": "sha256:bdcad0ca6069dcd516a1fee822d5fb9b2cee21c7c9f1d126bbbb066fab93e9fa",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/inputs.json",
-      "expectedSha256": "sha256:bdcad0ca6069dcd516a1fee822d5fb9b2cee21c7c9f1d126bbbb066fab93e9fa",
-      "expectedCompositionHash": "sha256:12c50f4699109045ef8dc08e276e208885064529152efa7820801cb88c95fb19"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/inputs.json",
+      "expectedSha256": "sha256:d6863e791481a9aa24038cb69837ca761c8aa227df9a6111e207190a0e30c0b3",
+      "expectedCompositionHash": "sha256:2d1fb7f9d7d21d9496cb53a261e2951cf1a72f0e16ff6853b97c62709acda7a0"
     },
     {
       "id": "repeats-0-9",
       "schemaVersion": "0.9",
       "input": "compatibility/v0-9/repeats.json",
       "inputSha256": "sha256:103b19beb8b887acd595f53664585084fa78c08781e165c9f1ecfd5d23e25a97",
-      "versions": ["0.9"],
-      "expected": "compatibility/v0-9/repeats.json",
-      "expectedSha256": "sha256:103b19beb8b887acd595f53664585084fa78c08781e165c9f1ecfd5d23e25a97",
-      "expectedCompositionHash": "sha256:8bcbc73688b79785a80ae3cdd31bea65501b5d385c41ba9ea8b107db60b40ea8"
+      "versions": ["0.9", "0.10"],
+      "expected": "compatibility/v0-10/repeats.json",
+      "expectedSha256": "sha256:6b32d92c312797d2d96d53a7c58b8fe976825df186eb761557a2534af7a98d1e",
+      "expectedCompositionHash": "sha256:1dfddbf5f9074224b4997b6df5190f71dc7ca17aeed9468f17093422e72eadd1"
+    },
+    {
+      "id": "reference-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/reference.json",
+      "inputSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/reference.json",
+      "expectedSha256": "sha256:8cbac8e4a233049a5e65c8f3672ae659a7594ace3bc7503a1030e7e4b24dd2f7",
+      "expectedCompositionHash": "sha256:0c6194e4d54e15a7be64ad29ce1b3797cb04797fc2845228c9835d1d2bafb63e"
+    },
+    {
+      "id": "captions-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/captions.json",
+      "inputSha256": "sha256:e45bb08d14e858aea4064339723d5e7751f3d63516e43835a0214fdd479b13e8",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/captions.json",
+      "expectedSha256": "sha256:e45bb08d14e858aea4064339723d5e7751f3d63516e43835a0214fdd479b13e8",
+      "expectedCompositionHash": "sha256:3506b5a7f20c0ee1601ce2df754245123f3f2ed5b951e76303e544cb10346ace"
+    },
+    {
+      "id": "transitions-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/transitions.json",
+      "inputSha256": "sha256:3790e9186481d48cd86f9242093f2edf1f4b23ebf4718bf82584591263526859",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/transitions.json",
+      "expectedSha256": "sha256:3790e9186481d48cd86f9242093f2edf1f4b23ebf4718bf82584591263526859",
+      "expectedCompositionHash": "sha256:fe79d682315dcccc448292e3b112e37de29479dd520f2c434fa617782f0b3045"
+    },
+    {
+      "id": "audio-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/audio.json",
+      "inputSha256": "sha256:a9babc2fe8ba1a5663b2d34f924cc5c1a9324487d843f54ef7055e985cc26729",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/audio.json",
+      "expectedSha256": "sha256:a9babc2fe8ba1a5663b2d34f924cc5c1a9324487d843f54ef7055e985cc26729",
+      "expectedCompositionHash": "sha256:0c6d8586b7e8ad400ebd635670277428d53eb39a1cfb69e82bca8d4368b5c4f1"
+    },
+    {
+      "id": "pair-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/pair.json",
+      "inputSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/pair.json",
+      "expectedSha256": "sha256:6bdcd0810e464d76f7d7a66c72052ef863f99a21280d24b86abde4442f156da2",
+      "expectedCompositionHash": "sha256:2a7fa6959ca7a8751fa62ac2b031b45423ded405e0e038fd9e4bbc72c7a7d26b"
+    },
+    {
+      "id": "lifetime-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/lifetime.json",
+      "inputSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/lifetime.json",
+      "expectedSha256": "sha256:fa8b4dd53a0396d8f45609b30f942a807fcf9ab8927ea36c50147b02067a5f3e",
+      "expectedCompositionHash": "sha256:8b3ac77e32aa430ffbcb6ba604a4d5279e2d6e73ed93379c11cb4047747695c5"
+    },
+    {
+      "id": "minimal-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/minimal.json",
+      "inputSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/minimal.json",
+      "expectedSha256": "sha256:542f5a914b12bec69439d64129f3ae19954e9ae99ac6d4ef6356a5669a414aa3",
+      "expectedCompositionHash": "sha256:f512da777e2a2372da0e2a2531a4f297378cde5f2e85abc1a0410ea3e5e1ff0d"
+    },
+    {
+      "id": "extremes-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/extremes.json",
+      "inputSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/extremes.json",
+      "expectedSha256": "sha256:3aae8fb28eeba6b11f1d8525df4ba2f294fa1a4e12679d64dec82b8c732e4fa1",
+      "expectedCompositionHash": "sha256:940c94b36389c63e8002ac290522830ec61016593ec27fa5d240f9d25d9ee3b9"
+    },
+    {
+      "id": "video-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/video.json",
+      "inputSha256": "sha256:42c3b5746f6e7f0e399d75389fefa238ac41d7defba0973a3294d0147157f943",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/video.json",
+      "expectedSha256": "sha256:42c3b5746f6e7f0e399d75389fefa238ac41d7defba0973a3294d0147157f943",
+      "expectedCompositionHash": "sha256:f7b457dca3f98be0305d7e874ba02d171172ccec33f11007d215742670694121"
+    },
+    {
+      "id": "scenes-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/scenes.json",
+      "inputSha256": "sha256:c1fbb60ed9d85790bfd598188db5b8f11fbfe1a6250c3bf9aee942fb05d87cd2",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/scenes.json",
+      "expectedSha256": "sha256:c1fbb60ed9d85790bfd598188db5b8f11fbfe1a6250c3bf9aee942fb05d87cd2",
+      "expectedCompositionHash": "sha256:0338f0277396ff98ab436b661555cbae2f9e033c2c9f6674b5fcc0292af1d144"
+    },
+    {
+      "id": "template-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/template.json",
+      "inputSha256": "sha256:5db7a4025da1056404297b084557bb23f352418209fb8f511026f3bd34531b45",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/template.json",
+      "expectedSha256": "sha256:5db7a4025da1056404297b084557bb23f352418209fb8f511026f3bd34531b45",
+      "expectedCompositionHash": "sha256:7fa18d45f79e053ad5e1aabdbe6a43fa7054f32a9df380b6adeed24681410cd0"
+    },
+    {
+      "id": "inputs-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/inputs.json",
+      "inputSha256": "sha256:d6863e791481a9aa24038cb69837ca761c8aa227df9a6111e207190a0e30c0b3",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/inputs.json",
+      "expectedSha256": "sha256:d6863e791481a9aa24038cb69837ca761c8aa227df9a6111e207190a0e30c0b3",
+      "expectedCompositionHash": "sha256:2d1fb7f9d7d21d9496cb53a261e2951cf1a72f0e16ff6853b97c62709acda7a0"
+    },
+    {
+      "id": "repeats-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/repeats.json",
+      "inputSha256": "sha256:6b32d92c312797d2d96d53a7c58b8fe976825df186eb761557a2534af7a98d1e",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/repeats.json",
+      "expectedSha256": "sha256:6b32d92c312797d2d96d53a7c58b8fe976825df186eb761557a2534af7a98d1e",
+      "expectedCompositionHash": "sha256:1dfddbf5f9074224b4997b6df5190f71dc7ca17aeed9468f17093422e72eadd1"
+    },
+    {
+      "id": "focus-0-10",
+      "schemaVersion": "0.10",
+      "input": "compatibility/v0-10/focus.json",
+      "inputSha256": "sha256:2076ce2b22abbfcc095c5b5e3084dbb56111c74e95f89b1b7b4994e777eaad85",
+      "versions": ["0.10"],
+      "expected": "compatibility/v0-10/focus.json",
+      "expectedSha256": "sha256:2076ce2b22abbfcc095c5b5e3084dbb56111c74e95f89b1b7b4994e777eaad85",
+      "expectedCompositionHash": "sha256:13f7134ce119caba767492df171f4fc379e4c06111cbfbe63e4106f2fe93d0d9"
     }
   ]
 }

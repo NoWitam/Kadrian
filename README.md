@@ -10,7 +10,7 @@ authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
 PR-18 to PR-22; phase three, the engine under a host's video editor
 ([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)), delivered PR-23 to
 PR-34b; the current phase is a host integrating the engine
-([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)). Schema `0.9` with its forward migrations from `0.1` to `0.8`, the evaluation core, the DOM
+([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)). Schema `0.10` with its forward migrations from `0.1` to `0.9`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -28,7 +28,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D62; all accepted except D10, superseded by
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D63; all accepted except D10, superseded by
   D37)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
@@ -160,13 +160,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.9`
+A composition is a JSON document of schema `0.10`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.9",
+  "schemaVersion": "0.10",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -240,7 +240,10 @@ Unknown fields are errors. This one shows a text that fades in:
   whose lifetimes overlap by exactly the transition's duration (D49, D56).
 - **Nodes:** `background`, `text`, `image`, `video`, `group`, and
   `custom-html`. Array order is the z-order. An image or a video fills its box
-  by `fit`: `fill`, `contain`, or `cover`.
+  by `fit`: `fill`, `contain`, or `cover`; its `focus` `{ x, y }`, in per mille
+  of the picture, is the point that stays in place: under `cover` it chooses
+  what is cropped, under `contain` where the bars go, and `{ "x": 500, "y": 500 }`
+  is the centre (D63).
 - **Video:** a `video` node shows source time
   `sourceStartUs + (t − startUs)` of its video asset; the frame is chosen from
   the container's own timestamps (D49, D50). Every source time a node samples
@@ -294,12 +297,12 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.9` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.9` document, and none of them
+`validateComposition` accepts schema `0.10` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.10` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
-holds a document of schema `0.1` to `0.8` carries it forward itself, once, and stores the
+holds a document of schema `0.1` to `0.9` carries it forward itself, once, and stores the
 result as a new version:
 
 ```ts
@@ -307,8 +310,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.9 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.8', '0.9'], or ['0.9'] for a document that was current
+  migrated.composition; // a new, validated 0.10 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.9', '0.10'], or ['0.10'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -328,6 +331,8 @@ if (migrated.ok) {
   template (D58).
 - The step from `0.8` gives the template section an empty list of
   `conditions` and of `repeats` after its bindings (D59).
+- The step from `0.9` gives every image and video `focus: { "x": 500, "y": 500 }`
+  right after its `fit`, the centre where it was always placed (D63).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -351,8 +356,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.9 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.8', '0.9'] from 0.1, ['0.9'] when it was current
+  loaded.composition; // a new, validated 0.10 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.9', '0.10'] from 0.1, ['0.10'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -367,7 +372,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -380,7 +385,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.9"`, speaks of that.
+  supports `"0.10"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -727,8 +732,8 @@ unsubscribe();
   and the duration is at least 1. It changes when the node is shown and nothing
   else: the node's keyframes keep their composition times. A node added with
   `AddNode` carries its lifetime like every other field.
-- The video commands are `SetNodeFit`, `SetVideoAsset`, `SetVideoSource`
-  (D50), and `SetVideoVolume`. The audio commands are `AddAudioClip`,
+- The video commands are `SetNodeFit`, `SetNodeFocus` (D63; images too),
+  `SetVideoAsset`, `SetVideoSource` (D50), and `SetVideoVolume`. The audio commands are `AddAudioClip`,
   `RemoveAudioClip`, `SetClipVolume`, `SetClipFades`, and `SetClipSource`
   (D52): a clip is added whole, like a node, and is addressed by its ID
   (`unknown-clip`); a volume is a factor from 0 to 1, and the two fades

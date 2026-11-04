@@ -751,7 +751,7 @@
   },
   {
     "name": "set_node_fit",
-    "description": "Sets how the picture of an image or a video meets the box of its node: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the picture. Refused with invalid-argument for another fit, unknown-node, and unsupported-node for a node that is neither an image nor a video. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"fit\":\"cover\"}",
+    "description": "Sets how the picture of an image or a video meets the box of its node: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and place the picture by its focus (set_node_focus), the centre by default. Refused with invalid-argument for another fit, unknown-node, and unsupported-node for a node that is neither an image nor a video. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"fit\":\"cover\"}",
     "inputSchema": {
       "type": "object",
       "description": "Sets how the picture of an image or a video meets the box of its node.",
@@ -763,7 +763,7 @@
         },
         "fit": {
           "type": "string",
-          "description": "fill stretches the picture to the box; contain shows all of it inside the box; cover fills the box and crops. contain and cover keep the aspect ratio and centre the picture.",
+          "description": "fill stretches the picture to the box; contain shows all of it inside the box; cover fills the box and crops. contain and cover keep the aspect ratio and place the picture by its focus, the centre unless set_node_focus moved it.",
           "enum": [
             "fill",
             "contain",
@@ -774,6 +774,49 @@
       "required": [
         "nodeId",
         "fit"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_focus",
+    "description": "Sets the focus point of an image or a video: the point of its picture that its fit keeps in place, as integers in per mille of the picture, x of its width from the left edge and y of its height from the top edge; 500, 500 is the centre. The point lies at the same fraction of the box, so under cover it chooses which part is cropped away and always stays in frame, under contain it moves the picture towards that side of its bars, and under fill, where the picture is the box, it changes nothing. It is not animated. Refused with invalid-argument for a coordinate that is not an integer from 0 to 1000, unknown-node, and unsupported-node for a node that is neither an image nor a video. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"focus\":{\"x\":500,\"y\":250}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets which point of the picture of an image or a video stays in its box.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only images and videos have a focus.",
+          "minLength": 1
+        },
+        "focus": {
+          "type": "object",
+          "description": "The focus point, in per mille of the picture: the point at x per mille of its width and y per mille of its height lies at the same fraction of the box. 500, 500 is the centre.",
+          "properties": {
+            "x": {
+              "type": "integer",
+              "description": "An integer from 0 to 1000, per mille of the width of the picture, from its left edge.",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "y": {
+              "type": "integer",
+              "description": "An integer from 0 to 1000, per mille of the height of the picture, from its top edge.",
+              "minimum": 0,
+              "maximum": 1000
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "nodeId",
+        "focus"
       ],
       "additionalProperties": false
     }
@@ -1761,6 +1804,7 @@
                   "move_keyframe",
                   "set_node_lifetime",
                   "set_node_fit",
+                  "set_node_focus",
                   "set_video_asset",
                   "set_video_source",
                   "set_video_volume",

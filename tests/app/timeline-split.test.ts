@@ -69,6 +69,7 @@ function document(): ValidatedComposition {
     width: 320,
     height: 180,
     fit: 'contain',
+    focus: { x: 500, y: 500 },
     volume: 0.5,
   });
   const result = validateComposition(draft);
