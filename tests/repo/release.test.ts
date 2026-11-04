@@ -240,6 +240,10 @@ describe('the release workflow (D45)', () => {
     expect(workflow).toContain(`image: ${PINNED_IMAGE}`);
     expect(workflow).toContain('tests/release/pack-release.ts');
     expect(workflow).toContain('tests/release/smoke-release.ts --dir .kadrion-release --render');
+    // The host flow of PR-43 runs on the same tarballs before anything is published.
+    expect(workflow).toContain(
+      'tests/release/smoke-release.ts --dir .kadrion-release --render --flow --ffmpeg-dir ',
+    );
     expect(workflow).toContain('gh release create');
     // The pack directory is hidden; without this the artifact is empty and the release fails.
     expect(workflow).toContain('include-hidden-files: true');

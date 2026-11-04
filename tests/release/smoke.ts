@@ -16,19 +16,22 @@
  *    one frame, which needs the pinned Chromium (the release workflow runs in
  *    the pinned image).
  * 4. A bundler builds the browser packages for the browser.
+ * 5. With `flow`, the host flow of `host-flow.ts` runs in the same project:
+ *    load, edit in the pinned Chromium, save, instantiate, and render in jobs.
  *
  * It needs npm and a registry; it never writes into the workspace.
  */
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import {
   RELEASE_MANIFEST_FILE,
   releaseDirectoryProblems,
   type ReleaseManifest,
 } from './release.ts';
+import { writeHostFlow } from './host-flow.ts';
 
 /** The bundler of the browser smoke test: the version the workspace pins (D21). */
 export const SMOKE_ESBUILD_VERSION = '0.28.2';
@@ -220,6 +223,11 @@ export function smokeRelease(options: {
   readonly log: (line: string) => void;
   /** Keep the clean project for inspection instead of removing it. */
   readonly keep?: boolean;
+  /**
+   * Run the host flow too, with the pinned FFmpeg cached in this directory
+   * (`kadrion fetch-ffmpeg --dir`); it needs the pinned Chromium.
+   */
+  readonly flow?: { readonly ffmpegDir: string };
 }): void {
   const manifest = JSON.parse(
     readFileSync(join(options.dir, RELEASE_MANIFEST_FILE), 'utf8'),
@@ -279,6 +287,28 @@ export function smokeRelease(options: {
       options.log,
     );
     options.log('browser bundle built');
+
+    if (options.flow !== undefined) {
+      writeHostFlow(project);
+      run(
+        join(project, 'node_modules', '.bin', 'esbuild'),
+        [
+          'flow-browser.js',
+          '--bundle',
+          '--format=esm',
+          '--platform=browser',
+          '--outfile=out/flow.js',
+        ],
+        project,
+        options.log,
+      );
+      run(
+        process.execPath,
+        ['host-flow.mjs', '--ffmpeg-dir', resolve(options.flow.ffmpegDir)],
+        project,
+        options.log,
+      );
+    }
   } finally {
     if (options.keep !== true) rmSync(project, { recursive: true, force: true });
   }
