@@ -152,7 +152,7 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   [D50](../adr/D50-video-nodes-and-fit.md), [D52](../adr/D52-audio-clips-volume-fades-and-the-mix.md),
   [D54](../adr/D54-scenes-in-sequence.md), [D55](../adr/D55-timeline-commands.md),
   [D56](../adr/D56-transitions.md), [D57](../adr/D57-captions.md),
-  [D63](../adr/D63-the-focus-point-of-cover.md).
+  [D63](../adr/D63-the-focus-point-of-cover.md), [D66](../adr/D66-clip-transitions-in-the-canvas-frame.md).
 
 ## 6. Edit from a model
 
@@ -165,7 +165,8 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
 - **Errors:** the bus's `EditorError` codes; a refused call changes nothing.
 - **Limits:** a tool never undoes or redoes; that stays with the host.
 - **Authority:** [D09](../adr/D09-ai-edits-through-typed-domain-tools.md),
-  [D31](../adr/D31-ai-tool-contract.md), [D46](../adr/D46-tool-catalogue-from-the-command-registry.md).
+  [D31](../adr/D31-ai-tool-contract.md), [D46](../adr/D46-tool-catalogue-from-the-command-registry.md),
+  [D66](../adr/D66-clip-transitions-in-the-canvas-frame.md).
 
 ## 7. Undo, redo, and the history
 
