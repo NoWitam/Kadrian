@@ -1,6 +1,7 @@
 # D66 — Clip transitions of every kind in the frame of the canvas: schema 0.11
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-07, after PR-46 was merged
+  (PR #60)
 - Date: 2026-11-07
 - Supersedes: —
 - Amends: D35 (the step from `0.10` to `0.11` and the frozen `0.10` schema),

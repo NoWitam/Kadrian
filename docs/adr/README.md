@@ -73,7 +73,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D63](D63-the-focus-point-of-cover.md)                        | The focus point of images and videos: schema 0.10                                            | Accepted          |
 | [D64](D64-video-and-audio-read-by-path.md)                    | Video and audio read by path in the Producer                                                 | Accepted          |
 | [D65](D65-the-motion-model-and-rendering-probes.md)           | The motion model and the rendering probes                                                    | Accepted          |
-| [D66](D66-clip-transitions-in-the-canvas-frame.md)            | Clip transitions of every kind: schema 0.11                                                  | Proposed          |
+| [D66](D66-clip-transitions-in-the-canvas-frame.md)            | Clip transitions of every kind: schema 0.11                                                  | Accepted          |
 | [D67](D67-easing-curves.md)                                   | Easing curves: schema 0.12                                                                   | Proposed          |
 
 ## Provenance of D01–D10
