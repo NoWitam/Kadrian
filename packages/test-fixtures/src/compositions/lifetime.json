@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.11",
+  "schemaVersion": "0.12",
   "width": 400,
   "height": 300,
   "fps": 30,
@@ -75,10 +75,13 @@
             {
               "id": "life-text-position",
               "property": "position",
-              "interpolation": "linear",
               "keyframes": [
-                { "timeUs": 0, "value": { "x": 0, "y": 0 } },
-                { "timeUs": 10000000, "value": { "x": 100, "y": 0 } }
+                { "timeUs": 0, "value": { "x": 0, "y": 0 }, "easing": { "kind": "linear" } },
+                {
+                  "timeUs": 10000000,
+                  "value": { "x": 100, "y": 0 },
+                  "easing": { "kind": "linear" }
+                }
               ]
             }
           ],

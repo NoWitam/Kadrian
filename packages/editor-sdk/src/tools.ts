@@ -24,6 +24,9 @@ import {
   removeTransitionArgumentsSchema,
   setTransitionDurationArgumentsSchema,
   setTransitionEffectArgumentsSchema,
+  setTransitionEasingArgumentsSchema,
+  setKeyframeEasingArgumentsSchema,
+  EASINGS,
   setCaptionStyleArgumentsSchema,
   setCaptionWordArgumentsSchema,
   setCaptionWordsArgumentsSchema,
@@ -85,6 +88,8 @@ import {
   type AddClipTransitionArgumentsSchema,
   type AddSceneTransitionArgumentsSchema,
   type SetTransitionEffectArgumentsSchema,
+  type SetTransitionEasingArgumentsSchema,
+  type SetKeyframeEasingArgumentsSchema,
   type SetCaptionStyleArgumentsSchema,
   type SetCaptionWordArgumentsSchema,
   type SetCaptionWordsArgumentsSchema,
@@ -116,6 +121,8 @@ export type CommandArgumentsSchema =
   | AddSceneTransitionArgumentsSchema
   | AddClipTransitionArgumentsSchema
   | SetTransitionEffectArgumentsSchema
+  | SetTransitionEasingArgumentsSchema
+  | SetKeyframeEasingArgumentsSchema
   | SetCaptionWordsArgumentsSchema
   | SetCaptionWordArgumentsSchema
   | SetCaptionStyleArgumentsSchema
@@ -285,17 +292,16 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: removeAssetArgumentsSchema,
   },
   AddAnimation: {
-    description: `Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property (position, scale, or opacity), which the node must not animate yet; the interpolation ("linear"); and at least two keyframes in ascending time, each {timeUs, value}. A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. ${TIME_US} Refused with unknown-node, unsupported-node for a node without animations (the background), duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
+    description: `Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property (position, scale, or opacity), which the node must not animate yet; and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({"kind":"linear"} for a constant speed; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. ${TIME_US} Refused with unknown-node, unsupported-node for a node without animations (the background), duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
     example: {
       nodeId: 'node-custom-html',
       index: 0,
       animation: {
         id: 'anim-html-opacity',
         property: 'opacity',
-        interpolation: 'linear',
         keyframes: [
-          { timeUs: 0, value: 0 },
-          { timeUs: 1_000_000, value: 1 },
+          { timeUs: 0, value: 0, easing: { kind: 'ease-out' } },
+          { timeUs: 1_000_000, value: 1, easing: { kind: 'linear' } },
         ],
       },
     },
@@ -322,8 +328,11 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setScaleKeyframeArgumentsSchema,
   },
   AddKeyframe: {
-    description: `Inserts one keyframe given exactly as the document stores it, {timeUs, value}, into an animation, at the place its time gives it; the value must fit the animated property. ${TIME_US} ${ANIMATED} Refused with unknown-animation, keyframe-exists when the time is taken, and invalid-result for a value of the wrong form.`,
-    example: { animationId: 'anim-title-opacity', keyframe: { timeUs: 9_000_000, value: 0.5 } },
+    description: `Inserts one keyframe given exactly as the document stores it, {timeUs, value, easing}, into an animation, at the place its time gives it; the value must fit the animated property. ${TIME_US} ${ANIMATED} Refused with unknown-animation, keyframe-exists when the time is taken, and invalid-result for a value of the wrong form.`,
+    example: {
+      animationId: 'anim-title-opacity',
+      keyframe: { timeUs: 9_000_000, value: 0.5, easing: { kind: 'linear' } },
+    },
     argumentsSchema: addKeyframeArgumentsSchema,
   },
   RemoveKeyframe: {
@@ -332,9 +341,18 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: removeKeyframeArgumentsSchema,
   },
   MoveKeyframe: {
-    description: `Moves the keyframe at timeUs of an animation to toTimeUs, keeping its value. ${TIME_US} ${ANIMATED} Refused with unknown-animation, unknown-keyframe, and keyframe-exists when toTimeUs is taken.`,
+    description: `Moves the keyframe at timeUs of an animation to toTimeUs, keeping its value and its easing. ${TIME_US} ${ANIMATED} Refused with unknown-animation, unknown-keyframe, and keyframe-exists when toTimeUs is taken.`,
     example: { animationId: 'anim-title-opacity', timeUs: 7_500_000, toTimeUs: 6_000_000 },
     argumentsSchema: moveKeyframeArgumentsSchema,
+  },
+  SetKeyframeEasing: {
+    description: `Sets how the value of an animation moves from the keyframe at a time to the next keyframe; the value stays the same at every keyframe. ${EASINGS} A keyframe that set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe inserts takes the easing of the keyframe before it, or linear; call this afterwards, in the same transaction, to change it. ${TIME_US} ${ANIMATED} Refused with unknown-animation, unknown-keyframe, and invalid-result for an easing the document cannot hold.`,
+    example: {
+      animationId: 'anim-group-position',
+      timeUs: 0,
+      easing: { kind: 'cubic-bezier', x1: 0.34, y1: 1.56, x2: 0.64, y2: 1 },
+    },
+    argumentsSchema: setKeyframeEasingArgumentsSchema,
   },
   SetNodeLifetime: {
     description: `Sets when a node is shown: from startUs, for durationUs (at least 1). ${TIME_US} The part after the end of the composition is cut. It moves no keyframe: keyframe times stay composition times. A video keeps its sourceStartUs, so its lifetime must fit inside its source. Refused with unknown-node, invalid-result, and for a video media-facts-missing and source-range-exceeded.`,
@@ -509,6 +527,7 @@ const METADATA = deepFreeze<MetadataTable>({
         toSceneId: 'scene-outro',
         durationUs: 500_000,
         effect: { kind: 'crossfade' },
+        easing: { kind: 'linear' },
       },
     },
     argumentsSchema: addSceneTransitionArgumentsSchema,
@@ -524,6 +543,7 @@ const METADATA = deepFreeze<MetadataTable>({
         toNodeId: 'node-custom-html',
         durationUs: 500_000,
         effect: { kind: 'crossfade' },
+        easing: { kind: 'linear' },
       },
     },
     argumentsSchema: addClipTransitionArgumentsSchema,
@@ -542,6 +562,11 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Replaces how a transition combines its two sides with a complete effect: {"kind":"crossfade"}, {"kind":"fade-through-color","color":"#000000"}, {"kind":"slide","direction":"left"}, {"kind":"wipe","direction":"up"}, {"kind":"push","direction":"right"}, {"kind":"zoom","fromScale":0.5}, or {"kind":"iris","center":{"x":500,"y":500}}; directions are left, right, up, and down, the way the incoming side moves. Scene and clip transitions take the same effects. No time changes. ${TRANSITIONS} Refused with unknown-transition and invalid-result.`,
     example: { transitionId: 'transition-outro', effect: { kind: 'wipe', direction: 'left' } },
     argumentsSchema: setTransitionEffectArgumentsSchema,
+  },
+  SetTransitionEasing: {
+    description: `Sets how the progress of a transition's effect moves through its overlap: ease-in-out, for example, starts and ends the effect gently; a curve that overshoots is held within the two ends of each motion, and fade-through-color eases each of its halves. ${EASINGS} No time changes. ${TRANSITIONS} Refused with unknown-transition and invalid-result.`,
+    example: { transitionId: 'transition-outro', easing: { kind: 'ease-in-out' } },
+    argumentsSchema: setTransitionEasingArgumentsSchema,
   },
   SetCaptionWords: {
     description: `Replaces every word of a captions node with a new list, as for a new transcription: each word {text, startUs, durationUs}, in the order they are spoken, each starting no earlier than the one before it ends; text is at least one character and no white space. ${CAPTIONS} ${TIME_US} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result when a word is not one the document can hold or two words overlap.`,

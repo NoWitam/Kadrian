@@ -37,7 +37,7 @@ describe('the catalogue covers the command registry exactly (D46.2)', () => {
       'add_clip_transition_at_cut',
       'run_transaction',
     ]);
-    expect(COMMAND_TOOLS).toHaveLength(63);
+    expect(COMMAND_TOOLS).toHaveLength(65);
   });
 
   it('names every tool in snake_case, each name once', () => {

@@ -72,10 +72,9 @@ function start(): ValidatedComposition {
           {
             id: 'middle-caption-a-opacity',
             property: 'opacity',
-            interpolation: 'linear',
             keyframes: [
-              { timeUs: 100_000, value: 0 },
-              { timeUs: 600_000, value: 1 },
+              { timeUs: 100_000, value: 0, easing: { kind: 'linear' } },
+              { timeUs: 600_000, value: 1, easing: { kind: 'linear' } },
             ],
           },
         ],

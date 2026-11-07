@@ -431,6 +431,8 @@ export const ARTIFACT_FILES = Object.freeze([
   'ci-identity.json',
   'custom-html-netlog.json',
   'custom-html-probes.json',
+  'easing/golden-comparison.json',
+  'easing/node-vs-chromium.json',
   'export-memory.json',
   'export-report.json',
   'exports/contract/inputs/asset-audio',

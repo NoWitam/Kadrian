@@ -32,7 +32,7 @@
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.12" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.13" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -380,17 +380,163 @@
     "expectedErrors": [{ "code": "clip-fades-exceed-duration", "path": "/clips/0/fadeOutUs" }]
   },
   {
-    "name": "interpolation-unsupported",
-    "description": "Q11: linear interpolation only.",
+    "name": "interpolation-removed",
+    "description": "D67: 0.12 has no interpolation; each keyframe states its easing.",
     "patch": [
       {
-        "op": "replace",
+        "op": "add",
         "path": "/scenes/0/nodes/2/animations/0/interpolation",
-        "value": "ease-in-out"
+        "value": "linear"
       }
     ],
     "expectedErrors": [
-      { "code": "invalid-value", "path": "/scenes/0/nodes/2/animations/0/interpolation" }
+      {
+        "code": "unknown-field",
+        "path": "/scenes/0/nodes/2/animations/0/interpolation"
+      }
+    ]
+  },
+  {
+    "name": "easing-missing",
+    "description": "D67: every keyframe states its easing, the last one included; there is no default.",
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/1/easing"
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/1/easing"
+      }
+    ]
+  },
+  {
+    "name": "easing-kind-unknown",
+    "description": "D67: spring and elastic curves are not easings of the schema.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
+        "value": {
+          "kind": "spring"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/kind"
+      }
+    ]
+  },
+  {
+    "name": "easing-bezier-time-out-of-range",
+    "description": "D67: x1 and x2 lie from 0 to 1, so that the curve is a function of time.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
+        "value": {
+          "kind": "cubic-bezier",
+          "x1": 1.5,
+          "y1": 0,
+          "x2": 0.5,
+          "y2": 1
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/x1"
+      }
+    ]
+  },
+  {
+    "name": "easing-bezier-value-out-of-range",
+    "description": "D67: y1 and y2 lie from -1 to 2.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
+        "value": {
+          "kind": "cubic-bezier",
+          "x1": 0.5,
+          "y1": 0,
+          "x2": 0.5,
+          "y2": 2.5
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/y2"
+      }
+    ]
+  },
+  {
+    "name": "easing-steps-count-zero",
+    "description": "D67: steps make 1 to 1000 jumps.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
+        "value": {
+          "kind": "steps",
+          "count": 0,
+          "position": "end"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/count"
+      }
+    ]
+  },
+  {
+    "name": "easing-steps-position-unknown",
+    "description": "D67: a step comes at the start or at the end of its interval.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
+        "value": {
+          "kind": "steps",
+          "count": 2,
+          "position": "jump-both"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/position"
+      }
+    ]
+  },
+  {
+    "name": "easing-named-with-parameters",
+    "description": "D67: a named curve has no control points.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
+        "value": {
+          "kind": "ease-in",
+          "x1": 0.42
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "unknown-field",
+        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/x1"
+      }
     ]
   },
   {
@@ -452,10 +598,9 @@
         "value": {
           "id": "anim-title-opacity-second",
           "property": "opacity",
-          "interpolation": "linear",
           "keyframes": [
-            { "timeUs": 0, "value": 1 },
-            { "timeUs": 1000000, "value": 0 }
+            { "timeUs": 0, "value": 1, "easing": { "kind": "linear" } },
+            { "timeUs": 1000000, "value": 0, "easing": { "kind": "linear" } }
           ]
         }
       }
@@ -922,7 +1067,8 @@
           "fromSceneId": "scene-main",
           "toSceneId": "scene-none",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -952,7 +1098,8 @@
           "fromSceneId": "scene-two",
           "toSceneId": "scene-main",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -982,7 +1129,8 @@
           "fromSceneId": "scene-main",
           "toSceneId": "scene-two",
           "durationUs": 4000000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1012,7 +1160,8 @@
           "fromSceneId": "scene-main",
           "toSceneId": "scene-two",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       },
       {
@@ -1023,7 +1172,8 @@
           "fromSceneId": "scene-main",
           "toSceneId": "scene-two",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1053,7 +1203,8 @@
           "fromSceneId": "scene-main",
           "toSceneId": "scene-two",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1083,7 +1234,8 @@
           "fromSceneId": "scene-main",
           "toSceneId": "scene-two",
           "durationUs": 500000,
-          "effect": { "kind": "dissolve" }
+          "effect": { "kind": "dissolve" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1113,7 +1265,8 @@
           "fromSceneId": "scene-main",
           "toSceneId": "scene-two",
           "durationUs": 500000,
-          "effect": { "kind": "slide" }
+          "effect": { "kind": "slide" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1143,7 +1296,8 @@
           "fromSceneId": "scene-main",
           "toSceneId": "scene-two",
           "durationUs": 500000,
-          "effect": { "kind": "fade-through-color", "color": "#FFFFFF" }
+          "effect": { "kind": "fade-through-color", "color": "#FFFFFF" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1173,7 +1327,8 @@
           "fromSceneId": "scene-main",
           "toSceneId": "scene-two",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1191,7 +1346,8 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-none",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1211,7 +1367,8 @@
           "fromNodeId": "node-background",
           "toNodeId": "node-title",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1229,7 +1386,8 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-image",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1249,7 +1407,8 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1272,7 +1431,8 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 500000,
-          "effect": { "kind": "zoom", "fromScale": 17 }
+          "effect": { "kind": "zoom", "fromScale": 17 },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1295,7 +1455,8 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 500000,
-          "effect": { "kind": "iris", "center": { "x": 1001, "y": 500 } }
+          "effect": { "kind": "iris", "center": { "x": 1001, "y": 500 } },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1318,12 +1479,98 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 500000,
-          "effect": { "kind": "push" }
+          "effect": { "kind": "push" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
     "expectedErrors": [
       { "code": "missing-field", "path": "/scenes/0/transitions/0/effect/direction" }
+    ]
+  },
+  {
+    "name": "clip-transition-easing-missing",
+    "description": "A transition states its easing; there is no default (D67).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/durationUs",
+        "value": 5500000
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/startUs",
+        "value": 5000000
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/durationUs",
+        "value": 5000000
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 500000,
+          "effect": {
+            "kind": "crossfade"
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/scenes/0/transitions/0/easing"
+      }
+    ]
+  },
+  {
+    "name": "clip-transition-easing-steps-fraction",
+    "description": "The count of steps is an integer (D67).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/durationUs",
+        "value": 5500000
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/startUs",
+        "value": 5000000
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/durationUs",
+        "value": 5000000
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 500000,
+          "effect": {
+            "kind": "crossfade"
+          },
+          "easing": {
+            "kind": "steps",
+            "count": 2.5,
+            "position": "start"
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-type",
+        "path": "/scenes/0/transitions/0/easing/count"
+      }
     ]
   },
   {
@@ -1341,7 +1588,8 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       },
       {
@@ -1352,7 +1600,8 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 500000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -1374,7 +1623,8 @@
           "fromNodeId": "node-group",
           "toNodeId": "node-title",
           "durationUs": 600000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       },
       {
@@ -1385,7 +1635,8 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 600000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       }
     ],
@@ -2441,7 +2692,8 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 10000000,
-          "effect": { "kind": "crossfade" }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "linear" }
         }
       },
       {

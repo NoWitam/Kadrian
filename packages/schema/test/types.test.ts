@@ -6,6 +6,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
 import type {
+  AnimationKeyframe,
   Asset,
   AudioClip,
   BackgroundNode,
@@ -14,6 +15,7 @@ import type {
   CaptionWord,
   Composition,
   CustomHtmlNode,
+  Easing,
   GroupNode,
   ImageNode,
   NodeAnimation,
@@ -40,11 +42,30 @@ interface Vec2 {
   readonly y: number;
 }
 
+/** How a segment moves (D67). */
+type ExpectedEasing =
+  | { readonly kind: 'linear' }
+  | { readonly kind: 'hold' }
+  | { readonly kind: 'ease-in' }
+  | { readonly kind: 'ease-out' }
+  | { readonly kind: 'ease-in-out' }
+  | {
+      readonly kind: 'cubic-bezier';
+      readonly x1: number;
+      readonly y1: number;
+      readonly x2: number;
+      readonly y2: number;
+    }
+  | { readonly kind: 'steps'; readonly count: number; readonly position: 'start' | 'end' };
+
 interface ExpectedAnimation<Property extends string, Value> {
   readonly id: string;
   readonly property: Property;
-  readonly interpolation: 'linear';
-  readonly keyframes: readonly { readonly timeUs: number; readonly value: Value }[];
+  readonly keyframes: readonly {
+    readonly timeUs: number;
+    readonly value: Value;
+    readonly easing: ExpectedEasing;
+  }[];
 }
 
 type ExpectedNodeAnimation =
@@ -187,6 +208,7 @@ interface ExpectedSceneTransition {
   readonly toSceneId: string;
   readonly durationUs: number;
   readonly effect: ExpectedSceneTransitionEffect;
+  readonly easing: ExpectedEasing;
 }
 
 interface ExpectedClipTransition {
@@ -195,6 +217,7 @@ interface ExpectedClipTransition {
   readonly toNodeId: string;
   readonly durationUs: number;
   readonly effect: ExpectedSceneTransitionEffect;
+  readonly easing: ExpectedEasing;
 }
 
 interface ExpectedScene {
@@ -343,7 +366,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.11';
+  readonly schemaVersion: '0.12';
   readonly width: number;
   readonly height: number;
   readonly fps: number;
@@ -371,6 +394,8 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<CaptionWord>().toEqualTypeOf<ExpectedCaptionWord>();
     expectTypeOf<CaptionStyle>().toEqualTypeOf<ExpectedCaptionStyle>();
     expectTypeOf<NodeAnimation>().toEqualTypeOf<ExpectedNodeAnimation>();
+    expectTypeOf<Easing>().toEqualTypeOf<ExpectedEasing>();
+    expectTypeOf<AnimationKeyframe>().toEqualTypeOf<ExpectedNodeAnimation['keyframes'][number]>();
     expectTypeOf<AudioClip>().toEqualTypeOf<ExpectedAudioClip>();
     expectTypeOf<SceneTransition>().toEqualTypeOf<ExpectedSceneTransition>();
     expectTypeOf<ClipTransition>().toEqualTypeOf<ExpectedClipTransition>();

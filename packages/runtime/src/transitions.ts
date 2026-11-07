@@ -1,18 +1,20 @@
 /**
  * Transitions at one instant (D49.4, D56, D66): what a transition does to its two
  * sides, as a pure function of its progress `elapsedUs / durationUs`. Every
- * value comes from one rule, the linear one of D18, so that a value at the
- * start of a transition is its start value exactly and never the result of an
- * operation.
+ * value comes from one rule, that of D18 under the transition's easing (D67),
+ * so that a value at the start of a transition is its start value exactly and
+ * never the result of an operation.
  */
 import {
   sceneTransitionAt,
+  type Easing,
   type Scene,
   type TransitionDirection,
   type TransitionEffect,
   type ValidatedComposition,
 } from '@kadrion/schema';
 
+import { easedValue, requireEasing, type Bounds } from './easing.js';
 import { unsupported } from './errors.js';
 import type {
   Circle,
@@ -25,12 +27,22 @@ import type {
 } from './state.js';
 
 /**
- * `start + ((end - start) * elapsedUs) / spanUs`, the rule of D18, and `start`
- * itself at `elapsedUs = 0`. `spanUs` may be half of an odd duration: halving is
- * exact in binary64.
+ * The value from `start` to `end` at `elapsedUs` of `spanUs` under `easing`, and
+ * `start` itself at `elapsedUs = 0`: linearly `start + ((end - start) *
+ * elapsedUs) / spanUs`, the rule of D18 (D67). `spanUs` may be half of an odd
+ * duration: halving is exact in binary64. A curve that is not linear is held
+ * within its two ends, so that an overshoot moves no side past them (D67.6).
  */
-function progressValue(start: number, end: number, elapsedUs: number, spanUs: number): number {
-  return elapsedUs === 0 ? start : start + ((end - start) * elapsedUs) / spanUs;
+function progressValue(
+  easing: Easing,
+  start: number,
+  end: number,
+  elapsedUs: number,
+  spanUs: number,
+): number {
+  if (elapsedUs === 0) return start;
+  const ends: Bounds = start < end ? { min: start, max: end } : { min: end, max: start };
+  return easedValue(easing, start, end, elapsedUs, spanUs, ends);
 }
 
 /** The size of a transition's frame: the canvas (D56, D66). */
@@ -100,13 +112,15 @@ const NO_INSET: Inset = { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 }
  */
 function effectAt(
   effect: TransitionEffect,
+  easing: Easing,
   elapsedUs: number,
   durationUs: number,
   frame: Frame,
   outgoingAbove: boolean,
 ): EffectInstant {
+  requireEasing(easing);
   const along = (from: number, to: number): number =>
-    progressValue(from, to, elapsedUs, durationUs);
+    progressValue(easing, from, to, elapsedUs, durationUs);
   const toZero = (from: number): number => along(from, 0);
   // A side that changes only after the start: nothing at the first instant.
   const later = (side: SideEffect): SideEffect | null => (elapsedUs === 0 ? null : side);
@@ -120,14 +134,14 @@ function effectAt(
       // The first half: compared as a difference, so that no double of a time is formed.
       if (elapsedUs < durationUs - elapsedUs) {
         return {
-          outgoing: { opacity: progressValue(1, 0, elapsedUs, half) },
+          outgoing: { opacity: progressValue(easing, 1, 0, elapsedUs, half) },
           incoming: { opacity: 0 },
           backdrop: elapsedUs === 0 ? null : effect.color,
         };
       }
       return {
         outgoing: { opacity: 0 },
-        incoming: { opacity: progressValue(0, 1, elapsedUs - half, half) },
+        incoming: { opacity: progressValue(easing, 0, 1, elapsedUs - half, half) },
         backdrop: effect.color,
       };
     }
@@ -242,6 +256,7 @@ export function sceneTransitionEffects(
   if (transition === undefined) return null;
   const { outgoing, incoming, backdrop } = effectAt(
     transition.effect,
+    transition.easing,
     instant.elapsedUs,
     instant.durationUs,
     composition,
@@ -300,7 +315,14 @@ export function clipTransitionEffects(
     if (startUs === null || timeUs < startUs || timeUs - startUs >= durationUs) continue;
     const outgoingAbove =
       layerOf(scene, transition.fromNodeId) > layerOf(scene, transition.toNodeId);
-    const instant = effectAt(transition.effect, timeUs - startUs, durationUs, frame, outgoingAbove);
+    const instant = effectAt(
+      transition.effect,
+      transition.easing,
+      timeUs - startUs,
+      durationUs,
+      frame,
+      outgoingAbove,
+    );
     const lower = outgoingAbove ? 'incoming' : 'outgoing';
     for (const [nodeId, sideName] of [
       [transition.fromNodeId, 'outgoing'],

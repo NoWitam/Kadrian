@@ -21,6 +21,7 @@ import { EvaluationError, evaluateComposition } from '../src/index.js';
 import {
   animation,
   derived,
+  type DraftAnimation,
   draftNode,
   reference,
   referenceDraft,
@@ -195,10 +196,9 @@ describe('the arithmetic rule (D18)', () => {
         {
           id: 'anim-group-position',
           property: 'position',
-          interpolation: 'linear',
           keyframes: [
-            { timeUs: 0, value: { x: 0, y: 0 } },
-            { timeUs: 49, value: { x: 49, y: -49 } },
+            { timeUs: 0, value: { x: 0, y: 0 }, easing: { kind: 'linear' } },
+            { timeUs: 49, value: { x: 49, y: -49 }, easing: { kind: 'linear' } },
           ],
         },
       ];
@@ -564,6 +564,14 @@ describe('input', () => {
   // The runtime does not validate again (D19.2). It reports exactly these members, which it
   // could otherwise only skip or guess.
   const ramp = animation('anim-title-opacity', 'opacity', [0, 0], [4, 1]);
+  /** The animation with `easing` on its last keyframe, which no segment reads (D67). */
+  const eased = (source: DraftAnimation, easing: unknown): DraftAnimation =>
+    ({
+      ...source,
+      keyframes: source.keyframes.map((keyframe, at) =>
+        at === source.keyframes.length - 1 ? { ...keyframe, easing } : keyframe,
+      ),
+    }) as DraftAnimation;
   it.each<[string, (title: Record<string, unknown>) => void]>([
     [
       'an animation without keyframes',
@@ -578,15 +586,21 @@ describe('input', () => {
       },
     ],
     [
-      'an unknown interpolation',
+      'an unknown easing',
       (title) => {
-        title.animations = [{ ...ramp, interpolation: 'step' }];
+        title.animations = [eased(ramp, { kind: 'spring' })];
       },
     ],
     [
-      'an interpolation named like a member of Object.prototype',
+      'an easing named like a member of Object.prototype',
       (title) => {
-        title.animations = [{ ...ramp, interpolation: 'constructor' }];
+        title.animations = [eased(ramp, { kind: 'constructor' })];
+      },
+    ],
+    [
+      'an easing without a kind',
+      (title) => {
+        title.animations = [eased(ramp, null)];
       },
     ],
     [

@@ -1,5 +1,5 @@
 /**
- * Composition schema 0.11: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.12: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
@@ -20,8 +20,10 @@
  * fields of a list's items (D59); 0.10 is 0.9 plus the focus point of images
  * and videos (D63); 0.11 is 0.10 plus the transitions push, zoom, and iris,
  * and every effect of a scene transition on a transition between two clips,
- * whose frame is the canvas (D66). The schemas of 0.1 to 0.10 are kept as data
- * in `v0-1` to `v0-10` (D35.4).
+ * whose frame is the canvas (D66); 0.12 is 0.11 plus the easing of every
+ * keyframe and every transition, in place of the interpolation of an
+ * animation (D67). The schemas of 0.1 to 0.11 are kept as data in `v0-1` to
+ * `v0-11` (D35.4).
  */
 import {
   closedObject,
@@ -33,7 +35,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.11';
+export const SCHEMA_VERSION = '0.12';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -127,11 +129,92 @@ const scale = closedObject("Scale about the node's own origin, applied after the
   y: scaleFactor,
 });
 
-const interpolation = {
-  type: 'string',
-  description: 'How values between two keyframes are computed. The schema knows linear only.',
-  enum: ['linear'],
-} as const satisfies StringSchema;
+/** One control coordinate of a cubic Bézier along the axis of time: 0 to 1, so that the curve is a function of time (D67). */
+const bezierTime = {
+  type: 'number',
+  description:
+    'A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).',
+  minimum: 0,
+  maximum: 1,
+} as const satisfies NumberSchema;
+
+/** One control coordinate of a cubic Bézier along the axis of the value: -1 to 2, room for an overshoot (D67). */
+const bezierValue = {
+  type: 'number',
+  description:
+    'A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).',
+  minimum: -1,
+  maximum: 2,
+} as const satisfies NumberSchema;
+
+export const linearEasingSchema = closedObject(
+  'The value moves at a constant speed: the arithmetic of D18.3 (D67).',
+  { kind: { type: 'string', const: 'linear' } },
+);
+
+export const holdEasingSchema = closedObject(
+  'The value stays at its start until the end of the segment and then jumps (D67).',
+  { kind: { type: 'string', const: 'hold' } },
+);
+
+export const easeInEasingSchema = closedObject(
+  'Starts slowly and speeds up: the cubic Bézier (0.42, 0, 1, 1) of CSS (D67).',
+  { kind: { type: 'string', const: 'ease-in' } },
+);
+
+export const easeOutEasingSchema = closedObject(
+  'Starts fast and slows down: the cubic Bézier (0, 0, 0.58, 1) of CSS (D67).',
+  { kind: { type: 'string', const: 'ease-out' } },
+);
+
+export const easeInOutEasingSchema = closedObject(
+  'Starts slowly, speeds up, and slows down: the cubic Bézier (0.42, 0, 0.58, 1) of CSS (D67).',
+  { kind: { type: 'string', const: 'ease-in-out' } },
+);
+
+export const cubicBezierEasingSchema = closedObject(
+  'A cubic Bézier from (0, 0) to (1, 1) with the control points (x1, y1) and (x2, y2), as in CSS; x is the progress and y the eased progress (D67).',
+  {
+    kind: { type: 'string', const: 'cubic-bezier' },
+    x1: bezierTime,
+    y1: bezierValue,
+    x2: bezierTime,
+    y2: bezierValue,
+  },
+);
+
+export const stepsEasingSchema = closedObject(
+  'The value moves in count equal jumps: at the end of each of count equal intervals (end), or at their start (start), as steps() of CSS (D67).',
+  {
+    kind: { type: 'string', const: 'steps' },
+    count: {
+      type: 'integer',
+      description: 'The number of jumps, from 1 to 1000 (D67).',
+      minimum: 1,
+      maximum: 1000,
+    },
+    position: {
+      type: 'string',
+      description: 'Whether each jump comes at the start or at the end of its interval (D67).',
+      enum: ['start', 'end'],
+    },
+  },
+);
+
+/** How a segment moves from its start value to its end value (D67). */
+export const easingSchema = {
+  description:
+    'How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).',
+  oneOf: [
+    linearEasingSchema,
+    holdEasingSchema,
+    easeInEasingSchema,
+    easeOutEasingSchema,
+    easeInOutEasingSchema,
+    cubicBezierEasingSchema,
+    stepsEasingSchema,
+  ],
+} as const satisfies UnionSchema;
 
 /** Keyframe times ascend strictly; outside the keyframes the nearest value holds (D16). */
 function animation<const N extends string, const V extends JsonSchema>(
@@ -142,11 +225,13 @@ function animation<const N extends string, const V extends JsonSchema>(
   return closedObject(description, {
     id,
     property: { type: 'string', const: property },
-    interpolation,
     keyframes: {
       type: 'array',
       minItems: 2,
-      items: closedObject('Value of the animation at one instant.', { timeUs, value }),
+      items: closedObject(
+        'Value of the animation at one instant, and how it moves from here to the next keyframe; the easing of the last keyframe is never read (D67).',
+        { timeUs, value, easing: easingSchema },
+      ),
     },
   });
 }
@@ -557,6 +642,11 @@ export const sceneTransitionSchema = closedObject(
     },
     durationUs: transitionDurationUs,
     effect: transitionEffectSchema,
+    easing: {
+      ...easingSchema,
+      description:
+        'How the progress of the effect moves through the overlap; the eased progress is held within 0 and 1, and fade-through-color eases each of its halves (D67).',
+    },
   },
 );
 
@@ -578,6 +668,11 @@ export const clipTransitionSchema = closedObject(
     },
     durationUs: transitionDurationUs,
     effect: transitionEffectSchema,
+    easing: {
+      ...easingSchema,
+      description:
+        'How the progress of the effect moves through the overlap; the eased progress is held within 0 and 1, and fade-through-color eases each of its halves (D67).',
+    },
   },
 );
 
@@ -1076,7 +1171,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.11',
+  title: 'Kadrion composition 0.12',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

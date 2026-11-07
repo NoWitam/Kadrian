@@ -19,7 +19,7 @@ describe('describeDocument (D46.3)', () => {
   it('lists the scene, its nodes bottom to top with parent and layer, and the group children', () => {
     const description = describeDocument(reference());
     expect(description).toMatchObject({
-      schemaVersion: '0.11',
+      schemaVersion: '0.12',
       width: 1080,
       height: 1920,
       fps: 30,
@@ -68,10 +68,9 @@ describe('describeDocument (D46.3)', () => {
       {
         id: 'anim-title-opacity',
         property: 'opacity',
-        interpolation: 'linear',
         keyframes: [
-          { timeUs: 0, value: 0.25 },
-          { timeUs: 7_500_000, value: 1 },
+          { timeUs: 0, value: 0.25, easing: { kind: 'linear' } },
+          { timeUs: 7_500_000, value: 1, easing: { kind: 'linear' } },
         ],
       },
     ]);

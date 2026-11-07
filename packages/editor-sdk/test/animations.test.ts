@@ -42,19 +42,19 @@ function extra(command: Command): Command {
 function keyframesFor(property: string): unknown[] {
   if (property === 'opacity') {
     return [
-      { timeUs: 0, value: 0 },
-      { timeUs: 1_000_000, value: 1 },
+      { timeUs: 0, value: 0, easing: { kind: 'linear' } },
+      { timeUs: 1_000_000, value: 1, easing: { kind: 'linear' } },
     ];
   }
   const [from, to] = property === 'position' ? [0, 10] : [1, 2];
   return [
-    { timeUs: 0, value: { x: from, y: from } },
-    { timeUs: 1_000_000, value: { x: to, y: to } },
+    { timeUs: 0, value: { x: from, y: from }, easing: { kind: 'linear' } },
+    { timeUs: 1_000_000, value: { x: to, y: to }, easing: { kind: 'linear' } },
   ];
 }
 
 function animation(id: string, property: string): Record<string, unknown> {
-  return { id, property, interpolation: 'linear', keyframes: keyframesFor(property) };
+  return { id, property, keyframes: keyframesFor(property) };
 }
 
 /** The IDs of a node's animations, in their order. */
@@ -73,7 +73,7 @@ function bus(): CommandBus {
 
 /**
  * The reference composition with the keys of every animation written in reverse
- * (`keyframes` first) and every keyframe as `{ value, timeUs }` with `{ y, x }`
+ * (`keyframes` first) and every keyframe as `{ value, easing, timeUs }` with `{ y, x }`
  * values: the schema accepts any key order, and the exact commands keep it.
  */
 function reordered(): ReturnType<typeof validated> {
@@ -84,16 +84,16 @@ function reordered(): ReturnType<typeof validated> {
     const animations = node['animations'] as Record<string, unknown>[] | undefined;
     if (animations !== undefined) {
       node['animations'] = animations.map((item) => ({
-        keyframes: (item['keyframes'] as { timeUs: number; value: unknown }[]).map(
-          ({ timeUs, value }) => ({
+        keyframes: (item['keyframes'] as { timeUs: number; value: unknown; easing: unknown }[]).map(
+          ({ timeUs, value, easing }) => ({
             value:
               typeof value === 'object' && value !== null
                 ? { y: (value as { y: number }).y, x: (value as { x: number }).x }
                 : value,
+            easing,
             timeUs,
           }),
         ),
-        interpolation: item['interpolation'],
         property: item['property'],
         id: item['id'],
       }));
@@ -211,8 +211,18 @@ describe('AddAnimation (D41.1)', () => {
   });
 
   it.each([
-    ['an unknown field', { ...animation('a', 'scale'), easing: 'in' }],
-    ['a missing field', { id: 'a', property: 'scale', keyframes: keyframesFor('scale') }],
+    ['an unknown field', { ...animation('a', 'scale'), interpolation: 'linear' }],
+    ['a missing field', { id: 'a', keyframes: keyframesFor('scale') }],
+    [
+      'a keyframe without its easing',
+      {
+        ...animation('a', 'scale'),
+        keyframes: [
+          { timeUs: 0, value: { x: 1, y: 1 } },
+          { timeUs: 1, value: { x: 2, y: 2 }, easing: { kind: 'linear' } },
+        ],
+      },
+    ],
     ['one keyframe', { ...animation('a', 'scale'), keyframes: keyframesFor('scale').slice(0, 1) }],
     [
       'a value of another property',
@@ -240,10 +250,9 @@ describe('AddAnimation (D41.1)', () => {
   it('keeps the keys of the animation, its keyframes, and its values in the host’s order', () => {
     const value = {
       keyframes: [
-        { value: { y: 2, x: 1 }, timeUs: 0 },
-        { value: { y: 4, x: 3 }, timeUs: 5 },
+        { value: { y: 2, x: 1 }, easing: { kind: 'ease-in' }, timeUs: 0 },
+        { easing: { kind: 'linear' }, value: { y: 4, x: 3 }, timeUs: 5 },
       ],
-      interpolation: 'linear',
       property: 'scale',
       id: 'a',
     };

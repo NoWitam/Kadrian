@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.11",
+  "schemaVersion": "0.12",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -282,7 +282,8 @@
           "durationUs": 400000,
           "effect": {
             "kind": "crossfade"
-          }
+          },
+          "easing": { "kind": "linear" }
         }
       ]
     }
@@ -296,7 +297,8 @@
       "durationUs": 400000,
       "effect": {
         "kind": "crossfade"
-      }
+      },
+      "easing": { "kind": "linear" }
     },
     {
       "id": "transition-fade",
@@ -306,7 +308,8 @@
       "effect": {
         "kind": "fade-through-color",
         "color": "#ffffff"
-      }
+      },
+      "easing": { "kind": "linear" }
     },
     {
       "id": "transition-slide",
@@ -316,7 +319,8 @@
       "effect": {
         "kind": "slide",
         "direction": "left"
-      }
+      },
+      "easing": { "kind": "linear" }
     },
     {
       "id": "transition-wipe",
@@ -326,7 +330,8 @@
       "effect": {
         "kind": "wipe",
         "direction": "up"
-      }
+      },
+      "easing": { "kind": "linear" }
     }
   ],
   "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }

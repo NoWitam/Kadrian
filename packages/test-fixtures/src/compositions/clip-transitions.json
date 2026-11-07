@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.11",
+  "schemaVersion": "0.12",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -214,7 +214,8 @@
           "durationUs": 200000,
           "effect": {
             "kind": "crossfade"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "up-fade",
@@ -224,7 +225,8 @@
           "effect": {
             "kind": "fade-through-color",
             "color": "#fec84b"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "up-slide",
@@ -234,7 +236,8 @@
           "effect": {
             "kind": "slide",
             "direction": "left"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "up-wipe",
@@ -244,7 +247,8 @@
           "effect": {
             "kind": "wipe",
             "direction": "down"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "up-push",
@@ -254,7 +258,8 @@
           "effect": {
             "kind": "push",
             "direction": "up"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "up-zoom",
@@ -264,7 +269,8 @@
           "effect": {
             "kind": "zoom",
             "fromScale": 0.25
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "up-iris",
@@ -277,7 +283,8 @@
               "x": 250,
               "y": 700
             }
-          }
+          },
+          "easing": { "kind": "linear" }
         }
       ]
     },
@@ -478,7 +485,8 @@
           "durationUs": 200000,
           "effect": {
             "kind": "crossfade"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "down-fade",
@@ -488,7 +496,8 @@
           "effect": {
             "kind": "fade-through-color",
             "color": "#fec84b"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "down-slide",
@@ -498,7 +507,8 @@
           "effect": {
             "kind": "slide",
             "direction": "left"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "down-wipe",
@@ -508,7 +518,8 @@
           "effect": {
             "kind": "wipe",
             "direction": "down"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "down-push",
@@ -518,7 +529,8 @@
           "effect": {
             "kind": "push",
             "direction": "up"
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "down-zoom",
@@ -528,7 +540,8 @@
           "effect": {
             "kind": "zoom",
             "fromScale": 0.25
-          }
+          },
+          "easing": { "kind": "linear" }
         },
         {
           "id": "down-iris",
@@ -541,7 +554,8 @@
               "x": 250,
               "y": 700
             }
-          }
+          },
+          "easing": { "kind": "linear" }
         }
       ]
     },
@@ -629,7 +643,8 @@
           "effect": {
             "kind": "slide",
             "direction": "right"
-          }
+          },
+          "easing": { "kind": "linear" }
         }
       ]
     },
@@ -679,7 +694,8 @@
       "effect": {
         "kind": "push",
         "direction": "left"
-      }
+      },
+      "easing": { "kind": "linear" }
     },
     {
       "id": "scene-zoom",
@@ -689,7 +705,8 @@
       "effect": {
         "kind": "zoom",
         "fromScale": 2
-      }
+      },
+      "easing": { "kind": "linear" }
     },
     {
       "id": "scene-iris",
@@ -702,7 +719,8 @@
           "x": 500,
           "y": 500
         }
-      }
+      },
+      "easing": { "kind": "linear" }
     }
   ],
   "template": {

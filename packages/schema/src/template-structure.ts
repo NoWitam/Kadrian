@@ -7,6 +7,7 @@ import type { Composition, TemplateRepeat } from './types.js';
 import type { CompositionV08 } from './v0-8/composition-schema.js';
 import type { CompositionV09 } from './v0-9/composition-schema.js';
 import type { CompositionV010 } from './v0-10/composition-schema.js';
+import type { CompositionV011 } from './v0-11/composition-schema.js';
 
 /** A scene, or a node with the scene and the group it lies in. */
 export interface TemplateElement {
@@ -55,7 +56,7 @@ export function assetsOfNode(node: AnyNode): readonly string[] {
  * earlier, which has no repeats, has none.
  */
 export function templateStructure(
-  composition: Composition | CompositionV010 | CompositionV09 | CompositionV08,
+  composition: Composition | CompositionV011 | CompositionV010 | CompositionV09 | CompositionV08,
 ): TemplateStructure {
   const elements = new Map<string, TemplateElement>();
   const assetUsers = new Map<string, (string | null)[]>();

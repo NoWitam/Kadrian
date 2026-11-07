@@ -445,7 +445,7 @@
   },
   {
     "name": "add_animation",
-    "description": "Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property (position, scale, or opacity), which the node must not animate yet; the interpolation (\"linear\"); and at least two keyframes in ascending time, each {timeUs, value}. A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with unknown-node, unsupported-node for a node without animations (the background), duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-custom-html\",\"index\":0,\"animation\":{\"id\":\"anim-html-opacity\",\"property\":\"opacity\",\"interpolation\":\"linear\",\"keyframes\":[{\"timeUs\":0,\"value\":0},{\"timeUs\":1000000,\"value\":1}]}}",
+    "description": "Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property (position, scale, or opacity), which the node must not animate yet; and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({\"kind\":\"linear\"} for a constant speed; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with unknown-node, unsupported-node for a node without animations (the background), duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-custom-html\",\"index\":0,\"animation\":{\"id\":\"anim-html-opacity\",\"property\":\"opacity\",\"keyframes\":[{\"timeUs\":0,\"value\":0,\"easing\":{\"kind\":\"ease-out\"}},{\"timeUs\":1000000,\"value\":1,\"easing\":{\"kind\":\"linear\"}}]}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete animation into a node's animations.",
@@ -463,7 +463,7 @@
         },
         "animation": {
           "type": "object",
-          "description": "The complete animation as the document stores it: its ID, unused in the document; its property, which the node must not animate already; its interpolation; and its keyframes."
+          "description": "The complete animation as the document stores it: its ID, unused in the document; its property, which the node must not animate already; and its keyframes, each with its time, its value, and its easing."
         }
       },
       "required": [
@@ -624,7 +624,7 @@
   },
   {
     "name": "add_keyframe",
-    "description": "Inserts one keyframe given exactly as the document stores it, {timeUs, value}, into an animation, at the place its time gives it; the value must fit the animated property. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation, keyframe-exists when the time is taken, and invalid-result for a value of the wrong form. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-title-opacity\",\"keyframe\":{\"timeUs\":9000000,\"value\":0.5}}",
+    "description": "Inserts one keyframe given exactly as the document stores it, {timeUs, value, easing}, into an animation, at the place its time gives it; the value must fit the animated property. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation, keyframe-exists when the time is taken, and invalid-result for a value of the wrong form. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-title-opacity\",\"keyframe\":{\"timeUs\":9000000,\"value\":0.5,\"easing\":{\"kind\":\"linear\"}}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a keyframe given as exact data at the place its time gives it; its value is judged by the document.",
@@ -636,7 +636,7 @@
         },
         "keyframe": {
           "type": "object",
-          "description": "The keyframe as the document stores it: its time, which must be free, and its value.",
+          "description": "The keyframe as the document stores it: its time, which must be free, its value, and its easing.",
           "properties": {
             "timeUs": {
               "type": "integer",
@@ -685,7 +685,7 @@
   },
   {
     "name": "move_keyframe",
-    "description": "Moves the keyframe at timeUs of an animation to toTimeUs, keeping its value. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation, unknown-keyframe, and keyframe-exists when toTimeUs is taken. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-title-opacity\",\"timeUs\":7500000,\"toTimeUs\":6000000}",
+    "description": "Moves the keyframe at timeUs of an animation to toTimeUs, keeping its value and its easing. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation, unknown-keyframe, and keyframe-exists when toTimeUs is taken. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-title-opacity\",\"timeUs\":7500000,\"toTimeUs\":6000000}",
     "inputSchema": {
       "type": "object",
       "description": "Gives the keyframe at a time another time, which must be free.",
@@ -712,6 +712,37 @@
         "animationId",
         "timeUs",
         "toTimeUs"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_keyframe_easing",
+    "description": "Sets how the value of an animation moves from the keyframe at a time to the next keyframe; the value stays the same at every keyframe. An easing is an object with its kind: {\"kind\":\"linear\"} (a constant speed), {\"kind\":\"hold\"} (the value stays until the next keyframe, then jumps), {\"kind\":\"ease-in\"} (starts slowly), {\"kind\":\"ease-out\"} (slows down at the end), {\"kind\":\"ease-in-out\"} (both), {\"kind\":\"cubic-bezier\",\"x1\":0.34,\"y1\":1.56,\"x2\":0.64,\"y2\":1} (the curve of CSS cubic-bezier(); x1 and x2 from 0 to 1, y1 and y2 from -1 to 2, where a y outside 0 to 1 overshoots and the value is held within the range of its property), or {\"kind\":\"steps\",\"count\":4,\"position\":\"end\"} (count equal jumps, 1 to 1000, at the end or the start of each interval, as CSS steps()). A keyframe that set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe inserts takes the easing of the keyframe before it, or linear; call this afterwards, in the same transaction, to change it. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation, unknown-keyframe, and invalid-result for an easing the document cannot hold. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-group-position\",\"timeUs\":0,\"easing\":{\"kind\":\"cubic-bezier\",\"x1\":0.34,\"y1\":1.56,\"x2\":0.64,\"y2\":1}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Replaces how the value moves from the keyframe at a time to the next one; the easing of the last keyframe is kept but never read.",
+      "properties": {
+        "animationId": {
+          "type": "string",
+          "description": "The ID of an animation of the document.",
+          "minLength": 1
+        },
+        "timeUs": {
+          "type": "integer",
+          "description": "A scene time in integer microseconds from the start of the scene of the node; it may lie at or after the end of the scene, and it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "easing": {
+          "type": "object",
+          "description": "The complete new easing. An easing is an object with its kind: {\"kind\":\"linear\"} (a constant speed), {\"kind\":\"hold\"} (the value stays until the next keyframe, then jumps), {\"kind\":\"ease-in\"} (starts slowly), {\"kind\":\"ease-out\"} (slows down at the end), {\"kind\":\"ease-in-out\"} (both), {\"kind\":\"cubic-bezier\",\"x1\":0.34,\"y1\":1.56,\"x2\":0.64,\"y2\":1} (the curve of CSS cubic-bezier(); x1 and x2 from 0 to 1, y1 and y2 from -1 to 2, where a y outside 0 to 1 overshoots and the value is held within the range of its property), or {\"kind\":\"steps\",\"count\":4,\"position\":\"end\"} (count equal jumps, 1 to 1000, at the end or the start of each interval, as CSS steps())."
+        }
+      },
+      "required": [
+        "animationId",
+        "timeUs",
+        "easing"
       ],
       "additionalProperties": false
     }
@@ -1354,7 +1385,7 @@
   },
   {
     "name": "add_scene_transition",
-    "description": "Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide, wipe, or push with a direction (left, right, up, down), zoom with a fromScale, or iris with a center. Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"transition\":{\"id\":\"transition-outro\",\"fromSceneId\":\"scene-main\",\"toSceneId\":\"scene-outro\",\"durationUs\":500000,\"effect\":{\"kind\":\"crossfade\"}}}",
+    "description": "Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide, wipe, or push with a direction (left, right, up, down), zoom with a fromScale, or iris with a center. Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"transition\":{\"id\":\"transition-outro\",\"fromSceneId\":\"scene-main\",\"toSceneId\":\"scene-outro\",\"durationUs\":500000,\"effect\":{\"kind\":\"crossfade\"},\"easing\":{\"kind\":\"linear\"}}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a transition on the boundary between two adjacent scenes: the incoming scene starts durationUs earlier and overlaps the end of the outgoing one, and the composition's durationUs shrinks by as much.",
@@ -1379,7 +1410,7 @@
   },
   {
     "name": "add_clip_transition",
-    "description": "Adds a transition between two clips of one layer of a scene — two children of one parent, neither a background — whose lifetimes already overlap by exactly durationUs: the outgoing node ends durationUs after the incoming one starts. During the overlap the effect combines them in the frame of the canvas — crossfade, fade-through-color, slide, wipe, push, zoom, or iris, as for scenes; nothing moves in time. Make the overlap first with move_clip, trim_clip_start, or trim_clip_end, or call add_clip_transition_at_cut for two clips that meet end to end. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with unknown-scene, index-out-of-range, id-in-use, and invalid-result when the nodes are not siblings of this scene, a background, or do not overlap by exactly durationUs. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-main\",\"index\":0,\"transition\":{\"id\":\"transition-title\",\"fromNodeId\":\"node-title\",\"toNodeId\":\"node-custom-html\",\"durationUs\":500000,\"effect\":{\"kind\":\"crossfade\"}}}",
+    "description": "Adds a transition between two clips of one layer of a scene — two children of one parent, neither a background — whose lifetimes already overlap by exactly durationUs: the outgoing node ends durationUs after the incoming one starts. During the overlap the effect combines them in the frame of the canvas — crossfade, fade-through-color, slide, wipe, push, zoom, or iris, as for scenes; nothing moves in time. Make the overlap first with move_clip, trim_clip_start, or trim_clip_end, or call add_clip_transition_at_cut for two clips that meet end to end. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with unknown-scene, index-out-of-range, id-in-use, and invalid-result when the nodes are not siblings of this scene, a background, or do not overlap by exactly durationUs. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-main\",\"index\":0,\"transition\":{\"id\":\"transition-title\",\"fromNodeId\":\"node-title\",\"toNodeId\":\"node-custom-html\",\"durationUs\":500000,\"effect\":{\"kind\":\"crossfade\"},\"easing\":{\"kind\":\"linear\"}}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a transition between two clips of one layer of a scene, two children of one parent whose lifetimes already overlap by exactly its durationUs; nothing moves.",
@@ -1473,6 +1504,30 @@
       "required": [
         "transitionId",
         "effect"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_transition_easing",
+    "description": "Sets how the progress of a transition's effect moves through its overlap: ease-in-out, for example, starts and ends the effect gently; a curve that overshoots is held within the two ends of each motion, and fade-through-color eases each of its halves. An easing is an object with its kind: {\"kind\":\"linear\"} (a constant speed), {\"kind\":\"hold\"} (the value stays until the next keyframe, then jumps), {\"kind\":\"ease-in\"} (starts slowly), {\"kind\":\"ease-out\"} (slows down at the end), {\"kind\":\"ease-in-out\"} (both), {\"kind\":\"cubic-bezier\",\"x1\":0.34,\"y1\":1.56,\"x2\":0.64,\"y2\":1} (the curve of CSS cubic-bezier(); x1 and x2 from 0 to 1, y1 and y2 from -1 to 2, where a y outside 0 to 1 overshoots and the value is held within the range of its property), or {\"kind\":\"steps\",\"count\":4,\"position\":\"end\"} (count equal jumps, 1 to 1000, at the end or the start of each interval, as CSS steps()). No time changes. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Refused with unknown-transition and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"transitionId\":\"transition-outro\",\"easing\":{\"kind\":\"ease-in-out\"}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Replaces how the progress of a transition moves through its overlap; no time changes.",
+      "properties": {
+        "transitionId": {
+          "type": "string",
+          "description": "The stable ID of a scene transition or a clip transition of the document.",
+          "minLength": 1
+        },
+        "easing": {
+          "type": "object",
+          "description": "The complete new easing. An easing is an object with its kind: {\"kind\":\"linear\"} (a constant speed), {\"kind\":\"hold\"} (the value stays until the next keyframe, then jumps), {\"kind\":\"ease-in\"} (starts slowly), {\"kind\":\"ease-out\"} (slows down at the end), {\"kind\":\"ease-in-out\"} (both), {\"kind\":\"cubic-bezier\",\"x1\":0.34,\"y1\":1.56,\"x2\":0.64,\"y2\":1} (the curve of CSS cubic-bezier(); x1 and x2 from 0 to 1, y1 and y2 from -1 to 2, where a y outside 0 to 1 overshoots and the value is held within the range of its property), or {\"kind\":\"steps\",\"count\":4,\"position\":\"end\"} (count equal jumps, 1 to 1000, at the end or the start of each interval, as CSS steps())."
+        }
+      },
+      "required": [
+        "transitionId",
+        "easing"
       ],
       "additionalProperties": false
     }
@@ -1853,6 +1908,7 @@
                   "add_keyframe",
                   "remove_keyframe",
                   "move_keyframe",
+                  "set_keyframe_easing",
                   "set_node_lifetime",
                   "set_node_fit",
                   "set_node_focus",
@@ -1881,6 +1937,7 @@
                   "remove_transition",
                   "set_transition_duration",
                   "set_transition_effect",
+                  "set_transition_easing",
                   "set_caption_words",
                   "set_caption_word",
                   "set_caption_style",

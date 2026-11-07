@@ -37,6 +37,7 @@ interface TransitionView {
   id: string;
   durationUs: number;
   effect: Record<string, unknown>;
+  easing?: Record<string, unknown>;
   fromNodeId?: string;
   toNodeId?: string;
 }
@@ -78,6 +79,7 @@ const INTRO_TO_MIDDLE = Object.freeze({
   toSceneId: 'scene-middle',
   durationUs: 200_000,
   effect: { kind: 'crossfade' },
+  easing: { kind: 'linear' },
 });
 
 describe('AddSceneTransition (D56)', () => {
@@ -331,6 +333,65 @@ describe('SetTransitionEffect (D56)', () => {
   });
 });
 
+describe('SetTransitionEasing (D67)', () => {
+  it('replaces the easing of a scene or a clip transition and restores the same bytes on undo', () => {
+    const easing = { kind: 'cubic-bezier', x1: 0.34, y1: 1.56, x2: 0.64, y2: 1 };
+    const result = applyCommand(sequence, {
+      type: 'SetTransitionEasing',
+      transitionId: 'transition-slide',
+      easing,
+    });
+    expect(view(result.document).transitions[2]).toMatchObject({ easing });
+    expect(result.inverse).toEqual({
+      type: 'SetTransitionEasing',
+      transitionId: 'transition-slide',
+      easing: { kind: 'linear' },
+    });
+    roundTrip(sequence, {
+      type: 'SetTransitionEasing',
+      transitionId: 'transition-e',
+      easing: { kind: 'steps', count: 4, position: 'start' },
+    });
+    // Nothing but the easing changes: the effect and the duration stay.
+    const before = { ...view(sequence).transitions[2], easing };
+    expect(view(result.document).transitions[2]).toEqual(before);
+  });
+
+  it('is no edit for the same easing, and refuses an unknown transition or an easing outside its bounds', () => {
+    expect(
+      applyCommand(sequence, {
+        type: 'SetTransitionEasing',
+        transitionId: 'transition-fade',
+        easing: { kind: 'linear' },
+      }).inverse,
+    ).toBeNull();
+    expect(
+      codeOf(() =>
+        applyCommand(sequence, {
+          type: 'SetTransitionEasing',
+          transitionId: 'transition-none',
+          easing: { kind: 'hold' },
+        }),
+      ),
+    ).toBe('unknown-transition');
+    for (const easing of [
+      { kind: 'cubic-bezier', x1: 1.5, y1: 0, x2: 0.5, y2: 1 },
+      { kind: 'steps', count: 0, position: 'end' },
+      { kind: 'spring' },
+    ]) {
+      expect(
+        codeOf(() =>
+          applyCommand(sequence, {
+            type: 'SetTransitionEasing',
+            transitionId: 'transition-e',
+            easing,
+          }),
+        ),
+      ).toBe('invalid-result');
+    }
+  });
+});
+
 describe('a command that would break a transition (D56)', () => {
   it('is refused with the IDs of the transitions in its way', () => {
     const removeScene = errorOf(() =>
@@ -372,6 +433,7 @@ describe('DuplicateScene with clip transitions (D56)', () => {
         toNodeId: 'scene-f-n2',
         durationUs: 400_000,
         effect: { kind: 'crossfade' },
+        easing: { kind: 'linear' },
       },
     ]);
     expect(result.createdIds).toContain('scene-f-t0');

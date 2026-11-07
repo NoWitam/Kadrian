@@ -340,7 +340,7 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
       const add: Command = {
         type: 'AddKeyframe',
         animationId: 'anim-title-opacity',
-        keyframe: { timeUs: 8_000_000 + at, value: 0.5 },
+        keyframe: { timeUs: 8_000_000 + at, value: 0.5, easing: { kind: 'linear' } },
       };
       document = applyCommand(document, add).document;
     }
@@ -372,10 +372,17 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
         animation: {
           id: 'anim-new',
           property: property ?? 'opacity',
-          interpolation: 'linear',
           keyframes: [
-            { timeUs: 0, value: property === 'opacity' ? 0 : { x: 1, y: 1 } },
-            { timeUs: 1, value: property === 'opacity' ? 1 : { x: 2, y: 2 } },
+            {
+              timeUs: 0,
+              value: property === 'opacity' ? 0 : { x: 1, y: 1 },
+              easing: { kind: 'linear' },
+            },
+            {
+              timeUs: 1,
+              value: property === 'opacity' ? 1 : { x: 2, y: 2 },
+              easing: { kind: 'linear' },
+            },
           ],
         },
       };

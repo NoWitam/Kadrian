@@ -28,6 +28,7 @@ import {
   parseRemoveTransition,
   parseSetTransitionDuration,
   parseSetTransitionEffect,
+  parseSetTransitionEasing,
   parseSetCaptionStyle,
   parseSetCaptionWord,
   parseSetCaptionWords,
@@ -53,6 +54,7 @@ import {
   parseSetSceneDuration,
   parseDuplicateNode,
   parseMoveKeyframe,
+  parseSetKeyframeEasing,
   parseRemoveAnimation,
   parseRemoveAsset,
   parseRemoveAudioClip,
@@ -450,9 +452,24 @@ function pairValue(
 }
 
 /**
+ * The easing a keyframe inserted at `timeUs` takes (D67.7): a copy of that of
+ * the keyframe before it, whose segment it splits, or linear before the first.
+ */
+function inheritedEasing(keyframes: readonly unknown[], timeUs: number): unknown {
+  let easing: unknown = { kind: 'linear' };
+  for (const keyframe of keyframes) {
+    if (!isObject(keyframe) || typeof keyframe['timeUs'] !== 'number') continue;
+    if (keyframe['timeUs'] >= timeUs) break;
+    easing = keyframe['easing'];
+  }
+  return isObject(easing) ? copyNode(easing) : easing;
+}
+
+/**
  * Sets, or inserts, the keyframe at `timeUs` of an animation of `property`
- * (D41.1). A replacement spreads the stored keyframe and merges into its value;
- * an insertion writes a new `{ timeUs, value }` at the place its time gives it.
+ * (D41.1). A replacement spreads the stored keyframe and merges into its value,
+ * its easing untouched; an insertion writes a new `{ timeUs, value, easing }` at
+ * the place its time gives it, eased as the keyframe before it (D67.7).
  */
 function setKeyframe(
   document: DocumentObject,
@@ -481,7 +498,7 @@ function setKeyframe(
       removedIds: [],
     };
   }
-  const inserted = { timeUs, value: value.fresh };
+  const inserted = { timeUs, value: value.fresh, easing: inheritedEasing(keyframes, timeUs) };
   return {
     document: withKeyframes(document, location, placedByTime(keyframes, inserted, timeUs)),
     invert: () => parseRemoveKeyframe({ type: 'RemoveKeyframe', animationId, timeUs }),
@@ -1319,6 +1336,32 @@ const DEFINITIONS = deepFreeze<Definitions>({
       };
     },
   },
+  SetKeyframeEasing: {
+    parse: parseSetKeyframeEasing,
+    edit(document, command) {
+      const location = locatedAnimation(document, command.animationId);
+      const keyframes = keyframesOf(location.animation);
+      const at = keyframeIndex(keyframes, command.timeUs);
+      const keyframe = keyframes[at];
+      if (!isObject(keyframe)) throw unknownKeyframe(command.animationId, command.timeUs);
+      const easing: unknown = keyframe['easing'];
+      if (isObject(easing) && sameData(easing, command.easing)) return null;
+      // A frozen copy of the easing as it was, so undo restores the same bytes (D30).
+      const inverse = parseSetKeyframeEasing({ ...command, easing });
+      return {
+        document: withKeyframes(
+          document,
+          location,
+          keyframes.map((stored, index) =>
+            index === at ? { ...keyframe, easing: command.easing } : stored,
+          ),
+        ),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
   SetNodeLifetime: {
     parse: parseSetNodeLifetime,
     edit: (document, command) =>
@@ -2001,6 +2044,25 @@ const DEFINITIONS = deepFreeze<Definitions>({
       });
       const transitions = transitionListOf(document, found.owner).map((transition, at) =>
         at === found.index ? { ...found.transition, effect: command.effect } : transition,
+      );
+      return {
+        document: replaceTransitionList(document, found.owner, transitions),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  SetTransitionEasing: {
+    parse: parseSetTransitionEasing,
+    edit(document, command) {
+      const found = locatedTransition(document, command.transitionId);
+      const easing: unknown = found.transition['easing'];
+      if (isObject(easing) && sameData(easing, command.easing)) return null;
+      // A frozen copy of the easing as it was, so undo restores the same bytes (D30).
+      const inverse = parseSetTransitionEasing({ ...command, easing });
+      const transitions = transitionListOf(document, found.owner).map((transition, at) =>
+        at === found.index ? { ...found.transition, easing: command.easing } : transition,
       );
       return {
         document: replaceTransitionList(document, found.owner, transitions),

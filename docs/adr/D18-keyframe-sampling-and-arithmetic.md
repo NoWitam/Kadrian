@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-09-22
 - Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, a new
   18.6 (the lifetime of a node)
+- Amended by: PR-47 (D67) on 2026-11-07: a new 18.7 (the arithmetic of an eased segment); 18.3 stays the arithmetic of a linear segment (D67.3)
 - Date: 2026-09-21
 - Supersedes: —
 - Related: D04, D13, D15, D16, D19, [specification](../spike/vertical-spike.md)
@@ -84,6 +85,15 @@ test of the state distinguishes the two (D42.2). The time domain of
 18.1 and the sampling of 18.2 are unchanged: an animation is sampled on
 composition time whether or not its node is active, and `active` is local like
 every value (18.5).
+
+**18.7 Eased segments.** Amended by: PR-47 (D67). From schema `0.12` each
+keyframe has an `easing` for the segment that starts at it. A `linear` segment
+is computed by 18.3, unchanged. A `hold` is `a` without arithmetic; `steps` put
+the number of jumps, counted exactly in `BigInt`, in place of the elapsed time
+in the order of 18.3; a Bézier computes `p = (t − ti) / (ti+1 − ti)`, its eased
+progress by 64 bisection steps, and `a + (b − a) · e(p)`. Every curve but
+`linear` is held within the bounds of its property, by comparisons only.
+Nothing but `+ - * /` and comparisons is used (D67.3–D67.6).
 
 Why multiply-first. Any fixed sequence of `+ - * /` is equally reproducible, so
 reproducibility demands _a_ rule, not this one. The choice rests on secondary

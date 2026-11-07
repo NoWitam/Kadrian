@@ -12,6 +12,7 @@ import type {
   clipTransitionSchema,
   compositionSchema,
   customHtmlNodeSchema,
+  easingSchema,
   groupNodeSchema,
   imageNodeSchema,
   sceneNodeSchema,
@@ -65,6 +66,10 @@ export type CaptionWord = CaptionsNode['words'][number];
 /** How a captions node shows its words (D57). */
 export type CaptionStyle = CaptionsNode['style'];
 export type NodeAnimation = Infer<typeof animationSchema>;
+/** One keyframe of an animation: its time, its value, and the easing of the segment it starts (D67). */
+export type AnimationKeyframe = NodeAnimation['keyframes'][number];
+/** How a segment of an animation or a transition moves from its start to its end (D67). */
+export type Easing = Infer<typeof easingSchema>;
 export type AudioClip = Infer<typeof audioClipSchema>;
 
 /** How an image or a video meets its box (D50). */

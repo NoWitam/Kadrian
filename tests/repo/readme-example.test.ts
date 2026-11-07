@@ -38,7 +38,7 @@ function block(text: string, language: string): string {
 function literal(source: string, names: Readonly<Record<string, unknown>>): unknown {
   let text = source
     .replace(/'([^']*)'/g, '"$1"')
-    .replace(/([{,]\s*)([A-Za-z]+):/g, '$1"$2":')
+    .replace(/([{,]\s*)([A-Za-z][A-Za-z0-9]*):/g, '$1"$2":')
     .replace(/(\d)_(?=\d)/g, '$1')
     .replace(/,(\s*[}\]])/g, '$1');
   for (const [name, value] of Object.entries(names)) {
@@ -61,10 +61,9 @@ const captionNode = {
     {
       id: 'caption-position',
       property: 'position',
-      interpolation: 'linear',
       keyframes: [
-        { timeUs: 0, value: { x: 0, y: 40 } },
-        { timeUs: 1_000_000, value: { x: 0, y: 0 } },
+        { timeUs: 0, value: { x: 0, y: 40 }, easing: { kind: 'linear' } },
+        { timeUs: 1_000_000, value: { x: 0, y: 0 }, easing: { kind: 'linear' } },
       ],
     },
   ],
@@ -135,6 +134,7 @@ describe('the command-bus example of the README', () => {
       'RemoveNode',
       'AddAnimation',
       'SetOpacityKeyframe',
+      'SetKeyframeEasing',
       'MoveKeyframe',
       'RemoveKeyframe',
       'RemoveAnimation',

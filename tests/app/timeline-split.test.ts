@@ -57,10 +57,9 @@ function document(): ValidatedComposition {
       {
         id: 'node-video-a-scale',
         property: 'scale',
-        interpolation: 'linear',
         keyframes: [
-          { timeUs: 0, value: { x: 1, y: 1 } },
-          { timeUs: 1_000_000, value: { x: 2, y: 2 } },
+          { timeUs: 0, value: { x: 1, y: 1 }, easing: { kind: 'linear' } },
+          { timeUs: 1_000_000, value: { x: 2, y: 2 }, easing: { kind: 'linear' } },
         ],
       },
     ],

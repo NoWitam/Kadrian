@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.11",
+  "schemaVersion": "0.12",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -86,15 +86,16 @@
             {
               "id": "anim-portrait--0",
               "property": "opacity",
-              "interpolation": "linear",
               "keyframes": [
                 {
                   "timeUs": 0,
-                  "value": 0
+                  "value": 0,
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 300000,
-                  "value": 1
+                  "value": 1,
+                  "easing": { "kind": "linear" }
                 }
               ]
             }
@@ -158,15 +159,16 @@
             {
               "id": "anim-portrait--1",
               "property": "opacity",
-              "interpolation": "linear",
               "keyframes": [
                 {
                   "timeUs": 0,
-                  "value": 0
+                  "value": 0,
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 300000,
-                  "value": 1
+                  "value": 1,
+                  "easing": { "kind": "linear" }
                 }
               ]
             }
@@ -230,21 +232,22 @@
             {
               "id": "anim-credit--0",
               "property": "position",
-              "interpolation": "linear",
               "keyframes": [
                 {
                   "timeUs": 100000,
                   "value": {
                     "x": 0,
                     "y": 20
-                  }
+                  },
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 500000,
                   "value": {
                     "x": 0,
                     "y": 0
-                  }
+                  },
+                  "easing": { "kind": "linear" }
                 }
               ]
             }
@@ -272,21 +275,22 @@
             {
               "id": "anim-credit--1",
               "property": "position",
-              "interpolation": "linear",
               "keyframes": [
                 {
                   "timeUs": 500000,
                   "value": {
                     "x": 0,
                     "y": 20
-                  }
+                  },
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 900000,
                   "value": {
                     "x": 0,
                     "y": 0
-                  }
+                  },
+                  "easing": { "kind": "linear" }
                 }
               ]
             }
@@ -330,7 +334,8 @@
       "durationUs": 200000,
       "effect": {
         "kind": "crossfade"
-      }
+      },
+      "easing": { "kind": "linear" }
     }
   ],
   "template": {

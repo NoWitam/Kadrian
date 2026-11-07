@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.11",
+  "schemaVersion": "0.12",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -45,10 +45,13 @@
             {
               "id": "anim-group-position",
               "property": "position",
-              "interpolation": "linear",
               "keyframes": [
-                { "timeUs": 0, "value": { "x": 16, "y": 8 } },
-                { "timeUs": 7500000, "value": { "x": 76, "y": 308 } }
+                { "timeUs": 0, "value": { "x": 16, "y": 8 }, "easing": { "kind": "linear" } },
+                {
+                  "timeUs": 7500000,
+                  "value": { "x": 76, "y": 308 },
+                  "easing": { "kind": "linear" }
+                }
               ]
             }
           ],
@@ -65,10 +68,17 @@
                 {
                   "id": "anim-image-scale",
                   "property": "scale",
-                  "interpolation": "linear",
                   "keyframes": [
-                    { "timeUs": 2500000, "value": { "x": 1, "y": 1 } },
-                    { "timeUs": 10000000, "value": { "x": 1.75, "y": 1.375 } }
+                    {
+                      "timeUs": 2500000,
+                      "value": { "x": 1, "y": 1 },
+                      "easing": { "kind": "linear" }
+                    },
+                    {
+                      "timeUs": 10000000,
+                      "value": { "x": 1.75, "y": 1.375 },
+                      "easing": { "kind": "linear" }
+                    }
                   ]
                 }
               ],
@@ -106,10 +116,9 @@
             {
               "id": "anim-title-opacity",
               "property": "opacity",
-              "interpolation": "linear",
               "keyframes": [
-                { "timeUs": 0, "value": 0.25 },
-                { "timeUs": 7500000, "value": 1 }
+                { "timeUs": 0, "value": 0.25, "easing": { "kind": "linear" } },
+                { "timeUs": 7500000, "value": 1, "easing": { "kind": "linear" } }
               ]
             }
           ],

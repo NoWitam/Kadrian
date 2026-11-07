@@ -273,6 +273,8 @@ steps should be merged.
 
 ### PR-47 — Easing curves
 
+- Status: in review, with its ADR D67 (Proposed). The easing belongs to the keyframe the segment starts at; a Bézier is solved by 64 bisection steps; `steps` take `start` and `end`; D18 is amended by a new 18.7, and 18.3 stays the arithmetic of a linear segment. Two deviations from this plan: the typed keyframe commands take no easing argument (a new keyframe inherits the easing before it, and `SetKeyframeEasing` sets one), and the independent table is met within 2^-51 of the progress for the named curves, not within one unit in the last place of the result, which no arithmetic of the parameter reaches near the flat ends of a curve (D67.4).
+
 - **Goal:** keyframes and transitions move with ease, hold, or steps, the
   same in the Player and the Producer.
 - **Scope (D67):** schema `0.12` replaces `interpolation: 'linear'` of an
