@@ -171,6 +171,7 @@ const TRANSITION_SETUP: readonly Command[] = [
       toSceneId: 'scene-outro',
       durationUs: 500_000,
       effect: { kind: 'crossfade' },
+      easing: { kind: 'linear' },
     },
   },
 ];
@@ -253,6 +254,7 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
     },
   ],
   MoveKeyframe: [],
+  SetKeyframeEasing: [],
   SetNodeLifetime: [],
   SetNodeFit: [],
   SetNodeFocus: [],
@@ -293,6 +295,7 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   RemoveTransition: TRANSITION_SETUP,
   SetTransitionDuration: TRANSITION_SETUP,
   SetTransitionEffect: TRANSITION_SETUP,
+  SetTransitionEasing: TRANSITION_SETUP,
   SetCaptionWords: CAPTIONS_SETUP,
   SetCaptionWord: CAPTIONS_SETUP,
   SetCaptionStyle: CAPTIONS_SETUP,
@@ -431,6 +434,7 @@ describe('add_clip_transition_at_cut is one dispatchTransaction, one history ent
       toNodeId: 'up-clip-1',
       durationUs: 200_000,
       effect: { kind: 'crossfade' },
+      easing: { kind: 'linear' },
     },
     alignment: 'end',
   };

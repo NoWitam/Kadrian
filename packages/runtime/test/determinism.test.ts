@@ -60,11 +60,10 @@ const threeKeyframes = derived((draft) => {
     {
       id: 'anim-title-opacity',
       property: 'opacity',
-      interpolation: 'linear',
       keyframes: [
-        { timeUs: 0, value: 0 },
-        { timeUs: MID, value: 1 },
-        { timeUs: END, value: 0.5 },
+        { timeUs: 0, value: 0, easing: { kind: 'linear' } },
+        { timeUs: MID, value: 1, easing: { kind: 'linear' } },
+        { timeUs: END, value: 0.5, easing: { kind: 'linear' } },
       ],
     },
   ];

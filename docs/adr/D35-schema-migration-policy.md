@@ -16,6 +16,7 @@
 - Amended by: PR-34b (D59) on 2026-11-02: the step from `0.8` to `0.9` and the frozen `0.8` schema (D59.5)
 - Amended by: PR-39b (D63) on 2026-11-03: the step from `0.9` to `0.10` and the frozen `0.9` schema (D63.6)
 - Amended by: PR-46 (D66) on 2026-11-07: the step from `0.10` to `0.11` and the frozen `0.10` schema (D66.7)
+- Amended by: PR-47 (D67) on 2026-11-07: the step from `0.11` to `0.12` and the frozen `0.11` schema (D67.9)
 - Related: D02, D16, D17, D24,
   [specification](../spike/vertical-spike.md) §11 and open question Q16,
   [spike report](../spike/report.md)

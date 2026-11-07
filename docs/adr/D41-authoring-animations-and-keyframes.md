@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-10-01, after the reviews of
   the implementation; the decisions are the owner's of 2026-09-30
 - Date: 2026-09-30
+- Amended by: PR-47 (D67) on 2026-11-07: 41.3: a new keyframe is written as `{ timeUs, value, easing }`, with the easing of the keyframe before it or `linear`; a replaced or moved keyframe keeps its easing; `SetKeyframeEasing` is a new command (D67.7)
 - Supersedes: —
 - Amends: D30 (D30.8), D38 (D38.1), D39 (D39.4, D39.9), each with an
   `Amended by: PR-20 (D41)` line
@@ -132,7 +133,10 @@ defaults.
   `{ y, x }` stays `{ y, x }`. The inverse of a replacement is applied the same
   way, to the value the replacement left, whose order is the stored one; so undo
   gives the same bytes. A new keyframe is written as `{ timeUs, value }` with a
-  value `{ x, y }` (D16.1: a command that creates data writes its defaults). The
+  value `{ x, y }` (D16.1: a command that creates data writes its defaults).
+  Amended by: PR-47 (D67): from `0.12` it is `{ timeUs, value, easing }`, with
+  a copy of the easing of the keyframe before it, or `linear` before the first
+  (D67.7). The
   inverse of a removal is `AddKeyframe` with the exact keyframe, whatever its
   order. A moved keyframe is a new object with its keys in their order; its value
   keeps its identity.

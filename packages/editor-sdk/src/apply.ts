@@ -114,6 +114,7 @@ const TRANSITION_COMMANDS: readonly Command['type'][] = Object.freeze([
   'RemoveTransition',
   'SetTransitionDuration',
   'SetTransitionEffect',
+  'SetTransitionEasing',
 ]);
 
 /** The validation codes that judge a transition against its sides (D56.3). */

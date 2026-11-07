@@ -12,7 +12,7 @@ PR-18 to PR-22; phase three, the engine under a host's video editor
 PR-34b; phase four, a host integrating the engine
 ([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)), delivered PR-37 to
 PR-43; the current phase is motion graphics, effects, and reusable elements
-([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.11` with its forward migrations from `0.1` to `0.10`, the evaluation core, the DOM
+([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.12` with its forward migrations from `0.1` to `0.11`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -21,7 +21,8 @@ of the Player and the Producer is measured and gated
 GitHub runner in the pinned image. Q14 is open again: the run 41857750361 of
 the validated main commit 062f532 met every criterion, but PR-46 changed the
 pinned transitions test and the reports it writes, so its evidence was deleted
-until a green run of a later commit
+until a green run of a later commit, and PR-47 added the pinned easing test and
+its two reports
 ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 repository is publicly visible, but the project is not open source: no licence
 is granted, and the packages are private and unpublished (D37). The APIs below
@@ -177,13 +178,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.11`
+A composition is a JSON document of schema `0.12`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.11",
+  "schemaVersion": "0.12",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -219,10 +220,9 @@ Unknown fields are errors. This one shows a text that fades in:
             {
               "id": "anim-title-opacity",
               "property": "opacity",
-              "interpolation": "linear",
               "keyframes": [
-                { "timeUs": 0, "value": 0 },
-                { "timeUs": 1000000, "value": 1 }
+                { "timeUs": 0, "value": 0, "easing": { "kind": "ease-out" } },
+                { "timeUs": 1000000, "value": 1, "easing": { "kind": "linear" } }
               ]
             }
           ],
@@ -256,7 +256,8 @@ Unknown fields are errors. This one shows a text that fades in:
   with a `direction`, `zoom` with a `fromScale`, or `iris` with a `center`. A
   scene's own `transitions` join two clips of one layer whose lifetimes
   overlap by exactly the transition's duration, with any of these effects,
-  whose frame is then the canvas (D49, D56, D66).
+  whose frame is then the canvas (D49, D56, D66). A transition's `easing`
+  shapes its progress like a keyframe's (D67).
 - **Nodes:** `background`, `text`, `image`, `video`, `group`, and
   `custom-html`. Array order is the z-order. An image or a video fills its box
   by `fit`: `fill`, `contain`, or `cover`; its `focus` `{ x, y }`, in per mille
@@ -280,8 +281,15 @@ durationUs`. A child of a group is shown only while its group is shown too. A
   declares a white background for the pixels no node covers (D42.5); that the
   pixels are white in the Producer and in the Player is measured in the pinned
   environment (D42.6).
-- **Animations:** `opacity`, `position`, and `scale`, with linear keyframes, on
-  scene time: a lifetime does not shift them.
+- **Animations:** `opacity`, `position`, and `scale`, with keyframes on scene
+  time: a lifetime does not shift them. Each keyframe's `easing` shapes the
+  segment that starts at it: `linear`, `hold` (the value stays until the next
+  keyframe), `ease-in`, `ease-out`, `ease-in-out`, `cubic-bezier` with
+  `x1`, `y1`, `x2`, `y2` (`x` from 0 to 1, `y` from -1 to 2), or `steps` with a
+  `count` and a `position` (`start` or `end`). The easing of the last keyframe
+  is never read. Every curve is computed with `+ - * /` only, so the Player
+  and the Producer get the same bits; a curve that overshoots is held within
+  the range of its property (D67).
 - **Clips:** any number of audio clips, in composition time in the
   composition's `clips` (sound that spans scenes, such as music) and in scene
   time in a scene's `clips` (sound that moves with its scene, cut at its end). A clip plays its
@@ -316,12 +324,12 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.11` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.11` document, and none of them
+`validateComposition` accepts schema `0.12` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.12` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
-holds a document of schema `0.1` to `0.10` carries it forward itself, once, and stores the
+holds a document of schema `0.1` to `0.11` carries it forward itself, once, and stores the
 result as a new version:
 
 ```ts
@@ -329,8 +337,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.11 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.10', '0.11'], or ['0.11'] for a document that was current
+  migrated.composition; // a new, validated 0.12 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.11', '0.12'], or ['0.12'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -355,6 +363,10 @@ if (migrated.ok) {
 - The step from `0.10` changes the version alone: every transition of `0.10`
   means the same in `0.11`, which adds kinds of transitions and lets a clip
   transition take every kind (D66).
+- The step from `0.11` removes each animation's `interpolation`, which could
+  only be `linear`, and gives every keyframe `easing: { "kind": "linear" }`
+  after its `value`, and every transition `easing: { "kind": "linear" }` after
+  its `effect`: the motion it always had (D67).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -379,8 +391,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.11 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.10', '0.11'] from 0.1, ['0.11'] when it was current
+  loaded.composition; // a new, validated 0.12 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.11', '0.12'] from 0.1, ['0.12'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -395,7 +407,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -408,7 +420,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.11"`, speaks of that.
+  supports `"0.12"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -696,14 +708,19 @@ bus.dispatch({ type: 'RemoveNode', nodeId: 'caption' }); // with its animations
 const fadeIn = {
   id: 'fade-in',
   property: 'opacity',
-  interpolation: 'linear',
   keyframes: [
-    { timeUs: 0, value: 0 },
-    { timeUs: 1_000_000, value: 1 },
+    { timeUs: 0, value: 0, easing: { kind: 'linear' } },
+    { timeUs: 1_000_000, value: 1, easing: { kind: 'linear' } },
   ],
 };
 bus.dispatch({ type: 'AddAnimation', nodeId: 'caption-2', index: 1, animation: fadeIn });
 bus.dispatch({ type: 'SetOpacityKeyframe', animationId: 'fade-in', timeUs: 500_000, opacity: 0.5 });
+bus.dispatch({
+  type: 'SetKeyframeEasing',
+  animationId: 'fade-in',
+  timeUs: 0,
+  easing: { kind: 'cubic-bezier', x1: 0.34, y1: 1.56, x2: 0.64, y2: 1 },
+});
 bus.dispatch({ type: 'MoveKeyframe', animationId: 'fade-in', timeUs: 500_000, toTimeUs: 750_000 });
 bus.dispatch({ type: 'RemoveKeyframe', animationId: 'fade-in', timeUs: 750_000 });
 bus.dispatch({ type: 'RemoveAnimation', animationId: 'fade-in' });
@@ -738,11 +755,13 @@ unsubscribe();
   asset that is still used cannot be removed (`asset-in-use`, with its users).
 - The animation commands are `AddAnimation`, `RemoveAnimation`,
   `SetOpacityKeyframe`, `SetPositionKeyframe`, `SetScaleKeyframe`,
-  `AddKeyframe`, `RemoveKeyframe`, and `MoveKeyframe`. A keyframe has no ID: it
+  `AddKeyframe`, `RemoveKeyframe`, `MoveKeyframe`, and `SetKeyframeEasing`. A keyframe has no ID: it
   is addressed by its time, and the keyframes stay in the order of their times.
   A typed command sets the value at a time, or inserts a keyframe there, and
   applies only to an animation of its property (`animation-property-mismatch`);
-  `AddKeyframe` takes a keyframe as exact data. Times are integer microseconds,
+  `AddKeyframe` takes a keyframe as exact data. A keyframe a typed command
+  inserts takes the easing of the keyframe before it, or `linear` when there is
+  none; one it changes keeps its easing, and so does a moved one (D67). Times are integer microseconds,
   never rounded, and may lie after the end of the composition. A node animates
   each property once (`duplicate-animation-target`), `AddKeyframe` or a move
   onto a taken time is refused (`keyframe-exists`), and a removal that would
@@ -1024,7 +1043,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

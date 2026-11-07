@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.11",
+  "schemaVersion": "0.12",
   "width": 1280,
   "height": 720,
   "fps": 30,
@@ -51,35 +51,41 @@
             {
               "id": "audio-image-fade",
               "property": "opacity",
-              "interpolation": "linear",
               "keyframes": [
                 {
                   "timeUs": 0,
-                  "value": 0
+                  "value": 0,
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 1000000,
-                  "value": 1
+                  "value": 1,
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 3000000,
-                  "value": 1
+                  "value": 1,
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 4000000,
-                  "value": 0.2
+                  "value": 0.2,
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 5000000,
-                  "value": 1
+                  "value": 1,
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 7000000,
-                  "value": 1
+                  "value": 1,
+                  "easing": { "kind": "linear" }
                 },
                 {
                   "timeUs": 8000000,
-                  "value": 0
+                  "value": 0,
+                  "easing": { "kind": "linear" }
                 }
               ]
             }

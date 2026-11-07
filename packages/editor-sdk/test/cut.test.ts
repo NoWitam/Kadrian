@@ -66,6 +66,7 @@ function transition(durationUs: number, from = 'up-clip-0', to = 'up-clip-1') {
     toNodeId: to,
     durationUs,
     effect: { kind: 'push', direction: 'left' },
+    easing: { kind: 'linear' },
   };
 }
 

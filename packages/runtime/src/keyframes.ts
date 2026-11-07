@@ -2,56 +2,43 @@
  * Keyframe sampling and the one arithmetic rule of the runtime (D18). The order
  * of the operations is part of the contract: another order yields other bits.
  */
-import type { NodeAnimation } from '@kadrion/schema';
+import type { Easing, NodeAnimation } from '@kadrion/schema';
 
+import { easedValue, requireEasing, type Bounds } from './easing.js';
 import { EvaluationError } from './errors.js';
 import type { Vec2 } from './state.js';
 
 interface Keyframe<Value> {
   readonly timeUs: number;
   readonly value: Value;
+  readonly easing: Easing;
 }
 
-type Interpolate = (start: number, end: number, elapsedUs: number, spanUs: number) => number;
-
 /**
- * `start + ((end - start) * elapsedUs) / spanUs`, in exactly this order, called
- * only with `0 < elapsedUs < spanUs`. It uses nothing but `+ - * /`, which
- * ECMAScript defines as correctly rounded binary64 operations, so every engine
- * yields the same bits. The product feeds a division, so there is no
- * multiply-add pattern that a fused operation could contract.
+ * The bounds of a keyframe value of each property in the schema (D16.6,
+ * D41.3), within which an eased segment is held (D67.6). A test compares them
+ * with `compositionSchema`.
  */
-const linear: Interpolate = (start, end, elapsedUs, spanUs) =>
-  start + ((end - start) * elapsedUs) / spanUs;
-
-/**
- * One entry per interpolation mode of the schema. A mode that the schema gains
- * leaves this object incomplete, which fails compilation until it is implemented.
- */
-const INTERPOLATORS: Readonly<Record<NodeAnimation['interpolation'], Interpolate>> = { linear };
-
-/** A mode outside the table cannot come out of validation; it is reported, never skipped. */
-function interpolatorOf(animation: NodeAnimation): Interpolate {
-  if (!Object.hasOwn(INTERPOLATORS, animation.interpolation)) {
-    const mode = JSON.stringify(animation.interpolation);
-    const message = `The document has an unsupported interpolation, ${mode}.`;
-    throw new EvaluationError('invalid-document', message);
-  }
-  return INTERPOLATORS[animation.interpolation];
-}
+export const PROPERTY_BOUNDS: Readonly<Record<NodeAnimation['property'], Bounds>> = {
+  opacity: { min: 0, max: 1 },
+  position: { min: -1_000_000, max: 1_000_000 },
+  scale: { min: 0, max: 1000 },
+};
 
 /**
  * The value of an animation at `timeUs` (D16.6, D18). At or before the first
  * keyframe the first value holds, and at or after the last keyframe the last
  * value holds. A time exactly on a keyframe yields the value of that keyframe
  * without any arithmetic; only a time strictly between two keyframes is
- * interpolated. Keyframe times ascend strictly, which validation guarantees.
+ * interpolated, by the easing of the earlier of the two (D67). Keyframe times
+ * ascend strictly, which validation guarantees.
  */
 function sample<Value>(
   keyframes: readonly Keyframe<Value>[],
   timeUs: number,
   between: (previous: Keyframe<Value>, next: Keyframe<Value>) => Value,
 ): Value {
+  for (const keyframe of keyframes) requireEasing(keyframe.easing);
   let previous: Keyframe<Value> | undefined;
   for (const keyframe of keyframes) {
     if (timeUs <= keyframe.timeUs) {
@@ -72,29 +59,31 @@ export function sampleScalar(
   animation: Extract<NodeAnimation, { property: 'opacity' }>,
   timeUs: number,
 ): number {
-  const interpolate = interpolatorOf(animation);
+  const bounds = PROPERTY_BOUNDS[animation.property];
   return sample(animation.keyframes, timeUs, (previous, next) =>
-    interpolate(
+    easedValue(
+      previous.easing,
       previous.value,
       next.value,
       timeUs - previous.timeUs,
       next.timeUs - previous.timeUs,
+      bounds,
     ),
   );
 }
 
-/** `x` and `y` are independent channels of the same rule. */
+/** `x` and `y` are independent channels of the same rule and the same easing. */
 export function sampleVec2(
   animation: Extract<NodeAnimation, { property: 'position' | 'scale' }>,
   timeUs: number,
 ): Vec2 {
-  const interpolate = interpolatorOf(animation);
+  const bounds = PROPERTY_BOUNDS[animation.property];
   return sample(animation.keyframes, timeUs, (previous, next) => {
     const elapsedUs = timeUs - previous.timeUs;
     const spanUs = next.timeUs - previous.timeUs;
     return {
-      x: interpolate(previous.value.x, next.value.x, elapsedUs, spanUs),
-      y: interpolate(previous.value.y, next.value.y, elapsedUs, spanUs),
+      x: easedValue(previous.easing, previous.value.x, next.value.x, elapsedUs, spanUs, bounds),
+      y: easedValue(previous.easing, previous.value.y, next.value.y, elapsedUs, spanUs, bounds),
     };
   });
 }

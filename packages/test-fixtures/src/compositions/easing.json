@@ -1,0 +1,482 @@
+{
+  "schemaVersion": "0.12",
+  "width": 640,
+  "height": 360,
+  "fps": 30,
+  "durationUs": 2600000,
+  "assets": [
+    {
+      "id": "asset-image",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-motion",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "motion-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#203040"
+        },
+        {
+          "id": "motion-linear",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 0,
+            "y": 15
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "motion-linear-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 40,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 1600000,
+                  "value": {
+                    "x": 480,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 40,
+          "height": 40,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "motion-hold",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 0,
+            "y": 63
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "motion-hold-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 40,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "hold"
+                  }
+                },
+                {
+                  "timeUs": 1600000,
+                  "value": {
+                    "x": 480,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 40,
+          "height": 40,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "motion-ease-in",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 0,
+            "y": 111
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "motion-ease-in-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 40,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "ease-in"
+                  }
+                },
+                {
+                  "timeUs": 1600000,
+                  "value": {
+                    "x": 480,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 40,
+          "height": 40,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "motion-ease-out",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 0,
+            "y": 159
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "motion-ease-out-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 40,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "ease-out"
+                  }
+                },
+                {
+                  "timeUs": 1600000,
+                  "value": {
+                    "x": 480,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 40,
+          "height": 40,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "motion-ease-in-out",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 0,
+            "y": 207
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "motion-ease-in-out-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 40,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 1600000,
+                  "value": {
+                    "x": 480,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 40,
+          "height": 40,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "motion-back",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 0,
+            "y": 255
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "motion-back-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 40,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "cubic-bezier",
+                    "x1": 0.34,
+                    "y1": 1.56,
+                    "x2": 0.64,
+                    "y2": 1
+                  }
+                },
+                {
+                  "timeUs": 1600000,
+                  "value": {
+                    "x": 480,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 40,
+          "height": 40,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        },
+        {
+          "id": "motion-steps",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 0,
+            "y": 303
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "motion-steps-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 40,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "steps",
+                    "count": 4,
+                    "position": "end"
+                  }
+                },
+                {
+                  "timeUs": 1600000,
+                  "value": {
+                    "x": 480,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 40,
+          "height": 40,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    },
+    {
+      "id": "scene-end",
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "end-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "color": "#604020"
+        },
+        {
+          "id": "end-image",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 220,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "end-image-scale",
+              "property": "scale",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 1,
+                    "y": 1
+                  },
+                  "easing": {
+                    "kind": "ease-out"
+                  }
+                },
+                {
+                  "timeUs": 800000,
+                  "value": {
+                    "x": 6,
+                    "y": 6
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 40,
+          "height": 40,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          }
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    }
+  ],
+  "clips": [],
+  "transitions": [
+    {
+      "id": "transition-slide",
+      "fromSceneId": "scene-motion",
+      "toSceneId": "scene-end",
+      "durationUs": 400000,
+      "effect": {
+        "kind": "slide",
+        "direction": "left"
+      },
+      "easing": {
+        "kind": "ease-in-out"
+      }
+    }
+  ],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

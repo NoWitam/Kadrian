@@ -168,17 +168,21 @@ function newAnimation(next: () => number): Json {
   const roll = next();
   const keyframes =
     roll < 0.1
-      ? [{ timeUs: 0, value: from }]
+      ? [{ timeUs: 0, value: from, easing: { kind: 'linear' } }]
       : roll < 0.2
         ? [
-            { timeUs: 0, value: VALUES[property === 'opacity' ? 'scale' : 'opacity'][0] },
-            { timeUs: 1_000_000, value: to },
+            {
+              timeUs: 0,
+              value: VALUES[property === 'opacity' ? 'scale' : 'opacity'][0],
+              easing: { kind: 'linear' },
+            },
+            { timeUs: 1_000_000, value: to, easing: { kind: 'linear' } },
           ]
         : [
-            { timeUs: 0, value: from },
-            { timeUs: 1_000_000, value: to },
+            { timeUs: 0, value: from, easing: { kind: 'linear' } },
+            { timeUs: 1_000_000, value: to, easing: { kind: 'linear' } },
           ];
-  return { id: pick(next, NEW_ANIMATION_IDS), property, interpolation: 'linear', keyframes };
+  return { id: pick(next, NEW_ANIMATION_IDS), property, keyframes };
 }
 
 /** The animation of a typed command: one of its property most of the time. */
@@ -234,10 +238,9 @@ function newNode(next: () => number, id: string): Json {
           {
             id: `${id}-anim`,
             property: 'opacity',
-            interpolation: 'linear',
             keyframes: [
-              { timeUs: 0, value: 0 },
-              { timeUs: 1_000_000, value: 1 },
+              { timeUs: 0, value: 0, easing: { kind: 'linear' } },
+              { timeUs: 1_000_000, value: 1, easing: { kind: 'linear' } },
             ],
           },
         ];
@@ -416,9 +419,9 @@ function animationCommand(
       // The keys in either order, and sometimes a field the schema does not know.
       const keyframe =
         next() < 0.5
-          ? { timeUs, value }
+          ? { timeUs, value, easing: { kind: 'linear' } }
           : next() < 0.8
-            ? { value, timeUs }
+            ? { value, easing: { kind: 'linear' }, timeUs }
             : { timeUs, value, easing: 'in' };
       return { type: 'AddKeyframe', animationId: pick(next, ANIMATION_IDS), keyframe };
     }
@@ -585,23 +588,33 @@ function isValue(property: unknown, value: unknown): boolean {
   return [x, y].every((f) => typeof f === 'number' && f >= 0 && f <= 1000);
 }
 
-/** Whether schema 0.2 takes the keyframe for the property: its time, its value, nothing else. */
+/** Whether the schema takes the easing; the commands of this model write linear ones only (D67). */
+function isEasing(easing: unknown): boolean {
+  return (
+    typeof easing === 'object' &&
+    easing !== null &&
+    hasKeys(easing as Json, ['kind']) &&
+    (easing as Json)['kind'] === 'linear'
+  );
+}
+
+/** Whether the schema takes the keyframe for the property: its time, its value, its easing, nothing else. */
 function isKeyframe(property: unknown, keyframe: Json): boolean {
   return (
-    hasKeys(keyframe, ['timeUs', 'value']) &&
+    hasKeys(keyframe, ['timeUs', 'value', 'easing']) &&
+    isEasing(keyframe['easing']) &&
     isTime(keyframe['timeUs']) &&
     isValue(property, keyframe['value'])
   );
 }
 
-/** Whether schema 0.2 takes the animation: its four fields, and keyframes enough, ascending. */
+/** Whether the schema takes the animation: its three fields, and keyframes enough, ascending. */
 function isAnimation(animation: Json): boolean {
   const keyframes = animation['keyframes'];
   return (
-    hasKeys(animation, ['id', 'property', 'interpolation', 'keyframes']) &&
+    hasKeys(animation, ['id', 'property', 'keyframes']) &&
     /^[A-Za-z0-9_-]+$/.test(String(animation['id'])) &&
     ['opacity', 'position', 'scale'].includes(String(animation['property'])) &&
-    animation['interpolation'] === 'linear' &&
     Array.isArray(keyframes) &&
     keyframes.length >= MINIMUM_KEYFRAMES &&
     (keyframes as Json[]).every(
@@ -989,7 +1002,12 @@ function apply(document: Json, command: Json): Effect | Refused {
       if (keyframe !== undefined && sameValue(keyframe['value'], value)) return none;
       if (!isValue(property, value)) return new Refused('invalid-result');
       if (keyframe === undefined) {
-        placeKeyframe(found.animation.keyframes, { timeUs, value });
+        // A new keyframe takes a copy of the easing of the one before it, or linear (D67.7).
+        const before = found.animation.keyframes.filter(
+          (item) => (item['timeUs'] as number) < timeUs,
+        );
+        const easing = structuredClone(before.at(-1)?.['easing'] ?? { kind: 'linear' });
+        placeKeyframe(found.animation.keyframes, { timeUs, value, easing });
       } else if (typeof value === 'object' && value !== null) {
         // Written into the stored object, whose keys keep their order (D41.3).
         Object.assign(keyframe['value'] as Json, value);

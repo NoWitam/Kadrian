@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.11",
+  "schemaVersion": "0.12",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -49,11 +49,10 @@
             {
               "id": "anim-opacity",
               "property": "opacity",
-              "interpolation": "linear",
               "keyframes": [
-                { "timeUs": 0, "value": 0 },
-                { "timeUs": 3000000, "value": 1 },
-                { "timeUs": 5900000, "value": 0.2 }
+                { "timeUs": 0, "value": 0, "easing": { "kind": "linear" } },
+                { "timeUs": 3000000, "value": 1, "easing": { "kind": "linear" } },
+                { "timeUs": 5900000, "value": 0.2, "easing": { "kind": "linear" } }
               ]
             }
           ],
@@ -74,11 +73,18 @@
             {
               "id": "anim-position",
               "property": "position",
-              "interpolation": "linear",
               "keyframes": [
-                { "timeUs": 0, "value": { "x": 0, "y": 0 } },
-                { "timeUs": 3000000, "value": { "x": 420, "y": 0 } },
-                { "timeUs": 5900000, "value": { "x": 420, "y": 240 } }
+                { "timeUs": 0, "value": { "x": 0, "y": 0 }, "easing": { "kind": "linear" } },
+                {
+                  "timeUs": 3000000,
+                  "value": { "x": 420, "y": 0 },
+                  "easing": { "kind": "linear" }
+                },
+                {
+                  "timeUs": 5900000,
+                  "value": { "x": 420, "y": 240 },
+                  "easing": { "kind": "linear" }
+                }
               ]
             }
           ],
@@ -99,10 +105,13 @@
             {
               "id": "anim-scale",
               "property": "scale",
-              "interpolation": "linear",
               "keyframes": [
-                { "timeUs": 0, "value": { "x": 0.5, "y": 0.5 } },
-                { "timeUs": 5900000, "value": { "x": 2.5, "y": 2.5 } }
+                { "timeUs": 0, "value": { "x": 0.5, "y": 0.5 }, "easing": { "kind": "linear" } },
+                {
+                  "timeUs": 5900000,
+                  "value": { "x": 2.5, "y": 2.5 },
+                  "easing": { "kind": "linear" }
+                }
               ]
             }
           ],

@@ -7,6 +7,7 @@
 - Date: 2026-09-21
 - Amended by: PR-28a (D50) on 2026-10-31: the node `video` and the field `fit` (D50.1)
 - Amended by: PR-29a (D52) on 2026-10-31: any number of clips, with `sourceStartUs`, `volume`, and fades; `volume` on video nodes (D52.1)
+- Amended by: PR-47 (D67) on 2026-11-07: 16.6: between two keyframes the value follows the easing of the first one; linear is one easing of several (D67.1, D67.3)
 - Superseded in part by: PR-30 (D54) on 2026-11-01: the one-scene rule of 16.2 and 16.5; from `0.5` a composition is a sequence of scenes, each with its own duration and clips, and every time inside a scene is scene time (D54.1)
 - Related: D02, D04, D05, D09, D13, D14, D15, D17,
   [specification](../spike/vertical-spike.md) §3 and open questions Q11, Q13,
@@ -69,7 +70,8 @@ never replaces it. Position keyframe values are offsets added to `position`;
 scale and opacity keyframe values are factors multiplied with `scale` and
 `opacity`. Before the first keyframe the first value holds, after the last
 keyframe the last value holds, and between two keyframes the value is
-interpolated linearly. An animation has at least two keyframes with strictly
+interpolated linearly. Amended by: PR-47 (D67): from `0.12` it follows the
+easing of the first of the two keyframes, of which `linear` is one (D67.1). An animation has at least two keyframes with strictly
 ascending `timeUs`, and a node has at most one animation per property.
 
 ## Alternatives considered

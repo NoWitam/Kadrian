@@ -176,6 +176,7 @@ describe('repeats (D59.2)', () => {
       toSceneId: 'scene-credits',
       durationUs: 100_000,
       effect: { kind: 'crossfade' },
+      easing: { kind: 'linear' },
     });
     document['durationUs'] = 2_700_000;
     const composition = instantiated({}, validated(document));
@@ -308,6 +309,7 @@ describe('conditions (D59.1)', () => {
         toNodeId: 'badge-b',
         durationUs: 100_000,
         effect: { kind: 'crossfade' },
+        easing: { kind: 'linear' },
       },
     ];
     const section = document['template'] as { inputs: Mutable[]; conditions: Mutable[] };

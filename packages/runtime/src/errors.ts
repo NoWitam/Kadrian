@@ -6,7 +6,7 @@ export type EvaluationErrorCode =
   /**
    * The document has a member that the evaluation cannot handle: an animation
    * without keyframes, or an unknown node type, animation property, or
-   * interpolation. `validateComposition` rejects all of them, so the brand of the
+   * easing. `validateComposition` rejects all of them, so the brand of the
    * document was forged (D19). Nothing else about a document is checked again.
    */
   | 'invalid-document';

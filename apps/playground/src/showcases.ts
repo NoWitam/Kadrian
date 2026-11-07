@@ -55,8 +55,8 @@ export const SHOWCASES: readonly Showcase[] = [
     id: 'keyframes',
     title: 'Keyframes',
     description:
-      'One text per animated property: opacity with three keyframes, a position offset that moves right and then down, and a scale from 0.5 to 2.5. Linear interpolation only (D18).',
-    features: ['D16', 'D18', 'D19'],
+      'One text per animated property: opacity with three keyframes, a position offset that moves right and then down, and a scale from 0.5 to 2.5. Every segment has the easing linear (D18, D67).',
+    features: ['D16', 'D18', 'D19', 'D67'],
     url: '/app/showcases/keyframes.json',
     sourceFile: 'apps/playground/src/showcases/keyframes.json',
     dragNodeId: 'node-heading',

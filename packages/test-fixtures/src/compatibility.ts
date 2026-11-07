@@ -116,6 +116,21 @@ import scenesV011 from './compatibility/v0-11/scenes.json' with { type: 'json' }
 import templateV011 from './compatibility/v0-11/template.json' with { type: 'json' };
 import transitionsV011 from './compatibility/v0-11/transitions.json' with { type: 'json' };
 import videoV011 from './compatibility/v0-11/video.json' with { type: 'json' };
+import audioV012 from './compatibility/v0-12/audio.json' with { type: 'json' };
+import captionsV012 from './compatibility/v0-12/captions.json' with { type: 'json' };
+import easingV012 from './compatibility/v0-12/easing.json' with { type: 'json' };
+import extremesV012 from './compatibility/v0-12/extremes.json' with { type: 'json' };
+import focusV012 from './compatibility/v0-12/focus.json' with { type: 'json' };
+import inputsV012 from './compatibility/v0-12/inputs.json' with { type: 'json' };
+import lifetimeV012 from './compatibility/v0-12/lifetime.json' with { type: 'json' };
+import minimalV012 from './compatibility/v0-12/minimal.json' with { type: 'json' };
+import pairV012 from './compatibility/v0-12/pair.json' with { type: 'json' };
+import referenceV012 from './compatibility/v0-12/reference.json' with { type: 'json' };
+import repeatsV012 from './compatibility/v0-12/repeats.json' with { type: 'json' };
+import scenesV012 from './compatibility/v0-12/scenes.json' with { type: 'json' };
+import templateV012 from './compatibility/v0-12/template.json' with { type: 'json' };
+import transitionsV012 from './compatibility/v0-12/transitions.json' with { type: 'json' };
+import videoV012 from './compatibility/v0-12/video.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -245,6 +260,21 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-11/template.json': templateV011,
   'compatibility/v0-11/transitions.json': transitionsV011,
   'compatibility/v0-11/video.json': videoV011,
+  'compatibility/v0-12/audio.json': audioV012,
+  'compatibility/v0-12/captions.json': captionsV012,
+  'compatibility/v0-12/easing.json': easingV012,
+  'compatibility/v0-12/extremes.json': extremesV012,
+  'compatibility/v0-12/focus.json': focusV012,
+  'compatibility/v0-12/inputs.json': inputsV012,
+  'compatibility/v0-12/lifetime.json': lifetimeV012,
+  'compatibility/v0-12/minimal.json': minimalV012,
+  'compatibility/v0-12/pair.json': pairV012,
+  'compatibility/v0-12/reference.json': referenceV012,
+  'compatibility/v0-12/repeats.json': repeatsV012,
+  'compatibility/v0-12/scenes.json': scenesV012,
+  'compatibility/v0-12/template.json': templateV012,
+  'compatibility/v0-12/transitions.json': transitionsV012,
+  'compatibility/v0-12/video.json': videoV012,
 };
 
 function fileOf(path: string): unknown {

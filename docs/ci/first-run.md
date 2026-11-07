@@ -30,6 +30,10 @@ local run of the same commands, including
   checked against changed, and it deleted the evidence below. Q14 closes again
   by the evidence of a green push run of a later commit, by the procedure
   below.
+- PR-47 (D67) added, while Q14 was open, the pinned test file
+  `tests/pinned/easing.pinned.test.ts`, which writes
+  `easing/golden-comparison.json` and `easing/node-vs-chromium.json`: the
+  pinned test files are 16 and the artifact files 69.
 
 The evidence of main after PR-42 (2026-11-04), as it was:
 

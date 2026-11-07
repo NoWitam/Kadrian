@@ -73,10 +73,9 @@ function textNode(id: string, animationId?: string): Record<string, unknown> {
             {
               id: animationId,
               property: 'opacity',
-              interpolation: 'linear',
               keyframes: [
-                { timeUs: 0, value: 0 },
-                { timeUs: 1_000_000, value: 1 },
+                { timeUs: 0, value: 0, easing: { kind: 'linear' } },
+                { timeUs: 1_000_000, value: 1, easing: { kind: 'linear' } },
               ],
             },
           ],

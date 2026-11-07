@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.11",
+  "schemaVersion": "0.12",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -40,20 +40,22 @@
             {
               "id": "anim-card-scale",
               "property": "scale",
-              "interpolation": "linear",
               "keyframes": [
-                { "timeUs": 0, "value": { "x": 0.5, "y": 0.5 } },
-                { "timeUs": 4000000, "value": { "x": 1.25, "y": 1.25 } },
-                { "timeUs": 7900000, "value": { "x": 1, "y": 1 } }
+                { "timeUs": 0, "value": { "x": 0.5, "y": 0.5 }, "easing": { "kind": "linear" } },
+                {
+                  "timeUs": 4000000,
+                  "value": { "x": 1.25, "y": 1.25 },
+                  "easing": { "kind": "linear" }
+                },
+                { "timeUs": 7900000, "value": { "x": 1, "y": 1 }, "easing": { "kind": "linear" } }
               ]
             },
             {
               "id": "anim-card-opacity",
               "property": "opacity",
-              "interpolation": "linear",
               "keyframes": [
-                { "timeUs": 0, "value": 0.3 },
-                { "timeUs": 2000000, "value": 1 }
+                { "timeUs": 0, "value": 0.3, "easing": { "kind": "linear" } },
+                { "timeUs": 2000000, "value": 1, "easing": { "kind": "linear" } }
               ]
             }
           ],
@@ -85,10 +87,17 @@
                 {
                   "id": "anim-caption-position",
                   "property": "position",
-                  "interpolation": "linear",
                   "keyframes": [
-                    { "timeUs": 2000000, "value": { "x": 0, "y": 80 } },
-                    { "timeUs": 5000000, "value": { "x": 0, "y": 0 } }
+                    {
+                      "timeUs": 2000000,
+                      "value": { "x": 0, "y": 80 },
+                      "easing": { "kind": "linear" }
+                    },
+                    {
+                      "timeUs": 5000000,
+                      "value": { "x": 0, "y": 0 },
+                      "easing": { "kind": "linear" }
+                    }
                   ]
                 }
               ],

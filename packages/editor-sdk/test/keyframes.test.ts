@@ -68,6 +68,7 @@ const OWNERS: Readonly<Record<string, string>> = {
 interface Keyframe {
   readonly timeUs: number;
   readonly value: unknown;
+  readonly easing: unknown;
 }
 
 /** The keyframes of one of the reference animations. */
@@ -94,7 +95,7 @@ function bus(document: unknown = referenceComposition): CommandBus {
 }
 
 /**
- * The reference composition with every keyframe as `{ value, timeUs }` and
+ * The reference composition with every keyframe as `{ value, easing, timeUs }` and
  * every object value as `{ y, x }`: the schema accepts any key order, and no
  * command may write the canonical one over it.
  */
@@ -104,11 +105,12 @@ function reordered(): ReturnType<typeof validated> {
   };
   const visit = (node: Record<string, unknown>): void => {
     for (const item of (node['animations'] as Record<string, unknown>[] | undefined) ?? []) {
-      item['keyframes'] = (item['keyframes'] as Keyframe[]).map(({ timeUs, value }) => ({
+      item['keyframes'] = (item['keyframes'] as Keyframe[]).map(({ timeUs, value, easing }) => ({
         value:
           typeof value === 'object' && value !== null
             ? { y: (value as { y: number }).y, x: (value as { x: number }).x }
             : value,
+        easing,
         timeUs,
       }));
     }
@@ -198,11 +200,35 @@ describe('the typed keyframe commands insert a keyframe (D41.1, D41.2)', () => {
     },
   );
 
-  it('writes a new keyframe as { timeUs, value } with a value { x, y }', () => {
+  it('writes a new keyframe as { timeUs, value, easing } with a value { x, y }', () => {
     const { document } = applyCommand(reordered(), setPosition(POSITION, 9_000_000, 1, 2));
     expect(json(keyframesOf(document, POSITION)[2])).toBe(
-      '{"timeUs":9000000,"value":{"x":1,"y":2}}',
+      '{"timeUs":9000000,"value":{"x":1,"y":2},"easing":{"kind":"linear"}}',
     );
+  });
+
+  it('gives a new keyframe a copy of the easing of the keyframe before it, or linear before the first (D67.7)', () => {
+    const board = bus();
+    const eased = { kind: 'cubic-bezier', x1: 0.25, y1: -0.5, x2: 0.75, y2: 1.5 };
+    board.dispatch({ type: 'SetKeyframeEasing', animationId: POSITION, timeUs: 0, easing: eased });
+    board.dispatch(setPosition(POSITION, 1_000_000, 1, 2));
+    const keyframes = keyframesOf(board.getDocument(), POSITION);
+    expect(keyframes.map(({ easing }) => easing)).toEqual([eased, eased, { kind: 'linear' }]);
+    expect(keyframes[1]?.easing).not.toBe(keyframes[0]?.easing);
+    const later = keyframesOf(applyCommand(reference(), setScale(SCALE, 0, 2, 2)).document, SCALE);
+    expect(later[0]).toEqual({ timeUs: 0, value: { x: 2, y: 2 }, easing: { kind: 'linear' } });
+  });
+
+  it('keeps the easing of a keyframe it replaces (D67.7)', () => {
+    const board = bus();
+    const hold = { kind: 'hold' };
+    board.dispatch({ type: 'SetKeyframeEasing', animationId: OPACITY, timeUs: 0, easing: hold });
+    board.dispatch(setOpacity(OPACITY, 0, 0.75));
+    expect(keyframesOf(board.getDocument(), OPACITY)[0]).toEqual({
+      timeUs: 0,
+      value: 0.75,
+      easing: hold,
+    });
   });
 });
 
@@ -349,7 +375,9 @@ describe('AddKeyframe (D41.1, D41.3)', () => {
   it('inserts the keyframe as given, placed by its time, with RemoveKeyframe as the inverse', () => {
     const board = bus();
     const before = json(board.getDocument());
-    const result = board.dispatch(addKeyframe(SCALE, { timeUs: 5_000_000, value: { x: 2, y: 3 } }));
+    const result = board.dispatch(
+      addKeyframe(SCALE, { timeUs: 5_000_000, value: { x: 2, y: 3 }, easing: { kind: 'linear' } }),
+    );
     expect(timesOf(result.document, SCALE)).toEqual([2_500_000, 5_000_000, 10_000_000]);
     expect(result.inverse).toEqual(removeKeyframe(SCALE, 5_000_000));
     expect(result.createdIds).toEqual([]);
@@ -358,25 +386,27 @@ describe('AddKeyframe (D41.1, D41.3)', () => {
   });
 
   it('keeps the order of the keys of the keyframe and of its value', () => {
-    const keyframe = { value: { y: 3, x: 2 }, timeUs: 5_000_000 };
+    const keyframe = { value: { y: 3, x: 2 }, easing: { kind: 'hold' }, timeUs: 5_000_000 };
     const { document } = applyCommand(reference(), addKeyframe(SCALE, keyframe));
     expect(json(keyframesOf(document, SCALE)[1])).toBe(json(keyframe));
   });
 
   it('keeps an unknown field until the validation, which refuses it as invalid-result', () => {
-    const command = parseCommand(addKeyframe(OPACITY, { timeUs: 5, value: 0.5, easing: 'in' }));
-    expect((command as { keyframe: unknown }).keyframe).toEqual({
-      timeUs: 5,
-      value: 0.5,
-      easing: 'in',
-    });
+    const keyframe = { timeUs: 5, value: 0.5, easing: { kind: 'linear' }, curve: 'in' };
+    const command = parseCommand(addKeyframe(OPACITY, keyframe));
+    expect((command as { keyframe: unknown }).keyframe).toEqual(keyframe);
     expect(codeOf(() => applyCommand(reference(), command))).toBe('invalid-result');
   });
 
   it.each([
-    ['a value of another property', { timeUs: 5, value: { x: 1, y: 1 } }],
-    ['an opacity above 1', { timeUs: 5, value: 2 }],
+    [
+      'a value of another property',
+      { timeUs: 5, value: { x: 1, y: 1 }, easing: { kind: 'linear' } },
+    ],
+    ['an opacity above 1', { timeUs: 5, value: 2, easing: { kind: 'linear' } }],
     ['a missing value', { timeUs: 5 }],
+    ['a missing easing', { timeUs: 5, value: 0.5 }],
+    ['an easing the schema does not know', { timeUs: 5, value: 0.5, easing: { kind: 'spring' } }],
   ])('leaves %s to the validation', (_, keyframe) => {
     expect(codeOf(() => applyCommand(reference(), addKeyframe(OPACITY, keyframe)))).toBe(
       'invalid-result',
@@ -385,9 +415,9 @@ describe('AddKeyframe (D41.1, D41.3)', () => {
 
   it.each([
     ['null', null],
-    ['an array', [{ timeUs: 5, value: 0.5 }]],
+    ['an array', [{ timeUs: 5, value: 0.5, easing: { kind: 'linear' } }]],
     ['a keyframe without a time', { value: 0.5 }],
-    ['a keyframe with a fractional time', { timeUs: 5.5, value: 0.5 }],
+    ['a keyframe with a fractional time', { timeUs: 5.5, value: 0.5, easing: { kind: 'linear' } }],
   ])('refuses %s with invalid-argument', (_, keyframe) => {
     expect(codeOf(() => parseCommand(addKeyframe(OPACITY, keyframe)))).toBe('invalid-argument');
   });
@@ -401,7 +431,7 @@ describe('AddKeyframe (D41.1, D41.3)', () => {
 
   it('keeps its own frozen copy: the host’s object stays unfrozen, and later edits reach nothing', () => {
     const value = { x: 2, y: 3 };
-    const keyframe = { timeUs: 5_000_000, value };
+    const keyframe = { timeUs: 5_000_000, value, easing: { kind: 'linear' } };
     const command = parseCommand(addKeyframe(SCALE, keyframe));
     expect(isDeepFrozen(command)).toBe(true);
     expect(Object.isFrozen(keyframe)).toBe(false);
@@ -412,7 +442,10 @@ describe('AddKeyframe (D41.1, D41.3)', () => {
 
   it('refuses a time the animation has with keyframe-exists and no details', () => {
     const error = errorOf(() =>
-      applyCommand(reference(), addKeyframe(OPACITY, { timeUs: 0, value: 0.5 })),
+      applyCommand(
+        reference(),
+        addKeyframe(OPACITY, { timeUs: 0, value: 0.5, easing: { kind: 'linear' } }),
+      ),
     );
     expect(error.code).toBe('keyframe-exists');
     expect(error.details).toEqual([]);
@@ -426,7 +459,9 @@ describe('RemoveKeyframe (D41.1, D41.4)', () => {
     const before = json(board.getDocument());
     const result = board.dispatch(removeKeyframe(OPACITY, 0));
     expect(timesOf(result.document, OPACITY)).toEqual([5_000_000, 7_500_000]);
-    expect(result.inverse).toEqual(addKeyframe(OPACITY, { timeUs: 0, value: 0.25 }));
+    expect(result.inverse).toEqual(
+      addKeyframe(OPACITY, { timeUs: 0, value: 0.25, easing: { kind: 'linear' } }),
+    );
     expect(isDeepFrozen(result.inverse)).toBe(true);
     expect(result.createdIds).toEqual([]);
     board.undo();
@@ -473,8 +508,8 @@ describe('RemoveKeyframe (D41.1, D41.4)', () => {
 
 describe('insert before remove (D41.4)', () => {
   const replacements = [
-    addKeyframe(OPACITY, { timeUs: 1_000_000, value: 0 }),
-    addKeyframe(OPACITY, { timeUs: 2_000_000, value: 1 }),
+    addKeyframe(OPACITY, { timeUs: 1_000_000, value: 0, easing: { kind: 'linear' } }),
+    addKeyframe(OPACITY, { timeUs: 2_000_000, value: 1, easing: { kind: 'linear' } }),
   ];
   const removals = [removeKeyframe(OPACITY, 0), removeKeyframe(OPACITY, 7_500_000)];
 
@@ -483,8 +518,8 @@ describe('insert before remove (D41.4)', () => {
     const before = json(board.getDocument());
     board.dispatchTransaction([...replacements, ...removals]);
     expect(keyframesOf(board.getDocument(), OPACITY)).toEqual([
-      { timeUs: 1_000_000, value: 0 },
-      { timeUs: 2_000_000, value: 1 },
+      { timeUs: 1_000_000, value: 0, easing: { kind: 'linear' } },
+      { timeUs: 2_000_000, value: 1, easing: { kind: 'linear' } },
     ]);
     board.undo();
     expect(json(board.getDocument())).toBe(before);
@@ -509,8 +544,8 @@ describe('insert before remove (D41.4)', () => {
       moveKeyframe(OPACITY, 7_500_000, 200),
     ]);
     expect(keyframesOf(board.getDocument(), OPACITY)).toEqual([
-      { timeUs: 100, value: 0.5 },
-      { timeUs: 200, value: 0 },
+      { timeUs: 100, value: 0.5, easing: { kind: 'linear' } },
+      { timeUs: 200, value: 0, easing: { kind: 'linear' } },
     ]);
   });
 });
@@ -540,7 +575,9 @@ describe('MoveKeyframe (D41.1, D41.2)', () => {
     const { document: edited } = applyCommand(document, moveKeyframe(POSITION, 0, 9_000_000));
     const moved = keyframesOf(edited, POSITION)[1];
     expect(moved?.value).toBe(value);
-    expect(json(moved)).toBe('{"value":{"y":8,"x":16},"timeUs":9000000}');
+    expect(json(moved)).toBe(
+      '{"value":{"y":8,"x":16},"easing":{"kind":"linear"},"timeUs":9000000}',
+    );
   });
 
   it('is a no-op for the time the keyframe has (D38.9)', () => {
@@ -565,13 +602,82 @@ describe('MoveKeyframe (D41.1, D41.2)', () => {
   });
 });
 
+describe('SetKeyframeEasing (D67.7)', () => {
+  const setEasing = (animationId: string, timeUs: number, easing: unknown): Command =>
+    ({ type: 'SetKeyframeEasing', animationId, timeUs, easing }) as Command;
+
+  it.each([
+    ['a named curve', { kind: 'ease-in-out' }],
+    ['a hold', { kind: 'hold' }],
+    [
+      'a cubic Bézier that overshoots',
+      { kind: 'cubic-bezier', x1: 0.34, y1: 1.56, x2: 0.64, y2: 1 },
+    ],
+    ['steps', { kind: 'steps', count: 4, position: 'start' }],
+  ])('sets %s on one keyframe, with the old easing as the inverse', (_, easing) => {
+    const board = bus();
+    const before = json(board.getDocument());
+    const result = board.dispatch(setEasing(POSITION, 0, easing));
+    const keyframes = keyframesOf(result.document, POSITION);
+    expect(keyframes.map((keyframe) => keyframe.easing)).toEqual([easing, { kind: 'linear' }]);
+    expect(result.inverse).toEqual(setEasing(POSITION, 0, { kind: 'linear' }));
+    expect(result.createdIds).toEqual([]);
+    board.undo();
+    expect(json(board.getDocument())).toBe(before);
+  });
+
+  it('keeps the time, the value, and the order of the keys of the keyframe', () => {
+    const { document } = applyCommand(reordered(), setEasing(POSITION, 0, { kind: 'hold' }));
+    expect(json(keyframesOf(document, POSITION)[0])).toBe(
+      '{"value":{"y":8,"x":16},"easing":{"kind":"hold"},"timeUs":0}',
+    );
+  });
+
+  it('is a no-op for the easing the keyframe has (D38.9)', () => {
+    const board = bus();
+    const before = board.getDocument();
+    const result = board.dispatch(setEasing(OPACITY, 0, { kind: 'linear' }));
+    expect(result.document).toBe(before);
+    expect(result.inverse).toBeNull();
+    expect(board.canUndo()).toBe(false);
+  });
+
+  it('sets the easing of the last keyframe too, which is never read', () => {
+    const { document } = applyCommand(reference(), setEasing(OPACITY, 7_500_000, { kind: 'hold' }));
+    expect(keyframesOf(document, OPACITY)[1]?.easing).toEqual({ kind: 'hold' });
+  });
+
+  it('refuses a time without a keyframe, an unknown animation, and an easing outside the schema', () => {
+    expect(codeOf(() => applyCommand(reference(), setEasing(OPACITY, 1, { kind: 'hold' })))).toBe(
+      'unknown-keyframe',
+    );
+    expect(
+      codeOf(() => applyCommand(reference(), setEasing('anim-none', 0, { kind: 'hold' }))),
+    ).toBe('unknown-animation');
+    for (const easing of [
+      { kind: 'cubic-bezier', x1: -0.1, y1: 0, x2: 1, y2: 1 },
+      { kind: 'cubic-bezier', x1: 0, y1: 2.5, x2: 1, y2: 1 },
+      { kind: 'steps', count: 1.5, position: 'end' },
+      { kind: 'ease-in', x1: 0 },
+      { kind: 'spring' },
+    ]) {
+      expect(codeOf(() => applyCommand(reference(), setEasing(OPACITY, 0, easing)))).toBe(
+        'invalid-result',
+      );
+    }
+  });
+});
+
 describe('byte-for-byte undo whatever the order of the keys (D41.3)', () => {
   it.each([
     ['SetPositionKeyframe', setPosition(POSITION, 0, 1, 2)],
     ['SetScaleKeyframe on a group child', setScale(SCALE, 10_000_000, 3, 4)],
     ['SetOpacityKeyframe', setOpacity(OPACITY, 7_500_000, 0.5)],
     ['SetPositionKeyframe inserting', setPosition(POSITION, 1, 1, 2)],
-    ['AddKeyframe', addKeyframe(POSITION, { value: { y: 1, x: 2 }, timeUs: 1 })],
+    [
+      'AddKeyframe',
+      addKeyframe(POSITION, { value: { y: 1, x: 2 }, easing: { kind: 'hold' }, timeUs: 1 }),
+    ],
     ['MoveKeyframe', moveKeyframe(POSITION, 7_500_000, 9_000_000)],
   ])('%s', (_, command) => {
     roundTrip(bus(reordered()), command);
@@ -580,9 +686,11 @@ describe('byte-for-byte undo whatever the order of the keys (D41.3)', () => {
   it('keeps a stored { y, x } and { value, timeUs } through a typed replacement', () => {
     const board = bus(reordered());
     const after = roundTrip(board, setPosition(POSITION, 0, 1, 2));
-    expect(after).toContain('{"value":{"y":2,"x":1},"timeUs":0}');
+    expect(after).toContain('{"value":{"y":2,"x":1},"easing":{"kind":"linear"},"timeUs":0}');
     roundTrip(board, setScale(SCALE, 2_500_000, 5, 6));
-    expect(json(board.getDocument())).toContain('{"value":{"y":6,"x":5},"timeUs":2500000}');
+    expect(json(board.getDocument())).toContain(
+      '{"value":{"y":6,"x":5},"easing":{"kind":"linear"},"timeUs":2500000}',
+    );
   });
 });
 
@@ -611,17 +719,17 @@ describe('the order of the checks of the keyframe commands (D41.6)', () => {
     ],
     [
       'Add: the fields before the animation',
-      addKeyframe('anim-missing', { timeUs: -1, value: 0 }),
+      addKeyframe('anim-missing', { timeUs: -1, value: 0, easing: { kind: 'linear' } }),
       'invalid-argument',
     ],
     [
       'Add: the animation before the validation',
-      addKeyframe('anim-missing', { timeUs: 1, value: 9 }),
+      addKeyframe('anim-missing', { timeUs: 1, value: 9, easing: { kind: 'linear' } }),
       'unknown-animation',
     ],
     [
       'Add: the time before the validation',
-      addKeyframe(OPACITY, { timeUs: 0, value: 9 }),
+      addKeyframe(OPACITY, { timeUs: 0, value: 9, easing: { kind: 'linear' } }),
       'keyframe-exists',
     ],
     [
@@ -655,12 +763,12 @@ describe('the order of the checks of the keyframe commands (D41.6)', () => {
     ],
     [
       'Add: the fields before the time',
-      extra(addKeyframe(OPACITY, { timeUs: 0, value: 0.5 })),
+      extra(addKeyframe(OPACITY, { timeUs: 0, value: 0.5, easing: { kind: 'linear' } })),
       'invalid-argument',
     ],
     [
       'Add: the fields before the validation',
-      extra(addKeyframe(OPACITY, { timeUs: 5, value: 9 })),
+      extra(addKeyframe(OPACITY, { timeUs: 5, value: 9, easing: { kind: 'linear' } })),
       'invalid-argument',
     ],
     [
@@ -705,7 +813,7 @@ describe('the order of the checks of the keyframe commands (D41.6)', () => {
     ['SetOpacityKeyframe', setOpacity('anim-missing', 0, 0.5)],
     ['SetPositionKeyframe', setPosition('node-group', 0, 1, 1)],
     ['SetScaleKeyframe', setScale('asset-image', 0, 1, 1)],
-    ['AddKeyframe', addKeyframe('scene-main', { timeUs: 1, value: 0 })],
+    ['AddKeyframe', addKeyframe('scene-main', { timeUs: 1, value: 0, easing: { kind: 'linear' } })],
     ['RemoveKeyframe', removeKeyframe('clip-audio', 0)],
     ['MoveKeyframe', moveKeyframe('anim-missing', 0, 1)],
   ])('%s refuses a missing animation with unknown-animation and no details', (_, command) => {
@@ -793,9 +901,9 @@ describe('the inverse of a replacement is an upsert (D41.1, D41.8, D39.6)', () =
     expect(timesOf(diverged, OPACITY)).toEqual([0, 7_500_000]);
     const applied = applyCommand(diverged, inverse as Command);
     expect(keyframesOf(applied.document, OPACITY)).toEqual([
-      { timeUs: 0, value: 0.25 },
-      { timeUs: 5, value: 0.5 },
-      { timeUs: 7_500_000, value: 1 },
+      { timeUs: 0, value: 0.25, easing: { kind: 'linear' } },
+      { timeUs: 5, value: 0.5, easing: { kind: 'linear' } },
+      { timeUs: 7_500_000, value: 1, easing: { kind: 'linear' } },
     ]);
     // What it did is an insertion, and its own inverse says so.
     expect(applied.inverse).toEqual(removeKeyframe(OPACITY, 5));
@@ -821,10 +929,9 @@ describe('the typed keyframe commands on animations of a group child (D41.1)', (
       animation: {
         id,
         property,
-        interpolation: 'linear',
         keyframes: [
-          { timeUs: 0, value: from },
-          { timeUs: 1_000_000, value: to },
+          { timeUs: 0, value: from, easing: { kind: 'linear' } },
+          { timeUs: 1_000_000, value: to, easing: { kind: 'linear' } },
         ],
       },
     };
@@ -854,8 +961,8 @@ describe('the typed keyframe commands on animations of a group child (D41.1)', (
       CAPTION,
       setOpacity('child-opacity', 0, 0.5),
       [
-        { timeUs: 0, value: 0.5 },
-        { timeUs: 1_000_000, value: 1 },
+        { timeUs: 0, value: 0.5, easing: { kind: 'linear' } },
+        { timeUs: 1_000_000, value: 1, easing: { kind: 'linear' } },
       ],
       setOpacity('child-opacity', 0, 0),
     ],
@@ -864,9 +971,9 @@ describe('the typed keyframe commands on animations of a group child (D41.1)', (
       CAPTION,
       setOpacity('child-opacity', 500_000, 0.5),
       [
-        { timeUs: 0, value: 0 },
-        { timeUs: 500_000, value: 0.5 },
-        { timeUs: 1_000_000, value: 1 },
+        { timeUs: 0, value: 0, easing: { kind: 'linear' } },
+        { timeUs: 500_000, value: 0.5, easing: { kind: 'linear' } },
+        { timeUs: 1_000_000, value: 1, easing: { kind: 'linear' } },
       ],
       removeKeyframe('child-opacity', 500_000),
     ],
@@ -875,8 +982,8 @@ describe('the typed keyframe commands on animations of a group child (D41.1)', (
       IMAGE,
       setPosition('child-position', 1_000_000, -3, 4.5),
       [
-        { timeUs: 0, value: { x: 0, y: 0 } },
-        { timeUs: 1_000_000, value: { x: -3, y: 5 } },
+        { timeUs: 0, value: { x: 0, y: 0 }, easing: { kind: 'linear' } },
+        { timeUs: 1_000_000, value: { x: -3, y: 5 }, easing: { kind: 'linear' } },
       ],
       setPosition('child-position', 1_000_000, 10, 20),
     ],
@@ -885,9 +992,9 @@ describe('the typed keyframe commands on animations of a group child (D41.1)', (
       IMAGE,
       setPosition('child-position', 2_000_000, 7, 8),
       [
-        { timeUs: 0, value: { x: 0, y: 0 } },
-        { timeUs: 1_000_000, value: { x: 10, y: 20 } },
-        { timeUs: 2_000_000, value: { x: 7, y: 8 } },
+        { timeUs: 0, value: { x: 0, y: 0 }, easing: { kind: 'linear' } },
+        { timeUs: 1_000_000, value: { x: 10, y: 20 }, easing: { kind: 'linear' } },
+        { timeUs: 2_000_000, value: { x: 7, y: 8 }, easing: { kind: 'linear' } },
       ],
       removeKeyframe('child-position', 2_000_000),
     ],
@@ -919,8 +1026,8 @@ describe('the typed keyframe commands on animations of a group child (D41.1)', (
     roundTrip(board, moveKeyframe('child-opacity', 500_000, 2_000_000));
     roundTrip(board, removeKeyframe('child-opacity', 0));
     expect(childKeyframes(board.getDocument(), CAPTION, 'child-opacity')).toEqual([
-      { timeUs: 1_000_000, value: 1 },
-      { timeUs: 2_000_000, value: 0.5 },
+      { timeUs: 1_000_000, value: 1, easing: { kind: 'linear' } },
+      { timeUs: 2_000_000, value: 0.5, easing: { kind: 'linear' } },
     ]);
   });
 });
@@ -942,7 +1049,7 @@ describe('the error contract of the new codes (D41.5)', () => {
           type: 'AddAnimation',
           nodeId: 'node-image',
           index: 0,
-          animation: { id: 'a', property: 'scale', interpolation: 'linear', keyframes: [] },
+          animation: { id: 'a', property: 'scale', keyframes: [] },
         },
         'duplicate-animation-target',
         [SCALE],

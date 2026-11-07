@@ -301,6 +301,19 @@ export interface MoveKeyframeCommand extends MoveKeyframeArguments {
   readonly type: 'MoveKeyframe';
 }
 
+/** What a caller states for `SetKeyframeEasing` (D67.7). */
+export interface SetKeyframeEasingArguments {
+  readonly animationId: string;
+  readonly timeUs: number;
+  /** The complete easing, as the document stores it. */
+  readonly easing: DocumentObject;
+}
+
+/** Replaces how the segment that starts at the keyframe at a time moves (D67.7). */
+export interface SetKeyframeEasingCommand extends SetKeyframeEasingArguments {
+  readonly type: 'SetKeyframeEasing';
+}
+
 /** The arguments of `SetNodeLifetime`, in the time of its scene (D42.10, D54.3). */
 export interface SetNodeLifetimeArguments {
   readonly nodeId: string;
@@ -661,6 +674,18 @@ export interface SetTransitionEffectCommand extends SetTransitionEffectArguments
   readonly type: 'SetTransitionEffect';
 }
 
+/** What a caller states for `SetTransitionEasing` (D67.7). */
+export interface SetTransitionEasingArguments {
+  readonly transitionId: string;
+  /** The complete easing, as the document stores it. */
+  readonly easing: DocumentObject;
+}
+
+/** Replaces how the progress of a transition moves; no time changes (D67.7). */
+export interface SetTransitionEasingCommand extends SetTransitionEasingArguments {
+  readonly type: 'SetTransitionEasing';
+}
+
 /** What a caller states for `SetCaptionWords` (D57.5). */
 export interface SetCaptionWordsArguments {
   readonly nodeId: string;
@@ -831,6 +856,7 @@ export type Command =
   | AddKeyframeCommand
   | RemoveKeyframeCommand
   | MoveKeyframeCommand
+  | SetKeyframeEasingCommand
   | SetNodeLifetimeCommand
   | SetNodeFitCommand
   | SetNodeFocusCommand
@@ -859,6 +885,7 @@ export type Command =
   | RemoveTransitionCommand
   | SetTransitionDurationCommand
   | SetTransitionEffectCommand
+  | SetTransitionEasingCommand
   | SetCaptionWordsCommand
   | SetCaptionWordCommand
   | SetCaptionStyleCommand
@@ -1039,6 +1066,31 @@ export interface AddClipTransitionArgumentsSchema {
     readonly transition: OpenObjectSchema;
   };
   readonly required: readonly (keyof AddClipTransitionArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetKeyframeEasing`: closed, with `easing` an open object (D67.7). */
+export interface SetKeyframeEasingArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly animationId: ArgumentSchema;
+    readonly timeUs: ArgumentSchema;
+    readonly easing: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetKeyframeEasingArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetTransitionEasing`: closed, with `easing` an open object (D67.7). */
+export interface SetTransitionEasingArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly transitionId: ArgumentSchema;
+    readonly easing: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetTransitionEasingArguments)[];
   readonly additionalProperties: false;
 }
 
@@ -1629,7 +1681,7 @@ export const addAnimationArgumentsSchema: AddAnimationArgumentsSchema = deepFree
     animation: {
       type: 'object',
       description:
-        'The complete animation as the document stores it: its ID, unused in the document; its property, which the node must not animate already; its interpolation; and its keyframes.',
+        'The complete animation as the document stores it: its ID, unused in the document; its property, which the node must not animate already; and its keyframes, each with its time, its value, and its easing.',
     },
   },
   required: ['nodeId', 'index', 'animation'],
@@ -1742,7 +1794,7 @@ export const addKeyframeArgumentsSchema: AddKeyframeArgumentsSchema = deepFreeze
     keyframe: {
       type: 'object',
       description:
-        'The keyframe as the document stores it: its time, which must be free, and its value.',
+        'The keyframe as the document stores it: its time, which must be free, its value, and its easing.',
       properties: { timeUs: TIME },
       required: ['timeUs'],
     },
@@ -1774,6 +1826,27 @@ export const moveKeyframeArgumentsSchema: MoveKeyframeArgumentsSchema = deepFree
     toTimeUs: TIME,
   },
   required: ['animationId', 'timeUs', 'toTimeUs'],
+  additionalProperties: false,
+});
+
+/**
+ * What an easing is, for a model (D67): the same for keyframes and transitions.
+ * Exported for the descriptions of the tools.
+ */
+export const EASINGS =
+  'An easing is an object with its kind: {"kind":"linear"} (a constant speed), {"kind":"hold"} (the value stays until the next keyframe, then jumps), {"kind":"ease-in"} (starts slowly), {"kind":"ease-out"} (slows down at the end), {"kind":"ease-in-out"} (both), {"kind":"cubic-bezier","x1":0.34,"y1":1.56,"x2":0.64,"y2":1} (the curve of CSS cubic-bezier(); x1 and x2 from 0 to 1, y1 and y2 from -1 to 2, where a y outside 0 to 1 overshoots and the value is held within the range of its property), or {"kind":"steps","count":4,"position":"end"} (count equal jumps, 1 to 1000, at the end or the start of each interval, as CSS steps()).';
+
+/** The JSON Schema of the arguments of `SetKeyframeEasing` (D67.7): the easing is the document's to judge. */
+export const setKeyframeEasingArgumentsSchema: SetKeyframeEasingArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Replaces how the value moves from the keyframe at a time to the next one; the easing of the last keyframe is kept but never read.',
+  properties: {
+    animationId: { type: 'string', description: ANIMATION_ID, minLength: 1 },
+    timeUs: TIME,
+    easing: { type: 'object', description: `The complete new easing. ${EASINGS}` },
+  },
+  required: ['animationId', 'timeUs', 'easing'],
   additionalProperties: false,
 });
 
@@ -2125,6 +2198,19 @@ export const setTransitionEffectArgumentsSchema: SetTransitionEffectArgumentsSch
     effect: { type: 'object', description: `The complete new effect. ${EFFECTS}` },
   },
   required: ['transitionId', 'effect'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetTransitionEasing` (D67.7): the easing is the document's to judge. */
+export const setTransitionEasingArgumentsSchema: SetTransitionEasingArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Replaces how the progress of a transition moves through its overlap; no time changes.',
+  properties: {
+    transitionId: { type: 'string', description: TRANSITION_ID, minLength: 1 },
+    easing: { type: 'object', description: `The complete new easing. ${EASINGS}` },
+  },
+  required: ['transitionId', 'easing'],
   additionalProperties: false,
 });
 
@@ -3146,6 +3232,21 @@ export function parseMoveKeyframe(value: unknown): MoveKeyframeCommand {
   });
 }
 
+/** The fields of a `SetKeyframeEasing` (D67.7); the document's validation judges the easing. */
+export function parseSetKeyframeEasing(value: unknown): SetKeyframeEasingCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'animationId', 'timeUs', 'easing'],
+    'The command `SetKeyframeEasing`',
+  );
+  return Object.freeze({
+    type: 'SetKeyframeEasing',
+    animationId: nodeIdOf(fields, 'animationId'),
+    timeUs: timeOf(fields['timeUs'], '`timeUs`'),
+    easing: dataOf(fields['easing'], 'easing'),
+  });
+}
+
 /** The fields of a `SetNodeFit` (D50.6): one of the fits the schema lists. */
 export function parseSetNodeFit(value: unknown): SetNodeFitCommand {
   const fields = fieldsOf(value, ['type', 'nodeId', 'fit'], 'The command `SetNodeFit`');
@@ -3520,6 +3621,20 @@ export function parseSetTransitionEffect(value: unknown): SetTransitionEffectCom
     type: 'SetTransitionEffect',
     transitionId,
     effect: dataOf(fields['effect'], 'effect'),
+  });
+}
+
+/** The fields of a `SetTransitionEasing` (D67.7); the document's validation judges the easing. */
+export function parseSetTransitionEasing(value: unknown): SetTransitionEasingCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'transitionId', 'easing'],
+    'The command `SetTransitionEasing`',
+  );
+  return Object.freeze({
+    type: 'SetTransitionEasing',
+    transitionId: nodeIdOf(fields, 'transitionId'),
+    easing: dataOf(fields['easing'], 'easing'),
   });
 }
 

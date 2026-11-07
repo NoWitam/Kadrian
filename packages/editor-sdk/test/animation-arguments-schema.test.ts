@@ -56,7 +56,7 @@ const POOL: readonly unknown[] = [
   [],
   {},
   { x: 1, y: 2 },
-  { timeUs: 0, value: 0 },
+  { timeUs: 0, value: 0, easing: { kind: 'linear' } },
 ];
 
 type Json = Readonly<Record<string, unknown>>;
@@ -98,7 +98,7 @@ const CASES: readonly Case[] = [
     base: {
       nodeId: 'node-caption',
       index: 0,
-      animation: { id: 'a', property: 'opacity', interpolation: 'linear', keyframes: [] },
+      animation: { id: 'a', property: 'opacity', keyframes: [] },
     },
     accepted: [
       { json: '{"nodeId":"n","index":-0,"animation":{}}', read: field('index'), value: 0 },
@@ -189,7 +189,10 @@ const CASES: readonly Case[] = [
   {
     type: 'AddKeyframe',
     schema: addKeyframeArgumentsSchema,
-    base: { animationId: 'anim-title-opacity', keyframe: { timeUs: 5, value: 0.5 } },
+    base: {
+      animationId: 'anim-title-opacity',
+      keyframe: { timeUs: 5, value: 0.5, easing: { kind: 'linear' } },
+    },
     accepted: [
       {
         json: '{"animationId":"a","keyframe":{"value":{"y":1,"x":2},"timeUs":-0,"extra":1}}',

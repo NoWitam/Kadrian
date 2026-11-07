@@ -29,8 +29,7 @@ export function animation<Property extends DraftAnimation['property']>(
   return {
     id,
     property,
-    interpolation: 'linear',
-    keyframes: keyframes.map(([timeUs, value]) => ({ timeUs, value })),
+    keyframes: keyframes.map(([timeUs, value]) => ({ timeUs, value, easing: { kind: 'linear' } })),
   } as DraftAnimation;
 }
 

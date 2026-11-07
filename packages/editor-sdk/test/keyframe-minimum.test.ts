@@ -47,7 +47,11 @@ function removeKeyframe(animationId: string, timeUs: number): Command {
 }
 
 function addKeyframe(animationId: string, timeUs: number, value: unknown): Command {
-  return { type: 'AddKeyframe', animationId, keyframe: { timeUs, value } };
+  return {
+    type: 'AddKeyframe',
+    animationId,
+    keyframe: { timeUs, value, easing: { kind: 'linear' } },
+  };
 }
 
 describe('the minimum of RemoveKeyframe is the schema’s (D41.4)', () => {
