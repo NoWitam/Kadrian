@@ -162,15 +162,27 @@ describe('AddClipTransition (D56)', () => {
       type: 'RemoveTransition',
       transitionId: 'transition-e',
     }).document;
+    // Every effect of a scene transition is one of a clip since 0.11 (D66); one outside its bounds is not.
     const slide = { ...transition, effect: { kind: 'slide', direction: 'left' } };
-    expect(() =>
+    expect(
       applyCommand(removed, {
         type: 'AddClipTransition',
         sceneId: 'scene-e',
         index: 0,
         transition: slide,
-      }),
-    ).toThrow();
+      }).document,
+    ).not.toBeNull();
+    const zoom = { ...transition, effect: { kind: 'zoom', fromScale: 17 } };
+    expect(
+      codeOf(() =>
+        applyCommand(removed, {
+          type: 'AddClipTransition',
+          sceneId: 'scene-e',
+          index: 0,
+          transition: zoom,
+        }),
+      ),
+    ).toBe('invalid-result');
   });
 });
 
@@ -293,7 +305,7 @@ describe('SetTransitionEffect (D56)', () => {
     });
   });
 
-  it('is no edit for the same effect, and refuses a scene effect on a clip transition', () => {
+  it('is no edit for the same effect, and refuses an effect outside its bounds', () => {
     expect(
       applyCommand(sequence, {
         type: 'SetTransitionEffect',
@@ -301,13 +313,21 @@ describe('SetTransitionEffect (D56)', () => {
         effect: { kind: 'fade-through-color', color: '#ffffff' },
       }).inverse,
     ).toBeNull();
-    expect(() =>
-      applyCommand(sequence, {
-        type: 'SetTransitionEffect',
-        transitionId: 'transition-e',
-        effect: { kind: 'slide', direction: 'up' },
-      }),
-    ).toThrow();
+    expect(
+      codeOf(() =>
+        applyCommand(sequence, {
+          type: 'SetTransitionEffect',
+          transitionId: 'transition-e',
+          effect: { kind: 'iris', center: { x: 500, y: 1001 } },
+        }),
+      ),
+    ).toBe('invalid-result');
+    // A slide of a clip is an effect of 0.11 (D66).
+    roundTrip(sequence, {
+      type: 'SetTransitionEffect',
+      transitionId: 'transition-e',
+      effect: { kind: 'slide', direction: 'up' },
+    });
   });
 });
 

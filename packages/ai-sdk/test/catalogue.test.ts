@@ -15,7 +15,7 @@ import { TOOL_CATALOGUE, toolNameOf, type ToolDefinition } from '../src/index.js
 
 import { isDeepFrozen } from './support.js';
 
-const COMMAND_TOOLS = TOOL_CATALOGUE.slice(1, -1);
+const COMMAND_TOOLS = TOOL_CATALOGUE.slice(1, -2);
 
 function ajv(): Ajv2020 {
   return new Ajv2020({ strict: true, strictNumbers: true });
@@ -30,10 +30,11 @@ function exampleOf(tool: ToolDefinition): unknown {
 }
 
 describe('the catalogue covers the command registry exactly (D46.2)', () => {
-  it('offers describe_document, one tool per command in registry order, and run_transaction', () => {
+  it('offers describe_document, one tool per command in registry order, the transition at a cut, and run_transaction', () => {
     expect(TOOL_CATALOGUE.map(({ name }) => name)).toEqual([
       'describe_document',
       ...COMMAND_TYPES.map(toolNameOf),
+      'add_clip_transition_at_cut',
       'run_transaction',
     ]);
     expect(COMMAND_TOOLS).toHaveLength(63);
@@ -56,6 +57,10 @@ describe('the catalogue covers the command registry exactly (D46.2)', () => {
       expect(COMMAND_TOOLS[at]?.inputSchema, type).toBe(exported[schemaName]);
       expect(COMMAND_TOOL_METADATA[at]?.argumentsSchema, type).toBe(exported[schemaName]);
     });
+  });
+
+  it('gives the transition at a cut the very argument schema editor-sdk exports for it (D66)', () => {
+    expect(TOOL_CATALOGUE.at(-2)?.inputSchema).toBe(editorSdk.clipTransitionAtCutArgumentsSchema);
   });
 
   it('offers the edit tools, and no other, inside run_transaction', () => {
@@ -87,7 +92,9 @@ describe('the catalogue is data a model API can take (D46.2)', () => {
       expect(tool.description.length, tool.name).toBeGreaterThan(80);
       expect(ajv().compile(tool.inputSchema)(exampleOf(tool)), tool.name).toBe(true);
     }
-    for (const tool of COMMAND_TOOLS) expect(tool.description, tool.name).toMatch(/Refused with /);
+    for (const tool of [...COMMAND_TOOLS, TOOL_CATALOGUE.at(-2)]) {
+      expect(tool?.description, tool?.name).toMatch(/Refused with /);
+    }
   });
 
   it('states each command example as the command metadata of editor-sdk, which parses', () => {

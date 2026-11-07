@@ -18,6 +18,7 @@ import {
   IMAGE_SIZE,
   referenceComposition,
   transitionsComposition,
+  clipTransitionsComposition,
   videoComposition,
 } from '../src/index.js';
 
@@ -216,6 +217,7 @@ describe('asset-font', () => {
   it.each([
     ['video', videoComposition],
     ['transitions', transitionsComposition],
+    ['clip transitions', clipTransitionsComposition],
   ])('covers every character of the %s composition too', (_, composition) => {
     const texts: string[] = [];
     const visit = (node: Node): void => {

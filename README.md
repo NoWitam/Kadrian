@@ -12,15 +12,16 @@ PR-18 to PR-22; phase three, the engine under a host's video editor
 PR-34b; phase four, a host integrating the engine
 ([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)), delivered PR-37 to
 PR-43; the current phase is motion graphics, effects, and reusable elements
-([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.10` with its forward migrations from `0.1` to `0.9`, the evaluation core, the DOM
+([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.11` with its forward migrations from `0.1` to `0.10`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
 of the Player and the Producer is measured and gated
 ([`docs/spike/report.md`](docs/spike/report.md)). The workflow runs on a
-GitHub runner in the pinned image, and Q14 is closed: the run 41857750361 of
-the validated main commit 062f532 met every criterion, with its evidence in
-[`docs/ci/q14-evidence.json`](docs/ci/q14-evidence.json)
+GitHub runner in the pinned image. Q14 is open again: the run 41857750361 of
+the validated main commit 062f532 met every criterion, but PR-46 changed the
+pinned transitions test and the reports it writes, so its evidence was deleted
+until a green run of a later commit
 ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 repository is publicly visible, but the project is not open source: no licence
 is granted, and the packages are private and unpublished (D37). The APIs below
@@ -176,13 +177,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.10`
+A composition is a JSON document of schema `0.11`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.10",
+  "schemaVersion": "0.11",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -251,9 +252,11 @@ Unknown fields are errors. This one shows a text that fades in:
   adjacent scenes: during a transition's `durationUs` the incoming scene
   already plays over the end of the outgoing one, so it starts that much
   earlier and the composition is that much shorter. Its `effect` is
-  `crossfade`, `fade-through-color` with a `color`, or `slide` or `wipe` with
-  a `direction`. A scene's own `transitions` crossfade two clips of one layer
-  whose lifetimes overlap by exactly the transition's duration (D49, D56).
+  `crossfade`, `fade-through-color` with a `color`, `slide`, `wipe`, or `push`
+  with a `direction`, `zoom` with a `fromScale`, or `iris` with a `center`. A
+  scene's own `transitions` join two clips of one layer whose lifetimes
+  overlap by exactly the transition's duration, with any of these effects,
+  whose frame is then the canvas (D49, D56, D66).
 - **Nodes:** `background`, `text`, `image`, `video`, `group`, and
   `custom-html`. Array order is the z-order. An image or a video fills its box
   by `fit`: `fill`, `contain`, or `cover`; its `focus` `{ x, y }`, in per mille
@@ -313,12 +316,12 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.10` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.10` document, and none of them
+`validateComposition` accepts schema `0.11` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.11` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
-holds a document of schema `0.1` to `0.9` carries it forward itself, once, and stores the
+holds a document of schema `0.1` to `0.10` carries it forward itself, once, and stores the
 result as a new version:
 
 ```ts
@@ -326,8 +329,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.10 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.9', '0.10'], or ['0.10'] for a document that was current
+  migrated.composition; // a new, validated 0.11 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.10', '0.11'], or ['0.11'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -349,6 +352,9 @@ if (migrated.ok) {
   `conditions` and of `repeats` after its bindings (D59).
 - The step from `0.9` gives every image and video `focus: { "x": 500, "y": 500 }`
   right after its `fit`, the centre where it was always placed (D63).
+- The step from `0.10` changes the version alone: every transition of `0.10`
+  means the same in `0.11`, which adds kinds of transitions and lets a clip
+  transition take every kind (D66).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -373,8 +379,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.10 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.9', '0.10'] from 0.1, ['0.10'] when it was current
+  loaded.composition; // a new, validated 0.11 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.10', '0.11'] from 0.1, ['0.11'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -389,7 +395,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -402,7 +408,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.10"`, speaks of that.
+  supports `"0.11"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -823,12 +829,16 @@ const result = executeTool(bus, 'set_node_position', {
 - There is one tool per command of the registry (`set_node_position`,
   `add_node`, `set_opacity_keyframe`, …), plus `describe_document`, which
   returns the IDs, types, lifetimes, layers, and fields of the document and
-  changes nothing, and `run_transaction`, which applies several tool calls as
-  one undoable step.
+  changes nothing, `add_clip_transition_at_cut`, which puts a clip
+  transition on a cut by trimming the two clips and adding it as one undoable
+  step (`clipTransitionAtCut` of `@kadrion/editor-sdk` builds the same
+  commands for a host), and `run_transaction`, which applies several tool
+  calls as one undoable step.
 - A tool needs `getDocument`, `dispatch`, and `dispatchTransaction` of the bus,
   never undo or redo. Refusals are the bus's `EditorError` codes, and a refused
   call changes nothing.
-- The catalogue is defined by D46, on the contract of D31. The same arguments
+- The catalogue is defined by D46, on the contract of D31, and the tool at a
+  cut by D66. The same arguments
   give the same document as the equivalent UI command.
 
 ### 7. Render frames from Node.js
@@ -1014,7 +1024,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

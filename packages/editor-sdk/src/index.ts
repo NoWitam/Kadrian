@@ -14,6 +14,12 @@
 export { applyCommand } from './apply.js';
 export type { ApplyOptions, CommandResult } from './apply.js';
 export { createCommandBus } from './bus.js';
+export { clipTransitionAtCut, clipTransitionAtCutArgumentsSchema } from './cut.js';
+export type {
+  ClipTransitionAtCutArguments,
+  ClipTransitionAtCutArgumentsSchema,
+  CutAlignment,
+} from './cut.js';
 export type {
   BusChange,
   BusListener,

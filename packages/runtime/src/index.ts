@@ -17,8 +17,12 @@ export { evaluateComposition } from './evaluate.js';
 export type {
   BackgroundNodeState,
   CaptionsNodeState,
+  Circle,
+  ClipTransitionSide,
+  ClipTransitionState,
   CompositionState,
   GroupNodeState,
+  Hole,
   Inset,
   LeafNodeState,
   LeafNodeType,
@@ -29,4 +33,5 @@ export type {
   TransformState,
   Vec2,
   VideoNodeState,
+  Zoom,
 } from './state.js';

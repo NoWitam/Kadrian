@@ -75,7 +75,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.10";
+export declare const SCHEMA_VERSION = "0.11";
 
 ---- Scene (type only)
 export type Scene = Infer<typeof sceneSchema>;
@@ -113,7 +113,7 @@ export interface SceneSpan {
 export type SceneTransition = Infer<typeof sceneTransitionSchema>;
 
 ---- SceneTransitionEffect (type only)
-export type SceneTransitionEffect = SceneTransition['effect'];
+export type SceneTransitionEffect = TransitionEffect;
 
 ---- SourceMapping (type only)
 export interface SourceMapping {
@@ -165,6 +165,9 @@ export interface TimeBase {
 export type TransitionDirection = Extract<SceneTransitionEffect, {
     kind: 'wipe';
 }>['direction'];
+
+---- TransitionEffect (type only)
+export type TransitionEffect = SceneTransition['effect'];
 
 ---- TransitionInstant (type only)
 export interface TransitionInstant {
@@ -219,7 +222,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.10";
+            readonly const: "0.11";
         };
         readonly width: {
             readonly type: "integer";
@@ -2429,7 +2432,7 @@ export declare const compositionSchema: {
                 };
                 readonly transitions: {
                     readonly type: "array";
-                    readonly description: "Transitions between two clips of one layer of this scene; their order has no meaning (D49.4, D56).";
+                    readonly description: "Transitions between two clips of one layer of this scene; their order has no meaning (D49.4, D56, D66).";
                     readonly items: import("./json-schema.js").ClosedObject<{
                         readonly id: {
                             readonly type: "string";
@@ -2453,13 +2456,104 @@ export declare const compositionSchema: {
                             readonly maximum: 9007199254740991;
                         };
                         readonly effect: {
-                            readonly description: "How the two clips are combined; a pure function of the progress (D49.4, D56).";
+                            readonly description: "How the two sides are combined; a pure function of the progress that leaves either side alone at progress 0 and 1 (D49.4, D56, D66).";
                             readonly oneOf: readonly [
                                 import("./json-schema.js").ClosedObject<{
                                     readonly kind: {
                                         readonly type: "string";
                                         readonly const: "crossfade";
                                     };
+                                }>,
+                                import("./json-schema.js").ClosedObject<{
+                                    readonly kind: {
+                                        readonly type: "string";
+                                        readonly const: "fade-through-color";
+                                    };
+                                    readonly color: {
+                                        readonly type: "string";
+                                        readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                        readonly pattern: "^#[0-9a-f]{6}$";
+                                    };
+                                }>,
+                                import("./json-schema.js").ClosedObject<{
+                                    readonly kind: {
+                                        readonly type: "string";
+                                        readonly const: "slide";
+                                    };
+                                    readonly direction: {
+                                        readonly type: "string";
+                                        readonly description: "The direction in which the incoming side moves across the frame, or the edge that uncovers it (D56, D66).";
+                                        readonly enum: readonly [
+                                            "left",
+                                            "right",
+                                            "up",
+                                            "down"
+                                        ];
+                                    };
+                                }>,
+                                import("./json-schema.js").ClosedObject<{
+                                    readonly kind: {
+                                        readonly type: "string";
+                                        readonly const: "wipe";
+                                    };
+                                    readonly direction: {
+                                        readonly type: "string";
+                                        readonly description: "The direction in which the incoming side moves across the frame, or the edge that uncovers it (D56, D66).";
+                                        readonly enum: readonly [
+                                            "left",
+                                            "right",
+                                            "up",
+                                            "down"
+                                        ];
+                                    };
+                                }>,
+                                import("./json-schema.js").ClosedObject<{
+                                    readonly kind: {
+                                        readonly type: "string";
+                                        readonly const: "push";
+                                    };
+                                    readonly direction: {
+                                        readonly type: "string";
+                                        readonly description: "The direction in which the incoming side moves across the frame, or the edge that uncovers it (D56, D66).";
+                                        readonly enum: readonly [
+                                            "left",
+                                            "right",
+                                            "up",
+                                            "down"
+                                        ];
+                                    };
+                                }>,
+                                import("./json-schema.js").ClosedObject<{
+                                    readonly kind: {
+                                        readonly type: "string";
+                                        readonly const: "zoom";
+                                    };
+                                    readonly fromScale: {
+                                        readonly type: "number";
+                                        readonly description: "The factor the incoming side starts at, about the centre of the frame: below 1 it grows into place, above 1 it shrinks into place (D66).";
+                                        readonly minimum: 0;
+                                        readonly maximum: 16;
+                                    };
+                                }>,
+                                import("./json-schema.js").ClosedObject<{
+                                    readonly kind: {
+                                        readonly type: "string";
+                                        readonly const: "iris";
+                                    };
+                                    readonly center: import("./json-schema.js").ClosedObject<{
+                                        readonly x: {
+                                            readonly type: "integer";
+                                            readonly description: "Per mille of the frame's width (x) or height (y), from its left or top edge (D66).";
+                                            readonly minimum: 0;
+                                            readonly maximum: 1000;
+                                        };
+                                        readonly y: {
+                                            readonly type: "integer";
+                                            readonly description: "Per mille of the frame's width (x) or height (y), from its left or top edge (D66).";
+                                            readonly minimum: 0;
+                                            readonly maximum: 1000;
+                                        };
+                                    }>;
                                 }>
                             ];
                         };
@@ -2549,7 +2643,7 @@ export declare const compositionSchema: {
                     readonly maximum: 9007199254740991;
                 };
                 readonly effect: {
-                    readonly description: "How the two images are combined; a pure function of the progress (D49.4, D56).";
+                    readonly description: "How the two sides are combined; a pure function of the progress that leaves either side alone at progress 0 and 1 (D49.4, D56, D66).";
                     readonly oneOf: readonly [
                         import("./json-schema.js").ClosedObject<{
                             readonly kind: {
@@ -2575,7 +2669,7 @@ export declare const compositionSchema: {
                             };
                             readonly direction: {
                                 readonly type: "string";
-                                readonly description: "The direction in which the incoming side moves across the frame (D56).";
+                                readonly description: "The direction in which the incoming side moves across the frame, or the edge that uncovers it (D56, D66).";
                                 readonly enum: readonly [
                                     "left",
                                     "right",
@@ -2591,7 +2685,7 @@ export declare const compositionSchema: {
                             };
                             readonly direction: {
                                 readonly type: "string";
-                                readonly description: "The direction in which the incoming side moves across the frame (D56).";
+                                readonly description: "The direction in which the incoming side moves across the frame, or the edge that uncovers it (D56, D66).";
                                 readonly enum: readonly [
                                     "left",
                                     "right",
@@ -2599,6 +2693,54 @@ export declare const compositionSchema: {
                                     "down"
                                 ];
                             };
+                        }>,
+                        import("./json-schema.js").ClosedObject<{
+                            readonly kind: {
+                                readonly type: "string";
+                                readonly const: "push";
+                            };
+                            readonly direction: {
+                                readonly type: "string";
+                                readonly description: "The direction in which the incoming side moves across the frame, or the edge that uncovers it (D56, D66).";
+                                readonly enum: readonly [
+                                    "left",
+                                    "right",
+                                    "up",
+                                    "down"
+                                ];
+                            };
+                        }>,
+                        import("./json-schema.js").ClosedObject<{
+                            readonly kind: {
+                                readonly type: "string";
+                                readonly const: "zoom";
+                            };
+                            readonly fromScale: {
+                                readonly type: "number";
+                                readonly description: "The factor the incoming side starts at, about the centre of the frame: below 1 it grows into place, above 1 it shrinks into place (D66).";
+                                readonly minimum: 0;
+                                readonly maximum: 16;
+                            };
+                        }>,
+                        import("./json-schema.js").ClosedObject<{
+                            readonly kind: {
+                                readonly type: "string";
+                                readonly const: "iris";
+                            };
+                            readonly center: import("./json-schema.js").ClosedObject<{
+                                readonly x: {
+                                    readonly type: "integer";
+                                    readonly description: "Per mille of the frame's width (x) or height (y), from its left or top edge (D66).";
+                                    readonly minimum: 0;
+                                    readonly maximum: 1000;
+                                };
+                                readonly y: {
+                                    readonly type: "integer";
+                                    readonly description: "Per mille of the frame's width (x) or height (y), from its left or top edge (D66).";
+                                    readonly minimum: 0;
+                                    readonly maximum: 1000;
+                                };
+                            }>;
                         }>
                     ];
                 };
@@ -3346,7 +3488,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.10";
+    readonly title: "Kadrion composition 0.11";
 };
 
 ---- frameCount
@@ -3419,7 +3561,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

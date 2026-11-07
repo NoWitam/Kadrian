@@ -84,10 +84,10 @@ const node = (id: string, x: number, y: number) => ({
   animations: [],
 });
 
-/** The probe composition: schema 0.10, one scene, three subjects on a dark background. */
+/** The probe composition: schema 0.11, one scene, three subjects on a dark background. */
 export function probeComposition(): unknown {
   return {
-    schemaVersion: '0.10',
+    schemaVersion: '0.11',
     width: WIDTH,
     height: HEIGHT,
     fps: FPS,

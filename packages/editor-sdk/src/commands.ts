@@ -2036,7 +2036,7 @@ export const joinClipsArgumentsSchema: JoinClipsArgumentsSchema = deepFreeze({
 const TRANSITION_ID = 'The stable ID of a scene transition or a clip transition of the document.';
 
 const EFFECTS =
-  'An effect is an object with its kind: {"kind":"crossfade"} (the incoming side fades in over the outgoing one), {"kind":"fade-through-color","color":"#rrggbb"} (the outgoing scene fades out to the colour, then the incoming one fades in from it), {"kind":"slide","direction":"left"|"right"|"up"|"down"} (the incoming scene slides in, moving in its direction), or {"kind":"wipe","direction":…} (an edge moving in its direction uncovers the incoming scene). A clip transition takes crossfade only.';
+  'An effect is an object with its kind, the same for scene and clip transitions: {"kind":"crossfade"} (the incoming side fades in over the outgoing one), {"kind":"fade-through-color","color":"#rrggbb"} (the outgoing side fades out to the colour, then the incoming one fades in from it), {"kind":"slide","direction":"left"|"right"|"up"|"down"} (the incoming side slides in, moving in its direction), {"kind":"wipe","direction":…} (an edge moving in its direction uncovers the incoming side), {"kind":"push","direction":…} (the incoming side slides in and pushes the outgoing one out the other way), {"kind":"zoom","fromScale":0.5} (the incoming side fades in while it scales from fromScale, 0 to 16, to its size about the centre of the frame), or {"kind":"iris","center":{"x":500,"y":500}} (a circle opens from a point given in per mille of the frame, integers 0 to 1000). The frame of a clip transition is the canvas, in the space of the two nodes\' parent; between clips, the colour of fade-through-color covers the frame directly below the lower clip, and when the outgoing clip lies above the incoming one, a slide moves it out, a wipe and an iris cut it away, and a crossfade and a zoom fade it out, so the incoming clip is uncovered.';
 
 const TRANSITION_DURATION: Bounds = {
   minimum: compositionSchema.properties.transitions.items.properties.durationUs.minimum,
@@ -2079,7 +2079,7 @@ export const addClipTransitionArgumentsSchema: AddClipTransitionArgumentsSchema 
     },
     transition: {
       type: 'object',
-      description: `The complete transition as the document stores it: its ID, unused in the document; fromNodeId, the outgoing node, which ends durationUs after the incoming one starts; toNodeId, the incoming node; durationUs; and effect, {"kind":"crossfade"}.`,
+      description: `The complete transition as the document stores it: its ID, unused in the document; fromNodeId, the outgoing node, which ends durationUs after the incoming one starts; toNodeId, the incoming node; durationUs; and effect. ${EFFECTS}`,
     },
   },
   required: ['sceneId', 'index', 'transition'],

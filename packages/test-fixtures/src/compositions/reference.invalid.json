@@ -32,7 +32,7 @@
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.11" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.12" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -1258,8 +1258,8 @@
     ]
   },
   {
-    "name": "clip-transition-wipe",
-    "description": "A clip transition takes crossfade only (D56.1).",
+    "name": "clip-transition-zoom-scale-out-of-range",
+    "description": "A zoom starts at a factor from 0 to 16 (D66).",
     "patch": [
       { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 5500000 },
       { "op": "replace", "path": "/scenes/0/nodes/3/startUs", "value": 5000000 },
@@ -1272,11 +1272,59 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 500000,
-          "effect": { "kind": "wipe", "direction": "left" }
+          "effect": { "kind": "zoom", "fromScale": 17 }
         }
       }
     ],
-    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/transitions/0/effect/kind" }]
+    "expectedErrors": [
+      { "code": "out-of-range", "path": "/scenes/0/transitions/0/effect/fromScale" }
+    ]
+  },
+  {
+    "name": "clip-transition-iris-center-out-of-range",
+    "description": "The centre of an iris lies in the frame, in per mille from 0 to 1000 (D66).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 5500000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/startUs", "value": 5000000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/durationUs", "value": 5000000 },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 500000,
+          "effect": { "kind": "iris", "center": { "x": 1001, "y": 500 } }
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "out-of-range", "path": "/scenes/0/transitions/0/effect/center/x" }
+    ]
+  },
+  {
+    "name": "clip-transition-push-without-direction",
+    "description": "A push states its direction (D66).",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 5500000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/startUs", "value": 5000000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/durationUs", "value": 5000000 },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/-",
+        "value": {
+          "id": "transition-a",
+          "fromNodeId": "node-title",
+          "toNodeId": "node-custom-html",
+          "durationUs": 500000,
+          "effect": { "kind": "push" }
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "missing-field", "path": "/scenes/0/transitions/0/effect/direction" }
+    ]
   },
   {
     "name": "clip-transition-duplicate",

@@ -1,8 +1,8 @@
 /**
  * `node --run goldens:update` (D26.5): renders the golden timestamps of the
  * reference composition, of the video composition (D50.8), of the
- * transitions composition (D56), of the captions composition (D57), and of
- * the focus composition (D63) with the Producer and writes the golden frames and their manifests into
+ * transitions composition (D56), of the clip transitions composition (D66),
+ * of the captions composition (D57), and of the focus composition (D63) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -28,6 +28,8 @@ import {
   referenceComposition,
   captionsComposition,
   captionsGoldenTimestamps,
+  clipTransitionsComposition,
+  clipTransitionsGoldenTimestamps,
   focusComposition,
   focusGoldenTimestamps,
   transitionsComposition,
@@ -118,6 +120,24 @@ try {
       `${JSON.stringify({ render: transitionsResult.manifest, environment, frames: transitionFrames }, null, 2)}\n`,
     );
     for (const frame of transitionFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The clip transitions composition: the middle of each kind between clips and scenes (D66).
+    const clipTransitionsResult = await renderFrames({
+      document: clipTransitionsComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: clipTransitionsGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const clipTransitionFrames = clipTransitionsResult.frames.map(({ index, timeUs, png }) => {
+      const file = `clip-transitions-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'clip-transitions.golden-frames.json'),
+      `${JSON.stringify({ render: clipTransitionsResult.manifest, environment, frames: clipTransitionFrames }, null, 2)}\n`,
+    );
+    for (const frame of clipTransitionFrames) console.log(`${frame.file} ${frame.sha256}`);
 
     // The captions composition: before the first word, words of both pages, and a pause (D57).
     const captionsResult = await renderFrames({

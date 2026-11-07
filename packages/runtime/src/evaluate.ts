@@ -10,9 +10,14 @@ import {
 import { captionAt, captionPages } from './captions.js';
 import { EvaluationError, unsupported } from './errors.js';
 import { sampleScalar, sampleVec2 } from './keyframes.js';
-import { clipTransitionFactors, sceneTransitionEffects } from './transitions.js';
+import {
+  clipTransitionEffects,
+  sceneTransitionEffects,
+  type ClipSideEffect,
+} from './transitions.js';
 import type {
   CaptionsNodeState,
+  ClipTransitionSide,
   CompositionState,
   GroupNodeState,
   LeafNodeState,
@@ -73,16 +78,28 @@ function isActive(
 }
 
 /**
- * The factors clip transitions multiply into opacities at this instant (D56), by
- * node ID; a node without one is evaluated as it would be without them.
+ * What clip transitions do to nodes at this instant (D56, D66), by node ID; a
+ * node without an entry is evaluated as it would be without them.
  */
-type Factors = ReadonlyMap<string, number>;
+type Factors = ReadonlyMap<string, ClipSideEffect>;
 
-/** The transform of a node, with the factor of a clip transition in its opacity (D56). */
-function transformOf(node: TransformedNode, timeUs: number, factors: Factors): TransformState {
+/**
+ * The transform of a node, with the factor of a clip transition in its opacity
+ * and whatever else the transition does as its `transition` (D56, D66).
+ */
+function transformOf(
+  node: TransformedNode,
+  timeUs: number,
+  factors: Factors,
+): TransformState & ClipTransitionSide {
   const transform = evaluateTransform(node, timeUs);
-  const factor = factors.get(node.id);
-  return factor === undefined ? transform : { ...transform, opacity: transform.opacity * factor };
+  const effect = factors.get(node.id);
+  if (effect === undefined) return transform;
+  return {
+    ...transform,
+    ...(effect.factor === undefined ? {} : { opacity: transform.opacity * effect.factor }),
+    ...(effect.state === undefined ? {} : { transition: effect.state }),
+  };
 }
 
 function evaluateLeaf<Type extends LeafNodeType>(
@@ -162,7 +179,8 @@ function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeSt
  * node of a scene is evaluated at that scene time (D49.3, D54.3). A scene is
  * therefore evaluated alone exactly as it is in the sequence, except for what a
  * transition adds: its `transition` state, the factors of clip transitions in
- * the opacities of its nodes, and the composition's `backdrop` (D56).
+ * the opacities of its nodes and their own `transition` states, and the
+ * composition's `backdrop` (D56, D66).
  *
  * `timeUs` is an integer with `0 <= timeUs < durationUs`; it need not lie on the
  * frame grid, which is host-side sampling (D13). Any other value throws an
@@ -190,7 +208,9 @@ export function evaluateComposition(
   const scenes = scenesAt(composition, time).map(({ placement, timeUs: sceneTimeUs }) => {
     const scene = composition.scenes[placement.index];
     const factors =
-      scene === undefined ? new Map<string, number>() : clipTransitionFactors(scene, sceneTimeUs);
+      scene === undefined
+        ? new Map<string, ClipSideEffect>()
+        : clipTransitionEffects(scene, sceneTimeUs, composition);
     const effect =
       transition === null
         ? null

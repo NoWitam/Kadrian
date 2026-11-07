@@ -500,7 +500,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: joinClipsArgumentsSchema,
   },
   AddSceneTransition: {
-    description: `Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide or wipe with a direction (left, right, up, down). Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. ${TRANSITIONS} ${TIME_US} Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes.`,
+    description: `Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide, wipe, or push with a direction (left, right, up, down), zoom with a fromScale, or iris with a center. Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. ${TRANSITIONS} ${TIME_US} Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes.`,
     example: {
       index: 0,
       transition: {
@@ -514,7 +514,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: addSceneTransitionArgumentsSchema,
   },
   AddClipTransition: {
-    description: `Adds a crossfade between two clips of one layer of a scene — two children of one parent, neither a background — whose lifetimes already overlap by exactly durationUs: the outgoing node ends durationUs after the incoming one starts. During the overlap the incoming node fades in, and the outgoing one fades out if it lies above the incoming one; nothing moves. Make the overlap first with move_clip, trim_clip_start, or trim_clip_end. ${TRANSITIONS} ${TIME_US} Refused with unknown-scene, index-out-of-range, id-in-use, and invalid-result when the nodes are not siblings of this scene, a background, or do not overlap by exactly durationUs.`,
+    description: `Adds a transition between two clips of one layer of a scene — two children of one parent, neither a background — whose lifetimes already overlap by exactly durationUs: the outgoing node ends durationUs after the incoming one starts. During the overlap the effect combines them in the frame of the canvas — crossfade, fade-through-color, slide, wipe, push, zoom, or iris, as for scenes; nothing moves in time. Make the overlap first with move_clip, trim_clip_start, or trim_clip_end, or call add_clip_transition_at_cut for two clips that meet end to end. ${TRANSITIONS} ${TIME_US} Refused with unknown-scene, index-out-of-range, id-in-use, and invalid-result when the nodes are not siblings of this scene, a background, or do not overlap by exactly durationUs.`,
     example: {
       sceneId: 'scene-main',
       index: 0,
@@ -539,7 +539,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTransitionDurationArgumentsSchema,
   },
   SetTransitionEffect: {
-    description: `Replaces how a transition combines its two sides with a complete effect: {"kind":"crossfade"}, {"kind":"fade-through-color","color":"#000000"}, {"kind":"slide","direction":"left"}, or {"kind":"wipe","direction":"up"}; directions are left, right, up, and down, the way the incoming scene moves. A clip transition takes crossfade only. No time changes. ${TRANSITIONS} Refused with unknown-transition and invalid-result.`,
+    description: `Replaces how a transition combines its two sides with a complete effect: {"kind":"crossfade"}, {"kind":"fade-through-color","color":"#000000"}, {"kind":"slide","direction":"left"}, {"kind":"wipe","direction":"up"}, {"kind":"push","direction":"right"}, {"kind":"zoom","fromScale":0.5}, or {"kind":"iris","center":{"x":500,"y":500}}; directions are left, right, up, and down, the way the incoming side moves. Scene and clip transitions take the same effects. No time changes. ${TRANSITIONS} Refused with unknown-transition and invalid-result.`,
     example: { transitionId: 'transition-outro', effect: { kind: 'wipe', direction: 'left' } },
     argumentsSchema: setTransitionEffectArgumentsSchema,
   },

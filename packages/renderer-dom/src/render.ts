@@ -3,13 +3,31 @@
  * found again through its addressing attributes; nothing is remembered between
  * calls, so the result depends on the mounted document and the state only.
  */
-import type { CaptionsNodeState, CompositionState, NodeState, SceneState } from '@kadrion/runtime';
+import type {
+  CaptionsNodeState,
+  Circle,
+  ClipTransitionState,
+  CompositionState,
+  Hole,
+  Inset,
+  NodeState,
+  SceneState,
+} from '@kadrion/runtime';
 
-import { cssColor, cssInset, cssNumber, cssPixels, cssTransform } from './css.js';
+import {
+  cssCircle,
+  cssColor,
+  cssHole,
+  cssInset,
+  cssNumber,
+  cssTransform,
+  cssTransitionTransform,
+} from './css.js';
 import { RenderError, unsupportedNode } from './errors.js';
 import {
   CAPTION_PAGE_ATTRIBUTE,
   CAPTION_WORD_ATTRIBUTE,
+  CLIP_FRAME_ATTRIBUTE,
   HIGHLIGHT_PROPERTY,
   NODE_ATTRIBUTE,
   SCENE_ATTRIBUTE,
@@ -30,13 +48,38 @@ const WRITTEN = ['transform', 'opacity', 'visibility'] as const;
 /** The declarations of a scene transition on a scene element (D56); the mount writes none of them. */
 const TRANSITION_WRITTEN = ['opacity', 'transform', 'clip-path'] as const;
 
+/** The declarations of a clip transition on the frame of a side (D66); the mount writes none of them. */
+const FRAME_WRITTEN = ['clip-path', 'background-color'] as const;
+
 function mismatch(message: string): never {
   throw new RenderError('state-mismatch', message);
 }
 
+/**
+ * The node element a child of a scene or group holds: the child itself, or the
+ * one node inside the frame of a clip transition (D66), which carries the
+ * node's ID too. Anything else is returned as it is, for `matchChildren` to
+ * refuse.
+ */
+function unframed(child: Element): Element {
+  const frameOf = child.getAttribute(CLIP_FRAME_ATTRIBUTE);
+  if (frameOf === null) return child;
+  const node = child.firstElementChild;
+  if (
+    child.childElementCount !== 1 ||
+    node === null ||
+    child.hasAttribute(NODE_ATTRIBUTE) ||
+    node.getAttribute(NODE_ATTRIBUTE) !== frameOf
+  ) {
+    mismatch(`The frame of the clip transition of "${frameOf}" does not hold its node alone.`);
+  }
+  return node;
+}
+
 /** The element children of `parent` must carry exactly `ids`, in this order. */
 function matchChildren(parent: Element, attribute: string, ids: readonly string[]): HTMLElement[] {
-  const children = [...parent.children];
+  const children =
+    attribute === NODE_ATTRIBUTE ? [...parent.children].map(unframed) : [...parent.children];
   const found = children.map((child) => child.getAttribute(attribute));
   if (found.length !== ids.length || found.some((id, index) => id !== ids[index])) {
     mismatch(
@@ -185,9 +228,11 @@ export function mountedNodes(root: Element, state: CompositionState): MountedNod
  * not evaluated lose what an earlier call wrote on them, so that the tree is
  * that of a fresh mount rendered at this state, whatever came before.
  *
- * A scene transition (D56) writes on the scene elements of its two sides what
- * their `transition` states say, and the state's `backdrop` is the stage's
- * background colour; both are removed when the state has none.
+ * A scene transition (D56, D66) writes on the scene elements of its two sides
+ * what their `transition` states say, and the state's `backdrop` is the
+ * stage's background colour; both are removed when the state has none. A clip
+ * transition (D66) puts its offset and zoom before the node's own transform,
+ * and its cut and colour on the frame around the node.
  */
 export function renderState(root: Element, state: CompositionState): void {
   const tree = mountedTree(root, state);
@@ -205,12 +250,21 @@ export function renderState(root: Element, state: CompositionState): void {
       for (const property of WRITTEN) node.style.removeProperty(property);
       writeCaptions(node, null);
     }
+    for (const frame of element.querySelectorAll<HTMLElement>(`[${CLIP_FRAME_ATTRIBUTE}]`)) {
+      writeClipFrame(frame, undefined);
+    }
   }
   for (const { element, state: node } of tree.nodes) {
     if (node.type === 'captions') writeCaptions(element, node);
     if (node.type !== 'background') {
-      element.style.setProperty('transform', cssTransform(node));
+      const moved = cssTransitionTransform(node.transition ?? {});
+      const own = cssTransform(node);
+      element.style.setProperty('transform', moved === '' ? own : `${moved} ${own}`);
       element.style.setProperty('opacity', cssNumber(node.opacity));
+      const frame = element.parentElement;
+      if (frame?.getAttribute(CLIP_FRAME_ATTRIBUTE) === node.id) {
+        writeClipFrame(frame, node.transition);
+      }
     }
     if (node.active) element.style.removeProperty('visibility');
     else element.style.setProperty('visibility', 'hidden');
@@ -258,12 +312,37 @@ function writeSceneTransition(
   if (transition.opacity !== undefined) {
     element.style.setProperty('opacity', cssNumber(transition.opacity));
   }
-  if (transition.offset !== undefined) {
-    element.style.setProperty(
-      'transform',
-      `translate(${cssPixels(transition.offset.x)}, ${cssPixels(transition.offset.y)})`,
-    );
+  const moved = cssTransitionTransform(transition);
+  if (moved !== '') element.style.setProperty('transform', moved);
+  const clip = cssClipPath(transition);
+  if (clip !== null) element.style.setProperty('clip-path', clip);
+}
+
+/** The cut of a transition as CSS `clip-path`, or `null` when it cuts nothing (D56, D66). */
+function cssClipPath(cut: {
+  readonly clip?: Inset;
+  readonly circle?: Circle;
+  readonly hole?: Hole;
+}): string | null {
+  if (cut.clip !== undefined) return cssInset(cut.clip);
+  if (cut.circle !== undefined) return cssCircle(cut.circle);
+  if (cut.hole !== undefined) return cssHole(cut.hole);
+  return null;
+}
+
+/**
+ * Writes what a clip transition does on the frame of a side (D66), and only
+ * that: the part of the frame the side is cut to, and the colour under it.
+ * Every other declaration is removed, so the frame of a side outside a
+ * transition is the bare box the mount built, and one without a declaration
+ * carries no style attribute but the mount's.
+ */
+function writeClipFrame(frame: HTMLElement, transition: ClipTransitionState | undefined): void {
+  for (const property of FRAME_WRITTEN) frame.style.removeProperty(property);
+  if (transition === undefined) return;
+  const clip = cssClipPath(transition);
+  if (clip !== null) frame.style.setProperty('clip-path', clip);
+  if (transition.backdrop !== undefined) {
+    frame.style.setProperty('background-color', cssColor(transition.backdrop));
   }
-  if (transition.clip !== undefined)
-    element.style.setProperty('clip-path', cssInset(transition.clip));
 }
