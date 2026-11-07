@@ -1,6 +1,6 @@
 # D65 — The motion model and the rendering probes
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-07, after PR-45 was merged
 - Date: 2026-11-07
 - Supersedes: —
 - Related: D03, D15, D16, D18, D19, D22, D23, D26, D28, D33, D34, D41, D46,

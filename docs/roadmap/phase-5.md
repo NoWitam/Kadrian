@@ -180,6 +180,7 @@ steps should be merged.
 
 ### PR-45 — The motion model and the rendering probes (ADR only)
 
+- Status: done (PR #58, merged 2026-11-07), with its ADR D65 (accepted by the owner on 2026-11-07). The probes of `tests/probes` ran twice in fresh pinned containers: all 90 candidate primitives are exact (241 rows in `docs/spike/motion-probes.json`). Findings that bind later steps: a filter is written whenever a node has an effect, since a neutral filter is not the absence of one (the acceptance of PR-51a changes as D65.5 states); a text with a fragment animation is always rendered in fragments; a stroke trimmed to nothing is hidden. D16.6 and D41.1 are amended in PR-48.
 - **Goal:** one model under the eleven schema steps, and evidence of which
   visual primitives the DOM path renders deterministically, before any schema
   changes.
