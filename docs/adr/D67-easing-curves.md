@@ -1,6 +1,7 @@
 # D67 — Easing curves of keyframes and transitions: schema 0.12
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-07, after PR-47 was merged
+  (PR #62)
 - Date: 2026-11-07
 - Supersedes: —
 - Amends: D16 (16.6: the value between two keyframes follows the easing of
