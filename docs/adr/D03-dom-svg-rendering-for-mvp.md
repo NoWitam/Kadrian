@@ -6,6 +6,10 @@
   of the excluded scope follows `AGENTS.md`, which no longer excludes
   transitions in phase three (roadmap of phase three, question 1); the
   decision is unchanged
+- Amended by: PR-44 on 2026-11-04, at the owner's instruction: the quotation
+  of the excluded scope follows `AGENTS.md`, which no longer excludes colour
+  grading and filters in phase five and excludes 3D scenes (roadmap of phase
+  five, question 1); the decision is unchanged
 - Related: D05, D06
 
 ## Decision
@@ -33,11 +37,16 @@ Verbatim quotations. `AGENTS.md` remains the authoritative text.
 
 Listed under "Explicitly outside the current scope":
 
-> Full timeline UI, advanced trimming, color grading, or filters.
+> Full timeline UI, advanced trimming, or 3D scenes.
 
 (Amended by PR-35: until 2026-10-30 the line also excluded transitions.
 Transitions are planned for phase three as DOM/SVG rendering, within this
 decision.)
+
+(Amended by PR-44: until 2026-11-04 the line excluded colour grading and
+filters instead of 3D scenes. Effects are planned for phase five as CSS and
+SVG filters, within this decision; an effect that needs Canvas or WebGL waits
+for a later ADR.)
 
 ## See also
 

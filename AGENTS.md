@@ -26,14 +26,20 @@ end-to-end path:
 Phase two (authoring, `docs/roadmap/phase-2.md`) delivered PR-18 to PR-22.
 Phase three (`docs/roadmap/phase-3.md`) delivered the engine under a host's
 video editor (video, audio, scenes, transitions, captions, templates, and
-rendering in range jobs), PR-23 to PR-34b. The current phase is phase four: a
-host integrates the engine (the public surface, the Player's playback events,
-image facts and the focus point of `cover`, media read by path in the
-Producer, `kadrion migrate`, showcases, and the host flow on released
-tarballs). `docs/roadmap/phase-4.md` holds the plan; every pull request of it
-is approved separately.
+rendering in range jobs), PR-23 to PR-34b. Phase four
+(`docs/roadmap/phase-4.md`) delivered a host's integration of the engine (the
+public surface, the Player's playback events, image facts and the focus point
+of `cover`, media read by path in the Producer, `kadrion migrate`, showcases,
+and the host flow on released tarballs), PR-37 to PR-43, released as
+`v0.2.0`. The current phase is phase five: motion graphics, effects, and
+reusable elements (clip transitions, easing, rotation, text animated in
+fragments, animated captions, effects, vector shapes and SVG assets,
+compositing, nested compositions and elements, and Custom HTML for AI
+authors). `docs/roadmap/phase-5.md` holds the plan; every pull request of it
+is approved separately, before it starts and again before its commit and
+push.
 
-Do not turn phase four into an end-user editor, a media platform, a plugin
+Do not turn phase five into an end-user editor, a media platform, a plugin
 ecosystem, a render service, or a Taskio integration inside this repository.
 
 ## Accepted architectural decisions
@@ -138,7 +144,7 @@ that are not required by the current spike.
 
 - Taskio database models, queues, permissions, billing, and multi-tenancy.
 - A production REST service or distributed render farm.
-- Full timeline UI, advanced trimming, color grading, or filters.
+- Full timeline UI, advanced trimming, or 3D scenes.
 - A conversational LLM agent or production asset generation pipeline.
 - CRDT collaboration, public plugins, 4K, HDR, and desktop/mobile apps.
 

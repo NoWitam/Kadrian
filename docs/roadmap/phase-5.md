@@ -1,6 +1,7 @@
 # Phase five: motion graphics, effects, and reusable elements
 
-- Status: Proposed (PR-44) on 2026-11-03. Only the project owner accepts it.
+- Status: Accepted as a direction by the project owner on 2026-11-04 (PR-44,
+  merged as PR #56), with every recommendation of the questions at the end.
   Accepting this roadmap approves no pull request: each one below is approved
   separately, before it starts and again before its commit and push, with its
   own plan, review, and decisions.
@@ -669,6 +670,14 @@ width, height, fit }`, whose content at scene time `t` is the definition
   other than 1, and Custom HTML isolation beyond Chromium (D36, option E).
 
 ## Questions for the owner, with recommendations
+
+Answered by the owner on 2026-11-04: every question as recommended. Question
+1 is carried out with the acceptance of this plan (`AGENTS.md` names phase
+five as current and excludes "Full timeline UI, advanced trimming, or 3D
+scenes", and D03, which quotes that line, carries an `Amended by` line);
+question 2 was answered first (phase four in full first). The other answers
+are directions for the ADRs named in them; each ADR is still accepted on its
+own.
 
 1. **`AGENTS.md` for this phase.** It excludes "color grading, or filters",
    which effects and curves are. Recommendation: on acceptance of this plan,
