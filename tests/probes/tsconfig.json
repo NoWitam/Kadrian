@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "tsBuildInfoFile": "../../node_modules/.cache/tsbuildinfo/tests-probes.tsbuildinfo"
+  },
+  "include": [
+    "./**/*.ts",
+    "../parity/parity.ts",
+    "../pinned/conformance-host.ts",
+    "../pinned/support.ts",
+    "../pinned/video-fixture.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/producer"
+    },
+    {
+      "path": "../../packages/renderer-dom"
+    },
+    {
+      "path": "../../packages/schema"
+    },
+    {
+      "path": "../../packages/test-fixtures"
+    }
+  ]
+}

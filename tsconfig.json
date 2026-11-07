@@ -72,6 +72,9 @@
     },
     {
       "path": "./tests/pinned"
+    },
+    {
+      "path": "./tests/probes"
     }
   ]
 }

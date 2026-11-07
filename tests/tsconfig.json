@@ -7,7 +7,7 @@
     "tsBuildInfoFile": "../node_modules/.cache/tsbuildinfo/tests.tsbuildinfo"
   },
   "include": ["./**/*.ts", "../vitest.config.ts"],
-  "exclude": ["./pinned"],
+  "exclude": ["./pinned", "./probes"],
   "references": [
     {
       "path": "../apps/playground"
