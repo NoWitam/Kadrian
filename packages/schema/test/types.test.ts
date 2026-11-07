@@ -176,7 +176,10 @@ type ExpectedSceneTransitionEffect =
   | { readonly kind: 'crossfade' }
   | { readonly kind: 'fade-through-color'; readonly color: string }
   | { readonly kind: 'slide'; readonly direction: ExpectedDirection }
-  | { readonly kind: 'wipe'; readonly direction: ExpectedDirection };
+  | { readonly kind: 'wipe'; readonly direction: ExpectedDirection }
+  | { readonly kind: 'push'; readonly direction: ExpectedDirection }
+  | { readonly kind: 'zoom'; readonly fromScale: number }
+  | { readonly kind: 'iris'; readonly center: { readonly x: number; readonly y: number } };
 
 interface ExpectedSceneTransition {
   readonly id: string;
@@ -191,7 +194,7 @@ interface ExpectedClipTransition {
   readonly fromNodeId: string;
   readonly toNodeId: string;
   readonly durationUs: number;
-  readonly effect: { readonly kind: 'crossfade' };
+  readonly effect: ExpectedSceneTransitionEffect;
 }
 
 interface ExpectedScene {
@@ -340,7 +343,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.10';
+  readonly schemaVersion: '0.11';
   readonly width: number;
   readonly height: number;
   readonly fps: number;

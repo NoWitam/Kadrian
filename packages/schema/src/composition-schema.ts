@@ -1,5 +1,5 @@
 /**
- * Composition schema 0.10: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.11: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
@@ -18,8 +18,10 @@
  * assets to them, empty in a composition that is no template (D58); 0.9 is
  * 0.8 plus the conditions and repeats of a template and the bindings of the
  * fields of a list's items (D59); 0.10 is 0.9 plus the focus point of images
- * and videos (D63). The schemas of 0.1 to 0.9 are kept as data in `v0-1` to
- * `v0-9` (D35.4).
+ * and videos (D63); 0.11 is 0.10 plus the transitions push, zoom, and iris,
+ * and every effect of a scene transition on a transition between two clips,
+ * whose frame is the canvas (D66). The schemas of 0.1 to 0.10 are kept as data
+ * in `v0-1` to `v0-10` (D35.4).
  */
 import {
   closedObject,
@@ -31,7 +33,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.10';
+export const SCHEMA_VERSION = '0.11';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -453,7 +455,8 @@ const nodeReference = {
 
 const direction = {
   type: 'string',
-  description: 'The direction in which the incoming side moves across the frame (D56).',
+  description:
+    'The direction in which the incoming side moves across the frame, or the edge that uncovers it (D56, D66).',
   enum: ['left', 'right', 'up', 'down'],
 } as const satisfies StringSchema;
 
@@ -463,30 +466,71 @@ export const crossfadeEffectSchema = closedObject(
 );
 
 export const fadeThroughColorEffectSchema = closedObject(
-  'The outgoing scene fades out to the colour over the first half, and the incoming scene fades in from it over the second half (D56).',
+  'The outgoing side fades out to the colour over the first half, and the incoming side fades in from it over the second half; between two clips the colour covers the frame directly below the lower of them (D56, D66).',
   { kind: { type: 'string', const: 'fade-through-color' }, color },
 );
 
 export const slideEffectSchema = closedObject(
-  'The incoming scene slides in over the outgoing one from the edge opposite to its direction (D56).',
+  'The incoming side slides in over the outgoing one from the edge opposite to its direction; a clip that lies below the outgoing one is uncovered as it slides out instead (D56, D66).',
   { kind: { type: 'string', const: 'slide' }, direction },
 );
 
 export const wipeEffectSchema = closedObject(
-  'An edge travels across the frame in its direction and uncovers the incoming scene behind it (D56).',
+  'An edge travels across the frame in its direction and uncovers the incoming side behind it (D56, D66).',
   { kind: { type: 'string', const: 'wipe' }, direction },
 );
 
-/** How a transition between two scenes combines their images (D56). */
-export const sceneTransitionEffectSchema = {
-  description: 'How the two images are combined; a pure function of the progress (D49.4, D56).',
-  oneOf: [crossfadeEffectSchema, fadeThroughColorEffectSchema, slideEffectSchema, wipeEffectSchema],
-} as const satisfies UnionSchema;
+export const pushEffectSchema = closedObject(
+  'The incoming side moves in from the edge opposite to its direction and pushes the outgoing one out across the other edge, both by one frame (D66).',
+  { kind: { type: 'string', const: 'push' }, direction },
+);
 
-/** How a transition between two clips combines them (D56): a node's box is not the frame. */
-export const clipTransitionEffectSchema = {
-  description: 'How the two clips are combined; a pure function of the progress (D49.4, D56).',
-  oneOf: [crossfadeEffectSchema],
+export const zoomEffectSchema = closedObject(
+  'The incoming side grows or shrinks from fromScale to its own size about the centre of the frame while it fades in (D66).',
+  {
+    kind: { type: 'string', const: 'zoom' },
+    fromScale: {
+      type: 'number',
+      description:
+        'The factor the incoming side starts at, about the centre of the frame: below 1 it grows into place, above 1 it shrinks into place (D66).',
+      minimum: 0,
+      maximum: 16,
+    },
+  },
+);
+
+/** One coordinate of the centre of an iris, in per mille of the frame's side (D66). */
+const irisCoordinate = {
+  type: 'integer',
+  description: "Per mille of the frame's width (x) or height (y), from its left or top edge (D66).",
+  minimum: 0,
+  maximum: 1000,
+} as const satisfies NumberSchema;
+
+export const irisEffectSchema = closedObject(
+  'A circle opens from the centre point until the incoming side fills the frame (D66).',
+  {
+    kind: { type: 'string', const: 'iris' },
+    center: closedObject('The point the circle opens from, in per mille of the frame (D66).', {
+      x: irisCoordinate,
+      y: irisCoordinate,
+    }),
+  },
+);
+
+/** How a transition combines the images of its two sides (D56, D66). */
+export const transitionEffectSchema = {
+  description:
+    'How the two sides are combined; a pure function of the progress that leaves either side alone at progress 0 and 1 (D49.4, D56, D66).',
+  oneOf: [
+    crossfadeEffectSchema,
+    fadeThroughColorEffectSchema,
+    slideEffectSchema,
+    wipeEffectSchema,
+    pushEffectSchema,
+    zoomEffectSchema,
+    irisEffectSchema,
+  ],
 } as const satisfies UnionSchema;
 
 const transitionDurationUs = {
@@ -512,7 +556,7 @@ export const sceneTransitionSchema = closedObject(
       description: 'The incoming scene, directly after the outgoing one (D56).',
     },
     durationUs: transitionDurationUs,
-    effect: sceneTransitionEffectSchema,
+    effect: transitionEffectSchema,
   },
 );
 
@@ -521,7 +565,7 @@ export const sceneTransitionSchema = closedObject(
  * siblings whose lifetimes overlap by exactly its duration.
  */
 export const clipTransitionSchema = closedObject(
-  'The overlap of two clips of one layer, siblings of one parent whose lifetimes overlap by exactly durationUs; it adds no time and moves nothing (D49.4, D56).',
+  'The overlap of two clips of one layer, siblings of one parent whose lifetimes overlap by exactly durationUs; it adds no time and moves nothing. Its frame is the canvas, in the space of the parent of the two (D49.4, D56, D66).',
   {
     id,
     fromNodeId: {
@@ -533,7 +577,7 @@ export const clipTransitionSchema = closedObject(
       description: 'The incoming node, a sibling of the outgoing one (D56).',
     },
     durationUs: transitionDurationUs,
-    effect: clipTransitionEffectSchema,
+    effect: transitionEffectSchema,
   },
 );
 
@@ -560,7 +604,7 @@ export const sceneSchema = closedObject(
     transitions: {
       type: 'array',
       description:
-        'Transitions between two clips of one layer of this scene; their order has no meaning (D49.4, D56).',
+        'Transitions between two clips of one layer of this scene; their order has no meaning (D49.4, D56, D66).',
       items: clipTransitionSchema,
     },
   },
@@ -1032,7 +1076,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.10',
+  title: 'Kadrion composition 0.11',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

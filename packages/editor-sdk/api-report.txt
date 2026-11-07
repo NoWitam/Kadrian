@@ -380,6 +380,49 @@ export declare const COMMAND_TOOL_METADATA: readonly AnyCommandToolMetadata[];
 ---- COMMAND_TYPES
 export declare const COMMAND_TYPES: readonly Command['type'][];
 
+---- ClipTransitionAtCutArguments (type only)
+export interface ClipTransitionAtCutArguments {
+    readonly transition: unknown;
+    readonly alignment: CutAlignment;
+}
+
+---- ClipTransitionAtCutArgumentsSchema (type only)
+export interface ClipTransitionAtCutArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly transition: {
+            readonly type: 'object';
+            readonly description: string;
+            readonly properties: {
+                readonly fromNodeId: StringField;
+                readonly toNodeId: StringField;
+                readonly durationUs: {
+                    readonly type: 'integer';
+                    readonly description: string;
+                    readonly minimum: 1;
+                    readonly maximum: number;
+                };
+            };
+            readonly required: readonly [
+                'fromNodeId',
+                'toNodeId',
+                'durationUs'
+            ];
+        };
+        readonly alignment: {
+            readonly type: 'string';
+            readonly description: string;
+            readonly enum: readonly CutAlignment[];
+        };
+    };
+    readonly required: readonly [
+        'transition',
+        'alignment'
+    ];
+    readonly additionalProperties: false;
+}
+
 ---- ClosedObjectSchema (type only)
 export interface ClosedObjectSchema<K extends string> {
     readonly type: 'object';
@@ -449,6 +492,9 @@ export interface CommandToolMetadata<T extends Command['type'] = Command['type']
     readonly argumentsSchema: CommandArgumentsSchema;
 }
 
+---- CutAlignment (type only)
+export type CutAlignment = 'start' | 'center' | 'end';
+
 ---- DocumentDescription (type only)
 export interface DocumentDescription {
     readonly schemaVersion: string;
@@ -505,7 +551,7 @@ export declare class EditorError extends Error {
 }
 
 ---- EditorErrorCode (type only)
-export type EditorErrorCode = 'invalid-document' | 'unknown-command' | 'invalid-argument' | 'unknown-node' | 'unsupported-node' | 'invalid-result' | 'nothing-to-undo' | 'nothing-to-redo' | 'busy' | 'unknown-parent' | 'index-out-of-range' | 'id-in-use' | 'unknown-asset' | 'asset-type-mismatch' | 'asset-in-use' | 'unknown-scene' | 'last-scene' | 'unknown-clip' | 'time-outside-clip' | 'split-not-exact' | 'clips-not-joinable' | 'unknown-transition' | 'transition-in-use' | 'unknown-input' | 'unknown-binding' | 'unknown-condition' | 'unknown-repeat' | 'input-in-use' | 'binding-in-use' | 'unknown-animation' | 'unknown-keyframe' | 'keyframe-exists' | 'too-few-keyframes' | 'animation-property-mismatch' | 'duplicate-animation-target' | 'media-facts-missing' | 'source-range-exceeded';
+export type EditorErrorCode = 'invalid-document' | 'unknown-command' | 'invalid-argument' | 'unknown-node' | 'unsupported-node' | 'invalid-result' | 'nothing-to-undo' | 'nothing-to-redo' | 'busy' | 'unknown-parent' | 'index-out-of-range' | 'id-in-use' | 'unknown-asset' | 'asset-type-mismatch' | 'asset-in-use' | 'unknown-scene' | 'last-scene' | 'unknown-clip' | 'time-outside-clip' | 'split-not-exact' | 'clips-not-joinable' | 'unknown-transition' | 'transition-in-use' | 'unknown-input' | 'unknown-binding' | 'unknown-condition' | 'unknown-repeat' | 'input-in-use' | 'binding-in-use' | 'unknown-animation' | 'unknown-keyframe' | 'keyframe-exists' | 'too-few-keyframes' | 'animation-property-mismatch' | 'duplicate-animation-target' | 'media-facts-missing' | 'source-range-exceeded' | 'not-a-cut' | 'no-room-at-cut';
 
 ---- ImageFacts (type only)
 export interface ImageFacts {
@@ -1355,6 +1401,12 @@ export declare const addTemplateRepeatArgumentsSchema: AddTemplateRepeatArgument
 
 ---- applyCommand
 export declare function applyCommand(document: ValidatedComposition, command: Command, options?: ApplyOptions): CommandResult;
+
+---- clipTransitionAtCut
+export declare function clipTransitionAtCut(document: ValidatedComposition, args: unknown): readonly Command[];
+
+---- clipTransitionAtCutArgumentsSchema
+export declare const clipTransitionAtCutArgumentsSchema: ClipTransitionAtCutArgumentsSchema;
 
 ---- createCommandBus
 export declare function createCommandBus(document: unknown, options?: CommandBusOptions): CommandBus;

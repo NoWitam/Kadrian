@@ -3,10 +3,12 @@
  * tool is one `dispatch` of its command, built by adding the discriminator and
  * nothing else (D31.3); `run_transaction` is one `dispatchTransaction` of the
  * commands its calls name; `describe_document` reads the current document and
- * writes nothing. Failures are the bus's own `EditorError` (D31.6), and a
+ * writes nothing; `add_clip_transition_at_cut` is one `dispatchTransaction` of
+ * the commands `clipTransitionAtCut` builds (D66). Failures are the bus's own `EditorError` (D31.6), and a
  * refused call leaves the document and the history as they were.
  */
 import {
+  clipTransitionAtCut,
   describeDocument,
   EditorError,
   type CommandBus,
@@ -15,7 +17,12 @@ import {
   type TransactionResult,
 } from '@kadrion/editor-sdk';
 
-import { commandTypeOf, DESCRIBE_DOCUMENT, RUN_TRANSACTION } from './catalogue.js';
+import {
+  ADD_CLIP_TRANSITION_AT_CUT,
+  commandTypeOf,
+  DESCRIBE_DOCUMENT,
+  RUN_TRANSACTION,
+} from './catalogue.js';
 
 /**
  * The capabilities a tool call may use: the three methods of the host's bus
@@ -91,7 +98,8 @@ function transactionOf(args: unknown): readonly unknown[] {
 
 /**
  * Runs the tool `name` with `args` on the host's bus (D46.4): a command tool is
- * exactly one `dispatch`, `run_transaction` exactly one `dispatchTransaction`,
+ * exactly one `dispatch`, `run_transaction` and `add_clip_transition_at_cut`
+ * exactly one `dispatchTransaction`,
  * and `describe_document` one `getDocument`. An unknown name is refused with
  * `unknown-command`; arguments the tool's schema refuses with
  * `invalid-argument`, as the bus refuses them.
@@ -110,6 +118,12 @@ export function executeTool(bus: ToolBus, name: unknown, args: unknown): ToolRes
         bus.getDocument(),
         bus.mediaFactsOf === undefined ? undefined : (hash) => bus.mediaFactsOf?.(hash) ?? null,
       ),
+    });
+  }
+  if (name === ADD_CLIP_TRANSITION_AT_CUT) {
+    return Object.freeze({
+      kind: 'transaction',
+      result: bus.dispatchTransaction(clipTransitionAtCut(bus.getDocument(), args)),
     });
   }
   if (name === RUN_TRANSACTION) {

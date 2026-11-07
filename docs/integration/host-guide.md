@@ -133,13 +133,16 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   Each edit reaches the preview at the time it shows; `await session.settled()`
   waits until the Player shows the latest document.
 - **Result:** `{ document, inverse, createdIds }`; one `document` event per
-  committed operation.
+  committed operation. `clipTransitionAtCut(document, args)` returns the
+  commands that put a clip transition on a cut, for one
+  `dispatchTransaction`.
 - **Errors:** an `EditorError` by `code`, and nothing changes: for example
   `invalid-argument`, `unknown-node`, `id-in-use`, `unknown-asset`,
   `asset-type-mismatch`, `asset-in-use`, `keyframe-exists`,
   `too-few-keyframes`, `transition-in-use`, `split-not-exact`,
-  `input-in-use`, `binding-in-use`, and `busy` when a listener dispatches
-  during a change. A listener's own error goes to `onListenerError`.
+  `input-in-use`, `binding-in-use`, `not-a-cut`, `no-room-at-cut`, and
+  `busy` when a listener dispatches during a change. A listener's own error
+  goes to `onListenerError`.
 - **Limits:** IDs are chosen by the host and never reused across the history;
   times are never rounded; positions and sizes are.
 - **Authority:** [D30](../adr/D30-command-bus-and-undo.md),
@@ -157,7 +160,8 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   the model, and run each call with `executeTool(session.bus, name, args)`, on
   the same bus as the UI. `describe_document` returns the IDs, types,
   lifetimes, layers, fields, and image sizes and changes nothing;
-  `run_transaction` applies several calls as one undoable step.
+  `add_clip_transition_at_cut` puts a clip transition on a cut and
+  `run_transaction` applies several calls, each as one undoable step.
 - **Errors:** the bus's `EditorError` codes; a refused call changes nothing.
 - **Limits:** a tool never undoes or redoes; that stays with the host.
 - **Authority:** [D09](../adr/D09-ai-edits-through-typed-domain-tools.md),

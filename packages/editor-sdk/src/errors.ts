@@ -92,7 +92,19 @@ export type EditorErrorCode =
    */
   | 'media-facts-missing'
   /** A video node would sample past the end of its source; `details` name the nodes and ranges (D49.6). */
-  | 'source-range-exceeded';
+  | 'source-range-exceeded'
+  /**
+   * The two clips of a transition at a cut do not meet: the outgoing one does not
+   * end exactly where the incoming one starts in the same scene; `details` name
+   * both (D66).
+   */
+  | 'not-a-cut'
+  /**
+   * A clip at a cut cannot be extended across it: the incoming one would start
+   * before its scene, or the outgoing one end past the largest time; `details`
+   * name it (D66).
+   */
+  | 'no-room-at-cut';
 
 /**
  * A typed failure of the command bus (D30.8). Check `code` instead of

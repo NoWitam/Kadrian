@@ -10,13 +10,14 @@ import { Ajv2020 } from 'ajv/dist/2020.js';
 import {
   COMMAND_TOOL_METADATA,
   COMMAND_TYPES,
+  clipTransitionAtCut,
   createCommandBus,
   describeDocument,
   type Command,
   type CommandBus,
   type MediaFacts,
 } from '@kadrion/editor-sdk';
-import { referenceComposition } from '@kadrion/test-fixtures';
+import { clipTransitionsComposition, referenceComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { executeTool, TOOL_CATALOGUE, toolNameOf, type ToolBus } from '../src/index.js';
@@ -413,6 +414,56 @@ describe('every command tool equals its command (D46.4, D31.9)', () => {
   });
 });
 
+describe('add_clip_transition_at_cut is one dispatchTransaction, one history entry (D66)', () => {
+  /** The clip transitions fixture with the first transition removed and its overlap undone: a cut at 800 000. */
+  function atCut(): CommandBus {
+    const bus = createCommandBus(clipTransitionsComposition);
+    bus.dispatchTransaction([
+      { type: 'RemoveTransition', transitionId: 'up-crossfade' },
+      { type: 'TrimClipStart', clipId: 'up-clip-1', startUs: 800_000 },
+    ]);
+    return bus;
+  }
+  const args = {
+    transition: {
+      id: 'cut-crossfade',
+      fromNodeId: 'up-clip-0',
+      toNodeId: 'up-clip-1',
+      durationUs: 200_000,
+      effect: { kind: 'crossfade' },
+    },
+    alignment: 'end',
+  };
+
+  it("gives the document of the helper's commands dispatched as one transaction", () => {
+    const viaTool = atCut();
+    const viaBus = atCut();
+    const tool = executeTool(toolBus(viaTool), 'add_clip_transition_at_cut', args);
+    const direct = viaBus.dispatchTransaction(clipTransitionAtCut(viaBus.getDocument(), args));
+    if (tool.kind !== 'transaction') throw new Error('The tool is not a transaction.');
+    expect(json(tool.result)).toBe(json(direct));
+  });
+
+  it('reads the document, then uses dispatchTransaction once, and is undone by one undo', () => {
+    const inner = atCut();
+    const before = json(inner.getDocument());
+    const { bus, calls: used } = recording(inner);
+    executeTool(bus, 'add_clip_transition_at_cut', args);
+    expect(used).toEqual(['getDocument', 'dispatchTransaction']);
+    inner.undo();
+    expect(json(inner.getDocument())).toBe(before);
+  });
+
+  it('changes nothing when the clips do not meet at a cut', () => {
+    const bus = createCommandBus(clipTransitionsComposition);
+    const before = stateOf(bus);
+    expect(codeOf(() => executeTool(toolBus(bus), 'add_clip_transition_at_cut', args))).toBe(
+      'not-a-cut',
+    );
+    expect(stateOf(bus)).toEqual(before);
+  });
+});
+
 describe('run_transaction is one dispatchTransaction, one history entry (D46.4, D38.4)', () => {
   const calls = [
     {
@@ -564,7 +615,7 @@ describe('each tool accepts exactly what its inputSchema accepts (D31.9, D46.4)'
   );
 
   it('covers every command type', () => {
-    expect(TOOL_CATALOGUE.slice(1, -1).map(({ name }) => name)).toEqual(
+    expect(TOOL_CATALOGUE.slice(1, -2).map(({ name }) => name)).toEqual(
       COMMAND_TYPES.map(toolNameOf),
     );
   });

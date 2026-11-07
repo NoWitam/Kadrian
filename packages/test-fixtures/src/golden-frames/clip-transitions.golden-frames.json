@@ -1,0 +1,318 @@
+{
+  "render": {
+    "manifestVersion": 3,
+    "compositionHash": "sha256:57ce727f3b258cc388b1c4da171590422999b7c13da130537e1eab58c6cc4594",
+    "schemaVersion": "0.11",
+    "runtime": {
+      "contentHash": "sha256:dad9051db6c3908d5f38933933a4d12fcf248e380218cebbf6e64b860a39dd1b",
+      "bundler": "esbuild@0.28.2",
+      "compiler": "typescript@6.0.3"
+    },
+    "chromium": {
+      "playwrightCore": "1.63.0",
+      "revision": "1243",
+      "expectedVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ]
+    },
+    "environment": {
+      "pinned": true,
+      "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+      "pinnedPlatform": "linux/amd64",
+      "os": "linux",
+      "arch": "x64",
+      "node": "v24.20.0",
+      "playwrightCore": "1.63.0",
+      "chromiumRevision": "1243",
+      "chromiumVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ],
+      "locale": "en-US",
+      "timezone": "UTC",
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "deviceScaleFactor": 1,
+      "network": {
+        "interfaces": [
+          "lo"
+        ],
+        "loopbackOnly": true
+      }
+    },
+    "assets": [
+      {
+        "id": "asset-image",
+        "type": "image",
+        "mediaType": "image/png",
+        "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+      },
+      {
+        "id": "asset-font",
+        "type": "font",
+        "mediaType": "font/ttf",
+        "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4",
+        "family": "kadrion-font-asset-font"
+      }
+    ],
+    "durationUs": 11000000,
+    "frameCount": 330,
+    "video": null,
+    "preset": {
+      "name": "frames-png",
+      "width": 640,
+      "height": 360,
+      "fps": 30,
+      "deviceScaleFactor": 1
+    },
+    "frames": [
+      {
+        "index": 21,
+        "timeUs": 700000,
+        "sha256": "sha256:df38ba3780dae753d372667600ec04e5c5154c1113f0876be3b64898fefb74af"
+      },
+      {
+        "index": 39,
+        "timeUs": 1300000,
+        "sha256": "sha256:fc03bb14275b7fca5d1278dfa27ec6bf8efd9c8507fe459ae08c12be71f006db"
+      },
+      {
+        "index": 57,
+        "timeUs": 1900000,
+        "sha256": "sha256:b87217e91383464bed4c6e1e76877f858a95e5fbd92831f789c059b722d1ee45"
+      },
+      {
+        "index": 75,
+        "timeUs": 2500000,
+        "sha256": "sha256:41e24f6e55f8c1689a4ba42aded48694755e9a22fe8d047bf573e00420c4e36f"
+      },
+      {
+        "index": 93,
+        "timeUs": 3100000,
+        "sha256": "sha256:946dc19cb33accafb87a248bd5e84dc2881fd32c1cf9474ec32dc9563bff8cee"
+      },
+      {
+        "index": 111,
+        "timeUs": 3700000,
+        "sha256": "sha256:f88064b4d3d3ef15caf716665dc62f9633c00347c4fa7dad64775878782ed78f"
+      },
+      {
+        "index": 129,
+        "timeUs": 4300000,
+        "sha256": "sha256:dfd29c5b17cbb2ed061fba7cc25a5107558bb365f9af5efce1467714c52285ec"
+      },
+      {
+        "index": 144,
+        "timeUs": 4800000,
+        "sha256": "sha256:b7a7c7db1beea851a61b0634668ad4646618c77d1d06c324d1dbd6f5d27fb111"
+      },
+      {
+        "index": 159,
+        "timeUs": 5300000,
+        "sha256": "sha256:c33ad20215980f4108442d9284ce152e8a70021443ce62a0ceb6025f5420b2b4"
+      },
+      {
+        "index": 177,
+        "timeUs": 5900000,
+        "sha256": "sha256:fc03bb14275b7fca5d1278dfa27ec6bf8efd9c8507fe459ae08c12be71f006db"
+      },
+      {
+        "index": 195,
+        "timeUs": 6500000,
+        "sha256": "sha256:9dffe18e127d637d282cedcc5dcc12b796c045f205941ee0d92ad084b66af4db"
+      },
+      {
+        "index": 213,
+        "timeUs": 7100000,
+        "sha256": "sha256:4e997be36187c79ce40cc273b5425e6e91f372cd8094783935ce623d40413fe6"
+      },
+      {
+        "index": 231,
+        "timeUs": 7700000,
+        "sha256": "sha256:5a107208db83f925e044d074d9f6053861f203bcac416fadd1cb24c0bc8292a5"
+      },
+      {
+        "index": 249,
+        "timeUs": 8300000,
+        "sha256": "sha256:ec2188c12a522291d68278543c0e93a0cfbe3597108f04dc39d1018a98edb6a6"
+      },
+      {
+        "index": 267,
+        "timeUs": 8900000,
+        "sha256": "sha256:89b92884fc589dee15d8ff75110f07b67a1de26322d9630d7704bf19910c775f"
+      },
+      {
+        "index": 282,
+        "timeUs": 9400000,
+        "sha256": "sha256:dbb7e7d697964b0f3e562277c54ae17cc8c297d530c0ec181505ac2b2baf8726"
+      },
+      {
+        "index": 297,
+        "timeUs": 9900000,
+        "sha256": "sha256:3bddc8c64178f28faead075334d265aa63565cb389e0cc392b9daf9831158051"
+      },
+      {
+        "index": 312,
+        "timeUs": 10400000,
+        "sha256": "sha256:92f58bf43222f44c7a543d7fc91ec7bf7a43e2f965b580d030dcf8863a36b62c"
+      }
+    ],
+    "blockedRequests": [],
+    "ffmpeg": null
+  },
+  "environment": {
+    "pinned": true,
+    "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+    "pinnedPlatform": "linux/amd64",
+    "os": "linux",
+    "arch": "x64",
+    "node": "v24.20.0",
+    "playwrightCore": "1.63.0",
+    "chromiumRevision": "1243",
+    "chromiumVersion": "153.0.8010.12",
+    "reportedVersion": "153.0.8010.12",
+    "channel": "chromium",
+    "args": [
+      "--force-color-profile=srgb",
+      "--disable-lcd-text",
+      "--hide-scrollbars",
+      "--mute-audio"
+    ],
+    "locale": "en-US",
+    "timezone": "UTC",
+    "viewport": {
+      "width": 1080,
+      "height": 1920
+    },
+    "deviceScaleFactor": 1,
+    "network": {
+      "interfaces": [
+        "lo"
+      ],
+      "loopbackOnly": true
+    }
+  },
+  "frames": [
+    {
+      "file": "clip-transitions-700000.png",
+      "timeUs": 700000,
+      "index": 21,
+      "sha256": "sha256:df38ba3780dae753d372667600ec04e5c5154c1113f0876be3b64898fefb74af"
+    },
+    {
+      "file": "clip-transitions-1300000.png",
+      "timeUs": 1300000,
+      "index": 39,
+      "sha256": "sha256:fc03bb14275b7fca5d1278dfa27ec6bf8efd9c8507fe459ae08c12be71f006db"
+    },
+    {
+      "file": "clip-transitions-1900000.png",
+      "timeUs": 1900000,
+      "index": 57,
+      "sha256": "sha256:b87217e91383464bed4c6e1e76877f858a95e5fbd92831f789c059b722d1ee45"
+    },
+    {
+      "file": "clip-transitions-2500000.png",
+      "timeUs": 2500000,
+      "index": 75,
+      "sha256": "sha256:41e24f6e55f8c1689a4ba42aded48694755e9a22fe8d047bf573e00420c4e36f"
+    },
+    {
+      "file": "clip-transitions-3100000.png",
+      "timeUs": 3100000,
+      "index": 93,
+      "sha256": "sha256:946dc19cb33accafb87a248bd5e84dc2881fd32c1cf9474ec32dc9563bff8cee"
+    },
+    {
+      "file": "clip-transitions-3700000.png",
+      "timeUs": 3700000,
+      "index": 111,
+      "sha256": "sha256:f88064b4d3d3ef15caf716665dc62f9633c00347c4fa7dad64775878782ed78f"
+    },
+    {
+      "file": "clip-transitions-4300000.png",
+      "timeUs": 4300000,
+      "index": 129,
+      "sha256": "sha256:dfd29c5b17cbb2ed061fba7cc25a5107558bb365f9af5efce1467714c52285ec"
+    },
+    {
+      "file": "clip-transitions-4800000.png",
+      "timeUs": 4800000,
+      "index": 144,
+      "sha256": "sha256:b7a7c7db1beea851a61b0634668ad4646618c77d1d06c324d1dbd6f5d27fb111"
+    },
+    {
+      "file": "clip-transitions-5300000.png",
+      "timeUs": 5300000,
+      "index": 159,
+      "sha256": "sha256:c33ad20215980f4108442d9284ce152e8a70021443ce62a0ceb6025f5420b2b4"
+    },
+    {
+      "file": "clip-transitions-5900000.png",
+      "timeUs": 5900000,
+      "index": 177,
+      "sha256": "sha256:fc03bb14275b7fca5d1278dfa27ec6bf8efd9c8507fe459ae08c12be71f006db"
+    },
+    {
+      "file": "clip-transitions-6500000.png",
+      "timeUs": 6500000,
+      "index": 195,
+      "sha256": "sha256:9dffe18e127d637d282cedcc5dcc12b796c045f205941ee0d92ad084b66af4db"
+    },
+    {
+      "file": "clip-transitions-7100000.png",
+      "timeUs": 7100000,
+      "index": 213,
+      "sha256": "sha256:4e997be36187c79ce40cc273b5425e6e91f372cd8094783935ce623d40413fe6"
+    },
+    {
+      "file": "clip-transitions-7700000.png",
+      "timeUs": 7700000,
+      "index": 231,
+      "sha256": "sha256:5a107208db83f925e044d074d9f6053861f203bcac416fadd1cb24c0bc8292a5"
+    },
+    {
+      "file": "clip-transitions-8300000.png",
+      "timeUs": 8300000,
+      "index": 249,
+      "sha256": "sha256:ec2188c12a522291d68278543c0e93a0cfbe3597108f04dc39d1018a98edb6a6"
+    },
+    {
+      "file": "clip-transitions-8900000.png",
+      "timeUs": 8900000,
+      "index": 267,
+      "sha256": "sha256:89b92884fc589dee15d8ff75110f07b67a1de26322d9630d7704bf19910c775f"
+    },
+    {
+      "file": "clip-transitions-9400000.png",
+      "timeUs": 9400000,
+      "index": 282,
+      "sha256": "sha256:dbb7e7d697964b0f3e562277c54ae17cc8c297d530c0ec181505ac2b2baf8726"
+    },
+    {
+      "file": "clip-transitions-9900000.png",
+      "timeUs": 9900000,
+      "index": 297,
+      "sha256": "sha256:3bddc8c64178f28faead075334d265aa63565cb389e0cc392b9daf9831158051"
+    },
+    {
+      "file": "clip-transitions-10400000.png",
+      "timeUs": 10400000,
+      "index": 312,
+      "sha256": "sha256:92f58bf43222f44c7a543d7fc91ec7bf7a43e2f965b580d030dcf8863a36b62c"
+    }
+  ]
+}

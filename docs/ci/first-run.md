@@ -13,15 +13,27 @@ of the main commit `10573cf` supplied the validated evidence, and the
 documentation commit that follows it closed Q14 again on 2026-11-04. PR-42
 (2026-11-04) reopened Q14: it added a pinned test file; run 41857750361 of the
 main commit `062f532` supplied the validated evidence, and the documentation
-commit that follows it closed Q14 again on 2026-11-04. A
+commit that follows it closed Q14 again on 2026-11-04. PR-46 (D66,
+2026-11-07) reopened Q14: it changed a pinned test file and added two of its
+reports. A
 local run of the same commands, including
 `tests/pinned/container/pinned-run.sh`, does **not** verify CI.
 
-## Status after the evidence of main after PR-42 (2026-11-04)
+## Status after the evidence of main after PR-42 (2026-11-04), reopened by PR-46 (2026-11-07)
 
-**Status: Q14 is closed.**
+**Status: Q14 is open.**
 
-- The evidence is `docs/ci/q14-evidence.json`. It is of the run
+- PR-46 (D66) reopened Q14 on 2026-11-07: it changed the pinned test file
+  `tests/pinned/transitions.pinned.test.ts`, which now also writes
+  `transitions/clip-edges.json` and `transitions/clip-golden-comparison.json`,
+  so the pinned test files and the artifact files (67 files) the evidence is
+  checked against changed, and it deleted the evidence below. Q14 closes again
+  by the evidence of a green push run of a later commit, by the procedure
+  below.
+
+The evidence of main after PR-42 (2026-11-04), as it was:
+
+- The evidence was `docs/ci/q14-evidence.json`. It is of the run
   https://github.com/NoWitam/Kadrian/actions/runs/41857750361 (run ID
   `41857750361`, attempt 1, event `push`) of the validated commit
   `062f532da84a520049abed97636caf83971dfa87` (main after PR-42, branch `main`), which
@@ -181,11 +193,11 @@ commit that follows it closed Q14; PR-25a reopened it on 2026-10-31, run
 41481200563 of the main commit `bde9bb9` closed it again on 2026-11-02 (above),
 PR-38 reopened it on 2026-11-03, run 41814956253 of the main commit
 `10573cf` closed it again on 2026-11-04 (above), PR-42 reopened it on
-2026-11-04, and run 41857750361 of the main commit `062f532` closed it again
-the same day (above). This section states what a closed Q14
+2026-11-04, run 41857750361 of the main commit `062f532` closed it again
+the same day (above), and PR-46 reopened it on 2026-11-07. This section states what a closed Q14
 means and how Q14 reopens, as it did with PR-16 on 2026-09-27, with PR-21 on
-2026-10-03, with PR-25a on 2026-10-31, with PR-38 on 2026-11-03, and with
-PR-42 on 2026-11-04.
+2026-10-03, with PR-25a on 2026-10-31, with PR-38 on 2026-11-03, with
+PR-42 on 2026-11-04, and with PR-46 on 2026-11-07.
 
 - One push run of the reviewed commit on a GitHub runner, in the pinned image,
   met all eight criteria below, and the evidence of that run is in the
@@ -416,7 +428,11 @@ reopened Q14 in its commit of 2026-09-27; on 2026-09-27 all eight were met by
 the run of PR-16, and PR-21 reopened Q14 in its commit; on 2026-10-03 all eight
 were met by the run of PR-21 (above), PR-25a reopened Q14 in its commit of
 2026-10-31; on 2026-11-02 all eight were met by the run of the main commit
-`bde9bb9` (above), and PR-38 reopened Q14 in its commit of 2026-11-03.
+`bde9bb9` (above), and PR-38 reopened Q14 in its commit of 2026-11-03; on
+2026-11-04 all eight were met by the run of the main commit `10573cf`, and
+PR-42 reopened Q14 in its commit the same day; on 2026-11-04 all eight were
+met by the run of the main commit `062f532`, and PR-46 reopened Q14 in its
+commit of 2026-11-07.
 
 1. The URL of the GitHub Actions run.
 2. The SHA of a commit that matches the run and the reviewed code.

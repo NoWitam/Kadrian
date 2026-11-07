@@ -73,11 +73,13 @@ export type Fit = ImageNode['fit'];
 export type Focus = ImageNode['focus'];
 export type SceneTransition = Infer<typeof sceneTransitionSchema>;
 export type ClipTransition = Infer<typeof clipTransitionSchema>;
-/** How a transition between two scenes combines them (D56). */
-export type SceneTransitionEffect = SceneTransition['effect'];
-/** How a transition between two clips combines them (D56). */
+/** How a transition combines its two sides, between scenes and between clips alike (D56, D66). */
+export type TransitionEffect = SceneTransition['effect'];
+/** How a transition between two scenes combines them (D56, D66). */
+export type SceneTransitionEffect = TransitionEffect;
+/** How a transition between two clips combines them: every effect of a scene transition since 0.11 (D66). */
 export type ClipTransitionEffect = ClipTransition['effect'];
-/** The direction of a slide or a wipe (D56). */
+/** The direction of a slide, a wipe, or a push (D56, D66). */
 export type TransitionDirection = Extract<SceneTransitionEffect, { kind: 'wipe' }>['direction'];
 /** The template section of a composition (D58): empty in a composition that is no template. */
 export type Template = Infer<typeof templateSchema>;

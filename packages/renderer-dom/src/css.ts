@@ -4,7 +4,7 @@
  * reads back as the same double, so every engine writes the same text for the
  * same bits. Nothing is rounded or fixed to a number of digits.
  */
-import type { Inset, TransformState } from '@kadrion/runtime';
+import type { Circle, Hole, Inset, TransformState, Vec2, Zoom } from '@kadrion/runtime';
 
 /** `-0` becomes `"0"`; below 1e-6 the text has an exponent, a valid CSS number token. */
 export function cssNumber(value: number): string {
@@ -49,4 +49,48 @@ export function fontFamily(fontAssetId: string): string {
 export function cssInset(inset: Inset): string {
   const sides = [inset.fromTop, inset.fromRight, inset.fromBottom, inset.fromLeft];
   return `inset(${sides.map(cssPixels).join(' ')})`;
+}
+
+/**
+ * What a transition moves a side by, as the start of a CSS `transform` (D56,
+ * D66): the offset, then a scale about a point of the frame. CSS applies the
+ * list from the right, so both act after whatever follows them, the node's own
+ * transform included. Empty when the transition moves nothing.
+ */
+export function cssTransitionTransform(moved: {
+  readonly offset?: Vec2 | undefined;
+  readonly zoom?: Zoom | undefined;
+}): string {
+  const parts: string[] = [];
+  if (moved.offset !== undefined) {
+    parts.push(`translate(${cssPixels(moved.offset.x)}, ${cssPixels(moved.offset.y)})`);
+  }
+  if (moved.zoom !== undefined) {
+    const { factor, center } = moved.zoom;
+    parts.push(
+      `translate(${cssPixels(center.x)}, ${cssPixels(center.y)})`,
+      `scale(${cssNumber(factor)})`,
+      `translate(${cssPixels(-center.x)}, ${cssPixels(-center.y)})`,
+    );
+  }
+  return parts.join(' ');
+}
+
+/** The circle of the frame a side is cut to, as CSS `clip-path` (D66). */
+export function cssCircle(circle: Circle): string {
+  return `circle(${cssPixels(circle.radius)} at ${cssPixels(circle.x)} ${cssPixels(circle.y)})`;
+}
+
+/**
+ * The frame less a circle, as CSS `clip-path` (D66): one path of the frame's
+ * rectangle and the circle as two half arcs, filled by the even-odd rule, so
+ * that the inside of the circle is cut away. Numbers in the path are user
+ * units, which are composition pixels here.
+ */
+export function cssHole(hole: Hole): string {
+  const n = cssNumber;
+  const { x, y, radius: r } = hole;
+  const rectangle = `M0 0H${n(hole.width)}V${n(hole.height)}H0Z`;
+  const circle = `M${n(x - r)} ${n(y)}A${n(r)} ${n(r)} 0 1 0 ${n(x + r)} ${n(y)}A${n(r)} ${n(r)} 0 1 0 ${n(x - r)} ${n(y)}Z`;
+  return `path(evenodd, "${rectangle}${circle}")`;
 }

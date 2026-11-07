@@ -54,7 +54,7 @@ export interface ToolDefinition {
 }
 
 ---- ToolInputSchema (type only)
-export type ToolInputSchema = CommandArgumentsSchema | ClosedObjectSchema<never> | RunTransactionInputSchema;
+export type ToolInputSchema = CommandArgumentsSchema | ClosedObjectSchema<never> | RunTransactionInputSchema | ClipTransitionAtCutArgumentsSchema;
 
 ---- ToolResult (type only)
 export type ToolResult = {

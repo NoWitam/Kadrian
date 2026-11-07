@@ -3,12 +3,15 @@
  * `@kadrion/editor-sdk`, derived from the command's AI metadata, plus two tools
  * for a model that cannot see the canvas — `describe_document`, which reads,
  * and `run_transaction`, which applies several command tools as one history
- * entry. The catalogue is data: deep-frozen, built once by a call, in a fixed
+ * entry, and since 0.11 `add_clip_transition_at_cut`, a transaction of its
+ * own (D66). The catalogue is data: deep-frozen, built once by a call, in a fixed
  * order with a fixed text, so the same build always offers the same tools.
  */
 import {
+  clipTransitionAtCutArgumentsSchema,
   COMMAND_TOOL_METADATA,
   type AnyCommandToolMetadata,
+  type ClipTransitionAtCutArgumentsSchema,
   type ClosedObjectSchema,
   type Command,
   type CommandArgumentsSchema,
@@ -45,7 +48,10 @@ export interface RunTransactionInputSchema {
 
 /** The JSON Schema (draft 2020-12) of a tool's arguments. */
 export type ToolInputSchema =
-  CommandArgumentsSchema | ClosedObjectSchema<never> | RunTransactionInputSchema;
+  | CommandArgumentsSchema
+  | ClosedObjectSchema<never>
+  | RunTransactionInputSchema
+  | ClipTransitionAtCutArgumentsSchema;
 
 /** What a host hands to a model API; `inputSchema` is the name MCP uses (D31.1). */
 export interface ToolDefinition {
@@ -56,6 +62,7 @@ export interface ToolDefinition {
 
 export const DESCRIBE_DOCUMENT = 'describe_document';
 export const RUN_TRANSACTION = 'run_transaction';
+export const ADD_CLIP_TRANSITION_AT_CUT = 'add_clip_transition_at_cut';
 
 /**
  * The tool name of a command: its type in `snake_case`, so `SetNodePosition`
@@ -105,6 +112,20 @@ function describeDocumentTool(): ToolDefinition {
   });
 }
 
+/**
+ * The tool of a transition at a cut (D66): not a command of its own, but the
+ * transaction `clipTransitionAtCut` of `@kadrion/editor-sdk` builds, so that a
+ * model joins two clips that meet end to end in one step and one undo.
+ */
+function clipTransitionAtCutTool(): ToolDefinition {
+  return Object.freeze({
+    name: ADD_CLIP_TRANSITION_AT_CUT,
+    description: `Adds a transition between two clips of one layer that meet end to end — the outgoing clip ends exactly where the incoming one starts — and makes their overlap in the same step: alignment start lets the outgoing clip last durationUs longer, end lets the incoming clip start durationUs earlier, and center does half of each (the incoming clip starts half of durationUs earlier, rounded down). A video or audio then shows more of its source; no keyframe moves. It is one step: all or nothing, and one undo reverts it. Refused with invalid-argument, unknown-node, not-a-cut when the clips do not meet in one scene, no-room-at-cut when the incoming clip would start before its scene, source-range-exceeded and media-facts-missing when a video lacks source at the cut, and whatever add_clip_transition, trim_clip_start, or trim_clip_end refuse; the error of a refused step names the index of its call. Returns the edited document and the IDs it created.\n\nExample arguments: {"transition":{"id":"transition-cut","fromNodeId":"node-title","toNodeId":"node-custom-html","durationUs":500000,"effect":{"kind":"push","direction":"left"}},"alignment":"center"}`,
+    // The very object editor-sdk exports, frozen there (D31.2).
+    inputSchema: clipTransitionAtCutArgumentsSchema,
+  });
+}
+
 function runTransactionTool(commandNames: readonly string[]): ToolDefinition {
   return deepFreeze({
     name: RUN_TRANSACTION,
@@ -144,13 +165,15 @@ function runTransactionTool(commandNames: readonly string[]): ToolDefinition {
 
 /**
  * Builds the catalogue: `describe_document`, then one tool per command in the
- * order of `COMMAND_TYPES`, then `run_transaction` (D46.2).
+ * order of `COMMAND_TYPES`, then `add_clip_transition_at_cut` (D66), then
+ * `run_transaction` (D46.2).
  */
 function catalogue(): readonly ToolDefinition[] {
   const commandTools = COMMAND_TOOL_METADATA.map(commandTool);
   return Object.freeze([
     describeDocumentTool(),
     ...commandTools,
+    clipTransitionAtCutTool(),
     runTransactionTool(commandTools.map(({ name }) => name)),
   ]);
 }

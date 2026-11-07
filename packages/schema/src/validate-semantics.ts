@@ -47,6 +47,7 @@ import type { CompositionV06 } from './v0-6/composition-schema.js';
 import type { CompositionV07 } from './v0-7/composition-schema.js';
 import type { CompositionV08 } from './v0-8/composition-schema.js';
 import type { CompositionV09 } from './v0-9/composition-schema.js';
+import type { CompositionV010 } from './v0-10/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -145,7 +146,8 @@ export function validateSemantics(
     | CompositionV06
     | CompositionV07
     | CompositionV08
-    | CompositionV09,
+    | CompositionV09
+    | CompositionV010,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -388,7 +390,7 @@ const TESTED_TYPES: Readonly<Record<TemplateCondition['test'], readonly string[]
  * ID of the form of a copy of a repeated ID.
  */
 function checkTemplate(
-  composition: Composition | CompositionV09 | CompositionV08,
+  composition: Composition | CompositionV010 | CompositionV09 | CompositionV08,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const { inputs, bindings } = composition.template;
@@ -776,7 +778,7 @@ function checkTemplate(
 
 /** The scene or node with that ID, or `undefined`. */
 function subtreeOf(
-  composition: Composition | CompositionV09 | CompositionV08,
+  composition: Composition | CompositionV010 | CompositionV09 | CompositionV08,
   id: string,
 ): unknown {
   for (const scene of composition.scenes) {
@@ -838,7 +840,13 @@ interface Located {
  * and the two of one side together at most as long as it.
  */
 function checkTransitions(
-  composition: Composition | CompositionV06 | CompositionV07 | CompositionV08 | CompositionV09,
+  composition:
+    | Composition
+    | CompositionV06
+    | CompositionV07
+    | CompositionV08
+    | CompositionV09
+    | CompositionV010,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

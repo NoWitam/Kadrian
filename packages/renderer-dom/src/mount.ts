@@ -21,6 +21,12 @@ import { sandboxFrame } from './sandbox.js';
 export const STAGE_ATTRIBUTE = 'data-kadrion-composition';
 export const SCENE_ATTRIBUTE = 'data-kadrion-scene';
 export const NODE_ATTRIBUTE = 'data-kadrion-node';
+/**
+ * The frame of a clip transition around one of its sides (D66): a canvas-sized
+ * box at the origin of the side's parent, holding the side alone. It carries
+ * the ID of its node.
+ */
+export const CLIP_FRAME_ATTRIBUTE = 'data-kadrion-clip-frame';
 /** The index of a page of captions, and of a word in the node's `words` (D57). */
 export const CAPTION_PAGE_ATTRIBUTE = 'data-kadrion-caption-page';
 export const CAPTION_WORD_ATTRIBUTE = 'data-kadrion-caption-word';
@@ -104,12 +110,38 @@ function captionsElement(document: Document, node: CaptionsNode, address: Styles
   return box;
 }
 
+/**
+ * The element of a node, inside the frame of its clip transitions when it is
+ * a side of one (D66). The frame is written nothing at mount: unstyled, it
+ * neither clips nor paints, so the node renders as it would without it.
+ */
+function placedNode(
+  document: Document,
+  node: SceneNode | GroupNode['children'][number],
+  canvas: Styles,
+  assetUrls: AssetUrls,
+  customHtml: CustomHtmlPolicy,
+  sides: ReadonlySet<string>,
+): HTMLElement {
+  const element = nodeElement(document, node, canvas, assetUrls, customHtml, sides);
+  if (!sides.has(node.id)) return element;
+  const frame = create(
+    document,
+    'div',
+    { [CLIP_FRAME_ATTRIBUTE]: node.id },
+    { ...PLACED, ...canvas },
+  );
+  frame.append(element);
+  return frame;
+}
+
 function nodeElement(
   document: Document,
   node: SceneNode | GroupNode['children'][number],
   canvas: Styles,
   assetUrls: AssetUrls,
   customHtml: CustomHtmlPolicy,
+  sides: ReadonlySet<string>,
 ): HTMLElement {
   const address = { [NODE_ATTRIBUTE]: node.id };
   switch (node.type) {
@@ -123,7 +155,7 @@ function nodeElement(
       const group = create(document, 'div', address, TRANSFORMED);
       group.append(
         ...node.children.map((child) =>
-          nodeElement(document, child, canvas, assetUrls, customHtml),
+          placedNode(document, child, canvas, assetUrls, customHtml, sides),
         ),
       );
       return group;
@@ -238,8 +270,12 @@ export function mountComposition(
       { [SCENE_ATTRIBUTE]: scene.id },
       { ...PLACED, ...canvas },
     );
+    // Every side of a clip transition gets its frame, whatever the effect (D66).
+    const sides = new Set(
+      scene.transitions.flatMap(({ fromNodeId, toNodeId }) => [fromNodeId, toNodeId]),
+    );
     sceneElement.append(
-      ...scene.nodes.map((node) => nodeElement(document, node, canvas, urls, customHtml)),
+      ...scene.nodes.map((node) => placedNode(document, node, canvas, urls, customHtml, sides)),
     );
     stage.append(sceneElement);
   }

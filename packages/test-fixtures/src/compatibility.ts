@@ -102,6 +102,20 @@ import scenesV010 from './compatibility/v0-10/scenes.json' with { type: 'json' }
 import templateV010 from './compatibility/v0-10/template.json' with { type: 'json' };
 import transitionsV010 from './compatibility/v0-10/transitions.json' with { type: 'json' };
 import videoV010 from './compatibility/v0-10/video.json' with { type: 'json' };
+import audioV011 from './compatibility/v0-11/audio.json' with { type: 'json' };
+import captionsV011 from './compatibility/v0-11/captions.json' with { type: 'json' };
+import extremesV011 from './compatibility/v0-11/extremes.json' with { type: 'json' };
+import focusV011 from './compatibility/v0-11/focus.json' with { type: 'json' };
+import inputsV011 from './compatibility/v0-11/inputs.json' with { type: 'json' };
+import lifetimeV011 from './compatibility/v0-11/lifetime.json' with { type: 'json' };
+import minimalV011 from './compatibility/v0-11/minimal.json' with { type: 'json' };
+import pairV011 from './compatibility/v0-11/pair.json' with { type: 'json' };
+import referenceV011 from './compatibility/v0-11/reference.json' with { type: 'json' };
+import repeatsV011 from './compatibility/v0-11/repeats.json' with { type: 'json' };
+import scenesV011 from './compatibility/v0-11/scenes.json' with { type: 'json' };
+import templateV011 from './compatibility/v0-11/template.json' with { type: 'json' };
+import transitionsV011 from './compatibility/v0-11/transitions.json' with { type: 'json' };
+import videoV011 from './compatibility/v0-11/video.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -217,6 +231,20 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-10/template.json': templateV010,
   'compatibility/v0-10/transitions.json': transitionsV010,
   'compatibility/v0-10/video.json': videoV010,
+  'compatibility/v0-11/audio.json': audioV011,
+  'compatibility/v0-11/captions.json': captionsV011,
+  'compatibility/v0-11/extremes.json': extremesV011,
+  'compatibility/v0-11/focus.json': focusV011,
+  'compatibility/v0-11/inputs.json': inputsV011,
+  'compatibility/v0-11/lifetime.json': lifetimeV011,
+  'compatibility/v0-11/minimal.json': minimalV011,
+  'compatibility/v0-11/pair.json': pairV011,
+  'compatibility/v0-11/reference.json': referenceV011,
+  'compatibility/v0-11/repeats.json': repeatsV011,
+  'compatibility/v0-11/scenes.json': scenesV011,
+  'compatibility/v0-11/template.json': templateV011,
+  'compatibility/v0-11/transitions.json': transitionsV011,
+  'compatibility/v0-11/video.json': videoV011,
 };
 
 function fileOf(path: string): unknown {

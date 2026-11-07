@@ -61,6 +61,29 @@ export interface CaptionsNodeState extends LeafNodeState<'captions'> {
     readonly word: number | null;
 }
 
+---- Circle (type only)
+export interface Circle {
+    readonly x: number;
+    readonly y: number;
+    readonly radius: number;
+}
+
+---- ClipTransitionSide (type only)
+export interface ClipTransitionSide {
+    readonly transition?: ClipTransitionState;
+}
+
+---- ClipTransitionState (type only)
+export interface ClipTransitionState {
+    readonly id: string;
+    readonly offset?: Vec2;
+    readonly zoom?: Zoom;
+    readonly clip?: Inset;
+    readonly circle?: Circle;
+    readonly hole?: Hole;
+    readonly backdrop?: string;
+}
+
 ---- CompositionState (type only)
 export interface CompositionState {
     readonly timeUs: number;
@@ -78,10 +101,16 @@ export declare class EvaluationError extends RangeError {
 export type EvaluationErrorCode = 'time-not-integer' | 'time-out-of-range' | 'invalid-document';
 
 ---- GroupNodeState (type only)
-export interface GroupNodeState extends LifetimeState, TransformState {
+export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide {
     readonly id: string;
     readonly type: 'group';
     readonly children: readonly (LeafNodeState<'image' | 'text'> | VideoNodeState)[];
+}
+
+---- Hole (type only)
+export interface Hole extends Circle {
+    readonly width: number;
+    readonly height: number;
 }
 
 ---- Inset (type only)
@@ -93,7 +122,7 @@ export interface Inset {
 }
 
 ---- LeafNodeState (type only)
-export interface LeafNodeState<Type extends LeafNodeType = LeafNodeType> extends LifetimeState, TransformState {
+export interface LeafNodeState<Type extends LeafNodeType = LeafNodeType> extends LifetimeState, TransformState, ClipTransitionSide {
     readonly id: string;
     readonly type: Type;
 }
@@ -128,7 +157,9 @@ export interface SceneTransitionState {
     readonly id: string;
     readonly opacity?: number;
     readonly offset?: Vec2;
+    readonly zoom?: Zoom;
     readonly clip?: Inset;
+    readonly circle?: Circle;
 }
 
 ---- SoundLayout (type only)
@@ -157,6 +188,12 @@ export interface Vec2 {
 ---- VideoNodeState (type only)
 export interface VideoNodeState extends LeafNodeState<'video'> {
     readonly sourceTimeUs: number | null;
+}
+
+---- Zoom (type only)
+export interface Zoom {
+    readonly factor: number;
+    readonly center: Vec2;
 }
 
 ---- audioLayout
