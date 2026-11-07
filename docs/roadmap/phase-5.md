@@ -227,7 +227,7 @@ steps should be merged.
 
 ### PR-46 — Clip transitions of every kind
 
-- Status: in review, with its ADR D66 (Proposed). The frame of a clip transition is the canvas in the space of the clips' parent; the colour of `fade-through-color` covers the frame below the lower clip; `zoom` takes `fromScale` (0 to 16) and `iris` a `center` in per mille; the transition at a cut is a helper and a tool that build one transaction. The second reference composition of the acceptance is the clip transitions composition of `@kadrion/test-fixtures`.
+- Status: done (PR #60, merged 2026-11-07), with its ADR D66 (accepted by the owner on 2026-11-07). Q14 is open until a green push run of main after it. The frame of a clip transition is the canvas in the space of the clips' parent; the colour of `fade-through-color` covers the frame below the lower clip; `zoom` takes `fromScale` (0 to 16) and `iris` a `center` in per mille; the transition at a cut is a helper and a tool that build one transaction. The second reference composition of the acceptance is the clip transitions composition of `@kadrion/test-fixtures`.
 - **Goal:** a host whose film is one scene with many clips puts any transition
   of D56 between two adjacent clips of the same layer, and adds it at a cut in
   one undoable step.
