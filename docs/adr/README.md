@@ -74,7 +74,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D64](D64-video-and-audio-read-by-path.md)                    | Video and audio read by path in the Producer                                                 | Accepted          |
 | [D65](D65-the-motion-model-and-rendering-probes.md)           | The motion model and the rendering probes                                                    | Accepted          |
 | [D66](D66-clip-transitions-in-the-canvas-frame.md)            | Clip transitions of every kind: schema 0.11                                                  | Accepted          |
-| [D67](D67-easing-curves.md)                                   | Easing curves: schema 0.12                                                                   | Proposed          |
+| [D67](D67-easing-curves.md)                                   | Easing curves: schema 0.12                                                                   | Accepted          |
 | [D68](D68-rotation-origin-and-more-animated-properties.md)    | Rotation, origin, animated properties: schema 0.13                                           | Proposed          |
 
 ## Provenance of D01–D10
