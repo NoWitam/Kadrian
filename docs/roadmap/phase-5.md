@@ -730,5 +730,8 @@ own.
 11. **Custom HTML's managed clock.** Recommendation: yes, the shell drives CSS
     and Web Animations from `timeUs`, so that an AI writes ordinary CSS; the
     protocol of D23 stays for authors who need more.
-12. **The release of the phase.** Recommendation: `v0.3.0` after PR-57,
-    pushed by the owner, as `v0.2.0` after PR-43.
+12. **The release of the phase.** Recommendation: `v0.4.0` after PR-57,
+    pushed by the owner, as `v0.2.0` after PR-43. The owner approved an
+    intermediate `v0.3.0` on 2026-11-08, from `main` after PR-49 (rotation,
+    origin, crop, text styles), so that the host can pin them before the
+    phase ends; every package is version `0.3.0`.
