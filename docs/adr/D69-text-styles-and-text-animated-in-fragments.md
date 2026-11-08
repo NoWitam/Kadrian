@@ -1,6 +1,7 @@
 # D69 — Text styles and text animated in fragments: schema 0.14
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-08, after PR-49 was merged
+  (PR #66)
 - Date: 2026-11-08
 - Supersedes: —
 - Amends: D16 (a text has a `style` and `textAnimations`; the tracks of a text
