@@ -1,6 +1,7 @@
 # D68 — Rotation, the origin point, and more animated properties: schema 0.13
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-08, after PR-48 was merged
+  (PR #64)
 - Date: 2026-11-07
 - Supersedes: —
 - Amends: D15 (a node turns and scales about its origin point; the corner
