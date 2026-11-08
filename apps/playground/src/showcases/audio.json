@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.13",
+  "schemaVersion": "0.14",
   "width": 1280,
   "height": 720,
   "fps": 30,
@@ -149,7 +149,13 @@
           "text": "tones",
           "fontAssetId": "asset-font",
           "fontSize": 96,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "audio-subtitle",
@@ -174,7 +180,13 @@
           "text": "Kadrion adds tones",
           "fontAssetId": "asset-font",
           "fontSize": 40,
-          "color": "#e4e7ec"
+          "color": "#e4e7ec",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],

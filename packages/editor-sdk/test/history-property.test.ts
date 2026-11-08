@@ -266,6 +266,8 @@ function newNode(next: () => number, id: string): Json {
     fontAssetId: 'asset-font',
     fontSize: 40,
     color: '#ffffff',
+    style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
+    textAnimations: [],
   };
 }
 

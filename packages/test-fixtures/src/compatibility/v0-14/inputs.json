@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "0.14",
+  "width": 2,
+  "height": 2,
+  "fps": 1,
+  "durationUs": 1000000,
+  "assets": [],
+  "scenes": [
+    {
+      "id": "scene",
+      "durationUs": 1000000,
+      "nodes": [],
+      "clips": [],
+      "transitions": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "template": {
+    "inputs": [
+      {
+        "id": "text",
+        "type": "text",
+        "minLength": 0,
+        "maxLength": 1000000,
+        "default": ""
+      },
+      {
+        "id": "number",
+        "type": "number",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991,
+        "default": -0.5
+      },
+      {
+        "id": "boolean",
+        "type": "boolean",
+        "default": false
+      },
+      {
+        "id": "color",
+        "type": "color",
+        "default": "#000000"
+      },
+      {
+        "id": "image",
+        "type": "image",
+        "default": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "id": "video",
+        "type": "video",
+        "default": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      {
+        "id": "audio",
+        "type": "audio",
+        "default": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "id": "list",
+        "type": "list",
+        "minItems": 1,
+        "maxItems": 10000,
+        "fields": [
+          {
+            "key": "text",
+            "type": "text",
+            "minLength": 1,
+            "maxLength": 1
+          },
+          {
+            "key": "number",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 0
+          },
+          {
+            "key": "boolean",
+            "type": "boolean"
+          },
+          {
+            "key": "color",
+            "type": "color"
+          },
+          {
+            "key": "image",
+            "type": "image"
+          },
+          {
+            "key": "video",
+            "type": "video"
+          },
+          {
+            "key": "audio",
+            "type": "audio"
+          }
+        ],
+        "default": [
+          [
+            {
+              "key": "text",
+              "type": "text",
+              "value": "K"
+            },
+            {
+              "key": "number",
+              "type": "number",
+              "value": 0
+            },
+            {
+              "key": "boolean",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "key": "color",
+              "type": "color",
+              "value": "#ffffff"
+            },
+            {
+              "key": "image",
+              "type": "image",
+              "value": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+            },
+            {
+              "key": "video",
+              "type": "video",
+              "value": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            {
+              "key": "audio",
+              "type": "audio",
+              "value": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+            }
+          ]
+        ]
+      }
+    ],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

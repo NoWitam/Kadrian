@@ -12,6 +12,7 @@ import {
 
 import { captionAt, captionPages } from './captions.js';
 import { EvaluationError, unsupported } from './errors.js';
+import { textFragments } from './fragments.js';
 import {
   cropState,
   sampleColor,
@@ -198,9 +199,14 @@ function evaluateImage(node: ImageNode, timeUs: number, factors: Factors): Image
   return { ...evaluateLeaf(node, timeUs, factors), ...pictureOf(node, timeUs) };
 }
 
-/** A text leaf with its colour (D68). */
+/** A text leaf with its colour (D68) and its fragments (D69). */
 function evaluateText(node: TextNode, timeUs: number, factors: Factors): TextNodeState {
-  return { ...evaluateLeaf(node, timeUs, factors), color: colorOf(node, timeUs) };
+  const color = colorOf(node, timeUs);
+  return {
+    ...evaluateLeaf(node, timeUs, factors),
+    color,
+    fragments: textFragments(node, color, timeUs),
+  };
 }
 
 /** A video leaf with its box and picture, and the source time it shows while active (D49.5, D50.3). */

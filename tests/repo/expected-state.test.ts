@@ -26,6 +26,7 @@ interface DocumentNode {
   cornerRadius?: number;
   crop?: { top: number; right: number; bottom: number; left: number };
   animations?: { property: string }[];
+  textAnimations?: unknown[];
   children?: DocumentNode[];
 }
 
@@ -38,6 +39,7 @@ interface StateNode {
   origin?: Vec2;
   opacity?: number;
   color?: string;
+  fragments?: null;
   size?: { width: number; height: number };
   crop?: { fromTop: number; fromRight: number; fromBottom: number; fromLeft: number };
   cornerRadius?: number;
@@ -67,7 +69,7 @@ const PROPERTIES = ['position', 'scale', 'rotation', 'origin', 'opacity'] as con
  */
 const REACHED: Readonly<Record<string, readonly string[]>> = {
   background: ['color'],
-  text: ['color'],
+  text: ['color', 'fragments'],
   image: ['size', 'crop', 'cornerRadius'],
 };
 
@@ -151,6 +153,11 @@ describe.each(expected.golden)('expected state at $timeUs', ({ timeUs, derivatio
         [],
       );
       if (node.color !== undefined) expect(node.color, node.id).toBe(source?.color);
+      // No text of the reference composition is animated in fragments (D69).
+      if (node.type === 'text') {
+        expect(source?.textAnimations).toEqual([]);
+        expect(node.fragments).toBeNull();
+      }
       if (node.type === 'image') {
         expect(node.size).toEqual({ width: source?.width, height: source?.height });
         expect(node.cornerRadius).toBe(source?.cornerRadius);

@@ -224,7 +224,7 @@ function copied(
   );
 }
 
-/** Moves every scene time of a node, its children, keyframes, and words, by `offset` (D59.2). */
+/** Moves every scene time of a node, its children, keyframes, words, and accents, by `offset` (D59.2, D69). */
 function shifted(node: Mutable, offset: bigint): boolean {
   let safe = true;
   const move = (holder: Mutable, key: string): void => {
@@ -242,6 +242,14 @@ function shifted(node: Mutable, offset: bigint): boolean {
     }
     const words = member['words'];
     if (Array.isArray(words)) for (const word of words as Mutable[]) move(word, 'startUs');
+    // The scene time of an accent moves with its node like a keyframe (D69).
+    const textAnimations = member['textAnimations'];
+    if (Array.isArray(textAnimations)) {
+      for (const item of textAnimations as Mutable[]) {
+        const phase = item['phase'] as Mutable;
+        if (phase['kind'] === 'accent') move(phase, 'startUs');
+      }
+    }
     const children = member['children'];
     if (Array.isArray(children)) for (const child of children as Mutable[]) visit(child);
   };

@@ -220,6 +220,11 @@ const CAPTIONS_SETUP: readonly Command[] = [
   },
 ];
 
+/** The text animation of the examples, on the title (D69). */
+const TEXT_ANIMATION_SETUP: readonly Command[] = COMMAND_TOOL_METADATA.filter(
+  ({ commandType }) => commandType === 'AddTextAnimation',
+).map(({ commandType, example }) => ({ type: commandType, ...example }) as Command);
+
 const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetNodePosition: [],
   SetNodeOpacity: [],
@@ -325,6 +330,10 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetCaptionWords: CAPTIONS_SETUP,
   SetCaptionWord: CAPTIONS_SETUP,
   SetCaptionStyle: CAPTIONS_SETUP,
+  SetTextStyle: [],
+  AddTextAnimation: [],
+  RemoveTextAnimation: TEXT_ANIMATION_SETUP,
+  SetTextAnimation: TEXT_ANIMATION_SETUP,
   AddTemplateInput: [],
   RemoveTemplateInput: INPUT_SETUP,
   SetTemplateInput: BINDING_SETUP,

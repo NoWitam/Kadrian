@@ -30,6 +30,10 @@ import {
   parseSetTransitionEffect,
   parseSetTransitionEasing,
   parseSetCaptionStyle,
+  parseSetTextStyle,
+  parseAddTextAnimation,
+  parseRemoveTextAnimation,
+  parseSetTextAnimation,
   parseSetCaptionWord,
   parseSetCaptionWords,
   parseAddTemplateBinding,
@@ -105,12 +109,14 @@ import {
   keyframesOf,
   locateAnimation,
   locateClip,
+  locateTextAnimation,
   locateNode,
   locateScene,
   locateTransition,
   placedByTime,
   replaceAnimation,
   replaceAssets,
+  replaceTextAnimation,
   replaceClipList,
   replaceList,
   replaceNode,
@@ -125,6 +131,7 @@ import {
   type ListAddress,
   type DocumentObject,
   type NodeLocation,
+  type TextAnimationLocation,
   type ValidationFinding,
 } from './document.js';
 import { EditorError } from './errors.js';
@@ -277,18 +284,33 @@ function outOfRange(index: number, last: number, what: string): EditorError {
   );
 }
 
-/** A node's animations renamed after their owner: `<owner>-a-<property>` (D39.3). */
+/**
+ * A node's animations renamed after their owner: `<owner>-a-<property>` (D39.3),
+ * and its text animations `<owner>-t<i>` by their index (D69).
+ */
 function renamedAnimations(owner: DocumentObject, ownerId: string): DocumentObject {
+  let renamed = owner;
   const animations = owner['animations'];
-  if (!Array.isArray(animations)) return owner;
-  return {
-    ...owner,
-    animations: (animations as readonly unknown[]).map((animation) =>
-      isObject(animation)
-        ? { ...animation, id: `${ownerId}-a-${String(animation['property'])}` }
-        : animation,
-    ),
-  };
+  if (Array.isArray(animations)) {
+    renamed = {
+      ...renamed,
+      animations: (animations as readonly unknown[]).map((animation) =>
+        isObject(animation)
+          ? { ...animation, id: `${ownerId}-a-${String(animation['property'])}` }
+          : animation,
+      ),
+    };
+  }
+  const textAnimations = owner['textAnimations'];
+  if (Array.isArray(textAnimations)) {
+    renamed = {
+      ...renamed,
+      textAnimations: (textAnimations as readonly unknown[]).map((animation, index) =>
+        isObject(animation) ? { ...animation, id: `${ownerId}-t${String(index)}` } : animation,
+      ),
+    };
+  }
+  return renamed;
 }
 
 /**
@@ -381,6 +403,20 @@ function requireAsset(document: DocumentObject, assetId: string, type: string): 
 }
 
 /** The animation with that ID, or `unknown-animation` (D41.2). */
+function locatedTextAnimation(
+  document: DocumentObject,
+  textAnimationId: string,
+): TextAnimationLocation {
+  const location = locateTextAnimation(document, textAnimationId);
+  if (location === null) {
+    throw new EditorError(
+      'unknown-animation',
+      `The document has no text animation \`${textAnimationId}\`.`,
+    );
+  }
+  return location;
+}
+
 function locatedAnimation(document: DocumentObject, animationId: string): AnimationLocation {
   const location = locateAnimation(document, animationId);
   if (location === null) {
@@ -749,8 +785,34 @@ function shiftedWords(node: DocumentObject, deltaUs: number): DocumentObject {
   };
 }
 
-/** Every keyframe of an owner's animations moved by `deltaUs`; every key keeps its place (D55.3). */
+/**
+ * Every keyframe of an owner's animations, and the scene time of every accent of
+ * its text animations, moved by `deltaUs`; every key keeps its place (D55.3, D69).
+ */
 function shiftedAnimations(owner: DocumentObject, deltaUs: number): DocumentObject {
+  return shiftedKeyframes(shiftedAccents(owner, deltaUs), deltaUs);
+}
+
+/** The accents of a text node's text animations moved by `deltaUs` (D69). */
+function shiftedAccents(owner: DocumentObject, deltaUs: number): DocumentObject {
+  const textAnimations: unknown = owner['textAnimations'];
+  if (!Array.isArray(textAnimations)) return owner;
+  return {
+    ...owner,
+    textAnimations: (textAnimations as readonly unknown[]).map((animation) => {
+      if (!isObject(animation)) return animation;
+      const phase: unknown = animation['phase'];
+      if (!isObject(phase) || phase['kind'] !== 'accent') return animation;
+      const startUs: unknown = phase['startUs'];
+      return typeof startUs === 'number'
+        ? { ...animation, phase: { ...phase, startUs: startUs + deltaUs } }
+        : animation;
+    }),
+  };
+}
+
+/** Every keyframe of an owner's animations moved by `deltaUs` (D55.3). */
+function shiftedKeyframes(owner: DocumentObject, deltaUs: number): DocumentObject {
   const animations: unknown = owner['animations'];
   if (!Array.isArray(animations)) return owner;
   return {
@@ -846,13 +908,49 @@ function splitHalves(
       }),
     };
   }
+  if (phasesOf(clip).includes('out')) {
+    throw new EditorError(
+      'split-not-exact',
+      `The text \`${clipId}\` has a text animation of phase out, which would end at the cut in the first half; change or remove it first (D69).`,
+    );
+  }
   return {
     first: { ...clip, durationUs: offsetUs },
     second: deepFreeze(
       renamedAnimations(
-        { ...copyNode(clip), id: newClipId, startUs: atUs, durationUs: restUs, ...source },
+        entrancesAt(
+          { ...copyNode(clip), id: newClipId, startUs: atUs, durationUs: restUs, ...source },
+          startUs,
+        ),
         newClipId,
       ),
+    ),
+  };
+}
+
+/** The phase kinds of a node's text animations, in their order (D69). */
+function phasesOf(node: DocumentObject): readonly unknown[] {
+  const textAnimations: unknown = node['textAnimations'];
+  if (!Array.isArray(textAnimations)) return [];
+  return (textAnimations as readonly unknown[]).map((animation) =>
+    isObject(animation) && isObject(animation['phase']) ? animation['phase']['kind'] : undefined,
+  );
+}
+
+/**
+ * A node's text animations of phase in as accents at `startUs`, the scene time
+ * they started at: the second half of a split plays them exactly as the whole
+ * did (D55.3, D69). Every key keeps its place.
+ */
+function entrancesAt(node: DocumentObject, startUs: number): DocumentObject {
+  const textAnimations: unknown = node['textAnimations'];
+  if (!Array.isArray(textAnimations)) return node;
+  return {
+    ...node,
+    textAnimations: (textAnimations as readonly unknown[]).map((animation) =>
+      isObject(animation) && isObject(animation['phase']) && animation['phase']['kind'] === 'in'
+        ? { ...animation, phase: { kind: 'accent', startUs } }
+        : animation,
     ),
   };
 }
@@ -2209,6 +2307,95 @@ const DEFINITIONS = deepFreeze<Definitions>({
           inverse: parseSetCaptionStyle({ ...command, style }),
         };
       }),
+  },
+  SetTextStyle: {
+    parse: parseSetTextStyle,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['text'], command.nodeId);
+        const style: unknown = node['style'];
+        if (sameData(style, command.style)) return null;
+        return {
+          node: { ...node, style: command.style },
+          inverse: parseSetTextStyle({ ...command, style }),
+        };
+      }),
+  },
+  AddTextAnimation: {
+    parse: parseAddTextAnimation,
+    edit(document, command) {
+      const location = locateNode(document, command.nodeId);
+      if (location === null) throw unknownNode(command.nodeId);
+      requireType(location.node, ['text'], command.nodeId);
+      const textAnimations: unknown = location.node['textAnimations'];
+      if (!Array.isArray(textAnimations)) {
+        throw new EditorError(
+          'unsupported-node',
+          `The node \`${command.nodeId}\` has no text animations.`,
+        );
+      }
+      const list = textAnimations as readonly unknown[];
+      if (command.index > list.length) {
+        throw outOfRange(
+          command.index,
+          list.length,
+          `the text animations of \`${command.nodeId}\``,
+        );
+      }
+      // The ID is read only where it is a string; every other malformation is the
+      // validator's (D41.3).
+      const id: unknown = command.animation['id'];
+      const createdIds = typeof id === 'string' ? [id] : [];
+      refuseTaken(document, createdIds);
+      return {
+        document: replaceNode(document, command.nodeId, {
+          ...location.node,
+          textAnimations: inserted(list, command.index, command.animation),
+        }),
+        // The animation validated by now, so its `id` is an ID of the document's form.
+        invert: () =>
+          parseRemoveTextAnimation({ type: 'RemoveTextAnimation', textAnimationId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveTextAnimation: {
+    parse: parseRemoveTextAnimation,
+    edit(document, command) {
+      const location = locatedTextAnimation(document, command.textAnimationId);
+      // A frozen copy of the whole text animation at its node and index.
+      const inverse = parseAddTextAnimation({
+        type: 'AddTextAnimation',
+        nodeId: location.ownerId,
+        index: location.index,
+        animation: location.animation,
+      });
+      return {
+        document: replaceTextAnimation(document, location, null),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [command.textAnimationId],
+      };
+    },
+  },
+  SetTextAnimation: {
+    parse: parseSetTextAnimation,
+    edit(document, command) {
+      const id: unknown = command.animation['id'];
+      const location = locatedTextAnimation(document, typeof id === 'string' ? id : '');
+      if (sameData(location.animation, command.animation)) return null;
+      const inverse = parseSetTextAnimation({
+        type: 'SetTextAnimation',
+        animation: location.animation,
+      });
+      return {
+        document: replaceTextAnimation(document, location, command.animation),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
   },
   AddTemplateInput: {
     parse: parseAddTemplateInput,

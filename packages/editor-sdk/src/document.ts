@@ -191,7 +191,7 @@ export function idsIn(value: unknown, into: Set<string> = new Set()): Set<string
  * preorder (the node, then its children in array order), then the animation IDs
  * grouped by owner in that same preorder, each owner's in array order. Reads
  * only a string `id` of the node, of the items of `children`, and of the items
- * of `animations`, and only where those are arrays of objects: any other shape
+ * of `animations`, then of `textAnimations` (D69), and only where those are arrays of objects: any other shape
  * is left to the full validation (D39.3).
  */
 export function subtreeIds(node: DocumentObject): readonly string[] {
@@ -200,7 +200,13 @@ export function subtreeIds(node: DocumentObject): readonly string[] {
   const animationIds = owners.flatMap((owner) =>
     objectsIn(owner['animations']).map((animation) => animation['id']),
   );
-  return [...nodeIds, ...animationIds].filter((id): id is string => typeof id === 'string');
+  // The text animations of D69 follow, grouped by owner in the same order.
+  const textAnimationIds = owners.flatMap((owner) =>
+    objectsIn(owner['textAnimations']).map((animation) => animation['id']),
+  );
+  return [...nodeIds, ...animationIds, ...textAnimationIds].filter(
+    (id): id is string => typeof id === 'string',
+  );
 }
 
 /**
@@ -481,6 +487,57 @@ export function locateAnimation(document: object, animationId: string): Animatio
     }
   }
   return null;
+}
+
+/** A text animation, the text node that holds it, and its place in that node's `textAnimations` (D69). */
+export interface TextAnimationLocation {
+  readonly animation: DocumentObject;
+  readonly owner: DocumentObject;
+  readonly ownerId: string;
+  readonly textAnimations: readonly unknown[];
+  readonly index: number;
+}
+
+/**
+ * The text animation with that ID, looked up in the `textAnimations` of the
+ * nodes of the scenes and of the groups' children (D69), or `null`.
+ */
+export function locateTextAnimation(
+  document: object,
+  textAnimationId: string,
+): TextAnimationLocation | null {
+  for (const scene of objectsIn(fieldsOf(document)['scenes'])) {
+    for (const node of objectsIn(scene['nodes'])) {
+      for (const owner of [node, ...objectsIn(node['children'])]) {
+        const textAnimations = asArray(owner['textAnimations']);
+        if (textAnimations === null) continue;
+        const index = textAnimations.findIndex(
+          (animation) => isObject(animation) && animation['id'] === textAnimationId,
+        );
+        const animation = textAnimations[index];
+        if (isObject(animation)) {
+          return { animation, owner, ownerId: idOf(owner), textAnimations, index };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * The document with `animation` in the place of the text animation at
+ * `location`, or without it when `animation` is `null` (D69).
+ */
+export function replaceTextAnimation(
+  document: object,
+  location: TextAnimationLocation,
+  animation: DocumentObject | null,
+): DocumentObject {
+  const textAnimations =
+    animation === null
+      ? location.textAnimations.filter((_, at) => at !== location.index)
+      : location.textAnimations.map((item, at) => (at === location.index ? animation : item));
+  return replaceNode(document, location.ownerId, { ...location.owner, textAnimations });
 }
 
 /** The keyframes of an animation, as the document holds them. */

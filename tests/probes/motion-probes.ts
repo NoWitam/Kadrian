@@ -89,7 +89,7 @@ const node = (id: string, x: number, y: number) => ({
 /** The probe composition: schema 0.13, one scene, three subjects on a dark background. */
 export function probeComposition(): unknown {
   return {
-    schemaVersion: '0.13',
+    schemaVersion: '0.14',
     width: WIDTH,
     height: HEIGHT,
     fps: FPS,
@@ -135,6 +135,8 @@ export function probeComposition(): unknown {
             fontAssetId: 'asset-font',
             fontSize: 144,
             color: '#fec84b',
+            style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
+            textAnimations: [],
           },
           {
             ...node('node-video', 120, 600),

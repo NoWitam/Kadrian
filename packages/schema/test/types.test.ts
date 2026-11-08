@@ -28,7 +28,10 @@ import type {
   TemplateFieldValue,
   TemplateInput,
   TemplateRepeat,
+  FragmentTrack,
+  TextAnimation,
   TextNode,
+  TextStyle,
   ValidatedComposition,
   ValidationResult,
   VideoNode,
@@ -141,6 +144,59 @@ interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> 
   readonly volume: number;
 }
 
+/** The style of a text (D69). */
+interface ExpectedTextStyle {
+  readonly stroke:
+    | { readonly kind: 'none' }
+    | { readonly kind: 'outside'; readonly color: string; readonly width: number };
+  readonly shadow:
+    | { readonly kind: 'none' }
+    | {
+        readonly kind: 'drop';
+        readonly color: string;
+        readonly opacity: number;
+        readonly offset: Vec2;
+        readonly blur: number;
+      };
+  readonly box:
+    | { readonly kind: 'none' }
+    | {
+        readonly kind: 'solid';
+        readonly color: string;
+        readonly opacity: number;
+        readonly padding: number;
+        readonly cornerRadius: number;
+      };
+}
+
+/** A track of a text animation: an animation without an ID (D69). */
+type ExpectedTrack<Property extends string, Value> = Omit<ExpectedAnimation<Property, Value>, 'id'>;
+
+type ExpectedFragmentTrack =
+  | ExpectedTrack<'opacity', number>
+  | ExpectedTrack<'offset', Vec2>
+  | ExpectedTrack<'scale', Vec2>
+  | ExpectedTrack<'rotation', number>
+  | ExpectedTrack<'color', string>;
+
+/** An animation of the fragments of a text (D69). */
+interface ExpectedTextAnimation {
+  readonly id: string;
+  readonly unit: 'letter' | 'word' | 'line';
+  readonly phase:
+    | { readonly kind: 'in' }
+    | { readonly kind: 'out' }
+    | { readonly kind: 'accent'; readonly startUs: number };
+  readonly staggerUs: number;
+  readonly order:
+    | { readonly kind: 'forward' }
+    | { readonly kind: 'backward' }
+    | { readonly kind: 'center' }
+    | { readonly kind: 'edges' }
+    | { readonly kind: 'random'; readonly seed: number };
+  readonly tracks: readonly ExpectedFragmentTrack[];
+}
+
 interface ExpectedTextNode extends ExpectedTransform<
   ExpectedTransformAnimation | ExpectedColorAnimation
 > {
@@ -150,6 +206,8 @@ interface ExpectedTextNode extends ExpectedTransform<
   readonly fontAssetId: string;
   readonly fontSize: number;
   readonly color: string;
+  readonly style: ExpectedTextStyle;
+  readonly textAnimations: readonly ExpectedTextAnimation[];
 }
 
 interface ExpectedCustomHtmlNode extends ExpectedTransform {
@@ -397,7 +455,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.13';
+  readonly schemaVersion: '0.14';
   readonly width: number;
   readonly height: number;
   readonly fps: number;
@@ -419,6 +477,9 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<GroupNode>().toEqualTypeOf<ExpectedGroupNode>();
     expectTypeOf<ImageNode>().toEqualTypeOf<ExpectedImageNode>();
     expectTypeOf<TextNode>().toEqualTypeOf<ExpectedTextNode>();
+    expectTypeOf<TextStyle>().toEqualTypeOf<ExpectedTextStyle>();
+    expectTypeOf<TextAnimation>().toEqualTypeOf<ExpectedTextAnimation>();
+    expectTypeOf<FragmentTrack>().toEqualTypeOf<ExpectedFragmentTrack>();
     expectTypeOf<CustomHtmlNode>().toEqualTypeOf<ExpectedCustomHtmlNode>();
     expectTypeOf<VideoNode>().toEqualTypeOf<ExpectedVideoNode>();
     expectTypeOf<CaptionsNode>().toEqualTypeOf<ExpectedCaptionsNode>();

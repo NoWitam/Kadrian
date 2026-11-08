@@ -86,6 +86,8 @@ function start(): ValidatedComposition {
         fontAssetId: 'asset-font',
         fontSize: 64,
         color: '#ffffff',
+        style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
+        textAnimations: [],
       },
     ],
   });

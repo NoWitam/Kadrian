@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.13",
+  "schemaVersion": "0.14",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -52,7 +52,13 @@
           "text": "{{title}}",
           "fontAssetId": "asset-font",
           "fontSize": 48,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],
@@ -150,7 +156,13 @@
           "text": "{{people.name}} {{title}}",
           "fontAssetId": "asset-font",
           "fontSize": 40,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],
@@ -218,7 +230,13 @@
           "text": "{{people.name}}",
           "fontAssetId": "asset-font",
           "fontSize": 40,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "credits-empty",
@@ -243,7 +261,13 @@
           "text": "no one",
           "fontAssetId": "asset-font",
           "fontSize": 40,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "credits-stars",
@@ -268,7 +292,13 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
-          "color": "#e4e7ec"
+          "color": "#e4e7ec",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],

@@ -14,6 +14,10 @@ export type { CaptionInstant, CaptionLine, CaptionPage } from './captions.js';
 export { EvaluationError } from './errors.js';
 export type { EvaluationErrorCode } from './errors.js';
 export { evaluateComposition } from './evaluate.js';
+export { fragmentSteps, textFragments } from './fragments.js';
+export { UNICODE_VERSION } from './grapheme-table.js';
+export { graphemes, isWhiteSpace, textLayout } from './graphemes.js';
+export type { TextLayout, TextLine, TextRun, TextWord } from './graphemes.js';
 export type {
   BackgroundNodeState,
   CaptionsNodeState,
@@ -22,6 +26,7 @@ export type {
   ClipTransitionState,
   CompositionState,
   CropState,
+  FragmentState,
   GroupNodeState,
   Hole,
   ImageNodeState,
@@ -34,6 +39,7 @@ export type {
   SceneState,
   SceneTransitionState,
   Size,
+  TextFragmentsState,
   TextNodeState,
   TransformState,
   Vec2,

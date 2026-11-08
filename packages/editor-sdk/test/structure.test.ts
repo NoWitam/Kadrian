@@ -85,6 +85,8 @@ function textNode(id: string, animationId?: string): Record<string, unknown> {
     fontAssetId: 'asset-font',
     fontSize: 40,
     color: '#ffffff',
+    style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
+    textAnimations: [],
   };
 }
 

@@ -68,6 +68,30 @@ export function cssColor(hex: string): string {
 }
 
 /**
+ * A schema colour with an opacity (D69), as the CSS Object Model serialises
+ * it: `rgb(r, g, b)` when opaque, `rgba(r, g, b, a)` otherwise.
+ */
+export function cssTranslucent(hex: string, opacity: number): string {
+  if (opacity === 1) return cssColor(hex);
+  return `${cssColor(hex).replace('rgb(', 'rgba(').slice(0, -1)}, ${cssNumber(opacity)})`;
+}
+
+/**
+ * The transform of a fragment of a text (D69), about the fragment's own centre
+ * (the initial `transform-origin` of its element): moved by its offset, then
+ * rotated, then scaled, as CSS applies the list from the right. Every part is
+ * written, at rest too, so that a fragment never changes how it is drawn.
+ */
+export function cssFragmentTransform(fragment: {
+  readonly offset: Vec2;
+  readonly rotation: number;
+  readonly scale: Vec2;
+}): string {
+  const { offset, rotation, scale } = fragment;
+  return `translate(${cssPixels(offset.x)}, ${cssPixels(offset.y)}) rotate(${cssNumber(rotation)}deg) scale(${cssNumber(scale.x)}, ${cssNumber(scale.y)})`;
+}
+
+/**
  * The `object-position` of a focus point (D63.2): per mille of the picture's
  * sides as a percentage, which CSS reads as the same fraction of the picture and
  * of the box, so the focus point lies at that fraction of the box. The centre,

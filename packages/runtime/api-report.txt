@@ -110,6 +110,15 @@ export declare class EvaluationError extends RangeError {
 ---- EvaluationErrorCode (type only)
 export type EvaluationErrorCode = 'time-not-integer' | 'time-out-of-range' | 'invalid-document';
 
+---- FragmentState (type only)
+export interface FragmentState {
+    readonly opacity: number;
+    readonly offset: Vec2;
+    readonly scale: Vec2;
+    readonly rotation: number;
+    readonly color: string;
+}
+
 ---- GroupNodeState (type only)
 export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide {
     readonly id: string;
@@ -199,9 +208,40 @@ export interface SoundLayout {
     readonly fadeOut: SampleFade | null;
 }
 
+---- TextFragmentsState (type only)
+export interface TextFragmentsState {
+    readonly lines: readonly FragmentState[];
+    readonly words: readonly FragmentState[];
+    readonly letters: readonly FragmentState[];
+}
+
+---- TextLayout (type only)
+export interface TextLayout {
+    readonly lines: readonly TextLine[];
+    readonly letters: number;
+    readonly words: number;
+    readonly fragmentLines: number;
+}
+
+---- TextLine (type only)
+export interface TextLine {
+    readonly runs: readonly TextRun[];
+}
+
 ---- TextNodeState (type only)
 export interface TextNodeState extends LeafNodeState<'text'> {
     readonly color: string;
+    readonly fragments: TextFragmentsState | null;
+}
+
+---- TextRun (type only)
+export type TextRun = {
+    readonly space: string;
+} | TextWord;
+
+---- TextWord (type only)
+export interface TextWord {
+    readonly letters: readonly string[];
 }
 
 ---- TransformState (type only)
@@ -212,6 +252,9 @@ export interface TransformState {
     readonly origin: Vec2;
     readonly opacity: number;
 }
+
+---- UNICODE_VERSION
+export declare const UNICODE_VERSION = "17.0.0";
 
 ---- Vec2 (type only)
 export interface Vec2 {
@@ -245,5 +288,20 @@ export declare function captionPages(words: readonly CaptionWord[], style: Pick<
 ---- evaluateComposition
 export declare function evaluateComposition(composition: ValidatedComposition, timeUs: number): CompositionState;
 
+---- fragmentSteps
+export declare function fragmentSteps(order: TextAnimation['order'], count: number): number[];
+
+---- graphemes
+export declare function graphemes(text: string): string[];
+
+---- isWhiteSpace
+export declare function isWhiteSpace(codePoint: number): boolean;
+
 ---- sampleAt
 export declare function sampleAt(timeUs: bigint): bigint;
+
+---- textFragments
+export declare function textFragments(node: TextNode, color: string, timeUs: number): TextFragmentsState | null;
+
+---- textLayout
+export declare function textLayout(text: string): TextLayout;

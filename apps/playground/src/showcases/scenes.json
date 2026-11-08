@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.13",
+  "schemaVersion": "0.14",
   "width": 1280,
   "height": 720,
   "fps": 30,
@@ -52,7 +52,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 120,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "intro-image",
@@ -165,7 +171,13 @@
           "text": "scenes",
           "fontAssetId": "asset-font",
           "fontSize": 120,
-          "color": "#101828"
+          "color": "#101828",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],
@@ -206,7 +218,13 @@
           "text": "stories",
           "fontAssetId": "asset-font",
           "fontSize": 120,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],
@@ -283,7 +301,13 @@
           "text": "end",
           "fontAssetId": "asset-font",
           "fontSize": 120,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],

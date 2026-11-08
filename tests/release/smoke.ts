@@ -38,7 +38,7 @@ export const SMOKE_ESBUILD_VERSION = '0.28.2';
 
 /** A composition without assets, so the smoke test needs no bytes but the release's. */
 export const SMOKE_COMPOSITION = Object.freeze({
-  schemaVersion: '0.13',
+  schemaVersion: '0.14',
   width: 320,
   height: 240,
   fps: 30,

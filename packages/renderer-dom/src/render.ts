@@ -12,11 +12,13 @@ import type {
   Inset,
   NodeState,
   SceneState,
+  TextNodeState,
 } from '@kadrion/runtime';
 
 import {
   cssCircle,
   cssColor,
+  cssFragmentTransform,
   cssHole,
   cssInset,
   cssNumber,
@@ -30,6 +32,7 @@ import {
   CAPTION_PAGE_ATTRIBUTE,
   CAPTION_WORD_ATTRIBUTE,
   CLIP_FRAME_ATTRIBUTE,
+  FRAGMENT_ATTRIBUTE,
   HIGHLIGHT_PROPERTY,
   NODE_ATTRIBUTE,
   SCENE_ATTRIBUTE,
@@ -57,6 +60,16 @@ const WRITTEN = ['transform', 'opacity', 'visibility', 'background-color', 'colo
  * the mount writes a width and a height of its own, which stay.
  */
 const PICTURE_WRITTEN = ['width', 'height', 'object-view-box', 'border-radius'] as const;
+
+/** The declarations `renderState` writes on a fragment of a text (D69); the mount writes none of them. */
+const FRAGMENT_WRITTEN = ['opacity', 'transform', 'color'] as const;
+
+/** The units of fragments, with the list of each in the state of a text (D69). */
+const FRAGMENT_UNITS = [
+  ['line', 'lines'],
+  ['word', 'words'],
+  ['letter', 'letters'],
+] as const;
 
 /** The declarations of a scene transition on a scene element (D56); the mount writes none of them. */
 const TRANSITION_WRITTEN = ['opacity', 'transform', 'clip-path'] as const;
@@ -135,8 +148,20 @@ function plan(
       writes.push({ element, state, sceneTimeUs });
       return;
     }
-    case 'image':
     case 'text':
+      // The fragments of every unit must be those the mount built (D69).
+      for (const [unit, list] of FRAGMENT_UNITS) {
+        const mounted = fragmentsOf(element, unit).length;
+        const evaluated = state.fragments?.[list].length ?? 0;
+        if (mounted !== evaluated) {
+          mismatch(
+            `The text \`${state.id}\` has ${String(mounted)} fragments of the unit ${unit} mounted where the state has ${String(evaluated)}.`,
+          );
+        }
+      }
+      writes.push({ element, state, sceneTimeUs });
+      return;
+    case 'image':
     case 'custom-html':
     case 'video':
       writes.push({ element, state, sceneTimeUs });
@@ -266,12 +291,16 @@ export function renderState(root: Element, state: CompositionState): void {
       }
       writeCaptions(node, null);
     }
+    for (const fragment of element.querySelectorAll<HTMLElement>(`[${FRAGMENT_ATTRIBUTE}]`)) {
+      for (const property of FRAGMENT_WRITTEN) fragment.style.removeProperty(property);
+    }
     for (const frame of element.querySelectorAll<HTMLElement>(`[${CLIP_FRAME_ATTRIBUTE}]`)) {
       writeClipFrame(frame, undefined);
     }
   }
   for (const { element, state: node } of tree.nodes) {
     if (node.type === 'captions') writeCaptions(element, node);
+    if (node.type === 'text') writeFragments(element, node);
     writeProperties(element, node);
     if (node.type !== 'background') {
       const moved = cssTransitionTransform(node.transition ?? {});
@@ -312,6 +341,30 @@ function writeProperties(element: HTMLElement, node: NodeState): void {
       return;
     default:
       return;
+  }
+}
+
+/** The fragments of one unit of a text's element, in the order of the text (D69). */
+function fragmentsOf(element: HTMLElement, unit: string): HTMLElement[] {
+  return [...element.querySelectorAll<HTMLElement>(`[${FRAGMENT_ATTRIBUTE}="${unit}"]`)];
+}
+
+/**
+ * Writes the opacity, the transform, and the colour of every fragment of a
+ * text (D69), at rest too, so that nothing depends on what an earlier call
+ * left. `plan` has checked that the mount built exactly these fragments.
+ */
+function writeFragments(element: HTMLElement, node: TextNodeState): void {
+  if (node.fragments === null) return;
+  for (const [unit, list] of FRAGMENT_UNITS) {
+    const states = node.fragments[list];
+    fragmentsOf(element, unit).forEach((fragment, index) => {
+      const state = states[index];
+      if (state === undefined) return;
+      fragment.style.setProperty('opacity', cssNumber(state.opacity));
+      fragment.style.setProperty('transform', cssFragmentTransform(state));
+      fragment.style.setProperty('color', cssColor(state.color));
+    });
   }
 }
 
