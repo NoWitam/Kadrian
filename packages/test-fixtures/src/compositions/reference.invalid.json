@@ -32,7 +32,7 @@
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.14" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.15" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -3091,6 +3091,339 @@
           "keyframes": [
             { "timeUs": 0, "value": "#ffffff", "easing": { "kind": "linear" } },
             { "timeUs": 1000000, "value": "#000000", "easing": { "kind": "linear" } }
+          ]
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "brand", "type": "color", "default": "#ffffff" }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-brand",
+          "kind": "property",
+          "nodeId": "node-title",
+          "property": "color",
+          "inputId": "brand"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "bound-property-animated", "path": "/template/bindings/0/property" }
+    ]
+  },
+  {
+    "name": "text-style-missing",
+    "description": "D69: every text has a style, plain or not.",
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/2/style" }],
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/nodes/2/style" }]
+  },
+  {
+    "name": "text-stroke-width-zero",
+    "description": "D69: a stroke is at least one pixel wide; no stroke is kind none.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/style/stroke",
+        "value": { "kind": "outside", "color": "#000000", "width": 0 }
+      }
+    ],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/2/style/stroke/width" }]
+  },
+  {
+    "name": "text-shadow-opacity-above-one",
+    "description": "D69: the opacity of a shadow is a factor from 0 to 1.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/style/shadow",
+        "value": {
+          "kind": "drop",
+          "color": "#000000",
+          "opacity": 1.5,
+          "offset": { "x": 0, "y": 4 },
+          "blur": 4
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/2/style/shadow/opacity" }]
+  },
+  {
+    "name": "text-box-kind-unknown",
+    "description": "D69: a box is none or solid.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/style/box", "value": { "kind": "gradient" } }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/2/style/box/kind" }]
+  },
+  {
+    "name": "text-animation-unit-unknown",
+    "description": "D69: a fragment is a letter, a word, or a line.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/textAnimations/-",
+        "value": {
+          "id": "text-title-in",
+          "unit": "sentence",
+          "phase": { "kind": "in" },
+          "staggerUs": 50000,
+          "order": { "kind": "forward" },
+          "tracks": [
+            {
+              "property": "opacity",
+              "keyframes": [
+                { "timeUs": 0, "value": 0, "easing": { "kind": "linear" } },
+                { "timeUs": 300000, "value": 1, "easing": { "kind": "linear" } }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-value", "path": "/scenes/0/nodes/2/textAnimations/0/unit" }
+    ]
+  },
+  {
+    "name": "text-animation-tracks-empty",
+    "description": "D69: a text animation has at least one track.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/textAnimations/-",
+        "value": {
+          "id": "text-title-in",
+          "unit": "letter",
+          "phase": { "kind": "in" },
+          "staggerUs": 50000,
+          "order": { "kind": "forward" },
+          "tracks": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-length", "path": "/scenes/0/nodes/2/textAnimations/0/tracks" }
+    ]
+  },
+  {
+    "name": "text-animation-track-twice",
+    "description": "D69: a text animation has at most one track per property.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/textAnimations/-",
+        "value": {
+          "id": "text-title-in",
+          "unit": "letter",
+          "phase": { "kind": "in" },
+          "staggerUs": 50000,
+          "order": { "kind": "forward" },
+          "tracks": [
+            {
+              "property": "rotation",
+              "keyframes": [
+                { "timeUs": 0, "value": 0, "easing": { "kind": "linear" } },
+                { "timeUs": 1, "value": 1, "easing": { "kind": "linear" } }
+              ]
+            },
+            {
+              "property": "rotation",
+              "keyframes": [
+                { "timeUs": 0, "value": 0, "easing": { "kind": "linear" } },
+                { "timeUs": 1, "value": 1, "easing": { "kind": "linear" } }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "duplicate-animation-target",
+        "path": "/scenes/0/nodes/2/textAnimations/0/tracks/1/property"
+      }
+    ]
+  },
+  {
+    "name": "text-animation-keyframes-not-ascending",
+    "description": "D69: the keyframes of a track ascend strictly, as those of an animation.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/textAnimations/-",
+        "value": {
+          "id": "text-title-in",
+          "unit": "letter",
+          "phase": { "kind": "in" },
+          "staggerUs": 50000,
+          "order": { "kind": "forward" },
+          "tracks": [
+            {
+              "property": "opacity",
+              "keyframes": [
+                { "timeUs": 300000, "value": 0, "easing": { "kind": "linear" } },
+                { "timeUs": 300000, "value": 1, "easing": { "kind": "linear" } }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "keyframes-not-ascending",
+        "path": "/scenes/0/nodes/2/textAnimations/0/tracks/0/keyframes/1/timeUs"
+      }
+    ]
+  },
+  {
+    "name": "text-animation-seed-too-large",
+    "description": "D69: the seed of a random order is an unsigned 32-bit integer.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/textAnimations/-",
+        "value": {
+          "id": "text-title-in",
+          "unit": "letter",
+          "phase": { "kind": "in" },
+          "staggerUs": 50000,
+          "order": { "kind": "random", "seed": 4294967296 },
+          "tracks": [
+            {
+              "property": "opacity",
+              "keyframes": [
+                { "timeUs": 0, "value": 0, "easing": { "kind": "linear" } },
+                { "timeUs": 300000, "value": 1, "easing": { "kind": "linear" } }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "out-of-range", "path": "/scenes/0/nodes/2/textAnimations/0/order/seed" }
+    ]
+  },
+  {
+    "name": "text-animation-accent-negative",
+    "description": "D69: an accent starts at a scene time, from 0.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/textAnimations/-",
+        "value": {
+          "id": "text-title-in",
+          "unit": "letter",
+          "phase": { "kind": "accent", "startUs": -1 },
+          "staggerUs": 50000,
+          "order": { "kind": "forward" },
+          "tracks": [
+            {
+              "property": "opacity",
+              "keyframes": [
+                { "timeUs": 0, "value": 0, "easing": { "kind": "linear" } },
+                { "timeUs": 300000, "value": 1, "easing": { "kind": "linear" } }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "out-of-range", "path": "/scenes/0/nodes/2/textAnimations/0/phase/startUs" }
+    ]
+  },
+  {
+    "name": "text-animation-id-taken",
+    "description": "D69: a text animation has an ID of its own, unused in the document.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/textAnimations/-",
+        "value": {
+          "id": "anim-title-opacity",
+          "unit": "letter",
+          "phase": { "kind": "in" },
+          "staggerUs": 50000,
+          "order": { "kind": "forward" },
+          "tracks": [
+            {
+              "property": "opacity",
+              "keyframes": [
+                { "timeUs": 0, "value": 0, "easing": { "kind": "linear" } },
+                { "timeUs": 300000, "value": 1, "easing": { "kind": "linear" } }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "duplicate-id", "path": "/scenes/0/nodes/2/textAnimations/0/id" }]
+  },
+  {
+    "name": "text-animation-color-uppercase",
+    "description": "D69: a colour keyframe of a track is lowercase #rrggbb.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/textAnimations/-",
+        "value": {
+          "id": "text-title-in",
+          "unit": "letter",
+          "phase": { "kind": "in" },
+          "staggerUs": 50000,
+          "order": { "kind": "forward" },
+          "tracks": [
+            {
+              "property": "color",
+              "keyframes": [
+                { "timeUs": 0, "value": "#000000", "easing": { "kind": "linear" } },
+                { "timeUs": 1, "value": "#FFFFFF", "easing": { "kind": "linear" } }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/textAnimations/0/tracks/0/keyframes/1/value"
+      }
+    ]
+  },
+  {
+    "name": "text-animations-on-background",
+    "description": "D69: only a text has text animations.",
+    "patch": [{ "op": "add", "path": "/scenes/0/nodes/0/textAnimations", "value": [] }],
+    "expectedErrors": [{ "code": "unknown-field", "path": "/scenes/0/nodes/0/textAnimations" }]
+  },
+  {
+    "name": "bound-color-of-color-track",
+    "description": "D69: a colour that a colour track replaces for every fragment cannot be bound.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/textAnimations/-",
+        "value": {
+          "id": "text-title-in",
+          "unit": "letter",
+          "phase": { "kind": "in" },
+          "staggerUs": 50000,
+          "order": { "kind": "forward" },
+          "tracks": [
+            {
+              "property": "color",
+              "keyframes": [
+                { "timeUs": 0, "value": "#ffffff", "easing": { "kind": "linear" } },
+                { "timeUs": 1, "value": "#000000", "easing": { "kind": "linear" } }
+              ]
+            }
           ]
         }
       },

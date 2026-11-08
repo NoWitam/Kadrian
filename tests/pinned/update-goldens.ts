@@ -3,7 +3,8 @@
  * reference composition, of the video composition (D50.8), of the
  * transitions composition (D56), of the clip transitions composition (D66),
  * of the captions composition (D57), of the focus composition (D63), of the
- * easing composition (D67), and of the motion composition (D68) with the Producer and writes the golden frames and their manifests into
+ * easing composition (D67), of the motion composition (D68), and of the text
+ * composition (D69) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -37,6 +38,8 @@ import {
   focusGoldenTimestamps,
   motionComposition,
   motionGoldenTimestamps,
+  textComposition,
+  textGoldenTimestamps,
   transitionsComposition,
   transitionsGoldenTimestamps,
   VIDEO_FIXTURE,
@@ -223,6 +226,25 @@ try {
       `${JSON.stringify({ render: motionResult.manifest, environment, frames: motionFrames }, null, 2)}\n`,
     );
     for (const frame of motionFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The text composition: a stroke, a shadow, a box, and fragments of every unit and order (D69).
+    const textResult = await renderFrames({
+      document: textComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: textGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const textFrames = textResult.frames.map(({ index, timeUs, png }) => {
+      const file = `text-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'text.golden-frames.json'),
+      `${JSON.stringify({ render: textResult.manifest, environment, frames: textFrames }, null, 2)}
+`,
+    );
+    for (const frame of textFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

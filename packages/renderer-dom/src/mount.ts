@@ -5,11 +5,18 @@
  * colour of a background, a text, and captions, and the size, crop, and
  * corner radius of an image or a video.
  */
-import { captionPages } from '@kadrion/runtime';
-import type { CaptionsNode, GroupNode, SceneNode, ValidatedComposition } from '@kadrion/schema';
+import { captionPages, textLayout } from '@kadrion/runtime';
+import type {
+  CaptionsNode,
+  FragmentUnit,
+  GroupNode,
+  SceneNode,
+  TextNode,
+  ValidatedComposition,
+} from '@kadrion/schema';
 
 import { checkAssetUrls, type AssetUrls } from './assets.js';
-import { cssColor, cssObjectPosition, cssPixels, fontFamily } from './css.js';
+import { cssColor, cssObjectPosition, cssPixels, cssTranslucent, fontFamily } from './css.js';
 import { unsupportedNode } from './errors.js';
 import {
   CUSTOM_HTML_ATTRIBUTE,
@@ -33,6 +40,13 @@ export const CLIP_FRAME_ATTRIBUTE = 'data-kadrion-clip-frame';
 /** The index of a page of captions, and of a word in the node's `words` (D57). */
 export const CAPTION_PAGE_ATTRIBUTE = 'data-kadrion-caption-page';
 export const CAPTION_WORD_ATTRIBUTE = 'data-kadrion-caption-word';
+/**
+ * A fragment of a text with text animations (D69): its unit, `line`, `word`, or
+ * `letter`. The fragments of one unit are found in the order of the text.
+ */
+export const FRAGMENT_ATTRIBUTE = 'data-kadrion-fragment';
+/** The box behind a text (D69), the first child of the text's element. */
+export const TEXT_BOX_ATTRIBUTE = 'data-kadrion-text-box';
 /** The custom property on a captions box that holds its highlight colour (D57). */
 export const HIGHLIGHT_PROPERTY = '--kadrion-caption-highlight';
 
@@ -113,6 +127,101 @@ function captionsElement(document: Document, node: CaptionsNode, address: Styles
     box.append(pageElement);
   });
   return box;
+}
+
+/**
+ * The declarations of a text's style (D69): an outline drawn outside every
+ * glyph — a stroke of twice the width under the fill, so that its inner half is
+ * covered — and a shadow. A style of `none` writes nothing, so a text of 0.13
+ * is the element it was. Each value is written as the CSS Object Model
+ * serialises it: `paint-order: stroke fill` reads back as `stroke`.
+ */
+function textStyle(style: TextNode['style']): Styles {
+  const out: Record<string, string> = {};
+  if (style.stroke.kind === 'outside') {
+    out['-webkit-text-stroke-width'] = cssPixels(2 * style.stroke.width);
+    out['-webkit-text-stroke-color'] = cssColor(style.stroke.color);
+    out['paint-order'] = 'stroke';
+  }
+  if (style.shadow.kind === 'drop') {
+    const { color, opacity, offset, blur } = style.shadow;
+    out['text-shadow'] =
+      `${cssTranslucent(color, opacity)} ${cssPixels(offset.x)} ${cssPixels(offset.y)} ${cssPixels(blur)}`;
+  }
+  return out;
+}
+
+/**
+ * The box behind a text (D69): an element of its own, the first child of the
+ * text's element, reaching `padding` beyond the box of the lines on every side
+ * and painted under the glyphs (`z-index: -1` inside the stacking context of
+ * the transformed text), so that it moves nothing and the node's box stays the
+ * box of its lines.
+ */
+function textBox(document: Document, box: Extract<TextNode['style']['box'], { kind: 'solid' }>) {
+  const inset = cssPixels(-box.padding);
+  return create(
+    document,
+    'span',
+    { [TEXT_BOX_ATTRIBUTE]: '' },
+    {
+      position: 'absolute',
+      left: inset,
+      top: inset,
+      right: inset,
+      bottom: inset,
+      'z-index': '-1',
+      'background-color': cssTranslucent(box.color, box.opacity),
+      'border-radius': cssPixels(box.cornerRadius),
+    },
+  );
+}
+
+/**
+ * The content of a text with text animations (D65.3, D69), in fragments of
+ * every unit its animations use, nested line, word, letter: one
+ * `inline-block` element per fragment, white space and line feeds as text
+ * between them. A line holds the fragments of its words, a word those of its
+ * letters; a unit no animation uses has no element, and its text stands in
+ * the element of the next larger unit. Nothing else is written: the values of
+ * a fragment are written by `renderState`.
+ */
+function fragmentContent(
+  document: Document,
+  parent: HTMLElement,
+  text: string,
+  units: ReadonlySet<FragmentUnit>,
+): void {
+  const fragment = (unit: FragmentUnit): HTMLElement =>
+    create(document, 'span', { [FRAGMENT_ATTRIBUTE]: unit }, { display: 'inline-block' });
+  textLayout(text).lines.forEach((line, lineIndex) => {
+    if (lineIndex > 0) parent.append(document.createTextNode('\n'));
+    let lineParent = parent;
+    if (units.has('line') && line.runs.some((run) => 'letters' in run)) {
+      lineParent = fragment('line');
+      parent.append(lineParent);
+    }
+    for (const run of line.runs) {
+      if ('space' in run) {
+        lineParent.append(document.createTextNode(run.space));
+        continue;
+      }
+      let wordParent = lineParent;
+      if (units.has('word')) {
+        wordParent = fragment('word');
+        lineParent.append(wordParent);
+      }
+      if (units.has('letter')) {
+        for (const letter of run.letters) {
+          const element = fragment('letter');
+          element.append(document.createTextNode(letter));
+          wordParent.append(element);
+        }
+      } else {
+        wordParent.append(document.createTextNode(run.letters.join('')));
+      }
+    }
+  });
 }
 
 /**
@@ -199,9 +308,15 @@ function nodeElement(
         'line-height': '1.25',
         'font-weight': '400',
         'font-style': 'normal',
+        ...textStyle(node.style),
       });
-      // A text node, never markup: the document's text is not parsed.
-      text.append(document.createTextNode(node.text));
+      if (node.style.box.kind === 'solid') text.append(textBox(document, node.style.box));
+      // Text nodes, never markup: the document's text is not parsed.
+      if (node.textAnimations.length === 0) text.append(document.createTextNode(node.text));
+      else {
+        const units = new Set(node.textAnimations.map((animation) => animation.unit));
+        fragmentContent(document, text, node.text, units);
+      }
       return text;
     }
     case 'captions':

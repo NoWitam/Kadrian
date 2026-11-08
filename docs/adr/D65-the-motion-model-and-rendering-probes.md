@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-11-07, after PR-45 was merged
 - Date: 2026-11-07
 - Amended by: PR-48 (D68) on 2026-11-07: 65.1: the rows of PR-48 as built: `size` on images and videos only, `color` on backgrounds, texts, and captions, an origin offset from −1000 to 1000 (D68.3)
+- Amended by: PR-49 (D69) on 2026-11-08: 65.3: fragments of text as built, letters by a table of Unicode 17.0.0 (D69.2, D69.5)
 - Supersedes: —
 - Related: D03, D15, D16, D18, D19, D22, D23, D26, D28, D33, D34, D41, D46,
   D49, D56, D57, D58, D59, [phase five](../roadmap/phase-5.md) (PR-45), the

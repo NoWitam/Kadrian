@@ -25,7 +25,9 @@ import type {
   templateInputSchema,
   templateRepeatSchema,
   templateSchema,
+  textAnimationSchema,
   textNodeSchema,
+  textStyleSchema,
   videoNodeSchema,
 } from './composition-schema.js';
 import type { Infer } from './json-schema.js';
@@ -82,6 +84,14 @@ export type Crop = ImageNode['crop'];
 export type Origin = ImageNode['origin'];
 /** The property an animation targets: a row of the table of D65.1 (D68). */
 export type AnimatedProperty = NodeAnimation['property'];
+/** The outline, the shadow, and the box of a text node (D69). */
+export type TextStyle = Infer<typeof textStyleSchema>;
+/** An animation of the letters, words, or lines of a text node, one after another (D69). */
+export type TextAnimation = Infer<typeof textAnimationSchema>;
+/** One track of a text animation: one property of every fragment, in its own time (D69). */
+export type FragmentTrack = TextAnimation['tracks'][number];
+/** What a fragment of a text animation is (D69). */
+export type FragmentUnit = TextAnimation['unit'];
 export type SceneTransition = Infer<typeof sceneTransitionSchema>;
 export type ClipTransition = Infer<typeof clipTransitionSchema>;
 /** How a transition combines its two sides, between scenes and between clips alike (D56, D66). */

@@ -73,6 +73,8 @@ const captionNode = {
   fontAssetId: 'asset-font',
   fontSize: 48,
   color: '#ffffff',
+  style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
+  textAnimations: [],
 };
 
 describe('the literals of the example, as this test reads them', () => {

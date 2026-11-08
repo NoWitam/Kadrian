@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.13",
+  "schemaVersion": "0.14",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -52,7 +52,13 @@
           "text": "a",
           "fontAssetId": "asset-font",
           "fontSize": 72,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "a-image",
@@ -165,7 +171,13 @@
           "text": "b",
           "fontAssetId": "asset-font",
           "fontSize": 72,
-          "color": "#101828"
+          "color": "#101828",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],
@@ -206,7 +218,13 @@
           "text": "c",
           "fontAssetId": "asset-font",
           "fontSize": 72,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],
@@ -283,7 +301,13 @@
           "text": "d",
           "fontAssetId": "asset-font",
           "fontSize": 72,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],
@@ -360,7 +384,13 @@
           "text": "e",
           "fontAssetId": "asset-font",
           "fontSize": 72,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],

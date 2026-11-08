@@ -12,6 +12,7 @@
   and D39.9 (animation IDs in `createdIds`; the commands of D41 in the registry)
 - Amended by: PR-21 (D42) on 2026-10-03 at the owner's request, D39.9
   (`SetNodeLifetime` in the registry)
+- Amended by: PR-49 (D69) on 2026-11-08, D39.3: a copied text animation is renamed `<owner>-t<i>` (D69.7)
 - Related: D02, D05, D09, D16, D23, D27, D30, D31, D36, D38,
   [roadmap of phase two](../roadmap/phase-2.md) PR-19a and PR-19b
 

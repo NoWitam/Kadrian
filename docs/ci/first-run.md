@@ -38,6 +38,10 @@ local run of the same commands, including
   `tests/pinned/motion.pinned.test.ts`, which writes
   `motion/golden-comparison.json`: the pinned test files are 17 and the
   artifact files 70.
+- PR-49 (D69) added, while Q14 was open, the pinned test file
+  `tests/pinned/text.pinned.test.ts`, which writes
+  `text/golden-comparison.json` and `text/node-vs-chromium.json`: the pinned
+  test files are 18 and the artifact files 72.
 
 The evidence of main after PR-42 (2026-11-04), as it was:
 

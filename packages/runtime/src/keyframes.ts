@@ -8,7 +8,8 @@ import { easedValue, requireEasing, within, type Bounds } from './easing.js';
 import { EvaluationError } from './errors.js';
 import type { CropState, Size, Vec2 } from './state.js';
 
-interface Keyframe<Value> {
+/** One keyframe of an animation or of a track of a text animation (D67, D69). */
+export interface Keyframe<Value> {
   readonly timeUs: number;
   readonly value: Value;
   readonly easing: Easing;
@@ -88,6 +89,25 @@ function sampleChannels<Value, K extends string>(
 const SCALAR = ['value'] as const;
 const VECTOR = ['x', 'y'] as const;
 
+/** A number of keyframes at `timeUs`, held within `bounds` where eased (D67.6, D69). */
+export function sampleNumberKeyframes(
+  keyframes: readonly Keyframe<number>[],
+  bounds: Bounds,
+  timeUs: number,
+): number {
+  return sampleChannels(keyframes, bounds, timeUs, SCALAR, (value) => ({ value })).value;
+}
+
+/** A pair `{ x, y }` of keyframes at `timeUs`, two channels of one easing (D69). */
+export function sampleVec2Keyframes(
+  keyframes: readonly Keyframe<Vec2>[],
+  bounds: Bounds,
+  timeUs: number,
+): Vec2 {
+  const { x, y } = sampleChannels(keyframes, bounds, timeUs, VECTOR, (value) => value);
+  return { x, y };
+}
+
 export function sampleScalar(
   animation: AnimationOf<'opacity' | 'rotation' | 'cornerRadius'>,
   timeUs: number,
@@ -138,7 +158,14 @@ function hexOf(channel: number): string {
  * halves upwards: `floor(c + 0.5)`.
  */
 export function sampleColor(animation: AnimationOf<'color'>, timeUs: number): string {
-  const keyframes: readonly Keyframe<string>[] = animation.keyframes;
+  return sampleColorKeyframes(animation.keyframes, timeUs);
+}
+
+/** The colour of keyframes at `timeUs`, by the rule of `sampleColor` (D68, D69). */
+export function sampleColorKeyframes(
+  keyframes: readonly Keyframe<string>[],
+  timeUs: number,
+): string {
   const bounds = PROPERTY_BOUNDS.color;
   return sample(
     keyframes,

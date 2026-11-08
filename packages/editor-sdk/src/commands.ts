@@ -800,6 +800,53 @@ export interface SetCaptionStyleCommand extends SetCaptionStyleArguments {
   readonly type: 'SetCaptionStyle';
 }
 
+/** What a caller states for `SetTextStyle` (D69). */
+export interface SetTextStyleArguments {
+  readonly nodeId: string;
+  /** The complete style, as the document stores it. */
+  readonly style: DocumentObject;
+}
+
+/** Replaces the outline, the shadow, and the box of a text node (D69). */
+export interface SetTextStyleCommand extends SetTextStyleArguments {
+  readonly type: 'SetTextStyle';
+}
+
+/** What a caller states for `AddTextAnimation` (D69). */
+export interface AddTextAnimationArguments {
+  readonly nodeId: string;
+  /** The text animation's index in the node's `textAnimations` after the insertion. */
+  readonly index: number;
+  /** The complete text animation, with its ID and its tracks, as exact data. */
+  readonly animation: DocumentObject;
+}
+
+/** Inserts a complete text animation into a text node's `textAnimations` (D69). */
+export interface AddTextAnimationCommand extends AddTextAnimationArguments {
+  readonly type: 'AddTextAnimation';
+}
+
+/** What a caller states for `RemoveTextAnimation` (D69). */
+export interface RemoveTextAnimationArguments {
+  readonly textAnimationId: string;
+}
+
+/** Removes one text animation (D69). */
+export interface RemoveTextAnimationCommand extends RemoveTextAnimationArguments {
+  readonly type: 'RemoveTextAnimation';
+}
+
+/** What a caller states for `SetTextAnimation` (D69). */
+export interface SetTextAnimationArguments {
+  /** The complete text animation; its `id` names the one it replaces. */
+  readonly animation: DocumentObject;
+}
+
+/** Replaces a text animation by one with the same ID (D69). */
+export interface SetTextAnimationCommand extends SetTextAnimationArguments {
+  readonly type: 'SetTextAnimation';
+}
+
 /** What a caller states for `AddTemplateInput` (D58.6). */
 export interface AddTemplateInputArguments {
   /** The input's index in the template's inputs after the insertion. */
@@ -970,6 +1017,10 @@ export type Command =
   | SetCaptionWordsCommand
   | SetCaptionWordCommand
   | SetCaptionStyleCommand
+  | SetTextStyleCommand
+  | AddTextAnimationCommand
+  | RemoveTextAnimationCommand
+  | SetTextAnimationCommand
   | AddTemplateInputCommand
   | RemoveTemplateInputCommand
   | SetTemplateInputCommand
@@ -1268,6 +1319,46 @@ export interface SetCaptionStyleArgumentsSchema {
     readonly style: OpenObjectSchema;
   };
   readonly required: readonly (keyof SetCaptionStyleArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetTextStyle`: closed, with `style` an open object (D69). */
+export interface SetTextStyleArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly style: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetTextStyleArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `AddTextAnimation`: closed, with `animation` an open object (D69). */
+export interface AddTextAnimationArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly index: ArgumentSchema;
+    readonly animation: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddTextAnimationArguments)[];
+  readonly additionalProperties: false;
+}
+
+export type RemoveTextAnimationArgumentsSchema = ClosedObjectSchema<
+  keyof RemoveTextAnimationArguments
+>;
+
+/** The argument schema of `SetTextAnimation`: closed, with `animation` an open object (D69). */
+export interface SetTextAnimationArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly animation: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetTextAnimationArguments)[];
   readonly additionalProperties: false;
 }
 /** The argument schema of `AddTemplateInput`: closed, with `input` an open object (D58.6). */
@@ -2231,7 +2322,7 @@ export const duplicateSceneArgumentsSchema: DuplicateSceneArgumentsSchema = deep
     newSceneId: {
       type: 'string',
       description:
-        'The ID of the copy, unused in the document. Every other ID of the copy derives from it: the node at index i becomes `<newSceneId>-n<i>`, its child at index j `<newSceneId>-n<i>-c<j>`, an animation `<owner>-a-<property>`, and the clip at index k `<newSceneId>-k<k>`.',
+        'The ID of the copy, unused in the document. Every other ID of the copy derives from it: the node at index i becomes `<newSceneId>-n<i>`, its child at index j `<newSceneId>-n<i>-c<j>`, an animation `<owner>-a-<property>`, a text animation at index t `<owner>-t<t>`, and the clip at index k `<newSceneId>-k<k>`.',
       pattern: ID_PATTERN,
     },
   },
@@ -2382,7 +2473,7 @@ export const splitClipArgumentsSchema: SplitClipArgumentsSchema = deepFreeze({
     newClipId: {
       type: 'string',
       description:
-        'The ID of the second half, unused in the document. Each copied animation becomes `<newClipId>-a-<property>`.',
+        'The ID of the second half, unused in the document. Each copied animation becomes `<newClipId>-a-<property>`, and the text animation at index t `<newClipId>-t<t>`.',
       pattern: ID_PATTERN,
     },
   },
@@ -2567,6 +2658,76 @@ export const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema = de
     },
   },
   required: ['nodeId', 'style'],
+  additionalProperties: false,
+});
+
+const TEXT_ID = 'The stable ID of a text node.';
+
+const TEXT_STYLE =
+  'The complete style: {stroke, shadow, box}, each {kind: "none"} or: stroke {kind: "outside", color, width} for an outline of width pixels (1 to 1000) outside every glyph; shadow {kind: "drop", color, opacity, offset: {x, y}, blur} for a shadow moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {kind: "solid", color, opacity, padding, cornerRadius} for a filled box behind the text, padding pixels beyond its lines on every side, with rounded corners. Colours are lowercase #rrggbb, opacities 0 to 1, and lengths integers.';
+
+const TEXT_ANIMATION =
+  'A text animation is {id, unit, phase, staggerUs, order, tracks}: unit "letter", "word", or "line"; phase {kind: "in"} (the first fragment starts at the node\'s start), {kind: "out"} (the last fragment ends at the node\'s end), or {kind: "accent", startUs} (the first fragment starts at that scene time); staggerUs the integer microseconds between two fragments that follow each other; order {kind: "forward"}, {kind: "backward"}, {kind: "center"}, {kind: "edges"}, or {kind: "random", seed} with an unsigned 32-bit integer seed; tracks at least one, at most one per property, each {property, keyframes} with property "opacity" (a factor 0 to 1), "offset" ({x, y} integer pixels added), "scale" ({x, y} factors about the fragment\'s centre), "rotation" (degrees added, about its centre), or "color" (#rrggbb that replaces the text\'s colour), and at least two keyframes {timeUs, value, easing} in ascending time, timeUs in the fragment\'s own time from 0.';
+
+/** The JSON Schema of the arguments of `SetTextStyle` (D69): the style is the document's to judge. */
+export const setTextStyleArgumentsSchema: SetTextStyleArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces the outline, the shadow, and the box of a text node.',
+  properties: {
+    nodeId: { type: 'string', description: TEXT_ID, minLength: 1 },
+    style: { type: 'object', description: TEXT_STYLE },
+  },
+  required: ['nodeId', 'style'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `AddTextAnimation` (D69). */
+export const addTextAnimationArgumentsSchema: AddTextAnimationArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: "Inserts a complete text animation into a text node's text animations.",
+  properties: {
+    nodeId: { type: 'string', description: TEXT_ID, minLength: 1 },
+    index: {
+      type: 'integer',
+      description: "The text animation's index in the node's text animations after the insertion.",
+      minimum: 0,
+      maximum: Number.MAX_SAFE_INTEGER,
+    },
+    animation: {
+      type: 'object',
+      description: `The complete text animation, its ID unused in the document. ${TEXT_ANIMATION}`,
+    },
+  },
+  required: ['nodeId', 'index', 'animation'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveTextAnimation` (D69). */
+export const removeTextAnimationArgumentsSchema: RemoveTextAnimationArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Removes one text animation with all its tracks.',
+  properties: {
+    textAnimationId: {
+      type: 'string',
+      description: 'The ID of a text animation of the document.',
+      minLength: 1,
+    },
+  },
+  required: ['textAnimationId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetTextAnimation` (D69). */
+export const setTextAnimationArgumentsSchema: SetTextAnimationArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces the text animation with the same ID.',
+  properties: {
+    animation: {
+      type: 'object',
+      description: `The complete new text animation; its id names the text animation it replaces. ${TEXT_ANIMATION}`,
+    },
+  },
+  required: ['animation'],
   additionalProperties: false,
 });
 
@@ -2789,7 +2950,7 @@ export const duplicateNodeArgumentsSchema: DuplicateNodeArgumentsSchema = deepFr
     newNodeId: {
       type: 'string',
       description:
-        'The ID of the copy, unused in the document. Every other ID of the copy derives from it: a child at index i becomes `<newNodeId>-c<i>`, an animation `<newNodeId>-a-<property>`, and an animation of that child `<newNodeId>-c<i>-a-<property>`.',
+        'The ID of the copy, unused in the document. Every other ID of the copy derives from it: a child at index i becomes `<newNodeId>-c<i>`, an animation `<newNodeId>-a-<property>`, a text animation at index t `<newNodeId>-t<t>`, and an animation of that child `<newNodeId>-c<i>-a-<property>` (a text animation `<newNodeId>-c<i>-t<t>`).',
       pattern: ID_PATTERN,
     },
   },
@@ -4169,6 +4330,55 @@ export function parseSetCaptionStyle(value: unknown): SetCaptionStyleCommand {
     type: 'SetCaptionStyle',
     nodeId,
     style: dataOf(fields['style'], 'style'),
+  });
+}
+
+/** The fields of a `SetTextStyle` (D69); the document's validation judges the style. */
+export function parseSetTextStyle(value: unknown): SetTextStyleCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'style'], 'The command `SetTextStyle`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetTextStyle',
+    nodeId,
+    style: dataOf(fields['style'], 'style'),
+  });
+}
+
+/** The fields of an `AddTextAnimation` (D69); the document's validation judges the animation. */
+export function parseAddTextAnimation(value: unknown): AddTextAnimationCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'index', 'animation'],
+    'The command `AddTextAnimation`',
+  );
+  const nodeId = nodeIdOf(fields);
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddTextAnimation',
+    nodeId,
+    index,
+    animation: dataOf(fields['animation'], 'animation'),
+  });
+}
+
+/** The fields of a `RemoveTextAnimation` (D69). */
+export function parseRemoveTextAnimation(value: unknown): RemoveTextAnimationCommand {
+  const fields = fieldsOf(value, ['type', 'textAnimationId'], 'The command `RemoveTextAnimation`');
+  return Object.freeze({
+    type: 'RemoveTextAnimation',
+    textAnimationId: nodeIdOf(fields, 'textAnimationId'),
+  });
+}
+
+/**
+ * The fields of a `SetTextAnimation` (D69): its `id` names the text animation
+ * it replaces, which the command looks up; the rest is the validator's.
+ */
+export function parseSetTextAnimation(value: unknown): SetTextAnimationCommand {
+  const fields = fieldsOf(value, ['type', 'animation'], 'The command `SetTextAnimation`');
+  return Object.freeze({
+    type: 'SetTextAnimation',
+    animation: dataOf(fields['animation'], 'animation'),
   });
 }
 

@@ -76,6 +76,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D66](D66-clip-transitions-in-the-canvas-frame.md)            | Clip transitions of every kind: schema 0.11                                                  | Accepted          |
 | [D67](D67-easing-curves.md)                                   | Easing curves: schema 0.12                                                                   | Accepted          |
 | [D68](D68-rotation-origin-and-more-animated-properties.md)    | Rotation, origin, animated properties: schema 0.13                                           | Accepted          |
+| [D69](D69-text-styles-and-text-animated-in-fragments.md)      | Text styles and fragments: schema 0.14                                                       | Proposed          |
 
 ## Provenance of D01–D10
 

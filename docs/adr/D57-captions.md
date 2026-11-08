@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-11-02, after PR-33 was merged
   (PR #29)
 - Date: 2026-11-02
+- Amended by: PR-49 (D69) on 2026-11-08: 57.2: the word of a text animation is the word of captions, a run without white space (D69.2)
 - Supersedes: —
 - Extends: D19 (19.4: a captions node of the state carries the page it shows
   and the word being spoken), D22 (the mount of a captions node and what a

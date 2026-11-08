@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.13",
+  "schemaVersion": "0.14",
   "width": 400,
   "height": 300,
   "fps": 30,
@@ -68,7 +68,13 @@
               "text": "A",
               "fontAssetId": "asset-font",
               "fontSize": 40,
-              "color": "#ffffff"
+              "color": "#ffffff",
+              "style": {
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" }
+              },
+              "textAnimations": []
             },
             {
               "id": "life-child-late",
@@ -93,7 +99,13 @@
               "text": "B",
               "fontAssetId": "asset-font",
               "fontSize": 40,
-              "color": "#ffffff"
+              "color": "#ffffff",
+              "style": {
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" }
+              },
+              "textAnimations": []
             }
           ]
         },
@@ -147,7 +159,13 @@
           "text": "C",
           "fontAssetId": "asset-font",
           "fontSize": 40,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "life-never",
@@ -172,7 +190,13 @@
           "text": "D",
           "fontAssetId": "asset-font",
           "fontSize": 40,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "life-html",

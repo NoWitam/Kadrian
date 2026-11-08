@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.13",
+  "schemaVersion": "0.14",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -306,7 +306,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 48,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "node-group",

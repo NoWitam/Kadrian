@@ -30,6 +30,7 @@ import type {
   AudioClip,
   CaptionsNode,
   Composition,
+  FragmentTrack,
   NodeAnimation,
   SceneNode,
   TemplateCondition,
@@ -50,11 +51,14 @@ import type { CompositionV09 } from './v0-9/composition-schema.js';
 import type { CompositionV010 } from './v0-10/composition-schema.js';
 import type { CompositionV011 } from './v0-11/composition-schema.js';
 import type { CompositionV012 } from './v0-12/composition-schema.js';
+import type { CompositionV013 } from './v0-13/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
 /** A node of 0.12, whose transformable nodes have no rotation, origin, crop, or corner radius (D68). */
 type SceneNodeV012 = CompositionV012['scenes'][number]['nodes'][number];
+/** A node of 0.13, whose texts have no style and no text animations (D69). */
+type SceneNodeV013 = CompositionV013['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -86,7 +90,9 @@ function checkUniqueIds(
 }
 
 /** An animation of any version: the rules read its property and the times of its keyframes only. */
-type AnyAnimation = Pick<NodeAnimation, 'property'> & {
+type AnyAnimation = {
+  readonly property: NodeAnimation['property'] | FragmentTrack['property'];
+} & {
   readonly keyframes: readonly { readonly timeUs: number }[];
 };
 
@@ -192,7 +198,8 @@ export function validateSemantics(
     | CompositionV09
     | CompositionV010
     | CompositionV011
-    | CompositionV012,
+    | CompositionV012
+    | CompositionV013,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -239,6 +246,16 @@ export function validateSemantics(
           }
         } else if (member.node.type === 'text') {
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
+          // The tracks of a text animation of 0.14 follow the rules of animations (D69).
+          if ('textAnimations' in member.node) {
+            member.node.textAnimations.forEach((item, index) => {
+              const tracksPath = pointer(
+                pointer(pointer(member.path, 'textAnimations'), index),
+                'tracks',
+              );
+              checkAnimations(item.tracks, tracksPath, animationErrors);
+            });
+          }
         } else if (member.node.type === 'captions') {
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
           checkCaptionWords(member.node.words, pointer(member.path, 'words'), captionErrors);
@@ -442,6 +459,7 @@ function checkTemplate(
   composition:
     | Composition
     | CompositionV012
+    | CompositionV013
     | CompositionV011
     | CompositionV010
     | CompositionV09
@@ -675,8 +693,12 @@ function checkTemplate(
     }
     // An animation of 0.13 replaces the colour at every instant (D68), so a bound
     // colour would never be seen.
-    const animated: readonly { readonly property: string }[] =
-      'animations' in node ? node.animations : [];
+    // A colour track of a text animation of 0.14 replaces it for every fragment, and
+    // every glyph lies in a fragment (D69).
+    const animated: readonly { readonly property: string }[] = [
+      ...('animations' in node ? node.animations : []),
+      ...('textAnimations' in node ? node.textAnimations.flatMap((item) => item.tracks) : []),
+    ];
     if (animated.some((animation) => animation.property === binding.property)) {
       push(
         'bound-property-animated',
@@ -848,6 +870,7 @@ function subtreeOf(
   composition:
     | Composition
     | CompositionV012
+    | CompositionV013
     | CompositionV011
     | CompositionV010
     | CompositionV09
@@ -902,7 +925,9 @@ interface Located {
     | SceneNodeV09
     | Extract<SceneNodeV09, { type: 'group' }>['children'][number]
     | SceneNodeV012
-    | Extract<SceneNodeV012, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV012, { type: 'group' }>['children'][number]
+    | SceneNodeV013
+    | Extract<SceneNodeV013, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -923,7 +948,8 @@ function checkTransitions(
     | CompositionV09
     | CompositionV010
     | CompositionV011
-    | CompositionV012,
+    | CompositionV012
+    | CompositionV013,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

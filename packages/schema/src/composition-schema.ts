@@ -39,7 +39,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.13';
+export const SCHEMA_VERSION = '0.14';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -507,6 +507,262 @@ export const videoNodeSchema = closedObject(
   },
 );
 
+/** One side of a box, in composition pixels, from 0 (D69). */
+const styleLength = {
+  type: 'integer',
+  description: 'Length in composition pixels, from 0 to 1000 (D69).',
+  minimum: 0,
+  maximum: 1000,
+} as const satisfies NumberSchema;
+
+/** The opacity of a colour of a text style (D69). */
+const styleOpacity = {
+  ...opacity,
+  description:
+    'Opacity of the colour, from 0 (transparent) to 1 (opaque); the browser draws it in 256 levels (D69).',
+} as const satisfies NumberSchema;
+
+export const noStrokeSchema = closedObject('The glyphs have no outline (D69).', {
+  kind: { type: 'string', const: 'none' },
+});
+
+export const outsideStrokeSchema = closedObject(
+  'An outline of width pixels drawn outside every glyph and under its fill, so that a thin letter keeps its shape (D69).',
+  {
+    kind: { type: 'string', const: 'outside' },
+    color,
+    width: {
+      ...styleLength,
+      minimum: 1,
+      description: 'Width of the outline, in composition pixels, from 1 to 1000 (D69).',
+    },
+  },
+);
+
+export const noShadowSchema = closedObject('The glyphs cast no shadow (D69).', {
+  kind: { type: 'string', const: 'none' },
+});
+
+const shadowOffset = {
+  type: 'integer',
+  description:
+    'Offset of the shadow in composition pixels, from -1000 to 1000; x grows right, y grows down (D69).',
+  minimum: -1000,
+  maximum: 1000,
+} as const satisfies NumberSchema;
+
+export const dropShadowSchema = closedObject(
+  'A shadow of every glyph and its outline, moved by offset and blurred by blur pixels, as CSS text-shadow (D69).',
+  {
+    kind: { type: 'string', const: 'drop' },
+    color,
+    opacity: styleOpacity,
+    offset: closedObject('How far the shadow lies from the glyphs (D69).', {
+      x: shadowOffset,
+      y: shadowOffset,
+    }),
+    blur: {
+      ...styleLength,
+      description:
+        'Blur radius of the shadow, in composition pixels, from 0 (sharp) to 1000 (D69).',
+    },
+  },
+);
+
+export const noBoxSchema = closedObject('No box behind the text (D69).', {
+  kind: { type: 'string', const: 'none' },
+});
+
+export const solidBoxSchema = closedObject(
+  'A filled box behind the text: the box of its lines grown by padding on every side, with rounded corners. It does not move the text, and the origin of the node stays a point of the box of its lines (D69).',
+  {
+    kind: { type: 'string', const: 'solid' },
+    color,
+    opacity: styleOpacity,
+    padding: {
+      ...styleLength,
+      description:
+        'How far the box reaches beyond the lines on every side, in composition pixels (D69).',
+    },
+    cornerRadius: {
+      ...styleLength,
+      description:
+        'Radius of the corners of the box, in composition pixels; a radius above half a side is reduced as CSS does (D69).',
+    },
+  },
+);
+
+/** How a text node is drawn besides its font, size, and colour (D69). */
+export const textStyleSchema = closedObject(
+  'The outline, the shadow, and the box of a text, each of them or none (D69).',
+  {
+    stroke: { oneOf: [noStrokeSchema, outsideStrokeSchema] },
+    shadow: { oneOf: [noShadowSchema, dropShadowSchema] },
+    box: { oneOf: [noBoxSchema, solidBoxSchema] },
+  },
+);
+
+/** A time in the own time of a fragment: 0 is the instant its stagger reaches it (D69). */
+const fragmentTimeUs = {
+  type: 'integer',
+  description:
+    "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).",
+  minimum: 0,
+  maximum: MAX_SAFE_INTEGER,
+} as const satisfies NumberSchema;
+
+/** Keyframe times ascend strictly; outside the keyframes the nearest value holds (D16, D69). */
+function fragmentTrack<const N extends string, const V extends JsonSchema>(
+  property: N,
+  description: string,
+  value: V,
+) {
+  return closedObject(description, {
+    property: { type: 'string', const: property },
+    keyframes: {
+      type: 'array',
+      minItems: 2,
+      items: closedObject(
+        "Value of the track at one instant of the fragment's own time, and how it moves from here to the next keyframe; the easing of the last keyframe is never read (D67, D69).",
+        { timeUs: fragmentTimeUs, value, easing: easingSchema },
+      ),
+    },
+  });
+}
+
+export const fragmentOpacityTrackSchema = fragmentTrack(
+  'opacity',
+  "Factors multiplied with the fragment's opacity, 1 (D69).",
+  opacity,
+);
+
+export const fragmentOffsetTrackSchema = fragmentTrack(
+  'offset',
+  'Offsets in composition pixels by which the fragment is moved from its place in the text (D69).',
+  position,
+);
+
+export const fragmentScaleTrackSchema = fragmentTrack(
+  'scale',
+  "Factors of the fragment's size about its centre (D69).",
+  scale,
+);
+
+export const fragmentRotationTrackSchema = fragmentTrack(
+  'rotation',
+  'Degrees the fragment turns about its centre, positive clockwise (D69).',
+  rotation,
+);
+
+export const fragmentColorTrackSchema = fragmentTrack(
+  'color',
+  "Colours that replace the colour of the fragment's glyphs; each channel moves on its own and is rounded to an integer (D68, D69).",
+  color,
+);
+
+/** The tracks of a fragment animation: the rows `fragment/…` of D65.1 (D69). */
+export const fragmentTrackSchema = {
+  description:
+    "One property of every fragment, in the fragment's own time: opacity and scale are factors, offset and rotation are added, and color replaces the text's colour (D65.1, D69).",
+  oneOf: [
+    fragmentOpacityTrackSchema,
+    fragmentOffsetTrackSchema,
+    fragmentScaleTrackSchema,
+    fragmentRotationTrackSchema,
+    fragmentColorTrackSchema,
+  ],
+} as const satisfies UnionSchema;
+
+export const inPhaseSchema = closedObject(
+  "The first fragment starts its own time at the node's startUs (D69).",
+  { kind: { type: 'string', const: 'in' } },
+);
+
+export const outPhaseSchema = closedObject(
+  "The last fragment ends its own time, at its last keyframe, at the end of the node's lifetime (D69).",
+  { kind: { type: 'string', const: 'out' } },
+);
+
+export const accentPhaseSchema = closedObject(
+  'The first fragment starts its own time at startUs (D69).',
+  {
+    kind: { type: 'string', const: 'accent' },
+    startUs: {
+      ...timeUs,
+      description:
+        'Scene time, in integer microseconds, at which the first fragment starts its own time; it moves with the node like a keyframe (D55.3, D69).',
+    },
+  },
+);
+
+export const forwardOrderSchema = closedObject('From the first fragment to the last (D69).', {
+  kind: { type: 'string', const: 'forward' },
+});
+
+export const backwardOrderSchema = closedObject('From the last fragment to the first (D69).', {
+  kind: { type: 'string', const: 'backward' },
+});
+
+export const centerOrderSchema = closedObject(
+  'From the middle outwards: the fragments as far from the middle start together (D69).',
+  { kind: { type: 'string', const: 'center' } },
+);
+
+export const edgesOrderSchema = closedObject(
+  'From both ends inwards: the fragments as far from the ends start together (D69).',
+  { kind: { type: 'string', const: 'edges' } },
+);
+
+export const randomOrderSchema = closedObject(
+  'In an order shuffled by the pseudo-random generator of D69 from seed: the same seed and text give the same order everywhere (D69).',
+  {
+    kind: { type: 'string', const: 'random' },
+    seed: {
+      type: 'integer',
+      description: 'The seed of the generator, an unsigned 32-bit integer (D69).',
+      minimum: 0,
+      maximum: 4_294_967_295,
+    },
+  },
+);
+
+/** An animation of the letters, words, or lines of a text node, one after another (D65.3, D69). */
+export const textAnimationSchema = closedObject(
+  "Animates every letter, word, or line of the text with the same tracks, each fragment staggerUs after the one before it in the order: the fragment's own time starts at the node's start (in), ends at the node's end (out), or starts at a stated time (accent). The text is drawn in fragments for the node's whole lifetime (D65.3, D69).",
+  {
+    id,
+    unit: {
+      type: 'string',
+      description:
+        'What a fragment is: a letter (an extended grapheme cluster of Unicode 17.0), a word (a run without white space), or a line (a line of the text as written that holds a word) (D69).',
+      enum: ['letter', 'word', 'line'],
+    },
+    phase: { oneOf: [inPhaseSchema, outPhaseSchema, accentPhaseSchema] },
+    staggerUs: {
+      type: 'integer',
+      description:
+        'Time in integer microseconds (D04) between the starts of two fragments that follow each other in the order (D69).',
+      minimum: 0,
+      maximum: MAX_SAFE_INTEGER,
+    },
+    order: {
+      oneOf: [
+        forwardOrderSchema,
+        backwardOrderSchema,
+        centerOrderSchema,
+        edgesOrderSchema,
+        randomOrderSchema,
+      ],
+    },
+    tracks: {
+      type: 'array',
+      description: 'At least one track, at most one per property (D69).',
+      minItems: 1,
+      items: fragmentTrackSchema,
+    },
+  },
+);
+
 export const textNodeSchema = closedObject('One run of text; line breaks are preserved.', {
   id,
   type: { type: 'string', const: 'text' },
@@ -516,6 +772,13 @@ export const textNodeSchema = closedObject('One run of text; line breaks are pre
   fontAssetId: assetReference,
   fontSize: length,
   color,
+  style: textStyleSchema,
+  textAnimations: {
+    type: 'array',
+    description:
+      'Animations of the letters, words, or lines of the text, combined in their order: opacities and scales multiply, offsets and rotations add, and the last colour wins (D69).',
+    items: textAnimationSchema,
+  },
 });
 
 /** One timed word of a caption (D57), in the time of its scene like a keyframe (D55.3). */
@@ -1315,7 +1578,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.13',
+  title: 'Kadrion composition 0.14',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

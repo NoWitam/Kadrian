@@ -81,10 +81,41 @@ export interface LeafNodeState<Type extends LeafNodeType = LeafNodeType>
   readonly type: Type;
 }
 
-/** A text node with its colour, animated or not (D68). */
+/**
+ * One fragment of a text at one instant (D69): its opacity, an offset from its
+ * place in the text, a scale and a rotation about its own centre, and the
+ * colour of its glyphs. Values may be fractional, as every evaluated value.
+ */
+export interface FragmentState {
+  /** A factor of the fragment's opacity, from 0 to 1, within the node's own. */
+  readonly opacity: number;
+  /** Composition pixels from the fragment's place in the text. */
+  readonly offset: Vec2;
+  /** Factors about the fragment's centre. */
+  readonly scale: Vec2;
+  /** Degrees about the fragment's centre, positive clockwise. */
+  readonly rotation: number;
+  /** `#rrggbb`: the text's colour, or what a colour track replaces it with. */
+  readonly color: string;
+}
+
+/**
+ * The fragments of a text node with text animations (D65.3, D69), per unit, in
+ * the order of the text: the lines that hold a word, the words, and the
+ * letters. A unit that no animation of the node uses lists none.
+ */
+export interface TextFragmentsState {
+  readonly lines: readonly FragmentState[];
+  readonly words: readonly FragmentState[];
+  readonly letters: readonly FragmentState[];
+}
+
+/** A text node with its colour, animated or not (D68), and its fragments (D69). */
 export interface TextNodeState extends LeafNodeState<'text'> {
   /** `#rrggbb`. */
   readonly color: string;
+  /** `null` for a text without text animations, which is drawn in one piece. */
+  readonly fragments: TextFragmentsState | null;
 }
 
 /** The box and the picture of an image or a video, animated or not (D68). */

@@ -71,6 +71,12 @@ export type Fit = ImageNode['fit'];
 ---- Focus (type only)
 export type Focus = ImageNode['focus'];
 
+---- FragmentTrack (type only)
+export type FragmentTrack = TextAnimation['tracks'][number];
+
+---- FragmentUnit (type only)
+export type FragmentUnit = TextAnimation['unit'];
+
 ---- GroupNode (type only)
 export type GroupNode = Infer<typeof groupNodeSchema>;
 
@@ -90,7 +96,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.13";
+export declare const SCHEMA_VERSION = "0.14";
 
 ---- Scene (type only)
 export type Scene = Infer<typeof sceneSchema>;
@@ -167,8 +173,14 @@ export type TemplateInputType = TemplateInput['type'];
 ---- TemplateRepeat (type only)
 export type TemplateRepeat = Infer<typeof templateRepeatSchema>;
 
+---- TextAnimation (type only)
+export type TextAnimation = Infer<typeof textAnimationSchema>;
+
 ---- TextNode (type only)
 export type TextNode = Infer<typeof textNodeSchema>;
+
+---- TextStyle (type only)
+export type TextStyle = Infer<typeof textStyleSchema>;
 
 ---- TimeBase (type only)
 export interface TimeBase {
@@ -237,7 +249,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.13";
+            readonly const: "0.14";
         };
         readonly width: {
             readonly type: "integer";
@@ -1603,6 +1615,785 @@ export declare const compositionSchema: {
                                                     readonly type: "string";
                                                     readonly description: "Lowercase #rrggbb sRGB colour (D15).";
                                                     readonly pattern: "^#[0-9a-f]{6}$";
+                                                };
+                                                readonly style: import("./json-schema.js").ClosedObject<{
+                                                    readonly stroke: {
+                                                        readonly oneOf: readonly [
+                                                            import("./json-schema.js").ClosedObject<{
+                                                                readonly kind: {
+                                                                    readonly type: "string";
+                                                                    readonly const: "none";
+                                                                };
+                                                            }>,
+                                                            import("./json-schema.js").ClosedObject<{
+                                                                readonly kind: {
+                                                                    readonly type: "string";
+                                                                    readonly const: "outside";
+                                                                };
+                                                                readonly color: {
+                                                                    readonly type: "string";
+                                                                    readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                                    readonly pattern: "^#[0-9a-f]{6}$";
+                                                                };
+                                                                readonly width: {
+                                                                    readonly minimum: 1;
+                                                                    readonly description: "Width of the outline, in composition pixels, from 1 to 1000 (D69).";
+                                                                    readonly type: "integer";
+                                                                    readonly maximum: 1000;
+                                                                };
+                                                            }>
+                                                        ];
+                                                    };
+                                                    readonly shadow: {
+                                                        readonly oneOf: readonly [
+                                                            import("./json-schema.js").ClosedObject<{
+                                                                readonly kind: {
+                                                                    readonly type: "string";
+                                                                    readonly const: "none";
+                                                                };
+                                                            }>,
+                                                            import("./json-schema.js").ClosedObject<{
+                                                                readonly kind: {
+                                                                    readonly type: "string";
+                                                                    readonly const: "drop";
+                                                                };
+                                                                readonly color: {
+                                                                    readonly type: "string";
+                                                                    readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                                    readonly pattern: "^#[0-9a-f]{6}$";
+                                                                };
+                                                                readonly opacity: {
+                                                                    readonly description: "Opacity of the colour, from 0 (transparent) to 1 (opaque); the browser draws it in 256 levels (D69).";
+                                                                    readonly type: "number";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 1;
+                                                                };
+                                                                readonly offset: import("./json-schema.js").ClosedObject<{
+                                                                    readonly x: {
+                                                                        readonly type: "integer";
+                                                                        readonly description: "Offset of the shadow in composition pixels, from -1000 to 1000; x grows right, y grows down (D69).";
+                                                                        readonly minimum: -1000;
+                                                                        readonly maximum: 1000;
+                                                                    };
+                                                                    readonly y: {
+                                                                        readonly type: "integer";
+                                                                        readonly description: "Offset of the shadow in composition pixels, from -1000 to 1000; x grows right, y grows down (D69).";
+                                                                        readonly minimum: -1000;
+                                                                        readonly maximum: 1000;
+                                                                    };
+                                                                }>;
+                                                                readonly blur: {
+                                                                    readonly description: "Blur radius of the shadow, in composition pixels, from 0 (sharp) to 1000 (D69).";
+                                                                    readonly type: "integer";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 1000;
+                                                                };
+                                                            }>
+                                                        ];
+                                                    };
+                                                    readonly box: {
+                                                        readonly oneOf: readonly [
+                                                            import("./json-schema.js").ClosedObject<{
+                                                                readonly kind: {
+                                                                    readonly type: "string";
+                                                                    readonly const: "none";
+                                                                };
+                                                            }>,
+                                                            import("./json-schema.js").ClosedObject<{
+                                                                readonly kind: {
+                                                                    readonly type: "string";
+                                                                    readonly const: "solid";
+                                                                };
+                                                                readonly color: {
+                                                                    readonly type: "string";
+                                                                    readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                                    readonly pattern: "^#[0-9a-f]{6}$";
+                                                                };
+                                                                readonly opacity: {
+                                                                    readonly description: "Opacity of the colour, from 0 (transparent) to 1 (opaque); the browser draws it in 256 levels (D69).";
+                                                                    readonly type: "number";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 1;
+                                                                };
+                                                                readonly padding: {
+                                                                    readonly description: "How far the box reaches beyond the lines on every side, in composition pixels (D69).";
+                                                                    readonly type: "integer";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 1000;
+                                                                };
+                                                                readonly cornerRadius: {
+                                                                    readonly description: "Radius of the corners of the box, in composition pixels; a radius above half a side is reduced as CSS does (D69).";
+                                                                    readonly type: "integer";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 1000;
+                                                                };
+                                                            }>
+                                                        ];
+                                                    };
+                                                }>;
+                                                readonly textAnimations: {
+                                                    readonly type: "array";
+                                                    readonly description: "Animations of the letters, words, or lines of the text, combined in their order: opacities and scales multiply, offsets and rotations add, and the last colour wins (D69).";
+                                                    readonly items: import("./json-schema.js").ClosedObject<{
+                                                        readonly id: {
+                                                            readonly type: "string";
+                                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                        };
+                                                        readonly unit: {
+                                                            readonly type: "string";
+                                                            readonly description: "What a fragment is: a letter (an extended grapheme cluster of Unicode 17.0), a word (a run without white space), or a line (a line of the text as written that holds a word) (D69).";
+                                                            readonly enum: readonly [
+                                                                "letter",
+                                                                "word",
+                                                                "line"
+                                                            ];
+                                                        };
+                                                        readonly phase: {
+                                                            readonly oneOf: readonly [
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "in";
+                                                                    };
+                                                                }>,
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "out";
+                                                                    };
+                                                                }>,
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "accent";
+                                                                    };
+                                                                    readonly startUs: {
+                                                                        readonly description: "Scene time, in integer microseconds, at which the first fragment starts its own time; it moves with the node like a keyframe (D55.3, D69).";
+                                                                        readonly type: "integer";
+                                                                        readonly minimum: 0;
+                                                                        readonly maximum: 9007199254740991;
+                                                                    };
+                                                                }>
+                                                            ];
+                                                        };
+                                                        readonly staggerUs: {
+                                                            readonly type: "integer";
+                                                            readonly description: "Time in integer microseconds (D04) between the starts of two fragments that follow each other in the order (D69).";
+                                                            readonly minimum: 0;
+                                                            readonly maximum: 9007199254740991;
+                                                        };
+                                                        readonly order: {
+                                                            readonly oneOf: readonly [
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "forward";
+                                                                    };
+                                                                }>,
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "backward";
+                                                                    };
+                                                                }>,
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "center";
+                                                                    };
+                                                                }>,
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "edges";
+                                                                    };
+                                                                }>,
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "random";
+                                                                    };
+                                                                    readonly seed: {
+                                                                        readonly type: "integer";
+                                                                        readonly description: "The seed of the generator, an unsigned 32-bit integer (D69).";
+                                                                        readonly minimum: 0;
+                                                                        readonly maximum: 4294967295;
+                                                                    };
+                                                                }>
+                                                            ];
+                                                        };
+                                                        readonly tracks: {
+                                                            readonly type: "array";
+                                                            readonly description: "At least one track, at most one per property (D69).";
+                                                            readonly minItems: 1;
+                                                            readonly items: {
+                                                                readonly description: "One property of every fragment, in the fragment's own time: opacity and scale are factors, offset and rotation are added, and color replaces the text's colour (D65.1, D69).";
+                                                                readonly oneOf: readonly [
+                                                                    import("./json-schema.js").ClosedObject<{
+                                                                        readonly property: {
+                                                                            readonly type: "string";
+                                                                            readonly const: "opacity";
+                                                                        };
+                                                                        readonly keyframes: {
+                                                                            readonly type: "array";
+                                                                            readonly minItems: 2;
+                                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                                readonly timeUs: {
+                                                                                    readonly type: "integer";
+                                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                                    readonly minimum: 0;
+                                                                                    readonly maximum: 9007199254740991;
+                                                                                };
+                                                                                readonly value: {
+                                                                                    readonly type: "number";
+                                                                                    readonly description: "Opacity from 0 (transparent) to 1 (opaque). A group is composited first (D15).";
+                                                                                    readonly minimum: 0;
+                                                                                    readonly maximum: 1;
+                                                                                };
+                                                                                readonly easing: {
+                                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                                    readonly oneOf: readonly [
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "linear";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "hold";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "cubic-bezier";
+                                                                                            };
+                                                                                            readonly x1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                            readonly x2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "steps";
+                                                                                            };
+                                                                                            readonly count: {
+                                                                                                readonly type: "integer";
+                                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                                readonly minimum: 1;
+                                                                                                readonly maximum: 1000;
+                                                                                            };
+                                                                                            readonly position: {
+                                                                                                readonly type: "string";
+                                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                                readonly enum: readonly [
+                                                                                                    "start",
+                                                                                                    "end"
+                                                                                                ];
+                                                                                            };
+                                                                                        }>
+                                                                                    ];
+                                                                                };
+                                                                            }>;
+                                                                        };
+                                                                    }>,
+                                                                    import("./json-schema.js").ClosedObject<{
+                                                                        readonly property: {
+                                                                            readonly type: "string";
+                                                                            readonly const: "offset";
+                                                                        };
+                                                                        readonly keyframes: {
+                                                                            readonly type: "array";
+                                                                            readonly minItems: 2;
+                                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                                readonly timeUs: {
+                                                                                    readonly type: "integer";
+                                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                                    readonly minimum: 0;
+                                                                                    readonly maximum: 9007199254740991;
+                                                                                };
+                                                                                readonly value: import("./json-schema.js").ClosedObject<{
+                                                                                    readonly x: {
+                                                                                        readonly type: "integer";
+                                                                                        readonly description: "Coordinate or offset in composition pixels; x grows right, y grows down (D15).";
+                                                                                        readonly minimum: -1000000;
+                                                                                        readonly maximum: 1000000;
+                                                                                    };
+                                                                                    readonly y: {
+                                                                                        readonly type: "integer";
+                                                                                        readonly description: "Coordinate or offset in composition pixels; x grows right, y grows down (D15).";
+                                                                                        readonly minimum: -1000000;
+                                                                                        readonly maximum: 1000000;
+                                                                                    };
+                                                                                }>;
+                                                                                readonly easing: {
+                                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                                    readonly oneOf: readonly [
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "linear";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "hold";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "cubic-bezier";
+                                                                                            };
+                                                                                            readonly x1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                            readonly x2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "steps";
+                                                                                            };
+                                                                                            readonly count: {
+                                                                                                readonly type: "integer";
+                                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                                readonly minimum: 1;
+                                                                                                readonly maximum: 1000;
+                                                                                            };
+                                                                                            readonly position: {
+                                                                                                readonly type: "string";
+                                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                                readonly enum: readonly [
+                                                                                                    "start",
+                                                                                                    "end"
+                                                                                                ];
+                                                                                            };
+                                                                                        }>
+                                                                                    ];
+                                                                                };
+                                                                            }>;
+                                                                        };
+                                                                    }>,
+                                                                    import("./json-schema.js").ClosedObject<{
+                                                                        readonly property: {
+                                                                            readonly type: "string";
+                                                                            readonly const: "scale";
+                                                                        };
+                                                                        readonly keyframes: {
+                                                                            readonly type: "array";
+                                                                            readonly minItems: 2;
+                                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                                readonly timeUs: {
+                                                                                    readonly type: "integer";
+                                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                                    readonly minimum: 0;
+                                                                                    readonly maximum: 9007199254740991;
+                                                                                };
+                                                                                readonly value: import("./json-schema.js").ClosedObject<{
+                                                                                    readonly x: {
+                                                                                        readonly type: "number";
+                                                                                        readonly description: "Scale factor (D15).";
+                                                                                        readonly minimum: 0;
+                                                                                        readonly maximum: 1000;
+                                                                                    };
+                                                                                    readonly y: {
+                                                                                        readonly type: "number";
+                                                                                        readonly description: "Scale factor (D15).";
+                                                                                        readonly minimum: 0;
+                                                                                        readonly maximum: 1000;
+                                                                                    };
+                                                                                }>;
+                                                                                readonly easing: {
+                                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                                    readonly oneOf: readonly [
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "linear";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "hold";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "cubic-bezier";
+                                                                                            };
+                                                                                            readonly x1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                            readonly x2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "steps";
+                                                                                            };
+                                                                                            readonly count: {
+                                                                                                readonly type: "integer";
+                                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                                readonly minimum: 1;
+                                                                                                readonly maximum: 1000;
+                                                                                            };
+                                                                                            readonly position: {
+                                                                                                readonly type: "string";
+                                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                                readonly enum: readonly [
+                                                                                                    "start",
+                                                                                                    "end"
+                                                                                                ];
+                                                                                            };
+                                                                                        }>
+                                                                                    ];
+                                                                                };
+                                                                            }>;
+                                                                        };
+                                                                    }>,
+                                                                    import("./json-schema.js").ClosedObject<{
+                                                                        readonly property: {
+                                                                            readonly type: "string";
+                                                                            readonly const: "rotation";
+                                                                        };
+                                                                        readonly keyframes: {
+                                                                            readonly type: "array";
+                                                                            readonly minItems: 2;
+                                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                                readonly timeUs: {
+                                                                                    readonly type: "integer";
+                                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                                    readonly minimum: 0;
+                                                                                    readonly maximum: 9007199254740991;
+                                                                                };
+                                                                                readonly value: {
+                                                                                    readonly type: "number";
+                                                                                    readonly description: "Rotation about the node's origin point, in degrees; positive turns clockwise, and a whole number of turns is no rotation (D68).";
+                                                                                    readonly minimum: -360000;
+                                                                                    readonly maximum: 360000;
+                                                                                };
+                                                                                readonly easing: {
+                                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                                    readonly oneOf: readonly [
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "linear";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "hold";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "cubic-bezier";
+                                                                                            };
+                                                                                            readonly x1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                            readonly x2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "steps";
+                                                                                            };
+                                                                                            readonly count: {
+                                                                                                readonly type: "integer";
+                                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                                readonly minimum: 1;
+                                                                                                readonly maximum: 1000;
+                                                                                            };
+                                                                                            readonly position: {
+                                                                                                readonly type: "string";
+                                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                                readonly enum: readonly [
+                                                                                                    "start",
+                                                                                                    "end"
+                                                                                                ];
+                                                                                            };
+                                                                                        }>
+                                                                                    ];
+                                                                                };
+                                                                            }>;
+                                                                        };
+                                                                    }>,
+                                                                    import("./json-schema.js").ClosedObject<{
+                                                                        readonly property: {
+                                                                            readonly type: "string";
+                                                                            readonly const: "color";
+                                                                        };
+                                                                        readonly keyframes: {
+                                                                            readonly type: "array";
+                                                                            readonly minItems: 2;
+                                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                                readonly timeUs: {
+                                                                                    readonly type: "integer";
+                                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                                    readonly minimum: 0;
+                                                                                    readonly maximum: 9007199254740991;
+                                                                                };
+                                                                                readonly value: {
+                                                                                    readonly type: "string";
+                                                                                    readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                                                    readonly pattern: "^#[0-9a-f]{6}$";
+                                                                                };
+                                                                                readonly easing: {
+                                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                                    readonly oneOf: readonly [
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "linear";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "hold";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "ease-in-out";
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "cubic-bezier";
+                                                                                            };
+                                                                                            readonly x1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y1: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                            readonly x2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                                readonly minimum: 0;
+                                                                                                readonly maximum: 1;
+                                                                                            };
+                                                                                            readonly y2: {
+                                                                                                readonly type: "number";
+                                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                                readonly minimum: -1;
+                                                                                                readonly maximum: 2;
+                                                                                            };
+                                                                                        }>,
+                                                                                        import("./json-schema.js").ClosedObject<{
+                                                                                            readonly kind: {
+                                                                                                readonly type: "string";
+                                                                                                readonly const: "steps";
+                                                                                            };
+                                                                                            readonly count: {
+                                                                                                readonly type: "integer";
+                                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                                readonly minimum: 1;
+                                                                                                readonly maximum: 1000;
+                                                                                            };
+                                                                                            readonly position: {
+                                                                                                readonly type: "string";
+                                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                                readonly enum: readonly [
+                                                                                                    "start",
+                                                                                                    "end"
+                                                                                                ];
+                                                                                            };
+                                                                                        }>
+                                                                                    ];
+                                                                                };
+                                                                            }>;
+                                                                        };
+                                                                    }>
+                                                                ];
+                                                            };
+                                                        };
+                                                    }>;
                                                 };
                                                 readonly position: import("./json-schema.js").ClosedObject<{
                                                     readonly x: {
@@ -5349,6 +6140,785 @@ export declare const compositionSchema: {
                                     readonly type: "string";
                                     readonly description: "Lowercase #rrggbb sRGB colour (D15).";
                                     readonly pattern: "^#[0-9a-f]{6}$";
+                                };
+                                readonly style: import("./json-schema.js").ClosedObject<{
+                                    readonly stroke: {
+                                        readonly oneOf: readonly [
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly kind: {
+                                                    readonly type: "string";
+                                                    readonly const: "none";
+                                                };
+                                            }>,
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly kind: {
+                                                    readonly type: "string";
+                                                    readonly const: "outside";
+                                                };
+                                                readonly color: {
+                                                    readonly type: "string";
+                                                    readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                    readonly pattern: "^#[0-9a-f]{6}$";
+                                                };
+                                                readonly width: {
+                                                    readonly minimum: 1;
+                                                    readonly description: "Width of the outline, in composition pixels, from 1 to 1000 (D69).";
+                                                    readonly type: "integer";
+                                                    readonly maximum: 1000;
+                                                };
+                                            }>
+                                        ];
+                                    };
+                                    readonly shadow: {
+                                        readonly oneOf: readonly [
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly kind: {
+                                                    readonly type: "string";
+                                                    readonly const: "none";
+                                                };
+                                            }>,
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly kind: {
+                                                    readonly type: "string";
+                                                    readonly const: "drop";
+                                                };
+                                                readonly color: {
+                                                    readonly type: "string";
+                                                    readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                    readonly pattern: "^#[0-9a-f]{6}$";
+                                                };
+                                                readonly opacity: {
+                                                    readonly description: "Opacity of the colour, from 0 (transparent) to 1 (opaque); the browser draws it in 256 levels (D69).";
+                                                    readonly type: "number";
+                                                    readonly minimum: 0;
+                                                    readonly maximum: 1;
+                                                };
+                                                readonly offset: import("./json-schema.js").ClosedObject<{
+                                                    readonly x: {
+                                                        readonly type: "integer";
+                                                        readonly description: "Offset of the shadow in composition pixels, from -1000 to 1000; x grows right, y grows down (D69).";
+                                                        readonly minimum: -1000;
+                                                        readonly maximum: 1000;
+                                                    };
+                                                    readonly y: {
+                                                        readonly type: "integer";
+                                                        readonly description: "Offset of the shadow in composition pixels, from -1000 to 1000; x grows right, y grows down (D69).";
+                                                        readonly minimum: -1000;
+                                                        readonly maximum: 1000;
+                                                    };
+                                                }>;
+                                                readonly blur: {
+                                                    readonly description: "Blur radius of the shadow, in composition pixels, from 0 (sharp) to 1000 (D69).";
+                                                    readonly type: "integer";
+                                                    readonly minimum: 0;
+                                                    readonly maximum: 1000;
+                                                };
+                                            }>
+                                        ];
+                                    };
+                                    readonly box: {
+                                        readonly oneOf: readonly [
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly kind: {
+                                                    readonly type: "string";
+                                                    readonly const: "none";
+                                                };
+                                            }>,
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly kind: {
+                                                    readonly type: "string";
+                                                    readonly const: "solid";
+                                                };
+                                                readonly color: {
+                                                    readonly type: "string";
+                                                    readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                    readonly pattern: "^#[0-9a-f]{6}$";
+                                                };
+                                                readonly opacity: {
+                                                    readonly description: "Opacity of the colour, from 0 (transparent) to 1 (opaque); the browser draws it in 256 levels (D69).";
+                                                    readonly type: "number";
+                                                    readonly minimum: 0;
+                                                    readonly maximum: 1;
+                                                };
+                                                readonly padding: {
+                                                    readonly description: "How far the box reaches beyond the lines on every side, in composition pixels (D69).";
+                                                    readonly type: "integer";
+                                                    readonly minimum: 0;
+                                                    readonly maximum: 1000;
+                                                };
+                                                readonly cornerRadius: {
+                                                    readonly description: "Radius of the corners of the box, in composition pixels; a radius above half a side is reduced as CSS does (D69).";
+                                                    readonly type: "integer";
+                                                    readonly minimum: 0;
+                                                    readonly maximum: 1000;
+                                                };
+                                            }>
+                                        ];
+                                    };
+                                }>;
+                                readonly textAnimations: {
+                                    readonly type: "array";
+                                    readonly description: "Animations of the letters, words, or lines of the text, combined in their order: opacities and scales multiply, offsets and rotations add, and the last colour wins (D69).";
+                                    readonly items: import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly unit: {
+                                            readonly type: "string";
+                                            readonly description: "What a fragment is: a letter (an extended grapheme cluster of Unicode 17.0), a word (a run without white space), or a line (a line of the text as written that holds a word) (D69).";
+                                            readonly enum: readonly [
+                                                "letter",
+                                                "word",
+                                                "line"
+                                            ];
+                                        };
+                                        readonly phase: {
+                                            readonly oneOf: readonly [
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "in";
+                                                    };
+                                                }>,
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "out";
+                                                    };
+                                                }>,
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "accent";
+                                                    };
+                                                    readonly startUs: {
+                                                        readonly description: "Scene time, in integer microseconds, at which the first fragment starts its own time; it moves with the node like a keyframe (D55.3, D69).";
+                                                        readonly type: "integer";
+                                                        readonly minimum: 0;
+                                                        readonly maximum: 9007199254740991;
+                                                    };
+                                                }>
+                                            ];
+                                        };
+                                        readonly staggerUs: {
+                                            readonly type: "integer";
+                                            readonly description: "Time in integer microseconds (D04) between the starts of two fragments that follow each other in the order (D69).";
+                                            readonly minimum: 0;
+                                            readonly maximum: 9007199254740991;
+                                        };
+                                        readonly order: {
+                                            readonly oneOf: readonly [
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "forward";
+                                                    };
+                                                }>,
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "backward";
+                                                    };
+                                                }>,
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "center";
+                                                    };
+                                                }>,
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "edges";
+                                                    };
+                                                }>,
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "random";
+                                                    };
+                                                    readonly seed: {
+                                                        readonly type: "integer";
+                                                        readonly description: "The seed of the generator, an unsigned 32-bit integer (D69).";
+                                                        readonly minimum: 0;
+                                                        readonly maximum: 4294967295;
+                                                    };
+                                                }>
+                                            ];
+                                        };
+                                        readonly tracks: {
+                                            readonly type: "array";
+                                            readonly description: "At least one track, at most one per property (D69).";
+                                            readonly minItems: 1;
+                                            readonly items: {
+                                                readonly description: "One property of every fragment, in the fragment's own time: opacity and scale are factors, offset and rotation are added, and color replaces the text's colour (D65.1, D69).";
+                                                readonly oneOf: readonly [
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly property: {
+                                                            readonly type: "string";
+                                                            readonly const: "opacity";
+                                                        };
+                                                        readonly keyframes: {
+                                                            readonly type: "array";
+                                                            readonly minItems: 2;
+                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                readonly timeUs: {
+                                                                    readonly type: "integer";
+                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 9007199254740991;
+                                                                };
+                                                                readonly value: {
+                                                                    readonly type: "number";
+                                                                    readonly description: "Opacity from 0 (transparent) to 1 (opaque). A group is composited first (D15).";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 1;
+                                                                };
+                                                                readonly easing: {
+                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                    readonly oneOf: readonly [
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "linear";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "hold";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "cubic-bezier";
+                                                                            };
+                                                                            readonly x1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                            readonly x2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "steps";
+                                                                            };
+                                                                            readonly count: {
+                                                                                readonly type: "integer";
+                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                readonly minimum: 1;
+                                                                                readonly maximum: 1000;
+                                                                            };
+                                                                            readonly position: {
+                                                                                readonly type: "string";
+                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                readonly enum: readonly [
+                                                                                    "start",
+                                                                                    "end"
+                                                                                ];
+                                                                            };
+                                                                        }>
+                                                                    ];
+                                                                };
+                                                            }>;
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly property: {
+                                                            readonly type: "string";
+                                                            readonly const: "offset";
+                                                        };
+                                                        readonly keyframes: {
+                                                            readonly type: "array";
+                                                            readonly minItems: 2;
+                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                readonly timeUs: {
+                                                                    readonly type: "integer";
+                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 9007199254740991;
+                                                                };
+                                                                readonly value: import("./json-schema.js").ClosedObject<{
+                                                                    readonly x: {
+                                                                        readonly type: "integer";
+                                                                        readonly description: "Coordinate or offset in composition pixels; x grows right, y grows down (D15).";
+                                                                        readonly minimum: -1000000;
+                                                                        readonly maximum: 1000000;
+                                                                    };
+                                                                    readonly y: {
+                                                                        readonly type: "integer";
+                                                                        readonly description: "Coordinate or offset in composition pixels; x grows right, y grows down (D15).";
+                                                                        readonly minimum: -1000000;
+                                                                        readonly maximum: 1000000;
+                                                                    };
+                                                                }>;
+                                                                readonly easing: {
+                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                    readonly oneOf: readonly [
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "linear";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "hold";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "cubic-bezier";
+                                                                            };
+                                                                            readonly x1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                            readonly x2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "steps";
+                                                                            };
+                                                                            readonly count: {
+                                                                                readonly type: "integer";
+                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                readonly minimum: 1;
+                                                                                readonly maximum: 1000;
+                                                                            };
+                                                                            readonly position: {
+                                                                                readonly type: "string";
+                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                readonly enum: readonly [
+                                                                                    "start",
+                                                                                    "end"
+                                                                                ];
+                                                                            };
+                                                                        }>
+                                                                    ];
+                                                                };
+                                                            }>;
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly property: {
+                                                            readonly type: "string";
+                                                            readonly const: "scale";
+                                                        };
+                                                        readonly keyframes: {
+                                                            readonly type: "array";
+                                                            readonly minItems: 2;
+                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                readonly timeUs: {
+                                                                    readonly type: "integer";
+                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 9007199254740991;
+                                                                };
+                                                                readonly value: import("./json-schema.js").ClosedObject<{
+                                                                    readonly x: {
+                                                                        readonly type: "number";
+                                                                        readonly description: "Scale factor (D15).";
+                                                                        readonly minimum: 0;
+                                                                        readonly maximum: 1000;
+                                                                    };
+                                                                    readonly y: {
+                                                                        readonly type: "number";
+                                                                        readonly description: "Scale factor (D15).";
+                                                                        readonly minimum: 0;
+                                                                        readonly maximum: 1000;
+                                                                    };
+                                                                }>;
+                                                                readonly easing: {
+                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                    readonly oneOf: readonly [
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "linear";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "hold";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "cubic-bezier";
+                                                                            };
+                                                                            readonly x1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                            readonly x2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "steps";
+                                                                            };
+                                                                            readonly count: {
+                                                                                readonly type: "integer";
+                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                readonly minimum: 1;
+                                                                                readonly maximum: 1000;
+                                                                            };
+                                                                            readonly position: {
+                                                                                readonly type: "string";
+                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                readonly enum: readonly [
+                                                                                    "start",
+                                                                                    "end"
+                                                                                ];
+                                                                            };
+                                                                        }>
+                                                                    ];
+                                                                };
+                                                            }>;
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly property: {
+                                                            readonly type: "string";
+                                                            readonly const: "rotation";
+                                                        };
+                                                        readonly keyframes: {
+                                                            readonly type: "array";
+                                                            readonly minItems: 2;
+                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                readonly timeUs: {
+                                                                    readonly type: "integer";
+                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 9007199254740991;
+                                                                };
+                                                                readonly value: {
+                                                                    readonly type: "number";
+                                                                    readonly description: "Rotation about the node's origin point, in degrees; positive turns clockwise, and a whole number of turns is no rotation (D68).";
+                                                                    readonly minimum: -360000;
+                                                                    readonly maximum: 360000;
+                                                                };
+                                                                readonly easing: {
+                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                    readonly oneOf: readonly [
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "linear";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "hold";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "cubic-bezier";
+                                                                            };
+                                                                            readonly x1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                            readonly x2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "steps";
+                                                                            };
+                                                                            readonly count: {
+                                                                                readonly type: "integer";
+                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                readonly minimum: 1;
+                                                                                readonly maximum: 1000;
+                                                                            };
+                                                                            readonly position: {
+                                                                                readonly type: "string";
+                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                readonly enum: readonly [
+                                                                                    "start",
+                                                                                    "end"
+                                                                                ];
+                                                                            };
+                                                                        }>
+                                                                    ];
+                                                                };
+                                                            }>;
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly property: {
+                                                            readonly type: "string";
+                                                            readonly const: "color";
+                                                        };
+                                                        readonly keyframes: {
+                                                            readonly type: "array";
+                                                            readonly minItems: 2;
+                                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                                readonly timeUs: {
+                                                                    readonly type: "integer";
+                                                                    readonly description: "Time in integer microseconds (D04) of the fragment's own time, from 0, the instant the stagger reaches the fragment (D69).";
+                                                                    readonly minimum: 0;
+                                                                    readonly maximum: 9007199254740991;
+                                                                };
+                                                                readonly value: {
+                                                                    readonly type: "string";
+                                                                    readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                                    readonly pattern: "^#[0-9a-f]{6}$";
+                                                                };
+                                                                readonly easing: {
+                                                                    readonly description: "How the value moves through a segment, from its start to its end: a pure function of the progress, computed by the runtime with + - * / and comparisons only (D18, D67).";
+                                                                    readonly oneOf: readonly [
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "linear";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "hold";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "ease-in-out";
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "cubic-bezier";
+                                                                            };
+                                                                            readonly x1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y1: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                            readonly x2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the progress, from 0 to 1, so that the curve is a function of time (D67).";
+                                                                                readonly minimum: 0;
+                                                                                readonly maximum: 1;
+                                                                            };
+                                                                            readonly y2: {
+                                                                                readonly type: "number";
+                                                                                readonly description: "A coordinate of a control point along the value, from -1 to 2: below 0 or above 1 the motion overshoots, and the sampled value is held within the bounds of its property (D67).";
+                                                                                readonly minimum: -1;
+                                                                                readonly maximum: 2;
+                                                                            };
+                                                                        }>,
+                                                                        import("./json-schema.js").ClosedObject<{
+                                                                            readonly kind: {
+                                                                                readonly type: "string";
+                                                                                readonly const: "steps";
+                                                                            };
+                                                                            readonly count: {
+                                                                                readonly type: "integer";
+                                                                                readonly description: "The number of jumps, from 1 to 1000 (D67).";
+                                                                                readonly minimum: 1;
+                                                                                readonly maximum: 1000;
+                                                                            };
+                                                                            readonly position: {
+                                                                                readonly type: "string";
+                                                                                readonly description: "Whether each jump comes at the start or at the end of its interval (D67).";
+                                                                                readonly enum: readonly [
+                                                                                    "start",
+                                                                                    "end"
+                                                                                ];
+                                                                            };
+                                                                        }>
+                                                                    ];
+                                                                };
+                                                            }>;
+                                                        };
+                                                    }>
+                                                ];
+                                            };
+                                        };
+                                    }>;
                                 };
                                 readonly position: import("./json-schema.js").ClosedObject<{
                                     readonly x: {
@@ -10142,7 +11712,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.13";
+    readonly title: "Kadrion composition 0.14";
 };
 
 ---- frameCount
@@ -10215,7 +11785,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

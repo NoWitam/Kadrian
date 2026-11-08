@@ -40,7 +40,7 @@ describe('reference composition', () => {
 
   it('has the fixed parameters of specification §3.1', () => {
     expect(composition).toMatchObject({
-      schemaVersion: '0.13',
+      schemaVersion: '0.14',
       width: 1080,
       height: 1920,
       fps: 30,

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.13",
+  "schemaVersion": "0.14",
   "width": 1920,
   "height": 1080,
   "fps": 24,
@@ -141,7 +141,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 200,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "node-subtitle",
@@ -193,7 +199,13 @@
           "text": "a stage",
           "fontAssetId": "asset-font",
           "fontSize": 72,
-          "color": "#98a2b3"
+          "color": "#98a2b3",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],

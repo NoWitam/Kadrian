@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.13",
+  "schemaVersion": "0.14",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -47,7 +47,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 144,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "node-dial",

@@ -29,6 +29,10 @@ import {
   EASINGS,
   KEYFRAME_VALUES,
   setCaptionStyleArgumentsSchema,
+  setTextStyleArgumentsSchema,
+  addTextAnimationArgumentsSchema,
+  removeTextAnimationArgumentsSchema,
+  setTextAnimationArgumentsSchema,
   setCaptionWordArgumentsSchema,
   setCaptionWordsArgumentsSchema,
   addTemplateBindingArgumentsSchema,
@@ -98,6 +102,10 @@ import {
   type SetKeyframeEasingArgumentsSchema,
   type SetKeyframeValueArgumentsSchema,
   type SetCaptionStyleArgumentsSchema,
+  type SetTextStyleArgumentsSchema,
+  type AddTextAnimationArgumentsSchema,
+  type RemoveTextAnimationArgumentsSchema,
+  type SetTextAnimationArgumentsSchema,
   type SetCaptionWordArgumentsSchema,
   type SetCaptionWordsArgumentsSchema,
   type AddTemplateBindingArgumentsSchema,
@@ -134,6 +142,10 @@ export type CommandArgumentsSchema =
   | SetCaptionWordsArgumentsSchema
   | SetCaptionWordArgumentsSchema
   | SetCaptionStyleArgumentsSchema
+  | SetTextStyleArgumentsSchema
+  | AddTextAnimationArgumentsSchema
+  | RemoveTextAnimationArgumentsSchema
+  | SetTextAnimationArgumentsSchema
   | AddTemplateInputArgumentsSchema
   | SetTemplateInputArgumentsSchema
   | AddTemplateBindingArgumentsSchema
@@ -226,6 +238,8 @@ const METADATA = deepFreeze<MetadataTable>({
         fontAssetId: 'asset-font',
         fontSize: 64,
         color: '#ffffff',
+        style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
+        textAnimations: [],
       },
     },
     argumentsSchema: addNodeArgumentsSchema,
@@ -238,7 +252,7 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   DuplicateNode: {
     description:
-      'Copies one node, with its animations and children, into the same list directly above the original. The copy takes newNodeId; a child at index i of the copy becomes <newNodeId>-c<i>, an animation <newNodeId>-a-<property>. Refused with unknown-node, id-in-use when an ID of the copy is taken, and invalid-result.',
+      'Copies one node, with its animations and children, into the same list directly above the original. The copy takes newNodeId; a child at index i of the copy becomes <newNodeId>-c<i>, an animation <newNodeId>-a-<property>, a text animation at index t <newNodeId>-t<t>. Refused with unknown-node, id-in-use when an ID of the copy is taken, and invalid-result.',
     example: { nodeId: 'node-title', newNodeId: 'node-title-copy' },
     argumentsSchema: duplicateNodeArgumentsSchema,
   },
@@ -547,7 +561,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: trimClipEndArgumentsSchema,
   },
   SplitClip: {
-    description: `Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, so both halves look exactly like the whole. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded.`,
+    description: `Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, and every text animation as <newClipId>-t<t>, one of phase in as an accent at the start of the whole, so both halves look exactly like the whole; a text with a text animation of phase out is refused with split-not-exact. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded.`,
     example: { clipId: 'node-title', atUs: 5_000_000, newClipId: 'node-title-tail' },
     argumentsSchema: splitClipArgumentsSchema,
   },
@@ -644,6 +658,79 @@ const METADATA = deepFreeze<MetadataTable>({
       },
     },
     argumentsSchema: setCaptionStyleArgumentsSchema,
+  },
+  SetTextStyle: {
+    description:
+      'Replaces how a text node is drawn besides its font, size, and colour, with a complete style {stroke, shadow, box}; each part is {"kind":"none"} or: stroke {"kind":"outside", color, width}, an outline of width pixels (1 to 1000) drawn outside every glyph and under its fill; shadow {"kind":"drop", color, opacity, offset: {x, y}, blur}, a shadow of the glyphs and their outline moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {"kind":"solid", color, opacity, padding, cornerRadius}, a filled box behind the text that reaches padding pixels beyond its lines on every side, with rounded corners, without moving the text. Colours are lowercase #rrggbb, opacities 0 to 1, lengths integers. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a text, and invalid-result.',
+    example: {
+      nodeId: 'node-title',
+      style: {
+        stroke: { kind: 'outside', color: '#000000', width: 4 },
+        shadow: { kind: 'drop', color: '#000000', opacity: 0.6, offset: { x: 4, y: 4 }, blur: 8 },
+        box: { kind: 'none' },
+      },
+    },
+    argumentsSchema: setTextStyleArgumentsSchema,
+  },
+  AddTextAnimation: {
+    description: `Animates the letters, words, or lines of a text node one after another, at an index of its text animations: {id, unit, phase, staggerUs, order, tracks}. unit is "letter" (a character as a reader sees it, an emoji or an accented letter included; white space is no letter), "word" (a run without white space), or "line" (a line of the text as written that holds a word). Every fragment runs the same tracks in its own time, which starts staggerUs (integer microseconds) after the fragment before it in the order: phase {"kind":"in"} starts the first fragment at the node's startUs, {"kind":"out"} ends the last fragment's last keyframe at the node's end, {"kind":"accent", startUs} starts the first at that scene time, which moves with the node. order is {"kind":"forward"}, {"kind":"backward"}, {"kind":"center"} (from the middle outwards), {"kind":"edges"} (from both ends inwards), or {"kind":"random", seed} (an unsigned 32-bit integer; the same seed gives the same order). tracks are at least one, at most one per property: {property, keyframes} with property "opacity" (factor 0 to 1), "offset" ({x, y} integer pixels from the fragment's place), "scale" ({x, y} factors about its centre), "rotation" (degrees about its centre), or "color" (#rrggbb that replaces the text's colour), and at least two keyframes {timeUs, value, easing} in ascending time, timeUs in the fragment's own time from 0. Before its first keyframe a fragment holds the first value, after its last the last, so an entrance usually starts at opacity 0. Several text animations combine in their order: opacities and scales multiply, offsets and rotations add, the last colour wins. A text with a text animation is drawn in fragments for its whole lifetime, without kerning between them. Refused with unknown-node, unsupported-node for a node that is not a text, index-out-of-range, id-in-use, and invalid-result.`,
+    example: {
+      nodeId: 'node-title',
+      index: 0,
+      animation: {
+        id: 'text-title-in',
+        unit: 'letter',
+        phase: { kind: 'in' },
+        staggerUs: 50_000,
+        order: { kind: 'forward' },
+        tracks: [
+          {
+            property: 'opacity',
+            keyframes: [
+              { timeUs: 0, value: 0, easing: { kind: 'ease-out' } },
+              { timeUs: 300_000, value: 1, easing: { kind: 'linear' } },
+            ],
+          },
+          {
+            property: 'offset',
+            keyframes: [
+              { timeUs: 0, value: { x: 0, y: 40 }, easing: { kind: 'ease-out' } },
+              { timeUs: 300_000, value: { x: 0, y: 0 }, easing: { kind: 'linear' } },
+            ],
+          },
+        ],
+      },
+    },
+    argumentsSchema: addTextAnimationArgumentsSchema,
+  },
+  RemoveTextAnimation: {
+    description:
+      'Removes one text animation of a text node with all its tracks; a text left without text animations is drawn in one piece again. Refused with unknown-animation when no text animation has the ID and invalid-result.',
+    example: { textAnimationId: 'text-title-in' },
+    argumentsSchema: removeTextAnimationArgumentsSchema,
+  },
+  SetTextAnimation: {
+    description:
+      'Replaces a text animation with a complete new one of the same ID, as add_text_animation describes it: its unit, phase, staggerUs, order, and tracks. Refused with unknown-animation when no text animation has its id, and invalid-result.',
+    example: {
+      animation: {
+        id: 'text-title-in',
+        unit: 'word',
+        phase: { kind: 'in' },
+        staggerUs: 120_000,
+        order: { kind: 'center' },
+        tracks: [
+          {
+            property: 'scale',
+            keyframes: [
+              { timeUs: 0, value: { x: 0, y: 0 }, easing: { kind: 'ease-out' } },
+              { timeUs: 400_000, value: { x: 1, y: 1 }, easing: { kind: 'linear' } },
+            ],
+          },
+        ],
+      },
+    },
+    argumentsSchema: setTextAnimationArgumentsSchema,
   },
   AddTemplateInput: {
     description: `Inserts an input into the template: {id, type, ...constraints, default}, with an ID unused in the document. A text has minLength and maxLength in code points, a number minimum and maximum, a boolean, a color (lowercase #rrggbb), an image, video, or audio only a default content hash, and a list minItems, maxItems, fields ({key, type, ...constraints}, no list among them), and a default whose items each list one {key, type, value} per field in their order; the default meets the constraints. Nothing reads a new input until a binding does; a boolean or a list is read by no binding yet. ${TEMPLATE} Refused with index-out-of-range, id-in-use, and invalid-result when the input is not one the document can hold.`,

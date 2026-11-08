@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.13",
+  "schemaVersion": "0.14",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -88,7 +88,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "up-clip-2",
@@ -149,7 +155,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
-          "color": "#12b76a"
+          "color": "#12b76a",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "up-clip-4",
@@ -210,7 +222,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
-          "color": "#f04438"
+          "color": "#f04438",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "up-clip-6",
@@ -271,7 +289,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
-          "color": "#7a5af8"
+          "color": "#7a5af8",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],
@@ -406,7 +430,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
-          "color": "#7a5af8"
+          "color": "#7a5af8",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "down-clip-6",
@@ -467,7 +497,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
-          "color": "#f04438"
+          "color": "#f04438",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "down-clip-4",
@@ -528,7 +564,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
-          "color": "#12b76a"
+          "color": "#12b76a",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "down-clip-2",
@@ -589,7 +631,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         },
         {
           "id": "down-clip-0",
@@ -817,7 +865,13 @@
               "text": "Kadrion",
               "fontAssetId": "asset-font",
               "fontSize": 96,
-              "color": "#ffffff"
+              "color": "#ffffff",
+              "style": {
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" }
+              },
+              "textAnimations": []
             }
           ]
         }
@@ -874,7 +928,13 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
-          "color": "#101828"
+          "color": "#101828",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": []
         }
       ],
       "clips": [],

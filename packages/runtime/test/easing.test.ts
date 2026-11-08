@@ -241,7 +241,8 @@ describe('the bounds of a sampled value (D67.6)', () => {
         const scalar = channels?.['x'] ?? channels?.['width'] ?? channels?.['top'] ?? value;
         found[property] = { min: scalar['minimum'], max: scalar['maximum'] };
       }
-      for (const child of Object.values(node)) walk(child);
+      // The tracks of a text animation have bounds of their own (D69).
+      for (const [key, child] of Object.entries(node)) if (key !== 'textAnimations') walk(child);
     };
     walk(compositionSchema);
     // A colour is a string in the schema; it is held per channel, from 0 to 255 (D68).
