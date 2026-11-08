@@ -123,7 +123,10 @@ describe('evaluateComposition of captions (D57.4)', () => {
       active: true,
       position: { x: 40, y: 200 },
       scale: { x: 1, y: 1 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
       opacity: 1,
+      color: '#ffffff',
       page: 0,
       word: 0,
     });

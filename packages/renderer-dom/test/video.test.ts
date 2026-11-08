@@ -31,7 +31,7 @@ function frame(
 }
 
 describe('the mounted tree of video nodes (D50.4)', () => {
-  it('mounts every video as an image without a source, sized and fitted like an image', () => {
+  it('mounts every video as an image without a source, fitted like an image and sized by its render (D68)', () => {
     const root = mounted();
     for (const id of VIDEOS) {
       const element = elementOf(root, id);
@@ -44,6 +44,8 @@ describe('the mounted tree of video nodes (D50.4)', () => {
     expect(elementOf(root, 'node-video-contain').style.getPropertyValue('object-fit')).toBe(
       'contain',
     );
+    expect(elementOf(root, 'node-video-contain').style.getPropertyValue('width')).toBe('');
+    renderState(root, evaluateComposition(composition, 0));
     expect(elementOf(root, 'node-video-contain').style.getPropertyValue('width')).toBe('280px');
   });
 

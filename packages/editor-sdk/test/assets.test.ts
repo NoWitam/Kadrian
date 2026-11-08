@@ -294,6 +294,8 @@ describe('RemoveAsset (D40.3, D40.4)', () => {
             durationUs: 10_000_000,
             position: { x: 0, y: 0 },
             scale: { x: 1, y: 1 },
+            rotation: 0,
+            origin: { x: 0, y: 0 },
             opacity: 1,
             animations: [],
             assetId: 'lone',
@@ -301,6 +303,8 @@ describe('RemoveAsset (D40.3, D40.4)', () => {
             height: 10,
             fit: 'fill',
             focus: { x: 500, y: 500 },
+            crop: { top: 0, right: 0, bottom: 0, left: 0 },
+            cornerRadius: 0,
           },
         });
         return { bus, users: ['top-image'] };

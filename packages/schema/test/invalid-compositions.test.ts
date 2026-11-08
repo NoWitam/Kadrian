@@ -43,6 +43,8 @@ const ERROR_CODES = [
   'repeat-in-transition',
   'repeat-id-reserved',
   'item-outside-repeat',
+  'crop-empty',
+  'bound-property-animated',
 ] as const;
 
 describe('negative fixtures', () => {

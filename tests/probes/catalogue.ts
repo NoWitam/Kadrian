@@ -19,6 +19,8 @@ export interface Probe {
   readonly group:
     | 'baseline'
     | 'transform'
+    | 'transform-list'
+    | 'picture'
     | 'css-filter'
     | 'css-filter-neutral'
     | 'svg-filter'
@@ -33,6 +35,12 @@ export interface Probe {
   readonly subjects: readonly Subject[];
   /** Declarations written on the subject's element. */
   readonly css?: Readonly<Record<string, string>>;
+  /**
+   * The part of the subject's `transform` after its translation to the
+   * position, written in place of the renderer's `scale(…)`: the transform
+   * list of D68 with its pivot and rotation, at the subject's own position.
+   */
+  readonly transformList?: string;
   /** SVG markup of `<defs>` content that `css` refers to by `url(#…)`. */
   readonly defs?: string;
   /** Whether a striped, multicoloured underlay is put below the subject (blend modes). */
@@ -132,6 +140,69 @@ export const PROBES: readonly Probe[] = [
     subjects: VISUAL,
     css: { 'border-radius': '48px', overflow: 'hidden' },
   },
+
+  // The transform list that the renderer writes for a rotation about an origin
+  // (PR-48, D68): translate to the position, to the origin, rotate, scale, and
+  // back from the origin, in per cent of the box, with transform-origin 0 0.
+  ...(
+    [
+      [
+        'pivot-500-500-rotate-45',
+        'translate(50%, 50%) rotate(45deg) scale(1, 1) translate(-50%, -50%)',
+      ],
+      [
+        'pivot-250-750-rotate-12.5-scale-1.37',
+        'translate(25%, 75%) rotate(12.5deg) scale(1.37, 1.37) translate(-25%, -75%)',
+      ],
+      [
+        'pivot-0-1000-rotate-neg-8',
+        'translate(0%, 100%) rotate(-8deg) scale(1, 1) translate(0%, -100%)',
+      ],
+      ['rotate-33.3', 'rotate(33.3deg) scale(1, 1)'],
+      ['rotate-720', 'rotate(720deg) scale(1, 1)'],
+      // At rest: a pivot without rotation or scale, and a rotation of 0, must be no change.
+      ['pivot-500-500-neutral', 'translate(50%, 50%) scale(1, 1) translate(-50%, -50%)'],
+      ['rotate-0-neutral', 'rotate(0deg) scale(1, 1)'],
+    ] as const
+  ).map(([id, list]): Probe => ({
+    id: `transform-list/${id}`,
+    group: 'transform-list',
+    subjects: VISUAL,
+    transformList: list,
+  })),
+
+  // The picture of an image or a video (PR-48, D68): the crop as the view box
+  // of the picture, before object-fit and object-position, the corner radius
+  // without overflow, and a fractional size while animated.
+  ...(
+    [
+      ['view-box-neutral', { 'object-view-box': 'inset(0% 0% 0% 0%)' }],
+      ['view-box-crop', { 'object-view-box': 'inset(10% 25% 5% 0%)' }],
+      ['view-box-fractional', { 'object-view-box': 'inset(12.5% 0.1% 33.3% 7.25%)' }],
+      [
+        'view-box-cover-focus',
+        {
+          'object-fit': 'cover',
+          'object-position': '30% 70%',
+          'object-view-box': 'inset(0% 25% 0% 25%)',
+        },
+      ],
+      ['view-box-contain', { 'object-fit': 'contain', 'object-view-box': 'inset(20% 0% 0% 10%)' }],
+      ['border-radius-0-neutral', { 'border-radius': '0px' }],
+      ['border-radius-48', { 'border-radius': '48px' }],
+      ['border-radius-12.5', { 'border-radius': '12.5px' }],
+      [
+        'border-radius-crop',
+        { 'border-radius': '400px', 'object-view-box': 'inset(0% 25% 0% 25%)' },
+      ],
+      ['size-fractional', { width: '333.3px', height: '187.5px' }],
+    ] as const
+  ).map(([id, css]): Probe => ({
+    id: `picture/${id}`,
+    group: 'picture',
+    subjects: ['image', 'video'],
+    css,
+  })),
 
   // CSS filters (PR-51a), each at a working value.
   filter('blur-4', 'blur(4px)'),

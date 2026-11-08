@@ -12,7 +12,7 @@ PR-18 to PR-22; phase three, the engine under a host's video editor
 PR-34b; phase four, a host integrating the engine
 ([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)), delivered PR-37 to
 PR-43; the current phase is motion graphics, effects, and reusable elements
-([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.12` with its forward migrations from `0.1` to `0.11`, the evaluation core, the DOM
+([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.13` with its forward migrations from `0.1` to `0.12`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -21,8 +21,8 @@ of the Player and the Producer is measured and gated
 GitHub runner in the pinned image. Q14 is open again: the run 41857750361 of
 the validated main commit 062f532 met every criterion, but PR-46 changed the
 pinned transitions test and the reports it writes, so its evidence was deleted
-until a green run of a later commit, and PR-47 added the pinned easing test and
-its two reports
+until a green run of a later commit, PR-47 added the pinned easing test and
+its two reports, and PR-48 the pinned motion test and its report
 ([`docs/ci/first-run.md`](docs/ci/first-run.md)). The
 repository is publicly visible, but the project is not open source: no licence
 is granted, and the packages are private and unpublished (D37). The APIs below
@@ -178,13 +178,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.12`
+A composition is a JSON document of schema `0.13`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -206,7 +206,8 @@ Unknown fields are errors. This one shows a text that fades in:
           "type": "background",
           "startUs": 0,
           "durationUs": 3000000,
-          "color": "#101828"
+          "color": "#101828",
+          "animations": []
         },
         {
           "id": "node-title",
@@ -215,6 +216,8 @@ Unknown fields are errors. This one shows a text that fades in:
           "durationUs": 3000000,
           "position": { "x": 90, "y": 140 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [
             {
@@ -281,7 +284,9 @@ durationUs`. A child of a group is shown only while its group is shown too. A
   declares a white background for the pixels no node covers (D42.5); that the
   pixels are white in the Producer and in the Player is measured in the pinned
   environment (D42.6).
-- **Animations:** `opacity`, `position`, and `scale`, with keyframes on scene
+- **Animations:** `opacity`, `position`, `scale`, `rotation`, and `origin` on
+  every node but a background; `size`, `crop`, and `cornerRadius` on an image or
+  a video; `color` on a text, captions, or a background (D68), with keyframes on scene
   time: a lifetime does not shift them. Each keyframe's `easing` shapes the
   segment that starts at it: `linear`, `hold` (the value stays until the next
   keyframe), `ease-in`, `ease-out`, `ease-in-out`, `cubic-bezier` with
@@ -290,6 +295,11 @@ durationUs`. A child of a group is shown only while its group is shown too. A
   is never read. Every curve is computed with `+ - * /` only, so the Player
   and the Producer get the same bits; a curve that overshoots is held within
   the range of its property (D67).
+- **Transform:** a node's `position` places the top-left corner of its box;
+  `scale` and then `rotation` (degrees, positive clockwise) apply about its
+  `origin`, a point of the box in per mille of its sides (a group's box is the
+  canvas). An image or a video has a `crop`, per mille cut from each edge of
+  its picture, and a `cornerRadius` in pixels (D68).
 - **Clips:** any number of audio clips, in composition time in the
   composition's `clips` (sound that spans scenes, such as music) and in scene
   time in a scene's `clips` (sound that moves with its scene, cut at its end). A clip plays its
@@ -324,8 +334,8 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.12` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.12` document, and none of them
+`validateComposition` accepts schema `0.13` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.13` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
@@ -337,8 +347,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.12 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.11', '0.12'], or ['0.12'] for a document that was current
+  migrated.composition; // a new, validated 0.13 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.12', '0.13'], or ['0.13'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -391,8 +401,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.12 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.11', '0.12'] from 0.1, ['0.12'] when it was current
+  loaded.composition; // a new, validated 0.13 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.12', '0.13'] from 0.1, ['0.13'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -407,7 +417,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -420,7 +430,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.12"`, speaks of that.
+  supports `"0.13"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -1043,7 +1053,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

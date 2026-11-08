@@ -17,8 +17,15 @@ interface DocumentNode {
   type: string;
   position?: Vec2;
   scale?: Vec2;
+  rotation?: number;
+  origin?: Vec2;
   opacity?: number;
-  animations?: { property: 'position' | 'scale' | 'opacity' }[];
+  color?: string;
+  width?: number;
+  height?: number;
+  cornerRadius?: number;
+  crop?: { top: number; right: number; bottom: number; left: number };
+  animations?: { property: string }[];
   children?: DocumentNode[];
 }
 
@@ -27,7 +34,13 @@ interface StateNode {
   type: string;
   position?: Vec2;
   scale?: Vec2;
+  rotation?: number;
+  origin?: Vec2;
   opacity?: number;
+  color?: string;
+  size?: { width: number; height: number };
+  crop?: { fromTop: number; fromRight: number; fromBottom: number; fromLeft: number };
+  cornerRadius?: number;
   children?: StateNode[];
 }
 
@@ -46,7 +59,17 @@ const reference = readJson(...COMPOSITIONS, 'reference.json') as {
 };
 const expected = readJson(...COMPOSITIONS, 'reference.expected-state.json') as ExpectedStates;
 
-const PROPERTIES = ['position', 'scale', 'opacity'] as const;
+const PROPERTIES = ['position', 'scale', 'rotation', 'origin', 'opacity'] as const;
+
+/**
+ * The properties of D68 an animation can reach, besides the transform, by type
+ * of node: they are in the state, animated or not.
+ */
+const REACHED: Readonly<Record<string, readonly string[]>> = {
+  background: ['color'],
+  text: ['color'],
+  image: ['size', 'crop', 'cornerRadius'],
+};
 
 /** Golden timestamps exactly as `AGENTS.md` lists them. */
 const goldenTimes = [
@@ -111,7 +134,7 @@ describe.each(expected.golden)('expected state at $timeUs', ({ timeUs, derivatio
       const children = node.type === 'group' ? ['children'] : [];
       // Every node state says whether the node is active, the background's too (D42.3).
       expect(Object.keys(node).sort()).toEqual(
-        ['id', 'type', 'active', ...transform, ...children].sort(),
+        ['id', 'type', 'active', ...transform, ...(REACHED[node.type] ?? []), ...children].sort(),
       );
     }
   });
@@ -122,6 +145,22 @@ describe.each(expected.golden)('expected state at $timeUs', ({ timeUs, derivatio
       const animated = (source?.animations ?? []).map((animation) => animation.property);
       for (const property of PROPERTIES.filter((name) => !animated.includes(name))) {
         expect(node[property], `${node.id}.${property}`).toEqual(source?.[property]);
+      }
+      // None of the properties of D68 is animated in the reference composition.
+      expect(animated.filter((name) => !(PROPERTIES as readonly string[]).includes(name))).toEqual(
+        [],
+      );
+      if (node.color !== undefined) expect(node.color, node.id).toBe(source?.color);
+      if (node.type === 'image') {
+        expect(node.size).toEqual({ width: source?.width, height: source?.height });
+        expect(node.cornerRadius).toBe(source?.cornerRadius);
+        const crop = source?.crop;
+        expect(node.crop).toEqual({
+          fromTop: crop?.top,
+          fromRight: crop?.right,
+          fromBottom: crop?.bottom,
+          fromLeft: crop?.left,
+        });
       }
     }
   });

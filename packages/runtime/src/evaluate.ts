@@ -2,14 +2,24 @@ import {
   scenesAt,
   sourceTimeUs,
   type CaptionsNode,
+  type ImageNode,
+  type NodeAnimation,
   type SceneNode,
+  type TextNode,
   type ValidatedComposition,
   type VideoNode,
 } from '@kadrion/schema';
 
 import { captionAt, captionPages } from './captions.js';
 import { EvaluationError, unsupported } from './errors.js';
-import { sampleScalar, sampleVec2 } from './keyframes.js';
+import {
+  cropState,
+  sampleColor,
+  sampleCrop,
+  sampleScalar,
+  sampleSize,
+  sampleVec2,
+} from './keyframes.js';
 import {
   clipTransitionEffects,
   sceneTransitionEffects,
@@ -20,9 +30,12 @@ import type {
   ClipTransitionSide,
   CompositionState,
   GroupNodeState,
+  ImageNodeState,
   LeafNodeState,
   LeafNodeType,
   NodeState,
+  PictureState,
+  TextNodeState,
   TransformState,
   Vec2,
   VideoNodeState,
@@ -30,15 +43,29 @@ import type {
 
 type TransformedNode = Exclude<SceneNode, { readonly type: 'background' }>;
 
+/** The rows in `replace` mode each type of node takes (D65.1, D68). */
+const REPLACED: Readonly<Record<SceneNode['type'], readonly NodeAnimation['property'][]>> = {
+  background: ['color'],
+  group: [],
+  'custom-html': [],
+  text: ['color'],
+  captions: ['color'],
+  image: ['size', 'crop', 'cornerRadius'],
+  video: ['size', 'crop', 'cornerRadius'],
+};
+
 /**
- * An animation modifies the base value and never replaces it (D16.6): position
- * keyframes are offsets that are added, scale and opacity keyframes are factors
- * that are multiplied. The base value meets the sampled value in one operation
- * (D18); a property without an animation is its base value.
+ * Transforms modify their base value (D16.6): position, rotation, and origin
+ * keyframes are offsets that are added, scale and opacity keyframes are
+ * factors that are multiplied. The base value meets the sampled value in one
+ * operation (D18); a property without an animation is its base value. The
+ * other rows of D65.1 are read by `replacing`, where the type takes them.
  */
 function evaluateTransform(node: TransformedNode, timeUs: number): TransformState {
   let position: Vec2 = { x: node.position.x, y: node.position.y };
   let scale: Vec2 = { x: node.scale.x, y: node.scale.y };
+  let rotation = node.rotation;
+  let origin: Vec2 = { x: node.origin.x, y: node.origin.y };
   let opacity = node.opacity;
 
   // Validation guarantees at most one animation per property, in any order.
@@ -57,11 +84,62 @@ function evaluateTransform(node: TransformedNode, timeUs: number): TransformStat
       case 'opacity':
         opacity = node.opacity * sampleScalar(animation, timeUs);
         break;
+      case 'rotation':
+        rotation = node.rotation + sampleScalar(animation, timeUs);
+        break;
+      case 'origin': {
+        const offset = sampleVec2(animation, timeUs);
+        origin = { x: node.origin.x + offset.x, y: node.origin.y + offset.y };
+        break;
+      }
+      case 'size':
+      case 'color':
+      case 'crop':
+      case 'cornerRadius':
+        // Rows of `replace` mode, read where the node's type takes them (D65.1, D68).
+        if (!REPLACED[node.type].includes(animation.property)) {
+          unsupported(animation as never, 'property');
+        }
+        break;
       default:
         unsupported(animation, 'property');
     }
   }
-  return { position, scale, opacity };
+  // `-0 + 0` is `0`: a rotation of -0 degrees is reported as 0.
+  return { position, scale, rotation: rotation + 0, origin, opacity };
+}
+
+/** The animation of a row in `replace` mode, when the node has one (D65.1, D68). */
+function replacing<P extends 'size' | 'color' | 'crop' | 'cornerRadius'>(
+  animations: readonly NodeAnimation[],
+  property: P,
+): Extract<NodeAnimation, { property: P }> | undefined {
+  return animations.find(
+    (animation): animation is Extract<NodeAnimation, { property: P }> =>
+      animation.property === property,
+  );
+}
+
+/** The colour of a node: its own, or what its animation replaces it with (D68). */
+function colorOf(
+  node: { readonly color: string; readonly animations: readonly NodeAnimation[] },
+  timeUs: number,
+): string {
+  const animation = replacing(node.animations, 'color');
+  return animation === undefined ? node.color : sampleColor(animation, timeUs);
+}
+
+/** The box and the picture of an image or a video (D68). */
+function pictureOf(node: ImageNode | VideoNode, timeUs: number): PictureState {
+  const size = replacing(node.animations, 'size');
+  const crop = replacing(node.animations, 'crop');
+  const radius = replacing(node.animations, 'cornerRadius');
+  return {
+    size:
+      size === undefined ? { width: node.width, height: node.height } : sampleSize(size, timeUs),
+    crop: crop === undefined ? cropState(node.crop) : sampleCrop(crop, timeUs),
+    cornerRadius: radius === undefined ? node.cornerRadius : sampleScalar(radius, timeUs),
+  };
 }
 
 /**
@@ -115,15 +193,32 @@ function evaluateLeaf<Type extends LeafNodeType>(
   };
 }
 
-/** A video leaf with the source time it shows while active (D49.5, D50.3). */
-function evaluateVideo(node: VideoNode, timeUs: number, factors: Factors): VideoNodeState {
-  const leaf = evaluateLeaf(node, timeUs, factors);
-  return { ...leaf, sourceTimeUs: leaf.active ? sourceTimeUs(node, timeUs) : null };
+/** An image leaf with its box and picture (D68). */
+function evaluateImage(node: ImageNode, timeUs: number, factors: Factors): ImageNodeState {
+  return { ...evaluateLeaf(node, timeUs, factors), ...pictureOf(node, timeUs) };
 }
 
-/** A captions leaf with the page it shows and the word being spoken while active (D57). */
-function evaluateCaptions(node: CaptionsNode, timeUs: number, factors: Factors): CaptionsNodeState {
+/** A text leaf with its colour (D68). */
+function evaluateText(node: TextNode, timeUs: number, factors: Factors): TextNodeState {
+  return { ...evaluateLeaf(node, timeUs, factors), color: colorOf(node, timeUs) };
+}
+
+/** A video leaf with its box and picture, and the source time it shows while active (D49.5, D50.3). */
+function evaluateVideo(node: VideoNode, timeUs: number, factors: Factors): VideoNodeState {
   const leaf = evaluateLeaf(node, timeUs, factors);
+  return {
+    ...leaf,
+    ...pictureOf(node, timeUs),
+    sourceTimeUs: leaf.active ? sourceTimeUs(node, timeUs) : null,
+  };
+}
+
+/** A captions leaf with its colour, the page it shows, and the word being spoken while active (D57, D68). */
+function evaluateCaptions(node: CaptionsNode, timeUs: number, factors: Factors): CaptionsNodeState {
+  const leaf = {
+    ...evaluateLeaf(node, timeUs, factors),
+    color: colorOf({ color: node.style.color, animations: node.animations }, timeUs),
+  };
   if (!leaf.active) return { ...leaf, page: null, word: null };
   return { ...leaf, ...captionAt(node.words, captionPages(node.words, node.style), timeUs) };
 }
@@ -134,9 +229,16 @@ function evaluateChild(
   timeUs: number,
   factors: Factors,
 ): GroupNodeState['children'][number] {
-  return child.type === 'video'
-    ? evaluateVideo(child, timeUs, factors)
-    : evaluateLeaf(child, timeUs, factors);
+  switch (child.type) {
+    case 'video':
+      return evaluateVideo(child, timeUs, factors);
+    case 'image':
+      return evaluateImage(child, timeUs, factors);
+    case 'text':
+      return evaluateText(child, timeUs, factors);
+    default:
+      return unsupported(child, 'type');
+  }
 }
 
 /**
@@ -147,7 +249,16 @@ function evaluateChild(
 function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeState {
   switch (node.type) {
     case 'background':
-      return { id: node.id, type: node.type, active: isActive(node, timeUs) };
+      for (const animation of node.animations) {
+        if (!REPLACED.background.includes(animation.property))
+          unsupported(animation as never, 'property');
+      }
+      return {
+        id: node.id,
+        type: node.type,
+        active: isActive(node, timeUs),
+        color: colorOf(node, timeUs),
+      };
     case 'group':
       return {
         id: node.id,
@@ -157,7 +268,9 @@ function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeSt
         children: node.children.map((child) => evaluateChild(child, timeUs, factors)),
       };
     case 'image':
+      return evaluateImage(node, timeUs, factors);
     case 'text':
+      return evaluateText(node, timeUs, factors);
     case 'custom-html':
       return evaluateLeaf(node, timeUs, factors);
     case 'video':

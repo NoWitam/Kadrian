@@ -101,7 +101,7 @@
   },
   {
     "name": "add_node",
-    "description": "Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text, image, and video nodes only. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"color\":\"#ffffff\"}}",
+    "description": "Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields. A group takes text, image, and video nodes only. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"rotation\":0,\"origin\":{\"x\":0,\"y\":0},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"color\":\"#ffffff\"}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete node, with its animations and children, into a list.",
@@ -202,7 +202,7 @@
   },
   {
     "name": "set_node_scale",
-    "description": "Sets one node's base scale about its top-left corner: 1 is the natural size, from 0 to 1000 on each axis. A scale animation of the node multiplies it. Refused with invalid-argument outside 0 to 1000, unknown-node, and unsupported-node for a node without a scale (the background). The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"scale\":{\"x\":1.5,\"y\":1.5}}",
+    "description": "Sets one node's base scale about its origin point (the top-left corner unless set_node_origin moved it): 1 is the natural size, from 0 to 1000 on each axis. A scale animation of the node multiplies it. Refused with invalid-argument outside 0 to 1000, unknown-node, and unsupported-node for a node without a scale (the background). The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"scale\":{\"x\":1.5,\"y\":1.5}}",
     "inputSchema": {
       "type": "object",
       "description": "Sets one node's base scale.",
@@ -274,7 +274,7 @@
   },
   {
     "name": "set_node_color",
-    "description": "Sets the colour of a text or a background, as # and six hexadecimal digits (sRGB), stored in lower case. Refused with invalid-argument for short forms, names, or alpha, unknown-node, and unsupported-node for a node without a colour. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"color\":\"#ffcc00\"}",
+    "description": "Sets the colour of a text or a background, as # and six hexadecimal digits (sRGB), stored in lower case. A color animation of the node replaces it while the animation is sampled. Refused with invalid-argument for short forms, names, or alpha, unknown-node, and unsupported-node for a node without a colour. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"color\":\"#ffcc00\"}",
     "inputSchema": {
       "type": "object",
       "description": "Sets the colour of a text or a background.",
@@ -445,7 +445,7 @@
   },
   {
     "name": "add_animation",
-    "description": "Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property (position, scale, or opacity), which the node must not animate yet; and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({\"kind\":\"linear\"} for a constant speed; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with unknown-node, unsupported-node for a node without animations (the background), duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-custom-html\",\"index\":0,\"animation\":{\"id\":\"anim-html-opacity\",\"property\":\"opacity\",\"keyframes\":[{\"timeUs\":0,\"value\":0,\"easing\":{\"kind\":\"ease-out\"}},{\"timeUs\":1000000,\"value\":1,\"easing\":{\"kind\":\"linear\"}}]}}",
+    "description": "Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property, which the node must not animate yet (position, scale, opacity, rotation, or origin on every node but a background; size, crop, and cornerRadius on an image or a video; color on a text, captions, or a background, which has no other animation); and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({\"kind\":\"linear\"} for a constant speed; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. The value depends on the property of the animation: rotation, a number of degrees added to the node's rotation; origin, {\"x\":…,\"y\":…} integers in per mille (-1000 to 1000) added to the node's origin; size, {\"width\":…,\"height\":…} in composition pixels (rounded) that replaces the node's size; color, \"#rrggbb\" that replaces the node's colour; crop, {\"top\":…,\"right\":…,\"bottom\":…,\"left\":…} integers in per mille that replaces the node's crop; cornerRadius, composition pixels (rounded) that replace the node's corner radius. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with unknown-node, duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-custom-html\",\"index\":0,\"animation\":{\"id\":\"anim-html-opacity\",\"property\":\"opacity\",\"keyframes\":[{\"timeUs\":0,\"value\":0,\"easing\":{\"kind\":\"ease-out\"}},{\"timeUs\":1000000,\"value\":1,\"easing\":{\"kind\":\"linear\"}}]}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete animation into a node's animations.",
@@ -748,6 +748,47 @@
     }
   },
   {
+    "name": "set_keyframe_value",
+    "description": "Sets the value of an animation of rotation, origin, size, color, crop, or cornerRadius at a time: replaces the value of the keyframe at that time, or inserts one, eased as the keyframe before it. The value depends on the property of the animation: rotation, a number of degrees added to the node's rotation; origin, {\"x\":…,\"y\":…} integers in per mille (-1000 to 1000) added to the node's origin; size, {\"width\":…,\"height\":…} in composition pixels (rounded) that replaces the node's size; color, \"#rrggbb\" that replaces the node's colour; crop, {\"top\":…,\"right\":…,\"bottom\":…,\"left\":…} integers in per mille that replaces the node's crop; cornerRadius, composition pixels (rounded) that replace the node's corner radius. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Use describe_document to read the IDs of animations and the times of their keyframes. Refused with unknown-animation, use-typed-command for an animation of opacity, position, or scale (use set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe), invalid-argument for a value of the wrong form, and invalid-result for a value outside the range of the property. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"animationId\":\"anim-image-rotation\",\"timeUs\":1000000,\"value\":360}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the keyframe at a time of an animation of rotation, origin, size, color, crop, or cornerRadius, inserting it when none is there.",
+      "properties": {
+        "animationId": {
+          "type": "string",
+          "description": "The ID of an animation of the document. Opacity, position, and scale have their own keyframe commands.",
+          "minLength": 1
+        },
+        "timeUs": {
+          "type": "integer",
+          "description": "A scene time in integer microseconds from the start of the scene of the node; it may lie at or after the end of the scene, and it is never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "value": {
+          "description": "The keyframe value. The value depends on the property of the animation: rotation, a number of degrees added to the node's rotation; origin, {\"x\":…,\"y\":…} integers in per mille (-1000 to 1000) added to the node's origin; size, {\"width\":…,\"height\":…} in composition pixels (rounded) that replaces the node's size; color, \"#rrggbb\" that replaces the node's colour; crop, {\"top\":…,\"right\":…,\"bottom\":…,\"left\":…} integers in per mille that replaces the node's crop; cornerRadius, composition pixels (rounded) that replace the node's corner radius.",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "required": [
+        "animationId",
+        "timeUs",
+        "value"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "set_node_lifetime",
     "description": "Sets when a node is shown: from startUs, for durationUs (at least 1). Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. The part after the end of the composition is cut. It moves no keyframe: keyframe times stay composition times. A video keeps its sourceStartUs, so its lifetime must fit inside its source. Refused with unknown-node, invalid-result, and for a video media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"startUs\":1000000,\"durationUs\":5000000}",
     "inputSchema": {
@@ -848,6 +889,156 @@
       "required": [
         "nodeId",
         "focus"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_rotation",
+    "description": "Sets a node's base rotation about its origin point, in degrees, positive clockwise, from -360000 to 360000: several turns are allowed for a spin, and a whole number of turns is no rotation. It is applied after the scale and before the position, and a rotation animation of the node adds to it. Refused with invalid-argument outside the range, unknown-node, and unsupported-node for a background. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"rotation\":15}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the rotation of a node about its origin point, in degrees.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Every node but a background has a rotation.",
+          "minLength": 1
+        },
+        "rotation": {
+          "type": "number",
+          "description": "Degrees, positive clockwise, from -360000 to 360000; several turns are allowed, and a whole number of turns is no rotation. Never rounded; -0 becomes 0.",
+          "minimum": -360000,
+          "maximum": 360000
+        }
+      },
+      "required": [
+        "nodeId",
+        "rotation"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_origin",
+    "description": "Sets the point of a node's box that its scale and rotation are about, as integers in per mille of the box: 0, 0 is the top-left corner and 500, 500 the centre; a group's box is the canvas, a text's box the box of its lines. The position still places the top-left corner, so the node does not move while it is neither rotated nor scaled; to keep a rotated or scaled node in place, set its position in the same transaction. An origin animation of the node adds to it. Refused with invalid-argument for a coordinate that is not an integer from 0 to 1000, unknown-node, and unsupported-node for a background. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"origin\":{\"x\":500,\"y\":500}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the point of a node's box that its scale and rotation are about; the position stays that of the top-left corner.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Every node but a background has an origin; a group's box is the canvas.",
+          "minLength": 1
+        },
+        "origin": {
+          "type": "object",
+          "description": "The origin, in per mille of the box: 0, 0 is the top-left corner and 500, 500 the centre.",
+          "properties": {
+            "x": {
+              "type": "integer",
+              "description": "An integer from 0 to 1000, per mille of the width of the box, from its left edge.",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "y": {
+              "type": "integer",
+              "description": "An integer from 0 to 1000, per mille of the height of the box, from its top edge.",
+              "minimum": 0,
+              "maximum": 1000
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "nodeId",
+        "origin"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_crop",
+    "description": "Sets what is cut away of the picture of an image or a video before it is fitted to its box, as integer insets in per mille of the sides of the picture from its top, right, bottom, and left edge; the rest is then fitted and focused as if it were the whole picture. Two opposite insets add up to at most 999. A crop animation of the node replaces it. Refused with invalid-argument for an inset that is not an integer from 0 to 1000, unknown-node, unsupported-node for a node that is neither an image nor a video, and invalid-result when two opposite insets leave nothing. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"crop\":{\"top\":100,\"right\":0,\"bottom\":100,\"left\":0}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets what is cut away of the picture of an image or a video before it is fitted to its box.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only images and videos have a crop.",
+          "minLength": 1
+        },
+        "crop": {
+          "type": "object",
+          "description": "Insets from each edge of the picture, in per mille of its sides; two opposite insets add up to at most 999.",
+          "properties": {
+            "top": {
+              "type": "integer",
+              "description": "An integer from 0 to 1000, per mille of the height, from the top edge.",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "right": {
+              "type": "integer",
+              "description": "An integer from 0 to 1000, per mille of the width, from the right edge.",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "bottom": {
+              "type": "integer",
+              "description": "An integer from 0 to 1000, per mille of the height, from the bottom edge.",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "left": {
+              "type": "integer",
+              "description": "An integer from 0 to 1000, per mille of the width, from the left edge.",
+              "minimum": 0,
+              "maximum": 1000
+            }
+          },
+          "required": [
+            "top",
+            "right",
+            "bottom",
+            "left"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "nodeId",
+        "crop"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_corner_radius",
+    "description": "Sets the radius of the four corners of an image or a video, in composition pixels; 0 is square, and a radius above half a side is reduced as CSS does. Lengths and coordinates are composition pixels, rounded to integers. A cornerRadius animation of the node replaces it. Refused with invalid-argument, unknown-node, unsupported-node for a node that is neither an image nor a video, and invalid-result outside 0 to 1000000 after rounding. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"cornerRadius\":24}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the radius of the corners of an image or a video.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Only images and videos have a corner radius.",
+          "minLength": 1
+        },
+        "cornerRadius": {
+          "type": "number",
+          "description": "Composition pixels, rounded to an integer, halves towards +Infinity; 0 is square, and a radius above half a side is reduced as CSS does."
+        }
+      },
+      "required": [
+        "nodeId",
+        "cornerRadius"
       ],
       "additionalProperties": false
     }
@@ -1066,7 +1257,7 @@
   },
   {
     "name": "add_scene",
-    "description": "Inserts one complete scene at an index of the sequence. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, less the duration of a transition between them, and the composition's durationUs is the sum of the scenes' durations less those of the scene transitions, which every scene command keeps. A command that would break a transition — remove or move one of its scenes or nodes, or shorten one so that it no longer fits — is refused with transition-in-use and the IDs of those transitions: remove them first, in the same transaction. The scene is given exactly as the document stores it: an ID unused in the document, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), and its audio clips (each as add_scene_audio_clip takes one), every ID unused in the document. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the scene is not one the document can hold; a scene with video or sound also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":1,\"scene\":{\"id\":\"scene-outro\",\"durationUs\":3000000,\"nodes\":[{\"id\":\"node-outro-background\",\"type\":\"background\",\"startUs\":0,\"durationUs\":3000000,\"color\":\"#000000\"}],\"clips\":[],\"transitions\":[]}}",
+    "description": "Inserts one complete scene at an index of the sequence. Scenes play one after another in their order; a scene has no start of its own, it starts where the scene before it ends, less the duration of a transition between them, and the composition's durationUs is the sum of the scenes' durations less those of the scene transitions, which every scene command keeps. A command that would break a transition — remove or move one of its scenes or nodes, or shorten one so that it no longer fits — is refused with transition-in-use and the IDs of those transitions: remove them first, in the same transaction. The scene is given exactly as the document stores it: an ID unused in the document, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), and its audio clips (each as add_scene_audio_clip takes one), every ID unused in the document. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the scene is not one the document can hold; a scene with video or sound also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":1,\"scene\":{\"id\":\"scene-outro\",\"durationUs\":3000000,\"nodes\":[{\"id\":\"node-outro-background\",\"type\":\"background\",\"startUs\":0,\"durationUs\":3000000,\"color\":\"#000000\",\"animations\":[]}],\"clips\":[],\"transitions\":[]}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete scene into the sequence; the composition's durationUs grows by the scene's.",
@@ -1909,9 +2100,14 @@
                   "remove_keyframe",
                   "move_keyframe",
                   "set_keyframe_easing",
+                  "set_keyframe_value",
                   "set_node_lifetime",
                   "set_node_fit",
                   "set_node_focus",
+                  "set_node_rotation",
+                  "set_node_origin",
+                  "set_node_crop",
+                  "set_node_corner_radius",
                   "set_video_asset",
                   "set_video_source",
                   "set_video_volume",

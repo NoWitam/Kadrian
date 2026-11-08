@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 1920,
   "height": 1080,
   "fps": 24,
@@ -31,23 +31,53 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 5000000,
-          "color": "#0c111d"
+          "color": "#0c111d",
+          "animations": []
         },
         {
           "id": "node-image",
           "type": "image",
           "startUs": 0,
           "durationUs": 5000000,
-          "position": { "x": 120, "y": 240 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 120,
+            "y": 240
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
               "id": "anim-image-position",
               "property": "position",
               "keyframes": [
-                { "timeUs": 0, "value": { "x": -600, "y": 0 }, "easing": { "kind": "linear" } },
-                { "timeUs": 1500000, "value": { "x": 0, "y": 0 }, "easing": { "kind": "linear" } }
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": -600,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 1500000,
+                  "value": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
               ]
             }
           ],
@@ -55,23 +85,56 @@
           "width": 600,
           "height": 600,
           "fit": "fill",
-          "focus": { "x": 500, "y": 500 }
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "node-title",
           "type": "text",
           "startUs": 0,
           "durationUs": 5000000,
-          "position": { "x": 860, "y": 360 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 860,
+            "y": 360
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
               "id": "anim-title-opacity",
               "property": "opacity",
               "keyframes": [
-                { "timeUs": 1000000, "value": 0, "easing": { "kind": "linear" } },
-                { "timeUs": 2500000, "value": 1, "easing": { "kind": "linear" } }
+                {
+                  "timeUs": 1000000,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 2500000,
+                  "value": 1,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
               ]
             }
           ],
@@ -85,16 +148,45 @@
           "type": "text",
           "startUs": 0,
           "durationUs": 5000000,
-          "position": { "x": 860, "y": 620 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 860,
+            "y": 620
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
               "id": "anim-subtitle-position",
               "property": "position",
               "keyframes": [
-                { "timeUs": 2000000, "value": { "x": 0, "y": 60 }, "easing": { "kind": "linear" } },
-                { "timeUs": 3500000, "value": { "x": 0, "y": 0 }, "easing": { "kind": "linear" } }
+                {
+                  "timeUs": 2000000,
+                  "value": {
+                    "x": 0,
+                    "y": 60
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 3500000,
+                  "value": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
               ]
             }
           ],
@@ -122,5 +214,10 @@
     }
   ],
   "transitions": [],
-  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
 }

@@ -1,6 +1,9 @@
 /**
  * Builds the DOM tree of a document (D22.3). Only static properties of the
- * document are written here; `renderState` writes the evaluated ones.
+ * document are written here; `renderState` writes the evaluated ones, every
+ * property an animation can reach included, animated or not (D68): the
+ * colour of a background, a text, and captions, and the size, crop, and
+ * corner radius of an image or a video.
  */
 import { captionPages } from '@kadrion/runtime';
 import type { CaptionsNode, GroupNode, SceneNode, ValidatedComposition } from '@kadrion/schema';
@@ -36,7 +39,10 @@ export const HIGHLIGHT_PROPERTY = '--kadrion-caption-highlight';
 type Styles = Readonly<Record<string, string>>;
 
 const PLACED: Styles = Object.freeze({ position: 'absolute', left: '0px', top: '0px' });
-/** Scaling happens about the top-left corner of the node (D15). */
+/**
+ * The transform is written about the top-left corner of the node (D15); the
+ * origin of D68 is part of the transform itself (`cssTransform`).
+ */
 const TRANSFORMED: Styles = Object.freeze({ ...PLACED, 'transform-origin': '0px 0px' });
 
 function create(
@@ -77,7 +83,6 @@ function captionsElement(document: Document, node: CaptionsNode, address: Styles
     'font-style': 'normal',
     'white-space': 'pre',
     'text-align': style.align,
-    color: cssColor(style.color),
     [HIGHLIGHT_PROPERTY]: cssColor(style.highlightColor),
   });
   captionPages(node.words, style).forEach((page, pageIndex) => {
@@ -146,13 +151,11 @@ function nodeElement(
   const address = { [NODE_ATTRIBUTE]: node.id };
   switch (node.type) {
     case 'background':
-      return create(document, 'div', address, {
-        ...PLACED,
-        ...canvas,
-        'background-color': cssColor(node.color),
-      });
+      return create(document, 'div', address, { ...PLACED, ...canvas });
     case 'group': {
-      const group = create(document, 'div', address, TRANSFORMED);
+      // A group's box is the canvas, the box its origin is a point of (D68); it
+      // neither clips nor paints.
+      const group = create(document, 'div', address, { ...TRANSFORMED, ...canvas });
       group.append(
         ...node.children.map((child) =>
           placedNode(document, child, canvas, assetUrls, customHtml, sides),
@@ -168,8 +171,6 @@ function nodeElement(
         {
           ...TRANSFORMED,
           display: 'block',
-          width: cssPixels(node.width),
-          height: cssPixels(node.height),
           'object-fit': node.fit,
           'object-position': cssObjectPosition(node.focus),
         },
@@ -185,8 +186,6 @@ function nodeElement(
         {
           ...TRANSFORMED,
           display: 'block',
-          width: cssPixels(node.width),
-          height: cssPixels(node.height),
           'object-fit': node.fit,
           'object-position': cssObjectPosition(node.focus),
         },
@@ -200,7 +199,6 @@ function nodeElement(
         'line-height': '1.25',
         'font-weight': '400',
         'font-style': 'normal',
-        color: cssColor(node.color),
       });
       // A text node, never markup: the document's text is not parsed.
       text.append(document.createTextNode(node.text));

@@ -80,14 +80,16 @@ const node = (id: string, x: number, y: number) => ({
   durationUs: 2_000_000,
   position: { x, y },
   scale: { x: 1, y: 1 },
+  rotation: 0,
+  origin: { x: 0, y: 0 },
   opacity: 1,
   animations: [],
 });
 
-/** The probe composition: schema 0.12, one scene, three subjects on a dark background. */
+/** The probe composition: schema 0.13, one scene, three subjects on a dark background. */
 export function probeComposition(): unknown {
   return {
-    schemaVersion: '0.12',
+    schemaVersion: '0.13',
     width: WIDTH,
     height: HEIGHT,
     fps: FPS,
@@ -113,6 +115,7 @@ export function probeComposition(): unknown {
             startUs: 0,
             durationUs: 2_000_000,
             color: '#1d2939',
+            animations: [],
           },
           {
             ...node('node-image', 160, 80),
@@ -122,6 +125,8 @@ export function probeComposition(): unknown {
             height: 400,
             fit: 'fill',
             focus: { x: 500, y: 500 },
+            crop: { top: 0, right: 0, bottom: 0, left: 0 },
+            cornerRadius: 0,
           },
           {
             ...node('node-text', 960, 200),
@@ -140,6 +145,8 @@ export function probeComposition(): unknown {
             height: 360,
             fit: 'fill',
             focus: { x: 500, y: 500 },
+            crop: { top: 0, right: 0, bottom: 0, left: 0 },
+            cornerRadius: 0,
             volume: 0,
           },
         ],
@@ -190,6 +197,7 @@ function encodePng(width: number, height: number, rgb: Uint8Array): Uint8Array {
 interface PageProbe {
   readonly nodeId: string | null;
   readonly css: Readonly<Record<string, string>>;
+  readonly transformList: string | null;
   readonly defs: string | null;
   readonly underlay: boolean;
   readonly overlay: Readonly<Record<string, string>> | null;
@@ -295,6 +303,16 @@ function applyInPage(probe: PageProbe | null): void {
     }
   }
   element.setAttribute(saved, element.getAttribute('style') ?? '');
+  if (probe.transformList !== null) {
+    // The renderer writes `translate(<x>px, <y>px) scale(…)` for every subject
+    // of the probe composition, at origin (0, 0) without rotation.
+    const written = element.style.getPropertyValue('transform');
+    const translation = /^translate\([^)]*\)/.exec(written)?.[0];
+    if (translation === undefined) throw new Error(`An unexpected transform: ${written}.`);
+    element.style.setProperty('transform', `${translation} ${probe.transformList}`);
+    if (!element.style.getPropertyValue('transform').includes(probe.transformList.slice(0, 9)))
+      throw new Error(`The pinned Chromium does not parse transform: ${probe.transformList}.`);
+  }
   for (const [name, value] of Object.entries(probe.css)) {
     element.style.setProperty(name, value);
     if (element.style.getPropertyValue(name) === '')
@@ -307,6 +325,7 @@ function pageProbe(probe: Probe | null, subject: Subject): PageProbe | null {
   return {
     nodeId: subject === 'shape' ? null : NODE_OF[subject],
     css: subject === 'shape' ? {} : (probe.css ?? {}),
+    transformList: subject === 'shape' ? null : (probe.transformList ?? null),
     defs: probe.defs ?? null,
     underlay: subject !== 'shape' && probe.underlay === true,
     overlay: subject === 'shape' ? null : (probe.overlay ?? null),
@@ -526,7 +545,12 @@ export async function runProbes({ out, against, ffmpeg }: ProbeOptions): Promise
         id: probe.id,
         group: probe.group,
         subject,
-        css: subject === 'shape' ? null : (probe.css ?? null),
+        css:
+          subject === 'shape'
+            ? null
+            : probe.transformList === undefined
+              ? (probe.css ?? null)
+              : { ...probe.css, transform: `translate(<position>) ${probe.transformList}` },
         pixelsSha256: hash,
         repeatable,
         playerProducerDifferingPixels: parity,

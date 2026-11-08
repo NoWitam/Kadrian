@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -21,7 +21,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 8000000,
-          "color": "#0b1020"
+          "color": "#0b1020",
+          "animations": []
         },
         {
           "id": "node-title",
@@ -35,6 +36,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -56,6 +62,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
@@ -65,12 +76,16 @@
                 {
                   "timeUs": 0,
                   "value": 0.4,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 2000000,
                   "value": 1,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -86,5 +101,10 @@
   ],
   "clips": [],
   "transitions": [],
-  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
 }

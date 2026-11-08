@@ -2,8 +2,8 @@
  * `node --run goldens:update` (D26.5): renders the golden timestamps of the
  * reference composition, of the video composition (D50.8), of the
  * transitions composition (D56), of the clip transitions composition (D66),
- * of the captions composition (D57), of the focus composition (D63), and of
- * the easing composition (D67) with the Producer and writes the golden frames and their manifests into
+ * of the captions composition (D57), of the focus composition (D63), of the
+ * easing composition (D67), and of the motion composition (D68) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -35,6 +35,8 @@ import {
   easingGoldenTimestamps,
   focusComposition,
   focusGoldenTimestamps,
+  motionComposition,
+  motionGoldenTimestamps,
   transitionsComposition,
   transitionsGoldenTimestamps,
   VIDEO_FIXTURE,
@@ -199,6 +201,28 @@ try {
       `${JSON.stringify({ render: focusResult.manifest, environment, frames: focusFrames }, null, 2)}\n`,
     );
     for (const frame of focusFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The motion composition: rotation, origin, crop, and corner radius (D68).
+    const motionResult = await renderFrames({
+      document: motionComposition,
+      resolveAsset: ({ id }) =>
+        id === VIDEO_FIXTURE.id
+          ? { bytes: video, mediaType: VIDEO_FIXTURE.mediaType }
+          : (assets[id] ?? null),
+      timesUs: motionGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+      ffmpeg: { ffmpegPath, ffprobePath },
+    });
+    const motionFrames = motionResult.frames.map(({ index, timeUs, png }) => {
+      const file = `motion-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'motion.golden-frames.json'),
+      `${JSON.stringify({ render: motionResult.manifest, environment, frames: motionFrames }, null, 2)}\n`,
+    );
+    for (const frame of motionFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

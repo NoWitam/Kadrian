@@ -20,8 +20,10 @@ import {
   cssHole,
   cssInset,
   cssNumber,
+  cssPixels,
   cssTransform,
   cssTransitionTransform,
+  cssViewBox,
 } from './css.js';
 import { RenderError, unsupportedNode } from './errors.js';
 import {
@@ -42,8 +44,19 @@ export interface MountedNode {
   readonly sceneTimeUs: number;
 }
 
-/** The declarations `renderState` writes on a node; the mount writes none of them. */
-const WRITTEN = ['transform', 'opacity', 'visibility'] as const;
+/**
+ * The declarations `renderState` writes on a node; the mount writes none of
+ * them. Besides the transform, the opacity, and the visibility, the colour of a
+ * background, a text, and captions, which an animation can reach (D68).
+ */
+const WRITTEN = ['transform', 'opacity', 'visibility', 'background-color', 'color'] as const;
+
+/**
+ * The declarations `renderState` writes on the picture of an image or a video,
+ * an `img` element, besides `WRITTEN` (D68). On a background and on Custom HTML
+ * the mount writes a width and a height of its own, which stay.
+ */
+const PICTURE_WRITTEN = ['width', 'height', 'object-view-box', 'border-radius'] as const;
 
 /** The declarations of a scene transition on a scene element (D56); the mount writes none of them. */
 const TRANSITION_WRITTEN = ['opacity', 'transform', 'clip-path'] as const;
@@ -248,6 +261,9 @@ export function renderState(root: Element, state: CompositionState): void {
     // Back to what the mount wrote, so the tree never keeps an earlier instant.
     for (const node of element.querySelectorAll<HTMLElement>(`[${NODE_ATTRIBUTE}]`)) {
       for (const property of WRITTEN) node.style.removeProperty(property);
+      if (node.tagName === 'IMG') {
+        for (const property of PICTURE_WRITTEN) node.style.removeProperty(property);
+      }
       writeCaptions(node, null);
     }
     for (const frame of element.querySelectorAll<HTMLElement>(`[${CLIP_FRAME_ATTRIBUTE}]`)) {
@@ -256,6 +272,7 @@ export function renderState(root: Element, state: CompositionState): void {
   }
   for (const { element, state: node } of tree.nodes) {
     if (node.type === 'captions') writeCaptions(element, node);
+    writeProperties(element, node);
     if (node.type !== 'background') {
       const moved = cssTransitionTransform(node.transition ?? {});
       const own = cssTransform(node);
@@ -268,6 +285,33 @@ export function renderState(root: Element, state: CompositionState): void {
     }
     if (node.active) element.style.removeProperty('visibility');
     else element.style.setProperty('visibility', 'hidden');
+  }
+}
+
+/**
+ * Writes the properties of D68 that a node has, animated or not: its colour,
+ * or its size, crop, and corner radius. The crop is the `object-view-box` of
+ * the picture, so it applies before `object-fit` and `object-position`; the
+ * corner radius clips the box (D65.6).
+ */
+function writeProperties(element: HTMLElement, node: NodeState): void {
+  switch (node.type) {
+    case 'background':
+      element.style.setProperty('background-color', cssColor(node.color));
+      return;
+    case 'text':
+    case 'captions':
+      element.style.setProperty('color', cssColor(node.color));
+      return;
+    case 'image':
+    case 'video':
+      element.style.setProperty('width', cssPixels(node.size.width));
+      element.style.setProperty('height', cssPixels(node.size.height));
+      element.style.setProperty('object-view-box', cssViewBox(node.crop));
+      element.style.setProperty('border-radius', cssPixels(node.cornerRadius));
+      return;
+    default:
+      return;
   }
 }
 

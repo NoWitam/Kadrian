@@ -55,7 +55,12 @@ describe('the source time of video nodes (D49.5)', () => {
       active: true,
       position: { x: 160, y: 190 },
       scale: { x: 1, y: 1 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
       opacity: 1,
+      size: { width: 160, height: 160 },
+      crop: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
+      cornerRadius: 0,
       sourceTimeUs: 500_000,
     });
   });

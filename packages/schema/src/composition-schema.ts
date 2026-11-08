@@ -22,8 +22,11 @@
  * and every effect of a scene transition on a transition between two clips,
  * whose frame is the canvas (D66); 0.12 is 0.11 plus the easing of every
  * keyframe and every transition, in place of the interpolation of an
- * animation (D67). The schemas of 0.1 to 0.11 are kept as data in `v0-1` to
- * `v0-11` (D35.4).
+ * animation (D67); 0.13 is 0.12 plus the rotation and the origin of every
+ * transformable node, the crop and the corner radius of images and videos, and
+ * the animations of rotation, origin, size, colour, crop, and corner radius
+ * (D65.1, D68). The schemas of 0.1 to 0.12 are kept as data in `v0-1` to
+ * `v0-12` (D35.4).
  */
 import {
   closedObject,
@@ -31,11 +34,12 @@ import {
   type BooleanSchema,
   type JsonSchema,
   type NumberSchema,
+  type ObjectSchema,
   type StringSchema,
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.12';
+export const SCHEMA_VERSION = '0.13';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -120,14 +124,56 @@ const color = {
 } as const satisfies StringSchema;
 
 const position = closedObject(
-  "Offset of the node's origin, the top-left corner of its box, from its parent's origin (D15).",
+  "Offset of the top-left corner of the node's box from its parent's origin (D15, D68).",
   { x: coordinate, y: coordinate },
 );
 
-const scale = closedObject("Scale about the node's own origin, applied after the translation.", {
-  x: scaleFactor,
-  y: scaleFactor,
-});
+const scale = closedObject(
+  "Scale about the node's origin point, applied before the rotation and after nothing else of the node (D15, D68).",
+  {
+    x: scaleFactor,
+    y: scaleFactor,
+  },
+);
+
+/** A rotation in degrees (D68): a JSON number, several turns allowed (D65.3). */
+const rotation = {
+  type: 'number',
+  description:
+    "Rotation about the node's origin point, in degrees; positive turns clockwise, and a whole number of turns is no rotation (D68).",
+  minimum: -360_000,
+  maximum: 360_000,
+} as const satisfies NumberSchema;
+
+/** One coordinate of a point of a box, in per mille of its side (D63.1, D68). */
+const permille = {
+  type: 'integer',
+  description:
+    'Per mille of a side, from 0 at the left or top edge to 1000 at the right or bottom edge (D68).',
+  minimum: 0,
+  maximum: 1000,
+} as const satisfies NumberSchema;
+
+/** The point scale and rotation are about (D68), as CSS `transform-origin`. */
+const origin = closedObject(
+  "The point of the node's box that scale and rotation are about, in per mille of the width and height of the box; 0, 0 is the top-left corner of D15 and 500, 500 the centre. A group's box is the canvas. It moves nothing by itself: the position is that of the top-left corner (D68).",
+  { x: permille, y: permille },
+);
+
+/** The radius of the corners of an image or a video, in composition pixels (D68). */
+const cornerRadius = {
+  type: 'integer',
+  description:
+    "Radius of the four corners of the node's box, in composition pixels; 0 is square, and a radius above half a side is reduced as CSS does (D68).",
+  minimum: 0,
+  maximum: 1_000_000,
+} as const satisfies NumberSchema;
+
+/** What is cut away of the picture of an image or a video before it is fitted (D65.6, D68). */
+const crop = closedObject(
+  'What is cut away of the picture before it meets the box, in per mille of the side of the picture from each edge; the rest is fitted and focused as if it were the whole picture. Two opposite insets leave at least 1 per mille (D68).',
+  { top: permille, right: permille, bottom: permille, left: permille },
+);
 
 /** One control coordinate of a cubic Bézier along the axis of time: 0 to 1, so that the curve is a function of time (D67). */
 const bezierTime = {
@@ -254,18 +300,111 @@ export const scaleAnimationSchema = animation(
   scale,
 );
 
+export const rotationAnimationSchema = animation(
+  'rotation',
+  "Offsets in degrees added to the node's rotation (D65.1, D68).",
+  rotation,
+);
+
+const originOffset = {
+  type: 'integer',
+  description: 'Per mille of a side of the box, added to the coordinate of the origin (D68).',
+  minimum: -1000,
+  maximum: 1000,
+} as const satisfies NumberSchema;
+
+export const originAnimationSchema = animation(
+  'origin',
+  "Offsets in per mille added to the node's origin (D65.1, D68).",
+  closedObject('An offset of the origin, in per mille of the width and height of the box (D68).', {
+    x: originOffset,
+    y: originOffset,
+  }),
+);
+
+export const sizeAnimationSchema = animation(
+  'size',
+  "The width and height of the node's box, which replace its own while the animation is sampled (D65.1, D68).",
+  closedObject('The width and height of the box, in composition pixels (D68).', {
+    width: length,
+    height: length,
+  }),
+);
+
+export const colorAnimationSchema = animation(
+  'color',
+  "Colours that replace the node's colour: each channel moves on its own and is rounded to an integer (D65.1, D68).",
+  color,
+);
+
+export const cropAnimationSchema = animation(
+  'crop',
+  "Crops that replace the node's crop (D65.1, D68).",
+  crop,
+);
+
+export const cornerRadiusAnimationSchema = animation(
+  'cornerRadius',
+  "Radii that replace the node's corner radius (D65.1, D68).",
+  cornerRadius,
+);
+
+/**
+ * Every animation of the table of D65.1 that schema 0.13 has: a transform row
+ * modifies its base value (offset or factor), every other row replaces it
+ * (D16.6 as amended by D68).
+ */
 export const animationSchema = {
-  description: 'An animation modifies the base value of one property of the node that owns it.',
-  oneOf: [opacityAnimationSchema, positionAnimationSchema, scaleAnimationSchema],
+  description:
+    'An animation of one property of the node that owns it: position, rotation, and origin are offsets added to the base value, scale and opacity factors multiplied with it, and size, color, crop, and cornerRadius values that replace it (D16.6, D65.1, D68).',
+  oneOf: [
+    opacityAnimationSchema,
+    positionAnimationSchema,
+    scaleAnimationSchema,
+    rotationAnimationSchema,
+    originAnimationSchema,
+    sizeAnimationSchema,
+    colorAnimationSchema,
+    cropAnimationSchema,
+    cornerRadiusAnimationSchema,
+  ],
 } as const satisfies UnionSchema;
 
-const animations = {
-  type: 'array',
-  description: 'At most one animation per property.',
-  items: animationSchema,
-} as const satisfies ArraySchema;
+const TRANSFORM_ANIMATIONS = [
+  opacityAnimationSchema,
+  positionAnimationSchema,
+  scaleAnimationSchema,
+  rotationAnimationSchema,
+  originAnimationSchema,
+] as const;
 
-const transform = { position, scale, opacity, animations } as const;
+/** The animations a node type may have: the rows of D65.1 that name it. */
+function animations<const S extends readonly ObjectSchema[]>(rows: S) {
+  return {
+    type: 'array',
+    description:
+      'At most one animation per property; the node type decides which properties (D65.1).',
+    items: { oneOf: rows },
+  } as const satisfies ArraySchema;
+}
+
+function transform<const S extends readonly ObjectSchema[]>(rows: S) {
+  return { position, scale, rotation, origin, opacity, animations: animations(rows) } as const;
+}
+
+/** A group, a Custom HTML element: the transform rows only. */
+const plainTransform = transform(TRANSFORM_ANIMATIONS);
+
+/** A text, captions: the transform rows and the colour. */
+const coloredTransform = transform([...TRANSFORM_ANIMATIONS, colorAnimationSchema] as const);
+
+/** An image or a video: the transform rows, size, crop, and corner radius. */
+const pictureTransform = transform([
+  ...TRANSFORM_ANIMATIONS,
+  sizeAnimationSchema,
+  cropAnimationSchema,
+  cornerRadiusAnimationSchema,
+] as const);
 
 /**
  * The lifetime of a node, in the time of its scene (D42.1, D42.2, D49.3): it is active at
@@ -290,6 +429,7 @@ export const backgroundNodeSchema = closedObject('Solid fill that covers the who
   type: { type: 'string', const: 'background' },
   ...lifetime,
   color,
+  animations: animations([colorAnimationSchema] as const),
 });
 
 const fadeUs = {
@@ -330,12 +470,14 @@ export const imageNodeSchema = closedObject('An image asset fitted to the box of
   id,
   type: { type: 'string', const: 'image' },
   ...lifetime,
-  ...transform,
+  ...pictureTransform,
   assetId: assetReference,
   width: length,
   height: length,
   fit,
   focus,
+  crop,
+  cornerRadius,
 });
 
 export const videoNodeSchema = closedObject(
@@ -344,7 +486,7 @@ export const videoNodeSchema = closedObject(
     id,
     type: { type: 'string', const: 'video' },
     ...lifetime,
-    ...transform,
+    ...pictureTransform,
     assetId: assetReference,
     sourceStartUs: {
       ...timeUs,
@@ -355,6 +497,8 @@ export const videoNodeSchema = closedObject(
     height: length,
     fit,
     focus,
+    crop,
+    cornerRadius,
     volume: {
       ...volume,
       description:
@@ -367,7 +511,7 @@ export const textNodeSchema = closedObject('One run of text; line breaks are pre
   id,
   type: { type: 'string', const: 'text' },
   ...lifetime,
-  ...transform,
+  ...coloredTransform,
   text: { type: 'string' },
   fontAssetId: assetReference,
   fontSize: length,
@@ -442,7 +586,7 @@ export const captionsNodeSchema = closedObject(
     id,
     type: { type: 'string', const: 'captions' },
     ...lifetime,
-    ...transform,
+    ...coloredTransform,
     fontAssetId: assetReference,
     width: length,
     height: length,
@@ -461,7 +605,7 @@ export const customHtmlNodeSchema = closedObject(
     id,
     type: { type: 'string', const: 'custom-html' },
     ...lifetime,
-    ...transform,
+    ...plainTransform,
     width: length,
     height: length,
     html: { type: 'string', description: 'Inline document shown inside the sandbox.' },
@@ -474,7 +618,7 @@ export const groupNodeSchema = closedObject(
     id,
     type: { type: 'string', const: 'group' },
     ...lifetime,
-    ...transform,
+    ...plainTransform,
     children: {
       type: 'array',
       description: 'Array order is the z-order; the first child is at the bottom.',
@@ -1171,7 +1315,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.12',
+  title: 'Kadrion composition 0.13',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

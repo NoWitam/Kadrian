@@ -65,6 +65,8 @@ function textNode(id: string, animationId?: string): Record<string, unknown> {
     durationUs: 10_000_000,
     position: { x: 10, y: 20 },
     scale: { x: 1, y: 1 },
+    rotation: 0,
+    origin: { x: 0, y: 0 },
     opacity: 1,
     animations:
       animationId === undefined
@@ -173,6 +175,8 @@ describe('AddNode (D39.1)', () => {
       durationUs: 10_000_000,
       position: { x: 0, y: 0 },
       scale: { x: 1, y: 1 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
       opacity: 1,
       animations: [],
       children: [],

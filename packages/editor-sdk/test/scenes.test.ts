@@ -71,6 +71,7 @@ const OUTRO2 = Object.freeze({
       startUs: 0,
       durationUs: 400_000,
       color: '#000000',
+      animations: [],
     },
   ],
   clips: [],

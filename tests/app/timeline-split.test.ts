@@ -52,6 +52,8 @@ function document(): ValidatedComposition {
     durationUs: 1_300_000,
     position: { x: 10, y: 20 },
     scale: { x: 1, y: 1 },
+    rotation: 0,
+    origin: { x: 0, y: 0 },
     opacity: 1,
     animations: [
       {
@@ -69,6 +71,8 @@ function document(): ValidatedComposition {
     height: 180,
     fit: 'contain',
     focus: { x: 500, y: 500 },
+    crop: { top: 0, right: 0, bottom: 0, left: 0 },
+    cornerRadius: 0,
     volume: 0.5,
   });
   const result = validateComposition(draft);

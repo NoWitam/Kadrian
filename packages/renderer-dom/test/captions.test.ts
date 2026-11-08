@@ -61,7 +61,7 @@ describe('the mount of captions (D57.6)', () => {
     expect(shown(root)).toEqual({ pages: [], highlighted: [] });
   });
 
-  it('writes the box, the font, the style, and the highlight colour as static declarations', () => {
+  it('writes the box, the font, the style, and the highlight colour as static declarations, and leaves the colour to the render (D68)', () => {
     const root = mounted();
     const element = box(root);
     expect(element.style.getPropertyValue('width')).toBe('560px');
@@ -71,7 +71,8 @@ describe('the mount of captions (D57.6)', () => {
     expect(element.style.getPropertyValue('line-height')).toBe('56px');
     expect(element.style.getPropertyValue('white-space')).toBe('pre');
     expect(element.style.getPropertyValue('text-align')).toBe('center');
-    expect(element.style.getPropertyValue('color')).toBe('rgb(255, 255, 255)');
+    expect(element.style.getPropertyValue('color')).toBe('');
+    expect(box(rendered(0)).style.getPropertyValue('color')).toBe('rgb(255, 255, 255)');
     expect(element.style.getPropertyValue('--kadrion-caption-highlight')).toBe('rgb(255, 212, 0)');
     expect(pages(root)[0]?.style.getPropertyValue('justify-content')).toBe('flex-end');
   });

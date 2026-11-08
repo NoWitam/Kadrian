@@ -68,6 +68,13 @@ import {
   parseSetNodeColor,
   parseSetNodeFit,
   parseSetNodeFocus,
+  parseSetNodeRotation,
+  parseSetNodeOrigin,
+  parseSetNodeCrop,
+  parseSetNodeCornerRadius,
+  parseSetKeyframeValue,
+  normalizedKeyframeValue,
+  GENERIC_KEYFRAME_PROPERTIES,
   parseSetNodeLifetime,
   parseSetNodeOpacity,
   parseSetNodePosition,
@@ -83,6 +90,7 @@ import {
   parseSetVideoSource,
   parseSetVideoVolume,
   type Command,
+  type KeyframeValueData,
   type CommandPosition,
 } from './commands.js';
 import {
@@ -1362,6 +1370,29 @@ const DEFINITIONS = deepFreeze<Definitions>({
       };
     },
   },
+  SetKeyframeValue: {
+    parse: parseSetKeyframeValue,
+    edit(document, command) {
+      const location = locatedAnimation(document, command.animationId);
+      const property: unknown = location.animation['property'];
+      const generic = GENERIC_KEYFRAME_PROPERTIES.find((row) => row === property);
+      if (generic === undefined) {
+        throw new EditorError(
+          'use-typed-command',
+          `The animation \`${command.animationId}\` animates ${String(property)}, whose keyframes are set by its own command.`,
+        );
+      }
+      const value = normalizedKeyframeValue(generic, command.value);
+      return setKeyframe(document, command.animationId, generic, command.timeUs, {
+        equals: (stored) => sameData(stored, value),
+        // An object is spread over the stored one, so its keys keep their order (D41.3).
+        merged: (stored) => (isObject(stored) && isObject(value) ? { ...stored, ...value } : value),
+        fresh: value,
+        previous: (stored) =>
+          parseSetKeyframeValue({ ...command, value: stored as KeyframeValueData }),
+      });
+    },
+  },
   SetNodeLifetime: {
     parse: parseSetNodeLifetime,
     edit: (document, command) =>
@@ -1401,6 +1432,66 @@ const DEFINITIONS = deepFreeze<Definitions>({
           // `focus` keeps its place, and every other value its identity (D42.10).
           node: { ...node, focus: command.focus },
           inverse: parseSetNodeFocus({ ...command, focus }),
+        };
+      }),
+  },
+  SetNodeRotation: {
+    parse: parseSetNodeRotation,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const rotation = numberField(node, 'rotation', command.nodeId);
+        if (rotation === command.rotation) return null;
+        return {
+          node: { ...node, rotation: command.rotation },
+          inverse: parseSetNodeRotation({ ...command, rotation }),
+        };
+      }),
+  },
+  SetNodeOrigin: {
+    parse: parseSetNodeOrigin,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const origin = pointField(node, 'origin', command.nodeId);
+        if (origin.x === command.origin.x && origin.y === command.origin.y) return null;
+        return {
+          // The position is not touched: the origin moves nothing by itself (D68).
+          node: { ...node, origin: command.origin },
+          inverse: parseSetNodeOrigin({ ...command, origin }),
+        };
+      }),
+  },
+  SetNodeCrop: {
+    parse: parseSetNodeCrop,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['image', 'video'], command.nodeId);
+        const stored = node['crop'];
+        if (!isObject(stored)) {
+          throw new EditorError('unsupported-node', `The node \`${command.nodeId}\` has no crop.`);
+        }
+        const crop = {
+          top: numberField(stored, 'top', command.nodeId),
+          right: numberField(stored, 'right', command.nodeId),
+          bottom: numberField(stored, 'bottom', command.nodeId),
+          left: numberField(stored, 'left', command.nodeId),
+        };
+        if (sameData(crop, command.crop)) return null;
+        return {
+          node: { ...node, crop: command.crop },
+          inverse: parseSetNodeCrop({ ...command, crop }),
+        };
+      }),
+  },
+  SetNodeCornerRadius: {
+    parse: parseSetNodeCornerRadius,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['image', 'video'], command.nodeId);
+        const cornerRadius = numberField(node, 'cornerRadius', command.nodeId);
+        if (cornerRadius === command.cornerRadius) return null;
+        return {
+          node: { ...node, cornerRadius: command.cornerRadius },
+          inverse: parseSetNodeCornerRadius({ ...command, cornerRadius }),
         };
       }),
   },

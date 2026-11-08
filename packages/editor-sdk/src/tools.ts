@@ -27,6 +27,7 @@ import {
   setTransitionEasingArgumentsSchema,
   setKeyframeEasingArgumentsSchema,
   EASINGS,
+  KEYFRAME_VALUES,
   setCaptionStyleArgumentsSchema,
   setCaptionWordArgumentsSchema,
   setCaptionWordsArgumentsSchema,
@@ -65,6 +66,11 @@ import {
   setNodeColorArgumentsSchema,
   setNodeFitArgumentsSchema,
   setNodeFocusArgumentsSchema,
+  setNodeRotationArgumentsSchema,
+  setNodeOriginArgumentsSchema,
+  setNodeCropArgumentsSchema,
+  setNodeCornerRadiusArgumentsSchema,
+  setKeyframeValueArgumentsSchema,
   setNodeLifetimeArgumentsSchema,
   setNodeOpacityArgumentsSchema,
   setNodePositionArgumentsSchema,
@@ -90,6 +96,7 @@ import {
   type SetTransitionEffectArgumentsSchema,
   type SetTransitionEasingArgumentsSchema,
   type SetKeyframeEasingArgumentsSchema,
+  type SetKeyframeValueArgumentsSchema,
   type SetCaptionStyleArgumentsSchema,
   type SetCaptionWordArgumentsSchema,
   type SetCaptionWordsArgumentsSchema,
@@ -123,6 +130,7 @@ export type CommandArgumentsSchema =
   | SetTransitionEffectArgumentsSchema
   | SetTransitionEasingArgumentsSchema
   | SetKeyframeEasingArgumentsSchema
+  | SetKeyframeValueArgumentsSchema
   | SetCaptionWordsArgumentsSchema
   | SetCaptionWordArgumentsSchema
   | SetCaptionStyleArgumentsSchema
@@ -199,7 +207,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, group, or custom-html), startUs and durationUs, position, scale, opacity, animations, and its own fields. A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields. A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -210,6 +218,8 @@ const METADATA = deepFreeze<MetadataTable>({
         durationUs: 4_000_000,
         position: { x: 90, y: 400 },
         scale: { x: 1, y: 1 },
+        rotation: 0,
+        origin: { x: 0, y: 0 },
         opacity: 1,
         animations: [],
         text: 'Made with Kadrion',
@@ -240,7 +250,7 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   SetNodeScale: {
     description:
-      "Sets one node's base scale about its top-left corner: 1 is the natural size, from 0 to 1000 on each axis. A scale animation of the node multiplies it. Refused with invalid-argument outside 0 to 1000, unknown-node, and unsupported-node for a node without a scale (the background).",
+      "Sets one node's base scale about its origin point (the top-left corner unless set_node_origin moved it): 1 is the natural size, from 0 to 1000 on each axis. A scale animation of the node multiplies it. Refused with invalid-argument outside 0 to 1000, unknown-node, and unsupported-node for a node without a scale (the background).",
     example: { nodeId: 'node-image', scale: { x: 1.5, y: 1.5 } },
     argumentsSchema: setNodeScaleArgumentsSchema,
   },
@@ -251,7 +261,7 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   SetNodeColor: {
     description:
-      'Sets the colour of a text or a background, as # and six hexadecimal digits (sRGB), stored in lower case. Refused with invalid-argument for short forms, names, or alpha, unknown-node, and unsupported-node for a node without a colour.',
+      'Sets the colour of a text or a background, as # and six hexadecimal digits (sRGB), stored in lower case. A color animation of the node replaces it while the animation is sampled. Refused with invalid-argument for short forms, names, or alpha, unknown-node, and unsupported-node for a node without a colour.',
     example: { nodeId: 'node-title', color: '#ffcc00' },
     argumentsSchema: setNodeColorArgumentsSchema,
   },
@@ -292,7 +302,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: removeAssetArgumentsSchema,
   },
   AddAnimation: {
-    description: `Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property (position, scale, or opacity), which the node must not animate yet; and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({"kind":"linear"} for a constant speed; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. ${TIME_US} Refused with unknown-node, unsupported-node for a node without animations (the background), duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
+    description: `Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property, which the node must not animate yet (position, scale, opacity, rotation, or origin on every node but a background; size, crop, and cornerRadius on an image or a video; color on a text, captions, or a background, which has no other animation); and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({"kind":"linear"} for a constant speed; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. ${KEYFRAME_VALUES} ${TIME_US} Refused with unknown-node, duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
     example: {
       nodeId: 'node-custom-html',
       index: 0,
@@ -354,6 +364,11 @@ const METADATA = deepFreeze<MetadataTable>({
     },
     argumentsSchema: setKeyframeEasingArgumentsSchema,
   },
+  SetKeyframeValue: {
+    description: `Sets the value of an animation of rotation, origin, size, color, crop, or cornerRadius at a time: replaces the value of the keyframe at that time, or inserts one, eased as the keyframe before it. ${KEYFRAME_VALUES} ${TIME_US} ${ANIMATED} Refused with unknown-animation, use-typed-command for an animation of opacity, position, or scale (use set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe), invalid-argument for a value of the wrong form, and invalid-result for a value outside the range of the property.`,
+    example: { animationId: 'anim-image-rotation', timeUs: 1_000_000, value: 360 },
+    argumentsSchema: setKeyframeValueArgumentsSchema,
+  },
   SetNodeLifetime: {
     description: `Sets when a node is shown: from startUs, for durationUs (at least 1). ${TIME_US} The part after the end of the composition is cut. It moves no keyframe: keyframe times stay composition times. A video keeps its sourceStartUs, so its lifetime must fit inside its source. Refused with unknown-node, invalid-result, and for a video media-facts-missing and source-range-exceeded.`,
     example: { nodeId: 'node-title', startUs: 1_000_000, durationUs: 5_000_000 },
@@ -370,6 +385,29 @@ const METADATA = deepFreeze<MetadataTable>({
       'Sets the focus point of an image or a video: the point of its picture that its fit keeps in place, as integers in per mille of the picture, x of its width from the left edge and y of its height from the top edge; 500, 500 is the centre. The point lies at the same fraction of the box, so under cover it chooses which part is cropped away and always stays in frame, under contain it moves the picture towards that side of its bars, and under fill, where the picture is the box, it changes nothing. It is not animated. Refused with invalid-argument for a coordinate that is not an integer from 0 to 1000, unknown-node, and unsupported-node for a node that is neither an image nor a video.',
     example: { nodeId: 'node-image', focus: { x: 500, y: 250 } },
     argumentsSchema: setNodeFocusArgumentsSchema,
+  },
+  SetNodeRotation: {
+    description:
+      "Sets a node's base rotation about its origin point, in degrees, positive clockwise, from -360000 to 360000: several turns are allowed for a spin, and a whole number of turns is no rotation. It is applied after the scale and before the position, and a rotation animation of the node adds to it. Refused with invalid-argument outside the range, unknown-node, and unsupported-node for a background.",
+    example: { nodeId: 'node-image', rotation: 15 },
+    argumentsSchema: setNodeRotationArgumentsSchema,
+  },
+  SetNodeOrigin: {
+    description:
+      "Sets the point of a node's box that its scale and rotation are about, as integers in per mille of the box: 0, 0 is the top-left corner and 500, 500 the centre; a group's box is the canvas, a text's box the box of its lines. The position still places the top-left corner, so the node does not move while it is neither rotated nor scaled; to keep a rotated or scaled node in place, set its position in the same transaction. An origin animation of the node adds to it. Refused with invalid-argument for a coordinate that is not an integer from 0 to 1000, unknown-node, and unsupported-node for a background.",
+    example: { nodeId: 'node-image', origin: { x: 500, y: 500 } },
+    argumentsSchema: setNodeOriginArgumentsSchema,
+  },
+  SetNodeCrop: {
+    description:
+      'Sets what is cut away of the picture of an image or a video before it is fitted to its box, as integer insets in per mille of the sides of the picture from its top, right, bottom, and left edge; the rest is then fitted and focused as if it were the whole picture. Two opposite insets add up to at most 999. A crop animation of the node replaces it. Refused with invalid-argument for an inset that is not an integer from 0 to 1000, unknown-node, unsupported-node for a node that is neither an image nor a video, and invalid-result when two opposite insets leave nothing.',
+    example: { nodeId: 'node-image', crop: { top: 100, right: 0, bottom: 100, left: 0 } },
+    argumentsSchema: setNodeCropArgumentsSchema,
+  },
+  SetNodeCornerRadius: {
+    description: `Sets the radius of the four corners of an image or a video, in composition pixels; 0 is square, and a radius above half a side is reduced as CSS does. ${PIXELS} A cornerRadius animation of the node replaces it. Refused with invalid-argument, unknown-node, unsupported-node for a node that is neither an image nor a video, and invalid-result outside 0 to 1000000 after rounding.`,
+    example: { nodeId: 'node-image', cornerRadius: 24 },
+    argumentsSchema: setNodeCornerRadiusArgumentsSchema,
   },
   SetVideoAsset: {
     description: `Points a video node at another video asset that the document declares (add one with add_asset first); its source start, size, and fit stay. The part of the source the node samples must lie inside the new video: describe_document reports a video's sourceDurationUs when the host knows it. Refused with unknown-node, unsupported-node for a node that is not a video, unknown-asset, asset-type-mismatch when the asset is not a video, media-facts-missing when the host does not know the video's duration, and source-range-exceeded when the node would sample past its end.`,
@@ -440,6 +478,7 @@ const METADATA = deepFreeze<MetadataTable>({
             startUs: 0,
             durationUs: 3_000_000,
             color: '#000000',
+            animations: [],
           },
         ],
         clips: [],

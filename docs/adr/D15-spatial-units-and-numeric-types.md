@@ -2,6 +2,7 @@
 
 - Status: Accepted — by the project owner on 2026-09-21
 - Date: 2026-09-21
+- Amended by: PR-48 (D68) on 2026-11-07: a node scales and turns about its origin point, in per mille of its box; a rotation in degrees, positive clockwise; the crop and the corner radius of a picture (D68.1, D68.2, D68.5)
 - Related: D03, D04, D07, D16, [specification](../spike/vertical-spike.md) open
   questions Q2 and Q10
 
@@ -23,7 +24,9 @@ top-left corner, `x` grows to the right, `y` grows downwards.
 **Transform.** A node's `position` is the offset of its origin — the top-left
 corner of its box — from its parent's origin. The order is translate, then
 scale about the node's own origin; children of a group live in the group's
-scaled space. A group is composited before its `opacity` is applied.
+scaled space. Amended by: PR-48 (D68): from `0.13` a node scales and then
+turns about its `origin`, a point of its box in per mille, and `position`
+still places the top-left corner of the untransformed box (D68.2). A group is composited before its `opacity` is applied.
 
 **Numeric types.** Every number in the schema has an explicit `minimum` and
 `maximum`.
@@ -64,7 +67,8 @@ through `opacity`.
   `@kadrion/editor-sdk`, not to an application: per `AGENTS.md`, applications
   "must not become hidden sources of domain rules".
 - A node has no anchor point in `0.1`; scaling always happens about the top-left
-  corner. An anchor is a later, additive feature.
+  corner. An anchor is a later, additive feature. Amended by: PR-48 (D68):
+  `origin` is that feature (D68.2).
 - Layout engines clamp very large coordinates; the ±1 000 000 bound stays far
   below that.
 

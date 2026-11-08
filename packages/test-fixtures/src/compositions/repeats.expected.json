@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -31,7 +31,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 1000000,
-          "color": "#101828"
+          "color": "#101828",
+          "animations": []
         },
         {
           "id": "intro-title",
@@ -45,6 +46,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -66,7 +72,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 10000000,
-          "color": "#f79009"
+          "color": "#f79009",
+          "animations": []
         },
         {
           "id": "person-portrait--0",
@@ -81,6 +88,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
@@ -90,12 +102,16 @@
                 {
                   "timeUs": 0,
                   "value": 0,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 300000,
                   "value": 1,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -104,7 +120,17 @@
           "width": 200,
           "height": 200,
           "fit": "cover",
-          "focus": { "x": 500, "y": 500 }
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "person-name--0",
@@ -118,6 +144,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -139,7 +170,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 10000000,
-          "color": "#12b76a"
+          "color": "#12b76a",
+          "animations": []
         },
         {
           "id": "person-portrait--1",
@@ -154,6 +186,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
@@ -163,12 +200,16 @@
                 {
                   "timeUs": 0,
                   "value": 0,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 300000,
                   "value": 1,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -177,7 +218,17 @@
           "width": 200,
           "height": 200,
           "fit": "cover",
-          "focus": { "x": 500, "y": 500 }
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "person-name--1",
@@ -191,6 +242,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -212,7 +268,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 1000000,
-          "color": "#101828"
+          "color": "#101828",
+          "animations": []
         },
         {
           "id": "credit-line--0",
@@ -227,6 +284,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
@@ -239,7 +301,9 @@
                     "x": 0,
                     "y": 20
                   },
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 500000,
@@ -247,7 +311,9 @@
                     "x": 0,
                     "y": 0
                   },
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -270,6 +336,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
@@ -282,7 +353,9 @@
                     "x": 0,
                     "y": 20
                   },
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 900000,
@@ -290,7 +363,9 @@
                     "x": 0,
                     "y": 0
                   },
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -312,6 +387,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -335,7 +415,9 @@
       "effect": {
         "kind": "crossfade"
       },
-      "easing": { "kind": "linear" }
+      "easing": {
+        "kind": "linear"
+      }
     }
   ],
   "template": {

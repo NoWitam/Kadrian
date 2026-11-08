@@ -76,6 +76,12 @@ export type AudioClip = Infer<typeof audioClipSchema>;
 export type Fit = ImageNode['fit'];
 /** The point of an image or a video that its fit keeps in place, in per mille (D63). */
 export type Focus = ImageNode['focus'];
+/** What is cut away of the picture of an image or a video, in per mille from each edge (D68). */
+export type Crop = ImageNode['crop'];
+/** The point of a node's box that its scale and rotation are about, in per mille (D68). */
+export type Origin = ImageNode['origin'];
+/** The property an animation targets: a row of the table of D65.1 (D68). */
+export type AnimatedProperty = NodeAnimation['property'];
 export type SceneTransition = Infer<typeof sceneTransitionSchema>;
 export type ClipTransition = Infer<typeof clipTransitionSchema>;
 /** How a transition combines its two sides, between scenes and between clips alike (D56, D66). */

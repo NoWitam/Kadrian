@@ -7,7 +7,14 @@
  * (D31.2). `parseCommand` (in `registry.ts`) is the only way a command comes
  * into existence; the parsers here read the fields of one command type.
  */
-import { compositionSchema, type Asset, type Fit, type Focus } from '@kadrion/schema';
+import {
+  compositionSchema,
+  type Asset,
+  type Crop,
+  type Fit,
+  type Focus,
+  type Origin,
+} from '@kadrion/schema';
 
 import { keyframeTimeBounds } from './animations.js';
 import { lifetimeBounds, type Bounds } from './lifetimes.js';
@@ -354,6 +361,75 @@ export interface SetNodeFocusArguments {
  */
 export interface SetNodeFocusCommand extends SetNodeFocusArguments {
   readonly type: 'SetNodeFocus';
+}
+
+/** What a caller states for `SetNodeRotation` (D68). */
+export interface SetNodeRotationArguments {
+  readonly nodeId: string;
+  /** Degrees, positive clockwise; never rounded. */
+  readonly rotation: number;
+}
+
+/** The rotation of a node about its origin, in degrees (D68). */
+export interface SetNodeRotationCommand extends SetNodeRotationArguments {
+  readonly type: 'SetNodeRotation';
+}
+
+/** What a caller states for `SetNodeOrigin` (D68). */
+export interface SetNodeOriginArguments {
+  readonly nodeId: string;
+  readonly origin: Origin;
+}
+
+/**
+ * The point of a node's box that its scale and rotation are about, in per
+ * mille of the box (D68). The node's position is not changed.
+ */
+export interface SetNodeOriginCommand extends SetNodeOriginArguments {
+  readonly type: 'SetNodeOrigin';
+}
+
+/** What a caller states for `SetNodeCrop` (D68). */
+export interface SetNodeCropArguments {
+  readonly nodeId: string;
+  readonly crop: Crop;
+}
+
+/** What is cut away of the picture of an image or a video, in per mille from each edge (D68). */
+export interface SetNodeCropCommand extends SetNodeCropArguments {
+  readonly type: 'SetNodeCrop';
+}
+
+/** What a caller states for `SetNodeCornerRadius` (D68). */
+export interface SetNodeCornerRadiusArguments {
+  readonly nodeId: string;
+  /** Composition pixels, rounded like a position (D15). */
+  readonly cornerRadius: number;
+}
+
+/** The radius of the corners of an image or a video, in composition pixels (D68). */
+export interface SetNodeCornerRadiusCommand extends SetNodeCornerRadiusArguments {
+  readonly type: 'SetNodeCornerRadius';
+}
+
+/** A keyframe value of `SetKeyframeValue` as given: the animation's property says what it is (D65.2). */
+export type KeyframeValueData = number | string | DocumentObject;
+
+/** What a caller states for `SetKeyframeValue` (D65.2, D68). */
+export interface SetKeyframeValueArguments {
+  readonly animationId: string;
+  readonly timeUs: number;
+  /** Judged by the property of the animation when the command applies. */
+  readonly value: KeyframeValueData;
+}
+
+/**
+ * Sets, or inserts, the keyframe at a time of an animation of a property of
+ * schema 0.13 — rotation, origin, size, color, crop, or cornerRadius (D65.2,
+ * D68). Opacity, position, and scale keep their typed commands.
+ */
+export interface SetKeyframeValueCommand extends SetKeyframeValueArguments {
+  readonly type: 'SetKeyframeValue';
 }
 
 /** What a caller states for `SetVideoAsset` (D50.6). */
@@ -857,9 +933,14 @@ export type Command =
   | RemoveKeyframeCommand
   | MoveKeyframeCommand
   | SetKeyframeEasingCommand
+  | SetKeyframeValueCommand
   | SetNodeLifetimeCommand
   | SetNodeFitCommand
   | SetNodeFocusCommand
+  | SetNodeRotationCommand
+  | SetNodeOriginCommand
+  | SetNodeCropCommand
+  | SetNodeCornerRadiusCommand
   | SetVideoAssetCommand
   | SetVideoSourceCommand
   | SetVideoVolumeCommand
@@ -976,6 +1057,47 @@ export type SetTextFontSizeArgumentsSchema = ClosedObjectSchema<keyof SetTextFon
 export type SetTextFontArgumentsSchema = ClosedObjectSchema<keyof SetTextFontArguments>;
 export type SetImageAssetArgumentsSchema = ClosedObjectSchema<keyof SetImageAssetArguments>;
 export type SetNodeFitArgumentsSchema = ClosedObjectSchema<keyof SetNodeFitArguments>;
+/** The argument schema of `SetNodeOrigin`, typed by the fields of its arguments. */
+export interface SetNodeOriginArgumentsSchema extends ClosedObjectSchema<
+  keyof SetNodeOriginArguments
+> {
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly origin: ClosedObjectSchema<keyof Origin>;
+  };
+}
+
+/** The argument schema of `SetNodeCrop`, typed by the fields of its arguments. */
+export interface SetNodeCropArgumentsSchema extends ClosedObjectSchema<keyof SetNodeCropArguments> {
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly crop: ClosedObjectSchema<keyof Crop>;
+  };
+}
+
+/** A keyframe value: a number, a string, or an object, judged by the animation it goes to (D65.2, D68). */
+export interface KeyframeValueSchema {
+  readonly description: string;
+  readonly anyOf: readonly [
+    { readonly type: 'number' },
+    { readonly type: 'string' },
+    { readonly type: 'object' },
+  ];
+}
+
+/** The argument schema of `SetKeyframeValue`: closed, with `value` a number, a string, or an object (D68). */
+export interface SetKeyframeValueArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly animationId: ArgumentSchema;
+    readonly timeUs: ArgumentSchema;
+    readonly value: KeyframeValueSchema;
+  };
+  readonly required: readonly (keyof SetKeyframeValueArguments)[];
+  readonly additionalProperties: false;
+}
+
 /** The argument schema of `SetNodeFocus`, typed by the fields of its arguments. */
 export interface SetNodeFocusArgumentsSchema extends ClosedObjectSchema<
   keyof SetNodeFocusArguments
@@ -1418,6 +1540,23 @@ const FOCUS: Bounds = {
   minimum: VIDEO_SHAPE.properties.focus.properties.x.minimum,
   maximum: VIDEO_SHAPE.properties.focus.properties.x.maximum,
 };
+/** The bounds of a rotation, read from the schema (D68); every transformable node shares them. */
+const ROTATION: Bounds = {
+  minimum: VIDEO_SHAPE.properties.rotation.minimum,
+  maximum: VIDEO_SHAPE.properties.rotation.maximum,
+};
+/** The bounds of a coordinate of `origin`, read from the schema (D68). */
+const ORIGIN: Bounds = {
+  minimum: VIDEO_SHAPE.properties.origin.properties.x.minimum,
+  maximum: VIDEO_SHAPE.properties.origin.properties.x.maximum,
+};
+/** The key of a top inset, held in a constant: a literal `top` reads like the global of a page. */
+const TOP = 'top';
+/** The bounds of an inset of `crop`, read from the schema (D68); images and videos share them. */
+const CROP: Bounds = {
+  minimum: VIDEO_SHAPE.properties.crop.properties[TOP].minimum,
+  maximum: VIDEO_SHAPE.properties.crop.properties[TOP].maximum,
+};
 /** The bounds of `sourceStartUs`, read from the schema (D50.1). */
 const SOURCE_START: Bounds = {
   minimum: VIDEO_SHAPE.properties.sourceStartUs.minimum,
@@ -1485,6 +1624,140 @@ export const setNodeFocusArgumentsSchema: SetNodeFocusArgumentsSchema = deepFree
     },
   },
   required: ['nodeId', 'focus'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetNodeRotation` (D68): degrees in the document's bounds. */
+export const setNodeRotationArgumentsSchema: ClosedObjectSchema<keyof SetNodeRotationArguments> =
+  deepFreeze({
+    type: 'object',
+    description: 'Sets the rotation of a node about its origin point, in degrees.',
+    properties: {
+      nodeId: {
+        type: 'string',
+        description: `${NODE_ID} Every node but a background has a rotation.`,
+        minLength: 1,
+      },
+      rotation: {
+        type: 'number',
+        description: `Degrees, positive clockwise, from ${String(ROTATION.minimum)} to ${String(ROTATION.maximum)}; several turns are allowed, and a whole number of turns is no rotation. Never rounded; -0 becomes 0.`,
+        minimum: ROTATION.minimum,
+        maximum: ROTATION.maximum,
+      },
+    },
+    required: ['nodeId', 'rotation'],
+    additionalProperties: false,
+  });
+
+const ORIGIN_COORDINATE = `An integer from ${String(ORIGIN.minimum)} to ${String(ORIGIN.maximum)}, per mille`;
+
+/** The JSON Schema of the arguments of `SetNodeOrigin` (D68): integer per mille of the box. */
+export const setNodeOriginArgumentsSchema: SetNodeOriginArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Sets the point of a node's box that its scale and rotation are about; the position stays that of the top-left corner.",
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Every node but a background has an origin; a group's box is the canvas.`,
+      minLength: 1,
+    },
+    origin: {
+      type: 'object',
+      description:
+        'The origin, in per mille of the box: 0, 0 is the top-left corner and 500, 500 the centre.',
+      properties: {
+        x: {
+          type: 'integer',
+          description: `${ORIGIN_COORDINATE} of the width of the box, from its left edge.`,
+          minimum: ORIGIN.minimum,
+          maximum: ORIGIN.maximum,
+        },
+        y: {
+          type: 'integer',
+          description: `${ORIGIN_COORDINATE} of the height of the box, from its top edge.`,
+          minimum: ORIGIN.minimum,
+          maximum: ORIGIN.maximum,
+        },
+      },
+      required: ['x', 'y'],
+      additionalProperties: false,
+    },
+  },
+  required: ['nodeId', 'origin'],
+  additionalProperties: false,
+});
+
+const CROP_INSET = `An integer from ${String(CROP.minimum)} to ${String(CROP.maximum)}, per mille of the`;
+
+/** The JSON Schema of the arguments of `SetNodeCrop` (D68): four integer insets in per mille. */
+export const setNodeCropArgumentsSchema: SetNodeCropArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Sets what is cut away of the picture of an image or a video before it is fitted to its box.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only images and videos have a crop.`,
+      minLength: 1,
+    },
+    crop: {
+      type: 'object',
+      description:
+        'Insets from each edge of the picture, in per mille of its sides; two opposite insets add up to at most 999.',
+      properties: {
+        top: {
+          type: 'integer',
+          description: `${CROP_INSET} height, from the top edge.`,
+          minimum: CROP.minimum,
+          maximum: CROP.maximum,
+        },
+        right: {
+          type: 'integer',
+          description: `${CROP_INSET} width, from the right edge.`,
+          minimum: CROP.minimum,
+          maximum: CROP.maximum,
+        },
+        bottom: {
+          type: 'integer',
+          description: `${CROP_INSET} height, from the bottom edge.`,
+          minimum: CROP.minimum,
+          maximum: CROP.maximum,
+        },
+        left: {
+          type: 'integer',
+          description: `${CROP_INSET} width, from the left edge.`,
+          minimum: CROP.minimum,
+          maximum: CROP.maximum,
+        },
+      },
+      required: ['top', 'right', 'bottom', 'left'],
+      additionalProperties: false,
+    },
+  },
+  required: ['nodeId', 'crop'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetNodeCornerRadius` (D68): pixels, rounded. */
+export const setNodeCornerRadiusArgumentsSchema: ClosedObjectSchema<
+  keyof SetNodeCornerRadiusArguments
+> = deepFreeze({
+  type: 'object',
+  description: 'Sets the radius of the corners of an image or a video.',
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Only images and videos have a corner radius.`,
+      minLength: 1,
+    },
+    cornerRadius: {
+      type: 'number',
+      description:
+        'Composition pixels, rounded to an integer, halves towards +Infinity; 0 is square, and a radius above half a side is reduced as CSS does.',
+    },
+  },
+  required: ['nodeId', 'cornerRadius'],
   additionalProperties: false,
 });
 
@@ -1847,6 +2120,34 @@ export const setKeyframeEasingArgumentsSchema: SetKeyframeEasingArgumentsSchema 
     easing: { type: 'object', description: `The complete new easing. ${EASINGS}` },
   },
   required: ['animationId', 'timeUs', 'easing'],
+  additionalProperties: false,
+});
+
+/**
+ * What a keyframe value of each property of schema 0.13 is, for a model
+ * (D65.2, D68). Exported for the descriptions of the tools.
+ */
+export const KEYFRAME_VALUES =
+  'The value depends on the property of the animation: rotation, a number of degrees added to the node\'s rotation; origin, {"x":…,"y":…} integers in per mille (-1000 to 1000) added to the node\'s origin; size, {"width":…,"height":…} in composition pixels (rounded) that replaces the node\'s size; color, "#rrggbb" that replaces the node\'s colour; crop, {"top":…,"right":…,"bottom":…,"left":…} integers in per mille that replaces the node\'s crop; cornerRadius, composition pixels (rounded) that replace the node\'s corner radius.';
+
+/** The JSON Schema of the arguments of `SetKeyframeValue` (D65.2): the value is the row's to judge. */
+export const setKeyframeValueArgumentsSchema: SetKeyframeValueArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Sets the keyframe at a time of an animation of rotation, origin, size, color, crop, or cornerRadius, inserting it when none is there.',
+  properties: {
+    animationId: {
+      type: 'string',
+      description: `${ANIMATION_ID} Opacity, position, and scale have their own keyframe commands.`,
+      minLength: 1,
+    },
+    timeUs: TIME,
+    value: {
+      description: `The keyframe value. ${KEYFRAME_VALUES}`,
+      anyOf: [{ type: 'number' }, { type: 'string' }, { type: 'object' }],
+    },
+  },
+  required: ['animationId', 'timeUs', 'value'],
   additionalProperties: false,
 });
 
@@ -3289,6 +3590,194 @@ export function parseSetNodeFocus(value: unknown): SetNodeFocusCommand {
       y: focusCoordinate(focus['y'], '`focus.y`'),
     }),
   });
+}
+
+/** A finite number within `bounds`, or `invalid-argument`; -0 becomes 0, nothing is rounded. */
+function boundedNumber(value: unknown, bounds: Bounds, what: string): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value < bounds.minimum ||
+    value > bounds.maximum
+  ) {
+    throw new EditorError(
+      'invalid-argument',
+      `${what} must be a number from ${String(bounds.minimum)} to ${String(bounds.maximum)}, not ${typeof value === 'number' ? String(value) : typeof value}.`,
+    );
+  }
+  return value === 0 ? 0 : value;
+}
+
+/** An integer within `bounds`, or `invalid-argument`; -0 becomes 0, nothing is rounded. */
+function boundedInteger(value: unknown, bounds: Bounds, what: string): number {
+  if (!Number.isInteger(value)) {
+    throw new EditorError(
+      'invalid-argument',
+      `${what} must be an integer from ${String(bounds.minimum)} to ${String(bounds.maximum)}, not ${typeof value === 'number' ? String(value) : typeof value}.`,
+    );
+  }
+  return boundedNumber(value, bounds, what);
+}
+
+/** The fields of a `SetNodeRotation` (D68): degrees in the schema's bounds, never rounded. */
+export function parseSetNodeRotation(value: unknown): SetNodeRotationCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'rotation'], 'The command `SetNodeRotation`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetNodeRotation',
+    nodeId,
+    rotation: boundedNumber(fields['rotation'], ROTATION, '`rotation`'),
+  });
+}
+
+/** The fields of a `SetNodeOrigin` (D68): integer per mille in the schema's bounds. */
+export function parseSetNodeOrigin(value: unknown): SetNodeOriginCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'origin'], 'The command `SetNodeOrigin`');
+  const nodeId = nodeIdOf(fields);
+  const origin = fieldsOf(fields['origin'], ['x', 'y'], '`origin`');
+  return Object.freeze({
+    type: 'SetNodeOrigin',
+    nodeId,
+    origin: Object.freeze({
+      x: boundedInteger(origin['x'], ORIGIN, '`origin.x`'),
+      y: boundedInteger(origin['y'], ORIGIN, '`origin.y`'),
+    }),
+  });
+}
+
+/**
+ * The fields of a `SetNodeCrop` (D68): four integer insets in per mille, in the
+ * schema's bounds; whether two opposite ones leave a picture is the
+ * document's to judge (`invalid-result`).
+ */
+export function parseSetNodeCrop(value: unknown): SetNodeCropCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'crop'], 'The command `SetNodeCrop`');
+  const nodeId = nodeIdOf(fields);
+  const crop = fieldsOf(fields['crop'], ['top', 'right', 'bottom', 'left'], '`crop`');
+  return Object.freeze({
+    type: 'SetNodeCrop',
+    nodeId,
+    crop: Object.freeze({
+      top: boundedInteger(crop[TOP], CROP, '`crop.top`'),
+      right: boundedInteger(crop['right'], CROP, '`crop.right`'),
+      bottom: boundedInteger(crop['bottom'], CROP, '`crop.bottom`'),
+      left: boundedInteger(crop['left'], CROP, '`crop.left`'),
+    }),
+  });
+}
+
+/** The fields of a `SetNodeCornerRadius` (D68): rounded like a position (D15), not clamped. */
+export function parseSetNodeCornerRadius(value: unknown): SetNodeCornerRadiusCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'cornerRadius'],
+    'The command `SetNodeCornerRadius`',
+  );
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetNodeCornerRadius',
+    nodeId,
+    cornerRadius: integerPixels(fields['cornerRadius'], '`cornerRadius`'),
+  });
+}
+
+/**
+ * The fields of a `SetKeyframeValue` (D65.2): the value copied as data, a
+ * number, a string, or an object. What it must be is the property's, which
+ * the animation names, so `normalizedKeyframeValue` judges it when the command
+ * applies.
+ */
+export function parseSetKeyframeValue(value: unknown): SetKeyframeValueCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'animationId', 'timeUs', 'value'],
+    'The command `SetKeyframeValue`',
+  );
+  const animationId = nodeIdOf(fields, 'animationId');
+  const timeUs = timeOf(fields['timeUs'], '`timeUs`');
+  const given: unknown = fields['value'];
+  const data: KeyframeValueData =
+    typeof given === 'number' || typeof given === 'string' ? given : dataOf(given, 'value');
+  return Object.freeze({ type: 'SetKeyframeValue', animationId, timeUs, value: data });
+}
+
+/** The properties whose keyframes `SetKeyframeValue` sets: every row added by schema 0.13 (D65.2). */
+export const GENERIC_KEYFRAME_PROPERTIES = Object.freeze([
+  'rotation',
+  'origin',
+  'size',
+  'color',
+  'crop',
+  'cornerRadius',
+] as const);
+
+/**
+ * A keyframe value of `property` as the document stores it (D65.2, D68), or
+ * `invalid-argument`: a rotation a finite number, never rounded; an origin
+ * offset and a crop integers, never rounded; a size and a corner radius
+ * rounded like a position (D15); a colour `#` and six hexadecimal digits,
+ * stored in lower case. -0 becomes 0. The bounds are the document's: a value
+ * outside them is `invalid-result`.
+ */
+export function normalizedKeyframeValue(
+  property: (typeof GENERIC_KEYFRAME_PROPERTIES)[number],
+  value: KeyframeValueData,
+): number | string | DocumentObject {
+  const finite = (given: unknown, what: string): number => {
+    if (typeof given !== 'number' || !Number.isFinite(given)) {
+      throw new EditorError('invalid-argument', `${what} must be a finite number.`);
+    }
+    return given === 0 ? 0 : given;
+  };
+  const integer = (given: unknown, what: string): number => {
+    if (!Number.isInteger(given)) {
+      throw new EditorError('invalid-argument', `${what} must be an integer.`);
+    }
+    return finite(given, what);
+  };
+  switch (property) {
+    case 'rotation':
+      return finite(value, 'The value of a rotation keyframe');
+    case 'cornerRadius':
+      return integerPixels(value, 'The value of a cornerRadius keyframe');
+    case 'color':
+      if (typeof value !== 'string' || !new RegExp(COLOR_INPUT).test(value)) {
+        throw new EditorError(
+          'invalid-argument',
+          'The value of a color keyframe must be `#` and six hexadecimal digits, such as #1a2b3c.',
+        );
+      }
+      return value.toLowerCase();
+    case 'origin': {
+      const fields = fieldsOf(value, ['x', 'y'], 'The value of an origin keyframe');
+      return Object.freeze({
+        x: integer(fields['x'], '`value.x`'),
+        y: integer(fields['y'], '`value.y`'),
+      });
+    }
+    case 'size': {
+      const fields = fieldsOf(value, ['width', 'height'], 'The value of a size keyframe');
+      return Object.freeze({
+        width: integerPixels(fields['width'], '`value.width`'),
+        height: integerPixels(fields['height'], '`value.height`'),
+      });
+    }
+    case 'crop': {
+      const fields = fieldsOf(
+        value,
+        ['top', 'right', 'bottom', 'left'],
+        'The value of a crop keyframe',
+      );
+      return Object.freeze({
+        top: integer(fields[TOP], '`value.top`'),
+        right: integer(fields['right'], '`value.right`'),
+        bottom: integer(fields['bottom'], '`value.bottom`'),
+        left: integer(fields['left'], '`value.left`'),
+      });
+    }
+    default:
+      throw new EditorError('invalid-argument', 'Unknown keyframe property.');
+  }
 }
 
 /** The fields of a `SetVideoAsset` (D50.6): the asset is looked up when the command applies. */

@@ -163,6 +163,9 @@ const channels = ['node-group', 'node-image', 'node-title'].flatMap((id): Channe
       const { first, last, times } = ends(item.keyframes);
       return [{ base: node.opacity, added: false, a: first.value, b: last.value, ...times }];
     }
+    if (item.property !== 'position' && item.property !== 'scale') {
+      throw new Error('The reference composition animates opacity, position, and scale only.');
+    }
     const { first, last, times } = ends(item.keyframes);
     const added = item.property === 'position';
     const base = node[item.property];
@@ -289,7 +292,10 @@ describe('the arithmetic rule (D18)', () => {
       active: true,
       position: { x: 3 + (1 + ((2 - 1) * 2) / 3), y: 3 + (2 + ((1 - 2) * 2) / 3) },
       scale: { x: 3 * (0.25 + ((0.75 - 0.25) * 2) / 3), y: 3 * (0.75 + ((0.25 - 0.75) * 2) / 3) },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
       opacity: 0.3 * (0.2 + ((0.8 - 0.2) * 2) / 3),
+      color: '#ffffff',
     });
   });
 });
@@ -313,7 +319,12 @@ describe('sampling (D16.6, D18)', () => {
       active: true,
       position: { x: 100 + 10, y: 200 + 0 },
       scale: { x: 3 * 3, y: 0.5 * 4 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
       opacity: 0.5 * 0.75,
+      size: { width: 400, height: 400 },
+      crop: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
+      cornerRadius: 0,
     });
   });
 
@@ -329,6 +340,8 @@ describe('sampling (D16.6, D18)', () => {
     const held = {
       position: { x: 90 + 7, y: 160 - 5 },
       scale: { x: 2, y: 3 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
       opacity: 0.75 * 0.5,
     };
     for (const timeUs of [0, 999_999, 1_000_000]) {
@@ -337,6 +350,8 @@ describe('sampling (D16.6, D18)', () => {
     const last = {
       position: { x: 90 + 13, y: 160 + 5 },
       scale: { x: 4, y: 5 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
       opacity: 0.75 * 0.25,
     };
     for (const timeUs of [2_000_000, 2_000_001, durationUs - 1]) {
@@ -396,7 +411,10 @@ describe('sampling (D16.6, D18)', () => {
       active: true,
       position: { x: 90 + 2, y: 160 + 3.5 },
       scale: { x: 1 * 1.5, y: 1 * 1.5 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
       opacity: 0.75 * 0.5,
+      color: '#ffffff',
     });
     for (const state of states) expect(state).toStrictEqual(states[0]);
   });
@@ -481,7 +499,7 @@ describe('sampling (D16.6, D18)', () => {
     const document = derived((draft) => {
       const image = draftNode(draft, 'node-image');
       if (image.type !== 'image') throw new Error('node-image is an image.');
-      draft.scenes[0]?.nodes.push({ ...structuredClone(image), id: 'node-top-image' });
+      draft.scenes[0]?.nodes.push({ ...structuredClone(image), id: 'node-top-image' } as never);
       ids.forEach((id, index) => {
         draftNode(draft, id).animations = [
           animation(`anim-kind-${String(index)}`, 'opacity', [0, 0], [4, 1]),
@@ -582,7 +600,20 @@ describe('input', () => {
     [
       'an unknown animation property',
       (title) => {
-        title.animations = [{ ...ramp, property: 'rotation' }];
+        title.animations = [{ ...ramp, property: 'skew' } as never];
+      },
+    ],
+    [
+      'an animation of a property its type does not take',
+      (title) => {
+        title.animations = [
+          animation(
+            'anim-title-size',
+            'size',
+            [0, { width: 1, height: 1 }],
+            [2, { width: 2, height: 2 }],
+          ),
+        ];
       },
     ],
     [
