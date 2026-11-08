@@ -236,15 +236,18 @@ describe('the bounds of a sampled value (D67.6)', () => {
         { items: { properties: { value: Record<string, unknown> } } } | undefined;
       if (property !== undefined && keyframes !== undefined) {
         const value = keyframes.items.properties.value;
-        const scalar =
-          (value['properties'] as Record<string, Record<string, unknown>> | undefined)?.['x'] ??
-          value;
+        const channels = value['properties'] as Record<string, Record<string, unknown>> | undefined;
+        // A vector by its x, a size by its width, a crop by its top inset (D68).
+        const scalar = channels?.['x'] ?? channels?.['width'] ?? channels?.['top'] ?? value;
         found[property] = { min: scalar['minimum'], max: scalar['maximum'] };
       }
       for (const child of Object.values(node)) walk(child);
     };
     walk(compositionSchema);
-    expect(found).toEqual(PROPERTY_BOUNDS);
+    // A colour is a string in the schema; it is held per channel, from 0 to 255 (D68).
+    expect(found['color']).toEqual({ min: undefined, max: undefined });
+    expect(found).toEqual({ ...PROPERTY_BOUNDS, color: found['color'] });
+    expect(PROPERTY_BOUNDS.color).toEqual({ min: 0, max: 255 });
   });
 
   it('hold an overshoot of opacity within 0 and 1, and leave a value inside as it is', () => {

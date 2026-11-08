@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 1280,
   "height": 720,
   "fps": 30,
@@ -26,7 +26,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 2500000,
-          "color": "#101828"
+          "color": "#101828",
+          "animations": []
         },
         {
           "id": "video-fill",
@@ -41,6 +42,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -52,6 +58,13 @@
             "x": 500,
             "y": 500
           },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
           "volume": 0
         },
         {
@@ -67,6 +80,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -78,6 +96,13 @@
             "x": 500,
             "y": 500
           },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
           "volume": 0
         },
         {
@@ -93,6 +118,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -104,6 +134,13 @@
             "x": 500,
             "y": 200
           },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
           "volume": 0
         },
         {
@@ -118,6 +155,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],

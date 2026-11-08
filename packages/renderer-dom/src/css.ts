@@ -4,7 +4,7 @@
  * reads back as the same double, so every engine writes the same text for the
  * same bits. Nothing is rounded or fixed to a number of digits.
  */
-import type { Circle, Hole, Inset, TransformState, Vec2, Zoom } from '@kadrion/runtime';
+import type { Circle, CropState, Hole, Inset, TransformState, Vec2, Zoom } from '@kadrion/runtime';
 
 /** `-0` becomes `"0"`; below 1e-6 the text has an exponent, a valid CSS number token. */
 export function cssNumber(value: number): string {
@@ -16,12 +16,49 @@ export function cssPixels(value: number): string {
 }
 
 /**
- * Translate, then scale about the node's own top-left corner (D15): CSS applies
- * the list from the right, and the element's origin is `0px 0px`.
+ * The node's own transform (D15, D68), with the element's `transform-origin`
+ * at `0px 0px`: translate the top-left corner to the position, then rotate and
+ * scale about the origin point. CSS applies the list from the right, so the
+ * origin is first moved to the corner (`translate(-x%, -y%)`, in per cent of
+ * the element's own box), scaled, rotated, and moved back. A part that is the
+ * identity for every value it can take is left out: no pivot while the origin
+ * is the top-left corner, no rotation while it is 0, so a node of 0.12 is
+ * written exactly as before.
  */
-export function cssTransform({ position, scale }: TransformState): string {
-  const translate = `translate(${cssPixels(position.x)}, ${cssPixels(position.y)})`;
-  return `${translate} scale(${cssNumber(scale.x)}, ${cssNumber(scale.y)})`;
+export function cssTransform({ position, scale, rotation, origin }: TransformState): string {
+  const parts = [`translate(${cssPixels(position.x)}, ${cssPixels(position.y)})`];
+  const pivot = origin.x !== 0 || origin.y !== 0;
+  if (pivot) parts.push(`translate(${cssPercent(origin.x)}, ${cssPercent(origin.y)})`);
+  if (rotation !== 0) parts.push(`rotate(${cssNumber(rotation)}deg)`);
+  parts.push(`scale(${cssNumber(scale.x)}, ${cssNumber(scale.y)})`);
+  if (pivot) parts.push(`translate(${cssPercent(-origin.x)}, ${cssPercent(-origin.y)})`);
+  return parts.join(' ');
+}
+
+/** Per mille as a CSS percentage: `x / 10` per cent (D63.2, D68). */
+export function cssPercent(permille: number): string {
+  return `${cssNumber(permille / 10)}%`;
+}
+
+/**
+ * The crop of a picture as CSS `object-view-box` (D68): the part of the
+ * picture that `object-fit` and `object-position` then treat as the whole
+ * picture, as insets in per cent of its natural size from each edge. The
+ * insets are written in the shortest form, as the CSS Object Model serialises
+ * them: a left equal to the right is left out, then a bottom equal to the top,
+ * then a right equal to the top (D22).
+ */
+export function cssViewBox(crop: CropState): string {
+  const sides = [crop.fromTop, crop.fromRight, crop.fromBottom, crop.fromLeft].map(cssPercent);
+  const [top, right, bottom] = sides;
+  if (sides[3] === right) {
+    sides.pop();
+    if (bottom === top) {
+      sides.pop();
+      if (right === top) sides.pop();
+    }
+  }
+  return `inset(${sides.join(' ')})`;
 }
 
 /** A schema colour `#rrggbb` as the CSS Object Model serialises it: `rgb(r, g, b)`. */
@@ -37,7 +74,7 @@ export function cssColor(hex: string): string {
  * 500 per mille, is `50% 50%`, the initial value the renderer had before 0.10.
  */
 export function cssObjectPosition(focus: { readonly x: number; readonly y: number }): string {
-  return `${cssNumber(focus.x / 10)}% ${cssNumber(focus.y / 10)}%`;
+  return `${cssPercent(focus.x)} ${cssPercent(focus.y)}`;
 }
 
 /** The font family a text node names (D22.6); asset IDs are valid CSS identifier characters. */

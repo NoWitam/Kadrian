@@ -31,14 +31,14 @@
       "loopbackOnly": true
     }
   },
-  "runtimeHash": "sha256:2bbc982216e7bbeade1d3d7419885fe76c5581374e9ef12132b594e91ff1b692",
-  "compositionSha256": "sha256:7bb47d164cb81cee83c1dedd284dd14e0e33b3ce8bfd6636e0fa37c3eb5d4a79",
+  "runtimeHash": "sha256:7cb814e25566cf4eee15edb4587750c9dda38fc039c941f0ebf6ce9443dbca33",
+  "compositionSha256": "sha256:6ce536638124f4179f2a2198491f6a9fe577e92c1f90c4fddf4734ddd106c8aa",
   "videoFrameSha256": "sha256:33e7cc612997fbaa263392ef341112819cd95590744937f9f6371f5326fd8337",
   "width": 1920,
   "height": 1080,
   "timeUs": 1100000,
   "runs": 2,
-  "earlierRecord": "sha256:c7bfba46964bdb432dbc33b8c8b8c3ab4d6d96788af664a8a0b1ac193610b137",
+  "earlierRecord": "sha256:3a16f320280efcfbbc81ee5473d6ffa3c59c369fd2df58ac529ae2c0d58dfebe",
   "rows": [
     {
       "id": "baseline/none",
@@ -51,8 +51,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 91,
-      "playerMs": 105
+      "producerMs": 136,
+      "playerMs": 147
     },
     {
       "id": "baseline/none",
@@ -65,8 +65,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 110,
-      "playerMs": 111
+      "producerMs": 128,
+      "playerMs": 130
     },
     {
       "id": "baseline/none",
@@ -79,8 +79,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 106,
-      "playerMs": 150
+      "producerMs": 142,
+      "playerMs": 184
     },
     {
       "id": "baseline/none",
@@ -93,8 +93,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 118,
-      "playerMs": 109
+      "producerMs": 163,
+      "playerMs": 165
     },
     {
       "id": "transform/rotate-15",
@@ -109,8 +109,8 @@
       "differsFromNonePixels": 190372,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 118,
-      "playerMs": 117
+      "producerMs": 163,
+      "playerMs": 207
     },
     {
       "id": "transform/rotate-15",
@@ -125,8 +125,8 @@
       "differsFromNonePixels": 38397,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 117,
-      "playerMs": 134
+      "producerMs": 215,
+      "playerMs": 183
     },
     {
       "id": "transform/rotate-15",
@@ -141,8 +141,8 @@
       "differsFromNonePixels": 317235,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 130,
-      "playerMs": 123
+      "producerMs": 169,
+      "playerMs": 116
     },
     {
       "id": "transform/rotate-33.3",
@@ -157,8 +157,8 @@
       "differsFromNonePixels": 242191,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 139,
-      "playerMs": 115
+      "producerMs": 190,
+      "playerMs": 191
     },
     {
       "id": "transform/rotate-33.3",
@@ -173,8 +173,8 @@
       "differsFromNonePixels": 32057,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 129,
-      "playerMs": 148
+      "producerMs": 169,
+      "playerMs": 132
     },
     {
       "id": "transform/rotate-33.3",
@@ -189,8 +189,8 @@
       "differsFromNonePixels": 283621,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 125,
-      "playerMs": 128
+      "producerMs": 129,
+      "playerMs": 119
     },
     {
       "id": "transform/rotate-neg-90",
@@ -205,8 +205,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 122,
-      "playerMs": 114
+      "producerMs": 166,
+      "playerMs": 170
     },
     {
       "id": "transform/rotate-neg-90",
@@ -221,8 +221,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 117
+      "producerMs": 125,
+      "playerMs": 176
     },
     {
       "id": "transform/rotate-neg-90",
@@ -237,8 +237,8 @@
       "differsFromNonePixels": 230400,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 104,
-      "playerMs": 100
+      "producerMs": 120,
+      "playerMs": 112
     },
     {
       "id": "transform/rotate-720",
@@ -253,8 +253,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 117,
-      "playerMs": 106
+      "producerMs": 159,
+      "playerMs": 108
     },
     {
       "id": "transform/rotate-720",
@@ -269,8 +269,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 104
+      "producerMs": 139,
+      "playerMs": 127
     },
     {
       "id": "transform/rotate-720",
@@ -285,8 +285,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 137,
-      "playerMs": 115
+      "producerMs": 169,
+      "playerMs": 137
     },
     {
       "id": "transform/origin-center-rotate-45",
@@ -302,8 +302,8 @@
       "differsFromNonePixels": 195062,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 108
+      "producerMs": 169,
+      "playerMs": 117
     },
     {
       "id": "transform/origin-center-rotate-45",
@@ -319,8 +319,8 @@
       "differsFromNonePixels": 29469,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 117,
-      "playerMs": 125
+      "producerMs": 150,
+      "playerMs": 157
     },
     {
       "id": "transform/origin-center-rotate-45",
@@ -336,8 +336,8 @@
       "differsFromNonePixels": 291321,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 114,
-      "playerMs": 110
+      "producerMs": 113,
+      "playerMs": 94
     },
     {
       "id": "transform/origin-250-750-rotate-12.5",
@@ -353,8 +353,8 @@
       "differsFromNonePixels": 118061,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 109
+      "producerMs": 136,
+      "playerMs": 153
     },
     {
       "id": "transform/origin-250-750-rotate-12.5",
@@ -370,8 +370,8 @@
       "differsFromNonePixels": 38399,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 109,
-      "playerMs": 120
+      "producerMs": 117,
+      "playerMs": 156
     },
     {
       "id": "transform/origin-250-750-rotate-12.5",
@@ -387,8 +387,8 @@
       "differsFromNonePixels": 298417,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 124,
-      "playerMs": 126
+      "producerMs": 160,
+      "playerMs": 134
     },
     {
       "id": "transform/origin-center-scale-1.37",
@@ -404,8 +404,8 @@
       "differsFromNonePixels": 214620,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 129,
-      "playerMs": 117
+      "producerMs": 169,
+      "playerMs": 126
     },
     {
       "id": "transform/origin-center-scale-1.37",
@@ -421,8 +421,8 @@
       "differsFromNonePixels": 47028,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 135,
-      "playerMs": 135
+      "producerMs": 134,
+      "playerMs": 157
     },
     {
       "id": "transform/origin-center-scale-1.37",
@@ -438,8 +438,8 @@
       "differsFromNonePixels": 355632,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 109,
-      "playerMs": 103
+      "producerMs": 156,
+      "playerMs": 121
     },
     {
       "id": "transform/corner-radius-48",
@@ -455,8 +455,8 @@
       "differsFromNonePixels": 2178,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 116
+      "producerMs": 130,
+      "playerMs": 139
     },
     {
       "id": "transform/corner-radius-48",
@@ -472,8 +472,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 128,
-      "playerMs": 126
+      "producerMs": 155,
+      "playerMs": 128
     },
     {
       "id": "transform/corner-radius-48",
@@ -489,8 +489,674 @@
       "differsFromNonePixels": 2178,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
+      "producerMs": 149,
+      "playerMs": 113
+    },
+    {
+      "id": "transform-list/pivot-500-500-rotate-45",
+      "group": "transform-list",
+      "subject": "image",
+      "css": {
+        "transform": "translate(<position>) translate(50%, 50%) rotate(45deg) scale(1, 1) translate(-50%, -50%)"
+      },
+      "pixelsSha256": "sha256:7a08ad4180b62919d0723c514aba4f0de0d035934fc0533f5bd8abbdf58bbe23",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 136286,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 150,
+      "playerMs": 169
+    },
+    {
+      "id": "transform-list/pivot-500-500-rotate-45",
+      "group": "transform-list",
+      "subject": "text",
+      "css": {
+        "transform": "translate(<position>) translate(50%, 50%) rotate(45deg) scale(1, 1) translate(-50%, -50%)"
+      },
+      "pixelsSha256": "sha256:a8192f4982e836346e2847bba833da12917b815689f558d04d11362137ae5031",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 35622,
+      "differsFromNoneMaxChannel": 225,
+      "sameAsEarlierRecord": true,
+      "producerMs": 118,
+      "playerMs": 126
+    },
+    {
+      "id": "transform-list/pivot-500-500-rotate-45",
+      "group": "transform-list",
+      "subject": "video",
+      "css": {
+        "transform": "translate(<position>) translate(50%, 50%) rotate(45deg) scale(1, 1) translate(-50%, -50%)"
+      },
+      "pixelsSha256": "sha256:660026f2eb0273abde54dcb96237fd5ee7723309dd5eb942f17d0866f2ed90b4",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 258328,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 147,
+      "playerMs": 147
+    },
+    {
+      "id": "transform-list/pivot-250-750-rotate-12.5-scale-1.37",
+      "group": "transform-list",
+      "subject": "image",
+      "css": {
+        "transform": "translate(<position>) translate(25%, 75%) rotate(12.5deg) scale(1.37, 1.37) translate(-25%, -75%)"
+      },
+      "pixelsSha256": "sha256:452ffbf31cc4ec32ec833eafb0e63d2bf086fcd37afeba2717755a9c316eb783",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 214380,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 103,
+      "playerMs": 148
+    },
+    {
+      "id": "transform-list/pivot-250-750-rotate-12.5-scale-1.37",
+      "group": "transform-list",
+      "subject": "text",
+      "css": {
+        "transform": "translate(<position>) translate(25%, 75%) rotate(12.5deg) scale(1.37, 1.37) translate(-25%, -75%)"
+      },
+      "pixelsSha256": "sha256:18e2c1dadc81c1ccbfb52f0d5fe9078c4ae596897e3708c8c919bc3612e7d9f2",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 44346,
+      "differsFromNoneMaxChannel": 225,
+      "sameAsEarlierRecord": true,
+      "producerMs": 132,
+      "playerMs": 135
+    },
+    {
+      "id": "transform-list/pivot-250-750-rotate-12.5-scale-1.37",
+      "group": "transform-list",
+      "subject": "video",
+      "css": {
+        "transform": "translate(<position>) translate(25%, 75%) rotate(12.5deg) scale(1.37, 1.37) translate(-25%, -75%)"
+      },
+      "pixelsSha256": "sha256:29c4b4c077a67111c1eb78ca3ab1778ad14e884b668c619b22c00709a74c94d5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 391998,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 149,
+      "playerMs": 175
+    },
+    {
+      "id": "transform-list/pivot-0-1000-rotate-neg-8",
+      "group": "transform-list",
+      "subject": "image",
+      "css": {
+        "transform": "translate(<position>) translate(0%, 100%) rotate(-8deg) scale(1, 1) translate(0%, -100%)"
+      },
+      "pixelsSha256": "sha256:801723988bde52753c8101f4eb2a4a76bc5870e2c8d1902161effe0faef4db52",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 101148,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 167,
+      "playerMs": 123
+    },
+    {
+      "id": "transform-list/pivot-0-1000-rotate-neg-8",
+      "group": "transform-list",
+      "subject": "text",
+      "css": {
+        "transform": "translate(<position>) translate(0%, 100%) rotate(-8deg) scale(1, 1) translate(0%, -100%)"
+      },
+      "pixelsSha256": "sha256:e148d21c73c6b74a3aadcb13c45f95bc950793d825603b703cb7eb1587e9d541",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 32726,
+      "differsFromNoneMaxChannel": 225,
+      "sameAsEarlierRecord": true,
+      "producerMs": 126,
+      "playerMs": 139
+    },
+    {
+      "id": "transform-list/pivot-0-1000-rotate-neg-8",
+      "group": "transform-list",
+      "subject": "video",
+      "css": {
+        "transform": "translate(<position>) translate(0%, 100%) rotate(-8deg) scale(1, 1) translate(0%, -100%)"
+      },
+      "pixelsSha256": "sha256:13acba1cd8d4af1d981fa526a9d00871890f6530914d2ec8d4e386c148780cf4",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 196321,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 136,
+      "playerMs": 126
+    },
+    {
+      "id": "transform-list/rotate-33.3",
+      "group": "transform-list",
+      "subject": "image",
+      "css": {
+        "transform": "translate(<position>) rotate(33.3deg) scale(1, 1)"
+      },
+      "pixelsSha256": "sha256:11aa704b68feefc0966c17caf4c0210b56bfc60c9fe74b7d11328af1fbb44697",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 215110,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 132,
+      "playerMs": 120
+    },
+    {
+      "id": "transform-list/rotate-33.3",
+      "group": "transform-list",
+      "subject": "text",
+      "css": {
+        "transform": "translate(<position>) rotate(33.3deg) scale(1, 1)"
+      },
+      "pixelsSha256": "sha256:b7737544e495bb5ec5a22ef2978e64e15aa2d9d17e558c7abd065f7ba8af8572",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 37456,
+      "differsFromNoneMaxChannel": 225,
+      "sameAsEarlierRecord": true,
+      "producerMs": 167,
+      "playerMs": 165
+    },
+    {
+      "id": "transform-list/rotate-33.3",
+      "group": "transform-list",
+      "subject": "video",
+      "css": {
+        "transform": "translate(<position>) rotate(33.3deg) scale(1, 1)"
+      },
+      "pixelsSha256": "sha256:deae5b99474c579d323308949479b14b732d45ed911d6ecad432ac1b1689218d",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 319560,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 152,
+      "playerMs": 144
+    },
+    {
+      "id": "transform-list/rotate-720",
+      "group": "transform-list",
+      "subject": "image",
+      "css": {
+        "transform": "translate(<position>) rotate(720deg) scale(1, 1)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 110,
+      "playerMs": 152
+    },
+    {
+      "id": "transform-list/rotate-720",
+      "group": "transform-list",
+      "subject": "text",
+      "css": {
+        "transform": "translate(<position>) rotate(720deg) scale(1, 1)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 127,
+      "playerMs": 120
+    },
+    {
+      "id": "transform-list/rotate-720",
+      "group": "transform-list",
+      "subject": "video",
+      "css": {
+        "transform": "translate(<position>) rotate(720deg) scale(1, 1)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 114,
+      "playerMs": 126
+    },
+    {
+      "id": "transform-list/pivot-500-500-neutral",
+      "group": "transform-list",
+      "subject": "image",
+      "css": {
+        "transform": "translate(<position>) translate(50%, 50%) scale(1, 1) translate(-50%, -50%)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 99,
+      "playerMs": 107
+    },
+    {
+      "id": "transform-list/pivot-500-500-neutral",
+      "group": "transform-list",
+      "subject": "text",
+      "css": {
+        "transform": "translate(<position>) translate(50%, 50%) scale(1, 1) translate(-50%, -50%)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 129,
+      "playerMs": 129
+    },
+    {
+      "id": "transform-list/pivot-500-500-neutral",
+      "group": "transform-list",
+      "subject": "video",
+      "css": {
+        "transform": "translate(<position>) translate(50%, 50%) scale(1, 1) translate(-50%, -50%)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 132,
+      "playerMs": 173
+    },
+    {
+      "id": "transform-list/rotate-0-neutral",
+      "group": "transform-list",
+      "subject": "image",
+      "css": {
+        "transform": "translate(<position>) rotate(0deg) scale(1, 1)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
       "producerMs": 130,
-      "playerMs": 119
+      "playerMs": 152
+    },
+    {
+      "id": "transform-list/rotate-0-neutral",
+      "group": "transform-list",
+      "subject": "text",
+      "css": {
+        "transform": "translate(<position>) rotate(0deg) scale(1, 1)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 119,
+      "playerMs": 149
+    },
+    {
+      "id": "transform-list/rotate-0-neutral",
+      "group": "transform-list",
+      "subject": "video",
+      "css": {
+        "transform": "translate(<position>) rotate(0deg) scale(1, 1)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 142,
+      "playerMs": 108
+    },
+    {
+      "id": "picture/view-box-neutral",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "object-view-box": "inset(0% 0% 0% 0%)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 164,
+      "playerMs": 111
+    },
+    {
+      "id": "picture/view-box-neutral",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "object-view-box": "inset(0% 0% 0% 0%)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 107,
+      "playerMs": 120
+    },
+    {
+      "id": "picture/view-box-crop",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "object-view-box": "inset(10% 25% 5% 0%)"
+      },
+      "pixelsSha256": "sha256:7e014a519ba0859efdf5842c32bfdc096f10d9c5b7fcb76421401ea670f6cc63",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 68730,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 133,
+      "playerMs": 139
+    },
+    {
+      "id": "picture/view-box-crop",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "object-view-box": "inset(10% 25% 5% 0%)"
+      },
+      "pixelsSha256": "sha256:5750a34ebba1c7da41aeebb176627e7de8806c9d4f741e0bc7764c9d49a0cbc3",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 198013,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 131,
+      "playerMs": 139
+    },
+    {
+      "id": "picture/view-box-fractional",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "object-view-box": "inset(12.5% 0.1% 33.3% 7.25%)"
+      },
+      "pixelsSha256": "sha256:65527d06b0d44e55d3402dc707932d374606aefccd829c8b376d2715632ed761",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 72939,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 122,
+      "playerMs": 157
+    },
+    {
+      "id": "picture/view-box-fractional",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "object-view-box": "inset(12.5% 0.1% 33.3% 7.25%)"
+      },
+      "pixelsSha256": "sha256:d0f9b0f95ee4844fcca213108c15eb32971375a1c3eba86bb145d3f229c83377",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 136598,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 109,
+      "playerMs": 117
+    },
+    {
+      "id": "picture/view-box-cover-focus",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "object-fit": "cover",
+        "object-position": "30% 70%",
+        "object-view-box": "inset(0% 25% 0% 25%)"
+      },
+      "pixelsSha256": "sha256:f49b3406af1de6c5a0a21ee4c4d7b05790fdd745229ffca3618e69d01e9f7231",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 81614,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 145,
+      "playerMs": 144
+    },
+    {
+      "id": "picture/view-box-cover-focus",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "object-fit": "cover",
+        "object-position": "30% 70%",
+        "object-view-box": "inset(0% 25% 0% 25%)"
+      },
+      "pixelsSha256": "sha256:71775fc10b04c5a037c93f5d5175bcc5824eba7acf06be865ce7aaf19a184e04",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 185702,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 108,
+      "playerMs": 123
+    },
+    {
+      "id": "picture/view-box-contain",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "object-fit": "contain",
+        "object-view-box": "inset(20% 0% 0% 10%)"
+      },
+      "pixelsSha256": "sha256:b53992fb6318fdb6931869569ae6e4864afa58b26d50ec8702cb9ab9f1913ff2",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 72516,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 162,
+      "playerMs": 115
+    },
+    {
+      "id": "picture/view-box-contain",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "object-fit": "contain",
+        "object-view-box": "inset(20% 0% 0% 10%)"
+      },
+      "pixelsSha256": "sha256:614400b676c0504d525135a9e670abb6aeda9450abceb6fdee1c209636b7bd80",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 156653,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 134,
+      "playerMs": 126
+    },
+    {
+      "id": "picture/border-radius-0-neutral",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "border-radius": "0px"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 142,
+      "playerMs": 140
+    },
+    {
+      "id": "picture/border-radius-0-neutral",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "border-radius": "0px"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 157,
+      "playerMs": 108
+    },
+    {
+      "id": "picture/border-radius-48",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "border-radius": "48px"
+      },
+      "pixelsSha256": "sha256:ed313c19827bb27bff05d67c2927a41022ef14e6b694dc918bf33f6660b9e46d",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 2178,
+      "differsFromNoneMaxChannel": 226,
+      "sameAsEarlierRecord": true,
+      "producerMs": 148,
+      "playerMs": 153
+    },
+    {
+      "id": "picture/border-radius-48",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "border-radius": "48px"
+      },
+      "pixelsSha256": "sha256:9c602d5d19d5963ec74bfeb5dadee451130fae6ccf4b4ffcbb358c96ef8e7974",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 2178,
+      "differsFromNoneMaxChannel": 226,
+      "sameAsEarlierRecord": true,
+      "producerMs": 173,
+      "playerMs": 210
+    },
+    {
+      "id": "picture/border-radius-12.5",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "border-radius": "12.5px"
+      },
+      "pixelsSha256": "sha256:4c52234d3833894ab8734435eb4458c5f9174716836372884390a5efcbfec3e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 186,
+      "differsFromNoneMaxChannel": 226,
+      "sameAsEarlierRecord": true,
+      "producerMs": 113,
+      "playerMs": 172
+    },
+    {
+      "id": "picture/border-radius-12.5",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "border-radius": "12.5px"
+      },
+      "pixelsSha256": "sha256:b2282f16533ac320958b8b1f018ec645df9269d6912741352ae0e5d31bcb1596",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 186,
+      "differsFromNoneMaxChannel": 226,
+      "sameAsEarlierRecord": true,
+      "producerMs": 122,
+      "playerMs": 133
+    },
+    {
+      "id": "picture/border-radius-crop",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "border-radius": "400px",
+        "object-view-box": "inset(0% 25% 0% 25%)"
+      },
+      "pixelsSha256": "sha256:b091e535d56b07bf89c6efd3751a7dce9452705fb721885f9d26d44ec66fe3be",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 54785,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 120,
+      "playerMs": 106
+    },
+    {
+      "id": "picture/border-radius-crop",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "border-radius": "400px",
+        "object-view-box": "inset(0% 25% 0% 25%)"
+      },
+      "pixelsSha256": "sha256:53bc5e256f0cddbc2cdb7eda85b5605877f123c0ca3ce4a825b6ca1397127d02",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 178406,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 116,
+      "playerMs": 110
+    },
+    {
+      "id": "picture/size-fractional",
+      "group": "picture",
+      "subject": "image",
+      "css": {
+        "width": "333.3px",
+        "height": "187.5px"
+      },
+      "pixelsSha256": "sha256:ddbb2266819497ed8b3e4e44d73eb6f3f32820e7715efc6a13d2b523935e374b",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 137644,
+      "differsFromNoneMaxChannel": 246,
+      "sameAsEarlierRecord": true,
+      "producerMs": 128,
+      "playerMs": 120
+    },
+    {
+      "id": "picture/size-fractional",
+      "group": "picture",
+      "subject": "video",
+      "css": {
+        "width": "333.3px",
+        "height": "187.5px"
+      },
+      "pixelsSha256": "sha256:c959f5b8204dbbf66bc38a586511a8018479815a0fdb92bd0babd4dfab6872c3",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 226839,
+      "differsFromNoneMaxChannel": 255,
+      "sameAsEarlierRecord": true,
+      "producerMs": 137,
+      "playerMs": 89
     },
     {
       "id": "css-filter/blur-4",
@@ -505,8 +1171,8 @@
       "differsFromNonePixels": 96196,
       "differsFromNoneMaxChannel": 206,
       "sameAsEarlierRecord": true,
-      "producerMs": 161,
-      "playerMs": 134
+      "producerMs": 141,
+      "playerMs": 163
     },
     {
       "id": "css-filter/blur-4",
@@ -521,8 +1187,8 @@
       "differsFromNonePixels": 48227,
       "differsFromNoneMaxChannel": 159,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 121
+      "producerMs": 171,
+      "playerMs": 145
     },
     {
       "id": "css-filter/blur-4",
@@ -537,8 +1203,8 @@
       "differsFromNonePixels": 137493,
       "differsFromNoneMaxChannel": 178,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 123
+      "producerMs": 125,
+      "playerMs": 180
     },
     {
       "id": "css-filter/blur-12.5",
@@ -553,8 +1219,8 @@
       "differsFromNonePixels": 182111,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 135,
-      "playerMs": 141
+      "producerMs": 208,
+      "playerMs": 128
     },
     {
       "id": "css-filter/blur-12.5",
@@ -569,8 +1235,8 @@
       "differsFromNonePixels": 85984,
       "differsFromNoneMaxChannel": 188,
       "sameAsEarlierRecord": true,
-      "producerMs": 140,
-      "playerMs": 135
+      "producerMs": 125,
+      "playerMs": 164
     },
     {
       "id": "css-filter/blur-12.5",
@@ -585,8 +1251,8 @@
       "differsFromNonePixels": 249441,
       "differsFromNoneMaxChannel": 212,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 138
+      "producerMs": 148,
+      "playerMs": 199
     },
     {
       "id": "css-filter/brightness-1.4",
@@ -601,8 +1267,8 @@
       "differsFromNonePixels": 124609,
       "differsFromNoneMaxChannel": 75,
       "sameAsEarlierRecord": true,
-      "producerMs": 138,
-      "playerMs": 104
+      "producerMs": 126,
+      "playerMs": 121
     },
     {
       "id": "css-filter/brightness-1.4",
@@ -617,8 +1283,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 55,
       "sameAsEarlierRecord": true,
-      "producerMs": 112,
-      "playerMs": 115
+      "producerMs": 120,
+      "playerMs": 118
     },
     {
       "id": "css-filter/brightness-1.4",
@@ -633,8 +1299,8 @@
       "differsFromNonePixels": 120462,
       "differsFromNoneMaxChannel": 73,
       "sameAsEarlierRecord": true,
-      "producerMs": 104,
-      "playerMs": 113
+      "producerMs": 154,
+      "playerMs": 141
     },
     {
       "id": "css-filter/brightness-0.6",
@@ -649,8 +1315,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 102,
       "sameAsEarlierRecord": true,
-      "producerMs": 114,
-      "playerMs": 105
+      "producerMs": 156,
+      "playerMs": 173
     },
     {
       "id": "css-filter/brightness-0.6",
@@ -665,8 +1331,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 102,
       "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 122
+      "producerMs": 115,
+      "playerMs": 135
     },
     {
       "id": "css-filter/brightness-0.6",
@@ -681,8 +1347,8 @@
       "differsFromNonePixels": 230400,
       "differsFromNoneMaxChannel": 102,
       "sameAsEarlierRecord": true,
-      "producerMs": 128,
-      "playerMs": 114
+      "producerMs": 145,
+      "playerMs": 109
     },
     {
       "id": "css-filter/contrast-1.5",
@@ -697,8 +1363,8 @@
       "differsFromNonePixels": 124609,
       "differsFromNoneMaxChannel": 42,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 108
+      "producerMs": 139,
+      "playerMs": 162
     },
     {
       "id": "css-filter/contrast-1.5",
@@ -713,8 +1379,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 36,
       "sameAsEarlierRecord": true,
-      "producerMs": 142,
-      "playerMs": 117
+      "producerMs": 141,
+      "playerMs": 141
     },
     {
       "id": "css-filter/contrast-1.5",
@@ -729,8 +1395,8 @@
       "differsFromNonePixels": 166036,
       "differsFromNoneMaxChannel": 42,
       "sameAsEarlierRecord": true,
-      "producerMs": 99,
-      "playerMs": 110
+      "producerMs": 120,
+      "playerMs": 148
     },
     {
       "id": "css-filter/contrast-0.5",
@@ -745,8 +1411,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 64,
       "sameAsEarlierRecord": true,
-      "producerMs": 127,
-      "playerMs": 135
+      "producerMs": 154,
+      "playerMs": 126
     },
     {
       "id": "css-filter/contrast-0.5",
@@ -761,8 +1427,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 63,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 124
+      "producerMs": 140,
+      "playerMs": 109
     },
     {
       "id": "css-filter/contrast-0.5",
@@ -777,8 +1443,8 @@
       "differsFromNonePixels": 230321,
       "differsFromNoneMaxChannel": 64,
       "sameAsEarlierRecord": true,
-      "producerMs": 116,
-      "playerMs": 119
+      "producerMs": 127,
+      "playerMs": 111
     },
     {
       "id": "css-filter/saturate-0.3",
@@ -793,8 +1459,8 @@
       "differsFromNonePixels": 124604,
       "differsFromNoneMaxChannel": 105,
       "sameAsEarlierRecord": true,
-      "producerMs": 116,
-      "playerMs": 116
+      "producerMs": 162,
+      "playerMs": 135
     },
     {
       "id": "css-filter/saturate-0.3",
@@ -809,8 +1475,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 89,
       "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 110
+      "producerMs": 136,
+      "playerMs": 113
     },
     {
       "id": "css-filter/saturate-0.3",
@@ -825,8 +1491,8 @@
       "differsFromNonePixels": 230384,
       "differsFromNoneMaxChannel": 166,
       "sameAsEarlierRecord": true,
-      "producerMs": 113,
-      "playerMs": 119
+      "producerMs": 139,
+      "playerMs": 123
     },
     {
       "id": "css-filter/saturate-2",
@@ -841,8 +1507,8 @@
       "differsFromNonePixels": 124604,
       "differsFromNoneMaxChannel": 107,
       "sameAsEarlierRecord": true,
-      "producerMs": 125,
-      "playerMs": 98
+      "producerMs": 160,
+      "playerMs": 166
     },
     {
       "id": "css-filter/saturate-2",
@@ -857,8 +1523,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 75,
       "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 104
+      "producerMs": 134,
+      "playerMs": 149
     },
     {
       "id": "css-filter/saturate-2",
@@ -873,8 +1539,8 @@
       "differsFromNonePixels": 166067,
       "differsFromNoneMaxChannel": 110,
       "sameAsEarlierRecord": true,
-      "producerMs": 105,
-      "playerMs": 114
+      "producerMs": 98,
+      "playerMs": 120
     },
     {
       "id": "css-filter/hue-rotate-90",
@@ -889,8 +1555,8 @@
       "differsFromNonePixels": 124604,
       "differsFromNoneMaxChannel": 238,
       "sameAsEarlierRecord": true,
-      "producerMs": 127,
-      "playerMs": 100
+      "producerMs": 128,
+      "playerMs": 156
     },
     {
       "id": "css-filter/hue-rotate-90",
@@ -905,8 +1571,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 179,
       "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 118
+      "producerMs": 145,
+      "playerMs": 169
     },
     {
       "id": "css-filter/hue-rotate-90",
@@ -921,8 +1587,8 @@
       "differsFromNonePixels": 230384,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 105,
-      "playerMs": 107
+      "producerMs": 146,
+      "playerMs": 147
     },
     {
       "id": "css-filter/hue-rotate-33.3",
@@ -937,8 +1603,8 @@
       "differsFromNonePixels": 124604,
       "differsFromNoneMaxChannel": 96,
       "sameAsEarlierRecord": true,
-      "producerMs": 111,
-      "playerMs": 103
+      "producerMs": 139,
+      "playerMs": 157
     },
     {
       "id": "css-filter/hue-rotate-33.3",
@@ -953,8 +1619,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 78,
       "sameAsEarlierRecord": true,
-      "producerMs": 110,
-      "playerMs": 107
+      "producerMs": 189,
+      "playerMs": 119
     },
     {
       "id": "css-filter/hue-rotate-33.3",
@@ -969,8 +1635,8 @@
       "differsFromNonePixels": 230351,
       "differsFromNoneMaxChannel": 133,
       "sameAsEarlierRecord": true,
-      "producerMs": 123,
-      "playerMs": 112
+      "producerMs": 130,
+      "playerMs": 134
     },
     {
       "id": "css-filter/grayscale-1",
@@ -985,8 +1651,8 @@
       "differsFromNonePixels": 124604,
       "differsFromNoneMaxChannel": 150,
       "sameAsEarlierRecord": true,
-      "producerMs": 135,
-      "playerMs": 114
+      "producerMs": 120,
+      "playerMs": 122
     },
     {
       "id": "css-filter/grayscale-1",
@@ -1001,8 +1667,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 127,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 123
+      "producerMs": 148,
+      "playerMs": 153
     },
     {
       "id": "css-filter/grayscale-1",
@@ -1017,8 +1683,8 @@
       "differsFromNonePixels": 230384,
       "differsFromNoneMaxChannel": 237,
       "sameAsEarlierRecord": true,
-      "producerMs": 116,
-      "playerMs": 91
+      "producerMs": 141,
+      "playerMs": 165
     },
     {
       "id": "css-filter/grayscale-0.5",
@@ -1033,8 +1699,8 @@
       "differsFromNonePixels": 124598,
       "differsFromNoneMaxChannel": 75,
       "sameAsEarlierRecord": true,
-      "producerMs": 109,
-      "playerMs": 128
+      "producerMs": 165,
+      "playerMs": 170
     },
     {
       "id": "css-filter/grayscale-0.5",
@@ -1049,8 +1715,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 64,
       "sameAsEarlierRecord": true,
-      "producerMs": 123,
-      "playerMs": 117
+      "producerMs": 124,
+      "playerMs": 123
     },
     {
       "id": "css-filter/grayscale-0.5",
@@ -1065,8 +1731,8 @@
       "differsFromNonePixels": 230304,
       "differsFromNoneMaxChannel": 118,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 103
+      "producerMs": 109,
+      "playerMs": 144
     },
     {
       "id": "css-filter/invert-1",
@@ -1081,8 +1747,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 109,
-      "playerMs": 108
+      "producerMs": 119,
+      "playerMs": 133
     },
     {
       "id": "css-filter/invert-1",
@@ -1097,8 +1763,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 253,
       "sameAsEarlierRecord": true,
-      "producerMs": 124,
-      "playerMs": 128
+      "producerMs": 125,
+      "playerMs": 127
     },
     {
       "id": "css-filter/invert-1",
@@ -1113,8 +1779,8 @@
       "differsFromNonePixels": 230400,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 116
+      "producerMs": 123,
+      "playerMs": 118
     },
     {
       "id": "css-filter/invert-0.35",
@@ -1129,8 +1795,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 89,
       "sameAsEarlierRecord": true,
-      "producerMs": 123,
-      "playerMs": 103
+      "producerMs": 143,
+      "playerMs": 122
     },
     {
       "id": "css-filter/invert-0.35",
@@ -1145,8 +1811,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 89,
       "sameAsEarlierRecord": true,
-      "producerMs": 111,
-      "playerMs": 118
+      "producerMs": 123,
+      "playerMs": 121
     },
     {
       "id": "css-filter/invert-0.35",
@@ -1161,8 +1827,8 @@
       "differsFromNonePixels": 230321,
       "differsFromNoneMaxChannel": 89,
       "sameAsEarlierRecord": true,
-      "producerMs": 111,
-      "playerMs": 120
+      "producerMs": 112,
+      "playerMs": 124
     },
     {
       "id": "css-filter/sepia-0.8",
@@ -1178,7 +1844,7 @@
       "differsFromNoneMaxChannel": 121,
       "sameAsEarlierRecord": true,
       "producerMs": 132,
-      "playerMs": 105
+      "playerMs": 106
     },
     {
       "id": "css-filter/sepia-0.8",
@@ -1193,8 +1859,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 89,
       "sameAsEarlierRecord": true,
-      "producerMs": 112,
-      "playerMs": 99
+      "producerMs": 100,
+      "playerMs": 121
     },
     {
       "id": "css-filter/sepia-0.8",
@@ -1209,8 +1875,8 @@
       "differsFromNonePixels": 230400,
       "differsFromNoneMaxChannel": 195,
       "sameAsEarlierRecord": true,
-      "producerMs": 98,
-      "playerMs": 110
+      "producerMs": 134,
+      "playerMs": 129
     },
     {
       "id": "css-filter/opacity-0.5",
@@ -1225,8 +1891,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 113,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 105
+      "producerMs": 106,
+      "playerMs": 130
     },
     {
       "id": "css-filter/opacity-0.5",
@@ -1241,8 +1907,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 112,
       "sameAsEarlierRecord": true,
-      "producerMs": 114,
-      "playerMs": 103
+      "producerMs": 126,
+      "playerMs": 123
     },
     {
       "id": "css-filter/opacity-0.5",
@@ -1257,8 +1923,8 @@
       "differsFromNonePixels": 230400,
       "differsFromNoneMaxChannel": 113,
       "sameAsEarlierRecord": true,
-      "producerMs": 92,
-      "playerMs": 111
+      "producerMs": 121,
+      "playerMs": 118
     },
     {
       "id": "css-filter/drop-shadow",
@@ -1273,8 +1939,8 @@
       "differsFromNonePixels": 23014,
       "differsFromNoneMaxChannel": 31,
       "sameAsEarlierRecord": true,
-      "producerMs": 123,
-      "playerMs": 107
+      "producerMs": 151,
+      "playerMs": 157
     },
     {
       "id": "css-filter/drop-shadow",
@@ -1289,8 +1955,8 @@
       "differsFromNonePixels": 40132,
       "differsFromNoneMaxChannel": 32,
       "sameAsEarlierRecord": true,
-      "producerMs": 136,
-      "playerMs": 106
+      "producerMs": 143,
+      "playerMs": 132
     },
     {
       "id": "css-filter/drop-shadow",
@@ -1305,8 +1971,8 @@
       "differsFromNonePixels": 28532,
       "differsFromNoneMaxChannel": 31,
       "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 110
+      "producerMs": 161,
+      "playerMs": 137
     },
     {
       "id": "css-filter/chain",
@@ -1321,8 +1987,8 @@
       "differsFromNonePixels": 145528,
       "differsFromNoneMaxChannel": 179,
       "sameAsEarlierRecord": true,
-      "producerMs": 113,
-      "playerMs": 112
+      "producerMs": 108,
+      "playerMs": 119
     },
     {
       "id": "css-filter/chain",
@@ -1337,8 +2003,8 @@
       "differsFromNonePixels": 34046,
       "differsFromNoneMaxChannel": 149,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 109
+      "producerMs": 122,
+      "playerMs": 113
     },
     {
       "id": "css-filter/chain",
@@ -1353,8 +2019,8 @@
       "differsFromNonePixels": 240480,
       "differsFromNoneMaxChannel": 168,
       "sameAsEarlierRecord": true,
-      "producerMs": 110,
-      "playerMs": 114
+      "producerMs": 159,
+      "playerMs": 128
     },
     {
       "id": "css-filter-neutral/blur-0",
@@ -1369,8 +2035,8 @@
       "differsFromNonePixels": 48,
       "differsFromNoneMaxChannel": 11,
       "sameAsEarlierRecord": true,
-      "producerMs": 116,
-      "playerMs": 123
+      "producerMs": 140,
+      "playerMs": 156
     },
     {
       "id": "css-filter-neutral/blur-0",
@@ -1385,8 +2051,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 103,
-      "playerMs": 113
+      "producerMs": 147,
+      "playerMs": 139
     },
     {
       "id": "css-filter-neutral/blur-0",
@@ -1401,255 +2067,15 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 105
-    },
-    {
-      "id": "css-filter-neutral/brightness-1",
-      "group": "css-filter-neutral",
-      "subject": "image",
-      "css": {
-        "filter": "brightness(1)"
-      },
-      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 48,
-      "differsFromNoneMaxChannel": 11,
-      "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 177
-    },
-    {
-      "id": "css-filter-neutral/brightness-1",
-      "group": "css-filter-neutral",
-      "subject": "text",
-      "css": {
-        "filter": "brightness(1)"
-      },
-      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 1787,
-      "differsFromNoneMaxChannel": 1,
-      "sameAsEarlierRecord": true,
-      "producerMs": 128,
-      "playerMs": 152
-    },
-    {
-      "id": "css-filter-neutral/brightness-1",
-      "group": "css-filter-neutral",
-      "subject": "video",
-      "css": {
-        "filter": "brightness(1)"
-      },
-      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 0,
-      "differsFromNoneMaxChannel": 0,
-      "sameAsEarlierRecord": true,
-      "producerMs": 158,
-      "playerMs": 135
-    },
-    {
-      "id": "css-filter-neutral/contrast-1",
-      "group": "css-filter-neutral",
-      "subject": "image",
-      "css": {
-        "filter": "contrast(1)"
-      },
-      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 48,
-      "differsFromNoneMaxChannel": 11,
-      "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 121
-    },
-    {
-      "id": "css-filter-neutral/contrast-1",
-      "group": "css-filter-neutral",
-      "subject": "text",
-      "css": {
-        "filter": "contrast(1)"
-      },
-      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 1787,
-      "differsFromNoneMaxChannel": 1,
-      "sameAsEarlierRecord": true,
-      "producerMs": 135,
-      "playerMs": 118
-    },
-    {
-      "id": "css-filter-neutral/contrast-1",
-      "group": "css-filter-neutral",
-      "subject": "video",
-      "css": {
-        "filter": "contrast(1)"
-      },
-      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 0,
-      "differsFromNoneMaxChannel": 0,
-      "sameAsEarlierRecord": true,
-      "producerMs": 106,
-      "playerMs": 129
-    },
-    {
-      "id": "css-filter-neutral/saturate-1",
-      "group": "css-filter-neutral",
-      "subject": "image",
-      "css": {
-        "filter": "saturate(1)"
-      },
-      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 48,
-      "differsFromNoneMaxChannel": 11,
-      "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 119
-    },
-    {
-      "id": "css-filter-neutral/saturate-1",
-      "group": "css-filter-neutral",
-      "subject": "text",
-      "css": {
-        "filter": "saturate(1)"
-      },
-      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 1787,
-      "differsFromNoneMaxChannel": 1,
-      "sameAsEarlierRecord": true,
-      "producerMs": 139,
-      "playerMs": 129
-    },
-    {
-      "id": "css-filter-neutral/saturate-1",
-      "group": "css-filter-neutral",
-      "subject": "video",
-      "css": {
-        "filter": "saturate(1)"
-      },
-      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 0,
-      "differsFromNoneMaxChannel": 0,
-      "sameAsEarlierRecord": true,
-      "producerMs": 127,
-      "playerMs": 131
-    },
-    {
-      "id": "css-filter-neutral/hue-rotate-0",
-      "group": "css-filter-neutral",
-      "subject": "image",
-      "css": {
-        "filter": "hue-rotate(0deg)"
-      },
-      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 48,
-      "differsFromNoneMaxChannel": 11,
-      "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 124
-    },
-    {
-      "id": "css-filter-neutral/hue-rotate-0",
-      "group": "css-filter-neutral",
-      "subject": "text",
-      "css": {
-        "filter": "hue-rotate(0deg)"
-      },
-      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 1787,
-      "differsFromNoneMaxChannel": 1,
-      "sameAsEarlierRecord": true,
-      "producerMs": 142,
-      "playerMs": 146
-    },
-    {
-      "id": "css-filter-neutral/hue-rotate-0",
-      "group": "css-filter-neutral",
-      "subject": "video",
-      "css": {
-        "filter": "hue-rotate(0deg)"
-      },
-      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 0,
-      "differsFromNoneMaxChannel": 0,
-      "sameAsEarlierRecord": true,
-      "producerMs": 136,
-      "playerMs": 123
-    },
-    {
-      "id": "css-filter-neutral/grayscale-0",
-      "group": "css-filter-neutral",
-      "subject": "image",
-      "css": {
-        "filter": "grayscale(0)"
-      },
-      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 48,
-      "differsFromNoneMaxChannel": 11,
-      "sameAsEarlierRecord": true,
-      "producerMs": 128,
+      "producerMs": 137,
       "playerMs": 126
     },
     {
-      "id": "css-filter-neutral/grayscale-0",
-      "group": "css-filter-neutral",
-      "subject": "text",
-      "css": {
-        "filter": "grayscale(0)"
-      },
-      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 1787,
-      "differsFromNoneMaxChannel": 1,
-      "sameAsEarlierRecord": true,
-      "producerMs": 127,
-      "playerMs": 138
-    },
-    {
-      "id": "css-filter-neutral/grayscale-0",
-      "group": "css-filter-neutral",
-      "subject": "video",
-      "css": {
-        "filter": "grayscale(0)"
-      },
-      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 0,
-      "differsFromNoneMaxChannel": 0,
-      "sameAsEarlierRecord": true,
-      "producerMs": 127,
-      "playerMs": 133
-    },
-    {
-      "id": "css-filter-neutral/invert-0",
+      "id": "css-filter-neutral/brightness-1",
       "group": "css-filter-neutral",
       "subject": "image",
       "css": {
-        "filter": "invert(0)"
+        "filter": "brightness(1)"
       },
       "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
       "repeatable": true,
@@ -1657,15 +2083,15 @@
       "differsFromNonePixels": 48,
       "differsFromNoneMaxChannel": 11,
       "sameAsEarlierRecord": true,
-      "producerMs": 141,
-      "playerMs": 141
+      "producerMs": 136,
+      "playerMs": 144
     },
     {
-      "id": "css-filter-neutral/invert-0",
+      "id": "css-filter-neutral/brightness-1",
       "group": "css-filter-neutral",
       "subject": "text",
       "css": {
-        "filter": "invert(0)"
+        "filter": "brightness(1)"
       },
       "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
       "repeatable": true,
@@ -1673,47 +2099,143 @@
       "differsFromNonePixels": 1787,
       "differsFromNoneMaxChannel": 1,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 125
+      "producerMs": 137,
+      "playerMs": 143
     },
     {
-      "id": "css-filter-neutral/invert-0",
+      "id": "css-filter-neutral/brightness-1",
       "group": "css-filter-neutral",
       "subject": "video",
       "css": {
-        "filter": "invert(0)"
+        "filter": "brightness(1)"
       },
       "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
       "repeatable": true,
       "playerProducerDifferingPixels": 0,
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 171,
+      "playerMs": 148
+    },
+    {
+      "id": "css-filter-neutral/contrast-1",
+      "group": "css-filter-neutral",
+      "subject": "image",
+      "css": {
+        "filter": "contrast(1)"
+      },
+      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 48,
+      "differsFromNoneMaxChannel": 11,
+      "sameAsEarlierRecord": true,
+      "producerMs": 143,
+      "playerMs": 148
+    },
+    {
+      "id": "css-filter-neutral/contrast-1",
+      "group": "css-filter-neutral",
+      "subject": "text",
+      "css": {
+        "filter": "contrast(1)"
+      },
+      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 1787,
+      "differsFromNoneMaxChannel": 1,
+      "sameAsEarlierRecord": true,
+      "producerMs": 136,
+      "playerMs": 130
+    },
+    {
+      "id": "css-filter-neutral/contrast-1",
+      "group": "css-filter-neutral",
+      "subject": "video",
+      "css": {
+        "filter": "contrast(1)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 129,
+      "playerMs": 121
+    },
+    {
+      "id": "css-filter-neutral/saturate-1",
+      "group": "css-filter-neutral",
+      "subject": "image",
+      "css": {
+        "filter": "saturate(1)"
+      },
+      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 48,
+      "differsFromNoneMaxChannel": 11,
+      "sameAsEarlierRecord": true,
+      "producerMs": 127,
+      "playerMs": 143
+    },
+    {
+      "id": "css-filter-neutral/saturate-1",
+      "group": "css-filter-neutral",
+      "subject": "text",
+      "css": {
+        "filter": "saturate(1)"
+      },
+      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 1787,
+      "differsFromNoneMaxChannel": 1,
+      "sameAsEarlierRecord": true,
+      "producerMs": 133,
+      "playerMs": 127
+    },
+    {
+      "id": "css-filter-neutral/saturate-1",
+      "group": "css-filter-neutral",
+      "subject": "video",
+      "css": {
+        "filter": "saturate(1)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 124,
+      "playerMs": 109
+    },
+    {
+      "id": "css-filter-neutral/hue-rotate-0",
+      "group": "css-filter-neutral",
+      "subject": "image",
+      "css": {
+        "filter": "hue-rotate(0deg)"
+      },
+      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 48,
+      "differsFromNoneMaxChannel": 11,
       "sameAsEarlierRecord": true,
       "producerMs": 114,
-      "playerMs": 116
+      "playerMs": 126
     },
     {
-      "id": "css-filter-neutral/sepia-0",
-      "group": "css-filter-neutral",
-      "subject": "image",
-      "css": {
-        "filter": "sepia(0)"
-      },
-      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 48,
-      "differsFromNoneMaxChannel": 11,
-      "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 113
-    },
-    {
-      "id": "css-filter-neutral/sepia-0",
+      "id": "css-filter-neutral/hue-rotate-0",
       "group": "css-filter-neutral",
       "subject": "text",
       "css": {
-        "filter": "sepia(0)"
+        "filter": "hue-rotate(0deg)"
       },
       "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
       "repeatable": true,
@@ -1721,58 +2243,202 @@
       "differsFromNonePixels": 1787,
       "differsFromNoneMaxChannel": 1,
       "sameAsEarlierRecord": true,
-      "producerMs": 106,
-      "playerMs": 122
-    },
-    {
-      "id": "css-filter-neutral/sepia-0",
-      "group": "css-filter-neutral",
-      "subject": "video",
-      "css": {
-        "filter": "sepia(0)"
-      },
-      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 0,
-      "differsFromNoneMaxChannel": 0,
-      "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 117
-    },
-    {
-      "id": "css-filter-neutral/opacity-1",
-      "group": "css-filter-neutral",
-      "subject": "image",
-      "css": {
-        "filter": "opacity(1)"
-      },
-      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 48,
-      "differsFromNoneMaxChannel": 11,
-      "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 123
-    },
-    {
-      "id": "css-filter-neutral/opacity-1",
-      "group": "css-filter-neutral",
-      "subject": "text",
-      "css": {
-        "filter": "opacity(1)"
-      },
-      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
-      "repeatable": true,
-      "playerProducerDifferingPixels": 0,
-      "differsFromNonePixels": 1787,
-      "differsFromNoneMaxChannel": 1,
-      "sameAsEarlierRecord": true,
-      "producerMs": 117,
+      "producerMs": 105,
       "playerMs": 115
     },
     {
+      "id": "css-filter-neutral/hue-rotate-0",
+      "group": "css-filter-neutral",
+      "subject": "video",
+      "css": {
+        "filter": "hue-rotate(0deg)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 99,
+      "playerMs": 146
+    },
+    {
+      "id": "css-filter-neutral/grayscale-0",
+      "group": "css-filter-neutral",
+      "subject": "image",
+      "css": {
+        "filter": "grayscale(0)"
+      },
+      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 48,
+      "differsFromNoneMaxChannel": 11,
+      "sameAsEarlierRecord": true,
+      "producerMs": 140,
+      "playerMs": 113
+    },
+    {
+      "id": "css-filter-neutral/grayscale-0",
+      "group": "css-filter-neutral",
+      "subject": "text",
+      "css": {
+        "filter": "grayscale(0)"
+      },
+      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 1787,
+      "differsFromNoneMaxChannel": 1,
+      "sameAsEarlierRecord": true,
+      "producerMs": 136,
+      "playerMs": 142
+    },
+    {
+      "id": "css-filter-neutral/grayscale-0",
+      "group": "css-filter-neutral",
+      "subject": "video",
+      "css": {
+        "filter": "grayscale(0)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 144,
+      "playerMs": 158
+    },
+    {
+      "id": "css-filter-neutral/invert-0",
+      "group": "css-filter-neutral",
+      "subject": "image",
+      "css": {
+        "filter": "invert(0)"
+      },
+      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 48,
+      "differsFromNoneMaxChannel": 11,
+      "sameAsEarlierRecord": true,
+      "producerMs": 122,
+      "playerMs": 142
+    },
+    {
+      "id": "css-filter-neutral/invert-0",
+      "group": "css-filter-neutral",
+      "subject": "text",
+      "css": {
+        "filter": "invert(0)"
+      },
+      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 1787,
+      "differsFromNoneMaxChannel": 1,
+      "sameAsEarlierRecord": true,
+      "producerMs": 120,
+      "playerMs": 104
+    },
+    {
+      "id": "css-filter-neutral/invert-0",
+      "group": "css-filter-neutral",
+      "subject": "video",
+      "css": {
+        "filter": "invert(0)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 113,
+      "playerMs": 128
+    },
+    {
+      "id": "css-filter-neutral/sepia-0",
+      "group": "css-filter-neutral",
+      "subject": "image",
+      "css": {
+        "filter": "sepia(0)"
+      },
+      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 48,
+      "differsFromNoneMaxChannel": 11,
+      "sameAsEarlierRecord": true,
+      "producerMs": 126,
+      "playerMs": 125
+    },
+    {
+      "id": "css-filter-neutral/sepia-0",
+      "group": "css-filter-neutral",
+      "subject": "text",
+      "css": {
+        "filter": "sepia(0)"
+      },
+      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 1787,
+      "differsFromNoneMaxChannel": 1,
+      "sameAsEarlierRecord": true,
+      "producerMs": 116,
+      "playerMs": 125
+    },
+    {
+      "id": "css-filter-neutral/sepia-0",
+      "group": "css-filter-neutral",
+      "subject": "video",
+      "css": {
+        "filter": "sepia(0)"
+      },
+      "pixelsSha256": "sha256:c794f377649fee4bab84cf67dcd8f3b5b1c59807e57f842db81f8fc8a36e31e5",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 0,
+      "differsFromNoneMaxChannel": 0,
+      "sameAsEarlierRecord": true,
+      "producerMs": 156,
+      "playerMs": 183
+    },
+    {
+      "id": "css-filter-neutral/opacity-1",
+      "group": "css-filter-neutral",
+      "subject": "image",
+      "css": {
+        "filter": "opacity(1)"
+      },
+      "pixelsSha256": "sha256:6336a0ba987ee549bcccdc2750d6f17e653a6f51f62ee5b14de6e410f7d0c511",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 48,
+      "differsFromNoneMaxChannel": 11,
+      "sameAsEarlierRecord": true,
+      "producerMs": 162,
+      "playerMs": 112
+    },
+    {
+      "id": "css-filter-neutral/opacity-1",
+      "group": "css-filter-neutral",
+      "subject": "text",
+      "css": {
+        "filter": "opacity(1)"
+      },
+      "pixelsSha256": "sha256:d7276dc0074743af737e3616590e4f9957222e8f5a5cc46eeff63fd405646df2",
+      "repeatable": true,
+      "playerProducerDifferingPixels": 0,
+      "differsFromNonePixels": 1787,
+      "differsFromNoneMaxChannel": 1,
+      "sameAsEarlierRecord": true,
+      "producerMs": 118,
+      "playerMs": 132
+    },
+    {
       "id": "css-filter-neutral/opacity-1",
       "group": "css-filter-neutral",
       "subject": "video",
@@ -1785,8 +2451,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 110,
-      "playerMs": 130
+      "producerMs": 154,
+      "playerMs": 142
     },
     {
       "id": "css-filter-neutral/drop-shadow-0",
@@ -1801,8 +2467,8 @@
       "differsFromNonePixels": 66,
       "differsFromNoneMaxChannel": 13,
       "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 118
+      "producerMs": 144,
+      "playerMs": 174
     },
     {
       "id": "css-filter-neutral/drop-shadow-0",
@@ -1817,8 +2483,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 137,
-      "playerMs": 131
+      "producerMs": 144,
+      "playerMs": 132
     },
     {
       "id": "css-filter-neutral/drop-shadow-0",
@@ -1833,8 +2499,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 127,
-      "playerMs": 132
+      "producerMs": 133,
+      "playerMs": 98
     },
     {
       "id": "svg-filter/gaussian-blur-4",
@@ -1849,8 +2515,8 @@
       "differsFromNonePixels": 96196,
       "differsFromNoneMaxChannel": 206,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 103
+      "producerMs": 127,
+      "playerMs": 128
     },
     {
       "id": "svg-filter/gaussian-blur-4",
@@ -1865,8 +2531,8 @@
       "differsFromNonePixels": 48227,
       "differsFromNoneMaxChannel": 159,
       "sameAsEarlierRecord": true,
-      "producerMs": 135,
-      "playerMs": 111
+      "producerMs": 111,
+      "playerMs": 124
     },
     {
       "id": "svg-filter/gaussian-blur-4",
@@ -1881,8 +2547,8 @@
       "differsFromNonePixels": 137493,
       "differsFromNoneMaxChannel": 178,
       "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 121
+      "producerMs": 124,
+      "playerMs": 111
     },
     {
       "id": "svg-filter/gaussian-blur-4-linear",
@@ -1897,8 +2563,8 @@
       "differsFromNonePixels": 168999,
       "differsFromNoneMaxChannel": 215,
       "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 114
+      "producerMs": 120,
+      "playerMs": 123
     },
     {
       "id": "svg-filter/gaussian-blur-4-linear",
@@ -1913,8 +2579,8 @@
       "differsFromNonePixels": 48282,
       "differsFromNoneMaxChannel": 158,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 131
+      "producerMs": 118,
+      "playerMs": 121
     },
     {
       "id": "svg-filter/gaussian-blur-4-linear",
@@ -1929,8 +2595,8 @@
       "differsFromNonePixels": 175152,
       "differsFromNoneMaxChannel": 165,
       "sameAsEarlierRecord": true,
-      "producerMs": 122,
-      "playerMs": 118
+      "producerMs": 137,
+      "playerMs": 106
     },
     {
       "id": "svg-filter/color-matrix-saturate-0.3",
@@ -1945,8 +2611,8 @@
       "differsFromNonePixels": 124604,
       "differsFromNoneMaxChannel": 105,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 109
+      "producerMs": 119,
+      "playerMs": 104
     },
     {
       "id": "svg-filter/color-matrix-saturate-0.3",
@@ -1961,8 +2627,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 89,
       "sameAsEarlierRecord": true,
-      "producerMs": 132,
-      "playerMs": 108
+      "producerMs": 109,
+      "playerMs": 125
     },
     {
       "id": "svg-filter/color-matrix-saturate-0.3",
@@ -1977,8 +2643,8 @@
       "differsFromNonePixels": 230384,
       "differsFromNoneMaxChannel": 166,
       "sameAsEarlierRecord": true,
-      "producerMs": 134,
-      "playerMs": 139
+      "producerMs": 148,
+      "playerMs": 100
     },
     {
       "id": "svg-filter/color-matrix-lift-gain",
@@ -1993,8 +2659,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 42,
       "sameAsEarlierRecord": true,
-      "producerMs": 111,
-      "playerMs": 123
+      "producerMs": 102,
+      "playerMs": 102
     },
     {
       "id": "svg-filter/color-matrix-lift-gain",
@@ -2009,8 +2675,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 15,
       "sameAsEarlierRecord": true,
-      "producerMs": 111,
-      "playerMs": 123
+      "producerMs": 108,
+      "playerMs": 115
     },
     {
       "id": "svg-filter/color-matrix-lift-gain",
@@ -2025,8 +2691,8 @@
       "differsFromNonePixels": 202692,
       "differsFromNoneMaxChannel": 42,
       "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 95
+      "producerMs": 106,
+      "playerMs": 124
     },
     {
       "id": "svg-filter/color-matrix-lift-gain-linear",
@@ -2041,8 +2707,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 48,
       "sameAsEarlierRecord": true,
-      "producerMs": 106,
-      "playerMs": 110
+      "producerMs": 128,
+      "playerMs": 130
     },
     {
       "id": "svg-filter/color-matrix-lift-gain-linear",
@@ -2057,8 +2723,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 8,
       "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 121
+      "producerMs": 118,
+      "playerMs": 125
     },
     {
       "id": "svg-filter/color-matrix-lift-gain-linear",
@@ -2073,8 +2739,8 @@
       "differsFromNonePixels": 202692,
       "differsFromNoneMaxChannel": 56,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 107
+      "producerMs": 104,
+      "playerMs": 120
     },
     {
       "id": "svg-filter/component-transfer-curves",
@@ -2089,8 +2755,8 @@
       "differsFromNonePixels": 124609,
       "differsFromNoneMaxChannel": 42,
       "sameAsEarlierRecord": true,
-      "producerMs": 136,
-      "playerMs": 102
+      "producerMs": 126,
+      "playerMs": 133
     },
     {
       "id": "svg-filter/component-transfer-curves",
@@ -2105,8 +2771,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 30,
       "sameAsEarlierRecord": true,
-      "producerMs": 118,
-      "playerMs": 142
+      "producerMs": 149,
+      "playerMs": 127
     },
     {
       "id": "svg-filter/component-transfer-curves",
@@ -2121,8 +2787,8 @@
       "differsFromNonePixels": 139423,
       "differsFromNoneMaxChannel": 38,
       "sameAsEarlierRecord": true,
-      "producerMs": 127,
-      "playerMs": 118
+      "producerMs": 128,
+      "playerMs": 130
     },
     {
       "id": "svg-filter/morphology-dilate-2",
@@ -2137,8 +2803,8 @@
       "differsFromNonePixels": 21987,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 123,
-      "playerMs": 113
+      "producerMs": 99,
+      "playerMs": 132
     },
     {
       "id": "svg-filter/morphology-dilate-2",
@@ -2153,8 +2819,8 @@
       "differsFromNonePixels": 8636,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 122,
-      "playerMs": 125
+      "producerMs": 134,
+      "playerMs": 146
     },
     {
       "id": "svg-filter/morphology-dilate-2",
@@ -2169,8 +2835,8 @@
       "differsFromNonePixels": 96555,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 112,
-      "playerMs": 126
+      "producerMs": 123,
+      "playerMs": 145
     },
     {
       "id": "svg-filter/morphology-erode-2",
@@ -2185,8 +2851,8 @@
       "differsFromNonePixels": 26046,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 136,
-      "playerMs": 106
+      "producerMs": 142,
+      "playerMs": 129
     },
     {
       "id": "svg-filter/morphology-erode-2",
@@ -2201,8 +2867,8 @@
       "differsFromNonePixels": 8056,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 118,
-      "playerMs": 118
+      "producerMs": 129,
+      "playerMs": 130
     },
     {
       "id": "svg-filter/morphology-erode-2",
@@ -2217,8 +2883,8 @@
       "differsFromNonePixels": 95047,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 102,
-      "playerMs": 128
+      "producerMs": 118,
+      "playerMs": 138
     },
     {
       "id": "svg-filter/glow",
@@ -2233,8 +2899,8 @@
       "differsFromNonePixels": 22998,
       "differsFromNoneMaxChannel": 91,
       "sameAsEarlierRecord": true,
-      "producerMs": 104,
-      "playerMs": 112
+      "producerMs": 119,
+      "playerMs": 127
     },
     {
       "id": "svg-filter/glow",
@@ -2249,8 +2915,8 @@
       "differsFromNonePixels": 40316,
       "differsFromNoneMaxChannel": 138,
       "sameAsEarlierRecord": true,
-      "producerMs": 123,
-      "playerMs": 122
+      "producerMs": 143,
+      "playerMs": 150
     },
     {
       "id": "svg-filter/glow",
@@ -2265,8 +2931,8 @@
       "differsFromNonePixels": 28532,
       "differsFromNoneMaxChannel": 91,
       "sameAsEarlierRecord": true,
-      "producerMs": 140,
-      "playerMs": 118
+      "producerMs": 111,
+      "playerMs": 126
     },
     {
       "id": "svg-filter/chroma-key-channel-difference",
@@ -2281,8 +2947,8 @@
       "differsFromNonePixels": 183401,
       "differsFromNoneMaxChannel": 146,
       "sameAsEarlierRecord": true,
-      "producerMs": 137,
-      "playerMs": 91
+      "producerMs": 118,
+      "playerMs": 145
     },
     {
       "id": "svg-filter/chroma-key-channel-difference",
@@ -2297,8 +2963,8 @@
       "differsFromNonePixels": 196838,
       "differsFromNoneMaxChannel": 213,
       "sameAsEarlierRecord": true,
-      "producerMs": 125,
-      "playerMs": 122
+      "producerMs": 131,
+      "playerMs": 128
     },
     {
       "id": "svg-filter/chroma-key-channel-difference",
@@ -2313,8 +2979,8 @@
       "differsFromNonePixels": 321019,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 105
+      "producerMs": 109,
+      "playerMs": 129
     },
     {
       "id": "svg-filter/identity",
@@ -2329,8 +2995,8 @@
       "differsFromNonePixels": 48,
       "differsFromNoneMaxChannel": 11,
       "sameAsEarlierRecord": true,
-      "producerMs": 111,
-      "playerMs": 118
+      "producerMs": 150,
+      "playerMs": 131
     },
     {
       "id": "svg-filter/identity",
@@ -2345,8 +3011,8 @@
       "differsFromNonePixels": 1787,
       "differsFromNoneMaxChannel": 1,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 110
+      "producerMs": 124,
+      "playerMs": 109
     },
     {
       "id": "svg-filter/identity",
@@ -2361,8 +3027,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 132,
-      "playerMs": 123
+      "producerMs": 126,
+      "playerMs": 127
     },
     {
       "id": "blend/normal",
@@ -2377,8 +3043,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 102,
-      "playerMs": 102
+      "producerMs": 101,
+      "playerMs": 133
     },
     {
       "id": "blend/normal",
@@ -2393,8 +3059,8 @@
       "differsFromNonePixels": 92294,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 95,
-      "playerMs": 118
+      "producerMs": 122,
+      "playerMs": 119
     },
     {
       "id": "blend/normal",
@@ -2409,8 +3075,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 105,
-      "playerMs": 126
+      "producerMs": 130,
+      "playerMs": 146
     },
     {
       "id": "blend/multiply",
@@ -2425,8 +3091,8 @@
       "differsFromNonePixels": 136947,
       "differsFromNoneMaxChannel": 237,
       "sameAsEarlierRecord": true,
-      "producerMs": 139,
-      "playerMs": 127
+      "producerMs": 138,
+      "playerMs": 149
     },
     {
       "id": "blend/multiply",
@@ -2441,8 +3107,8 @@
       "differsFromNonePixels": 105275,
       "differsFromNoneMaxChannel": 236,
       "sameAsEarlierRecord": true,
-      "producerMs": 113,
-      "playerMs": 124
+      "producerMs": 147,
+      "playerMs": 135
     },
     {
       "id": "blend/multiply",
@@ -2457,8 +3123,8 @@
       "differsFromNonePixels": 187909,
       "differsFromNoneMaxChannel": 237,
       "sameAsEarlierRecord": true,
-      "producerMs": 125,
-      "playerMs": 108
+      "producerMs": 116,
+      "playerMs": 132
     },
     {
       "id": "blend/screen",
@@ -2473,8 +3139,8 @@
       "differsFromNonePixels": 124609,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 105,
-      "playerMs": 112
+      "producerMs": 131,
+      "playerMs": 113
     },
     {
       "id": "blend/screen",
@@ -2489,8 +3155,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 109,
-      "playerMs": 110
+      "producerMs": 132,
+      "playerMs": 128
     },
     {
       "id": "blend/screen",
@@ -2505,8 +3171,8 @@
       "differsFromNonePixels": 230448,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 101,
-      "playerMs": 112
+      "producerMs": 143,
+      "playerMs": 136
     },
     {
       "id": "blend/overlay",
@@ -2521,8 +3187,8 @@
       "differsFromNonePixels": 150615,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 120
+      "producerMs": 123,
+      "playerMs": 101
     },
     {
       "id": "blend/overlay",
@@ -2537,8 +3203,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 127,
-      "playerMs": 116
+      "producerMs": 124,
+      "playerMs": 126
     },
     {
       "id": "blend/overlay",
@@ -2553,8 +3219,8 @@
       "differsFromNonePixels": 187503,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 117,
-      "playerMs": 108
+      "producerMs": 130,
+      "playerMs": 156
     },
     {
       "id": "blend/darken",
@@ -2569,8 +3235,8 @@
       "differsFromNonePixels": 114769,
       "differsFromNoneMaxChannel": 237,
       "sameAsEarlierRecord": true,
-      "producerMs": 125,
-      "playerMs": 110
+      "producerMs": 139,
+      "playerMs": 124
     },
     {
       "id": "blend/darken",
@@ -2585,8 +3251,8 @@
       "differsFromNonePixels": 105323,
       "differsFromNoneMaxChannel": 236,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 115
+      "producerMs": 125,
+      "playerMs": 110
     },
     {
       "id": "blend/darken",
@@ -2601,8 +3267,8 @@
       "differsFromNonePixels": 173365,
       "differsFromNoneMaxChannel": 237,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 111
+      "producerMs": 120,
+      "playerMs": 115
     },
     {
       "id": "blend/lighten",
@@ -2617,8 +3283,8 @@
       "differsFromNonePixels": 103346,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 97
+      "producerMs": 106,
+      "playerMs": 134
     },
     {
       "id": "blend/lighten",
@@ -2633,8 +3299,8 @@
       "differsFromNonePixels": 105325,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 103,
-      "playerMs": 118
+      "producerMs": 131,
+      "playerMs": 106
     },
     {
       "id": "blend/lighten",
@@ -2649,8 +3315,8 @@
       "differsFromNonePixels": 229749,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 135,
-      "playerMs": 93
+      "producerMs": 111,
+      "playerMs": 131
     },
     {
       "id": "blend/color-dodge",
@@ -2665,8 +3331,8 @@
       "differsFromNonePixels": 124609,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 104,
-      "playerMs": 113
+      "producerMs": 126,
+      "playerMs": 122
     },
     {
       "id": "blend/color-dodge",
@@ -2681,8 +3347,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 107,
-      "playerMs": 113
+      "producerMs": 115,
+      "playerMs": 103
     },
     {
       "id": "blend/color-dodge",
@@ -2697,8 +3363,8 @@
       "differsFromNonePixels": 230448,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 114
+      "producerMs": 124,
+      "playerMs": 113
     },
     {
       "id": "blend/color-burn",
@@ -2713,8 +3379,8 @@
       "differsFromNonePixels": 150615,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 122,
-      "playerMs": 141
+      "producerMs": 111,
+      "playerMs": 107
     },
     {
       "id": "blend/color-burn",
@@ -2729,8 +3395,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 237,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 125
+      "producerMs": 130,
+      "playerMs": 110
     },
     {
       "id": "blend/color-burn",
@@ -2745,8 +3411,8 @@
       "differsFromNonePixels": 230448,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 99,
-      "playerMs": 111
+      "producerMs": 121,
+      "playerMs": 127
     },
     {
       "id": "blend/hard-light",
@@ -2761,8 +3427,8 @@
       "differsFromNonePixels": 124609,
       "differsFromNoneMaxChannel": 126,
       "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 116
+      "producerMs": 123,
+      "playerMs": 135
     },
     {
       "id": "blend/hard-light",
@@ -2777,8 +3443,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 125,
-      "playerMs": 107
+      "producerMs": 105,
+      "playerMs": 132
     },
     {
       "id": "blend/hard-light",
@@ -2793,8 +3459,8 @@
       "differsFromNonePixels": 108241,
       "differsFromNoneMaxChannel": 127,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 124
+      "producerMs": 123,
+      "playerMs": 118
     },
     {
       "id": "blend/soft-light",
@@ -2809,8 +3475,8 @@
       "differsFromNonePixels": 150615,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 109,
-      "playerMs": 127
+      "producerMs": 119,
+      "playerMs": 111
     },
     {
       "id": "blend/soft-light",
@@ -2825,8 +3491,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 114,
-      "playerMs": 115
+      "producerMs": 129,
+      "playerMs": 128
     },
     {
       "id": "blend/soft-light",
@@ -2841,8 +3507,8 @@
       "differsFromNonePixels": 230448,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 117,
-      "playerMs": 115
+      "producerMs": 124,
+      "playerMs": 121
     },
     {
       "id": "blend/difference",
@@ -2857,8 +3523,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 124,
-      "playerMs": 126
+      "producerMs": 128,
+      "playerMs": 129
     },
     {
       "id": "blend/difference",
@@ -2874,7 +3540,7 @@
       "differsFromNoneMaxChannel": 253,
       "sameAsEarlierRecord": true,
       "producerMs": 140,
-      "playerMs": 113
+      "playerMs": 121
     },
     {
       "id": "blend/difference",
@@ -2889,8 +3555,8 @@
       "differsFromNonePixels": 230448,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 110
+      "producerMs": 146,
+      "playerMs": 122
     },
     {
       "id": "blend/exclusion",
@@ -2905,8 +3571,8 @@
       "differsFromNonePixels": 160000,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 140,
-      "playerMs": 133
+      "producerMs": 122,
+      "playerMs": 116
     },
     {
       "id": "blend/exclusion",
@@ -2921,8 +3587,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 253,
       "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 106
+      "producerMs": 122,
+      "playerMs": 128
     },
     {
       "id": "blend/exclusion",
@@ -2937,8 +3603,8 @@
       "differsFromNonePixels": 230448,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 123,
-      "playerMs": 128
+      "producerMs": 121,
+      "playerMs": 126
     },
     {
       "id": "blend/hue",
@@ -2953,8 +3619,8 @@
       "differsFromNonePixels": 130113,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 109
+      "producerMs": 131,
+      "playerMs": 131
     },
     {
       "id": "blend/hue",
@@ -2969,8 +3635,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 112,
-      "playerMs": 109
+      "producerMs": 121,
+      "playerMs": 126
     },
     {
       "id": "blend/hue",
@@ -2985,8 +3651,8 @@
       "differsFromNonePixels": 230447,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 126
+      "producerMs": 101,
+      "playerMs": 129
     },
     {
       "id": "blend/saturation",
@@ -3001,8 +3667,8 @@
       "differsFromNonePixels": 130113,
       "differsFromNoneMaxChannel": 247,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 112
+      "producerMs": 145,
+      "playerMs": 119
     },
     {
       "id": "blend/saturation",
@@ -3017,8 +3683,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 245,
       "sameAsEarlierRecord": true,
-      "producerMs": 112,
-      "playerMs": 108
+      "producerMs": 117,
+      "playerMs": 134
     },
     {
       "id": "blend/saturation",
@@ -3033,8 +3699,8 @@
       "differsFromNonePixels": 230448,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 93,
-      "playerMs": 95
+      "producerMs": 118,
+      "playerMs": 109
     },
     {
       "id": "blend/color",
@@ -3049,8 +3715,8 @@
       "differsFromNonePixels": 130086,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 119
+      "producerMs": 132,
+      "playerMs": 126
     },
     {
       "id": "blend/color",
@@ -3065,8 +3731,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 114,
-      "playerMs": 121
+      "producerMs": 123,
+      "playerMs": 139
     },
     {
       "id": "blend/color",
@@ -3081,8 +3747,8 @@
       "differsFromNonePixels": 230272,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 107,
-      "playerMs": 117
+      "producerMs": 149,
+      "playerMs": 131
     },
     {
       "id": "blend/luminosity",
@@ -3097,8 +3763,8 @@
       "differsFromNonePixels": 104092,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 109,
-      "playerMs": 125
+      "producerMs": 123,
+      "playerMs": 117
     },
     {
       "id": "blend/luminosity",
@@ -3113,8 +3779,8 @@
       "differsFromNonePixels": 108948,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 125,
-      "playerMs": 120
+      "producerMs": 115,
+      "playerMs": 126
     },
     {
       "id": "blend/luminosity",
@@ -3129,8 +3795,8 @@
       "differsFromNonePixels": 230446,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 93,
-      "playerMs": 89
+      "producerMs": 111,
+      "playerMs": 163
     },
     {
       "id": "mask/alpha-linear",
@@ -3145,8 +3811,8 @@
       "differsFromNonePixels": 128025,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 99,
-      "playerMs": 117
+      "producerMs": 114,
+      "playerMs": 123
     },
     {
       "id": "mask/alpha-linear",
@@ -3161,8 +3827,8 @@
       "differsFromNonePixels": 14939,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 93,
-      "playerMs": 122
+      "producerMs": 110,
+      "playerMs": 111
     },
     {
       "id": "mask/alpha-linear",
@@ -3177,8 +3843,8 @@
       "differsFromNonePixels": 183803,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 112,
-      "playerMs": 93
+      "producerMs": 150,
+      "playerMs": 121
     },
     {
       "id": "mask/alpha-radial-feather",
@@ -3193,8 +3859,8 @@
       "differsFromNonePixels": 137278,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 151
+      "producerMs": 136,
+      "playerMs": 124
     },
     {
       "id": "mask/alpha-radial-feather",
@@ -3209,8 +3875,8 @@
       "differsFromNonePixels": 13237,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 111
+      "producerMs": 121,
+      "playerMs": 107
     },
     {
       "id": "mask/alpha-radial-feather",
@@ -3225,8 +3891,8 @@
       "differsFromNonePixels": 192144,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 121
+      "producerMs": 120,
+      "playerMs": 129
     },
     {
       "id": "mask/luminance-linear",
@@ -3242,8 +3908,8 @@
       "differsFromNonePixels": 159800,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 118,
-      "playerMs": 132
+      "producerMs": 142,
+      "playerMs": 110
     },
     {
       "id": "mask/luminance-linear",
@@ -3259,8 +3925,8 @@
       "differsFromNonePixels": 18882,
       "differsFromNoneMaxChannel": 166,
       "sameAsEarlierRecord": true,
-      "producerMs": 128,
-      "playerMs": 117
+      "producerMs": 127,
+      "playerMs": 137
     },
     {
       "id": "mask/luminance-linear",
@@ -3276,8 +3942,8 @@
       "differsFromNonePixels": 230080,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 126,
-      "playerMs": 129
+      "producerMs": 119,
+      "playerMs": 147
     },
     {
       "id": "mask/svg-luminance",
@@ -3292,8 +3958,8 @@
       "differsFromNonePixels": 99068,
       "differsFromNoneMaxChannel": 170,
       "sameAsEarlierRecord": true,
-      "producerMs": 113,
-      "playerMs": 114
+      "producerMs": 100,
+      "playerMs": 130
     },
     {
       "id": "mask/svg-luminance",
@@ -3308,8 +3974,8 @@
       "differsFromNonePixels": 6838,
       "differsFromNoneMaxChannel": 169,
       "sameAsEarlierRecord": true,
-      "producerMs": 119,
-      "playerMs": 108
+      "producerMs": 150,
+      "playerMs": 128
     },
     {
       "id": "mask/svg-luminance",
@@ -3324,8 +3990,8 @@
       "differsFromNonePixels": 142483,
       "differsFromNoneMaxChannel": 170,
       "sameAsEarlierRecord": true,
-      "producerMs": 125,
-      "playerMs": 111
+      "producerMs": 123,
+      "playerMs": 129
     },
     {
       "id": "clip/path-star",
@@ -3340,8 +4006,8 @@
       "differsFromNonePixels": 149103,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 111,
-      "playerMs": 125
+      "producerMs": 110,
+      "playerMs": 117
     },
     {
       "id": "clip/path-star",
@@ -3356,8 +4022,8 @@
       "differsFromNonePixels": 16135,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 108,
-      "playerMs": 113
+      "producerMs": 116,
+      "playerMs": 131
     },
     {
       "id": "clip/path-star",
@@ -3372,8 +4038,8 @@
       "differsFromNonePixels": 219503,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 96,
-      "playerMs": 109
+      "producerMs": 126,
+      "playerMs": 98
     },
     {
       "id": "clip/circle-iris",
@@ -3388,8 +4054,8 @@
       "differsFromNonePixels": 90012,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 122,
-      "playerMs": 96
+      "producerMs": 147,
+      "playerMs": 134
     },
     {
       "id": "clip/circle-iris",
@@ -3404,8 +4070,8 @@
       "differsFromNonePixels": 8467,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 122,
-      "playerMs": 109
+      "producerMs": 133,
+      "playerMs": 128
     },
     {
       "id": "clip/circle-iris",
@@ -3420,8 +4086,8 @@
       "differsFromNonePixels": 116694,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 122,
-      "playerMs": 91
+      "producerMs": 93,
+      "playerMs": 105
     },
     {
       "id": "clip/inset-round",
@@ -3436,8 +4102,8 @@
       "differsFromNonePixels": 61406,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 117,
-      "playerMs": 127
+      "producerMs": 129,
+      "playerMs": 159
     },
     {
       "id": "clip/inset-round",
@@ -3452,8 +4118,8 @@
       "differsFromNonePixels": 4316,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 112,
-      "playerMs": 122
+      "producerMs": 115,
+      "playerMs": 124
     },
     {
       "id": "clip/inset-round",
@@ -3468,8 +4134,8 @@
       "differsFromNonePixels": 88156,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 93,
-      "playerMs": 124
+      "producerMs": 105,
+      "playerMs": 131
     },
     {
       "id": "clip/polygon",
@@ -3484,8 +4150,8 @@
       "differsFromNonePixels": 37746,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 117,
-      "playerMs": 104
+      "producerMs": 144,
+      "playerMs": 116
     },
     {
       "id": "clip/polygon",
@@ -3500,8 +4166,8 @@
       "differsFromNonePixels": 2621,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 111,
-      "playerMs": 132
+      "producerMs": 123,
+      "playerMs": 127
     },
     {
       "id": "clip/polygon",
@@ -3516,8 +4182,8 @@
       "differsFromNonePixels": 54206,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 114,
-      "playerMs": 118
+      "producerMs": 125,
+      "playerMs": 105
     },
     {
       "id": "backdrop/blur-6",
@@ -3530,8 +4196,8 @@
       "differsFromNonePixels": 40065,
       "differsFromNoneMaxChannel": 216,
       "sameAsEarlierRecord": true,
-      "producerMs": 112,
-      "playerMs": 128
+      "producerMs": 131,
+      "playerMs": 118
     },
     {
       "id": "backdrop/blur-6",
@@ -3544,8 +4210,8 @@
       "differsFromNonePixels": 24499,
       "differsFromNoneMaxChannel": 160,
       "sameAsEarlierRecord": true,
-      "producerMs": 140,
-      "playerMs": 130
+      "producerMs": 125,
+      "playerMs": 115
     },
     {
       "id": "backdrop/blur-6",
@@ -3558,8 +4224,8 @@
       "differsFromNonePixels": 57371,
       "differsFromNoneMaxChannel": 163,
       "sameAsEarlierRecord": true,
-      "producerMs": 152,
-      "playerMs": 123
+      "producerMs": 127,
+      "playerMs": 129
     },
     {
       "id": "backdrop/grayscale-1",
@@ -3572,8 +4238,8 @@
       "differsFromNonePixels": 62477,
       "differsFromNoneMaxChannel": 147,
       "sameAsEarlierRecord": true,
-      "producerMs": 107,
-      "playerMs": 114
+      "producerMs": 124,
+      "playerMs": 129
     },
     {
       "id": "backdrop/grayscale-1",
@@ -3586,8 +4252,8 @@
       "differsFromNonePixels": 54360,
       "differsFromNoneMaxChannel": 127,
       "sameAsEarlierRecord": true,
-      "producerMs": 121,
-      "playerMs": 109
+      "producerMs": 104,
+      "playerMs": 137
     },
     {
       "id": "backdrop/grayscale-1",
@@ -3600,8 +4266,8 @@
       "differsFromNonePixels": 115200,
       "differsFromNoneMaxChannel": 237,
       "sameAsEarlierRecord": true,
-      "producerMs": 117,
-      "playerMs": 113
+      "producerMs": 115,
+      "playerMs": 135
     },
     {
       "id": "text/stroke-4",
@@ -3616,8 +4282,8 @@
       "differsFromNonePixels": 15872,
       "differsFromNoneMaxChannel": 211,
       "sameAsEarlierRecord": true,
-      "producerMs": 112,
-      "playerMs": 129
+      "producerMs": 115,
+      "playerMs": 113
     },
     {
       "id": "text/stroke-6-paint-order",
@@ -3634,7 +4300,7 @@
       "differsFromNoneMaxChannel": 211,
       "sameAsEarlierRecord": true,
       "producerMs": 124,
-      "playerMs": 107
+      "playerMs": 114
     },
     {
       "id": "text/shadow-hard",
@@ -3649,8 +4315,8 @@
       "differsFromNonePixels": 9179,
       "differsFromNoneMaxChannel": 57,
       "sameAsEarlierRecord": true,
-      "producerMs": 101,
-      "playerMs": 106
+      "producerMs": 141,
+      "playerMs": 134
     },
     {
       "id": "text/shadow-soft",
@@ -3665,8 +4331,8 @@
       "differsFromNonePixels": 31626,
       "differsFromNoneMaxChannel": 38,
       "sameAsEarlierRecord": true,
-      "producerMs": 104,
-      "playerMs": 127
+      "producerMs": 117,
+      "playerMs": 119
     },
     {
       "id": "fragments/letters-inline-at-rest",
@@ -3679,8 +4345,8 @@
       "differsFromNonePixels": 250,
       "differsFromNoneMaxChannel": 57,
       "sameAsEarlierRecord": true,
-      "producerMs": 115,
-      "playerMs": 119
+      "producerMs": 92,
+      "playerMs": 118
     },
     {
       "id": "fragments/letters-inline-block-at-rest",
@@ -3693,8 +4359,8 @@
       "differsFromNonePixels": 250,
       "differsFromNoneMaxChannel": 57,
       "sameAsEarlierRecord": true,
-      "producerMs": 128,
-      "playerMs": 118
+      "producerMs": 124,
+      "playerMs": 132
     },
     {
       "id": "fragments/letters-staggered",
@@ -3707,8 +4373,8 @@
       "differsFromNonePixels": 19791,
       "differsFromNoneMaxChannel": 225,
       "sameAsEarlierRecord": true,
-      "producerMs": 140,
-      "playerMs": 111
+      "producerMs": 128,
+      "playerMs": 136
     },
     {
       "id": "shape/trim-0",
@@ -3721,8 +4387,8 @@
       "differsFromNonePixels": 25426,
       "differsFromNoneMaxChannel": 218,
       "sameAsEarlierRecord": true,
-      "producerMs": 123,
-      "playerMs": 134
+      "producerMs": 120,
+      "playerMs": 129
     },
     {
       "id": "shape/trim-250",
@@ -3736,7 +4402,7 @@
       "differsFromNoneMaxChannel": 218,
       "sameAsEarlierRecord": true,
       "producerMs": 134,
-      "playerMs": 121
+      "playerMs": 127
     },
     {
       "id": "shape/trim-731.5",
@@ -3749,8 +4415,8 @@
       "differsFromNonePixels": 10371,
       "differsFromNoneMaxChannel": 218,
       "sameAsEarlierRecord": true,
-      "producerMs": 133,
-      "playerMs": 141
+      "producerMs": 106,
+      "playerMs": 103
     },
     {
       "id": "shape/trim-1000",
@@ -3763,8 +4429,8 @@
       "differsFromNonePixels": 278,
       "differsFromNoneMaxChannel": 218,
       "sameAsEarlierRecord": true,
-      "producerMs": 110,
-      "playerMs": 105
+      "producerMs": 124,
+      "playerMs": 114
     },
     {
       "id": "shape/trim-1000-butt",
@@ -3777,8 +4443,8 @@
       "differsFromNonePixels": 0,
       "differsFromNoneMaxChannel": 0,
       "sameAsEarlierRecord": true,
-      "producerMs": 124,
-      "playerMs": 134
+      "producerMs": 100,
+      "playerMs": 129
     },
     {
       "id": "shape/trim-250-butt",
@@ -3791,8 +4457,8 @@
       "differsFromNonePixels": 16240,
       "differsFromNoneMaxChannel": 218,
       "sameAsEarlierRecord": true,
-      "producerMs": 123,
-      "playerMs": 133
+      "producerMs": 162,
+      "playerMs": 108
     },
     {
       "id": "gradient/svg-linear",
@@ -3805,8 +4471,8 @@
       "differsFromNonePixels": 74506,
       "differsFromNoneMaxChannel": 217,
       "sameAsEarlierRecord": true,
-      "producerMs": 153,
-      "playerMs": 122
+      "producerMs": 135,
+      "playerMs": 137
     },
     {
       "id": "gradient/svg-radial",
@@ -3819,8 +4485,8 @@
       "differsFromNonePixels": 200335,
       "differsFromNoneMaxChannel": 226,
       "sameAsEarlierRecord": true,
-      "producerMs": 165,
-      "playerMs": 154
+      "producerMs": 207,
+      "playerMs": 180
     },
     {
       "id": "gradient/css-linear",
@@ -3835,8 +4501,8 @@
       "differsFromNonePixels": 130113,
       "differsFromNoneMaxChannel": 246,
       "sameAsEarlierRecord": true,
-      "producerMs": 97,
-      "playerMs": 113
+      "producerMs": 130,
+      "playerMs": 111
     },
     {
       "id": "gradient/css-linear",
@@ -3851,8 +4517,8 @@
       "differsFromNonePixels": 108900,
       "differsFromNoneMaxChannel": 236,
       "sameAsEarlierRecord": true,
-      "producerMs": 120,
-      "playerMs": 111
+      "producerMs": 122,
+      "playerMs": 128
     },
     {
       "id": "gradient/css-linear",
@@ -3867,8 +4533,8 @@
       "differsFromNonePixels": 230400,
       "differsFromNoneMaxChannel": 255,
       "sameAsEarlierRecord": true,
-      "producerMs": 99,
-      "playerMs": 94
+      "producerMs": 110,
+      "playerMs": 111
     }
   ],
   "verdicts": {
@@ -3881,6 +4547,23 @@
     "transform/origin-250-750-rotate-12.5": "exact",
     "transform/origin-center-scale-1.37": "exact",
     "transform/corner-radius-48": "exact",
+    "transform-list/pivot-500-500-rotate-45": "exact",
+    "transform-list/pivot-250-750-rotate-12.5-scale-1.37": "exact",
+    "transform-list/pivot-0-1000-rotate-neg-8": "exact",
+    "transform-list/rotate-33.3": "exact",
+    "transform-list/rotate-720": "exact",
+    "transform-list/pivot-500-500-neutral": "exact",
+    "transform-list/rotate-0-neutral": "exact",
+    "picture/view-box-neutral": "exact",
+    "picture/view-box-crop": "exact",
+    "picture/view-box-fractional": "exact",
+    "picture/view-box-cover-focus": "exact",
+    "picture/view-box-contain": "exact",
+    "picture/border-radius-0-neutral": "exact",
+    "picture/border-radius-48": "exact",
+    "picture/border-radius-12.5": "exact",
+    "picture/border-radius-crop": "exact",
+    "picture/size-fractional": "exact",
     "css-filter/blur-4": "exact",
     "css-filter/blur-12.5": "exact",
     "css-filter/brightness-1.4": "exact",

@@ -36,6 +36,7 @@ export interface AudioPlanEntry {
 export interface BackgroundNodeState extends LifetimeState {
     readonly id: string;
     readonly type: 'background';
+    readonly color: string;
 }
 
 ---- CaptionInstant (type only)
@@ -57,6 +58,7 @@ export interface CaptionPage {
 
 ---- CaptionsNodeState (type only)
 export interface CaptionsNodeState extends LeafNodeState<'captions'> {
+    readonly color: string;
     readonly page: number | null;
     readonly word: number | null;
 }
@@ -91,6 +93,14 @@ export interface CompositionState {
     readonly backdrop?: string;
 }
 
+---- CropState (type only)
+export interface CropState {
+    readonly fromTop: number;
+    readonly fromRight: number;
+    readonly fromBottom: number;
+    readonly fromLeft: number;
+}
+
 ---- EvaluationError
 export declare class EvaluationError extends RangeError {
     readonly code: EvaluationErrorCode;
@@ -104,13 +114,17 @@ export type EvaluationErrorCode = 'time-not-integer' | 'time-out-of-range' | 'in
 export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide {
     readonly id: string;
     readonly type: 'group';
-    readonly children: readonly (LeafNodeState<'image' | 'text'> | VideoNodeState)[];
+    readonly children: readonly (ImageNodeState | TextNodeState | VideoNodeState)[];
 }
 
 ---- Hole (type only)
 export interface Hole extends Circle {
     readonly width: number;
     readonly height: number;
+}
+
+---- ImageNodeState (type only)
+export interface ImageNodeState extends LeafNodeState<'image'>, PictureState {
 }
 
 ---- Inset (type only)
@@ -136,7 +150,14 @@ export interface LifetimeState {
 }
 
 ---- NodeState (type only)
-export type NodeState = BackgroundNodeState | GroupNodeState | LeafNodeState<'image' | 'text' | 'custom-html'> | VideoNodeState | CaptionsNodeState;
+export type NodeState = BackgroundNodeState | GroupNodeState | ImageNodeState | TextNodeState | LeafNodeState<'custom-html'> | VideoNodeState | CaptionsNodeState;
+
+---- PictureState (type only)
+export interface PictureState {
+    readonly size: Size;
+    readonly crop: CropState;
+    readonly cornerRadius: number;
+}
 
 ---- SampleFade (type only)
 export interface SampleFade {
@@ -162,6 +183,12 @@ export interface SceneTransitionState {
     readonly circle?: Circle;
 }
 
+---- Size (type only)
+export interface Size {
+    readonly width: number;
+    readonly height: number;
+}
+
 ---- SoundLayout (type only)
 export interface SoundLayout {
     readonly entry: AudioPlanEntry;
@@ -172,10 +199,17 @@ export interface SoundLayout {
     readonly fadeOut: SampleFade | null;
 }
 
+---- TextNodeState (type only)
+export interface TextNodeState extends LeafNodeState<'text'> {
+    readonly color: string;
+}
+
 ---- TransformState (type only)
 export interface TransformState {
     readonly position: Vec2;
     readonly scale: Vec2;
+    readonly rotation: number;
+    readonly origin: Vec2;
     readonly opacity: number;
 }
 
@@ -186,7 +220,7 @@ export interface Vec2 {
 }
 
 ---- VideoNodeState (type only)
-export interface VideoNodeState extends LeafNodeState<'video'> {
+export interface VideoNodeState extends LeafNodeState<'video'>, PictureState {
     readonly sourceTimeUs: number | null;
 }
 

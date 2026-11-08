@@ -152,7 +152,11 @@ describe('AddAnimation (D41.1)', () => {
     ['an animation', 'anim-title-opacity', 'unknown-node'],
     ['the clip', 'clip-audio', 'unknown-node'],
     ['an asset', 'asset-image', 'unknown-node'],
-    ['the background, which has no animations', BACKGROUND, 'unsupported-node'],
+    [
+      'a scale of the background, which animates its colour only (D68)',
+      BACKGROUND,
+      'invalid-result',
+    ],
   ])('refuses %s with %s', (_, nodeId, code) => {
     expect(
       codeOf(() => applyCommand(reference(), addAnimation(nodeId, 0, animation('a', 'scale')))),
@@ -304,16 +308,6 @@ describe('the order of the checks of AddAnimation (D41.6)', () => {
       'unknown-node',
     ],
     [
-      'a node without animations before the index',
-      addAnimation(BACKGROUND, 9, animation('a', 'scale')),
-      'unsupported-node',
-    ],
-    [
-      'a node without animations before the ID',
-      addAnimation(BACKGROUND, 0, animation(TITLE, 'opacity')),
-      'unsupported-node',
-    ],
-    [
       'the index before the ID',
       addAnimation(TITLE, 9, animation(GROUP, 'scale')),
       'index-out-of-range',
@@ -344,17 +338,12 @@ describe('the order of the checks of AddAnimation (D41.6)', () => {
       'unknown-node',
     ],
     [
-      'a node without animations before the validation',
-      addAnimation(BACKGROUND, 0, { ...animation('a', 'scale'), easing: 'in' }),
-      'unsupported-node',
-    ],
-    [
       'the index before the validation',
       addAnimation(TITLE, 9, { ...animation('a', 'scale'), easing: 'in' }),
       'index-out-of-range',
     ],
     [
-      'the fields before a node without animations',
+      'the fields before the property a node takes',
       extra(addAnimation(BACKGROUND, 0, animation('a', 'scale'))),
       'invalid-argument',
     ],

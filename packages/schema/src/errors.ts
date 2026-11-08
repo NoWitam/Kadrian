@@ -42,6 +42,10 @@ export type ValidationErrorCode =
   /** A caption word starts before the word before it ends (D57). */
   | 'caption-words-overlap'
   | 'duplicate-animation-target'
+  /** Two opposite insets of a crop leave less than 1 per mille of the picture (D68). */
+  | 'crop-empty'
+  /** A bound property is animated too, and the animation would hide the bound value (D68). */
+  | 'bound-property-animated'
   /** An input's constraints contradict each other, or its default breaks them (D58.1). */
   | 'template-input-invalid'
   /** A binding or a placeholder names an input the template does not have (D58.2). */

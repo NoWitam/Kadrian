@@ -32,7 +32,7 @@
   {
     "name": "schema-version-unsupported",
     "description": "A version this build does not support yields one error instead of a flood of structural ones.",
-    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.13" }],
+    "patch": [{ "op": "replace", "path": "/schemaVersion", "value": "0.14" }],
     "expectedErrors": [{ "code": "unsupported-schema-version", "path": "/schemaVersion" }]
   },
   {
@@ -383,33 +383,18 @@
     "name": "interpolation-removed",
     "description": "D67: 0.12 has no interpolation; each keyframe states its easing.",
     "patch": [
-      {
-        "op": "add",
-        "path": "/scenes/0/nodes/2/animations/0/interpolation",
-        "value": "linear"
-      }
+      { "op": "add", "path": "/scenes/0/nodes/2/animations/0/interpolation", "value": "linear" }
     ],
     "expectedErrors": [
-      {
-        "code": "unknown-field",
-        "path": "/scenes/0/nodes/2/animations/0/interpolation"
-      }
+      { "code": "unknown-field", "path": "/scenes/0/nodes/2/animations/0/interpolation" }
     ]
   },
   {
     "name": "easing-missing",
     "description": "D67: every keyframe states its easing, the last one included; there is no default.",
-    "patch": [
-      {
-        "op": "remove",
-        "path": "/scenes/0/nodes/2/animations/0/keyframes/1/easing"
-      }
-    ],
+    "patch": [{ "op": "remove", "path": "/scenes/0/nodes/2/animations/0/keyframes/1/easing" }],
     "expectedErrors": [
-      {
-        "code": "missing-field",
-        "path": "/scenes/0/nodes/2/animations/0/keyframes/1/easing"
-      }
+      { "code": "missing-field", "path": "/scenes/0/nodes/2/animations/0/keyframes/1/easing" }
     ]
   },
   {
@@ -419,16 +404,11 @@
       {
         "op": "replace",
         "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
-        "value": {
-          "kind": "spring"
-        }
+        "value": { "kind": "spring" }
       }
     ],
     "expectedErrors": [
-      {
-        "code": "invalid-value",
-        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/kind"
-      }
+      { "code": "invalid-value", "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/kind" }
     ]
   },
   {
@@ -438,20 +418,11 @@
       {
         "op": "replace",
         "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
-        "value": {
-          "kind": "cubic-bezier",
-          "x1": 1.5,
-          "y1": 0,
-          "x2": 0.5,
-          "y2": 1
-        }
+        "value": { "kind": "cubic-bezier", "x1": 1.5, "y1": 0, "x2": 0.5, "y2": 1 }
       }
     ],
     "expectedErrors": [
-      {
-        "code": "out-of-range",
-        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/x1"
-      }
+      { "code": "out-of-range", "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/x1" }
     ]
   },
   {
@@ -461,20 +432,11 @@
       {
         "op": "replace",
         "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
-        "value": {
-          "kind": "cubic-bezier",
-          "x1": 0.5,
-          "y1": 0,
-          "x2": 0.5,
-          "y2": 2.5
-        }
+        "value": { "kind": "cubic-bezier", "x1": 0.5, "y1": 0, "x2": 0.5, "y2": 2.5 }
       }
     ],
     "expectedErrors": [
-      {
-        "code": "out-of-range",
-        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/y2"
-      }
+      { "code": "out-of-range", "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/y2" }
     ]
   },
   {
@@ -484,18 +446,11 @@
       {
         "op": "replace",
         "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
-        "value": {
-          "kind": "steps",
-          "count": 0,
-          "position": "end"
-        }
+        "value": { "kind": "steps", "count": 0, "position": "end" }
       }
     ],
     "expectedErrors": [
-      {
-        "code": "out-of-range",
-        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/count"
-      }
+      { "code": "out-of-range", "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/count" }
     ]
   },
   {
@@ -505,11 +460,7 @@
       {
         "op": "replace",
         "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
-        "value": {
-          "kind": "steps",
-          "count": 2,
-          "position": "jump-both"
-        }
+        "value": { "kind": "steps", "count": 2, "position": "jump-both" }
       }
     ],
     "expectedErrors": [
@@ -526,24 +477,18 @@
       {
         "op": "replace",
         "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing",
-        "value": {
-          "kind": "ease-in",
-          "x1": 0.42
-        }
+        "value": { "kind": "ease-in", "x1": 0.42 }
       }
     ],
     "expectedErrors": [
-      {
-        "code": "unknown-field",
-        "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/x1"
-      }
+      { "code": "unknown-field", "path": "/scenes/0/nodes/2/animations/0/keyframes/0/easing/x1" }
     ]
   },
   {
     "name": "animation-property-unknown",
-    "description": "Only opacity, position, and scale can be animated.",
+    "description": "D68: skew is not a property an animation can reach.",
     "patch": [
-      { "op": "replace", "path": "/scenes/0/nodes/2/animations/0/property", "value": "rotation" }
+      { "op": "replace", "path": "/scenes/0/nodes/2/animations/0/property", "value": "skew" }
     ],
     "expectedErrors": [
       { "code": "invalid-value", "path": "/scenes/0/nodes/2/animations/0/property" }
@@ -575,11 +520,7 @@
     "name": "keyframes-not-ascending",
     "description": "D16: keyframe times ascend strictly, so array order carries no extra meaning.",
     "patch": [
-      {
-        "op": "replace",
-        "path": "/scenes/0/nodes/2/animations/0/keyframes/1/timeUs",
-        "value": 0
-      }
+      { "op": "replace", "path": "/scenes/0/nodes/2/animations/0/keyframes/1/timeUs", "value": 0 }
     ],
     "expectedErrors": [
       {
@@ -676,6 +617,8 @@
           "durationUs": 1000000,
           "position": { "x": 0, "y": 0 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -683,6 +626,8 @@
           "width": 320,
           "height": 180,
           "fit": "contain",
+          "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+          "cornerRadius": 0,
           "volume": 0
         }
       }
@@ -712,6 +657,8 @@
           "durationUs": 1000000,
           "position": { "x": 0, "y": 0 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -719,6 +666,8 @@
           "height": 180,
           "fit": "contain",
           "focus": { "x": 500, "y": 500 },
+          "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+          "cornerRadius": 0,
           "volume": 0
         }
       }
@@ -748,6 +697,8 @@
           "durationUs": 1000000,
           "position": { "x": 0, "y": 0 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -756,6 +707,8 @@
           "height": 180,
           "fit": "contain",
           "focus": { "x": 500, "y": 500 },
+          "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+          "cornerRadius": 0,
           "muted": true,
           "volume": 0
         }
@@ -777,6 +730,8 @@
           "durationUs": 1000000,
           "position": { "x": 0, "y": 0 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-image",
@@ -785,6 +740,8 @@
           "height": 180,
           "fit": "contain",
           "focus": { "x": 500, "y": 500 },
+          "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+          "cornerRadius": 0,
           "volume": 0
         }
       }
@@ -814,6 +771,8 @@
           "durationUs": 1000000,
           "position": { "x": 0, "y": 0 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -822,6 +781,8 @@
           "height": 180,
           "fit": "contain",
           "focus": { "x": 500, "y": 500 },
+          "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+          "cornerRadius": 0,
           "volume": 0
         }
       }
@@ -853,6 +814,8 @@
           "durationUs": 1000000,
           "position": { "x": 0, "y": 0 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -861,6 +824,8 @@
           "height": 180,
           "fit": "contain",
           "focus": { "x": 500, "y": 500 },
+          "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+          "cornerRadius": 0,
           "volume": 2
         }
       }
@@ -890,6 +855,8 @@
           "durationUs": 1000000,
           "position": { "x": 0, "y": 0 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -898,6 +865,8 @@
           "height": 180,
           "fit": "none",
           "focus": { "x": 500, "y": 500 },
+          "crop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+          "cornerRadius": 0,
           "volume": 0
         }
       }
@@ -907,19 +876,8 @@
   {
     "name": "scenes-shorter-than-composition",
     "description": "The composition's durationUs must be the sum of its scenes' durationUs (D49.3, D54.2).",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/scenes/0/durationUs",
-        "value": 9000000
-      }
-    ],
-    "expectedErrors": [
-      {
-        "code": "composition-duration-mismatch",
-        "path": "/durationUs"
-      }
-    ]
+    "patch": [{ "op": "replace", "path": "/scenes/0/durationUs", "value": 9000000 }],
+    "expectedErrors": [{ "code": "composition-duration-mismatch", "path": "/durationUs" }]
   },
   {
     "name": "scene-second-not-counted",
@@ -937,29 +895,13 @@
         }
       }
     ],
-    "expectedErrors": [
-      {
-        "code": "composition-duration-mismatch",
-        "path": "/durationUs"
-      }
-    ]
+    "expectedErrors": [{ "code": "composition-duration-mismatch", "path": "/durationUs" }]
   },
   {
     "name": "scene-duration-zero",
     "description": "A scene lasts at least one microsecond (D54.1).",
-    "patch": [
-      {
-        "op": "replace",
-        "path": "/scenes/0/durationUs",
-        "value": 0
-      }
-    ],
-    "expectedErrors": [
-      {
-        "code": "out-of-range",
-        "path": "/scenes/0/durationUs"
-      }
-    ]
+    "patch": [{ "op": "replace", "path": "/scenes/0/durationUs", "value": 0 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/durationUs" }]
   },
   {
     "name": "scene-clip-unresolved-asset",
@@ -982,10 +924,7 @@
       }
     ],
     "expectedErrors": [
-      {
-        "code": "unresolved-asset-reference",
-        "path": "/scenes/0/clips/0/assetId"
-      }
+      { "code": "unresolved-asset-reference", "path": "/scenes/0/clips/0/assetId" }
     ]
   },
   {
@@ -1009,10 +948,7 @@
       }
     ],
     "expectedErrors": [
-      {
-        "code": "clip-fades-exceed-duration",
-        "path": "/scenes/0/clips/0/fadeOutUs"
-      }
+      { "code": "clip-fades-exceed-duration", "path": "/scenes/0/clips/0/fadeOutUs" }
     ]
   },
   {
@@ -1036,12 +972,7 @@
         }
       }
     ],
-    "expectedErrors": [
-      {
-        "code": "unknown-field",
-        "path": "/scenes/0/clips/0/muted"
-      }
-    ]
+    "expectedErrors": [{ "code": "unknown-field", "path": "/scenes/0/clips/0/muted" }]
   },
   {
     "name": "scene-transition-unresolved-scene",
@@ -1492,21 +1423,9 @@
     "name": "clip-transition-easing-missing",
     "description": "A transition states its easing; there is no default (D67).",
     "patch": [
-      {
-        "op": "replace",
-        "path": "/scenes/0/nodes/2/durationUs",
-        "value": 5500000
-      },
-      {
-        "op": "replace",
-        "path": "/scenes/0/nodes/3/startUs",
-        "value": 5000000
-      },
-      {
-        "op": "replace",
-        "path": "/scenes/0/nodes/3/durationUs",
-        "value": 5000000
-      },
+      { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 5500000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/startUs", "value": 5000000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/durationUs", "value": 5000000 },
       {
         "op": "add",
         "path": "/scenes/0/transitions/-",
@@ -1515,38 +1434,19 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 500000,
-          "effect": {
-            "kind": "crossfade"
-          }
+          "effect": { "kind": "crossfade" }
         }
       }
     ],
-    "expectedErrors": [
-      {
-        "code": "missing-field",
-        "path": "/scenes/0/transitions/0/easing"
-      }
-    ]
+    "expectedErrors": [{ "code": "missing-field", "path": "/scenes/0/transitions/0/easing" }]
   },
   {
     "name": "clip-transition-easing-steps-fraction",
     "description": "The count of steps is an integer (D67).",
     "patch": [
-      {
-        "op": "replace",
-        "path": "/scenes/0/nodes/2/durationUs",
-        "value": 5500000
-      },
-      {
-        "op": "replace",
-        "path": "/scenes/0/nodes/3/startUs",
-        "value": 5000000
-      },
-      {
-        "op": "replace",
-        "path": "/scenes/0/nodes/3/durationUs",
-        "value": 5000000
-      },
+      { "op": "replace", "path": "/scenes/0/nodes/2/durationUs", "value": 5500000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/startUs", "value": 5000000 },
+      { "op": "replace", "path": "/scenes/0/nodes/3/durationUs", "value": 5000000 },
       {
         "op": "add",
         "path": "/scenes/0/transitions/-",
@@ -1555,23 +1455,12 @@
           "fromNodeId": "node-title",
           "toNodeId": "node-custom-html",
           "durationUs": 500000,
-          "effect": {
-            "kind": "crossfade"
-          },
-          "easing": {
-            "kind": "steps",
-            "count": 2.5,
-            "position": "start"
-          }
+          "effect": { "kind": "crossfade" },
+          "easing": { "kind": "steps", "count": 2.5, "position": "start" }
         }
       }
     ],
-    "expectedErrors": [
-      {
-        "code": "invalid-type",
-        "path": "/scenes/0/transitions/0/easing/count"
-      }
-    ]
+    "expectedErrors": [{ "code": "invalid-type", "path": "/scenes/0/transitions/0/easing/count" }]
   },
   {
     "name": "clip-transition-duplicate",
@@ -1656,6 +1545,8 @@
           "durationUs": 10000000,
           "position": { "x": 40, "y": 1500 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -1696,6 +1587,8 @@
           "durationUs": 10000000,
           "position": { "x": 40, "y": 1500 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -1736,6 +1629,8 @@
           "durationUs": 10000000,
           "position": { "x": 40, "y": 1500 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-image",
@@ -1771,6 +1666,8 @@
           "durationUs": 10000000,
           "position": { "x": 40, "y": 1500 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -1806,6 +1703,8 @@
           "durationUs": 10000000,
           "position": { "x": 40, "y": 1500 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -1841,6 +1740,8 @@
           "durationUs": 10000000,
           "position": { "x": 40, "y": 1500 },
           "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -3009,5 +2910,209 @@
       }
     ],
     "expectedErrors": [{ "code": "item-outside-repeat", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "rotation-out-of-range",
+    "description": "D68: a rotation lies from -360000 to 360000 degrees.",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/2/rotation", "value": 360001 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/2/rotation" }]
+  },
+  {
+    "name": "origin-fraction",
+    "description": "D68: an origin is an integer in per mille of the box.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/origin", "value": { "x": 500.5, "y": 500 } }
+    ],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/scenes/0/nodes/2/origin/x" }]
+  },
+  {
+    "name": "origin-out-of-range",
+    "description": "D68: an origin lies from 0 to 1000 per mille of the box.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/2/origin", "value": { "x": 0, "y": 1001 } }
+    ],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/2/origin/y" }]
+  },
+  {
+    "name": "crop-out-of-range",
+    "description": "D68: a crop inset lies from 0 to 1000 per mille.",
+    "patch": [{ "op": "replace", "path": "/scenes/0/nodes/1/children/0/crop/top", "value": 1001 }],
+    "expectedErrors": [{ "code": "out-of-range", "path": "/scenes/0/nodes/1/children/0/crop/top" }]
+  },
+  {
+    "name": "crop-empty",
+    "description": "D68: two opposite insets that leave nothing of the picture are refused.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/1/children/0/crop/left", "value": 600 },
+      { "op": "replace", "path": "/scenes/0/nodes/1/children/0/crop/right", "value": 400 }
+    ],
+    "expectedErrors": [{ "code": "crop-empty", "path": "/scenes/0/nodes/1/children/0/crop" }]
+  },
+  {
+    "name": "crop-keyframe-empty",
+    "description": "D68: a crop keyframe leaves a picture too.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/children/0/animations/-",
+        "value": {
+          "id": "anim-image-crop",
+          "property": "crop",
+          "keyframes": [
+            {
+              "timeUs": 0,
+              "value": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+              "easing": { "kind": "linear" }
+            },
+            {
+              "timeUs": 1000000,
+              "value": { "top": 500, "right": 0, "bottom": 500, "left": 0 },
+              "easing": { "kind": "linear" }
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "crop-empty",
+        "path": "/scenes/0/nodes/1/children/0/animations/1/keyframes/1/value"
+      }
+    ]
+  },
+  {
+    "name": "corner-radius-fraction",
+    "description": "D68: a corner radius is whole composition pixels.",
+    "patch": [
+      { "op": "replace", "path": "/scenes/0/nodes/1/children/0/cornerRadius", "value": 2.5 }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-type", "path": "/scenes/0/nodes/1/children/0/cornerRadius" }
+    ]
+  },
+  {
+    "name": "animation-size-on-text",
+    "description": "D68: only an image or a video animates its size.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/animations/-",
+        "value": {
+          "id": "anim-title-size",
+          "property": "size",
+          "keyframes": [
+            { "timeUs": 0, "value": { "width": 10, "height": 10 }, "easing": { "kind": "linear" } },
+            {
+              "timeUs": 1000000,
+              "value": { "width": 20, "height": 20 },
+              "easing": { "kind": "linear" }
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-value", "path": "/scenes/0/nodes/2/animations/1/property" }
+    ]
+  },
+  {
+    "name": "animation-color-on-group",
+    "description": "D68: a group has no colour to animate.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/animations/-",
+        "value": {
+          "id": "anim-group-color",
+          "property": "color",
+          "keyframes": [
+            { "timeUs": 0, "value": "#000000", "easing": { "kind": "linear" } },
+            { "timeUs": 1000000, "value": "#ffffff", "easing": { "kind": "linear" } }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-value", "path": "/scenes/0/nodes/1/animations/1/property" }
+    ]
+  },
+  {
+    "name": "animation-opacity-on-background",
+    "description": "D68: a background animates its colour only.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/0/animations/-",
+        "value": {
+          "id": "anim-background-opacity",
+          "property": "opacity",
+          "keyframes": [
+            { "timeUs": 0, "value": 0, "easing": { "kind": "linear" } },
+            { "timeUs": 1000000, "value": 1, "easing": { "kind": "linear" } }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-value", "path": "/scenes/0/nodes/0/animations/0/property" }
+    ]
+  },
+  {
+    "name": "animation-color-uppercase",
+    "description": "D68: a colour keyframe is lowercase #rrggbb, as every colour of the schema.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/0/animations/-",
+        "value": {
+          "id": "anim-background-color",
+          "property": "color",
+          "keyframes": [
+            { "timeUs": 0, "value": "#000000", "easing": { "kind": "linear" } },
+            { "timeUs": 1000000, "value": "#FFFFFF", "easing": { "kind": "linear" } }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "invalid-value", "path": "/scenes/0/nodes/0/animations/0/keyframes/1/value" }
+    ]
+  },
+  {
+    "name": "bound-property-animated",
+    "description": "D68: a colour that an animation replaces at every instant cannot be bound.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/animations/-",
+        "value": {
+          "id": "anim-title-color",
+          "property": "color",
+          "keyframes": [
+            { "timeUs": 0, "value": "#ffffff", "easing": { "kind": "linear" } },
+            { "timeUs": 1000000, "value": "#000000", "easing": { "kind": "linear" } }
+          ]
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": { "id": "brand", "type": "color", "default": "#ffffff" }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-brand",
+          "kind": "property",
+          "nodeId": "node-title",
+          "property": "color",
+          "inputId": "brand"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "bound-property-animated", "path": "/template/bindings/0/property" }
+    ]
   }
 ]

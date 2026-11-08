@@ -1,8 +1,9 @@
 {
-  "description": "Expected evaluated state of reference.json at the five golden timestamps (specification §3.3). Pure data, derived by hand from the rule below and never generated from an implementation: the runtime is tested against these numbers, not the other way round. Each `state` is exactly what `evaluateComposition(reference, timeUs)` of @kadrion/runtime must return, compared bit for bit. Derived first in PR-02 for identity base values and again in PR-03, when the project owner gave the reference composition base values that are not the identity (D18).",
+  "description": "Expected evaluated state of reference.json at the five golden timestamps (specification §3.3). Pure data, derived by hand from the rule below and never generated from an implementation: the runtime is tested against these numbers, not the other way round. Each `state` is exactly what `evaluateComposition(reference, timeUs)` of @kadrion/runtime must return, compared bit for bit. Derived first in PR-02 for identity base values and again in PR-03, when the project owner gave the reference composition base values that are not the identity (D18). PR-48 added the properties every node state carries since schema 0.13 (D68), with their base values.",
   "rule": [
-    "Shape: the state mirrors the document. Scenes, nodes, and group children keep their order and hierarchy (D16.4), and every value is local to the node's parent (D15). The background has no transform.",
+    "Shape: the state mirrors the document. Scenes, nodes, and group children keep their order and hierarchy (D16.4), and every value is local to the node's parent (D15). The background has no transform; its state carries its colour.",
     "A property without an animation keeps its base value.",
+    "Every property an animation can reach is in the state (D65.1, D68): rotation 0 and the origin (0, 0) of every transformed node, as the document gives them; the colour of each text and of the background; the size, the crop as insets fromTop, fromRight, fromBottom, and fromLeft, and the corner radius of the image. None of them is animated in the reference composition, so each keeps its base value: the background #0b1020, node-caption #d0d5dd, node-title #ffffff, and node-image 400 by 400 with no crop and square corners.",
     "Lifetime (D42.2, D42.3): a node is active at t when t >= startUs and t - startUs < durationUs. Every node of the reference composition, the background and the children of the group included, has startUs 0 and durationUs 10 000 000, the duration of the composition, so every node state says active: true at every golden timestamp. active is local to its node.",
     "Sampling (D16.6): at or before the first keyframe the first value holds; at or after the last keyframe the last value holds; a time exactly on a keyframe yields that keyframe's value without any arithmetic.",
     "Interpolation (D18): strictly between the keyframes (t0, a) and (t1, b), each scalar channel is a + ((b - a) * (t - t0)) / (t1 - t0), evaluated in exactly this order in IEEE 754 binary64. x and y are independent channels.",
@@ -25,13 +26,20 @@
             "id": "scene-main",
             "timeUs": 0,
             "nodes": [
-              { "id": "node-background", "type": "background", "active": true },
+              {
+                "id": "node-background",
+                "type": "background",
+                "active": true,
+                "color": "#0b1020"
+              },
               {
                 "id": "node-group",
                 "type": "group",
                 "active": true,
                 "position": { "x": 76, "y": 428 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1,
                 "children": [
                   {
@@ -40,7 +48,12 @@
                     "active": true,
                     "position": { "x": 0, "y": 0 },
                     "scale": { "x": 1.25, "y": 1.25 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "size": { "width": 400, "height": 400 },
+                    "crop": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
+                    "cornerRadius": 0
                   },
                   {
                     "id": "node-caption",
@@ -48,7 +61,10 @@
                     "active": true,
                     "position": { "x": 0, "y": 720 },
                     "scale": { "x": 1, "y": 1 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "color": "#d0d5dd"
                   }
                 ]
               },
@@ -58,7 +74,10 @@
                 "active": true,
                 "position": { "x": 90, "y": 160 },
                 "scale": { "x": 1, "y": 1 },
-                "opacity": 0.1875
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
+                "opacity": 0.1875,
+                "color": "#ffffff"
               },
               {
                 "id": "node-custom-html",
@@ -66,6 +85,8 @@
                 "active": true,
                 "position": { "x": 90, "y": 1760 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1
               }
             ]
@@ -87,13 +108,20 @@
             "id": "scene-main",
             "timeUs": 2500000,
             "nodes": [
-              { "id": "node-background", "type": "background", "active": true },
+              {
+                "id": "node-background",
+                "type": "background",
+                "active": true,
+                "color": "#0b1020"
+              },
               {
                 "id": "node-group",
                 "type": "group",
                 "active": true,
                 "position": { "x": 96, "y": 528 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1,
                 "children": [
                   {
@@ -102,7 +130,12 @@
                     "active": true,
                     "position": { "x": 0, "y": 0 },
                     "scale": { "x": 1.25, "y": 1.25 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "size": { "width": 400, "height": 400 },
+                    "crop": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
+                    "cornerRadius": 0
                   },
                   {
                     "id": "node-caption",
@@ -110,7 +143,10 @@
                     "active": true,
                     "position": { "x": 0, "y": 720 },
                     "scale": { "x": 1, "y": 1 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "color": "#d0d5dd"
                   }
                 ]
               },
@@ -120,7 +156,10 @@
                 "active": true,
                 "position": { "x": 90, "y": 160 },
                 "scale": { "x": 1, "y": 1 },
-                "opacity": 0.375
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
+                "opacity": 0.375,
+                "color": "#ffffff"
               },
               {
                 "id": "node-custom-html",
@@ -128,6 +167,8 @@
                 "active": true,
                 "position": { "x": 90, "y": 1760 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1
               }
             ]
@@ -149,13 +190,20 @@
             "id": "scene-main",
             "timeUs": 5000000,
             "nodes": [
-              { "id": "node-background", "type": "background", "active": true },
+              {
+                "id": "node-background",
+                "type": "background",
+                "active": true,
+                "color": "#0b1020"
+              },
               {
                 "id": "node-group",
                 "type": "group",
                 "active": true,
                 "position": { "x": 116, "y": 628 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1,
                 "children": [
                   {
@@ -164,7 +212,12 @@
                     "active": true,
                     "position": { "x": 0, "y": 0 },
                     "scale": { "x": 1.5625, "y": 1.40625 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "size": { "width": 400, "height": 400 },
+                    "crop": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
+                    "cornerRadius": 0
                   },
                   {
                     "id": "node-caption",
@@ -172,7 +225,10 @@
                     "active": true,
                     "position": { "x": 0, "y": 720 },
                     "scale": { "x": 1, "y": 1 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "color": "#d0d5dd"
                   }
                 ]
               },
@@ -182,7 +238,10 @@
                 "active": true,
                 "position": { "x": 90, "y": 160 },
                 "scale": { "x": 1, "y": 1 },
-                "opacity": 0.5625
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
+                "opacity": 0.5625,
+                "color": "#ffffff"
               },
               {
                 "id": "node-custom-html",
@@ -190,6 +249,8 @@
                 "active": true,
                 "position": { "x": 90, "y": 1760 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1
               }
             ]
@@ -211,13 +272,20 @@
             "id": "scene-main",
             "timeUs": 7500000,
             "nodes": [
-              { "id": "node-background", "type": "background", "active": true },
+              {
+                "id": "node-background",
+                "type": "background",
+                "active": true,
+                "color": "#0b1020"
+              },
               {
                 "id": "node-group",
                 "type": "group",
                 "active": true,
                 "position": { "x": 136, "y": 728 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1,
                 "children": [
                   {
@@ -226,7 +294,12 @@
                     "active": true,
                     "position": { "x": 0, "y": 0 },
                     "scale": { "x": 1.875, "y": 1.5625 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "size": { "width": 400, "height": 400 },
+                    "crop": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
+                    "cornerRadius": 0
                   },
                   {
                     "id": "node-caption",
@@ -234,7 +307,10 @@
                     "active": true,
                     "position": { "x": 0, "y": 720 },
                     "scale": { "x": 1, "y": 1 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "color": "#d0d5dd"
                   }
                 ]
               },
@@ -244,7 +320,10 @@
                 "active": true,
                 "position": { "x": 90, "y": 160 },
                 "scale": { "x": 1, "y": 1 },
-                "opacity": 0.75
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
+                "opacity": 0.75,
+                "color": "#ffffff"
               },
               {
                 "id": "node-custom-html",
@@ -252,6 +331,8 @@
                 "active": true,
                 "position": { "x": 90, "y": 1760 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1
               }
             ]
@@ -278,13 +359,20 @@
             "id": "scene-main",
             "timeUs": 9900000,
             "nodes": [
-              { "id": "node-background", "type": "background", "active": true },
+              {
+                "id": "node-background",
+                "type": "background",
+                "active": true,
+                "color": "#0b1020"
+              },
               {
                 "id": "node-group",
                 "type": "group",
                 "active": true,
                 "position": { "x": 136, "y": 728 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1,
                 "children": [
                   {
@@ -293,7 +381,12 @@
                     "active": true,
                     "position": { "x": 0, "y": 0 },
                     "scale": { "x": 2.175, "y": 1.7125000000000001 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "size": { "width": 400, "height": 400 },
+                    "crop": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
+                    "cornerRadius": 0
                   },
                   {
                     "id": "node-caption",
@@ -301,7 +394,10 @@
                     "active": true,
                     "position": { "x": 0, "y": 720 },
                     "scale": { "x": 1, "y": 1 },
-                    "opacity": 1
+                    "rotation": 0,
+                    "origin": { "x": 0, "y": 0 },
+                    "opacity": 1,
+                    "color": "#d0d5dd"
                   }
                 ]
               },
@@ -311,7 +407,10 @@
                 "active": true,
                 "position": { "x": 90, "y": 160 },
                 "scale": { "x": 1, "y": 1 },
-                "opacity": 0.75
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
+                "opacity": 0.75,
+                "color": "#ffffff"
               },
               {
                 "id": "node-custom-html",
@@ -319,6 +418,8 @@
                 "active": true,
                 "position": { "x": 90, "y": 1760 },
                 "scale": { "x": 1, "y": 1 },
+                "rotation": 0,
+                "origin": { "x": 0, "y": 0 },
                 "opacity": 1
               }
             ]

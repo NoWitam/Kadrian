@@ -13,6 +13,7 @@
 - Amended by: PR-30 (D54) on 2026-11-01: 22.4: every scene is mounted; a scene the state does not evaluate is hidden and its nodes lose what an earlier render wrote (D54.3)
 - Amended by: PR-32 (D56) on 2026-11-01: a scene element carries the opacity, offset, or cut of a transition, and the stage the backdrop (D56.5)
 - Amended by: PR-33 (D57) on 2026-11-02: the captions node as a box of pages, lines, and word spans built at mount; a render shows one page and colours the spoken word (D57.6)
+- Amended by: PR-48 (D68) on 2026-11-07: the transform list with a pivot and a rotation, the canvas as the box of a group, `object-view-box` and `border-radius` of a picture, and colours written on every render (D68.6)
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, and open
   question Q5
@@ -56,7 +57,11 @@ The ranges of D15 exclude `NaN`, the infinities, and the exponent form above
 render, `transform: translate(<x>px, <y>px) scale(<sx>, <sy>)` and
 `opacity: <o>` on its own element, with `transform-origin: 0px 0px`. CSS applies
 the list from the right: the node is scaled about its top-left corner and then
-moved by its position, which is D15. The children of a group are child elements
+moved by its position, which is D15. Amended by: PR-48 (D68): from `0.13`
+the list is `translate(x, y) [translate(ox%, oy%)] [rotate(r deg)] scale(sx, sy)
+[translate(−ox%, −oy%)]`, the pivot pair only when the origin is not `0, 0` and
+`rotate` only when the rotation is not 0, so a document of `0.12` writes the
+string it wrote before (D68.6). The children of a group are child elements
 of the group element, so they live in its scaled space, and the group's opacity
 applies to the composited group (D15, D18.5). Nothing sets `z-index`: absolutely
 positioned siblings paint in DOM order, which is the array order (D16.4).

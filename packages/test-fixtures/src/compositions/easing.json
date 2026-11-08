@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -21,7 +21,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 2000000,
-          "color": "#203040"
+          "color": "#203040",
+          "animations": []
         },
         {
           "id": "motion-linear",
@@ -35,6 +36,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [
@@ -72,7 +78,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "motion-hold",
@@ -86,6 +99,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [
@@ -123,7 +141,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "motion-ease-in",
@@ -137,6 +162,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [
@@ -174,7 +204,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "motion-ease-out",
@@ -188,6 +225,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [
@@ -225,7 +267,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "motion-ease-in-out",
@@ -239,6 +288,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [
@@ -276,7 +330,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "motion-back",
@@ -290,6 +351,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [
@@ -331,7 +397,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "motion-steps",
@@ -345,6 +418,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [
@@ -384,7 +462,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         }
       ],
       "clips": [],
@@ -399,7 +484,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 1000000,
-          "color": "#604020"
+          "color": "#604020",
+          "animations": []
         },
         {
           "id": "end-image",
@@ -413,6 +499,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [
@@ -450,7 +541,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         }
       ],
       "clips": [],

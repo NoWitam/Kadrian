@@ -34,7 +34,13 @@ interface StateNode {
   type: string;
   position?: Vec2;
   scale?: Vec2;
+  rotation?: number;
+  origin?: Vec2;
   opacity?: number;
+  color?: string;
+  size?: { width: number; height: number };
+  crop?: { fromTop: number; fromRight: number; fromBottom: number; fromLeft: number };
+  cornerRadius?: number;
   children?: StateNode[];
 }
 
@@ -140,13 +146,52 @@ function sandbox(node: DocumentNode): ExpectedElement {
 const PLACED = { position: 'absolute', left: '0px', top: '0px' };
 const ORIGIN = { ...PLACED, 'transform-origin': '0px 0px' };
 
-/** D22.2: the evaluated values of one node as CSS text. */
+/** Per mille of a side as a CSS percentage (D68). */
+const percent = (permille: number): string => `${String(permille / 10)}%`;
+
+/**
+ * D22.2 and D68: the evaluated values of one node as CSS text. The pivot is
+ * written only for an origin other than (0, 0), the rotation only when it is
+ * not 0.
+ */
 function dynamic(state: StateNode): Record<string, string> {
-  const { position, scale, opacity } = state;
-  if (position === undefined || scale === undefined || opacity === undefined) return {};
+  const { position, scale, rotation, origin, opacity } = state;
+  if (
+    position === undefined ||
+    scale === undefined ||
+    rotation === undefined ||
+    origin === undefined ||
+    opacity === undefined
+  ) {
+    return {};
+  }
+  const pivot = origin.x !== 0 || origin.y !== 0;
+  const parts = [
+    `translate(${px(position.x)}, ${px(position.y)})`,
+    ...(pivot ? [`translate(${percent(origin.x)}, ${percent(origin.y)})`] : []),
+    ...(rotation === 0 ? [] : [`rotate(${String(rotation)}deg)`]),
+    `scale(${String(scale.x)}, ${String(scale.y)})`,
+    ...(pivot ? [`translate(${percent(-origin.x)}, ${percent(-origin.y)})`] : []),
+  ];
+  return { transform: parts.join(' '), opacity: String(opacity) };
+}
+
+/** D68: the size, the crop, and the corner radius of an image as CSS text. */
+function picture(state: StateNode): Record<string, string> {
+  const { size, crop, cornerRadius } = state;
+  if (size === undefined || crop === undefined || cornerRadius === undefined) return {};
+  const insets = [crop.fromTop, crop.fromRight, crop.fromBottom, crop.fromLeft].map(percent);
+  // The shortest form of CSS: the last inset goes while it equals the one it
+  // stands in for (left for right, bottom for top, right for top).
+  const standsFor = [0, 0, 0, 1];
+  while (insets.length > 1 && insets.at(-1) === insets[standsFor[insets.length - 1] ?? 0]) {
+    insets.pop();
+  }
   return {
-    transform: `translate(${px(position.x)}, ${px(position.y)}) scale(${String(scale.x)}, ${String(scale.y)})`,
-    opacity: String(opacity),
+    width: px(size.width),
+    height: px(size.height),
+    'object-view-box': `inset(${insets.join(' ')})`,
+    'border-radius': px(cornerRadius),
   };
 }
 
@@ -159,14 +204,14 @@ function element(node: DocumentNode, state: StateNode): ExpectedElement {
       return {
         tag: 'div',
         attributes,
-        style: { ...PLACED, ...canvas, 'background-color': rgb(node.color ?? '') },
+        style: { ...PLACED, ...canvas, 'background-color': rgb(state.color ?? '') },
         children: [],
       };
     case 'group':
       return {
         tag: 'div',
         attributes,
-        style: { ...ORIGIN, ...dynamic(state) },
+        style: { ...ORIGIN, ...canvas, ...dynamic(state) },
         children: (node.children ?? []).map((child, index) =>
           element(child, state.children?.[index] ?? { id: '', type: '' }),
         ),
@@ -178,10 +223,9 @@ function element(node: DocumentNode, state: StateNode): ExpectedElement {
         style: {
           ...ORIGIN,
           display: 'block',
-          width: px(node.width ?? 0),
-          height: px(node.height ?? 0),
           'object-fit': 'fill',
           'object-position': '50% 50%',
+          ...picture(state),
           ...dynamic(state),
         },
         children: [],
@@ -198,7 +242,7 @@ function element(node: DocumentNode, state: StateNode): ExpectedElement {
           'line-height': '1.25',
           'font-weight': '400',
           'font-style': 'normal',
-          color: rgb(node.color ?? ''),
+          color: rgb(state.color ?? ''),
           ...dynamic(state),
         },
         children: [{ text: node.text ?? '' }],

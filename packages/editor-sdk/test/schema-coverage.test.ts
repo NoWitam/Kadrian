@@ -306,7 +306,17 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
         minimums.set(property, minimum);
       }
     }
-    expect([...minimums.keys()].sort()).toEqual(['opacity', 'position', 'scale']);
+    expect([...minimums.keys()].sort()).toEqual([
+      'color',
+      'cornerRadius',
+      'crop',
+      'opacity',
+      'origin',
+      'position',
+      'rotation',
+      'scale',
+      'size',
+    ]);
     for (const [property, minimum] of minimums) {
       expect(keyframeMinimum(compositionSchema, property), property).toBe(minimum);
     }
@@ -355,38 +365,60 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
     expect(codeOf(() => applyCommand(document, remove(7_500_000)))).toBe('too-few-keyframes');
   });
 
-  it.each(animationShapes().map(({ type, shapes }) => [type, shapes.length > 0] as const))(
+  /** Two keyframe values of every property an animation can reach (D68). */
+  const VALUES: Readonly<Record<string, readonly [unknown, unknown]>> = {
+    opacity: [0, 1],
+    position: [
+      { x: 1, y: 1 },
+      { x: 2, y: 2 },
+    ],
+    scale: [
+      { x: 1, y: 1 },
+      { x: 2, y: 2 },
+    ],
+    rotation: [0, 90],
+    origin: [
+      { x: 0, y: 0 },
+      { x: 500, y: 500 },
+    ],
+    size: [
+      { width: 10, height: 10 },
+      { width: 20, height: 20 },
+    ],
+    color: ['#000000', '#ffffff'],
+    crop: [
+      { top: 0, right: 0, bottom: 0, left: 0 },
+      { top: 100, right: 0, bottom: 0, left: 0 },
+    ],
+    cornerRadius: [0, 10],
+  };
+
+  it.each(animationShapes().map(({ type, shapes }) => [type, shapes] as const))(
     'adds an animation to a node of type %s exactly when the schema gives it animations',
-    (type, animated) => {
+    (type, shapes) => {
       const nodeId = nodesByType().get(type) ?? '';
-      const animationIds = (
+      const animated = (
         (nodeOf(everyType(), nodeId).animations as { property: string }[] | undefined) ?? []
       ).map(({ property }) => property);
-      const property = ['opacity', 'position', 'scale'].find(
-        (name) => !animationIds.includes(name),
-      );
+      const property =
+        shapes
+          .map((shape) => String(at(shape, 'properties', 'property', 'const')))
+          .find((name) => !animated.includes(name)) ?? 'opacity';
+      const [first, last] = VALUES[property] ?? [0, 1];
       const command: Command = {
         type: 'AddAnimation',
         nodeId,
         index: 0,
         animation: {
           id: 'anim-new',
-          property: property ?? 'opacity',
+          property,
           keyframes: [
-            {
-              timeUs: 0,
-              value: property === 'opacity' ? 0 : { x: 1, y: 1 },
-              easing: { kind: 'linear' },
-            },
-            {
-              timeUs: 1,
-              value: property === 'opacity' ? 1 : { x: 2, y: 2 },
-              easing: { kind: 'linear' },
-            },
+            { timeUs: 0, value: first, easing: { kind: 'linear' } },
+            { timeUs: 1, value: last, easing: { kind: 'linear' } },
           ],
         },
       };
-      if (animated) {
+      if (shapes.length > 0) {
         expect(applyCommand(everyType(), command).createdIds).toEqual(['anim-new']);
       } else {
         expect(codeOf(() => applyCommand(everyType(), command))).toBe('unsupported-node');
@@ -426,7 +458,7 @@ describe('the seam of the schema metadata (D41.4)', () => {
   });
 
   it('refuses metadata that states no minimum or no bounds instead of guessing', () => {
-    expect(() => keyframeMinimum(compositionSchema, 'rotation')).toThrow(/rotation/);
+    expect(() => keyframeMinimum(compositionSchema, 'skew')).toThrow(/skew/);
     expect(() => keyframeMinimum({}, 'opacity')).toThrow(Error);
     expect(() => keyframeTimeBounds({})).toThrow(Error);
   });

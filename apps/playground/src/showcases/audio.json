@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 1280,
   "height": 720,
   "fps": 30,
@@ -31,7 +31,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 8000000,
-          "color": "#0b1f33"
+          "color": "#0b1f33",
+          "animations": []
         },
         {
           "id": "audio-image",
@@ -46,6 +47,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
@@ -55,37 +61,51 @@
                 {
                   "timeUs": 0,
                   "value": 0,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 1000000,
                   "value": 1,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 3000000,
                   "value": 1,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 4000000,
                   "value": 0.2,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 5000000,
                   "value": 1,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 7000000,
                   "value": 1,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 8000000,
                   "value": 0,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -97,7 +117,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "audio-title",
@@ -111,6 +138,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -131,6 +163,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],

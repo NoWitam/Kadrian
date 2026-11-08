@@ -27,6 +27,8 @@ const html = {
   durationUs: 10_000_000,
   position: { x: 90, y: 1500 },
   scale: { x: 1, y: 1 },
+  rotation: 0,
+  origin: { x: 0, y: 0 },
   opacity: 1,
   animations: [],
   width: 400,

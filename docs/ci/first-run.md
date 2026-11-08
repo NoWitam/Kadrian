@@ -34,6 +34,10 @@ local run of the same commands, including
   `tests/pinned/easing.pinned.test.ts`, which writes
   `easing/golden-comparison.json` and `easing/node-vs-chromium.json`: the
   pinned test files are 16 and the artifact files 69.
+- PR-48 (D68) added, while Q14 was open, the pinned test file
+  `tests/pinned/motion.pinned.test.ts`, which writes
+  `motion/golden-comparison.json`: the pinned test files are 17 and the
+  artifact files 70.
 
 The evidence of main after PR-42 (2026-11-04), as it was:
 

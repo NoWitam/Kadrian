@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -31,26 +31,52 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 10000000,
-          "color": "#0b1020"
+          "color": "#0b1020",
+          "animations": []
         },
         {
           "id": "node-group",
           "type": "group",
           "startUs": 0,
           "durationUs": 10000000,
-          "position": { "x": 60, "y": 420 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 60,
+            "y": 420
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
               "id": "anim-group-position",
               "property": "position",
               "keyframes": [
-                { "timeUs": 0, "value": { "x": 16, "y": 8 }, "easing": { "kind": "linear" } },
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 16,
+                    "y": 8
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
                 {
                   "timeUs": 7500000,
-                  "value": { "x": 76, "y": 308 },
-                  "easing": { "kind": "linear" }
+                  "value": {
+                    "x": 76,
+                    "y": 308
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -61,8 +87,19 @@
               "type": "image",
               "startUs": 0,
               "durationUs": 10000000,
-              "position": { "x": 0, "y": 0 },
-              "scale": { "x": 1.25, "y": 1.25 },
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1.25,
+                "y": 1.25
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
               "opacity": 1,
               "animations": [
                 {
@@ -71,13 +108,23 @@
                   "keyframes": [
                     {
                       "timeUs": 2500000,
-                      "value": { "x": 1, "y": 1 },
-                      "easing": { "kind": "linear" }
+                      "value": {
+                        "x": 1,
+                        "y": 1
+                      },
+                      "easing": {
+                        "kind": "linear"
+                      }
                     },
                     {
                       "timeUs": 10000000,
-                      "value": { "x": 1.75, "y": 1.375 },
-                      "easing": { "kind": "linear" }
+                      "value": {
+                        "x": 1.75,
+                        "y": 1.375
+                      },
+                      "easing": {
+                        "kind": "linear"
+                      }
                     }
                   ]
                 }
@@ -86,15 +133,36 @@
               "width": 400,
               "height": 400,
               "fit": "fill",
-              "focus": { "x": 500, "y": 500 }
+              "focus": {
+                "x": 500,
+                "y": 500
+              },
+              "crop": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "cornerRadius": 0
             },
             {
               "id": "node-caption",
               "type": "text",
               "startUs": 0,
               "durationUs": 10000000,
-              "position": { "x": 0, "y": 720 },
-              "scale": { "x": 1, "y": 1 },
+              "position": {
+                "x": 0,
+                "y": 720
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
               "opacity": 1,
               "animations": [],
               "text": "Deterministic by design",
@@ -109,16 +177,39 @@
           "type": "text",
           "startUs": 0,
           "durationUs": 10000000,
-          "position": { "x": 90, "y": 160 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 90,
+            "y": 160
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 0.75,
           "animations": [
             {
               "id": "anim-title-opacity",
               "property": "opacity",
               "keyframes": [
-                { "timeUs": 0, "value": 0.25, "easing": { "kind": "linear" } },
-                { "timeUs": 7500000, "value": 1, "easing": { "kind": "linear" } }
+                {
+                  "timeUs": 0,
+                  "value": 0.25,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 7500000,
+                  "value": 1,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
               ]
             }
           ],
@@ -132,8 +223,19 @@
           "type": "custom-html",
           "startUs": 0,
           "durationUs": 10000000,
-          "position": { "x": 90, "y": 1760 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 90,
+            "y": 1760
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "width": 900,
@@ -159,5 +261,10 @@
     }
   ],
   "transitions": [],
-  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
 }

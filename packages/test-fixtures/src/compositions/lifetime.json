@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 400,
   "height": 300,
   "fps": 30,
@@ -21,15 +21,27 @@
           "type": "background",
           "startUs": 1000000,
           "durationUs": 8000000,
-          "color": "#0b1020"
+          "color": "#0b1020",
+          "animations": []
         },
         {
           "id": "life-group",
           "type": "group",
           "startUs": 2000000,
           "durationUs": 3000000,
-          "position": { "x": 20, "y": 20 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "children": [
@@ -38,8 +50,19 @@
               "type": "text",
               "startUs": 0,
               "durationUs": 10000000,
-              "position": { "x": 0, "y": 0 },
-              "scale": { "x": 1, "y": 1 },
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
               "opacity": 1,
               "animations": [],
               "text": "A",
@@ -52,8 +75,19 @@
               "type": "text",
               "startUs": 4000000,
               "durationUs": 2000000,
-              "position": { "x": 60, "y": 0 },
-              "scale": { "x": 1, "y": 1 },
+              "position": {
+                "x": 60,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
               "opacity": 1,
               "animations": [],
               "text": "B",
@@ -68,19 +102,44 @@
           "type": "text",
           "startUs": 8000000,
           "durationUs": 5000000,
-          "position": { "x": 20, "y": 120 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 20,
+            "y": 120
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
               "id": "life-text-position",
               "property": "position",
               "keyframes": [
-                { "timeUs": 0, "value": { "x": 0, "y": 0 }, "easing": { "kind": "linear" } },
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
                 {
                   "timeUs": 10000000,
-                  "value": { "x": 100, "y": 0 },
-                  "easing": { "kind": "linear" }
+                  "value": {
+                    "x": 100,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -95,8 +154,19 @@
           "type": "text",
           "startUs": 10000000,
           "durationUs": 1,
-          "position": { "x": 20, "y": 200 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 20,
+            "y": 200
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "text": "D",
@@ -109,8 +179,19 @@
           "type": "custom-html",
           "startUs": 0,
           "durationUs": 1,
-          "position": { "x": 200, "y": 200 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 200,
+            "y": 200
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "width": 100,
@@ -124,5 +205,10 @@
   ],
   "clips": [],
   "transitions": [],
-  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
 }

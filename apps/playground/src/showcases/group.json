@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -26,36 +26,83 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 8000000,
-          "color": "#1d2939"
+          "color": "#1d2939",
+          "animations": []
         },
         {
           "id": "node-card",
           "type": "group",
           "startUs": 0,
           "durationUs": 8000000,
-          "position": { "x": 140, "y": 360 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 140,
+            "y": 360
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
               "id": "anim-card-scale",
               "property": "scale",
               "keyframes": [
-                { "timeUs": 0, "value": { "x": 0.5, "y": 0.5 }, "easing": { "kind": "linear" } },
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 0.5,
+                    "y": 0.5
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
                 {
                   "timeUs": 4000000,
-                  "value": { "x": 1.25, "y": 1.25 },
-                  "easing": { "kind": "linear" }
+                  "value": {
+                    "x": 1.25,
+                    "y": 1.25
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
-                { "timeUs": 7900000, "value": { "x": 1, "y": 1 }, "easing": { "kind": "linear" } }
+                {
+                  "timeUs": 7900000,
+                  "value": {
+                    "x": 1,
+                    "y": 1
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
               ]
             },
             {
               "id": "anim-card-opacity",
               "property": "opacity",
               "keyframes": [
-                { "timeUs": 0, "value": 0.3, "easing": { "kind": "linear" } },
-                { "timeUs": 2000000, "value": 1, "easing": { "kind": "linear" } }
+                {
+                  "timeUs": 0,
+                  "value": 0.3,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 2000000,
+                  "value": 1,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
               ]
             }
           ],
@@ -65,23 +112,55 @@
               "type": "image",
               "startUs": 0,
               "durationUs": 8000000,
-              "position": { "x": 0, "y": 0 },
-              "scale": { "x": 1, "y": 1 },
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
               "opacity": 1,
               "animations": [],
               "assetId": "asset-image",
               "width": 640,
               "height": 640,
               "fit": "fill",
-              "focus": { "x": 500, "y": 500 }
+              "focus": {
+                "x": 500,
+                "y": 500
+              },
+              "crop": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "cornerRadius": 0
             },
             {
               "id": "node-card-caption",
               "type": "text",
               "startUs": 0,
               "durationUs": 8000000,
-              "position": { "x": 0, "y": 700 },
-              "scale": { "x": 1, "y": 1 },
+              "position": {
+                "x": 0,
+                "y": 700
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
               "opacity": 1,
               "animations": [
                 {
@@ -90,13 +169,23 @@
                   "keyframes": [
                     {
                       "timeUs": 2000000,
-                      "value": { "x": 0, "y": 80 },
-                      "easing": { "kind": "linear" }
+                      "value": {
+                        "x": 0,
+                        "y": 80
+                      },
+                      "easing": {
+                        "kind": "linear"
+                      }
                     },
                     {
                       "timeUs": 5000000,
-                      "value": { "x": 0, "y": 0 },
-                      "easing": { "kind": "linear" }
+                      "value": {
+                        "x": 0,
+                        "y": 0
+                      },
+                      "easing": {
+                        "kind": "linear"
+                      }
                     }
                   ]
                 }
@@ -113,8 +202,19 @@
           "type": "text",
           "startUs": 0,
           "durationUs": 8000000,
-          "position": { "x": 90, "y": 120 },
-          "scale": { "x": 1, "y": 1 },
+          "position": {
+            "x": 90,
+            "y": 120
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "text": "Kadrion",
@@ -129,5 +229,10 @@
   ],
   "clips": [],
   "transitions": [],
-  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
 }

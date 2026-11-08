@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 1280,
   "height": 720,
   "fps": 30,
@@ -26,7 +26,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 2000000,
-          "color": "#203040"
+          "color": "#203040",
+          "animations": []
         },
         {
           "id": "intro-title",
@@ -40,6 +41,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -61,6 +67,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-image",
@@ -70,7 +81,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         }
       ],
       "clips": [],
@@ -85,7 +103,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 2000000,
-          "color": "#f79009"
+          "color": "#f79009",
+          "animations": []
         },
         {
           "id": "scenes-image",
@@ -100,6 +119,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-image",
@@ -109,7 +133,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "scenes-title",
@@ -123,6 +154,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -144,7 +180,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 2000000,
-          "color": "#12b76a"
+          "color": "#12b76a",
+          "animations": []
         },
         {
           "id": "stories-title",
@@ -158,6 +195,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -179,7 +221,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 2000000,
-          "color": "#7a5af8"
+          "color": "#7a5af8",
+          "animations": []
         },
         {
           "id": "end-image",
@@ -194,6 +237,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-image",
@@ -203,7 +251,14 @@
           "focus": {
             "x": 500,
             "y": 500
-          }
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "end-title",
@@ -217,6 +272,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -236,7 +296,9 @@
           "effect": {
             "kind": "crossfade"
           },
-          "easing": { "kind": "linear" }
+          "easing": {
+            "kind": "linear"
+          }
         }
       ]
     }
@@ -251,7 +313,9 @@
       "effect": {
         "kind": "crossfade"
       },
-      "easing": { "kind": "linear" }
+      "easing": {
+        "kind": "linear"
+      }
     },
     {
       "id": "transition-fade",
@@ -262,7 +326,9 @@
         "kind": "fade-through-color",
         "color": "#ffffff"
       },
-      "easing": { "kind": "linear" }
+      "easing": {
+        "kind": "linear"
+      }
     },
     {
       "id": "transition-slide",
@@ -273,7 +339,9 @@
         "kind": "slide",
         "direction": "left"
       },
-      "easing": { "kind": "linear" }
+      "easing": {
+        "kind": "linear"
+      }
     }
   ],
   "template": {

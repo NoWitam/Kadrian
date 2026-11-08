@@ -84,6 +84,8 @@ export type EditorErrorCode =
   | 'too-few-keyframes'
   /** A typed keyframe command names an animation of another property; `details` are empty (D41.5). */
   | 'animation-property-mismatch'
+  /** `SetKeyframeValue` names an animation of opacity, position, or scale, which have typed commands (D65.2). */
+  | 'use-typed-command'
   /** The node already animates that property; `details` hold the ID of the animation that does (D41.5). */
   | 'duplicate-animation-target'
   /**

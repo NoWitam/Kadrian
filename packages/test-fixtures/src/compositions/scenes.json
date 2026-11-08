@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 1080,
   "height": 1920,
   "fps": 30,
@@ -31,7 +31,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 1000000,
-          "color": "#203040"
+          "color": "#203040",
+          "animations": []
         },
         {
           "id": "intro-title",
@@ -46,6 +47,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
@@ -58,7 +64,9 @@
                     "x": 0,
                     "y": 0
                   },
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 1000000,
@@ -66,7 +74,9 @@
                     "x": 0,
                     "y": 600
                   },
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -89,7 +99,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 1500000,
-          "color": "#402030"
+          "color": "#402030",
+          "animations": []
         },
         {
           "id": "middle-image",
@@ -104,6 +115,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
@@ -113,12 +129,16 @@
                 {
                   "timeUs": 0,
                   "value": 0,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 1500000,
                   "value": 1,
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -127,7 +147,17 @@
           "width": 400,
           "height": 400,
           "fit": "fill",
-          "focus": { "x": 500, "y": 500 }
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "middle-html",
@@ -141,6 +171,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -173,7 +208,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 700000,
-          "color": "#304020"
+          "color": "#304020",
+          "animations": []
         },
         {
           "id": "outro-title",
@@ -187,6 +223,11 @@
           "scale": {
             "x": 1,
             "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
           },
           "opacity": 1,
           "animations": [],
@@ -214,5 +255,10 @@
     }
   ],
   "transitions": [],
-  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
 }

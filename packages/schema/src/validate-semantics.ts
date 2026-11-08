@@ -49,9 +49,12 @@ import type { CompositionV08 } from './v0-8/composition-schema.js';
 import type { CompositionV09 } from './v0-9/composition-schema.js';
 import type { CompositionV010 } from './v0-10/composition-schema.js';
 import type { CompositionV011 } from './v0-11/composition-schema.js';
+import type { CompositionV012 } from './v0-12/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
+/** A node of 0.12, whose transformable nodes have no rotation, origin, crop, or corner radius (D68). */
+type SceneNodeV012 = CompositionV012['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -105,6 +108,14 @@ function checkAnimations(
     }
     animated.add(animation.property);
     animation.keyframes.forEach((keyframe, keyframeIndex) => {
+      if (animation.property === 'crop') {
+        const keyframePath = pointer(pointer(animationPath, 'keyframes'), keyframeIndex);
+        checkCrop(
+          (keyframe as unknown as { readonly value: Crop }).value,
+          pointer(keyframePath, 'value'),
+          errors,
+        );
+      }
       const previous = animation.keyframes[keyframeIndex - 1];
       if (previous !== undefined && keyframe.timeUs <= previous.timeUs) {
         const keyframePath = pointer(pointer(animationPath, 'keyframes'), keyframeIndex);
@@ -117,6 +128,32 @@ function checkAnimations(
       }
     });
   });
+}
+
+/** A crop of 0.13 (D68): four insets in per mille of the picture's sides. */
+interface Crop {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+/** The key of a top inset, held in a constant: a literal `top` reads like the global of a page. */
+const TOP = 'top';
+
+/** Two opposite insets of a crop leave at least 1 per mille of the picture (D68). */
+function cropError(crop: Crop, path: string): ValidationError | null {
+  if (crop.left + crop.right <= 999 && crop[TOP] + crop.bottom <= 999) return null;
+  return {
+    code: 'crop-empty',
+    path,
+    message: 'Two opposite insets of a crop add up to at most 999 per mille.',
+  };
+}
+
+function checkCrop(crop: Crop, path: string, errors: ValidationError[]): void {
+  const error = cropError(crop, path);
+  if (error !== null) errors.push(error);
 }
 
 /**
@@ -154,7 +191,8 @@ export function validateSemantics(
     | CompositionV08
     | CompositionV09
     | CompositionV010
-    | CompositionV011,
+    | CompositionV011
+    | CompositionV012,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -205,9 +243,13 @@ export function validateSemantics(
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
           checkCaptionWords(member.node.words, pointer(member.path, 'words'), captionErrors);
         }
-        if (member.node.type !== 'background') {
+        // A background has animations since 0.13 (D68).
+        if ('animations' in member.node) {
           const animationsPath = pointer(member.path, 'animations');
           checkAnimations(member.node.animations, animationsPath, animationErrors);
+        }
+        if ('crop' in member.node) {
+          checkCrop(member.node.crop, pointer(member.path, 'crop'), animationErrors);
         }
       }
     });
@@ -397,7 +439,13 @@ const TESTED_TYPES: Readonly<Record<TemplateCondition['test'], readonly string[]
  * ID of the form of a copy of a repeated ID.
  */
 function checkTemplate(
-  composition: Composition | CompositionV011 | CompositionV010 | CompositionV09 | CompositionV08,
+  composition:
+    | Composition
+    | CompositionV012
+    | CompositionV011
+    | CompositionV010
+    | CompositionV09
+    | CompositionV08,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const { inputs, bindings } = composition.template;
@@ -625,6 +673,18 @@ function checkTemplate(
       );
       return;
     }
+    // An animation of 0.13 replaces the colour at every instant (D68), so a bound
+    // colour would never be seen.
+    const animated: readonly { readonly property: string }[] =
+      'animations' in node ? node.animations : [];
+    if (animated.some((animation) => animation.property === binding.property)) {
+      push(
+        'bound-property-animated',
+        pointer(path, 'property'),
+        `The ${binding.property} of "${node.id}" is animated, and an animation replaces it at every instant.`,
+      );
+      return;
+    }
     if (binding.kind === 'item-property') {
       const field = itemFieldOf(input, binding.key);
       if (field === undefined) return;
@@ -785,7 +845,13 @@ function checkTemplate(
 
 /** The scene or node with that ID, or `undefined`. */
 function subtreeOf(
-  composition: Composition | CompositionV011 | CompositionV010 | CompositionV09 | CompositionV08,
+  composition:
+    | Composition
+    | CompositionV012
+    | CompositionV011
+    | CompositionV010
+    | CompositionV09
+    | CompositionV08,
   id: string,
 ): unknown {
   for (const scene of composition.scenes) {
@@ -834,7 +900,9 @@ interface Located {
     | SceneNode
     | Extract<SceneNode, { type: 'group' }>['children'][number]
     | SceneNodeV09
-    | Extract<SceneNodeV09, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV09, { type: 'group' }>['children'][number]
+    | SceneNodeV012
+    | Extract<SceneNodeV012, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -854,7 +922,8 @@ function checkTransitions(
     | CompositionV08
     | CompositionV09
     | CompositionV010
-    | CompositionV011,
+    | CompositionV011
+    | CompositionV012,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

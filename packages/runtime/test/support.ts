@@ -12,8 +12,20 @@ type DeepMutable<T> = T extends readonly (infer Item)[]
 
 /** An editable copy of a document. It has to pass `validated` before it can be evaluated. */
 export type Draft = DeepMutable<Composition>;
-export type DraftNode = Exclude<Draft['scenes'][number]['nodes'][number], { type: 'background' }>;
-export type DraftAnimation = DraftNode['animations'][number];
+type TransformedDraftNode = Exclude<
+  Draft['scenes'][number]['nodes'][number],
+  { type: 'background' }
+>;
+export type DraftAnimation = TransformedDraftNode['animations'][number];
+/**
+ * A transformed node of a draft whose animations take any row; which rows a
+ * node type accepts is the schema's matter, which `validated` checks.
+ */
+export type DraftNode = TransformedDraftNode extends infer Node
+  ? Node extends unknown
+    ? Omit<Node, 'animations'> & { animations: DraftAnimation[] }
+    : never
+  : never;
 
 type KeyframeValue<Property extends DraftAnimation['property']> = Extract<
   DraftAnimation,

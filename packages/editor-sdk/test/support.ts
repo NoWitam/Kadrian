@@ -34,6 +34,8 @@ export const VIDEO_NODE = Object.freeze({
   durationUs: 1_000_000,
   position: Object.freeze({ x: 10, y: 20 }),
   scale: Object.freeze({ x: 1, y: 1 }),
+  rotation: 0,
+  origin: Object.freeze({ x: 0, y: 0 }),
   opacity: 1,
   animations: Object.freeze([]),
   assetId: 'asset-video',
@@ -42,6 +44,8 @@ export const VIDEO_NODE = Object.freeze({
   height: 180,
   fit: 'contain',
   focus: Object.freeze({ x: 500, y: 500 }),
+  crop: Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 }),
+  cornerRadius: 0,
   volume: 0,
 });
 
@@ -53,6 +57,8 @@ export const CAPTIONS_NODE = Object.freeze({
   durationUs: 2_000_000,
   position: Object.freeze({ x: 40, y: 1500 }),
   scale: Object.freeze({ x: 1, y: 1 }),
+  rotation: 0,
+  origin: Object.freeze({ x: 0, y: 0 }),
   opacity: 1,
   animations: Object.freeze([]),
   fontAssetId: 'asset-font',

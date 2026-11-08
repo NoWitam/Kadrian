@@ -219,6 +219,7 @@ describe('repeats (D59.2)', () => {
         startUs: 0,
         durationUs: 1,
         color: '#000000',
+        animations: [],
       });
     }
     const big = validated(document);
@@ -298,6 +299,8 @@ describe('conditions (D59.1)', () => {
       durationUs: 1_000_000,
       position: { x: 0, y: 0 },
       scale: { x: 1, y: 1 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
       opacity: 1,
       animations: [],
       children: [text('badge-a', 0), text('badge-b', 300_000)],

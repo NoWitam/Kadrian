@@ -4,6 +4,7 @@
   the implementation; the decisions are the owner's of 2026-09-30
 - Date: 2026-09-30
 - Amended by: PR-47 (D67) on 2026-11-07: 41.3: a new keyframe is written as `{ timeUs, value, easing }`, with the easing of the keyframe before it or `linear`; a replaced or moved keyframe keeps its easing; `SetKeyframeEasing` is a new command (D67.7)
+- Amended by: PR-48 (D68) on 2026-11-07: 41.1: `SetKeyframeValue` has an argument called `value`, judged by the animation's property (D65.2, D68.7)
 - Supersedes: —
 - Amends: D30 (D30.8), D38 (D38.1), D39 (D39.4, D39.9), each with an
   `Amended by: PR-20 (D41)` line
@@ -80,6 +81,9 @@ defaults.
   the field of a keyframe in the document, and only `AddKeyframe` carries it,
   inside the exact keyframe object `{ timeUs, value }` it is given. The owner
   approved these names with the plan and confirmed them on 2026-10-01.
+  Amended by: PR-48 (D68): from `0.13` `SetKeyframeValue` takes `value` too,
+  for the rows of phase five, whose meaning the animation's property gives;
+  it refuses opacity, position, and scale (`use-typed-command`, D68.7).
 - `RemoveKeyframe` removes the keyframe at `timeUs`. Its inverse is
   `AddKeyframe` with a frozen copy of the keyframe.
 - `MoveKeyframe` gives the keyframe at `timeUs` the time `toTimeUs`. Its inverse

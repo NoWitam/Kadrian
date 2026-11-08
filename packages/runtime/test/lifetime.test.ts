@@ -111,11 +111,13 @@ describe('the lifetime fixture at its boundaries (D42.2)', () => {
       id: 'life-background',
       type: 'background',
       active: false,
+      color: '#0b1020',
     });
     expect(background(1_000_000)).toStrictEqual({
       id: 'life-background',
       type: 'background',
       active: true,
+      color: '#0b1020',
     });
   });
 });

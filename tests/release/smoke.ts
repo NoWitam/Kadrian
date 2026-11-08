@@ -38,7 +38,7 @@ export const SMOKE_ESBUILD_VERSION = '0.28.2';
 
 /** A composition without assets, so the smoke test needs no bytes but the release's. */
 export const SMOKE_COMPOSITION = Object.freeze({
-  schemaVersion: '0.12',
+  schemaVersion: '0.13',
   width: 320,
   height: 240,
   fps: 30,
@@ -54,6 +54,7 @@ export const SMOKE_COMPOSITION = Object.freeze({
           startUs: 0,
           durationUs: 1_000_000,
           color: '#102030',
+          animations: [],
         },
         {
           id: 'node-group',
@@ -62,6 +63,8 @@ export const SMOKE_COMPOSITION = Object.freeze({
           durationUs: 1_000_000,
           position: { x: 0, y: 0 },
           scale: { x: 1, y: 1 },
+          rotation: 0,
+          origin: { x: 0, y: 0 },
           opacity: 1,
           animations: [],
           children: [],

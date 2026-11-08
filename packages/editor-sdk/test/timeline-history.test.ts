@@ -57,6 +57,8 @@ function start(): ValidatedComposition {
     durationUs: 1_500_000,
     position: { x: 0, y: 0 },
     scale: { x: 1, y: 1 },
+    rotation: 0,
+    origin: { x: 0, y: 0 },
     opacity: 1,
     animations: [],
     children: [
@@ -67,6 +69,8 @@ function start(): ValidatedComposition {
         durationUs: 1_000_000,
         position: { x: 90, y: 300 },
         scale: { x: 1, y: 1 },
+        rotation: 0,
+        origin: { x: 0, y: 0 },
         opacity: 1,
         animations: [
           {

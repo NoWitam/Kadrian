@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.12",
+  "schemaVersion": "0.13",
   "width": 640,
   "height": 360,
   "fps": 30,
@@ -26,7 +26,8 @@
           "type": "background",
           "startUs": 0,
           "durationUs": 2000000,
-          "color": "#203040"
+          "color": "#203040",
+          "animations": []
         },
         {
           "id": "node-video-full",
@@ -41,6 +42,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -48,7 +54,17 @@
           "width": 320,
           "height": 180,
           "fit": "fill",
-          "focus": { "x": 500, "y": 500 },
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
           "volume": 0
         },
         {
@@ -64,13 +80,28 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-image",
           "width": 150,
           "height": 160,
           "fit": "contain",
-          "focus": { "x": 500, "y": 500 }
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0
         },
         {
           "id": "node-video-cover",
@@ -85,6 +116,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -92,7 +128,17 @@
           "width": 160,
           "height": 160,
           "fit": "cover",
-          "focus": { "x": 500, "y": 500 },
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
           "volume": 0
         },
         {
@@ -108,6 +154,11 @@
             "x": 1,
             "y": 1
           },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
           "opacity": 1,
           "animations": [
             {
@@ -120,7 +171,9 @@
                     "x": 0,
                     "y": 0
                   },
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 },
                 {
                   "timeUs": 2000000,
@@ -128,7 +181,9 @@
                     "x": -20,
                     "y": 0
                   },
-                  "easing": { "kind": "linear" }
+                  "easing": {
+                    "kind": "linear"
+                  }
                 }
               ]
             }
@@ -147,6 +202,11 @@
                 "x": 1,
                 "y": 1
               },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
               "opacity": 1,
               "animations": [],
               "assetId": "asset-video",
@@ -154,7 +214,17 @@
               "width": 280,
               "height": 200,
               "fit": "contain",
-              "focus": { "x": 500, "y": 500 },
+              "focus": {
+                "x": 500,
+                "y": 500
+              },
+              "crop": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "cornerRadius": 0,
               "volume": 0
             },
             {
@@ -170,13 +240,28 @@
                 "x": 1,
                 "y": 1
               },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
               "opacity": 1,
               "animations": [],
               "assetId": "asset-image",
               "width": 280,
               "height": 120,
               "fit": "cover",
-              "focus": { "x": 500, "y": 500 }
+              "focus": {
+                "x": 500,
+                "y": 500
+              },
+              "crop": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "cornerRadius": 0
             }
           ]
         }
@@ -187,5 +272,10 @@
   ],
   "clips": [],
   "transitions": [],
-  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
 }

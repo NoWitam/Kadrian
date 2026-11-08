@@ -68,10 +68,30 @@ interface ExpectedAnimation<Property extends string, Value> {
   }[];
 }
 
-type ExpectedNodeAnimation =
+/** Four insets in per mille (D68). */
+interface ExpectedCrop {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+type ExpectedTransformAnimation =
   | ExpectedAnimation<'opacity', number>
   | ExpectedAnimation<'position', Vec2>
-  | ExpectedAnimation<'scale', Vec2>;
+  | ExpectedAnimation<'scale', Vec2>
+  | ExpectedAnimation<'rotation', number>
+  | ExpectedAnimation<'origin', Vec2>;
+
+type ExpectedColorAnimation = ExpectedAnimation<'color', string>;
+
+type ExpectedPictureAnimation =
+  | ExpectedTransformAnimation
+  | ExpectedAnimation<'size', { readonly width: number; readonly height: number }>
+  | ExpectedAnimation<'crop', ExpectedCrop>
+  | ExpectedAnimation<'cornerRadius', number>;
+
+type ExpectedNodeAnimation = ExpectedPictureAnimation | ExpectedColorAnimation;
 
 /** The lifetime every node has since schema 0.2 (D42.1). */
 interface ExpectedLifetime {
@@ -79,20 +99,23 @@ interface ExpectedLifetime {
   readonly durationUs: number;
 }
 
-interface ExpectedTransform extends ExpectedLifetime {
+interface ExpectedTransform<A = ExpectedTransformAnimation> extends ExpectedLifetime {
   readonly position: Vec2;
   readonly scale: Vec2;
+  readonly rotation: number;
+  readonly origin: Vec2;
   readonly opacity: number;
-  readonly animations: readonly ExpectedNodeAnimation[];
+  readonly animations: readonly A[];
 }
 
 interface ExpectedBackgroundNode extends ExpectedLifetime {
   readonly id: string;
   readonly type: 'background';
   readonly color: string;
+  readonly animations: readonly ExpectedColorAnimation[];
 }
 
-interface ExpectedImageNode extends ExpectedTransform {
+interface ExpectedImageNode extends ExpectedTransform<ExpectedPictureAnimation> {
   readonly id: string;
   readonly type: 'image';
   readonly assetId: string;
@@ -100,9 +123,11 @@ interface ExpectedImageNode extends ExpectedTransform {
   readonly height: number;
   readonly fit: 'fill' | 'contain' | 'cover';
   readonly focus: { readonly x: number; readonly y: number };
+  readonly crop: ExpectedCrop;
+  readonly cornerRadius: number;
 }
 
-interface ExpectedVideoNode extends ExpectedTransform {
+interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> {
   readonly id: string;
   readonly type: 'video';
   readonly assetId: string;
@@ -111,10 +136,14 @@ interface ExpectedVideoNode extends ExpectedTransform {
   readonly height: number;
   readonly fit: 'fill' | 'contain' | 'cover';
   readonly focus: { readonly x: number; readonly y: number };
+  readonly crop: ExpectedCrop;
+  readonly cornerRadius: number;
   readonly volume: number;
 }
 
-interface ExpectedTextNode extends ExpectedTransform {
+interface ExpectedTextNode extends ExpectedTransform<
+  ExpectedTransformAnimation | ExpectedColorAnimation
+> {
   readonly id: string;
   readonly type: 'text';
   readonly text: string;
@@ -154,7 +183,9 @@ interface ExpectedCaptionStyle {
   readonly maxLines: number;
 }
 
-interface ExpectedCaptionsNode extends ExpectedTransform {
+interface ExpectedCaptionsNode extends ExpectedTransform<
+  ExpectedTransformAnimation | ExpectedColorAnimation
+> {
   readonly id: string;
   readonly type: 'captions';
   readonly fontAssetId: string;
@@ -366,7 +397,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.12';
+  readonly schemaVersion: '0.13';
   readonly width: number;
   readonly height: number;
   readonly fps: number;

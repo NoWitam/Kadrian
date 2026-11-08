@@ -131,7 +131,7 @@ const TYPED = {
   position: 'anim-group-position',
   scale: 'anim-image-scale',
 } as const;
-/** Nodes an animation may be added to; the background has no animations. */
+/** Nodes an animation may be added to; the background animates its colour alone (D68). */
 const ANIMATED = [
   'node-title',
   'node-caption',
@@ -147,6 +147,17 @@ const NEW_ANIMATION_IDS = ['k1', 'k2', 'k1', 'anim-title-opacity', 'node-title']
 /** Keyframe times: the fixture's, some new, one past the duration, -0, and a fraction. */
 const TIMES = [0, 0, 7_500_000, 2_500_000, 10_000_000, 1_000_000, 5_000_000, 20_000_000, -0, 0.5];
 const PROPERTIES = ['opacity', 'position', 'scale'] as const;
+/** The properties an animation of each type of node reaches (D68). */
+const TRANSFORM_ROWS = ['opacity', 'position', 'scale', 'rotation', 'origin'];
+const ROWS: Readonly<Record<string, readonly string[]>> = {
+  background: ['color'],
+  group: TRANSFORM_ROWS,
+  'custom-html': TRANSFORM_ROWS,
+  text: [...TRANSFORM_ROWS, 'color'],
+  captions: [...TRANSFORM_ROWS, 'color'],
+  image: [...TRANSFORM_ROWS, 'size', 'crop', 'cornerRadius'],
+  video: [...TRANSFORM_ROWS, 'size', 'crop', 'cornerRadius'],
+};
 type Property = (typeof PROPERTIES)[number];
 /** Two values of each property, in the order of their keyframes. */
 const VALUES: Readonly<Record<Property, readonly [unknown, unknown]>> = {
@@ -218,6 +229,8 @@ function newNode(next: () => number, id: string): Json {
     durationUs: 10_000_000,
     position: { x: 5, y: 5 },
     scale: { x: 1, y: 1 },
+    rotation: 0,
+    origin: { x: 0, y: 0 },
     opacity: 1,
   };
   if (next() < 0.25) {
@@ -978,6 +991,10 @@ function apply(document: Json, command: Json): Effect | Refused {
         return new Refused('duplicate-animation-target', [holder['id'] as string]);
       }
       if (!isAnimation(animation)) return new Refused('invalid-result');
+      // Which properties a node animates is its type's (D68).
+      if (!ROWS[target['type'] as string]?.includes(animation['property'] as string)) {
+        return new Refused('invalid-result');
+      }
       list.splice(index, 0, animation);
       return { created: [id], removed: [], changed: true };
     }

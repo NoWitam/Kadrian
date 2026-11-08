@@ -2,6 +2,7 @@
 
 - Status: Accepted — by the project owner on 2026-11-07, after PR-45 was merged
 - Date: 2026-11-07
+- Amended by: PR-48 (D68) on 2026-11-07: 65.1: the rows of PR-48 as built: `size` on images and videos only, `color` on backgrounds, texts, and captions, an origin offset from −1000 to 1000 (D68.3)
 - Supersedes: —
 - Related: D03, D15, D16, D18, D19, D22, D23, D26, D28, D33, D34, D41, D46,
   D49, D56, D57, D58, D59, [phase five](../roadmap/phase-5.md) (PR-45), the
@@ -118,6 +119,8 @@ kind of animation. A row states:
     animation;
 - for `color`, that each channel is interpolated by D18.3 on its own and
   rounded once, by a rule PR-48 states (D68), after the interpolation.
+  Amended by: PR-48 (D68): eased, held within 0 and 255, then
+  `floor(c + 0.5)` (D68.4).
 
 The rows, with the step that adds each:
 
@@ -128,7 +131,7 @@ The rows, with the step that adds each:
 | `opacity`                       | every transformable node                | number 0–1             | `factor`  | 1        | D16    |
 | `rotation`                      | every transformable node                | number, degrees        | `offset`  | 0        | PR-48  |
 | `origin`                        | every transformable node                | vector of permille     | `offset`  | `{0,0}`  | PR-48  |
-| `size`                          | image, video, text box, shape, instance | vector, pixels         | `replace` | the base | PR-48  |
+| `size`                          | image, video, text box, shape, instance | vector, pixels         | `replace` | the base | PR-48¹ |
 | `color`                         | background, text, captions              | color                  | `replace` | the base | PR-48  |
 | `crop`                          | image, video                            | four permille insets   | `replace` | 0        | PR-48  |
 | `cornerRadius`                  | image, video, shape, instance           | number, pixels         | `replace` | 0        | PR-48  |
@@ -138,6 +141,10 @@ The rows, with the step that adds each:
 | `trim/start`, `trim/end`        | shape                                   | permille of the length | `replace` | 0, 1000  | PR-52  |
 | `geometry`                      | shape                                   | the points of its path | `replace` | the base | PR-52  |
 | `mask/geometry`, `mask/feather` | every visual node with a mask           | as the shape's         | `replace` | the base | PR-54  |
+
+¹ Amended by: PR-48 (D68): `size` is a row of images and videos only; a text
+box, a shape, and an instance take it with their steps, and an origin offset
+lies within −1000 and 1000 (D68.3).
 
 Transforms keep the rule of D16.6 that an animation modifies its base value
 (`offset`, `factor`); every other row replaces it, because a colour, a crop, or

@@ -308,6 +308,7 @@ steps should be merged.
 
 ### PR-48 — Rotation, origin, and more animated properties
 
+- Status: in review, with its ADR D68 (Proposed). Rotation is in degrees, bounded by a thousand turns either way and never reduced; the origin is in per mille of the box, a group's box is the canvas, and editing it never moves the position; a colour is eased per sRGB channel and rounded once, halves upwards. Deviations from this plan: `size` is animated on images and videos only (a text has no size, and a Custom HTML element would lay itself out again on every frame), a background gets an `animations` list for its colour, and the probes add two groups (`transform-list`, `picture`), all exact, every neutral row giving the pixels of none.
 - **Goal:** a node rotates and scales about a point the user chose, and the
   host animates colour, size, crop, and corner radius as it animates position.
 - **Scope (D68):** schema `0.13`:

@@ -24,8 +24,8 @@ const nodes: SceneNode[] = composition.scenes.flatMap((scene) =>
     node.type === 'group' ? [node, ...node.children] : [node],
   ),
 );
-const animations: NodeAnimation[] = nodes.flatMap((node) =>
-  node.type === 'background' ? [] : node.animations,
+const animations: NodeAnimation[] = nodes.flatMap(
+  (node): readonly NodeAnimation[] => node.animations,
 );
 const nodeById = (id: string): SceneNode | undefined => nodes.find((node) => node.id === id);
 const entry = (key: string, value: string): [string, string] => [key, value];
@@ -40,7 +40,7 @@ describe('reference composition', () => {
 
   it('has the fixed parameters of specification §3.1', () => {
     expect(composition).toMatchObject({
-      schemaVersion: '0.12',
+      schemaVersion: '0.13',
       width: 1080,
       height: 1920,
       fps: 30,

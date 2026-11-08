@@ -1,9 +1,10 @@
 /**
  * The evaluated state of a composition at one instant (D19). It mirrors the
  * document: the evaluated scenes, nodes, and group children keep their order and hierarchy
- * (D16.4), and every value is local to its node (D15, D18.5, D42.3). Static
- * properties such as colours, text, and asset references stay in the document;
- * a renderer walks the document and the state side by side.
+ * (D16.4), and every value is local to its node (D15, D18.5, D42.3). Every
+ * property an animation can reach is in the state, animated or not (D65.1,
+ * D68); static properties such as text, fonts, and asset references stay in the
+ * document, and a renderer walks the document and the state side by side.
  */
 
 /** A pair of evaluated values. Unlike persisted coordinates, they may be fractional (D15). */
@@ -21,11 +22,34 @@ export interface LifetimeState {
   readonly active: boolean;
 }
 
-/** The animatable properties of a node after its animations were applied (D16.6). */
+/** The width and height of a box, in composition pixels; fractional while animated (D68). */
+export interface Size {
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * What is cut away of the picture of an image or a video, in per mille of its
+ * sides from each edge (D68); fractional while animated, two opposite insets
+ * never adding up to more than 999.
+ */
+export interface CropState {
+  readonly fromTop: number;
+  readonly fromRight: number;
+  readonly fromBottom: number;
+  readonly fromLeft: number;
+}
+
+/** The animatable properties of a node after its animations were applied (D16.6, D68). */
 export interface TransformState {
-  /** Offset of the origin of the node relative to the origin of its parent, in composition pixels. */
+  /** Offset of the top-left corner of the node's box from the origin of its parent, in composition pixels. */
   readonly position: Vec2;
+  /** Factors about the origin point, applied before the rotation. */
   readonly scale: Vec2;
+  /** Degrees about the origin point, positive clockwise (D68). */
+  readonly rotation: number;
+  /** The point of the node's box that scale and rotation are about, in per mille of its sides (D68). */
+  readonly origin: Vec2;
   /**
    * Not multiplied into children: a group is composited before its opacity
    * applies (D15). A clip transition's factor is part of it (D56).
@@ -38,6 +62,8 @@ export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video' | 'caption
 export interface BackgroundNodeState extends LifetimeState {
   readonly id: string;
   readonly type: 'background';
+  /** `#rrggbb`, animated or not (D68). */
+  readonly color: string;
 }
 
 /**
@@ -55,13 +81,30 @@ export interface LeafNodeState<Type extends LeafNodeType = LeafNodeType>
   readonly type: Type;
 }
 
+/** A text node with its colour, animated or not (D68). */
+export interface TextNodeState extends LeafNodeState<'text'> {
+  /** `#rrggbb`. */
+  readonly color: string;
+}
+
+/** The box and the picture of an image or a video, animated or not (D68). */
+export interface PictureState {
+  readonly size: Size;
+  readonly crop: CropState;
+  /** Composition pixels; fractional while animated. */
+  readonly cornerRadius: number;
+}
+
+/** An image node with its box and picture (D68). */
+export interface ImageNodeState extends LeafNodeState<'image'>, PictureState {}
+
 /**
  * A video node (D49.5, D50.3): a leaf whose `sourceTimeUs` is the source time it
  * shows, `sourceStartUs + (timeUs − startUs)`, while it is active, and `null`
  * while it is not. The runtime knows no frames: which frame that time selects
  * is the host's matter, by the rule `sourceFrameIndex` of `@kadrion/schema`.
  */
-export interface VideoNodeState extends LeafNodeState<'video'> {
+export interface VideoNodeState extends LeafNodeState<'video'>, PictureState {
   readonly sourceTimeUs: number | null;
 }
 
@@ -72,6 +115,8 @@ export interface VideoNodeState extends LeafNodeState<'video'> {
  * `word` between two words.
  */
 export interface CaptionsNodeState extends LeafNodeState<'captions'> {
+  /** The colour of the words, `#rrggbb`, animated or not (D68); the highlight stays the document's. */
+  readonly color: string;
   readonly page: number | null;
   readonly word: number | null;
 }
@@ -80,13 +125,15 @@ export interface GroupNodeState extends LifetimeState, TransformState, ClipTrans
   readonly id: string;
   readonly type: 'group';
   /** Array order is the z-order, as in the document; groups do not nest. */
-  readonly children: readonly (LeafNodeState<'image' | 'text'> | VideoNodeState)[];
+  readonly children: readonly (ImageNodeState | TextNodeState | VideoNodeState)[];
 }
 
 export type NodeState =
   | BackgroundNodeState
   | GroupNodeState
-  | LeafNodeState<'image' | 'text' | 'custom-html'>
+  | ImageNodeState
+  | TextNodeState
+  | LeafNodeState<'custom-html'>
   | VideoNodeState
   | CaptionsNodeState;
 
