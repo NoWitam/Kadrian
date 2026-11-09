@@ -156,11 +156,12 @@ describe('schema conventions', () => {
     ).toEqual([]);
   });
 
-  it('requires a stable ID for every entity: all array items except keyframes, caption words, the tracks of a text animation, and the fields and items of a list input', () => {
+  it('requires a stable ID for every entity: all array items except keyframes, caption words, the tracks of a text animation, the fields and items of a list input, and the levels of a curve', () => {
     // A keyframe is addressed by its time, a caption word by its index (D57), a
     // field of a list input by its key, an item of its default by its index, and
-    // a value of an item by its field (D58.1), and a track of a text animation
-    // by its property, which it holds once (D69).
+    // a value of an item by its field (D58.1), a track of a text animation
+    // by its property, which it holds once (D69), and a level of a curve by its
+    // index, a number and no entity (D72).
     const values = locationsWhere(({ name }) => name === 'default').map(
       (location) => `${location}/items`,
     );
@@ -168,7 +169,9 @@ describe('schema conventions', () => {
       .filter(
         ({ name, location, schema }) =>
           schema.type === 'array' &&
-          !['keyframes', 'words', 'fields', 'default', 'tracks'].includes(name ?? '') &&
+          !['keyframes', 'words', 'fields', 'default', 'tracks', 'red', 'green', 'blue'].includes(
+            name ?? '',
+          ) &&
           !values.includes(location),
       )
       .flatMap(({ location, schema: { items } }) => {

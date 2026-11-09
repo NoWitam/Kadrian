@@ -7,7 +7,7 @@
  * keyframes with the node.
  */
 import type { ValidatedComposition } from '@kadrion/schema';
-import { effectsComposition } from '@kadrion/test-fixtures';
+import { effectsComposition, effectsSvgComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
 import { applyCommand, type Command } from '../src/index.js';
@@ -304,5 +304,106 @@ describe('the commands that copy, split, and move what holds effects (D71)', () 
   it('holds every kind in the effects fixture, which a bus can start from', () => {
     const document = validated(effectsComposition);
     expect(idsOf(document, 'scene-effects')).toEqual(['scene-effects-e0']);
+  });
+});
+
+describe('the effects of SVG filters through the same commands (D72)', () => {
+  it('adds, sets, reorders, and removes every kind, each undone to the exact text', () => {
+    const kinds = [
+      {
+        id: 'fx-curves',
+        kind: 'curves',
+        red: [0, 1],
+        green: [0, 0.5, 1],
+        blue: [1, 0],
+        amount: 1,
+        animations: [],
+      },
+      {
+        id: 'fx-grade',
+        kind: 'color-grade',
+        lift: 0,
+        gamma: 1,
+        gain: 1,
+        temperature: 0.5,
+        tint: 0,
+        animations: [],
+      },
+      { id: 'fx-glow', kind: 'glow', color: '#f79009', opacity: 1, radius: 4, animations: [] },
+      { id: 'fx-vignette', kind: 'vignette', amount: 1, size: 0.5, animations: [] },
+      {
+        id: 'fx-key',
+        kind: 'chroma-key',
+        key: 'green',
+        tolerance: 0.1,
+        softness: 0.1,
+        spill: 0.5,
+        animations: [],
+      },
+    ];
+    let document = reference();
+    for (const [index, effect] of kinds.entries()) {
+      document = roundTrip(
+        { type: 'AddEffect', ownerId: 'node-image', index, effect },
+        document,
+      ).document;
+    }
+    expect(idsOf(document, 'node-image')).toEqual(kinds.map(({ id }) => id));
+    const vignette = {
+      id: 'fx-vignette',
+      kind: 'vignette',
+      amount: 0,
+      size: 0.5,
+      animations: [
+        {
+          id: 'fx-vignette-a-amount',
+          property: 'amount',
+          keyframes: [
+            { timeUs: 0, value: 0, easing: LINEAR },
+            { timeUs: 1_000_000, value: 1, easing: LINEAR },
+          ],
+        },
+      ],
+    };
+    document = roundTrip({ type: 'SetEffect', effect: vignette }, document).document;
+    document = roundTrip(
+      { type: 'ReorderEffect', effectId: 'fx-key', index: 0 },
+      document,
+    ).document;
+    expect(idsOf(document, 'node-image')[0]).toBe('fx-key');
+    document = roundTrip({ type: 'RemoveEffect', effectId: 'fx-curves' }, document).document;
+    expect(idsOf(document, 'node-image')).toHaveLength(4);
+  });
+
+  it('refuses a curve without levels and a key of red with the errors of the validator', () => {
+    const refused = (effect: unknown): string =>
+      codeOf(() => apply({ type: 'AddEffect', ownerId: 'node-image', index: 0, effect }));
+    expect(
+      refused({
+        id: 'fx',
+        kind: 'curves',
+        red: [],
+        green: [0, 1],
+        blue: [0, 1],
+        amount: 1,
+        animations: [],
+      }),
+    ).toBe('invalid-result');
+    expect(
+      refused({
+        id: 'fx',
+        kind: 'chroma-key',
+        key: 'red',
+        tolerance: 0,
+        softness: 0.1,
+        spill: 0,
+        animations: [],
+      }),
+    ).toBe('invalid-result');
+  });
+
+  it('holds every kind in the composition of SVG effects, which a bus can start from', () => {
+    const document = validated(effectsSvgComposition);
+    expect(idsOf(document, 'scene-svg')).toEqual(['scene-svg-e0']);
   });
 });

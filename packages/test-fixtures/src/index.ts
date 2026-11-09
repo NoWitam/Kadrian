@@ -44,7 +44,10 @@ import migration15After from './compositions/migration-0-14-to-0-15.after.json' 
 import migration15Before from './compositions/migration-0-14-to-0-15.before.json' with { type: 'json' };
 import migration16After from './compositions/migration-0-15-to-0-16.after.json' with { type: 'json' };
 import migration16Before from './compositions/migration-0-15-to-0-16.before.json' with { type: 'json' };
+import migration17After from './compositions/migration-0-16-to-0-17.after.json' with { type: 'json' };
+import migration17Before from './compositions/migration-0-16-to-0-17.before.json' with { type: 'json' };
 import captionsMotion from './compositions/captions-motion.json' with { type: 'json' };
+import effectsSvg from './compositions/effects-svg.json' with { type: 'json' };
 import effects from './compositions/effects.json' with { type: 'json' };
 import motion from './compositions/motion.json' with { type: 'json' };
 import text from './compositions/text.json' with { type: 'json' };
@@ -89,6 +92,8 @@ import invalidCasesV014 from './compositions/reference.v0-14.invalid.json' with 
 import referenceV014 from './compositions/reference.v0-14.json' with { type: 'json' };
 import invalidCasesV015 from './compositions/reference.v0-15.invalid.json' with { type: 'json' };
 import referenceV015 from './compositions/reference.v0-15.json' with { type: 'json' };
+import invalidCasesV016 from './compositions/reference.v0-16.invalid.json' with { type: 'json' };
+import referenceV016 from './compositions/reference.v0-16.json' with { type: 'json' };
 
 export {
   AUDIO_SAMPLE_RATE,
@@ -98,6 +103,8 @@ export {
   FONT_UNITS_PER_EM,
   generateReferenceAssets,
   IMAGE_SIZE,
+  GREEN_SCREEN_FIXTURE,
+  greenScreenFixtureArguments,
   VIDEO_FIXTURE,
   VIDEO_SOUND_FIXTURE,
   videoFixtureArguments,
@@ -207,7 +214,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.16. */
+/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.17. */
 export const referenceComposition: unknown = deepFreeze(reference);
 
 /** Patches over `referenceComposition`; the consumer applies them to a copy. */
@@ -372,8 +379,16 @@ export const invalidCompositionCasesV015 = deepFreeze(
   invalidCasesV015,
 ) as readonly InvalidCompositionCase[];
 
+/** The reference composition as the last build of schema 0.16 had it, frozen (D35.4, D72). */
+export const referenceCompositionV016: unknown = deepFreeze(referenceV016);
+
+/** The negative corpus of schema 0.16, frozen with it: patches over `referenceCompositionV016`. */
+export const invalidCompositionCasesV016 = deepFreeze(
+  invalidCasesV016,
+) as readonly InvalidCompositionCase[];
+
 /**
- * A template of schema 0.16 (D58): a 2 s card, 640x360, 30 fps, with seven
+ * A template of schema 0.17 (D58): a 2 s card, 640x360, 30 fps, with seven
  * inputs — a text `name` and a number `rank` filling the placeholders of the
  * title, a colour `brand` bound to the background, a text `tagline` bound to
  * the tagline, an image `photo` bound to the photo's asset, a boolean
@@ -383,7 +398,7 @@ export const invalidCompositionCasesV015 = deepFreeze(
 export const templateComposition: unknown = deepFreeze(template);
 
 /**
- * A template of schema 0.16 with conditions and repeats (D59): 640x360, 30 fps;
+ * A template of schema 0.17 with conditions and repeats (D59): 640x360, 30 fps;
  * an intro scene kept while the boolean `show-intro` holds, then a scene
  * repeated for each person of the list `people` for the duration its item
  * names, with the colour, the name, and the portrait of the item, and a
@@ -401,7 +416,7 @@ export const repeatsComposition: unknown = deepFreeze(repeats);
 export const repeatsInstantiated: unknown = deepFreeze(repeatsExpected);
 
 /**
- * A composition of schema 0.16 with captions (D57): 3 s, 640x360, 30 fps, one
+ * A composition of schema 0.17 with captions (D57): 3 s, 640x360, 30 fps, one
  * scene with a background and a captions node of ten words, centred at the
  * bottom of its box, at most 16 characters a line and two lines a page, so
  * that the words make four lines and two pages. The first word starts at
@@ -427,7 +442,7 @@ export const captionsGoldenTimestamps: readonly GoldenTimestamp[] = Object.freez
 );
 
 /**
- * A composition of schema 0.16 with five scenes and a transition of each kind
+ * A composition of schema 0.17 with five scenes and a transition of each kind
  * between them (D56): a crossfade, a fade through white, a slide to the left,
  * and a wipe upwards, each 400 ms, and in the last scene a crossfade of 400 ms
  * between an image and a text of one layer. Every scene and every transition
@@ -452,7 +467,7 @@ export const transitionsGoldenTimestamps: readonly GoldenTimestamp[] = Object.fr
 );
 
 /**
- * A composition of schema 0.16 with clip transitions of every kind (D66):
+ * A composition of schema 0.17 with clip transitions of every kind (D66):
  * 11 s, 640x360, 30 fps, four scenes. In `scene-up` eight clips of one layer
  * follow each other, images and texts of 800 ms every 600 ms, each later one
  * above the one before it, joined by transitions of 200 ms of the seven kinds
@@ -496,7 +511,7 @@ export const clipTransitionsGoldenTimestamps: readonly GoldenTimestamp[] = Objec
 );
 
 /**
- * A composition of schema 0.16 with eased motion (D67): 2.6 s, 640x360, 30 fps,
+ * A composition of schema 0.17 with eased motion (D67): 2.6 s, 640x360, 30 fps,
  * two scenes. In `scene-motion` seven images of 40x40 move from x 40 to x 480
  * over the first 1.6 s, one row each, with the easings linear, hold, ease-in,
  * ease-out, ease-in-out, a cubic Bézier that overshoots (0.34, 1.56, 0.64,
@@ -523,7 +538,7 @@ export const easingGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
 );
 
 /**
- * A composition of schema 0.16 with every property of D68 (2 s, 640x360, 30
+ * A composition of schema 0.17 with every property of D68 (2 s, 640x360, 30
  * fps, one scene): a background whose colour moves from #1d2939 to #f79009;
  * an image rotated by 10 degrees about its centre that turns 300 degrees more,
  * eased in and out; an image under cover whose crop grows to 200, 300, 200,
@@ -549,7 +564,7 @@ export const motionGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
 );
 
 /**
- * A composition of schema 0.16 with text styles and text animated in fragments
+ * A composition of schema 0.17 with text styles and text animated in fragments
  * (D69): 2 s, 640x360, 30 fps, one scene with four texts of 40 px on a dark
  * background. `Kadrion danced` has an outline outside its glyphs and enters
  * letter by letter, forward, 60 ms apart, each letter rising 30 px while it
@@ -579,7 +594,7 @@ export const textGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
 );
 
 /**
- * A composition of schema 0.16 with animated captions (D70): 2 s, 640x360, 30
+ * A composition of schema 0.17 with animated captions (D70): 2 s, 640x360, 30
  * fps, one scene with a background, a safe area, and two captions nodes of 32
  * px, two lines a page. `captions-pop` has an outline outside its glyphs; its
  * spoken word turns amber, grows by 1.25, and is underlined; each page enters
@@ -609,7 +624,7 @@ export const captionsMotionGoldenTimestamps: readonly GoldenTimestamp[] = Object
 );
 
 /**
- * A composition of schema 0.16 with effects (D71): 2.2 s, 640x360, 30 fps,
+ * A composition of schema 0.17 with effects (D71): 2.2 s, 640x360, 30 fps,
  * three scenes, the first two joined by a blur dissolve of 400 ms and radius
  * 12. `scene-effects`,
  * saturated by 1.2 as a whole, holds an image whose blur falls from 8 to 0 over
@@ -639,6 +654,36 @@ export const effectsGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze
     { timeUs: 1_300_000, frame: 39 },
     { timeUs: 1_600_000, frame: 48 },
     { timeUs: 2_000_000, frame: 60 },
+  ].map((timestamp) => Object.freeze(timestamp)),
+);
+
+/**
+ * A composition of schema 0.17 with the effects of SVG filters (D72): 1.6 s,
+ * 640x360, 30 fps, two scenes. `scene-svg`, whose vignette deepens from 0 to
+ * 0.5 over 1 s, holds an image whose curves mix in from 0 to 1, eased in and
+ * out; a video graded from cool to warm; a text whose orange glow spreads from
+ * 2 to 10, eased out; a strip of the image brightened, its red channel
+ * inverted by curves, and blurred, in that order, CSS and SVG filters in one
+ * chain; a group glowing from violet to green around a vignetted image and a
+ * text; and the green screen of `GREEN_SCREEN_FIXTURE` keyed by its green
+ * channel over the image, its spill suppressed from 0 to 1. `scene-kinds`,
+ * 400 ms, shows every kind at rest over an image, a green text, and a video,
+ * one column per kind, and a strip of the video keyed by its blue channel. Its
+ * texts use only characters of `FONT_GLYPHS`.
+ */
+export const effectsSvgComposition: unknown = deepFreeze(effectsSvg);
+
+/**
+ * The golden timestamps of `effectsSvgComposition`, with their frame index at
+ * 30 fps: every animation at its start, on its way, and at its end, and every
+ * kind at rest.
+ */
+export const effectsSvgGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
+  [
+    { timeUs: 0, frame: 0 },
+    { timeUs: 500_000, frame: 15 },
+    { timeUs: 1_000_000, frame: 30 },
+    { timeUs: 1_400_000, frame: 42 },
   ].map((timestamp) => Object.freeze(timestamp)),
 );
 
@@ -816,6 +861,16 @@ export const migrationPair015To016: MigrationPair = deepFreeze({
   after: migration16After,
 });
 
+/**
+ * The hand-written pair of the step 0.16 → 0.17 (D35.5, D72): the document the
+ * pair of 0.15 → 0.16 ends with, whose `schemaVersion` changes and nothing
+ * else, since 0.17 only adds kinds of effects.
+ */
+export const migrationPair016To017: MigrationPair = deepFreeze({
+  before: migration17Before,
+  after: migration17After,
+});
+
 /** Which nodes of `lifetimeComposition` are active and which are shown at one time. */
 export interface ExpectedLifetime {
   readonly timeUs: number;
@@ -834,7 +889,7 @@ export interface ExpectedLifetimes {
   readonly times: readonly ExpectedLifetime[];
 }
 
-/** A small composition of schema 0.16 whose nodes begin and end inside it (D42.2). */
+/** A small composition of schema 0.17 whose nodes begin and end inside it (D42.2). */
 export const lifetimeComposition: unknown = deepFreeze(lifetime);
 
 /**
@@ -867,7 +922,7 @@ export const referenceExpectedRender: ExpectedRender = deepFreeze(expectedRender
 export const videoComposition: unknown = deepFreeze(video);
 
 /**
- * A composition of schema 0.16 whose pictures are placed off their centre
+ * A composition of schema 0.17 whose pictures are placed off their centre
  * (D63): 1 s, 640x360, 30 fps, one scene with a background and the reference
  * image and the video of `VIDEO_FIXTURE` twice each — the image with `cover` in
  * a tall box, focused on its left edge, and with `contain` in a wide box,

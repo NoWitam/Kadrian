@@ -433,6 +433,7 @@ y: 0 }`, the top-left corner of D15, so nothing moves;
 
 ### PR-51b — Effects of SVG filters
 
+- Status: in review, with its ADR D72 (Proposed). Deviations from this plan: the kind of lift, gamma, gain, and white balance is `color-grade`, since a matrix is how it is drawn, not what a host writes; the vignette is light from a point over the box (`feDiffuseLighting` in the units of the box) rather than a radial gradient, which a filter cannot hold without an image of its own; only the `amount` of curves animates, the tables are lists. Every filter works in sRGB; the chroma key is a difference of channels, green or blue. The primitives the probes of PR-45 had not covered are added to `tests/probes/catalogue.ts` and measured exact (294 rows in `docs/spike/motion-probes.json`).
 - **Goal:** colour correction, glow, vignette, and a basic chroma key, as
   deterministic as the CSS filters.
 - **Scope (D72):** schema `0.17`: new kinds rendered as SVG filters inside the

@@ -1,5 +1,5 @@
 /**
- * The effects of a node, a group, or a scene at one instant (D71): each
+ * The effects of a node, a group, or a scene at one instant (D71, D72): each
  * parameter is its own value, or what its animation replaces it with, sampled
  * by the rule of D18 under the easing of its keyframe (D67) and held within
  * the bounds of the parameter where eased (D67.6). A colour is sampled per
@@ -34,6 +34,21 @@ export const EFFECT_BOUNDS = {
     opacity: { min: 0, max: 1 },
     offset: { min: -1000, max: 1000 },
     blur: { min: 0, max: 1000 },
+  },
+  curves: { amount: { min: 0, max: 1 } },
+  'color-grade': {
+    lift: { min: -1, max: 1 },
+    gamma: { min: 0.1, max: 10 },
+    gain: { min: 0, max: 10 },
+    temperature: { min: -1, max: 1 },
+    tint: { min: -1, max: 1 },
+  },
+  glow: { opacity: { min: 0, max: 1 }, radius: { min: 0, max: 1000 } },
+  vignette: { amount: { min: 0, max: 1 }, size: { min: 0.05, max: 10 } },
+  'chroma-key': {
+    tolerance: { min: 0, max: 1 },
+    softness: { min: 0.01, max: 1 },
+    spill: { min: 0, max: 1 },
   },
 } as const satisfies Readonly<Record<Effect['kind'], Readonly<Record<string, Bounds>>>>;
 
@@ -113,6 +128,65 @@ function effectAt(effect: Effect, timeUs: number): EffectState {
         opacity: numberAt(effect, 'opacity', effect.opacity, bounds.opacity, timeUs),
         offset: { x: sampledOffset.x + 0, y: sampledOffset.y + 0 },
         blur: numberAt(effect, 'blur', effect.blur, bounds.blur, timeUs),
+      };
+    }
+    case 'curves':
+      return {
+        id: effect.id,
+        kind: effect.kind,
+        red: effect.red.map((level) => level + 0),
+        green: effect.green.map((level) => level + 0),
+        blue: effect.blue.map((level) => level + 0),
+        amount: numberAt(effect, 'amount', effect.amount, EFFECT_BOUNDS.curves.amount, timeUs),
+      };
+    case 'color-grade': {
+      const bounds = EFFECT_BOUNDS['color-grade'];
+      return {
+        id: effect.id,
+        kind: effect.kind,
+        lift: numberAt(effect, 'lift', effect.lift, bounds.lift, timeUs),
+        gamma: numberAt(effect, 'gamma', effect.gamma, bounds.gamma, timeUs),
+        gain: numberAt(effect, 'gain', effect.gain, bounds.gain, timeUs),
+        temperature: numberAt(
+          effect,
+          'temperature',
+          effect.temperature,
+          bounds.temperature,
+          timeUs,
+        ),
+        tint: numberAt(effect, 'tint', effect.tint, bounds.tint, timeUs),
+      };
+    }
+    case 'glow': {
+      const bounds = EFFECT_BOUNDS.glow;
+      const color = animationOf(effect, 'color');
+      return {
+        id: effect.id,
+        kind: effect.kind,
+        color:
+          color === undefined
+            ? effect.color
+            : sampleColorKeyframes(color.keyframes as readonly Keyframe<string>[], timeUs),
+        opacity: numberAt(effect, 'opacity', effect.opacity, bounds.opacity, timeUs),
+        radius: numberAt(effect, 'radius', effect.radius, bounds.radius, timeUs),
+      };
+    }
+    case 'vignette':
+      return {
+        id: effect.id,
+        kind: effect.kind,
+        amount: numberAt(effect, 'amount', effect.amount, EFFECT_BOUNDS.vignette.amount, timeUs),
+        size: numberAt(effect, 'size', effect.size, EFFECT_BOUNDS.vignette.size, timeUs),
+      };
+    case 'chroma-key': {
+      const bounds = EFFECT_BOUNDS['chroma-key'];
+      return {
+        id: effect.id,
+        kind: effect.kind,
+        key: effect.key,
+        tolerance: numberAt(effect, 'tolerance', effect.tolerance, bounds.tolerance, timeUs),
+        softness: numberAt(effect, 'softness', effect.softness, bounds.softness, timeUs),
+        spill: numberAt(effect, 'spill', effect.spill, bounds.spill, timeUs),
       };
     }
     default:

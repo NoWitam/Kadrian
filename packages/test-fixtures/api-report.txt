@@ -106,6 +106,17 @@ export interface FixturePatchOperation {
     readonly value?: unknown;
 }
 
+---- GREEN_SCREEN_FIXTURE
+export declare const GREEN_SCREEN_FIXTURE: Readonly<{
+    id: "asset-video-green";
+    mediaType: "video/mp4";
+    contentHash: "sha256:958229c517ad183021bbb60f90078b14a17d3727e04fc5a0463f06fb21a98f07";
+    width: 320;
+    height: 180;
+    frames: 50;
+    sourceDurationUs: 2000000;
+}>;
+
 ---- GoldenTimestamp
 export interface GoldenTimestamp {
     readonly timeUs: number;
@@ -191,6 +202,12 @@ export declare const effectsComposition: unknown;
 ---- effectsGoldenTimestamps
 export declare const effectsGoldenTimestamps: readonly GoldenTimestamp[];
 
+---- effectsSvgComposition
+export declare const effectsSvgComposition: unknown;
+
+---- effectsSvgGoldenTimestamps
+export declare const effectsSvgGoldenTimestamps: readonly GoldenTimestamp[];
+
 ---- focusComposition
 export declare const focusComposition: unknown;
 
@@ -202,6 +219,9 @@ export declare function generateReferenceAssets(): readonly FixtureAsset[];
 
 ---- goldenTimestamps
 export declare const goldenTimestamps: readonly GoldenTimestamp[];
+
+---- greenScreenFixtureArguments
+export declare function greenScreenFixtureArguments(output: string): readonly string[];
 
 ---- invalidCompositionCases
 export declare const invalidCompositionCases: readonly InvalidCompositionCase[];
@@ -226,6 +246,9 @@ export declare const invalidCompositionCasesV014: readonly InvalidCompositionCas
 
 ---- invalidCompositionCasesV015
 export declare const invalidCompositionCasesV015: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV016
+export declare const invalidCompositionCasesV016: readonly InvalidCompositionCase[];
 
 ---- invalidCompositionCasesV02
 export declare const invalidCompositionCasesV02: readonly InvalidCompositionCase[];
@@ -274,6 +297,9 @@ export declare const migrationPair014To015: MigrationPair;
 
 ---- migrationPair015To016
 export declare const migrationPair015To016: MigrationPair;
+
+---- migrationPair016To017
+export declare const migrationPair016To017: MigrationPair;
 
 ---- migrationPair01To02
 export declare const migrationPair01To02: MigrationPair;
@@ -331,6 +357,9 @@ export declare const referenceCompositionV014: unknown;
 
 ---- referenceCompositionV015
 export declare const referenceCompositionV015: unknown;
+
+---- referenceCompositionV016
+export declare const referenceCompositionV016: unknown;
 
 ---- referenceCompositionV02
 export declare const referenceCompositionV02: unknown;

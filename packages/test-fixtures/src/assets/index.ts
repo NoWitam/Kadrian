@@ -13,6 +13,8 @@ export { AUDIO_SAMPLE_RATE, AUDIO_SECONDS } from './audio.js';
 export { FONT_FAMILY_NAME, FONT_GLYPHS, FONT_UNITS_PER_EM } from './font.js';
 export { IMAGE_SIZE } from './image.js';
 export {
+  GREEN_SCREEN_FIXTURE,
+  greenScreenFixtureArguments,
   VIDEO_FIXTURE,
   VIDEO_SOUND_FIXTURE,
   videoFixtureArguments,

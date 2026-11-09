@@ -84,7 +84,7 @@ interface ExpectedAmountEffect<Kind extends string> {
   readonly animations: readonly ExpectedAnimation<'amount', number>[];
 }
 
-/** One effect of a CSS filter, its parameters animated in its own list (D71). */
+/** One effect of a CSS or an SVG filter, its parameters animated in its own list (D71, D72). */
 type ExpectedEffect =
   | {
       readonly id: string;
@@ -116,6 +116,65 @@ type ExpectedEffect =
         | ExpectedAnimation<'opacity', number>
         | ExpectedAnimation<'offset', ExpectedVec2>
         | ExpectedAnimation<'blur', number>
+      )[];
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'curves';
+      readonly red: readonly number[];
+      readonly green: readonly number[];
+      readonly blue: readonly number[];
+      readonly amount: number;
+      readonly animations: readonly ExpectedAnimation<'amount', number>[];
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'color-grade';
+      readonly lift: number;
+      readonly gamma: number;
+      readonly gain: number;
+      readonly temperature: number;
+      readonly tint: number;
+      readonly animations: readonly (
+        | ExpectedAnimation<'lift', number>
+        | ExpectedAnimation<'gamma', number>
+        | ExpectedAnimation<'gain', number>
+        | ExpectedAnimation<'temperature', number>
+        | ExpectedAnimation<'tint', number>
+      )[];
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'glow';
+      readonly color: string;
+      readonly opacity: number;
+      readonly radius: number;
+      readonly animations: readonly (
+        | ExpectedAnimation<'color', string>
+        | ExpectedAnimation<'opacity', number>
+        | ExpectedAnimation<'radius', number>
+      )[];
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'vignette';
+      readonly amount: number;
+      readonly size: number;
+      readonly animations: readonly (
+        ExpectedAnimation<'amount', number> | ExpectedAnimation<'size', number>
+      )[];
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'chroma-key';
+      readonly key: 'green' | 'blue';
+      readonly tolerance: number;
+      readonly softness: number;
+      readonly spill: number;
+      readonly animations: readonly (
+        | ExpectedAnimation<'tolerance', number>
+        | ExpectedAnimation<'softness', number>
+        | ExpectedAnimation<'spill', number>
       )[];
     };
 
@@ -542,7 +601,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.16';
+  readonly schemaVersion: '0.17';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

@@ -123,22 +123,29 @@ describe.skipIf(!available)('effects in pinned Chromium (D71)', () => {
     await chromium.browser.close();
   });
 
-  it('changes the picture of an image, a text, and a video with every kind', async () => {
-    const all = await frameAt(effectsComposition, KINDS_US);
-    const kinds = (effectsComposition as Draft).scenes
-      .find((scene) => scene.id === 'scene-kinds')
-      ?.nodes.filter((node) => node.type !== 'background');
-    expect(kinds).toHaveLength(27);
-    for (const node of kinds ?? []) {
-      const without = await frameAt(
-        edited((draft) => {
-          nodeOf(draft, node.id).effects = [];
-        }),
-        KINDS_US,
-      );
-      expect(samePixels(all, without), node.id).toBe(false);
-    }
-  });
+  // One test per subject, so that each renders a third of the frames: every
+  // frame is a whole job of the Producer.
+  it.each(['image', 'text', 'video'])(
+    'changes the picture of the %s with every kind',
+    async (subject) => {
+      const all = await frameAt(effectsComposition, KINDS_US);
+      const kinds = (effectsComposition as Draft).scenes
+        .find((scene) => scene.id === 'scene-kinds')
+        ?.nodes.filter((node) => node.type !== 'background');
+      expect(kinds).toHaveLength(27);
+      const ofSubject = (kinds ?? []).filter((node) => node.type === subject);
+      expect(ofSubject.length).toBeGreaterThan(0);
+      for (const node of ofSubject) {
+        const without = await frameAt(
+          edited((draft) => {
+            nodeOf(draft, node.id).effects = [];
+          }),
+          KINDS_US,
+        );
+        expect(samePixels(all, without), node.id).toBe(false);
+      }
+    },
+  );
 
   it('spills a blur beyond the box of its node', async () => {
     // effects-blur is at x 20 to 160, y 20 to 160, blurred by 8 at 0 s; the

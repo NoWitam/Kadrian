@@ -5,7 +5,7 @@
  * of the captions composition (D57), of the focus composition (D63), of the
  * easing composition (D67), of the motion composition (D68), of the text
  * composition (D69), of the animated captions composition (D70), and of the
- * effects composition (D71) with the Producer and writes the golden frames and their manifests into
+ * effects composition (D71), and of the SVG effects composition (D72) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -39,8 +39,11 @@ import {
   easingGoldenTimestamps,
   effectsComposition,
   effectsGoldenTimestamps,
+  effectsSvgComposition,
+  effectsSvgGoldenTimestamps,
   focusComposition,
   focusGoldenTimestamps,
+  GREEN_SCREEN_FIXTURE,
   motionComposition,
   motionGoldenTimestamps,
   textComposition,
@@ -52,7 +55,7 @@ import {
   videoGoldenTimestamps,
 } from '@kadrion/test-fixtures';
 
-import { makeVideoFixture } from './video-fixture.ts';
+import { makeGreenScreenFixture, makeVideoFixture } from './video-fixture.ts';
 
 const directory = fileURLToPath(
   new URL('../../packages/test-fixtures/src/golden-frames/', import.meta.url),
@@ -290,6 +293,32 @@ try {
       `${JSON.stringify({ render: effectsResult.manifest, environment, frames: effectsFrames }, null, 2)}\n`,
     );
     for (const frame of effectsFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The SVG effects composition: every kind over an image, a text, and a video, and a key (D72).
+    const green = await makeGreenScreenFixture(ffmpegPath);
+    const effectsSvgResult = await renderFrames({
+      document: effectsSvgComposition,
+      resolveAsset: ({ id }) => {
+        if (id === VIDEO_FIXTURE.id) return { bytes: video, mediaType: VIDEO_FIXTURE.mediaType };
+        if (id === GREEN_SCREEN_FIXTURE.id) {
+          return { bytes: green, mediaType: GREEN_SCREEN_FIXTURE.mediaType };
+        }
+        return assets[id] ?? null;
+      },
+      timesUs: effectsSvgGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+      ffmpeg: { ffmpegPath, ffprobePath },
+    });
+    const effectsSvgFrames = effectsSvgResult.frames.map(({ index, timeUs, png }) => {
+      const file = `effects-svg-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'effects-svg.golden-frames.json'),
+      `${JSON.stringify({ render: effectsSvgResult.manifest, environment, frames: effectsSvgFrames }, null, 2)}\n`,
+    );
+    for (const frame of effectsSvgFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

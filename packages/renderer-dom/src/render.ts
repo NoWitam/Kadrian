@@ -5,6 +5,8 @@
  */
 import type {
   CaptionsNodeState,
+  EffectState,
+  SvgEffectState,
   FragmentState,
   Circle,
   ClipTransitionState,
@@ -20,6 +22,7 @@ import {
   cssCircle,
   cssColor,
   cssFilter,
+  filterId,
   cssFragmentTransform,
   cssHole,
   cssInset,
@@ -43,6 +46,7 @@ import {
   SCENE_ATTRIBUTE,
   STAGE_ATTRIBUTE,
 } from './mount.js';
+import { EFFECTS_ATTRIBUTE, isSvgEffectState, writeEffectFilters } from './svg-filters.js';
 
 /** A node of the state together with the element that was mounted for it. */
 export interface MountedNode {
@@ -224,7 +228,8 @@ function mountedTree(root: Element, state: CompositionState): MountedTree {
   }
   // Every scene of the document is mounted; the state lists the evaluated ones, in
   // the same order (D54.3), so its IDs must be found among the mounted ones in order.
-  const elements = [...stage.children];
+  // The filters of SVG effects follow the scenes (D72).
+  const elements = [...stage.children].filter((child) => !child.hasAttribute(EFFECTS_ATTRIBUTE));
   const mountedIds = elements.map((child) => child.getAttribute(SCENE_ATTRIBUTE));
   const stateIds = state.scenes.map((scene) => scene.id);
   const positions: number[] = [];
@@ -306,6 +311,8 @@ export function mountedNodes(root: Element, state: CompositionState): MountedNod
  */
 export function renderState(root: Element, state: CompositionState): void {
   const tree = mountedTree(root, state);
+  const filters = tree.stage.querySelector(`:scope > [${EFFECTS_ATTRIBUTE}]`);
+  if (filters !== null) writeEffectFilters(filters, svgEffectsOf(state));
   if (state.backdrop === undefined) tree.stage.style.removeProperty('background-color');
   else tree.stage.style.setProperty('background-color', cssColor(state.backdrop));
   for (const { element, state: scene } of tree.scenes) {
@@ -352,6 +359,23 @@ export function renderState(root: Element, state: CompositionState): void {
     if (node.active) element.style.removeProperty('visibility');
     else element.style.setProperty('visibility', 'hidden');
   }
+}
+
+/** The effects drawn by SVG filters of every evaluated scene and node, by the ID of their filter (D72). */
+function svgEffectsOf(state: CompositionState): Map<string, SvgEffectState> {
+  const effects = new Map<string, SvgEffectState>();
+  const collect = (list: readonly EffectState[]): void => {
+    for (const effect of list)
+      if (isSvgEffectState(effect)) effects.set(filterId(effect.id), effect);
+  };
+  for (const scene of state.scenes) {
+    collect(scene.effects);
+    for (const node of scene.nodes) {
+      if ('effects' in node) collect(node.effects);
+      if (node.type === 'group') for (const child of node.children) collect(child.effects);
+    }
+  }
+  return effects;
 }
 
 /**
