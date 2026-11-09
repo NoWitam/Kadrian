@@ -36,6 +36,10 @@ import {
   setCaptionHighlightArgumentsSchema,
   setCaptionPageAnimationArgumentsSchema,
   setSafeAreaArgumentsSchema,
+  addEffectArgumentsSchema,
+  removeEffectArgumentsSchema,
+  reorderEffectArgumentsSchema,
+  setEffectArgumentsSchema,
   setCaptionWordArgumentsSchema,
   setCaptionWordsArgumentsSchema,
   addTemplateBindingArgumentsSchema,
@@ -112,6 +116,8 @@ import {
   type SetCaptionHighlightArgumentsSchema,
   type SetCaptionPageAnimationArgumentsSchema,
   type SetSafeAreaArgumentsSchema,
+  type AddEffectArgumentsSchema,
+  type SetEffectArgumentsSchema,
   type SetCaptionWordArgumentsSchema,
   type SetCaptionWordsArgumentsSchema,
   type AddTemplateBindingArgumentsSchema,
@@ -155,6 +161,8 @@ export type CommandArgumentsSchema =
   | SetCaptionHighlightArgumentsSchema
   | SetCaptionPageAnimationArgumentsSchema
   | SetSafeAreaArgumentsSchema
+  | AddEffectArgumentsSchema
+  | SetEffectArgumentsSchema
   | AddTemplateInputArgumentsSchema
   | SetTemplateInputArgumentsSchema
   | AddTemplateBindingArgumentsSchema
@@ -228,7 +236,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields. A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, or group ends with its effects, [] for none (add_effect describes one). A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -249,6 +257,7 @@ const METADATA = deepFreeze<MetadataTable>({
         color: '#ffffff',
         style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
         textAnimations: [],
+        effects: [],
       },
     },
     argumentsSchema: addNodeArgumentsSchema,
@@ -261,7 +270,7 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   DuplicateNode: {
     description:
-      'Copies one node, with its animations and children, into the same list directly above the original. The copy takes newNodeId; a child at index i of the copy becomes <newNodeId>-c<i>, an animation <newNodeId>-a-<property>, a text animation at index t <newNodeId>-t<t>. Refused with unknown-node, id-in-use when an ID of the copy is taken, and invalid-result.',
+      'Copies one node, with its animations and children, into the same list directly above the original. The copy takes newNodeId; a child at index i of the copy becomes <newNodeId>-c<i>, an animation <newNodeId>-a-<property>, a text animation at index t <newNodeId>-t<t>, an effect at index e <newNodeId>-e<e> and its animations <newNodeId>-e<e>-a-<parameter>. Refused with unknown-node, id-in-use when an ID of the copy is taken, and invalid-result.',
     example: { nodeId: 'node-title', newNodeId: 'node-title-copy' },
     argumentsSchema: duplicateNodeArgumentsSchema,
   },
@@ -488,7 +497,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setClipSourceArgumentsSchema,
   },
   AddScene: {
-    description: `Inserts one complete scene at an index of the sequence. ${SCENES} The scene is given exactly as the document stores it: an ID unused in the document, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), and its audio clips (each as add_scene_audio_clip takes one), every ID unused in the document. ${TIME_US} Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the scene is not one the document can hold; a scene with video or sound also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete scene at an index of the sequence. ${SCENES} The scene is given exactly as the document stores it: an ID unused in the document, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), its audio clips (each as add_scene_audio_clip takes one), its clip transitions, and its effects ([] for none; add_effect describes one), every ID unused in the document. ${TIME_US} Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the scene is not one the document can hold; a scene with video or sound also with media-facts-missing and source-range-exceeded.`,
     example: {
       index: 1,
       scene: {
@@ -506,6 +515,7 @@ const METADATA = deepFreeze<MetadataTable>({
         ],
         clips: [],
         transitions: [],
+        effects: [],
       },
     },
     argumentsSchema: addSceneArgumentsSchema,
@@ -516,7 +526,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: removeSceneArgumentsSchema,
   },
   DuplicateScene: {
-    description: `Copies one scene, with its nodes, animations, and clips, directly after it. ${SCENES} The copy's IDs derive from newSceneId: the node at index i becomes <newSceneId>-n<i>, its child at index j <newSceneId>-n<i>-c<j>, an animation <owner>-a-<property>, and the clip at index k <newSceneId>-k<k>. Refused with invalid-argument for an ID not of the document's form, unknown-scene, id-in-use with the derived IDs already taken, and invalid-result; a scene with video or sound also with media-facts-missing and source-range-exceeded.`,
+    description: `Copies one scene, with its nodes, animations, and clips, directly after it. ${SCENES} The copy's IDs derive from newSceneId: the node at index i becomes <newSceneId>-n<i>, its child at index j <newSceneId>-n<i>-c<j>, an animation <owner>-a-<property>, an effect at index e of the scene or a node <owner>-e<e> with its animations <owner>-e<e>-a-<parameter>, and the clip at index k <newSceneId>-k<k>. Refused with invalid-argument for an ID not of the document's form, unknown-scene, id-in-use with the derived IDs already taken, and invalid-result; a scene with video or sound also with media-facts-missing and source-range-exceeded.`,
     example: { sceneId: 'scene-main', newSceneId: 'scene-again' },
     argumentsSchema: duplicateSceneArgumentsSchema,
   },
@@ -570,7 +580,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: trimClipEndArgumentsSchema,
   },
   SplitClip: {
-    description: `Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, and every text animation as <newClipId>-t<t>, one of phase in as an accent at the start of the whole, so both halves look exactly like the whole; a text with a text animation of phase out is refused with split-not-exact. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded.`,
+    description: `Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, every effect as <newClipId>-e<e> with its animations as <newClipId>-e<e>-a-<parameter>, and every text animation as <newClipId>-t<t>, one of phase in as an accent at the start of the whole, so both halves look exactly like the whole; a text with a text animation of phase out is refused with split-not-exact. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded.`,
     example: { clipId: 'node-title', atUs: 5_000_000, newClipId: 'node-title-tail' },
     argumentsSchema: splitClipArgumentsSchema,
   },
@@ -580,7 +590,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: joinClipsArgumentsSchema,
   },
   AddSceneTransition: {
-    description: `Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide, wipe, or push with a direction (left, right, up, down), zoom with a fromScale, or iris with a center. Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. ${TRANSITIONS} ${TIME_US} Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes.`,
+    description: `Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide, wipe, or push with a direction (left, right, up, down), zoom with a fromScale, iris with a center, or blur-dissolve with a radius. Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. ${TRANSITIONS} ${TIME_US} Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes.`,
     example: {
       index: 0,
       transition: {
@@ -595,7 +605,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: addSceneTransitionArgumentsSchema,
   },
   AddClipTransition: {
-    description: `Adds a transition between two clips of one layer of a scene — two children of one parent, neither a background — whose lifetimes already overlap by exactly durationUs: the outgoing node ends durationUs after the incoming one starts. During the overlap the effect combines them in the frame of the canvas — crossfade, fade-through-color, slide, wipe, push, zoom, or iris, as for scenes; nothing moves in time. Make the overlap first with move_clip, trim_clip_start, or trim_clip_end, or call add_clip_transition_at_cut for two clips that meet end to end. ${TRANSITIONS} ${TIME_US} Refused with unknown-scene, index-out-of-range, id-in-use, and invalid-result when the nodes are not siblings of this scene, a background, or do not overlap by exactly durationUs.`,
+    description: `Adds a transition between two clips of one layer of a scene — two children of one parent, neither a background — whose lifetimes already overlap by exactly durationUs: the outgoing node ends durationUs after the incoming one starts. During the overlap the effect combines them in the frame of the canvas — crossfade, fade-through-color, slide, wipe, push, zoom, iris, or blur-dissolve, as for scenes; nothing moves in time. Make the overlap first with move_clip, trim_clip_start, or trim_clip_end, or call add_clip_transition_at_cut for two clips that meet end to end. ${TRANSITIONS} ${TIME_US} Refused with unknown-scene, index-out-of-range, id-in-use, and invalid-result when the nodes are not siblings of this scene, a background, or do not overlap by exactly durationUs.`,
     example: {
       sceneId: 'scene-main',
       index: 0,
@@ -621,7 +631,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTransitionDurationArgumentsSchema,
   },
   SetTransitionEffect: {
-    description: `Replaces how a transition combines its two sides with a complete effect: {"kind":"crossfade"}, {"kind":"fade-through-color","color":"#000000"}, {"kind":"slide","direction":"left"}, {"kind":"wipe","direction":"up"}, {"kind":"push","direction":"right"}, {"kind":"zoom","fromScale":0.5}, or {"kind":"iris","center":{"x":500,"y":500}}; directions are left, right, up, and down, the way the incoming side moves. Scene and clip transitions take the same effects. No time changes. ${TRANSITIONS} Refused with unknown-transition and invalid-result.`,
+    description: `Replaces how a transition combines its two sides with a complete effect: {"kind":"crossfade"}, {"kind":"fade-through-color","color":"#000000"}, {"kind":"slide","direction":"left"}, {"kind":"wipe","direction":"up"}, {"kind":"push","direction":"right"}, {"kind":"zoom","fromScale":0.5}, {"kind":"iris","center":{"x":500,"y":500}}, or {"kind":"blur-dissolve","radius":12} (the outgoing side blurs and the incoming one sharpens while it fades in); directions are left, right, up, and down, the way the incoming side moves. Scene and clip transitions take the same effects. No time changes. ${TRANSITIONS} Refused with unknown-transition and invalid-result.`,
     example: { transitionId: 'transition-outro', effect: { kind: 'wipe', direction: 'left' } },
     argumentsSchema: setTransitionEffectArgumentsSchema,
   },
@@ -809,6 +819,57 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Replaces the safe area of the composition, {fromTop, fromRight, fromBottom, fromLeft}: integer composition pixels from each edge of the canvas to the part of the frame where captions and other text that must be read belong, clear of what a platform draws over the video; two opposite insets leave at least 1 pixel, and all zero is the whole canvas. It is a frame of reference, not a clip: it cuts and moves nothing, and nothing outside it is hidden. Keep captions inside it by placing their box with set_node_position and set_node_size. describe_document shows it. Refused with invalid-argument and invalid-result.`,
     example: { safeArea: { fromTop: 160, fromRight: 64, fromBottom: 320, fromLeft: 64 } },
     argumentsSchema: setSafeAreaArgumentsSchema,
+  },
+  AddEffect: {
+    description: `Adds an effect to an image, video, text, captions node, or group, or to a whole scene, at an index of its effects: effects apply in their order, the first to the content itself, after the corner radius and before the opacity and the transform, so a blur or a shadow turns and scales with the node; a group's or a scene's effects apply to everything in it composited together, and a scene transition then acts on the result. The effect is {id, kind, ...parameters, animations}: "blur" {radius} blurs by a Gaussian of that standard deviation in composition pixels (0 to 1000) and spills beyond the box; "brightness", "contrast", and "saturate" {amount} scale by a factor from 0 to 10 (1 changes nothing; brightness 0 is black, contrast and saturate 0 grey); "grayscale", "invert", and "sepia" {amount} apply from 0 (nothing) to 1 (all grey, the negative, all sepia); "hue-rotate" {angle} turns every hue by degrees; "drop-shadow" {color, opacity, offset {x, y}, blur} casts the shape's shadow (lowercase #rrggbb, 0 to 1, pixels -1000 to 1000, a blur radius 0 to 1000). animations animate parameters: at most one per parameter, {id, property, keyframes} with property the parameter's name (radius, amount, angle, color, opacity, offset, blur) and at least two keyframes {timeUs, value, easing} in ascending scene time, like a node's keyframes; a sampled value replaces the parameter, and before the first and after the last keyframe the nearest value holds; [] for none. ${EASINGS} An effect whose values change nothing still draws its holder in a pass of its own, a few levels from none; remove_effect for none. Refused with unknown-node when ownerId names no node or scene, unsupported-node for a background or Custom HTML, index-out-of-range, id-in-use, and invalid-result.`,
+    example: {
+      ownerId: 'node-image',
+      index: 0,
+      effect: {
+        id: 'effect-image-blur',
+        kind: 'blur',
+        radius: 0,
+        animations: [
+          {
+            id: 'effect-image-blur-a-radius',
+            property: 'radius',
+            keyframes: [
+              { timeUs: 0, value: 12, easing: { kind: 'ease-out' } },
+              { timeUs: 600_000, value: 0, easing: { kind: 'linear' } },
+            ],
+          },
+        ],
+      },
+    },
+    argumentsSchema: addEffectArgumentsSchema,
+  },
+  RemoveEffect: {
+    description:
+      'Removes one effect of a node or a scene with its animations; a node or a scene left without effects is drawn without a filter again, exactly as before it had one. Refused with unknown-effect when no effect has the ID.',
+    example: { effectId: 'effect-image-blur' },
+    argumentsSchema: removeEffectArgumentsSchema,
+  },
+  ReorderEffect: {
+    description:
+      "Moves one effect to another index of its owner's effects: 0 applies first, to the content itself. The order matters: a blur before a drop shadow blurs the shape whose shadow is cast, after it blurs the shadow too. Refused with unknown-effect and index-out-of-range.",
+    example: { effectId: 'effect-image-blur', index: 1 },
+    argumentsSchema: reorderEffectArgumentsSchema,
+  },
+  SetEffect: {
+    description:
+      'Replaces an effect with a complete new one of the same ID, as add_effect describes it: its kind, its parameters, and its animations, whose new IDs are unused in the document. To change one keyframe, send the whole effect with that keyframe changed. Refused with unknown-effect when no effect has its id, id-in-use, and invalid-result.',
+    example: {
+      effect: {
+        id: 'effect-image-blur',
+        kind: 'drop-shadow',
+        color: '#000000',
+        opacity: 0.5,
+        offset: { x: 0, y: 8 },
+        blur: 16,
+        animations: [],
+      },
+    },
+    argumentsSchema: setEffectArgumentsSchema,
   },
   AddTemplateInput: {
     description: `Inserts an input into the template: {id, type, ...constraints, default}, with an ID unused in the document. A text has minLength and maxLength in code points, a number minimum and maximum, a boolean, a color (lowercase #rrggbb), an image, video, or audio only a default content hash, and a list minItems, maxItems, fields ({key, type, ...constraints}, no list among them), and a default whose items each list one {key, type, value} per field in their order; the default meets the constraints. Nothing reads a new input until a binding does; a boolean or a list is read by no binding yet. ${TEMPLATE} Refused with index-out-of-range, id-in-use, and invalid-result when the input is not one the document can hold.`,

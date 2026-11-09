@@ -75,6 +75,7 @@ const captionNode = {
   color: '#ffffff',
   style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
   textAnimations: [],
+  effects: [],
 };
 
 describe('the literals of the example, as this test reads them', () => {

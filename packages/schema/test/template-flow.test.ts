@@ -129,6 +129,49 @@ describe('repeats (D59.2)', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it('renames the effects of each copy and moves their keyframes with it (D71)', () => {
+    const document = copy(template);
+    const line = nodesOf(document, 'scene-credits').find((node) => node['id'] === 'credit-line');
+    if (line === undefined) throw new Error('No line.');
+    line['effects'] = [
+      {
+        id: 'credit-blur',
+        kind: 'blur',
+        radius: 0,
+        animations: [
+          {
+            id: 'credit-blur-radius',
+            property: 'radius',
+            keyframes: [
+              { timeUs: 100_000, value: 4, easing: { kind: 'linear' } },
+              { timeUs: 300_000, value: 0, easing: { kind: 'linear' } },
+            ],
+          },
+        ],
+      },
+    ];
+    const composition = instantiated(
+      { people: [person('Dina', 500_000), person('Kim', 700_000)] },
+      validated(document),
+    );
+    const effects = nodesOf(composition, 'scene-credits')
+      .filter((node) => String(node['id']).startsWith('credit-line'))
+      .map((node) => (node['effects'] as Mutable[])[0]);
+    expect(effects.map((effect) => effect?.['id'])).toEqual(['credit-blur--0', 'credit-blur--1']);
+    expect(
+      effects.map((effect) => {
+        const [animation] = effect?.['animations'] as Mutable[];
+        return [
+          animation?.['id'],
+          (animation?.['keyframes'] as Mutable[]).map((keyframe) => keyframe['timeUs']),
+        ];
+      }),
+    ).toEqual([
+      ['credit-blur-radius--0', [100_000, 300_000]],
+      ['credit-blur-radius--1', [500_000, 700_000]],
+    ]);
+  });
+
   it('writes the fields of each item into its copy, and makes one asset per item', () => {
     const composition = instantiated({
       title: 'Kadrion',
@@ -304,6 +347,7 @@ describe('conditions (D59.1)', () => {
       opacity: 1,
       animations: [],
       children: [text('badge-a', 0), text('badge-b', 300_000)],
+      effects: [],
     });
     credits['transitions'] = [
       {

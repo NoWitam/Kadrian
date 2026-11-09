@@ -11,6 +11,7 @@
 - Amended by: PR-48 (D68) on 2026-11-07: 16.6: rotation and origin keyframes are offsets; size, colour, crop, and corner radius keyframes replace their base value (D68.3)
 - Amended by: PR-49 (D69) on 2026-11-08: a text has a `style` and `textAnimations`; the tracks of a text animation follow the rules of 16.6 (D69.3, D69.6)
 - Amended by: PR-50 (D70) on 2026-11-08: captions have a highlight, a text style, and page animations whose tracks follow the rules of 16.6; the composition has a `safeArea` (D70.1, D70.6, D70.7)
+- Amended by: PR-51a (D71) on 2026-11-09: images, videos, texts, captions, groups, and scenes have `effects`, each with animations whose keyframes follow the rules of 16.6 (D71.1–D71.3)
 - Superseded in part by: PR-30 (D54) on 2026-11-01: the one-scene rule of 16.2 and 16.5; from `0.5` a composition is a sequence of scenes, each with its own duration and clips, and every time inside a scene is scene time (D54.1)
 - Related: D02, D04, D05, D09, D13, D14, D15, D17,
   [specification](../spike/vertical-spike.md) §3 and open questions Q11, Q13,

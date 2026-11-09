@@ -30,6 +30,7 @@ import type {
   AudioClip,
   CaptionsNode,
   Composition,
+  EffectAnimation,
   FragmentTrack,
   NodeAnimation,
   SceneNode,
@@ -53,6 +54,7 @@ import type { CompositionV011 } from './v0-11/composition-schema.js';
 import type { CompositionV012 } from './v0-12/composition-schema.js';
 import type { CompositionV013 } from './v0-13/composition-schema.js';
 import type { CompositionV014 } from './v0-14/composition-schema.js';
+import type { CompositionV015 } from './v0-15/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -62,6 +64,8 @@ type SceneNodeV012 = CompositionV012['scenes'][number]['nodes'][number];
 type SceneNodeV013 = CompositionV013['scenes'][number]['nodes'][number];
 /** A node of 0.14, whose captions have a highlight colour only (D70). */
 type SceneNodeV014 = CompositionV014['scenes'][number]['nodes'][number];
+/** A node of 0.15, which has no effects (D71). */
+type SceneNodeV015 = CompositionV015['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -94,7 +98,8 @@ function checkUniqueIds(
 
 /** An animation of any version: the rules read its property and the times of its keyframes only. */
 type AnyAnimation = {
-  readonly property: NodeAnimation['property'] | FragmentTrack['property'];
+  readonly property:
+    NodeAnimation['property'] | FragmentTrack['property'] | EffectAnimation['property'];
 } & {
   readonly keyframes: readonly { readonly timeUs: number }[];
 };
@@ -136,6 +141,17 @@ function checkAnimations(
         });
       }
     });
+  });
+}
+
+/** The animations of every effect of a list follow the rules of animations (D71). */
+function checkEffects(
+  effects: readonly { readonly animations: readonly AnyAnimation[] }[],
+  path: string,
+  errors: ValidationError[],
+): void {
+  effects.forEach((effect, index) => {
+    checkAnimations(effect.animations, pointer(pointer(path, index), 'animations'), errors);
   });
 }
 
@@ -203,7 +219,8 @@ export function validateSemantics(
     | CompositionV011
     | CompositionV012
     | CompositionV013
-    | CompositionV014,
+    | CompositionV014
+    | CompositionV015,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -294,8 +311,16 @@ export function validateSemantics(
         if ('crop' in member.node) {
           checkCrop(member.node.crop, pointer(member.path, 'crop'), animationErrors);
         }
+        // The effects of 0.16 follow the rules of animations, one list per effect (D71).
+        if ('effects' in member.node) {
+          checkEffects(member.node.effects, pointer(member.path, 'effects'), animationErrors);
+        }
       }
     });
+    if ('effects' in scene) {
+      const scenePath = pointer(pointer('', 'scenes'), sceneIndex);
+      checkEffects(scene.effects, pointer(scenePath, 'effects'), animationErrors);
+    }
   });
   const fadeErrors: ValidationError[] = [];
   const checkClip = (clip: AudioClip | CompositionV03['clips'][number], clipPath: string): void => {
@@ -502,6 +527,7 @@ function checkTemplate(
   composition:
     | Composition
     | CompositionV012
+    | CompositionV015
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -914,6 +940,7 @@ function subtreeOf(
   composition:
     | Composition
     | CompositionV012
+    | CompositionV015
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -974,7 +1001,9 @@ interface Located {
     | SceneNodeV013
     | Extract<SceneNodeV013, { type: 'group' }>['children'][number]
     | SceneNodeV014
-    | Extract<SceneNodeV014, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV014, { type: 'group' }>['children'][number]
+    | SceneNodeV015
+    | Extract<SceneNodeV015, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -997,7 +1026,8 @@ function checkTransitions(
     | CompositionV011
     | CompositionV012
     | CompositionV013
-    | CompositionV014,
+    | CompositionV014
+    | CompositionV015,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

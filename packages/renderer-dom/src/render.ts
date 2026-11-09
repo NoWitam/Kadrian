@@ -19,6 +19,7 @@ import type {
 import {
   cssCircle,
   cssColor,
+  cssFilter,
   cssFragmentTransform,
   cssHole,
   cssInset,
@@ -54,9 +55,17 @@ export interface MountedNode {
 /**
  * The declarations `renderState` writes on a node; the mount writes none of
  * them. Besides the transform, the opacity, and the visibility, the colour of a
- * background, a text, and captions, which an animation can reach (D68).
+ * background, a text, and captions, which an animation can reach (D68), and
+ * the filter of a node with effects or a blurring transition (D71).
  */
-const WRITTEN = ['transform', 'opacity', 'visibility', 'background-color', 'color'] as const;
+const WRITTEN = [
+  'transform',
+  'opacity',
+  'visibility',
+  'background-color',
+  'color',
+  'filter',
+] as const;
 
 /**
  * The declarations `renderState` writes on the picture of an image or a video,
@@ -75,8 +84,11 @@ const FRAGMENT_UNITS = [
   ['letter', 'letters'],
 ] as const;
 
-/** The declarations of a scene transition on a scene element (D56); the mount writes none of them. */
-const TRANSITION_WRITTEN = ['opacity', 'transform', 'clip-path'] as const;
+/**
+ * The declarations of a scene transition and of the scene's effects on a scene
+ * element (D56, D71); the mount writes none of them.
+ */
+const TRANSITION_WRITTEN = ['opacity', 'transform', 'clip-path', 'filter'] as const;
 
 /** The declarations of a clip transition on the frame of a side (D66); the mount writes none of them. */
 const FRAME_WRITTEN = ['clip-path', 'background-color'] as const;
@@ -299,6 +311,8 @@ export function renderState(root: Element, state: CompositionState): void {
   for (const { element, state: scene } of tree.scenes) {
     writeSceneTransition(element, scene?.transition);
     if (scene !== null) {
+      const filter = cssFilter(scene.effects, scene.transition?.blur);
+      if (filter !== null) element.style.setProperty('filter', filter);
       element.style.removeProperty('visibility');
       continue;
     }
@@ -327,6 +341,9 @@ export function renderState(root: Element, state: CompositionState): void {
       const own = cssTransform(node);
       element.style.setProperty('transform', moved === '' ? own : `${moved} ${own}`);
       element.style.setProperty('opacity', cssNumber(node.opacity));
+      const filter = cssFilter('effects' in node ? node.effects : [], node.transition?.blur);
+      if (filter === null) element.style.removeProperty('filter');
+      else element.style.setProperty('filter', filter);
       const frame = element.parentElement;
       if (frame?.getAttribute(CLIP_FRAME_ATTRIBUTE) === node.id) {
         writeClipFrame(frame, node.transition);

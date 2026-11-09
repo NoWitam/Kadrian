@@ -297,6 +297,7 @@ describe('the arithmetic rule (D18)', () => {
       opacity: 0.3 * (0.2 + ((0.8 - 0.2) * 2) / 3),
       color: '#ffffff',
       fragments: null,
+      effects: [],
     });
   });
 });
@@ -326,6 +327,7 @@ describe('sampling (D16.6, D18)', () => {
       size: { width: 400, height: 400 },
       crop: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
       cornerRadius: 0,
+      effects: [],
     });
   });
 
@@ -417,6 +419,7 @@ describe('sampling (D16.6, D18)', () => {
       opacity: 0.75 * 0.5,
       color: '#ffffff',
       fragments: null,
+      effects: [],
     });
     for (const state of states) expect(state).toStrictEqual(states[0]);
   });

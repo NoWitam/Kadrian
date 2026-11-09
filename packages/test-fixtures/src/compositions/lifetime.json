@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.15",
+  "schemaVersion": "0.16",
   "width": 400,
   "height": 300,
   "safeArea": {
@@ -86,7 +86,8 @@
                   "kind": "none"
                 }
               },
-              "textAnimations": []
+              "textAnimations": [],
+              "effects": []
             },
             {
               "id": "life-child-late",
@@ -123,9 +124,11 @@
                   "kind": "none"
                 }
               },
-              "textAnimations": []
+              "textAnimations": [],
+              "effects": []
             }
-          ]
+          ],
+          "effects": []
         },
         {
           "id": "life-text",
@@ -189,7 +192,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "life-never",
@@ -226,7 +230,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "life-html",
@@ -254,7 +259,8 @@
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     }
   ],
   "clips": [],

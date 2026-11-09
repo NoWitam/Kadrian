@@ -1,0 +1,272 @@
+{
+  "schemaVersion": "0.16",
+  "width": 640,
+  "height": 360,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 2000000,
+  "assets": [
+    {
+      "id": "asset-photo",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    },
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-card",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "card-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "card-photo",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 40,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-photo",
+          "width": 200,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "effects": []
+        },
+        {
+          "id": "card-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 280,
+            "y": 80
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "{{name}} dd {{rank}}",
+          "fontAssetId": "asset-font",
+          "fontSize": 48,
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
+          },
+          "textAnimations": [],
+          "effects": []
+        },
+        {
+          "id": "card-tagline",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 280,
+            "y": 200
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Made by Kadrion",
+          "fontAssetId": "asset-font",
+          "fontSize": 32,
+          "color": "#e4e7ec",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
+          },
+          "textAnimations": [],
+          "effects": []
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "template": {
+    "inputs": [
+      {
+        "id": "name",
+        "type": "text",
+        "minLength": 1,
+        "maxLength": 24,
+        "default": "Kadrion"
+      },
+      {
+        "id": "rank",
+        "type": "number",
+        "minimum": 1,
+        "maximum": 99,
+        "default": 1
+      },
+      {
+        "id": "brand",
+        "type": "color",
+        "default": "#101828"
+      },
+      {
+        "id": "tagline",
+        "type": "text",
+        "minLength": 0,
+        "maxLength": 40,
+        "default": "Made by Kadrion"
+      },
+      {
+        "id": "photo",
+        "type": "image",
+        "default": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+      },
+      {
+        "id": "show-photo",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "id": "team",
+        "type": "list",
+        "minItems": 0,
+        "maxItems": 8,
+        "fields": [
+          {
+            "key": "name",
+            "type": "text",
+            "minLength": 1,
+            "maxLength": 24
+          },
+          {
+            "key": "accent",
+            "type": "color"
+          }
+        ],
+        "default": [
+          [
+            {
+              "key": "name",
+              "type": "text",
+              "value": "Ada"
+            },
+            {
+              "key": "accent",
+              "type": "color",
+              "value": "#f79009"
+            }
+          ],
+          [
+            {
+              "key": "name",
+              "type": "text",
+              "value": "Kian"
+            },
+            {
+              "key": "accent",
+              "type": "color",
+              "value": "#12b76a"
+            }
+          ]
+        ]
+      }
+    ],
+    "bindings": [
+      {
+        "id": "bind-brand",
+        "kind": "property",
+        "nodeId": "card-background",
+        "property": "color",
+        "inputId": "brand"
+      },
+      {
+        "id": "bind-title",
+        "kind": "placeholders",
+        "nodeId": "card-title"
+      },
+      {
+        "id": "bind-tagline",
+        "kind": "property",
+        "nodeId": "card-tagline",
+        "property": "text",
+        "inputId": "tagline"
+      },
+      {
+        "id": "bind-photo",
+        "kind": "asset",
+        "assetId": "asset-photo",
+        "inputId": "photo"
+      }
+    ],
+    "conditions": [],
+    "repeats": []
+  }
+}

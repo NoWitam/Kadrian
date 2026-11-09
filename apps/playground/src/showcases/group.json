@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.15",
+  "schemaVersion": "0.16",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -147,7 +147,8 @@
                 "bottom": 0,
                 "left": 0
               },
-              "cornerRadius": 0
+              "cornerRadius": 0,
+              "effects": []
             },
             {
               "id": "node-card-caption",
@@ -211,9 +212,11 @@
                   "kind": "none"
                 }
               },
-              "textAnimations": []
+              "textAnimations": [],
+              "effects": []
             }
-          ]
+          ],
+          "effects": []
         },
         {
           "id": "node-title",
@@ -250,11 +253,13 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     }
   ],
   "clips": [],

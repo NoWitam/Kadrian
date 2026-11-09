@@ -104,7 +104,7 @@ const VOICE = wav(2, RATE, (frame, channel) =>
 /** The document of this test: 2 s at 25 fps, a background, a video with sound, and three clips. */
 function document(videoHash: string, videoVolume = 0.5): Record<string, unknown> {
   return {
-    schemaVersion: '0.15',
+    schemaVersion: '0.16',
     width: 320,
     height: 180,
     safeArea: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
@@ -148,10 +148,12 @@ function document(videoHash: string, videoVolume = 0.5): Record<string, unknown>
             crop: { top: 0, right: 0, bottom: 0, left: 0 },
             cornerRadius: 0,
             volume: videoVolume,
+            effects: [],
           },
         ],
         clips: [],
         transitions: [],
+        effects: [],
       },
     ],
     clips: [

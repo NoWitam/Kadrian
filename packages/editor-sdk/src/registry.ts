@@ -37,6 +37,10 @@ import {
   parseSetCaptionHighlight,
   parseSetCaptionPageAnimation,
   parseSetSafeArea,
+  parseAddEffect,
+  parseRemoveEffect,
+  parseReorderEffect,
+  parseSetEffect,
   parseSetCaptionWord,
   parseSetCaptionWords,
   parseAddTemplateBinding,
@@ -113,6 +117,9 @@ import {
   locateAnimation,
   locateClip,
   locateTextAnimation,
+  locateEffect,
+  effectsIds,
+  replaceEffects,
   locateNode,
   locateScene,
   locateTransition,
@@ -135,6 +142,7 @@ import {
   type DocumentObject,
   type NodeLocation,
   type TextAnimationLocation,
+  type EffectLocation,
   type ValidationFinding,
 } from './document.js';
 import { EditorError } from './errors.js';
@@ -289,7 +297,8 @@ function outOfRange(index: number, last: number, what: string): EditorError {
 
 /**
  * A node's animations renamed after their owner: `<owner>-a-<property>` (D39.3),
- * and its text animations `<owner>-t<i>` by their index (D69).
+ * its text animations `<owner>-t<i>` by their index (D69), and its effects as
+ * `renamedEffects` names them (D71).
  */
 function renamedAnimations(owner: DocumentObject, ownerId: string): DocumentObject {
   let renamed = owner;
@@ -313,7 +322,28 @@ function renamedAnimations(owner: DocumentObject, ownerId: string): DocumentObje
       ),
     };
   }
-  return renamed;
+  return renamedEffects(renamed, ownerId);
+}
+
+/**
+ * An owner's effects renamed after it (D71): the effect at index i is
+ * `<owner>-e<i>`, and each of its animations that effect's ID followed by
+ * `-a-<parameter>`, in the manner of D39.3.
+ */
+function renamedEffects(owner: DocumentObject, ownerId: string): DocumentObject {
+  const effects = owner['effects'];
+  if (!Array.isArray(effects)) return owner;
+  return {
+    ...owner,
+    effects: (effects as readonly unknown[]).map((effect, index) =>
+      isObject(effect)
+        ? renamedAnimations(
+            { ...effect, id: `${ownerId}-e${String(index)}` },
+            `${ownerId}-e${String(index)}`,
+          )
+        : effect,
+    ),
+  };
 }
 
 /**
@@ -404,6 +434,18 @@ function requireAsset(document: DocumentObject, assetId: string, type: string): 
     );
   }
 }
+
+/** The effect with that ID and where it lives, or `unknown-effect` (D71). */
+function locatedEffect(document: DocumentObject, effectId: string): EffectLocation {
+  const location = locateEffect(document, effectId);
+  if (location === null) {
+    throw new EditorError('unknown-effect', `The document has no effect \`${effectId}\`.`);
+  }
+  return location;
+}
+
+/** The node types that take effects (D71). */
+const EFFECT_OWNERS = ['image', 'video', 'text', 'captions', 'group'] as const;
 
 /** The animation with that ID, or `unknown-animation` (D41.2). */
 function locatedTextAnimation(
@@ -591,8 +633,10 @@ function sceneDuration(scene: DocumentObject): number {
  * The copy of a scene under the IDs D54.5 derives from `newSceneId`, in the
  * manner of D39.3: the scene is `S`, the node at index i is `S-n<i>`, a child of
  * that node at index j is `S-n<i>-c<j>`, each animation is its owner's ID
- * followed by `-a-<property>`, and the clip at index k is `S-k<k>`. Only the
- * `id` fields change.
+ * followed by `-a-<property>`, an effect at index e of the scene or of a node
+ * is its owner's ID followed by `-e<e>` and its animations that ID followed by
+ * `-a-<parameter>` (D71), and the clip at index k is `S-k<k>`. Only the `id`
+ * fields change.
  */
 function duplicatedScene(source: DocumentObject, newSceneId: string): DocumentObject {
   const copy = copyNode(source);
@@ -614,7 +658,7 @@ function duplicatedScene(source: DocumentObject, newSceneId: string): DocumentOb
     });
   }
   return deepFreeze({
-    ...copy,
+    ...renamedEffects(copy, newSceneId),
     id: newSceneId,
     ...(Array.isArray(nodes)
       ? {
@@ -793,7 +837,19 @@ function shiftedWords(node: DocumentObject, deltaUs: number): DocumentObject {
  * its text animations, moved by `deltaUs`; every key keeps its place (D55.3, D69).
  */
 function shiftedAnimations(owner: DocumentObject, deltaUs: number): DocumentObject {
-  return shiftedKeyframes(shiftedAccents(owner, deltaUs), deltaUs);
+  return shiftedEffects(shiftedKeyframes(shiftedAccents(owner, deltaUs), deltaUs), deltaUs);
+}
+
+/** Every keyframe of the animations of an owner's effects moved by `deltaUs` (D55.3, D71). */
+function shiftedEffects(owner: DocumentObject, deltaUs: number): DocumentObject {
+  const effects: unknown = owner['effects'];
+  if (!Array.isArray(effects)) return owner;
+  return {
+    ...owner,
+    effects: (effects as readonly unknown[]).map((effect) =>
+      isObject(effect) ? shiftedKeyframes(effect, deltaUs) : effect,
+    ),
+  };
 }
 
 /** The accents of a text node's text animations moved by `deltaUs` (D69). */
@@ -2429,6 +2485,121 @@ const DEFINITIONS = deepFreeze<Definitions>({
           inverse: parseSetCaptionPageAnimation({ ...command, animation }),
         };
       }),
+  },
+  AddEffect: {
+    parse: parseAddEffect,
+    edit(document, command) {
+      // A scene or a node: IDs are unique across the document (D16).
+      const scene = locateScene(document, command.ownerId);
+      let owner: { owner: DocumentObject; ownerId: string; sceneIndex: number | null };
+      if (scene !== null) {
+        owner = { owner: scene.scene, ownerId: command.ownerId, sceneIndex: scene.index };
+      } else {
+        const location = locateNode(document, command.ownerId);
+        if (location === null) {
+          throw new EditorError(
+            'unknown-node',
+            `The document has no node or scene \`${command.ownerId}\`.`,
+          );
+        }
+        requireType(location.node, EFFECT_OWNERS, command.ownerId);
+        owner = { owner: location.node, ownerId: command.ownerId, sceneIndex: null };
+      }
+      const effects: unknown = owner.owner['effects'];
+      if (!Array.isArray(effects)) {
+        throw new EditorError('unsupported-node', `\`${command.ownerId}\` has no effects.`);
+      }
+      const list = effects as readonly unknown[];
+      if (command.index > list.length) {
+        throw outOfRange(command.index, list.length, `the effects of \`${command.ownerId}\``);
+      }
+      // The IDs are read only where they are strings; every other malformation is the
+      // validator's (D41.3).
+      const createdIds = effectsIds({ effects: [command.effect] });
+      refuseTaken(document, createdIds);
+      const id: unknown = command.effect['id'];
+      return {
+        document: replaceEffects(document, owner, inserted(list, command.index, command.effect)),
+        // The effect validated by now, so its `id` is an ID of the document's form.
+        invert: () => parseRemoveEffect({ type: 'RemoveEffect', effectId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveEffect: {
+    parse: parseRemoveEffect,
+    edit(document, command) {
+      const location = locatedEffect(document, command.effectId);
+      // A frozen copy of the whole effect at its owner and index.
+      const inverse = parseAddEffect({
+        type: 'AddEffect',
+        ownerId: location.ownerId,
+        index: location.index,
+        effect: location.effect,
+      });
+      return {
+        document: replaceEffects(
+          document,
+          location,
+          location.effects.filter((_, at) => at !== location.index),
+        ),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: effectsIds({ effects: [location.effect] }),
+      };
+    },
+  },
+  ReorderEffect: {
+    parse: parseReorderEffect,
+    edit(document, command) {
+      const location = locatedEffect(document, command.effectId);
+      const last = location.effects.length - 1;
+      if (command.index > last) {
+        throw outOfRange(command.index, last, `the effects of \`${location.ownerId}\``);
+      }
+      if (command.index === location.index) return null;
+      const without = location.effects.filter((_, at) => at !== location.index);
+      const inverse = parseReorderEffect({
+        type: 'ReorderEffect',
+        effectId: command.effectId,
+        index: location.index,
+      });
+      return {
+        document: replaceEffects(
+          document,
+          location,
+          inserted(without, command.index, location.effect),
+        ),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  SetEffect: {
+    parse: parseSetEffect,
+    edit(document, command) {
+      const id: unknown = command.effect['id'];
+      const location = locatedEffect(document, typeof id === 'string' ? id : '');
+      if (sameData(location.effect, command.effect)) return null;
+      // The IDs of animations the new effect adds, and of those it drops (D16).
+      const before = effectsIds({ effects: [location.effect] });
+      const after = effectsIds({ effects: [command.effect] });
+      const createdIds = after.filter((item) => !before.includes(item));
+      refuseTaken(document, createdIds);
+      const inverse = parseSetEffect({ type: 'SetEffect', effect: location.effect });
+      return {
+        document: replaceEffects(
+          document,
+          location,
+          location.effects.map((item, at) => (at === location.index ? command.effect : item)),
+        ),
+        invert: () => inverse,
+        createdIds,
+        removedIds: before.filter((item) => !after.includes(item)),
+      };
+    },
   },
   SetSafeArea: {
     parse: parseSetSafeArea,

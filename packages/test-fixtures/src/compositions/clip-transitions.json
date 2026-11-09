@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.15",
+  "schemaVersion": "0.16",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -69,7 +69,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "up-clip-1",
@@ -106,7 +107,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "up-clip-2",
@@ -142,7 +144,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "up-clip-3",
@@ -179,7 +182,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "up-clip-4",
@@ -215,7 +219,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "up-clip-5",
@@ -252,7 +257,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "up-clip-6",
@@ -288,7 +294,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "up-clip-7",
@@ -325,7 +332,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         }
       ],
       "clips": [],
@@ -423,7 +431,8 @@
             "kind": "linear"
           }
         }
-      ]
+      ],
+      "effects": []
     },
     {
       "id": "scene-down",
@@ -472,7 +481,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "down-clip-6",
@@ -508,7 +518,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "down-clip-5",
@@ -545,7 +556,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "down-clip-4",
@@ -581,7 +593,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "down-clip-3",
@@ -618,7 +631,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "down-clip-2",
@@ -654,7 +668,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "down-clip-1",
@@ -691,7 +706,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "down-clip-0",
@@ -727,7 +743,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         }
       ],
       "clips": [],
@@ -825,7 +842,8 @@
             "kind": "linear"
           }
         }
-      ]
+      ],
+      "effects": []
     },
     {
       "id": "scene-group",
@@ -894,7 +912,8 @@
                 "bottom": 0,
                 "left": 0
               },
-              "cornerRadius": 0
+              "cornerRadius": 0,
+              "effects": []
             },
             {
               "id": "group-second",
@@ -931,9 +950,11 @@
                   "kind": "none"
                 }
               },
-              "textAnimations": []
+              "textAnimations": [],
+              "effects": []
             }
-          ]
+          ],
+          "effects": []
         }
       ],
       "clips": [],
@@ -951,7 +972,8 @@
             "kind": "linear"
           }
         }
-      ]
+      ],
+      "effects": []
     },
     {
       "id": "scene-end",
@@ -1000,11 +1022,13 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     }
   ],
   "clips": [],

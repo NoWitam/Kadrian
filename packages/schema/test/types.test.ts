@@ -18,6 +18,7 @@ import type {
   Composition,
   CustomHtmlNode,
   Easing,
+  Effect,
   GroupNode,
   ImageNode,
   NodeAnimation,
@@ -73,6 +74,50 @@ interface ExpectedAnimation<Property extends string, Value> {
     readonly easing: ExpectedEasing;
   }[];
 }
+
+type ExpectedVec2 = { readonly x: number; readonly y: number };
+
+interface ExpectedAmountEffect<Kind extends string> {
+  readonly id: string;
+  readonly kind: Kind;
+  readonly amount: number;
+  readonly animations: readonly ExpectedAnimation<'amount', number>[];
+}
+
+/** One effect of a CSS filter, its parameters animated in its own list (D71). */
+type ExpectedEffect =
+  | {
+      readonly id: string;
+      readonly kind: 'blur';
+      readonly radius: number;
+      readonly animations: readonly ExpectedAnimation<'radius', number>[];
+    }
+  | ExpectedAmountEffect<'brightness'>
+  | ExpectedAmountEffect<'contrast'>
+  | ExpectedAmountEffect<'saturate'>
+  | ExpectedAmountEffect<'grayscale'>
+  | ExpectedAmountEffect<'invert'>
+  | ExpectedAmountEffect<'sepia'>
+  | {
+      readonly id: string;
+      readonly kind: 'hue-rotate';
+      readonly angle: number;
+      readonly animations: readonly ExpectedAnimation<'angle', number>[];
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'drop-shadow';
+      readonly color: string;
+      readonly opacity: number;
+      readonly offset: ExpectedVec2;
+      readonly blur: number;
+      readonly animations: readonly (
+        | ExpectedAnimation<'color', string>
+        | ExpectedAnimation<'opacity', number>
+        | ExpectedAnimation<'offset', ExpectedVec2>
+        | ExpectedAnimation<'blur', number>
+      )[];
+    };
 
 /** Four insets in per mille (D68). */
 interface ExpectedCrop {
@@ -131,6 +176,7 @@ interface ExpectedImageNode extends ExpectedTransform<ExpectedPictureAnimation> 
   readonly focus: { readonly x: number; readonly y: number };
   readonly crop: ExpectedCrop;
   readonly cornerRadius: number;
+  readonly effects: readonly ExpectedEffect[];
 }
 
 interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> {
@@ -145,6 +191,7 @@ interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> 
   readonly crop: ExpectedCrop;
   readonly cornerRadius: number;
   readonly volume: number;
+  readonly effects: readonly ExpectedEffect[];
 }
 
 /** The style of a text (D69). */
@@ -211,6 +258,7 @@ interface ExpectedTextNode extends ExpectedTransform<
   readonly color: string;
   readonly style: ExpectedTextStyle;
   readonly textAnimations: readonly ExpectedTextAnimation[];
+  readonly effects: readonly ExpectedEffect[];
 }
 
 interface ExpectedCustomHtmlNode extends ExpectedTransform {
@@ -225,6 +273,7 @@ interface ExpectedGroupNode extends ExpectedTransform {
   readonly id: string;
   readonly type: 'group';
   readonly children: readonly (ExpectedImageNode | ExpectedTextNode | ExpectedVideoNode)[];
+  readonly effects: readonly ExpectedEffect[];
 }
 
 interface ExpectedCaptionWord {
@@ -286,6 +335,7 @@ interface ExpectedCaptionsNode extends ExpectedTransform<
   readonly height: number;
   readonly style: ExpectedCaptionStyle;
   readonly words: readonly ExpectedCaptionWord[];
+  readonly effects: readonly ExpectedEffect[];
 }
 
 type ExpectedSceneNode =
@@ -324,7 +374,8 @@ type ExpectedSceneTransitionEffect =
   | { readonly kind: 'wipe'; readonly direction: ExpectedDirection }
   | { readonly kind: 'push'; readonly direction: ExpectedDirection }
   | { readonly kind: 'zoom'; readonly fromScale: number }
-  | { readonly kind: 'iris'; readonly center: { readonly x: number; readonly y: number } };
+  | { readonly kind: 'iris'; readonly center: { readonly x: number; readonly y: number } }
+  | { readonly kind: 'blur-dissolve'; readonly radius: number };
 
 interface ExpectedSceneTransition {
   readonly id: string;
@@ -350,6 +401,7 @@ interface ExpectedScene {
   readonly nodes: readonly ExpectedSceneNode[];
   readonly clips: readonly ExpectedAudioClip[];
   readonly transitions: readonly ExpectedClipTransition[];
+  readonly effects: readonly ExpectedEffect[];
 }
 
 type ExpectedField =
@@ -490,7 +542,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.15';
+  readonly schemaVersion: '0.16';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {
@@ -543,6 +595,7 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<TemplateBinding>().toEqualTypeOf<ExpectedBinding>();
     expectTypeOf<TemplateCondition>().toEqualTypeOf<ExpectedCondition>();
     expectTypeOf<TemplateRepeat>().toEqualTypeOf<ExpectedRepeat>();
+    expectTypeOf<Effect>().toEqualTypeOf<ExpectedEffect>();
   });
 
   it('narrow by their discriminators', () => {

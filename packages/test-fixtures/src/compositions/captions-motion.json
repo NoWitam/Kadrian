@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.15",
+  "schemaVersion": "0.16",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -211,7 +211,8 @@
               "startUs": 1500000,
               "durationUs": 180000
             }
-          ]
+          ],
+          "effects": []
         },
         {
           "id": "captions-bounce",
@@ -428,11 +429,13 @@
               "startUs": 1580000,
               "durationUs": 200000
             }
-          ]
+          ],
+          "effects": []
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     }
   ],
   "clips": [],

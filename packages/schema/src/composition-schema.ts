@@ -27,8 +27,11 @@
  * the animations of rotation, origin, size, colour, crop, and corner radius
  * (D65.1, D68); 0.14 is 0.13 plus the style of a text and its animations in
  * fragments (D69); 0.15 is 0.14 plus the highlight set, the page animations,
- * and the text style of captions, and the safe area of the composition (D70).
- * The schemas of 0.1 to 0.14 are kept as data in `v0-1` to `v0-14` (D35.4).
+ * and the text style of captions, and the safe area of the composition (D70);
+ * 0.16 is 0.15 plus the effects of images, videos, texts, captions, groups,
+ * and scenes, with their animated parameters, and the transition
+ * blur-dissolve (D71). The schemas of 0.1 to 0.15 are kept as data in `v0-1`
+ * to `v0-15` (D35.4).
  */
 import {
   closedObject,
@@ -41,7 +44,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.15';
+export const SCHEMA_VERSION = '0.16';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -417,6 +420,208 @@ const pictureTransform = transform([
   cornerRadiusAnimationSchema,
 ] as const);
 
+/** A length of a blur, in composition pixels (D71). */
+const blurLength = {
+  type: 'number',
+  description: 'Length in composition pixels, from 0 to 1000; fractions are allowed (D71).',
+  minimum: 0,
+  maximum: 1000,
+} as const satisfies NumberSchema;
+
+/** A factor of brightness, contrast, or saturation: 1 leaves the pixels as they are (D71). */
+const effectFactor = {
+  type: 'number',
+  description:
+    'Factor from 0 to 10: 1 leaves the pixels as they are, below 1 lessens and above 1 strengthens (D71).',
+  minimum: 0,
+  maximum: 10,
+} as const satisfies NumberSchema;
+
+/** How much of a conversion is applied: 0 none, 1 all of it (D71). */
+const effectAmount = {
+  type: 'number',
+  description: 'How much of the conversion applies, from 0 (none) to 1 (all of it) (D71).',
+  minimum: 0,
+  maximum: 1,
+} as const satisfies NumberSchema;
+
+/** A turn of the hue, in degrees (D71). */
+const hueAngle = {
+  type: 'number',
+  description:
+    'Degrees the hue of every pixel turns around the colour wheel; a whole number of turns changes nothing, several turns are allowed (D71).',
+  minimum: -360_000,
+  maximum: 360_000,
+} as const satisfies NumberSchema;
+
+/** One coordinate of the offset of a drop shadow, in composition pixels (D71). */
+const effectOffsetCoordinate = {
+  type: 'number',
+  description:
+    'Offset in composition pixels, from -1000 to 1000; x grows right, y grows down; fractions are allowed (D71).',
+  minimum: -1000,
+  maximum: 1000,
+} as const satisfies NumberSchema;
+
+const effectOffset = closedObject('How far the shadow lies from what casts it (D71).', {
+  x: effectOffsetCoordinate,
+  y: effectOffsetCoordinate,
+});
+
+const effectAnimations = <const S extends readonly ObjectSchema[]>(rows: S) =>
+  ({
+    type: 'array',
+    description:
+      "Animations of the effect's parameters, at most one per parameter; a sampled value replaces the parameter's own, in the time of the scene, like a keyframe of the node (D65.1, D71).",
+    items: { oneOf: rows },
+  }) as const satisfies ArraySchema;
+
+const effectAnimation = <const N extends string, const V extends JsonSchema>(
+  parameter: N,
+  value: V,
+) =>
+  animation(
+    parameter,
+    `Values of the parameter ${parameter} that replace the effect's own while the animation is sampled (D65.1, D71).`,
+    value,
+  );
+
+export const blurEffectSchema = closedObject(
+  'Blurs what it applies to by a Gaussian of standard deviation radius, as CSS blur(); the blur spills beyond the box. 0 blurs nothing (D71).',
+  {
+    id,
+    kind: { type: 'string', const: 'blur' },
+    radius: {
+      ...blurLength,
+      description:
+        'The standard deviation of the Gaussian, in composition pixels, from 0 to 1000 (D71).',
+    },
+    animations: effectAnimations([effectAnimation('radius', blurLength)] as const),
+  },
+);
+
+export const brightnessEffectSchema = closedObject(
+  'Multiplies every colour channel by amount, as CSS brightness(); 1 changes nothing, 0 is black (D71).',
+  {
+    id,
+    kind: { type: 'string', const: 'brightness' },
+    amount: effectFactor,
+    animations: effectAnimations([effectAnimation('amount', effectFactor)] as const),
+  },
+);
+
+export const contrastEffectSchema = closedObject(
+  'Moves every colour channel away from or towards the middle grey by amount, as CSS contrast(); 1 changes nothing, 0 is grey (D71).',
+  {
+    id,
+    kind: { type: 'string', const: 'contrast' },
+    amount: effectFactor,
+    animations: effectAnimations([effectAnimation('amount', effectFactor)] as const),
+  },
+);
+
+export const saturateEffectSchema = closedObject(
+  'Scales the saturation of every pixel by amount, as CSS saturate(); 1 changes nothing, 0 is grey (D71).',
+  {
+    id,
+    kind: { type: 'string', const: 'saturate' },
+    amount: effectFactor,
+    animations: effectAnimations([effectAnimation('amount', effectFactor)] as const),
+  },
+);
+
+export const hueRotateEffectSchema = closedObject(
+  'Turns the hue of every pixel by angle degrees, as CSS hue-rotate(); 0 changes nothing (D71).',
+  {
+    id,
+    kind: { type: 'string', const: 'hue-rotate' },
+    angle: hueAngle,
+    animations: effectAnimations([effectAnimation('angle', hueAngle)] as const),
+  },
+);
+
+export const grayscaleEffectSchema = closedObject(
+  'Turns every pixel towards its grey by amount, as CSS grayscale(); 0 changes nothing, 1 is all grey (D71).',
+  {
+    id,
+    kind: { type: 'string', const: 'grayscale' },
+    amount: effectAmount,
+    animations: effectAnimations([effectAnimation('amount', effectAmount)] as const),
+  },
+);
+
+export const invertEffectSchema = closedObject(
+  'Turns every colour channel towards its inverse by amount, as CSS invert(); 0 changes nothing, 1 is the negative (D71).',
+  {
+    id,
+    kind: { type: 'string', const: 'invert' },
+    amount: effectAmount,
+    animations: effectAnimations([effectAnimation('amount', effectAmount)] as const),
+  },
+);
+
+export const sepiaEffectSchema = closedObject(
+  'Turns every pixel towards its sepia tone by amount, as CSS sepia(); 0 changes nothing, 1 is all sepia (D71).',
+  {
+    id,
+    kind: { type: 'string', const: 'sepia' },
+    amount: effectAmount,
+    animations: effectAnimations([effectAnimation('amount', effectAmount)] as const),
+  },
+);
+
+const effectOpacity = {
+  ...opacity,
+  description: 'Opacity of the colour of the shadow, from 0 (transparent) to 1 (opaque) (D71).',
+} as const satisfies NumberSchema;
+
+export const dropShadowEffectSchema = closedObject(
+  'A shadow of the shape of what it applies to, its alpha in color, moved by offset and blurred by blur, drawn under it, as CSS drop-shadow() (D71).',
+  {
+    id,
+    kind: { type: 'string', const: 'drop-shadow' },
+    color,
+    opacity: effectOpacity,
+    offset: effectOffset,
+    blur: {
+      ...blurLength,
+      description:
+        'The blur radius of the shadow, in composition pixels, from 0 (sharp) to 1000, as the blur of CSS drop-shadow(): twice the standard deviation (D71).',
+    },
+    animations: effectAnimations([
+      effectAnimation('color', color),
+      effectAnimation('opacity', effectOpacity),
+      effectAnimation('offset', effectOffset),
+      effectAnimation('blur', blurLength),
+    ] as const),
+  },
+);
+
+/** One effect of a node, a group, or a scene: a CSS filter the probes found exact (D65.5, D71). */
+export const effectSchema = {
+  description:
+    'One effect: a filter of the pixels of what holds it, applied after its content and its corner radius and before its opacity and transform; effects apply in the order of their list (D65.6, D71).',
+  oneOf: [
+    blurEffectSchema,
+    brightnessEffectSchema,
+    contrastEffectSchema,
+    saturateEffectSchema,
+    hueRotateEffectSchema,
+    grayscaleEffectSchema,
+    invertEffectSchema,
+    sepiaEffectSchema,
+    dropShadowEffectSchema,
+  ],
+} as const satisfies UnionSchema;
+
+/** The effects of a node, a group, or a scene, in the order they apply (D71). */
+const effects = {
+  type: 'array',
+  description:
+    'Effects in the order they apply, the first to the content itself; none leaves the pixels exactly as they are. Any effect, even one whose values change nothing, draws its holder in a pass of its own, which may move a channel by a few levels (D65.5, D71).',
+  items: effectSchema,
+} as const satisfies ArraySchema;
+
 /**
  * The lifetime of a node, in the time of its scene (D42.1, D42.2, D49.3): it is active at
  * `t` when `t >= startUs` and `t - startUs < durationUs`. Every node has one,
@@ -489,6 +694,7 @@ export const imageNodeSchema = closedObject('An image asset fitted to the box of
   focus,
   crop,
   cornerRadius,
+  effects,
 });
 
 export const videoNodeSchema = closedObject(
@@ -515,6 +721,7 @@ export const videoNodeSchema = closedObject(
       description:
         'Linear factor of the amplitude of the sound of the video, from 0 to 1. At 0 the video is silent and its source needs no sound; above 0 it needs exactly one audio stream (D52).',
     },
+    effects,
   },
 );
 
@@ -790,6 +997,7 @@ export const textNodeSchema = closedObject('One run of text; line breaks are pre
       'Animations of the letters, words, or lines of the text, combined in their order: opacities and scales multiply, offsets and rotations add, and the last colour wins (D69).',
     items: textAnimationSchema,
   },
+  effects,
 });
 
 /** One timed word of a caption (D57), in the time of its scene like a keyframe (D55.3). */
@@ -962,6 +1170,7 @@ export const captionsNodeSchema = closedObject(
       description: 'The words in the order they are spoken (D57).',
       items: captionWordSchema,
     },
+    effects,
   },
 );
 
@@ -989,6 +1198,11 @@ export const groupNodeSchema = closedObject(
       type: 'array',
       description: 'Array order is the z-order; the first child is at the bottom.',
       items: { oneOf: [imageNodeSchema, textNodeSchema, videoNodeSchema] },
+    },
+    effects: {
+      ...effects,
+      description:
+        'Effects of the group, applied to its children composited together, in the order they apply; none leaves the pixels exactly as they are (D15, D65.5, D71).',
     },
   },
 );
@@ -1113,7 +1327,19 @@ export const irisEffectSchema = closedObject(
   },
 );
 
-/** How a transition combines the images of its two sides (D56, D66). */
+export const blurDissolveEffectSchema = closedObject(
+  'The incoming side fades in over the outgoing one while the outgoing side blurs from sharp to radius and the incoming side sharpens from radius (D71).',
+  {
+    kind: { type: 'string', const: 'blur-dissolve' },
+    radius: {
+      ...blurLength,
+      description:
+        'The standard deviation of the strongest blur, in composition pixels, from 0 to 1000, as CSS blur() (D71).',
+    },
+  },
+);
+
+/** How a transition combines the images of its two sides (D56, D66, D71). */
 export const transitionEffectSchema = {
   description:
     'How the two sides are combined; a pure function of the progress that leaves either side alone at progress 0 and 1 (D49.4, D56, D66).',
@@ -1125,6 +1351,7 @@ export const transitionEffectSchema = {
     pushEffectSchema,
     zoomEffectSchema,
     irisEffectSchema,
+    blurDissolveEffectSchema,
   ],
 } as const satisfies UnionSchema;
 
@@ -1211,6 +1438,11 @@ export const sceneSchema = closedObject(
       description:
         'Transitions between two clips of one layer of this scene; their order has no meaning (D49.4, D56, D66).',
       items: clipTransitionSchema,
+    },
+    effects: {
+      ...effects,
+      description:
+        'Effects of the whole scene, applied to its nodes composited together and animated in scene time, in the order they apply; a scene transition then acts on the result. None leaves the pixels exactly as they are (D65.5, D71).',
     },
   },
 );
@@ -1681,7 +1913,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.15',
+  title: 'Kadrion composition 0.16',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

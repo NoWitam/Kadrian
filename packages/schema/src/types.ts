@@ -13,6 +13,7 @@ import type {
   compositionSchema,
   customHtmlNodeSchema,
   easingSchema,
+  effectSchema,
   groupNodeSchema,
   imageNodeSchema,
   sceneNodeSchema,
@@ -79,6 +80,12 @@ export type AnimationKeyframe = NodeAnimation['keyframes'][number];
 /** How a segment of an animation or a transition moves from its start to its end (D67). */
 export type Easing = Infer<typeof easingSchema>;
 export type AudioClip = Infer<typeof audioClipSchema>;
+/** One effect of a node, a group, or a scene: a CSS filter with its animated parameters (D71). */
+export type Effect = Infer<typeof effectSchema>;
+/** The kind of an effect (D71). */
+export type EffectKind = Effect['kind'];
+/** An animation of one parameter of an effect (D65.1, D71). */
+export type EffectAnimation = Effect['animations'][number];
 
 /** How an image or a video meets its box (D50). */
 export type Fit = ImageNode['fit'];

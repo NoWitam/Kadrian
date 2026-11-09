@@ -305,6 +305,7 @@ describe('RemoveAsset (D40.3, D40.4)', () => {
             focus: { x: 500, y: 500 },
             crop: { top: 0, right: 0, bottom: 0, left: 0 },
             cornerRadius: 0,
+            effects: [],
           },
         });
         return { bus, users: ['top-image'] };

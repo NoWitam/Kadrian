@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.15",
+  "schemaVersion": "0.16",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -71,7 +71,8 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "volume": 0
+          "volume": 0,
+          "effects": []
         },
         {
           "id": "video-contain",
@@ -109,7 +110,8 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "volume": 0
+          "volume": 0,
+          "effects": []
         },
         {
           "id": "video-cover",
@@ -147,7 +149,8 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "volume": 0
+          "volume": 0,
+          "effects": []
         },
         {
           "id": "video-title",
@@ -184,11 +187,13 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     }
   ],
   "clips": [],

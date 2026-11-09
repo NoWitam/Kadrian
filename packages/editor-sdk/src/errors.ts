@@ -76,6 +76,8 @@ export type EditorErrorCode =
   | 'binding-in-use'
   /** No animation of the document has that ID; `details` are empty (D41.5). */
   | 'unknown-animation'
+  /** No node or scene of the document has an effect with that ID; `details` are empty (D71). */
+  | 'unknown-effect'
   /** The animation has no keyframe at that time; `details` are empty (D41.5). */
   | 'unknown-keyframe'
   /** The animation already has a keyframe at the time to fill; `details` are empty (D41.5). */

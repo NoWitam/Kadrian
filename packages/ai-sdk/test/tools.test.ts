@@ -68,6 +68,7 @@ const VIDEO_SETUP: readonly Command[] = [
       crop: { top: 0, right: 0, bottom: 0, left: 0 },
       cornerRadius: 0,
       volume: 0,
+      effects: [],
     },
   },
 ];
@@ -160,6 +161,7 @@ const OUTRO_SETUP: readonly Command[] = [
       ],
       clips: [],
       transitions: [],
+      effects: [],
     },
   },
 ];
@@ -227,6 +229,7 @@ const CAPTIONS_SETUP: readonly Command[] = [
         { text: 'with', startUs: 300_000, durationUs: 200_000 },
         { text: 'Kadrion', startUs: 500_000, durationUs: 400_000 },
       ],
+      effects: [],
     },
   },
 ];
@@ -235,6 +238,22 @@ const CAPTIONS_SETUP: readonly Command[] = [
 const TEXT_ANIMATION_SETUP: readonly Command[] = COMMAND_TOOL_METADATA.filter(
   ({ commandType }) => commandType === 'AddTextAnimation',
 ).map(({ commandType, example }) => ({ type: commandType, ...example }) as Command);
+
+/** The effect of the examples, on the image (D71). */
+const EFFECT_SETUP: readonly Command[] = COMMAND_TOOL_METADATA.filter(
+  ({ commandType }) => commandType === 'AddEffect',
+).map(({ commandType, example }) => ({ type: commandType, ...example }) as Command);
+
+/** A second effect of the image, after the first. */
+const TWO_EFFECTS_SETUP: readonly Command[] = [
+  ...EFFECT_SETUP,
+  {
+    type: 'AddEffect',
+    ownerId: 'node-image',
+    index: 1,
+    effect: { id: 'effect-image-grey', kind: 'grayscale', amount: 1, animations: [] },
+  },
+];
 
 const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetNodePosition: [],
@@ -338,6 +357,10 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetTransitionDuration: TRANSITION_SETUP,
   SetTransitionEffect: TRANSITION_SETUP,
   SetTransitionEasing: TRANSITION_SETUP,
+  AddEffect: [],
+  RemoveEffect: EFFECT_SETUP,
+  ReorderEffect: TWO_EFFECTS_SETUP,
+  SetEffect: EFFECT_SETUP,
   SetCaptionWords: CAPTIONS_SETUP,
   SetCaptionWord: CAPTIONS_SETUP,
   SetCaptionStyle: CAPTIONS_SETUP,

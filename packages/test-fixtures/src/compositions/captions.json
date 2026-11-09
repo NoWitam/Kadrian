@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.15",
+  "schemaVersion": "0.16",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -139,11 +139,13 @@
               "startUs": 2700000,
               "durationUs": 300000
             }
-          ]
+          ],
+          "effects": []
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     }
   ],
   "clips": [],

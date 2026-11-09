@@ -88,8 +88,10 @@ function start(): ValidatedComposition {
         color: '#ffffff',
         style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
         textAnimations: [],
+        effects: [],
       },
     ],
+    effects: [],
   });
   return validated(draft);
 }

@@ -4,7 +4,8 @@
  * transitions composition (D56), of the clip transitions composition (D66),
  * of the captions composition (D57), of the focus composition (D63), of the
  * easing composition (D67), of the motion composition (D68), of the text
- * composition (D69), and of the animated captions composition (D70) with the Producer and writes the golden frames and their manifests into
+ * composition (D69), of the animated captions composition (D70), and of the
+ * effects composition (D71) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -36,6 +37,8 @@ import {
   clipTransitionsGoldenTimestamps,
   easingComposition,
   easingGoldenTimestamps,
+  effectsComposition,
+  effectsGoldenTimestamps,
   focusComposition,
   focusGoldenTimestamps,
   motionComposition,
@@ -265,6 +268,28 @@ try {
       `${JSON.stringify({ render: captionsMotionResult.manifest, environment, frames: captionsMotionFrames }, null, 2)}\n`,
     );
     for (const frame of captionsMotionFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The effects composition: every kind over an image, a text, and a video, and the blur dissolve (D71).
+    const effectsResult = await renderFrames({
+      document: effectsComposition,
+      resolveAsset: ({ id }) =>
+        id === VIDEO_FIXTURE.id
+          ? { bytes: video, mediaType: VIDEO_FIXTURE.mediaType }
+          : (assets[id] ?? null),
+      timesUs: effectsGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+      ffmpeg: { ffmpegPath, ffprobePath },
+    });
+    const effectsFrames = effectsResult.frames.map(({ index, timeUs, png }) => {
+      const file = `effects-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'effects.golden-frames.json'),
+      `${JSON.stringify({ render: effectsResult.manifest, environment, frames: effectsFrames }, null, 2)}\n`,
+    );
+    for (const frame of effectsFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

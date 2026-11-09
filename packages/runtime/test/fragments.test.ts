@@ -32,6 +32,7 @@ function text(content: string, textAnimations: readonly TextAnimation[]): TextNo
     color: '#ffffff',
     style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
     textAnimations,
+    effects: [],
   };
 }
 

@@ -75,7 +75,12 @@ describe('SetTextStyle (D69)', () => {
       const edited = roundTrip({ type: 'SetTextStyle', nodeId, style: STYLE });
       expect(fieldOf(edited, nodeId, 'style')).toEqual(STYLE);
       const keys = Object.keys(nodeOf(edited, nodeId));
-      expect(keys.slice(keys.indexOf('color'))).toEqual(['color', 'style', 'textAnimations']);
+      expect(keys.slice(keys.indexOf('color'))).toEqual([
+        'color',
+        'style',
+        'textAnimations',
+        'effects',
+      ]);
     }
   });
 

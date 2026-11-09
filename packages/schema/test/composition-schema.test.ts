@@ -302,6 +302,8 @@ describe('conformance with JSON Schema draft 2020-12 (D17)', () => {
     expect(ajvValidate(referenceComposition)).toBe(true);
   });
 
+  // Every mutant of a document with effects is validated twice: about 10 s on a
+  // loaded container (D71), so the default 5 s is too short.
   it('agrees with the reference implementation on every mutant of the reference composition', () => {
     const mutants = mutantsOf(JSON.parse(JSON.stringify(referenceComposition)) as Json);
     const verdicts = mutants.map(({ label, mutant }) => ({
@@ -313,5 +315,5 @@ describe('conformance with JSON Schema draft 2020-12 (D17)', () => {
     // The neighbourhood must exercise both verdicts, or the comparison proves nothing.
     expect(verdicts.filter(({ own }) => !own).length).toBeGreaterThan(1000);
     expect(verdicts.filter(({ own }) => own).length).toBeGreaterThan(50);
-  });
+  }, 60_000);
 });

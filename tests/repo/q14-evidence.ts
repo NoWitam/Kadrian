@@ -435,6 +435,7 @@ export const ARTIFACT_FILES = Object.freeze([
   'custom-html-probes.json',
   'easing/golden-comparison.json',
   'easing/node-vs-chromium.json',
+  'effects/golden-comparison.json',
   'export-memory.json',
   'export-report.json',
   'exports/contract/inputs/asset-audio',

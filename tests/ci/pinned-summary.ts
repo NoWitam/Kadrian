@@ -24,6 +24,7 @@ export const REQUIRED_PINNED_FILES: readonly string[] = Object.freeze([
   'tests/pinned/custom-html.pinned.test.ts',
   'tests/pinned/easing.pinned.test.ts',
   'tests/pinned/editor.pinned.test.ts',
+  'tests/pinned/effects.pinned.test.ts',
   'tests/pinned/export.pinned.test.ts',
   'tests/pinned/focus.pinned.test.ts',
   'tests/pinned/goldens.pinned.test.ts',
