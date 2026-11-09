@@ -1,6 +1,7 @@
 # D72 — Effects of SVG filters: schema 0.17
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-09, after PR-51b was merged
+  (PR #74)
 - Date: 2026-11-09
 - Supersedes: —
 - Amends: D71 (five kinds of effects drawn by an SVG filter of their own, at

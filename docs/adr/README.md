@@ -79,7 +79,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D69](D69-text-styles-and-text-animated-in-fragments.md)      | Text styles and fragments: schema 0.14                                                       | Accepted          |
 | [D70](D70-animated-captions-and-the-safe-area.md)             | Animated captions and the safe area: schema 0.15                                             | Accepted          |
 | [D71](D71-effects-of-css-filters.md)                          | Effects of CSS filters: schema 0.16                                                          | Accepted          |
-| [D72](D72-effects-of-svg-filters.md)                          | Effects of SVG filters: schema 0.17                                                          | Proposed          |
+| [D72](D72-effects-of-svg-filters.md)                          | Effects of SVG filters: schema 0.17                                                          | Accepted          |
 
 ## Provenance of D01–D10
 
