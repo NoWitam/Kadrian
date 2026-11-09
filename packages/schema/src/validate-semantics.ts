@@ -32,6 +32,8 @@ import type {
   Composition,
   EffectAnimation,
   FragmentTrack,
+  Mask,
+  MaskAnimation,
   NodeAnimation,
   SceneNode,
   ShapeGeometry,
@@ -60,6 +62,7 @@ import type { CompositionV015 } from './v0-15/composition-schema.js';
 import type { CompositionV016 } from './v0-16/composition-schema.js';
 import type { CompositionV017 } from './v0-17/composition-schema.js';
 import type { CompositionV018 } from './v0-18/composition-schema.js';
+import type { CompositionV019 } from './v0-19/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -77,6 +80,8 @@ type SceneNodeV016 = CompositionV016['scenes'][number]['nodes'][number];
 type SceneNodeV017 = CompositionV017['scenes'][number]['nodes'][number];
 /** A node of 0.18, whose images show no SVG asset (D74). */
 type SceneNodeV018 = CompositionV018['scenes'][number]['nodes'][number];
+/** A node of 0.19, which has no mask, no matte, and no blend mode (D75). */
+type SceneNodeV019 = CompositionV019['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -110,7 +115,10 @@ function checkUniqueIds(
 /** An animation of any version: the rules read its property and the times of its keyframes only. */
 type AnyAnimation = {
   readonly property:
-    NodeAnimation['property'] | FragmentTrack['property'] | EffectAnimation['property'];
+    | NodeAnimation['property']
+    | FragmentTrack['property']
+    | EffectAnimation['property']
+    | MaskAnimation['property'];
 } & {
   readonly keyframes: readonly { readonly timeUs: number }[];
 };
@@ -242,7 +250,11 @@ export function geometryStructure(geometry: ShapeGeometry): string {
  * gradient ascend, its dashes come in pairs, only a solid fill is animated,
  * and every keyframe of its geometry has the structure of its geometry.
  */
-function checkShape(node: ShapeNode, path: string, errors: ValidationError[]): void {
+function checkShape(
+  node: Pick<ShapeNode, 'geometry' | 'fill' | 'stroke' | 'animations'>,
+  path: string,
+  errors: ValidationError[],
+): void {
   const { geometry, fill, stroke } = node;
   if (geometry.kind === 'path' && geometry.commands[0]?.kind !== 'move') {
     errors.push({
@@ -293,6 +305,99 @@ function checkShape(node: ShapeNode, path: string, errors: ValidationError[]): v
   });
 }
 
+/**
+ * The rules of a mask (D75): a shape mask's path starts with a move and every
+ * keyframe of its geometry has the structure of its geometry; its animations
+ * follow the rules of animations. The asset of an image mask is checked with
+ * the other references.
+ */
+function checkMask(mask: Mask, path: string, errors: ValidationError[]): void {
+  if (mask.kind === 'none') return;
+  checkAnimations(mask.animations, pointer(path, 'animations'), errors);
+  if (mask.kind !== 'shape') return;
+  const { geometry } = mask;
+  if (geometry.kind === 'path' && geometry.commands[0]?.kind !== 'move') {
+    errors.push({
+      code: 'path-start-not-move',
+      path: pointer(pointer(pointer(path, 'geometry'), 'commands'), 0),
+      message: 'A path starts with a move.',
+    });
+  }
+  const structure = geometryStructure(geometry);
+  mask.animations.forEach((animation, index) => {
+    if (animation.property !== 'geometry') return;
+    const animationPath = pointer(pointer(path, 'animations'), index);
+    animation.keyframes.forEach((keyframe, keyframeIndex) => {
+      if (geometryStructure(keyframe.value) === structure) return;
+      errors.push({
+        code: 'geometry-mismatch',
+        path: pointer(pointer(pointer(animationPath, 'keyframes'), keyframeIndex), 'value'),
+        message:
+          "A geometry keyframe has the structure of the mask's geometry: its kind, its number of points, and its commands in the same order with the same arc flags.",
+      });
+    });
+  });
+}
+
+/** A node of one parent as the matte rules read it (D75). */
+interface Sibling {
+  readonly id: string;
+  readonly type: string;
+  readonly mask?: { readonly kind: string };
+  readonly matte?: { readonly kind: string; readonly nodeId?: string };
+  readonly blendMode?: string;
+}
+
+/**
+ * The rules of mattes among the nodes of one parent, a scene or a group (D75):
+ * a matte names another node of the same parent, a shape, that has no mask,
+ * no matte, and the normal blend mode itself, and that is no side of a clip
+ * transition.
+ */
+function checkMattes(
+  siblings: readonly Sibling[],
+  path: string,
+  clipSides: ReadonlySet<string>,
+  errors: ValidationError[],
+): void {
+  const byId = new Map(siblings.map((node) => [node.id, node]));
+  siblings.forEach((node, index) => {
+    const matte = node.matte;
+    if (matte?.kind !== 'node' || matte.nodeId === undefined) return;
+    const at = pointer(pointer(pointer(path, index), 'matte'), 'nodeId');
+    const target = matte.nodeId === node.id ? undefined : byId.get(matte.nodeId);
+    if (target === undefined) {
+      errors.push({
+        code: 'matte-not-sibling',
+        path: at,
+        message: `No other node of the same scene or group has the ID "${matte.nodeId}".`,
+      });
+    } else if (target.type !== 'shape') {
+      errors.push({
+        code: 'matte-not-shape',
+        path: at,
+        message: `Node "${target.id}" is a ${target.type}; a matte is a shape node.`,
+      });
+    } else if (
+      target.mask?.kind !== 'none' ||
+      target.matte?.kind !== 'none' ||
+      target.blendMode !== 'normal'
+    ) {
+      errors.push({
+        code: 'matte-not-plain',
+        path: at,
+        message: `Node "${target.id}" has a mask, a matte, or a blend mode of its own; a matte has none.`,
+      });
+    } else if (clipSides.has(target.id)) {
+      errors.push({
+        code: 'matte-in-transition',
+        path: at,
+        message: `Node "${target.id}" is a side of a clip transition; a matte is not.`,
+      });
+    }
+  });
+}
+
 export function validateSemantics(
   composition:
     | Composition
@@ -313,7 +418,8 @@ export function validateSemantics(
     | CompositionV015
     | CompositionV016
     | CompositionV017
-    | CompositionV018,
+    | CompositionV018
+    | CompositionV019,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -338,8 +444,15 @@ export function validateSemantics(
   const sourceErrors: ValidationError[] = [];
   const captionErrors: ValidationError[] = [];
   const shapeErrors: ValidationError[] = [];
+  const matteErrors: ValidationError[] = [];
 
   composition.scenes.forEach((scene, sceneIndex) => {
+    // The sides of the clip transitions of 0.6 (D56), which no matte may be (D75).
+    const clipSides = new Set(
+      'transitions' in scene
+        ? scene.transitions.flatMap((transition) => [transition.fromNodeId, transition.toNodeId])
+        : [],
+    );
     const nodesPath = pointer(pointer(pointer('', 'scenes'), sceneIndex), 'nodes');
     scene.nodes.forEach((node, nodeIndex) => {
       const nodePath = pointer(nodesPath, nodeIndex);
@@ -418,8 +531,22 @@ export function validateSemantics(
         if ('effects' in member.node) {
           checkEffects(member.node.effects, pointer(member.path, 'effects'), animationErrors);
         }
+        // The mask of 0.20 (D75): an image mask shows an image asset.
+        if ('mask' in member.node) {
+          const maskPath = pointer(member.path, 'mask');
+          if (member.node.mask.kind === 'image') {
+            checkReference(member.node.mask.assetId, 'image', pointer(maskPath, 'assetId'));
+          }
+          checkMask(member.node.mask, maskPath, shapeErrors);
+        }
+      }
+      // The mattes of 0.20 among the children of a group (D75).
+      if (node.type === 'group') {
+        checkMattes(node.children, pointer(nodePath, 'children'), clipSides, matteErrors);
       }
     });
+    // The mattes of 0.20 among the nodes of a scene (D75).
+    checkMattes(scene.nodes, nodesPath, clipSides, matteErrors);
     if ('effects' in scene) {
       const scenePath = pointer(pointer('', 'scenes'), sceneIndex);
       checkEffects(scene.effects, pointer(scenePath, 'effects'), animationErrors);
@@ -517,6 +644,7 @@ export function validateSemantics(
     ...transitionErrors,
     ...captionErrors,
     ...shapeErrors,
+    ...matteErrors,
     ...safeAreaErrors,
     ...templateErrors,
   ];
@@ -635,6 +763,7 @@ function checkTemplate(
     | CompositionV016
     | CompositionV017
     | CompositionV018
+    | CompositionV019
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -958,6 +1087,11 @@ function checkTemplate(
       clipSides.add(transition.toNodeId);
     }
   }
+  // The nodes of 0.20 that matte a sibling (D75), whose copies no sibling would name.
+  const mattes = new Set<string>();
+  for (const node of nodes.values()) {
+    if ('matte' in node && node.matte.kind === 'node') mattes.add(node.matte.nodeId);
+  }
   const repeated = new Set<string>();
   repeats.forEach((repeat, index) => {
     const path = pointer(pointer('/template', 'repeats'), index);
@@ -1015,6 +1149,13 @@ function checkTemplate(
         message: `Node "${repeat.targetId}" is a side of a clip transition, whose overlap its copies cannot keep.`,
       });
     }
+    if (element.kind === 'node' && mattes.has(repeat.targetId)) {
+      errors.push({
+        code: 'repeat-of-matte',
+        path: pointer(path, 'targetId'),
+        message: `Node "${repeat.targetId}" is the matte of a sibling, which its copies would not be.`,
+      });
+    }
   });
 
   // No ID has the form of a copy of an ID that a repeat copies (D59.2).
@@ -1051,6 +1192,7 @@ function subtreeOf(
     | CompositionV016
     | CompositionV017
     | CompositionV018
+    | CompositionV019
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1119,7 +1261,9 @@ interface Located {
     | SceneNodeV017
     | Extract<SceneNodeV017, { type: 'group' }>['children'][number]
     | SceneNodeV018
-    | Extract<SceneNodeV018, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV018, { type: 'group' }>['children'][number]
+    | SceneNodeV019
+    | Extract<SceneNodeV019, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -1146,7 +1290,8 @@ function checkTransitions(
     | CompositionV015
     | CompositionV016
     | CompositionV017
-    | CompositionV018,
+    | CompositionV018
+    | CompositionV019,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

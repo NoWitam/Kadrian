@@ -7,6 +7,8 @@
  * document, and a renderer walks the document and the state side by side.
  */
 
+import type { BlendMode } from '@kadrion/schema';
+
 /** A pair of evaluated values. Unlike persisted coordinates, they may be fractional (D15). */
 export interface Vec2 {
   readonly x: number;
@@ -164,6 +166,49 @@ export interface EffectsState {
   readonly effects: readonly EffectState[];
 }
 
+/** A mask at one instant (D75): none, a shape as a path in its box, or an image over its box. */
+export type MaskState =
+  | { readonly kind: 'none' }
+  | {
+      readonly kind: 'shape';
+      /** The mask's box in the node's own coordinates, before its transform. */
+      readonly x: number;
+      readonly y: number;
+      readonly width: number;
+      readonly height: number;
+      /** The geometry at this instant as a path in the pixels of the box (D73). */
+      readonly path: readonly PathCommandState[];
+      readonly inverted: boolean;
+      readonly feather: number;
+    }
+  | {
+      readonly kind: 'image';
+      readonly assetId: string;
+      readonly x: number;
+      readonly y: number;
+      readonly width: number;
+      readonly height: number;
+      readonly mode: 'alpha' | 'luminance';
+      readonly inverted: boolean;
+      readonly feather: number;
+    };
+
+/** Which sibling shape mattes a node, and how (D75); the matte's own state is its sibling's. */
+export type MatteState =
+  | { readonly kind: 'none' }
+  | {
+      readonly kind: 'node';
+      readonly nodeId: string;
+      readonly mode: 'alpha' | 'alpha-inverted' | 'luminance' | 'luminance-inverted';
+    };
+
+/** How a node is composited (D65.6, D75): its mask, its matte, and its blend mode. */
+export interface CompositingState {
+  readonly mask: MaskState;
+  readonly matte: MatteState;
+  readonly blendMode: BlendMode;
+}
+
 export interface BackgroundNodeState extends LifetimeState {
   readonly id: string;
   readonly type: 'background';
@@ -216,7 +261,7 @@ export interface TextFragmentsState {
 }
 
 /** A text node with its colour, animated or not (D68), and its fragments (D69). */
-export interface TextNodeState extends LeafNodeState<'text'>, EffectsState {
+export interface TextNodeState extends LeafNodeState<'text'>, EffectsState, CompositingState {
   /** `#rrggbb`. */
   readonly color: string;
   /** `null` for a text without text animations, which is drawn in one piece. */
@@ -232,7 +277,8 @@ export interface PictureState {
 }
 
 /** An image node with its box and picture (D68). */
-export interface ImageNodeState extends LeafNodeState<'image'>, PictureState, EffectsState {}
+export interface ImageNodeState
+  extends LeafNodeState<'image'>, PictureState, EffectsState, CompositingState {}
 
 /**
  * A video node (D49.5, D50.3): a leaf whose `sourceTimeUs` is the source time it
@@ -240,7 +286,8 @@ export interface ImageNodeState extends LeafNodeState<'image'>, PictureState, Ef
  * while it is not. The runtime knows no frames: which frame that time selects
  * is the host's matter, by the rule `sourceFrameIndex` of `@kadrion/schema`.
  */
-export interface VideoNodeState extends LeafNodeState<'video'>, PictureState, EffectsState {
+export interface VideoNodeState
+  extends LeafNodeState<'video'>, PictureState, EffectsState, CompositingState {
   readonly sourceTimeUs: number | null;
 }
 
@@ -250,7 +297,8 @@ export interface VideoNodeState extends LeafNodeState<'video'>, PictureState, Ef
  * active; both are `null` while it is not, `page` before its first word, and
  * `word` between two words.
  */
-export interface CaptionsNodeState extends LeafNodeState<'captions'>, EffectsState {
+export interface CaptionsNodeState
+  extends LeafNodeState<'captions'>, EffectsState, CompositingState {
   /** The colour of the words, `#rrggbb`, animated or not (D68); the highlight stays the document's. */
   readonly color: string;
   readonly page: number | null;
@@ -344,7 +392,7 @@ export interface ShapeStrokeState {
  * trim, and its stroke, `null` while it draws nothing (a width of 0, or
  * nothing left by its trim and dashes).
  */
-export interface ShapeNodeState extends LeafNodeState<'shape'>, EffectsState {
+export interface ShapeNodeState extends LeafNodeState<'shape'>, EffectsState, CompositingState {
   readonly size: Size;
   readonly path: readonly PathCommandState[];
   readonly fill: ShapeFillState;
@@ -353,7 +401,7 @@ export interface ShapeNodeState extends LeafNodeState<'shape'>, EffectsState {
 }
 
 export interface GroupNodeState
-  extends LifetimeState, TransformState, ClipTransitionSide, EffectsState {
+  extends LifetimeState, TransformState, ClipTransitionSide, EffectsState, CompositingState {
   readonly id: string;
   readonly type: 'group';
   /** Array order is the z-order, as in the document; groups do not nest. */

@@ -63,6 +63,9 @@ describe('the source time of video nodes (D49.5)', () => {
       cornerRadius: 0,
       sourceTimeUs: 500_000,
       effects: [],
+      mask: { kind: 'none' },
+      matte: { kind: 'none' },
+      blendMode: 'normal',
     });
   });
 });

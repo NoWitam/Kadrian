@@ -179,6 +179,7 @@ describe('the supported versions (D43.5)', () => {
       '0.17',
       '0.18',
       '0.19',
+      '0.20',
     ]);
     expect(Object.isFrozen(SUPPORTED_SCHEMA_VERSIONS)).toBe(true);
     expect(SUPPORTED_SCHEMA_VERSIONS.at(-1)).toBe(SCHEMA_VERSION);
@@ -199,7 +200,8 @@ describe('the supported versions (D43.5)', () => {
   );
 
   it.each([
-    '0.20',
+    '0.21',
+    '0.200',
     '0.190',
     '0.180',
     '0.170',
@@ -217,7 +219,6 @@ describe('the supported versions (D43.5)', () => {
     '0.50',
     '0.40',
     '0.30',
-    '0.20',
     '0.2.0',
     '0.02',
     '1.0',
@@ -346,7 +347,7 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
       ({ name, patch }) => [`0.1: ${name}`, applyPatch(referenceCompositionV01, patch)] as const,
     ),
     ...invalidCompositionCases.map(
-      ({ name, patch }) => [`0.19: ${name}`, applyPatch(referenceComposition, patch)] as const,
+      ({ name, patch }) => [`0.20: ${name}`, applyPatch(referenceComposition, patch)] as const,
     ),
   ];
 
@@ -382,15 +383,15 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
 
 describe('the rules of JSON, and no others (D43.2)', () => {
   it('lets the last of two equal keys win, as JSON.parse does', () => {
-    // A valid 0.19 body with two versions: the later one decides.
+    // A valid 0.20 body with two versions: the later one decides.
     const current = referenceText.replace(
-      '"schemaVersion":"0.19"',
-      '"schemaVersion":"0.1","schemaVersion":"0.19"',
+      '"schemaVersion":"0.20"',
+      '"schemaVersion":"0.1","schemaVersion":"0.20"',
     );
-    expect(loaded(parseComposition(current)).versions).toEqual(['0.19']);
+    expect(loaded(parseComposition(current)).versions).toEqual(['0.20']);
     const older = referenceText.replace(
-      '"schemaVersion":"0.19"',
-      '"schemaVersion":"0.19","schemaVersion":"0.1"',
+      '"schemaVersion":"0.20"',
+      '"schemaVersion":"0.20","schemaVersion":"0.1"',
     );
     const judged = refused(parseComposition(older));
     // Judged as the 0.1 document its last key says it is, which it is not.
@@ -517,15 +518,22 @@ describe('deeply nested JSON (D43.4)', () => {
   function nestedGroups(version: string, depth: number): string {
     const lifetime = version === '0.1' ? '' : '"startUs":0,"durationUs":1,';
     // From 0.13 a transformed node has a rotation and an origin (D68).
-    const turn = ['0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19'].includes(version)
+    const turn = ['0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20'].includes(version)
       ? '"rotation":0,"origin":{"x":0,"y":0},'
       : '';
     // From 0.15 the composition has a safe area (D70).
-    const safeArea = ['0.15', '0.16', '0.17', '0.18', '0.19'].includes(version)
+    const safeArea = ['0.15', '0.16', '0.17', '0.18', '0.19', '0.20'].includes(version)
       ? '"safeArea":{"fromTop":0,"fromRight":0,"fromBottom":0,"fromLeft":0},'
       : '';
     // From 0.16 a group and a scene have effects (D71).
-    const effects = ['0.16', '0.17', '0.18', '0.19'].includes(version) ? ',"effects":[]' : '';
+    const effects = ['0.16', '0.17', '0.18', '0.19', '0.20'].includes(version)
+      ? ',"effects":[]'
+      : '';
+    // From 0.20 a group has a mask, a matte, and a blend mode after its effects (D75).
+    const compositing =
+      version === '0.20'
+        ? ',"mask":{"kind":"none"},"matte":{"kind":"none"},"blendMode":"normal"'
+        : '';
     // From 0.5 a scene has its own duration and clips (D54.1), from 0.6 its
     // transitions, as the composition has (D56.1), from 0.8 the composition
     // has a template section (D58.5), and from 0.9 it has conditions and repeats (D59.5).
@@ -552,7 +560,7 @@ describe('deeply nested JSON (D43.4)', () => {
       open +=
         `{"id":"group-${String(level)}","type":"group",${lifetime}"position":{"x":0,"y":0},` +
         `"scale":{"x":1,"y":1},${turn}"opacity":1,"animations":[],"children":[`;
-      close += `]${effects}}`;
+      close += `]${effects}${compositing}}`;
     }
     return (
       `{"schemaVersion":"${version}","width":1,"height":1,${safeArea}"fps":1,"durationUs":1,"assets":[],` +
@@ -614,6 +622,7 @@ describe('ownership and freezing (D43.4, D43.3)', () => {
         '0.16',
         '0.17',
         '0.18',
+        '0.19',
         SCHEMA_VERSION,
       ],
     ],

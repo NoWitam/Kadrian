@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.19",
+  "schemaVersion": "0.20",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -72,7 +72,10 @@
           },
           "cornerRadius": 0,
           "volume": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "video-contain",
@@ -111,7 +114,10 @@
           },
           "cornerRadius": 0,
           "volume": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "video-cover",
@@ -150,7 +156,10 @@
           },
           "cornerRadius": 0,
           "volume": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "video-title",
@@ -188,7 +197,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],

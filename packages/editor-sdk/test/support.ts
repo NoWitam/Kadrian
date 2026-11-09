@@ -48,6 +48,9 @@ export const VIDEO_NODE = Object.freeze({
   cornerRadius: 0,
   volume: 0,
   effects: Object.freeze([]),
+  mask: Object.freeze({ kind: 'none' }),
+  matte: Object.freeze({ kind: 'none' }),
+  blendMode: 'normal',
 });
 
 /** The shape node `everyType` adds to the reference composition (D73). */
@@ -75,6 +78,9 @@ export const SHAPE_NODE = Object.freeze({
   }),
   trim: Object.freeze({ start: 0, end: 1000 }),
   effects: Object.freeze([]),
+  mask: Object.freeze({ kind: 'none' }),
+  matte: Object.freeze({ kind: 'none' }),
+  blendMode: 'normal',
 });
 
 /** The captions node `everyType` adds to the reference composition (D57). */
@@ -119,6 +125,9 @@ export const CAPTIONS_NODE = Object.freeze({
     Object.freeze({ text: 'captions', startUs: 1_000_000, durationUs: 500_000 }),
   ]),
   effects: [],
+  mask: { kind: 'none' },
+  matte: { kind: 'none' },
+  blendMode: 'normal',
 });
 
 /**

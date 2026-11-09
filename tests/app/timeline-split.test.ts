@@ -75,6 +75,9 @@ function document(): ValidatedComposition {
     cornerRadius: 0,
     volume: 0.5,
     effects: [],
+    mask: { kind: 'none' },
+    matte: { kind: 'none' },
+    blendMode: 'normal',
   });
   const result = validateComposition(draft);
   if (!result.ok) throw new Error(result.errors[0]?.message);

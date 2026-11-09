@@ -269,6 +269,9 @@ function newNode(next: () => number, id: string): Json {
     style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
     textAnimations: [],
     effects: [],
+    mask: { kind: 'none' },
+    matte: { kind: 'none' },
+    blendMode: 'normal',
   };
 }
 

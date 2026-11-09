@@ -32,6 +32,9 @@ import {
   setTextStyleArgumentsSchema,
   setShapeGeometryArgumentsSchema,
   setShapeFillArgumentsSchema,
+  setBlendModeArgumentsSchema,
+  setNodeMaskArgumentsSchema,
+  setNodeMatteArgumentsSchema,
   setShapeStrokeArgumentsSchema,
   setShapeTrimArgumentsSchema,
   addTextAnimationArgumentsSchema,
@@ -116,6 +119,9 @@ import {
   type SetTextStyleArgumentsSchema,
   type SetShapeGeometryArgumentsSchema,
   type SetShapeFillArgumentsSchema,
+  type SetBlendModeArgumentsSchema,
+  type SetNodeMaskArgumentsSchema,
+  type SetNodeMatteArgumentsSchema,
   type SetShapeStrokeArgumentsSchema,
   type AddTextAnimationArgumentsSchema,
   type RemoveTextAnimationArgumentsSchema,
@@ -164,6 +170,9 @@ export type CommandArgumentsSchema =
   | SetTextStyleArgumentsSchema
   | SetShapeGeometryArgumentsSchema
   | SetShapeFillArgumentsSchema
+  | SetBlendModeArgumentsSchema
+  | SetNodeMaskArgumentsSchema
+  | SetNodeMatteArgumentsSchema
   | SetShapeStrokeArgumentsSchema
   | AddTextAnimationArgumentsSchema
   | RemoveTextAnimationArgumentsSchema
@@ -246,7 +255,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, or group ends with its effects, [] for none (add_effect describes one). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, or group ends with its effects, [] for none (add_effect describes one), then mask {"kind":"none"}, matte {"kind":"none"}, and blendMode "normal" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -268,6 +277,9 @@ const METADATA = deepFreeze<MetadataTable>({
         style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
         textAnimations: [],
         effects: [],
+        mask: { kind: 'none' },
+        matte: { kind: 'none' },
+        blendMode: 'normal',
       },
     },
     argumentsSchema: addNodeArgumentsSchema,
@@ -760,6 +772,40 @@ const METADATA = deepFreeze<MetadataTable>({
       'Sets the part of the outline of a shape that its stroke draws, as integers in per mille of the length of the outline from where it starts: start 0 and end 1000 draw it all, and an end at or before the start draws none of it, caps included. The browser measures the outline; nothing about its length need be known. To draw a stroke on, animate trim/end from 0 to 1000 with add_animation; to run a segment along it, animate trim/start and trim/end together. The fill is not trimmed: set the fill to {"kind":"none"} for a line alone. Refused with invalid-argument for a value that is not an integer from 0 to 1000, unknown-node, and unsupported-node for a node that is not a shape.',
     example: { nodeId: 'node-shape', trim: { start: 0, end: 500 } },
     argumentsSchema: setShapeTrimArgumentsSchema,
+  },
+  SetBlendMode: {
+    description:
+      'Sets how an image, video, text, captions, shape, or group node blends with what lies below it in its scene or group: "normal" lays it over; "multiply" darkens (white leaves what lies below, black makes black); "screen" lightens (black leaves it, white makes white); "overlay", "soft-light", and "hard-light" raise contrast; "darken" and "lighten" keep the darker or lighter channel; "color-dodge" and "color-burn" brighten or darken what lies below by the node; "difference" and "exclusion" subtract; "hue", "saturation", "color", and "luminosity" take that part of the node and the rest from what lies below. A scene or group holding a node that blends is composited on its own, so a node never blends with another scene or with what lies outside its group. The blend mode applies last, after the mask, matte, opacity, and transform. Refused with invalid-argument, unknown-node, and unsupported-node for a background or a Custom HTML node.',
+    example: { nodeId: 'node-title', blendMode: 'screen' },
+    argumentsSchema: setBlendModeArgumentsSchema,
+  },
+  SetNodeMask: {
+    description:
+      'Replaces what masks an image, video, text, captions, shape, or group node, applied after its effects and moving, scaling, and turning with it: {"kind":"none"}; {"kind":"shape", x, y, width, height, geometry, inverted, feather, animations} shows the node only inside a geometry ({"kind":"rect", cornerRadius} and {"kind":"ellipse"} fill the box; polygon and path as set_shape_geometry describes, in pixels of the box) drawn in the box x, y, width, height, integers in pixels from the top-left corner of the node\'s own box (a group\'s box is the canvas); {"kind":"image", assetId, x, y, width, height, mode, inverted, feather, animations} shows the node through an image asset stretched over that box, by its opacity (mode "alpha") or its brightness times its opacity (mode "luminance"), nothing outside the box. inverted true shows the node where the mask does not cover it. feather softens the edge by a blur of that many composition pixels (0 to 1000). animations are [] or at most one each of {id, property: "geometry", keyframes} (shape masks; every keyframe a geometry of the same structure, morphed number by number) and {id, property: "feather", keyframes}, keyframes {timeUs, value, easing} in scene time. Refused with invalid-argument, unknown-node, unsupported-node for a background or a Custom HTML node, and invalid-result (an unknown or non-image asset, a path that does not start with a move, a geometry keyframe of another structure).',
+    example: {
+      nodeId: 'node-title',
+      mask: {
+        kind: 'shape',
+        x: 0,
+        y: 0,
+        width: 400,
+        height: 400,
+        geometry: { kind: 'ellipse' },
+        inverted: false,
+        feather: 12,
+        animations: [],
+      },
+    },
+    argumentsSchema: setNodeMaskArgumentsSchema,
+  },
+  SetNodeMatte: {
+    description:
+      'Replaces which sibling shape node mattes an image, video, text, captions, shape, or group node, as a track matte: {"kind":"none"}, or {"kind":"node", nodeId, mode}. The matte is a shape node of the same scene or group (not the node itself) with no mask, no matte, the normal blend mode, and no clip transition of its own; it keeps its own transform, lifetime, opacity, effects, and animations, is drawn only into the mask of the nodes it mattes, and covers nothing while it is not active. mode "alpha" shows the node where the matte is opaque, "luminance" where it is bright and opaque, "alpha-inverted" and "luminance-inverted" the opposite. The matte lies in the space of the parent: moving the node moves it under the matte, while a mask (set_node_mask) moves with the node. A node that mattes another cannot be removed or given a matte of its own until the matte is set to none, in the same transaction. Refused with invalid-argument, unknown-node, unsupported-node for a background or a Custom HTML node, and invalid-result (no such sibling, not a shape, or a matte that is not plain).',
+    example: {
+      nodeId: 'node-title',
+      matte: { kind: 'node', nodeId: 'node-shape', mode: 'alpha' },
+    },
+    argumentsSchema: setNodeMatteArgumentsSchema,
   },
   AddTextAnimation: {
     description: `Animates the letters, words, or lines of a text node one after another, at an index of its text animations: {id, unit, phase, staggerUs, order, tracks}. unit is "letter" (a character as a reader sees it, an emoji or an accented letter included; white space is no letter), "word" (a run without white space), or "line" (a line of the text as written that holds a word). Every fragment runs the same tracks in its own time, which starts staggerUs (integer microseconds) after the fragment before it in the order: phase {"kind":"in"} starts the first fragment at the node's startUs, {"kind":"out"} ends the last fragment's last keyframe at the node's end, {"kind":"accent", startUs} starts the first at that scene time, which moves with the node. order is {"kind":"forward"}, {"kind":"backward"}, {"kind":"center"} (from the middle outwards), {"kind":"edges"} (from both ends inwards), or {"kind":"random", seed} (an unsigned 32-bit integer; the same seed gives the same order). tracks are at least one, at most one per property: {property, keyframes} with property "opacity" (factor 0 to 1), "offset" ({x, y} integer pixels from the fragment's place), "scale" ({x, y} factors about its centre), "rotation" (degrees about its centre), or "color" (#rrggbb that replaces the text's colour), and at least two keyframes {timeUs, value, easing} in ascending time, timeUs in the fragment's own time from 0. Before its first keyframe a fragment holds the first value, after its last the last, so an entrance usually starts at opacity 0. Several text animations combine in their order: opacities and scales multiply, offsets and rotations add, the last colour wins. A text with a text animation is drawn in fragments for its whole lifetime, without kerning between them. Refused with unknown-node, unsupported-node for a node that is not a text, index-out-of-range, id-in-use, and invalid-result.`,

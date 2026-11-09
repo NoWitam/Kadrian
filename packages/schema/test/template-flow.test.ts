@@ -348,6 +348,9 @@ describe('conditions (D59.1)', () => {
       animations: [],
       children: [text('badge-a', 0), text('badge-b', 300_000)],
       effects: [],
+      mask: { kind: 'none' },
+      matte: { kind: 'none' },
+      blendMode: 'normal',
     });
     credits['transitions'] = [
       {
@@ -375,5 +378,89 @@ describe('conditions (D59.1)', () => {
     const removed = instantiated({ level: 2 }, source);
     expect(nodesOf(removed, 'scene-credits').map((node) => node['id'])).not.toContain('badge');
     expect(scenesOf(removed).at(-1)?.['transitions']).toEqual([]);
+  });
+});
+
+describe('mattes in a template (D75)', () => {
+  /** A plain shape node of a scene, which a sibling may take as its matte. */
+  function frame(id: string): Mutable {
+    return {
+      id,
+      type: 'shape',
+      startUs: 0,
+      durationUs: 400_000,
+      position: { x: 0, y: 0 },
+      scale: { x: 1, y: 1 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
+      opacity: 1,
+      animations: [],
+      width: 100,
+      height: 100,
+      geometry: { kind: 'ellipse' },
+      fill: { kind: 'solid', color: '#ffffff' },
+      stroke: { color: '#ffffff', width: 0, dash: [], cap: 'butt', join: 'miter' },
+      trim: { start: 0, end: 1000 },
+      effects: [],
+      mask: { kind: 'none' },
+      matte: { kind: 'none' },
+      blendMode: 'normal',
+    };
+  }
+
+  it('renames the matte of each copy of a repeated scene to the copy of its shape', () => {
+    const document = copy(template);
+    const repeated = scenesOf(document).find((scene) => scene['id'] === 'scene-person');
+    if (repeated === undefined) throw new Error('No scene.');
+    const nodes = repeated['nodes'] as Mutable[];
+    nodes.splice(1, 0, frame('person-frame'));
+    const portrait = nodes.find((node) => node['id'] === 'person-portrait');
+    if (portrait === undefined) throw new Error('No portrait.');
+    portrait['matte'] = { kind: 'node', nodeId: 'person-frame', mode: 'alpha' };
+    const result = instantiated(
+      { people: [person('Dina', 500_000), person('Kim', 700_000)] },
+      validated(document),
+    );
+    const copies = scenesOf(result).filter((scene) =>
+      String(scene['id']).startsWith('scene-person--'),
+    );
+    expect(copies).toHaveLength(2);
+    for (const scene of copies) {
+      const sceneNodes = scene['nodes'] as Mutable[];
+      const shape = sceneNodes.find((node) => String(node['id']).startsWith('person-frame'));
+      const matted = sceneNodes.find((node) => String(node['id']).startsWith('person-portrait'));
+      expect(matted?.['matte']).toEqual({ kind: 'node', nodeId: shape?.['id'], mode: 'alpha' });
+    }
+  });
+
+  it('gives a node no matte when a condition removes its matte', () => {
+    const document = copy(template);
+    const credits = scenesOf(document).find((scene) => scene['id'] === 'scene-credits');
+    if (credits === undefined) throw new Error('No scene.');
+    const nodes = credits['nodes'] as Mutable[];
+    nodes.splice(1, 0, frame('credits-frame'));
+    const stars = nodes.find((node) => node['id'] === 'credits-stars');
+    if (stars === undefined) throw new Error('No text.');
+    stars['matte'] = { kind: 'node', nodeId: 'credits-frame', mode: 'luminance' };
+    const section = document['template'] as { inputs: Mutable[]; conditions: Mutable[] };
+    section.inputs.push({ id: 'framed', type: 'boolean', default: true });
+    section.conditions.push({
+      id: 'when-framed',
+      test: 'true',
+      targetId: 'credits-frame',
+      inputId: 'framed',
+    });
+    const source = validated(document);
+    const kept = nodesOf(instantiated({}, source), 'scene-credits');
+    expect(kept.find((node) => node['id'] === 'credits-stars')?.['matte']).toEqual({
+      kind: 'node',
+      nodeId: 'credits-frame',
+      mode: 'luminance',
+    });
+    const removed = nodesOf(instantiated({ framed: false }, source), 'scene-credits');
+    expect(removed.map((node) => node['id'])).not.toContain('credits-frame');
+    expect(removed.find((node) => node['id'] === 'credits-stars')?.['matte']).toEqual({
+      kind: 'none',
+    });
   });
 });

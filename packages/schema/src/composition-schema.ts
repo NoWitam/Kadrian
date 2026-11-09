@@ -1,5 +1,5 @@
 /**
- * Composition schema 0.19: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.20: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
@@ -35,8 +35,10 @@
  * 0.17 plus the node `shape`, a rectangle, an ellipse, a polygon, or a path,
  * filled with a colour or a gradient, stroked, trimmed, and morphed (D73); 0.19
  * is 0.18 plus the asset type `svg`, a drawing of a closed subset of SVG that
- * an image node shows as an image (D74). The schemas of 0.1 to 0.18 are kept
- * as data in `v0-1` to `v0-18` (D35.4).
+ * an image node shows as an image (D74); 0.20 is 0.19 plus the blend mode, the
+ * mask (a shape or an image), and the matte (a sibling shape) of images, videos,
+ * texts, captions, shapes, and groups (D75). The schemas of 0.1 to 0.19 are
+ * kept as data in `v0-1` to `v0-19` (D35.4).
  */
 import {
   closedObject,
@@ -49,7 +51,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.19';
+export const SCHEMA_VERSION = '0.20';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -1128,6 +1130,175 @@ const effects = {
   items: effectSchema,
 } as const satisfies ArraySchema;
 
+/** How a node blends with what lies below it, as CSS mix-blend-mode; every value was probed exact (D65, D75). */
+export const BLEND_MODES = [
+  'normal',
+  'multiply',
+  'screen',
+  'overlay',
+  'darken',
+  'lighten',
+  'color-dodge',
+  'color-burn',
+  'hard-light',
+  'soft-light',
+  'difference',
+  'exclusion',
+  'hue',
+  'saturation',
+  'color',
+  'luminosity',
+] as const;
+
+const blendMode = {
+  type: 'string',
+  description:
+    'How the node, once drawn, meets what lies below it in its scene or group, as CSS mix-blend-mode: normal lays it over, the others blend each pixel with the pixel below. A scene or a group holding a node that blends is composited on its own, so nothing outside it is blended (D75).',
+  enum: BLEND_MODES,
+} as const satisfies StringSchema;
+
+/** The box of a mask in the node's own coordinates, before its transform (D75). */
+const maskBox = {
+  x: {
+    ...coordinate,
+    description:
+      "Left edge of the mask's box, in composition pixels from the top-left corner of the node's box, before the node's transform (D75).",
+  },
+  y: {
+    ...coordinate,
+    description:
+      "Top edge of the mask's box, in composition pixels from the top-left corner of the node's box, before the node's transform (D75).",
+  },
+  width: { ...length, description: "Width of the mask's box, in composition pixels (D75)." },
+  height: { ...length, description: "Height of the mask's box, in composition pixels (D75)." },
+} as const;
+
+const maskInverted = {
+  type: 'boolean',
+  description:
+    'false shows the node where the mask covers it; true shows it where the mask does not, out to 4 000 000 pixels about the node (D75).',
+} as const satisfies BooleanSchema;
+
+const feather = {
+  ...blurLength,
+  description:
+    "How soft the mask's edge is: the standard deviation of a Gaussian blur of the mask, in composition pixels, from 0 (a hard edge) to 1000 (D75).",
+} as const;
+
+const maskAnimation = <const N extends string, const V extends JsonSchema>(
+  property: N,
+  value: V,
+  description: string,
+) => animation(property, description, value);
+
+export const noMaskSchema = closedObject('The node is not masked (D75).', {
+  kind: { type: 'string', const: 'none' },
+});
+
+export const shapeMaskSchema = closedObject(
+  "The node is shown only inside a shape: a geometry of D73 drawn in the mask's box, which moves, scales, and turns with the node. A rect or an ellipse fills the box; polygon and path points are in pixels of the box (D73, D75).",
+  {
+    kind: { type: 'string', const: 'shape' },
+    ...maskBox,
+    geometry: shapeGeometrySchema,
+    inverted: maskInverted,
+    feather,
+    animations: {
+      type: 'array',
+      description:
+        "Animations of the mask's geometry and feather, at most one each, in the time of the scene; a sampled value replaces the mask's own. Every geometry keyframe has the structure of the mask's geometry (D65.1, D73, D75).",
+      items: {
+        oneOf: [
+          maskAnimation(
+            'geometry',
+            shapeGeometrySchema,
+            "Geometries that replace the mask's own, morphed number by number as a shape's are (D73, D75).",
+          ),
+          maskAnimation(
+            'feather',
+            blurLength,
+            "Values of the feather that replace the mask's own (D75).",
+          ),
+        ],
+      },
+    },
+  },
+);
+
+export const imageMaskSchema = closedObject(
+  "The node is shown through an image asset stretched over the mask's box, which moves, scales, and turns with the node: by the image's alpha, or by its luminance times its alpha. Outside the box the mask is empty (D75).",
+  {
+    kind: { type: 'string', const: 'image' },
+    assetId: {
+      ...assetReference,
+      description: 'ID of an image asset; an svg asset is not a mask (D75).',
+    },
+    ...maskBox,
+    mode: {
+      type: 'string',
+      description:
+        "alpha takes the image's opacity; luminance takes its brightness times its opacity, so white shows the node and black hides it (D75).",
+      enum: ['alpha', 'luminance'],
+    },
+    inverted: maskInverted,
+    feather,
+    animations: {
+      type: 'array',
+      description:
+        "Animations of the mask's feather, at most one, in the time of the scene; a sampled value replaces the mask's own (D65.1, D75).",
+      items: {
+        oneOf: [
+          maskAnimation(
+            'feather',
+            blurLength,
+            "Values of the feather that replace the mask's own (D75).",
+          ),
+        ],
+      },
+    },
+  },
+);
+
+/** What masks a node: nothing, a shape, or an image (D65.6, D75). */
+export const maskSchema = {
+  description:
+    'What masks the node, applied after its effects and before its matte, opacity, transform, and blend mode (D65.6, D75).',
+  oneOf: [noMaskSchema, shapeMaskSchema, imageMaskSchema],
+} as const satisfies UnionSchema;
+
+export const noMatteSchema = closedObject('The node takes no matte (D75).', {
+  kind: { type: 'string', const: 'none' },
+});
+
+export const nodeMatteSchema = closedObject(
+  "The node is shown through a sibling shape node, its matte, as an editor's track matte: the matte is drawn where it is, with its own transform, lifetime, opacity, and effects, into the mask of this node, and is not drawn by itself. While the matte is not active it covers nothing (D75).",
+  {
+    kind: { type: 'string', const: 'node' },
+    nodeId: {
+      type: 'string',
+      description:
+        'ID of a shape node with the same parent (the scene or the group), other than this node, that has no matte itself (D75).',
+      pattern: '^[A-Za-z0-9_-]+$',
+    },
+    mode: {
+      type: 'string',
+      description:
+        'alpha shows the node where the matte is opaque; luminance where it is bright and opaque; the inverted modes the opposite (D75).',
+      enum: ['alpha', 'alpha-inverted', 'luminance', 'luminance-inverted'],
+    },
+  },
+);
+
+/** Which sibling, if any, mattes a node (D75). */
+export const matteSchema = {
+  description:
+    'A sibling shape node that mattes the node, applied after its mask, in the space of its parent (D65.6, D75).',
+  oneOf: [noMatteSchema, nodeMatteSchema],
+} as const satisfies UnionSchema;
+
+/** The keys of D75 that every image, video, text, captions, shape, and group carries after its effects. */
+const compositing = { mask: maskSchema, matte: matteSchema, blendMode } as const;
+
 /**
  * The lifetime of a node, in the time of its scene (D42.1, D42.2, D49.3): it is active at
  * `t` when `t >= startUs` and `t - startUs < durationUs`. Every node has one,
@@ -1203,6 +1374,7 @@ export const imageNodeSchema = closedObject(
     crop,
     cornerRadius,
     effects,
+    ...compositing,
   },
 );
 
@@ -1231,6 +1403,7 @@ export const videoNodeSchema = closedObject(
         'Linear factor of the amplitude of the sound of the video, from 0 to 1. At 0 the video is silent and its source needs no sound; above 0 it needs exactly one audio stream (D52).',
     },
     effects,
+    ...compositing,
   },
 );
 
@@ -1507,6 +1680,7 @@ export const textNodeSchema = closedObject('One run of text; line breaks are pre
     items: textAnimationSchema,
   },
   effects,
+  ...compositing,
 });
 
 /** One timed word of a caption (D57), in the time of its scene like a keyframe (D55.3). */
@@ -1680,6 +1854,7 @@ export const captionsNodeSchema = closedObject(
       items: captionWordSchema,
     },
     effects,
+    ...compositing,
   },
 );
 
@@ -1710,6 +1885,7 @@ export const shapeNodeSchema = closedObject(
     stroke: shapeStrokeSchema,
     trim: shapeTrimSchema,
     effects,
+    ...compositing,
   },
 );
 
@@ -1730,6 +1906,7 @@ export const groupNodeSchema = closedObject(
       description:
         'Effects of the group, applied to its children composited together, in the order they apply; none leaves the pixels exactly as they are (D15, D65.5, D71).',
     },
+    ...compositing,
   },
 );
 
@@ -2445,7 +2622,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.19',
+  title: 'Kadrion composition 0.20',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

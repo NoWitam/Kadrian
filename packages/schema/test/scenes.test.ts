@@ -101,6 +101,9 @@ describe('videos with their scene (D54.3)', () => {
     cornerRadius: 0,
     volume: 0.5,
     effects: [],
+    mask: { kind: 'none' },
+    matte: { kind: 'none' },
+    blendMode: 'normal',
   };
   const withVideo = (() => {
     const document = draft();

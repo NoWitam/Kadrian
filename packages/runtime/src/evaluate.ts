@@ -12,6 +12,7 @@ import {
 } from '@kadrion/schema';
 
 import { captionAt, captionFragments, captionPages } from './captions.js';
+import { compositingAt } from './compositing.js';
 import { effectsAt } from './effects.js';
 import { EvaluationError, unsupported } from './errors.js';
 import { textFragments } from './fragments.js';
@@ -211,6 +212,7 @@ function evaluateImage(node: ImageNode, timeUs: number, factors: Factors): Image
     ...evaluateLeaf(node, timeUs, factors),
     ...pictureOf(node, timeUs),
     effects: effectsAt(node.effects, timeUs),
+    ...compositingAt(node, timeUs),
   };
 }
 
@@ -222,6 +224,7 @@ function evaluateText(node: TextNode, timeUs: number, factors: Factors): TextNod
     color,
     fragments: textFragments(node, color, timeUs),
     effects: effectsAt(node.effects, timeUs),
+    ...compositingAt(node, timeUs),
   };
 }
 
@@ -233,6 +236,7 @@ function evaluateVideo(node: VideoNode, timeUs: number, factors: Factors): Video
     ...pictureOf(node, timeUs),
     sourceTimeUs: leaf.active ? sourceTimeUs(node, timeUs) : null,
     effects: effectsAt(node.effects, timeUs),
+    ...compositingAt(node, timeUs),
   };
 }
 
@@ -252,6 +256,7 @@ function evaluateCaptions(node: CaptionsNode, timeUs: number, factors: Factors):
     ...instant,
     fragments: captionFragments(node, pages, instant, leaf.color, timeUs),
     effects: effectsAt(node.effects, timeUs),
+    ...compositingAt(node, timeUs),
   };
 }
 
@@ -261,6 +266,7 @@ function evaluateShape(node: ShapeNode, timeUs: number, factors: Factors): Shape
     ...evaluateLeaf(node, timeUs, factors),
     ...shapeAt(node, timeUs),
     effects: effectsAt(node.effects, timeUs),
+    ...compositingAt(node, timeUs),
   };
 }
 
@@ -310,6 +316,7 @@ function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeSt
         ...transformOf(node, timeUs, factors),
         children: node.children.map((child) => evaluateChild(child, timeUs, factors)),
         effects: effectsAt(node.effects, timeUs),
+        ...compositingAt(node, timeUs),
       };
     case 'image':
       return evaluateImage(node, timeUs, factors);

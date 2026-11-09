@@ -51,6 +51,11 @@ const ERROR_CODES = [
   'stroke-dash-odd',
   'fill-not-solid',
   'geometry-mismatch',
+  'matte-not-sibling',
+  'matte-not-shape',
+  'matte-not-plain',
+  'matte-in-transition',
+  'repeat-of-matte',
 ] as const;
 
 describe('negative fixtures', () => {

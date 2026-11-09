@@ -1,7 +1,7 @@
 /**
  * When the media of a rendered frame are ready (D25.3): every image under the
- * root that has a source, the frame of every active video included (D50.4), has
- * been decoded, and the document's font set has settled. The renderer
+ * root that has a source, the frame of every active video and the image of every
+ * mask included (D50.4, D75), has been decoded, and the document's font set has settled. The renderer
  * waits on the browser's own promises and never on a clock; a host bounds the
  * whole frame with its own timeout. Font loading itself is open question Q5.
  */
@@ -42,7 +42,23 @@ export function awaitMediaReady(root: Element): Promise<void> {
         );
       });
     });
-    Promise.all([...decodes, fonts.ready]).then(() => {
+    // The image of a mask is an SVG `<image>`, which decodes nothing itself: a
+    // picture of the same source is decoded in its place (D75).
+    const masks = [...root.querySelectorAll('mask image[href]')].map((image) => {
+      const picture = image.ownerDocument.createElement('img');
+      const decode = (picture as Decodable).decode;
+      if (typeof decode !== 'function') {
+        throw new RenderError(
+          'readiness-unsupported',
+          'Images of this document cannot be decoded.',
+        );
+      }
+      picture.src = image.getAttribute('href') ?? '';
+      return decode.call(picture).catch(() => {
+        throw new RenderError('asset-decode-failed', 'The image of a mask could not be decoded.');
+      });
+    });
+    Promise.all([...decodes, ...masks, fonts.ready]).then(() => {
       resolve();
     }, reject);
   });

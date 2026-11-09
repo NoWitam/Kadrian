@@ -101,7 +101,7 @@
   },
   {
     "name": "add_node",
-    "description": "Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, or group ends with its effects, [] for none (add_effect describes one). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. A group takes text, image, video, and shape nodes only. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"rotation\":0,\"origin\":{\"x\":0,\"y\":0},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"color\":\"#ffffff\",\"style\":{\"stroke\":{\"kind\":\"none\"},\"shadow\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"}},\"textAnimations\":[],\"effects\":[]}}",
+    "description": "Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, or group ends with its effects, [] for none (add_effect describes one), then mask {\"kind\":\"none\"}, matte {\"kind\":\"none\"}, and blendMode \"normal\" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. A group takes text, image, video, and shape nodes only. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"rotation\":0,\"origin\":{\"x\":0,\"y\":0},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"color\":\"#ffffff\",\"style\":{\"stroke\":{\"kind\":\"none\"},\"shadow\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"}},\"textAnimations\":[],\"effects\":[],\"mask\":{\"kind\":\"none\"},\"matte\":{\"kind\":\"none\"},\"blendMode\":\"normal\"}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete node, with its animations and children, into a list.",
@@ -1947,6 +1947,96 @@
     }
   },
   {
+    "name": "set_blend_mode",
+    "description": "Sets how an image, video, text, captions, shape, or group node blends with what lies below it in its scene or group: \"normal\" lays it over; \"multiply\" darkens (white leaves what lies below, black makes black); \"screen\" lightens (black leaves it, white makes white); \"overlay\", \"soft-light\", and \"hard-light\" raise contrast; \"darken\" and \"lighten\" keep the darker or lighter channel; \"color-dodge\" and \"color-burn\" brighten or darken what lies below by the node; \"difference\" and \"exclusion\" subtract; \"hue\", \"saturation\", \"color\", and \"luminosity\" take that part of the node and the rest from what lies below. A scene or group holding a node that blends is composited on its own, so a node never blends with another scene or with what lies outside its group. The blend mode applies last, after the mask, matte, opacity, and transform. Refused with invalid-argument, unknown-node, and unsupported-node for a background or a Custom HTML node. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"blendMode\":\"screen\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets how a node blends with what lies below it in its scene or group.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "ID of an image, video, text, captions, shape, or group node; only these blend, take a mask, and take a matte.",
+          "minLength": 1
+        },
+        "blendMode": {
+          "type": "string",
+          "description": "normal lays the node over what lies below; multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, and exclusion blend each colour channel; hue, saturation, color, and luminosity take that part of the node and the rest of what lies below. A scene or group holding a node that blends is composited on its own.",
+          "enum": [
+            "normal",
+            "multiply",
+            "screen",
+            "overlay",
+            "darken",
+            "lighten",
+            "color-dodge",
+            "color-burn",
+            "hard-light",
+            "soft-light",
+            "difference",
+            "exclusion",
+            "hue",
+            "saturation",
+            "color",
+            "luminosity"
+          ]
+        }
+      },
+      "required": [
+        "nodeId",
+        "blendMode"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_mask",
+    "description": "Replaces what masks an image, video, text, captions, shape, or group node, applied after its effects and moving, scaling, and turning with it: {\"kind\":\"none\"}; {\"kind\":\"shape\", x, y, width, height, geometry, inverted, feather, animations} shows the node only inside a geometry ({\"kind\":\"rect\", cornerRadius} and {\"kind\":\"ellipse\"} fill the box; polygon and path as set_shape_geometry describes, in pixels of the box) drawn in the box x, y, width, height, integers in pixels from the top-left corner of the node's own box (a group's box is the canvas); {\"kind\":\"image\", assetId, x, y, width, height, mode, inverted, feather, animations} shows the node through an image asset stretched over that box, by its opacity (mode \"alpha\") or its brightness times its opacity (mode \"luminance\"), nothing outside the box. inverted true shows the node where the mask does not cover it. feather softens the edge by a blur of that many composition pixels (0 to 1000). animations are [] or at most one each of {id, property: \"geometry\", keyframes} (shape masks; every keyframe a geometry of the same structure, morphed number by number) and {id, property: \"feather\", keyframes}, keyframes {timeUs, value, easing} in scene time. Refused with invalid-argument, unknown-node, unsupported-node for a background or a Custom HTML node, and invalid-result (an unknown or non-image asset, a path that does not start with a move, a geometry keyframe of another structure). The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"mask\":{\"kind\":\"shape\",\"x\":0,\"y\":0,\"width\":400,\"height\":400,\"geometry\":{\"kind\":\"ellipse\"},\"inverted\":false,\"feather\":12,\"animations\":[]}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Replaces what masks a node.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "ID of an image, video, text, captions, shape, or group node; only these blend, take a mask, and take a matte.",
+          "minLength": 1
+        },
+        "mask": {
+          "type": "object",
+          "description": "The complete mask: {kind: \"none\"}; {kind: \"shape\", x, y, width, height, geometry, inverted, feather, animations}, a geometry as a shape's (rect, ellipse, polygon, or path) drawn in the box x, y, width, height in pixels of the node's own box; or {kind: \"image\", assetId, x, y, width, height, mode, inverted, feather, animations}, an image asset stretched over that box, mode \"alpha\" or \"luminance\". inverted shows the node where the mask does not cover it; feather is the softness of the edge in composition pixels (0 to 1000). animations are [] or {id, property: \"geometry\" | \"feather\", keyframes} (geometry for a shape mask only, every keyframe of the mask's geometry structure)."
+        }
+      },
+      "required": [
+        "nodeId",
+        "mask"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_matte",
+    "description": "Replaces which sibling shape node mattes an image, video, text, captions, shape, or group node, as a track matte: {\"kind\":\"none\"}, or {\"kind\":\"node\", nodeId, mode}. The matte is a shape node of the same scene or group (not the node itself) with no mask, no matte, the normal blend mode, and no clip transition of its own; it keeps its own transform, lifetime, opacity, effects, and animations, is drawn only into the mask of the nodes it mattes, and covers nothing while it is not active. mode \"alpha\" shows the node where the matte is opaque, \"luminance\" where it is bright and opaque, \"alpha-inverted\" and \"luminance-inverted\" the opposite. The matte lies in the space of the parent: moving the node moves it under the matte, while a mask (set_node_mask) moves with the node. A node that mattes another cannot be removed or given a matte of its own until the matte is set to none, in the same transaction. Refused with invalid-argument, unknown-node, unsupported-node for a background or a Custom HTML node, and invalid-result (no such sibling, not a shape, or a matte that is not plain). The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"matte\":{\"kind\":\"node\",\"nodeId\":\"node-shape\",\"mode\":\"alpha\"}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Replaces which sibling shape mattes a node.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "ID of an image, video, text, captions, shape, or group node; only these blend, take a mask, and take a matte.",
+          "minLength": 1
+        },
+        "matte": {
+          "type": "object",
+          "description": "The complete matte: {kind: \"none\"}; or {kind: \"node\", nodeId, mode}, nodeId a shape node of the same scene or group that has no mask, matte, or blend mode of its own and is no side of a clip transition, mode \"alpha\", \"alpha-inverted\", \"luminance\", or \"luminance-inverted\"."
+        }
+      },
+      "required": [
+        "nodeId",
+        "matte"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "add_text_animation",
     "description": "Animates the letters, words, or lines of a text node one after another, at an index of its text animations: {id, unit, phase, staggerUs, order, tracks}. unit is \"letter\" (a character as a reader sees it, an emoji or an accented letter included; white space is no letter), \"word\" (a run without white space), or \"line\" (a line of the text as written that holds a word). Every fragment runs the same tracks in its own time, which starts staggerUs (integer microseconds) after the fragment before it in the order: phase {\"kind\":\"in\"} starts the first fragment at the node's startUs, {\"kind\":\"out\"} ends the last fragment's last keyframe at the node's end, {\"kind\":\"accent\", startUs} starts the first at that scene time, which moves with the node. order is {\"kind\":\"forward\"}, {\"kind\":\"backward\"}, {\"kind\":\"center\"} (from the middle outwards), {\"kind\":\"edges\"} (from both ends inwards), or {\"kind\":\"random\", seed} (an unsigned 32-bit integer; the same seed gives the same order). tracks are at least one, at most one per property: {property, keyframes} with property \"opacity\" (factor 0 to 1), \"offset\" ({x, y} integer pixels from the fragment's place), \"scale\" ({x, y} factors about its centre), \"rotation\" (degrees about its centre), or \"color\" (#rrggbb that replaces the text's colour), and at least two keyframes {timeUs, value, easing} in ascending time, timeUs in the fragment's own time from 0. Before its first keyframe a fragment holds the first value, after its last the last, so an entrance usually starts at opacity 0. Several text animations combine in their order: opacities and scales multiply, offsets and rotations add, the last colour wins. A text with a text animation is drawn in fragments for its whole lifetime, without kerning between them. Refused with unknown-node, unsupported-node for a node that is not a text, index-out-of-range, id-in-use, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"index\":0,\"animation\":{\"id\":\"text-title-in\",\"unit\":\"letter\",\"phase\":{\"kind\":\"in\"},\"staggerUs\":50000,\"order\":{\"kind\":\"forward\"},\"tracks\":[{\"property\":\"opacity\",\"keyframes\":[{\"timeUs\":0,\"value\":0,\"easing\":{\"kind\":\"ease-out\"}},{\"timeUs\":300000,\"value\":1,\"easing\":{\"kind\":\"linear\"}}]},{\"property\":\"offset\",\"keyframes\":[{\"timeUs\":0,\"value\":{\"x\":0,\"y\":40},\"easing\":{\"kind\":\"ease-out\"}},{\"timeUs\":300000,\"value\":{\"x\":0,\"y\":0},\"easing\":{\"kind\":\"linear\"}}]}]}}",
     "inputSchema": {
@@ -2519,6 +2609,9 @@
                   "set_shape_fill",
                   "set_shape_stroke",
                   "set_shape_trim",
+                  "set_blend_mode",
+                  "set_node_mask",
+                  "set_node_matte",
                   "add_text_animation",
                   "remove_text_animation",
                   "set_text_animation",

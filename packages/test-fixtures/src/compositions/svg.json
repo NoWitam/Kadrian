@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.19",
+  "schemaVersion": "0.20",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -65,7 +65,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-shape-1",
@@ -197,7 +200,10 @@
             "start": 0,
             "end": 1000
           },
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-shape-2",
@@ -307,7 +313,10 @@
             "start": 0,
             "end": 1000
           },
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-shape-3",
@@ -426,7 +435,10 @@
             "start": 0,
             "end": 1000
           },
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-shape-4",
@@ -514,7 +526,10 @@
             "start": 0,
             "end": 1000
           },
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-shape-5",
@@ -603,7 +618,10 @@
             "start": 0,
             "end": 1000
           },
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "image-svg-turning",
@@ -661,7 +679,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],

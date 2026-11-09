@@ -72,6 +72,8 @@ export type ValidationErrorCode =
   | 'nested-repeat'
   /** A repeated node is a side of a clip transition, whose overlap its copies cannot keep (D59.2). */
   | 'repeat-in-transition'
+  /** A repeated node is the matte of a sibling, which its copies would not be (D75). */
+  | 'repeat-of-matte'
   /** An ID has the form of the ID of a copy of a repeat, `<id>--<index>` (D59.2). */
   | 'repeat-id-reserved'
   /** An item binding or placeholder lies outside every repeat over its list (D59.3). */
@@ -85,7 +87,15 @@ export type ValidationErrorCode =
   /** A fill animation on a shape whose fill is not one colour (D73). */
   | 'fill-not-solid'
   /** A geometry keyframe whose structure is not that of the shape's geometry (D73). */
-  | 'geometry-mismatch';
+  | 'geometry-mismatch'
+  /** A matte names no other node of the same scene or group (D75). */
+  | 'matte-not-sibling'
+  /** A matte names a node that is not a shape (D75). */
+  | 'matte-not-shape'
+  /** A matte has a mask, a matte, or a blend mode other than normal itself (D75). */
+  | 'matte-not-plain'
+  /** A matte is a side of a clip transition (D75). */
+  | 'matte-in-transition';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

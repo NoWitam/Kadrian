@@ -32,6 +32,9 @@ import {
   parseSetCaptionStyle,
   parseSetTextStyle,
   parseSetShapeFill,
+  parseSetBlendMode,
+  parseSetNodeMask,
+  parseSetNodeMatte,
   parseSetShapeGeometry,
   parseSetShapeStroke,
   parseSetShapeTrim,
@@ -419,6 +422,16 @@ function unknownAsset(assetId: string): EditorError {
 
 /** Checks that an asset exists in `assets` and is of the type the field expects (D40.2). */
 /** Refuses a node of another type than `type` with `unsupported-node` (D30.8). */
+/** The node types that blend, take a mask, and take a matte (D75). */
+const COMPOSITED_TYPES: readonly string[] = Object.freeze([
+  'image',
+  'video',
+  'text',
+  'captions',
+  'shape',
+  'group',
+]);
+
 function requireType(node: DocumentObject, types: readonly string[], nodeId: string): void {
   if (!types.includes(String(node['type']))) {
     throw new EditorError(
@@ -2446,6 +2459,45 @@ const DEFINITIONS = deepFreeze<Definitions>({
         return {
           node: { ...node, trim: command.trim },
           inverse: parseSetShapeTrim({ ...command, trim }),
+        };
+      }),
+  },
+  SetBlendMode: {
+    parse: parseSetBlendMode,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, COMPOSITED_TYPES, command.nodeId);
+        const blendMode = stringField(node, 'blendMode', command.nodeId);
+        if (blendMode === command.blendMode) return null;
+        return {
+          node: { ...node, blendMode: command.blendMode },
+          inverse: parseSetBlendMode({ ...command, blendMode }),
+        };
+      }),
+  },
+  SetNodeMask: {
+    parse: parseSetNodeMask,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, COMPOSITED_TYPES, command.nodeId);
+        const mask: unknown = node['mask'];
+        if (sameData(mask, command.mask)) return null;
+        return {
+          node: { ...node, mask: command.mask },
+          inverse: parseSetNodeMask({ ...command, mask }),
+        };
+      }),
+  },
+  SetNodeMatte: {
+    parse: parseSetNodeMatte,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, COMPOSITED_TYPES, command.nodeId);
+        const matte: unknown = node['matte'];
+        if (sameData(matte, command.matte)) return null;
+        return {
+          node: { ...node, matte: command.matte },
+          inverse: parseSetNodeMatte({ ...command, matte }),
         };
       }),
   },

@@ -27,6 +27,15 @@ import {
   type CustomHtmlPolicy,
   type MountOptions,
 } from './policy.js';
+import {
+  cssMask,
+  maskDefinitions,
+  maskId,
+  MATTE_ATTRIBUTE,
+  MATTE_FRAME_ATTRIBUTE,
+  matteId,
+  matteIds,
+} from './masks.js';
 import { sandboxFrame } from './sandbox.js';
 import { shapeContent } from './shapes.js';
 import { effectFilters, isSvgEffect } from './svg-filters.js';
@@ -323,17 +332,41 @@ function placedNode(
   assetUrls: AssetUrls,
   customHtml: CustomHtmlPolicy,
   sides: ReadonlySet<string>,
+  mattes: ReadonlySet<string>,
 ): HTMLElement {
-  const element = nodeElement(document, node, canvas, assetUrls, customHtml, sides);
-  if (!sides.has(node.id)) return element;
-  const frame = create(
-    document,
-    'div',
-    { [CLIP_FRAME_ATTRIBUTE]: node.id },
-    { ...PLACED, ...canvas },
-  );
-  frame.append(element);
-  return frame;
+  const element = nodeElement(document, node, canvas, assetUrls, customHtml, sides, mattes);
+  // A node's own mask lies on its element, after its effects (D65.6, D75).
+  if ('mask' in node && node.mask.kind !== 'none') {
+    element.style.setProperty('mask', cssMask(maskId(node.id)));
+  }
+  // A matte is never drawn by itself; `renderState` hides it (D75).
+  if (mattes.has(node.id)) element.setAttribute(MATTE_ATTRIBUTE, '');
+  let placed = element;
+  if (sides.has(node.id)) {
+    placed = create(document, 'div', { [CLIP_FRAME_ATTRIBUTE]: node.id }, { ...PLACED, ...canvas });
+    placed.append(element);
+  }
+  // A matte lies in the space of the parent, on a frame around the node (D75).
+  if ('matte' in node && node.matte.kind === 'node') {
+    const frame = create(
+      document,
+      'div',
+      { [MATTE_FRAME_ATTRIBUTE]: node.id },
+      { ...PLACED, ...canvas, mask: cssMask(matteId(node.id)) },
+    );
+    frame.append(placed);
+    placed = frame;
+  }
+  // The blend mode comes last, on the outermost element of the node (D65.6, D75).
+  if ('blendMode' in node && node.blendMode !== 'normal') {
+    placed.style.setProperty('mix-blend-mode', node.blendMode);
+  }
+  return placed;
+}
+
+/** Whether a node of a list blends with what lies below it, so that their parent is isolated (D75). */
+function blends(nodes: readonly (SceneNode | GroupNode['children'][number])[]): boolean {
+  return nodes.some((node) => 'blendMode' in node && node.blendMode !== 'normal');
 }
 
 function nodeElement(
@@ -343,6 +376,7 @@ function nodeElement(
   assetUrls: AssetUrls,
   customHtml: CustomHtmlPolicy,
   sides: ReadonlySet<string>,
+  mattes: ReadonlySet<string>,
 ): HTMLElement {
   const address = { [NODE_ATTRIBUTE]: node.id };
   switch (node.type) {
@@ -351,10 +385,15 @@ function nodeElement(
     case 'group': {
       // A group's box is the canvas, the box its origin is a point of (D68); it
       // neither clips nor paints.
-      const group = create(document, 'div', address, { ...TRANSFORMED, ...canvas });
+      // A group with a child that blends is composited on its own (D75).
+      const group = create(document, 'div', address, {
+        ...TRANSFORMED,
+        ...canvas,
+        ...(blends(node.children) ? { isolation: 'isolate' } : {}),
+      });
       group.append(
         ...node.children.map((child) =>
-          placedNode(document, child, canvas, assetUrls, customHtml, sides),
+          placedNode(document, child, canvas, assetUrls, customHtml, sides, mattes),
         ),
       );
       return group;
@@ -485,24 +524,31 @@ export function mountComposition(
       : { [STAGE_ATTRIBUTE]: '' },
     { position: 'relative', ...canvas, overflow: 'hidden' },
   );
+  const mattes = matteIds(composition);
   for (const scene of composition.scenes) {
+    // A scene with a node that blends is composited on its own (D75).
     const sceneElement = create(
       document,
       'div',
       { [SCENE_ATTRIBUTE]: scene.id },
-      { ...PLACED, ...canvas },
+      { ...PLACED, ...canvas, ...(blends(scene.nodes) ? { isolation: 'isolate' } : {}) },
     );
     // Every side of a clip transition gets its frame, whatever the effect (D66).
     const sides = new Set(
       scene.transitions.flatMap(({ fromNodeId, toNodeId }) => [fromNodeId, toNodeId]),
     );
     sceneElement.append(
-      ...scene.nodes.map((node) => placedNode(document, node, canvas, urls, customHtml, sides)),
+      ...scene.nodes.map((node) =>
+        placedNode(document, node, canvas, urls, customHtml, sides, mattes),
+      ),
     );
     stage.append(sceneElement);
   }
   // The filters of the effects drawn by SVG filters, after the scenes (D72).
   const filters = effectFilters(document, svgEffectIds(composition));
   if (filters !== null) stage.append(filters);
+  // The masks and mattes, after the filters (D75).
+  const masks = maskDefinitions(document, composition, urls);
+  if (masks !== null) stage.append(masks);
   root.replaceChildren(stage);
 }

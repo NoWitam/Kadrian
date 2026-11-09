@@ -80,6 +80,9 @@ describe('SetTextStyle (D69)', () => {
         'style',
         'textAnimations',
         'effects',
+        'mask',
+        'matte',
+        'blendMode',
       ]);
     }
   });

@@ -92,9 +92,14 @@ describe('AddEffect (D71)', () => {
     expect(idsOf(between, 'node-image')).toEqual(['first', 'between', 'second']);
   });
 
-  it('keeps the effects the last field of their owner', () => {
+  it('keeps the effects where they are, before the mask, the matte, and the blend mode (D75)', () => {
     const document = withEffects(grey('first'));
-    expect(Object.keys(nodeOf(document, 'node-image')).at(-1)).toBe('effects');
+    expect(Object.keys(nodeOf(document, 'node-image')).slice(-4)).toEqual([
+      'effects',
+      'mask',
+      'matte',
+      'blendMode',
+    ]);
   });
 
   it('is refused for a background or Custom HTML, an unknown owner, an index past the end, and a taken ID', () => {

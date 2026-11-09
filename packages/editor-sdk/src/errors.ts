@@ -56,6 +56,12 @@ export type EditorErrorCode =
    * no longer fits; `details` list the IDs of those transitions, sorted (D56.7).
    */
   | 'transition-in-use'
+  /**
+   * A command other than `SetNodeMatte` would leave a node with a matte that is
+   * removed, moved away, no shape, or not plain any more; `details` list the IDs
+   * of the nodes it mattes, sorted (D75).
+   */
+  | 'matte-in-use'
   /** The template has no input with that ID; `details` are empty (D58.6). */
   | 'unknown-input'
   /** The template has no binding with that ID; `details` are empty (D58.6). */

@@ -5,7 +5,8 @@
  * of the captions composition (D57), of the focus composition (D63), of the
  * easing composition (D67), of the motion composition (D68), of the text
  * composition (D69), of the animated captions composition (D70), and of the
- * effects composition (D71), of the SVG effects composition (D72), of the composition of shapes (D73), and of the SVG composition (D74) with the
+ * effects composition (D71), of the SVG effects composition (D72), of the composition of shapes (D73), of the SVG composition (D74), and of the
+ * composition of compositing (D75) with the
  * Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
@@ -32,6 +33,8 @@ import {
   goldenTimestamps,
   referenceComposition,
   captionsComposition,
+  compositingComposition,
+  compositingGoldenTimestamps,
   captionsGoldenTimestamps,
   captionsMotionComposition,
   captionsMotionGoldenTimestamps,
@@ -363,6 +366,24 @@ try {
       `${JSON.stringify({ render: svgResult.manifest, environment, frames: svgFrames }, null, 2)}\n`,
     );
     for (const frame of svgFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The composition of compositing: blend modes, masks, and mattes (D75).
+    const compositingResult = await renderFrames({
+      document: compositingComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: compositingGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const compositingFrames = compositingResult.frames.map(({ index, timeUs, png }) => {
+      const file = `compositing-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'compositing.golden-frames.json'),
+      `${JSON.stringify({ render: compositingResult.manifest, environment, frames: compositingFrames }, null, 2)}\n`,
+    );
+    for (const frame of compositingFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

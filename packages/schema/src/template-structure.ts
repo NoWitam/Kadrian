@@ -15,6 +15,7 @@ import type { CompositionV015 } from './v0-15/composition-schema.js';
 import type { CompositionV016 } from './v0-16/composition-schema.js';
 import type { CompositionV017 } from './v0-17/composition-schema.js';
 import type { CompositionV018 } from './v0-18/composition-schema.js';
+import type { CompositionV019 } from './v0-19/composition-schema.js';
 
 /** A scene, or a node with the scene and the group it lies in. */
 export interface TemplateElement {
@@ -84,13 +85,19 @@ type AnyNode =
   | Extract<
       CompositionV018['scenes'][number]['nodes'][number],
       { type: 'group' }
+    >['children'][number]
+  | CompositionV019['scenes'][number]['nodes'][number]
+  | Extract<
+      CompositionV019['scenes'][number]['nodes'][number],
+      { type: 'group' }
     >['children'][number];
 
-/** The assets a node uses: its picture or its font (D14). */
+/** The assets a node uses: its picture or its font (D14), then the image of its mask (D75). */
 export function assetsOfNode(node: AnyNode): readonly string[] {
-  if (node.type === 'image' || node.type === 'video') return [node.assetId];
-  if (node.type === 'text' || node.type === 'captions') return [node.fontAssetId];
-  return [];
+  const mask = 'mask' in node && node.mask.kind === 'image' ? [node.mask.assetId] : [];
+  if (node.type === 'image' || node.type === 'video') return [node.assetId, ...mask];
+  if (node.type === 'text' || node.type === 'captions') return [node.fontAssetId, ...mask];
+  return mask;
 }
 
 /**
@@ -103,6 +110,7 @@ export function templateStructure(
     | CompositionV016
     | CompositionV017
     | CompositionV018
+    | CompositionV019
     | CompositionV015
     | CompositionV014
     | CompositionV013

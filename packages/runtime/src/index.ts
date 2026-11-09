@@ -13,6 +13,7 @@ export { captionAt, captionFragments, captionPages, captionsInPieces } from './c
 export type { CaptionInstant, CaptionLine, CaptionPage } from './captions.js';
 export { EvaluationError } from './errors.js';
 export type { EvaluationErrorCode } from './errors.js';
+export { compositingAt, maskAt } from './compositing.js';
 export { effectsAt } from './effects.js';
 export { evaluateComposition } from './evaluate.js';
 export { fragmentSteps, textFragments } from './fragments.js';
@@ -30,6 +31,7 @@ export type {
   ClipTransitionSide,
   ClipTransitionState,
   ColorGradeEffectState,
+  CompositingState,
   CompositionState,
   CropState,
   CurvesEffectState,
@@ -46,6 +48,8 @@ export type {
   LeafNodeState,
   LeafNodeType,
   LifetimeState,
+  MaskState,
+  MatteState,
   NodeState,
   PathCommandState,
   PictureState,

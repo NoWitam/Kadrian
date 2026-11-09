@@ -8,8 +8,10 @@
  * into existence; the parsers here read the fields of one command type.
  */
 import {
+  BLEND_MODES,
   compositionSchema,
   type Asset,
+  type BlendMode,
   type Crop,
   type Fit,
   type Focus,
@@ -867,6 +869,41 @@ export interface SetShapeTrimCommand extends SetShapeTrimArguments {
   readonly type: 'SetShapeTrim';
 }
 
+/** What a caller states for `SetBlendMode` (D75). */
+export interface SetBlendModeArguments {
+  readonly nodeId: string;
+  readonly blendMode: BlendMode;
+}
+
+/** Sets how a node blends with what lies below it in its scene or group (D75). */
+export interface SetBlendModeCommand extends SetBlendModeArguments {
+  readonly type: 'SetBlendMode';
+}
+
+/** What a caller states for `SetNodeMask` (D75). */
+export interface SetNodeMaskArguments {
+  readonly nodeId: string;
+  /** The complete mask, as the document stores it. */
+  readonly mask: DocumentObject;
+}
+
+/** Replaces what masks a node: nothing, a shape, or an image (D75). */
+export interface SetNodeMaskCommand extends SetNodeMaskArguments {
+  readonly type: 'SetNodeMask';
+}
+
+/** What a caller states for `SetNodeMatte` (D75). */
+export interface SetNodeMatteArguments {
+  readonly nodeId: string;
+  /** The complete matte, as the document stores it. */
+  readonly matte: DocumentObject;
+}
+
+/** Replaces which sibling shape mattes a node, and how (D75). */
+export interface SetNodeMatteCommand extends SetNodeMatteArguments {
+  readonly type: 'SetNodeMatte';
+}
+
 /** What a caller states for `AddTextAnimation` (D69). */
 export interface AddTextAnimationArguments {
   readonly nodeId: string;
@@ -1162,6 +1199,9 @@ export type Command =
   | SetShapeFillCommand
   | SetShapeStrokeCommand
   | SetShapeTrimCommand
+  | SetBlendModeCommand
+  | SetNodeMaskCommand
+  | SetNodeMatteCommand
   | AddTextAnimationCommand
   | RemoveTextAnimationCommand
   | SetTextAnimationCommand
@@ -1259,6 +1299,31 @@ export type SetTextFontSizeArgumentsSchema = ClosedObjectSchema<keyof SetTextFon
 export type SetTextFontArgumentsSchema = ClosedObjectSchema<keyof SetTextFontArguments>;
 export type SetImageAssetArgumentsSchema = ClosedObjectSchema<keyof SetImageAssetArguments>;
 export type SetNodeFitArgumentsSchema = ClosedObjectSchema<keyof SetNodeFitArguments>;
+export type SetBlendModeArgumentsSchema = ClosedObjectSchema<keyof SetBlendModeArguments>;
+
+/** The argument schema of `SetNodeMask`: closed, with `mask` an open object (D75). */
+export interface SetNodeMaskArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly mask: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetNodeMaskArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetNodeMatte`: closed, with `matte` an open object (D75). */
+export interface SetNodeMatteArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly matte: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetNodeMatteArguments)[];
+  readonly additionalProperties: false;
+}
 /** The argument schema of `SetNodeOrigin`, typed by the fields of its arguments. */
 export interface SetNodeOriginArgumentsSchema extends ClosedObjectSchema<
   keyof SetNodeOriginArguments
@@ -2999,6 +3064,56 @@ export const setShapeStrokeArgumentsSchema: SetShapeStrokeArgumentsSchema = deep
     stroke: { type: 'object', description: SHAPE_STROKE },
   },
   required: ['nodeId', 'stroke'],
+  additionalProperties: false,
+});
+
+const COMPOSITED_ID =
+  'ID of an image, video, text, captions, shape, or group node; only these blend, take a mask, and take a matte.';
+
+/** The JSON Schema of the arguments of `SetBlendMode` (D75): one value of the schema's set. */
+export const setBlendModeArgumentsSchema: SetBlendModeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets how a node blends with what lies below it in its scene or group.',
+  properties: {
+    nodeId: { type: 'string', description: COMPOSITED_ID, minLength: 1 },
+    blendMode: {
+      type: 'string',
+      description:
+        'normal lays the node over what lies below; multiply, screen, overlay, darken, lighten, color-dodge, color-burn, hard-light, soft-light, difference, and exclusion blend each colour channel; hue, saturation, color, and luminosity take that part of the node and the rest of what lies below. A scene or group holding a node that blends is composited on its own.',
+      enum: BLEND_MODES,
+    },
+  },
+  required: ['nodeId', 'blendMode'],
+  additionalProperties: false,
+});
+
+const NODE_MASK =
+  'The complete mask: {kind: "none"}; {kind: "shape", x, y, width, height, geometry, inverted, feather, animations}, a geometry as a shape\'s (rect, ellipse, polygon, or path) drawn in the box x, y, width, height in pixels of the node\'s own box; or {kind: "image", assetId, x, y, width, height, mode, inverted, feather, animations}, an image asset stretched over that box, mode "alpha" or "luminance". inverted shows the node where the mask does not cover it; feather is the softness of the edge in composition pixels (0 to 1000). animations are [] or {id, property: "geometry" | "feather", keyframes} (geometry for a shape mask only, every keyframe of the mask\'s geometry structure).';
+
+/** The JSON Schema of the arguments of `SetNodeMask` (D75): the mask is the document's to judge. */
+export const setNodeMaskArgumentsSchema: SetNodeMaskArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces what masks a node.',
+  properties: {
+    nodeId: { type: 'string', description: COMPOSITED_ID, minLength: 1 },
+    mask: { type: 'object', description: NODE_MASK },
+  },
+  required: ['nodeId', 'mask'],
+  additionalProperties: false,
+});
+
+const NODE_MATTE =
+  'The complete matte: {kind: "none"}; or {kind: "node", nodeId, mode}, nodeId a shape node of the same scene or group that has no mask, matte, or blend mode of its own and is no side of a clip transition, mode "alpha", "alpha-inverted", "luminance", or "luminance-inverted".';
+
+/** The JSON Schema of the arguments of `SetNodeMatte` (D75): the matte is the document's to judge. */
+export const setNodeMatteArgumentsSchema: SetNodeMatteArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces which sibling shape mattes a node.',
+  properties: {
+    nodeId: { type: 'string', description: COMPOSITED_ID, minLength: 1 },
+    matte: { type: 'object', description: NODE_MATTE },
+  },
+  required: ['nodeId', 'matte'],
   additionalProperties: false,
 });
 
@@ -4875,6 +4990,35 @@ export function parseSetShapeStroke(value: unknown): SetShapeStrokeCommand {
     nodeId,
     stroke: dataOf(fields['stroke'], 'stroke'),
   });
+}
+
+/** The fields of a `SetBlendMode` (D75): one value of the schema's set. */
+export function parseSetBlendMode(value: unknown): SetBlendModeCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'blendMode'], 'The command `SetBlendMode`');
+  const nodeId = nodeIdOf(fields);
+  const blendMode: unknown = fields['blendMode'];
+  const known = BLEND_MODES.find((item) => item === blendMode);
+  if (known === undefined) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`blendMode\` must be one of ${BLEND_MODES.join(', ')}.`,
+    );
+  }
+  return Object.freeze({ type: 'SetBlendMode', nodeId, blendMode: known });
+}
+
+/** The fields of a `SetNodeMask` (D75); the document's validation judges the mask. */
+export function parseSetNodeMask(value: unknown): SetNodeMaskCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'mask'], 'The command `SetNodeMask`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({ type: 'SetNodeMask', nodeId, mask: dataOf(fields['mask'], 'mask') });
+}
+
+/** The fields of a `SetNodeMatte` (D75); the document's validation judges the matte. */
+export function parseSetNodeMatte(value: unknown): SetNodeMatteCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'matte'], 'The command `SetNodeMatte`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({ type: 'SetNodeMatte', nodeId, matte: dataOf(fields['matte'], 'matte') });
 }
 
 /** The fields of a `SetShapeTrim` (D73): two integers in per mille, in the schema's bounds. */

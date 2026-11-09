@@ -656,6 +656,22 @@ export function replaceAnimation(
 }
 
 /**
+ * The node a validation error's path points into (D75):
+ * `/scenes/<k>/nodes/<i>…` or `/scenes/<k>/nodes/<i>/children/<j>…`, or
+ * `undefined`.
+ */
+export function nodeAt(document: object, path: string): unknown {
+  const tokens = path.split('/').slice(1);
+  if (tokens[0] !== 'scenes' || tokens[2] !== 'nodes') return undefined;
+  const scenes: unknown = (document as Readonly<Record<string, unknown>>)['scenes'];
+  const scene: unknown = Array.isArray(scenes) ? scenes[Number(tokens[1])] : undefined;
+  if (!isObject(scene) || !Array.isArray(scene['nodes'])) return undefined;
+  const node: unknown = scene['nodes'][Number(tokens[3])];
+  if (tokens[4] !== 'children' || !isObject(node) || !Array.isArray(node['children'])) return node;
+  return node['children'][Number(tokens[5])];
+}
+
+/**
  * The transition a validation error's path points into (D56.7):
  * `/transitions/<i>…` or `/scenes/<k>/transitions/<i>…`, or `undefined`.
  */

@@ -131,6 +131,9 @@ describe('evaluateComposition of captions (D57.4)', () => {
       word: 0,
       fragments: null,
       effects: [],
+      mask: { kind: 'none' },
+      matte: { kind: 'none' },
+      blendMode: 'normal',
     });
   });
 });

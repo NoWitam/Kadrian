@@ -30,12 +30,15 @@ function isPlainObject(value: unknown): value is Readonly<Record<string, unknown
 }
 
 /**
- * Image and font assets that visual nodes use; audio belongs to the clip, not
- * to the DOM, and a video's pixels arrive frame by frame, never as a URL (D50.4).
+ * Image and font assets that visual nodes and their masks use (D75); audio
+ * belongs to the clip, not to the DOM, and a video's pixels arrive frame by
+ * frame, never as a URL (D50.4).
  */
 export function usedAssetIds(composition: ValidatedComposition): Set<string> {
   const used = new Set<string>();
   const visit = (node: SceneNode): void => {
+    // The image of a mask is drawn by the mask's own `<image>` (D75).
+    if ('mask' in node && node.mask.kind === 'image') used.add(node.mask.assetId);
     switch (node.type) {
       case 'image':
         used.add(node.assetId);

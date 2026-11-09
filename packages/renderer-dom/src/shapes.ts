@@ -147,6 +147,11 @@ export function clearShape(element: HTMLElement): void {
   const path = pathOf(element);
   if (path === null) return;
   for (const property of SHAPE_WRITTEN) element.style.removeProperty(property);
+  clearShapePath(path);
+}
+
+/** Removes what `writeShapePath` wrote on a path, back to the mount. */
+export function clearShapePath(path: Element): void {
   for (const attribute of PATH_WRITTEN) path.removeAttribute(attribute);
 }
 
@@ -161,9 +166,18 @@ export function writeShape(element: HTMLElement, node: ShapeNodeState): void {
   // The size is set in place, so its declarations keep the order of a fresh
   // mount; the attributes of the path are removed first, for a stroke that
   // draws less than before leaves none of its own behind (D54.3).
-  for (const attribute of PATH_WRITTEN) path.removeAttribute(attribute);
+  clearShapePath(path);
   element.style.setProperty('width', cssPixels(node.size.width));
   element.style.setProperty('height', cssPixels(node.size.height));
+  writeShapePath(path, node);
+}
+
+/**
+ * Writes the path data, the fill, and the stroke of a shape at one instant on
+ * a path the mount built, of its box or of a matte (D73, D75); `clearShapePath`
+ * comes first.
+ */
+export function writeShapePath(path: Element, node: ShapeNodeState): void {
   path.setAttribute('d', pathData(node.path));
   const { fill, stroke } = node;
   path.setAttribute(
