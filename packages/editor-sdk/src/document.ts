@@ -204,8 +204,79 @@ export function subtreeIds(node: DocumentObject): readonly string[] {
   const textAnimationIds = owners.flatMap((owner) =>
     objectsIn(owner['textAnimations']).map((animation) => animation['id']),
   );
-  return [...nodeIds, ...animationIds, ...textAnimationIds].filter(
+  // Then the effects of D71, each followed by its animations, grouped by owner.
+  const effectIds = owners.flatMap((owner) => effectsIds(owner));
+  return [...nodeIds, ...animationIds, ...textAnimationIds, ...effectIds].filter(
     (id): id is string => typeof id === 'string',
+  );
+}
+
+/** The IDs of an owner's effects, each followed by those of its animations, in their order (D71). */
+export function effectsIds(owner: DocumentObject): readonly string[] {
+  return objectsIn(owner['effects'])
+    .flatMap((effect) => [
+      effect['id'],
+      ...objectsIn(effect['animations']).map((animation) => animation['id']),
+    ])
+    .filter((id): id is string => typeof id === 'string');
+}
+
+/** Where an effect lives (D71): a node, or a scene, its list, and its index there. */
+export interface EffectLocation {
+  readonly effect: DocumentObject;
+  /** The node or the scene that holds it. */
+  readonly owner: DocumentObject;
+  readonly ownerId: string;
+  /** The index of the scene that holds it, or `null` for a node. */
+  readonly sceneIndex: number | null;
+  readonly effects: readonly unknown[];
+  readonly index: number;
+}
+
+/** The effect with that ID, looked up in every scene, its nodes, and their children (D71), or `null`. */
+export function locateEffect(document: object, effectId: string): EffectLocation | null {
+  const find = (owner: DocumentObject, sceneIndex: number | null): EffectLocation | null => {
+    const effects = asArray(owner['effects']);
+    if (effects === null) return null;
+    const index = effects.findIndex((effect) => isObject(effect) && effect['id'] === effectId);
+    const effect = effects[index];
+    if (!isObject(effect)) return null;
+    return { effect, owner, ownerId: idOf(owner), sceneIndex, effects, index };
+  };
+  for (const [sceneIndex, scene] of scenesOf(document).entries()) {
+    if (!isObject(scene)) continue;
+    const own = find(scene, sceneIndex);
+    if (own !== null) return own;
+    for (const node of objectsIn(scene['nodes'])) {
+      for (const owner of [node, ...objectsIn(node['children'])]) {
+        const found = find(owner, null);
+        if (found !== null) return found;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * The document with `effects` in place of the effects of a node or a scene
+ * (D71); every other value keeps its identity (D30.7).
+ */
+export function replaceEffects(
+  document: object,
+  owner: {
+    readonly owner: DocumentObject;
+    readonly ownerId: string;
+    readonly sceneIndex: number | null;
+  },
+  effects: readonly unknown[],
+): DocumentObject {
+  if (owner.sceneIndex === null) {
+    return replaceNode(document, owner.ownerId, { ...owner.owner, effects });
+  }
+  const at = owner.sceneIndex;
+  return replaceScenes(
+    document,
+    scenesOf(document).map((scene, index) => (index === at ? { ...owner.owner, effects } : scene)),
   );
 }
 
@@ -288,7 +359,8 @@ export function sceneIds(scene: DocumentObject): readonly string[] {
   const transitions = objectsIn(scene['transitions'])
     .map((transition) => transition['id'])
     .filter((id): id is string => typeof id === 'string');
-  return [...own, ...nodes, ...clips, ...transitions];
+  // The scene's own effects, each followed by its animations (D71).
+  return [...own, ...nodes, ...clips, ...transitions, ...effectsIds(scene)];
 }
 
 /**

@@ -884,6 +884,54 @@ export interface SetSafeAreaCommand extends SetSafeAreaArguments {
   readonly type: 'SetSafeArea';
 }
 
+/** What a caller states for `AddEffect` (D71). */
+export interface AddEffectArguments {
+  /** The node or the scene that takes the effect. */
+  readonly ownerId: string;
+  /** The effect's index in the owner's `effects` after the insertion. */
+  readonly index: number;
+  /** The complete effect, with its ID, its parameters, and its animations, as exact data. */
+  readonly effect: DocumentObject;
+}
+
+/** Inserts a complete effect into the effects of a node or a scene (D71). */
+export interface AddEffectCommand extends AddEffectArguments {
+  readonly type: 'AddEffect';
+}
+
+/** What a caller states for `RemoveEffect` (D71). */
+export interface RemoveEffectArguments {
+  readonly effectId: string;
+}
+
+/** Removes one effect with its animations (D71). */
+export interface RemoveEffectCommand extends RemoveEffectArguments {
+  readonly type: 'RemoveEffect';
+}
+
+/** What a caller states for `ReorderEffect` (D71). */
+export interface ReorderEffectArguments {
+  readonly effectId: string;
+  /** The effect's index in its owner's `effects` after the move. */
+  readonly index: number;
+}
+
+/** Moves one effect to another place in the order of its owner's effects (D71). */
+export interface ReorderEffectCommand extends ReorderEffectArguments {
+  readonly type: 'ReorderEffect';
+}
+
+/** What a caller states for `SetEffect` (D71). */
+export interface SetEffectArguments {
+  /** The complete effect; its `id` names the one it replaces. */
+  readonly effect: DocumentObject;
+}
+
+/** Replaces an effect by one with the same ID (D71). */
+export interface SetEffectCommand extends SetEffectArguments {
+  readonly type: 'SetEffect';
+}
+
 /** What a caller states for `AddTemplateInput` (D58.6). */
 export interface AddTemplateInputArguments {
   /** The input's index in the template's inputs after the insertion. */
@@ -1061,6 +1109,10 @@ export type Command =
   | SetCaptionHighlightCommand
   | SetCaptionPageAnimationCommand
   | SetSafeAreaCommand
+  | AddEffectCommand
+  | RemoveEffectCommand
+  | ReorderEffectCommand
+  | SetEffectCommand
   | AddTemplateInputCommand
   | RemoveTemplateInputCommand
   | SetTemplateInputCommand
@@ -1424,6 +1476,34 @@ export interface SetSafeAreaArgumentsSchema {
     readonly safeArea: OpenObjectSchema;
   };
   readonly required: readonly (keyof SetSafeAreaArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `AddEffect`: closed, with `effect` an open object (D71). */
+export interface AddEffectArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly ownerId: ArgumentSchema;
+    readonly index: ArgumentSchema;
+    readonly effect: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddEffectArguments)[];
+  readonly additionalProperties: false;
+}
+
+export type RemoveEffectArgumentsSchema = ClosedObjectSchema<keyof RemoveEffectArguments>;
+
+export type ReorderEffectArgumentsSchema = ClosedObjectSchema<keyof ReorderEffectArguments>;
+
+/** The argument schema of `SetEffect`: closed, with `effect` an open object (D71). */
+export interface SetEffectArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly effect: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetEffectArguments)[];
   readonly additionalProperties: false;
 }
 
@@ -2577,7 +2657,7 @@ export const joinClipsArgumentsSchema: JoinClipsArgumentsSchema = deepFreeze({
 const TRANSITION_ID = 'The stable ID of a scene transition or a clip transition of the document.';
 
 const EFFECTS =
-  'An effect is an object with its kind, the same for scene and clip transitions: {"kind":"crossfade"} (the incoming side fades in over the outgoing one), {"kind":"fade-through-color","color":"#rrggbb"} (the outgoing side fades out to the colour, then the incoming one fades in from it), {"kind":"slide","direction":"left"|"right"|"up"|"down"} (the incoming side slides in, moving in its direction), {"kind":"wipe","direction":…} (an edge moving in its direction uncovers the incoming side), {"kind":"push","direction":…} (the incoming side slides in and pushes the outgoing one out the other way), {"kind":"zoom","fromScale":0.5} (the incoming side fades in while it scales from fromScale, 0 to 16, to its size about the centre of the frame), or {"kind":"iris","center":{"x":500,"y":500}} (a circle opens from a point given in per mille of the frame, integers 0 to 1000). The frame of a clip transition is the canvas, in the space of the two nodes\' parent; between clips, the colour of fade-through-color covers the frame directly below the lower clip, and when the outgoing clip lies above the incoming one, a slide moves it out, a wipe and an iris cut it away, and a crossfade and a zoom fade it out, so the incoming clip is uncovered.';
+  'An effect is an object with its kind, the same for scene and clip transitions: {"kind":"crossfade"} (the incoming side fades in over the outgoing one), {"kind":"fade-through-color","color":"#rrggbb"} (the outgoing side fades out to the colour, then the incoming one fades in from it), {"kind":"slide","direction":"left"|"right"|"up"|"down"} (the incoming side slides in, moving in its direction), {"kind":"wipe","direction":…} (an edge moving in its direction uncovers the incoming side), {"kind":"push","direction":…} (the incoming side slides in and pushes the outgoing one out the other way), {"kind":"zoom","fromScale":0.5} (the incoming side fades in while it scales from fromScale, 0 to 16, to its size about the centre of the frame), {"kind":"iris","center":{"x":500,"y":500}} (a circle opens from a point given in per mille of the frame, integers 0 to 1000), or {"kind":"blur-dissolve","radius":12} (the incoming side fades in and sharpens while the outgoing one blurs, radius the strongest blur in composition pixels, 0 to 1000). The frame of a clip transition is the canvas, in the space of the two nodes\' parent; between clips, the colour of fade-through-color covers the frame directly below the lower clip, and when the outgoing clip lies above the incoming one, a slide moves it out, a wipe and an iris cut it away, and a crossfade and a zoom fade it out, so the incoming clip is uncovered.';
 
 const TRANSITION_DURATION: Bounds = {
   minimum: compositionSchema.properties.transitions.items.properties.durationUs.minimum,
@@ -2861,6 +2941,77 @@ export const setSafeAreaArgumentsSchema: SetSafeAreaArgumentsSchema = deepFreeze
     },
   },
   required: ['safeArea'],
+  additionalProperties: false,
+});
+
+const EFFECT_ID = 'The stable ID of an effect of a node or a scene of the document.';
+
+const EFFECT_INDEX = {
+  type: 'integer',
+  description: "The effect's index in its owner's effects after the edit: 0 applies first.",
+  minimum: 0,
+  maximum: Number.MAX_SAFE_INTEGER,
+} as const;
+
+/** What an effect is, for the descriptions of its arguments (D71). */
+const EFFECT =
+  'An effect is {id, kind, ...parameters, animations}: kind "blur" {radius} (the standard deviation in composition pixels, 0 to 1000; the blur spills beyond the box), "brightness", "contrast", or "saturate" {amount} (a factor 0 to 10, 1 changes nothing), "grayscale", "invert", or "sepia" {amount} (0 changes nothing to 1 for all of it), "hue-rotate" {angle} (degrees), or "drop-shadow" {color, opacity, offset {x, y}, blur} (lowercase #rrggbb, 0 to 1, pixels -1000 to 1000, a blur radius 0 to 1000). animations is a list, at most one per parameter, of {id, property, keyframes} with property the parameter\'s name and at least two keyframes {timeUs, value, easing} in ascending scene time; a sampled value replaces the parameter; [] for none.';
+
+/** The JSON Schema of the arguments of `AddEffect` (D71): the effect is the document's to judge. */
+export const addEffectArgumentsSchema: AddEffectArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Inserts a complete effect into the effects of a node or a scene.',
+  properties: {
+    ownerId: {
+      type: 'string',
+      description:
+        'The stable ID of an image, video, text, captions node, or group, or of a scene, which takes the effect.',
+      minLength: 1,
+    },
+    index: EFFECT_INDEX,
+    effect: {
+      type: 'object',
+      description: `The complete effect, its ID and those of its animations unused in the document. ${EFFECT}`,
+    },
+  },
+  required: ['ownerId', 'index', 'effect'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveEffect` (D71). */
+export const removeEffectArgumentsSchema: RemoveEffectArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Removes one effect with its animations.',
+  properties: {
+    effectId: { type: 'string', description: EFFECT_ID, minLength: 1 },
+  },
+  required: ['effectId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `ReorderEffect` (D71). */
+export const reorderEffectArgumentsSchema: ReorderEffectArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: "Moves one effect to another place in the order of its owner's effects.",
+  properties: {
+    effectId: { type: 'string', description: EFFECT_ID, minLength: 1 },
+    index: EFFECT_INDEX,
+  },
+  required: ['effectId', 'index'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetEffect` (D71): the effect is the document's to judge. */
+export const setEffectArgumentsSchema: SetEffectArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces the effect with the same ID.',
+  properties: {
+    effect: {
+      type: 'object',
+      description: `The complete new effect; its id names the effect it replaces, and the IDs of new animations are unused in the document. ${EFFECT}`,
+    },
+  },
+  required: ['effect'],
   additionalProperties: false,
 });
 
@@ -4561,6 +4712,41 @@ export function parseSetSafeArea(value: unknown): SetSafeAreaCommand {
     type: 'SetSafeArea',
     safeArea: dataOf(fields['safeArea'], 'safeArea'),
   });
+}
+
+/** The fields of an `AddEffect` (D71); the document's validation judges the effect. */
+export function parseAddEffect(value: unknown): AddEffectCommand {
+  const fields = fieldsOf(value, ['type', 'ownerId', 'index', 'effect'], 'The command `AddEffect`');
+  const ownerId = nodeIdOf(fields, 'ownerId');
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddEffect',
+    ownerId,
+    index,
+    effect: dataOf(fields['effect'], 'effect'),
+  });
+}
+
+/** The fields of a `RemoveEffect` (D71). */
+export function parseRemoveEffect(value: unknown): RemoveEffectCommand {
+  const fields = fieldsOf(value, ['type', 'effectId'], 'The command `RemoveEffect`');
+  return Object.freeze({ type: 'RemoveEffect', effectId: nodeIdOf(fields, 'effectId') });
+}
+
+/** The fields of a `ReorderEffect` (D71). */
+export function parseReorderEffect(value: unknown): ReorderEffectCommand {
+  const fields = fieldsOf(value, ['type', 'effectId', 'index'], 'The command `ReorderEffect`');
+  const effectId = nodeIdOf(fields, 'effectId');
+  return Object.freeze({ type: 'ReorderEffect', effectId, index: indexOf(fields) });
+}
+
+/**
+ * The fields of a `SetEffect` (D71): its `id` names the effect it replaces,
+ * which the command looks up; the rest is the validator's.
+ */
+export function parseSetEffect(value: unknown): SetEffectCommand {
+  const fields = fieldsOf(value, ['type', 'effect'], 'The command `SetEffect`');
+  return Object.freeze({ type: 'SetEffect', effect: dataOf(fields['effect'], 'effect') });
 }
 
 /** The fields of an `AddTemplateInput` (D58.6); the document's validation judges the input. */

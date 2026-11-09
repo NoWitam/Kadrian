@@ -59,6 +59,50 @@ export interface TransformState {
 
 export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video' | 'captions';
 
+/** A blur of a Gaussian of standard deviation `radius`, in composition pixels (D71). */
+export interface BlurEffectState {
+  readonly id: string;
+  readonly kind: 'blur';
+  readonly radius: number;
+}
+
+/** A factor of brightness, contrast, or saturation, or an amount of grey, of the negative, or of sepia (D71). */
+export interface AmountEffectState {
+  readonly id: string;
+  readonly kind: 'brightness' | 'contrast' | 'saturate' | 'grayscale' | 'invert' | 'sepia';
+  readonly amount: number;
+}
+
+/** A turn of the hue, in degrees (D71). */
+export interface HueRotateEffectState {
+  readonly id: string;
+  readonly kind: 'hue-rotate';
+  readonly angle: number;
+}
+
+/** A drop shadow: its colour and opacity, its offset, and its blur radius in composition pixels (D71). */
+export interface DropShadowEffectState {
+  readonly id: string;
+  readonly kind: 'drop-shadow';
+  /** `#rrggbb`. */
+  readonly color: string;
+  readonly opacity: number;
+  readonly offset: Vec2;
+  readonly blur: number;
+}
+
+/** One effect at one instant, its parameters animated or not (D71). */
+export type EffectState =
+  BlurEffectState | AmountEffectState | HueRotateEffectState | DropShadowEffectState;
+
+/**
+ * The effects of a node, a group, or a scene at one instant, in the order they
+ * apply (D71); empty for one without effects, which is drawn without a filter.
+ */
+export interface EffectsState {
+  readonly effects: readonly EffectState[];
+}
+
 export interface BackgroundNodeState extends LifetimeState {
   readonly id: string;
   readonly type: 'background';
@@ -111,7 +155,7 @@ export interface TextFragmentsState {
 }
 
 /** A text node with its colour, animated or not (D68), and its fragments (D69). */
-export interface TextNodeState extends LeafNodeState<'text'> {
+export interface TextNodeState extends LeafNodeState<'text'>, EffectsState {
   /** `#rrggbb`. */
   readonly color: string;
   /** `null` for a text without text animations, which is drawn in one piece. */
@@ -127,7 +171,7 @@ export interface PictureState {
 }
 
 /** An image node with its box and picture (D68). */
-export interface ImageNodeState extends LeafNodeState<'image'>, PictureState {}
+export interface ImageNodeState extends LeafNodeState<'image'>, PictureState, EffectsState {}
 
 /**
  * A video node (D49.5, D50.3): a leaf whose `sourceTimeUs` is the source time it
@@ -135,7 +179,7 @@ export interface ImageNodeState extends LeafNodeState<'image'>, PictureState {}
  * while it is not. The runtime knows no frames: which frame that time selects
  * is the host's matter, by the rule `sourceFrameIndex` of `@kadrion/schema`.
  */
-export interface VideoNodeState extends LeafNodeState<'video'>, PictureState {
+export interface VideoNodeState extends LeafNodeState<'video'>, PictureState, EffectsState {
   readonly sourceTimeUs: number | null;
 }
 
@@ -145,7 +189,7 @@ export interface VideoNodeState extends LeafNodeState<'video'>, PictureState {
  * active; both are `null` while it is not, `page` before its first word, and
  * `word` between two words.
  */
-export interface CaptionsNodeState extends LeafNodeState<'captions'> {
+export interface CaptionsNodeState extends LeafNodeState<'captions'>, EffectsState {
   /** The colour of the words, `#rrggbb`, animated or not (D68); the highlight stays the document's. */
   readonly color: string;
   readonly page: number | null;
@@ -167,7 +211,8 @@ export interface CaptionFragmentsState {
   readonly words: readonly FragmentState[];
 }
 
-export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide {
+export interface GroupNodeState
+  extends LifetimeState, TransformState, ClipTransitionSide, EffectsState {
   readonly id: string;
   readonly type: 'group';
   /** Array order is the z-order, as in the document; groups do not nest. */
@@ -235,6 +280,8 @@ export interface SceneTransitionState {
   readonly clip?: Inset;
   /** The circle of the frame the scene is cut to (D66). */
   readonly circle?: Circle;
+  /** The standard deviation of a blur of the whole scene, in composition pixels (D71). */
+  readonly blur?: number;
 }
 
 /**
@@ -256,10 +303,12 @@ export interface ClipTransitionState {
   readonly hole?: Hole;
   /** `#rrggbb`, under the lower side of a `fade-through-color` after its first instant. */
   readonly backdrop?: string;
+  /** The standard deviation of a blur of the node, after its own effects, in composition pixels (D71). */
+  readonly blur?: number;
 }
 
-/** A scene evaluated at one instant (D49.3, D54.3). */
-export interface SceneState {
+/** A scene evaluated at one instant (D49.3, D54.3), with its effects (D71). */
+export interface SceneState extends EffectsState {
   readonly id: string;
   /** Scene time: the composition time minus the scene's start, from 0. Its nodes are evaluated at it. */
   readonly timeUs: number;

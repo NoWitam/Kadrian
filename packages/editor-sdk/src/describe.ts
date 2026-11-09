@@ -45,6 +45,8 @@ export interface SceneDescription {
   readonly clips: readonly unknown[];
   /** The transitions between clips of the scene, as the document stores them (D56.1). */
   readonly transitions: readonly unknown[];
+  /** The effects of the whole scene, in the order they apply, as the document stores them (D71). */
+  readonly effects: readonly unknown[];
 }
 
 /** What `describeDocument` returns; plain JSON, deep-frozen. */
@@ -148,6 +150,7 @@ export function describeDocument(
       nodes: scene.nodes.map((node, at) => describeNode(node, scene.id, at)),
       clips: scene.clips,
       transitions: scene.transitions,
+      effects: scene.effects,
     })),
     assets: copy.assets.map((asset) => {
       const facts = asset.type === 'font' ? null : mediaFactsOf(asset.contentHash);

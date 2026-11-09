@@ -47,6 +47,7 @@ export const VIDEO_NODE = Object.freeze({
   crop: Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 }),
   cornerRadius: 0,
   volume: 0,
+  effects: Object.freeze([]),
 });
 
 /** The captions node `everyType` adds to the reference composition (D57). */
@@ -90,6 +91,7 @@ export const CAPTIONS_NODE = Object.freeze({
     Object.freeze({ text: 'renders', startUs: 400_000, durationUs: 400_000 }),
     Object.freeze({ text: 'captions', startUs: 1_000_000, durationUs: 500_000 }),
   ]),
+  effects: [],
 });
 
 /**

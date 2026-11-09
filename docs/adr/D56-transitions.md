@@ -12,6 +12,7 @@
   transitions), each with an `Amended by: PR-32 (D56)` line
 - Amended by: PR-46 (D66) on 2026-11-07: 56.1: a clip transition takes every effect, and `push`, `zoom`, and `iris` are added for both; 56.5: the frame of a clip transition is the canvas, and an outgoing clip above the incoming one is moved, cut, or faded; 56.9: the slide and the wipe of a clip are decided (D66.1–D66.4)
 - Amended by: PR-47 (D67) on 2026-11-07: 56.1: every transition has an `easing` after its `effect`; 56.5: the progress of every effect is eased, and `fade-through-color` eases each half on its own (D67.8)
+- Amended by: PR-51a (D71) on 2026-11-09: 56.1: the effect `blur-dissolve` with a radius, for scenes and clips (D71.5)
 - Related: D04, D13, D16, D17, D18, D30, D38, D39, D42, D52, D53, D55,
   [roadmap of phase three](../roadmap/phase-3.md) PR-32
 

@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.16"
+        "value": "0.17"
       }
     ],
     "expectedErrors": [
@@ -766,7 +766,7 @@
   },
   {
     "name": "scene-second-without-duration",
-    "description": "From 0.5 a composition may hold several scenes (D54.1), each with its own durationUs and clips, and from 0.6 its transitions (D56.1).",
+    "description": "From 0.5 a composition may hold several scenes (D54.1), each with its own durationUs and clips, from 0.6 its transitions (D56.1), and from 0.16 its effects (D71).",
     "patch": [
       {
         "op": "add",
@@ -789,6 +789,10 @@
       {
         "code": "missing-field",
         "path": "/scenes/1/transitions"
+      },
+      {
+        "code": "missing-field",
+        "path": "/scenes/1/effects"
       }
     ]
   },
@@ -1356,7 +1360,8 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "volume": 0
+          "volume": 0,
+          "effects": []
         }
       }
     ],
@@ -1418,7 +1423,8 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "volume": 0
+          "volume": 0,
+          "effects": []
         }
       }
     ],
@@ -1482,7 +1488,8 @@
           },
           "cornerRadius": 0,
           "muted": true,
-          "volume": 0
+          "volume": 0,
+          "effects": []
         }
       }
     ],
@@ -1536,7 +1543,8 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "volume": 0
+          "volume": 0,
+          "effects": []
         }
       }
     ],
@@ -1599,7 +1607,8 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "volume": 0
+          "volume": 0,
+          "effects": []
         }
       }
     ],
@@ -1662,7 +1671,8 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "volume": 2
+          "volume": 2,
+          "effects": []
         }
       }
     ],
@@ -1725,7 +1735,8 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "volume": 0
+          "volume": 0,
+          "effects": []
         }
       }
     ],
@@ -1765,7 +1776,8 @@
           "durationUs": 1000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       }
     ],
@@ -1887,7 +1899,8 @@
           "durationUs": 3000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       },
       {
@@ -1931,7 +1944,8 @@
           "durationUs": 3000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       },
       {
@@ -1975,7 +1989,8 @@
           "durationUs": 3000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       },
       {
@@ -2019,7 +2034,8 @@
           "durationUs": 3000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       },
       {
@@ -2079,7 +2095,8 @@
           "durationUs": 3000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       },
       {
@@ -2123,7 +2140,8 @@
           "durationUs": 3000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       },
       {
@@ -2167,7 +2185,8 @@
           "durationUs": 3000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       },
       {
@@ -2211,7 +2230,8 @@
           "durationUs": 3000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       },
       {
@@ -2256,7 +2276,8 @@
           "durationUs": 3000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "effects": []
         }
       },
       {
@@ -2818,7 +2839,8 @@
               "startUs": 400000,
               "durationUs": 500000
             }
-          ]
+          ],
+          "effects": []
         }
       }
     ],
@@ -2905,7 +2927,8 @@
               "startUs": 0,
               "durationUs": 500000
             }
-          ]
+          ],
+          "effects": []
         }
       }
     ],
@@ -2987,7 +3010,8 @@
               "startUs": 0,
               "durationUs": 500000
             }
-          ]
+          ],
+          "effects": []
         }
       }
     ],
@@ -3069,7 +3093,8 @@
               "startUs": 0,
               "durationUs": 500000
             }
-          ]
+          ],
+          "effects": []
         }
       }
     ],
@@ -3151,7 +3176,8 @@
               "startUs": 0,
               "durationUs": 500000
             }
-          ]
+          ],
+          "effects": []
         }
       }
     ],
@@ -3227,7 +3253,8 @@
               "kind": "none"
             }
           },
-          "words": []
+          "words": [],
+          "effects": []
         }
       }
     ],
@@ -6025,7 +6052,8 @@
             },
             "highlightColor": "#ffd400"
           },
-          "words": []
+          "words": [],
+          "effects": []
         }
       }
     ],
@@ -6101,7 +6129,8 @@
               "kind": "none"
             }
           },
-          "words": []
+          "words": [],
+          "effects": []
         }
       }
     ],
@@ -6180,7 +6209,8 @@
               "kind": "none"
             }
           },
-          "words": []
+          "words": [],
+          "effects": []
         }
       }
     ],
@@ -6307,7 +6337,8 @@
               "kind": "none"
             }
           },
-          "words": []
+          "words": [],
+          "effects": []
         }
       }
     ],
@@ -6409,7 +6440,8 @@
               "kind": "none"
             }
           },
-          "words": []
+          "words": [],
+          "effects": []
         }
       }
     ],
@@ -6511,7 +6543,8 @@
               ]
             }
           },
-          "words": []
+          "words": [],
+          "effects": []
         }
       }
     ],
@@ -6593,7 +6626,8 @@
               "kind": "none"
             }
           },
-          "words": []
+          "words": [],
+          "effects": []
         }
       }
     ],
@@ -6666,7 +6700,8 @@
               "kind": "none"
             }
           },
-          "words": []
+          "words": [],
+          "effects": []
         }
       }
     ],
@@ -6674,6 +6709,369 @@
       {
         "code": "missing-field",
         "path": "/scenes/0/nodes/4/style/stroke"
+      }
+    ]
+  },
+  {
+    "name": "effect-unknown-kind",
+    "description": "An effect is one of the kinds of D71; a vignette is not among them.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-vignette",
+          "kind": "vignette",
+          "amount": 1,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/effects/0/kind"
+      }
+    ]
+  },
+  {
+    "name": "effect-blur-radius-out-of-range",
+    "description": "The radius of a blur is at most 1000 composition pixels (D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-blur",
+          "kind": "blur",
+          "radius": 1001,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/effects/0/radius"
+      }
+    ]
+  },
+  {
+    "name": "effect-amount-out-of-range",
+    "description": "grayscale and invert apply from 0 to 1, not beyond (D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-grey",
+          "kind": "grayscale",
+          "amount": 1.5,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/effects/0/amount"
+      }
+    ]
+  },
+  {
+    "name": "effect-drop-shadow-uppercase-color",
+    "description": "The colour of a drop shadow is lowercase #rrggbb (D16, D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-shadow",
+          "kind": "drop-shadow",
+          "color": "#FFFFFF",
+          "opacity": 1,
+          "offset": {
+            "x": 0,
+            "y": 4
+          },
+          "blur": 8,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/effects/0/color"
+      }
+    ]
+  },
+  {
+    "name": "effect-missing-animations",
+    "description": "An effect lists its animations, [] for none (D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-blur",
+          "kind": "blur",
+          "radius": 4
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/scenes/0/nodes/2/effects/0/animations"
+      }
+    ]
+  },
+  {
+    "name": "effect-animation-foreign-parameter",
+    "description": "An animation of an effect names a parameter of its own kind: a blur has no amount (D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-blur",
+          "kind": "blur",
+          "radius": 4,
+          "animations": [
+            {
+              "id": "effect-title-blur-a-amount",
+              "property": "amount",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 1000000,
+                  "value": 1,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/effects/0/animations/0/property"
+      }
+    ]
+  },
+  {
+    "name": "effect-animation-twice",
+    "description": "At most one animation per parameter of an effect (D65.1, D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-blur",
+          "kind": "blur",
+          "radius": 4,
+          "animations": [
+            {
+              "id": "effect-title-blur-a-radius",
+              "property": "radius",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 1000000,
+                  "value": 8,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "effect-title-blur-a-radius-second",
+              "property": "radius",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 8,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 1000000,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "duplicate-animation-target",
+        "path": "/scenes/0/nodes/2/effects/0/animations/1/property"
+      }
+    ]
+  },
+  {
+    "name": "effect-keyframes-not-ascending",
+    "description": "The keyframes of an effect's animation are in ascending scene time (D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-blur",
+          "kind": "blur",
+          "radius": 4,
+          "animations": [
+            {
+              "id": "effect-title-blur-a-radius",
+              "property": "radius",
+              "keyframes": [
+                {
+                  "timeUs": 500000,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 500000,
+                  "value": 8,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "keyframes-not-ascending",
+        "path": "/scenes/0/nodes/2/effects/0/animations/0/keyframes/1/timeUs"
+      }
+    ]
+  },
+  {
+    "name": "effect-duplicate-id",
+    "description": "The ID of an effect is unique in the document like every ID (D16.2, D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "node-image",
+          "kind": "blur",
+          "radius": 4,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "duplicate-id",
+        "path": "/scenes/0/nodes/2/effects/0/id"
+      }
+    ]
+  },
+  {
+    "name": "effect-animation-duplicate-id",
+    "description": "The ID of an animation of an effect is unique in the document (D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/effects/-",
+        "value": {
+          "id": "effect-scene-blur",
+          "kind": "blur",
+          "radius": 4,
+          "animations": [
+            {
+              "id": "anim-title-opacity",
+              "property": "radius",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 1000000,
+                  "value": 8,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "duplicate-id",
+        "path": "/scenes/0/nodes/2/animations/0/id"
+      }
+    ]
+  },
+  {
+    "name": "effect-on-background",
+    "description": "A background holds no effects (D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/0/effects",
+        "value": []
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "unknown-field",
+        "path": "/scenes/0/nodes/0/effects"
+      }
+    ]
+  },
+  {
+    "name": "effect-on-custom-html",
+    "description": "Custom HTML holds no effects: its frame is not drawn by the renderer (D71).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/3/effects",
+        "value": []
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "unknown-field",
+        "path": "/scenes/0/nodes/3/effects"
       }
     ]
   }

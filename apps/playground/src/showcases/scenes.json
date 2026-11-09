@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.15",
+  "schemaVersion": "0.16",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -70,7 +70,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "intro-image",
@@ -106,11 +107,13 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     },
     {
       "id": "scene-scenes",
@@ -158,7 +161,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "scenes-title",
@@ -195,11 +199,13 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     },
     {
       "id": "scene-stories",
@@ -248,11 +254,13 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     },
     {
       "id": "scene-end",
@@ -300,7 +308,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "end-title",
@@ -337,7 +346,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         }
       ],
       "clips": [],
@@ -354,7 +364,8 @@
             "kind": "linear"
           }
         }
-      ]
+      ],
+      "effects": []
     }
   ],
   "clips": [],

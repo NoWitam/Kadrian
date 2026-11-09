@@ -13,13 +13,16 @@ export { captionAt, captionFragments, captionPages, captionsInPieces } from './c
 export type { CaptionInstant, CaptionLine, CaptionPage } from './captions.js';
 export { EvaluationError } from './errors.js';
 export type { EvaluationErrorCode } from './errors.js';
+export { effectsAt } from './effects.js';
 export { evaluateComposition } from './evaluate.js';
 export { fragmentSteps, textFragments } from './fragments.js';
 export { UNICODE_VERSION } from './grapheme-table.js';
 export { graphemes, isWhiteSpace, textLayout } from './graphemes.js';
 export type { TextLayout, TextLine, TextRun, TextWord } from './graphemes.js';
 export type {
+  AmountEffectState,
   BackgroundNodeState,
+  BlurEffectState,
   CaptionFragmentsState,
   CaptionsNodeState,
   Circle,
@@ -27,9 +30,13 @@ export type {
   ClipTransitionState,
   CompositionState,
   CropState,
+  DropShadowEffectState,
+  EffectState,
+  EffectsState,
   FragmentState,
   GroupNodeState,
   Hole,
+  HueRotateEffectState,
   ImageNodeState,
   Inset,
   LeafNodeState,

@@ -90,6 +90,31 @@ export interface AddClipTransitionCommand extends AddClipTransitionArguments {
     readonly type: 'AddClipTransition';
 }
 
+---- AddEffectArguments (type only)
+export interface AddEffectArguments {
+    readonly ownerId: string;
+    readonly index: number;
+    readonly effect: DocumentObject;
+}
+
+---- AddEffectArgumentsSchema (type only)
+export interface AddEffectArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly ownerId: ArgumentSchema;
+        readonly index: ArgumentSchema;
+        readonly effect: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof AddEffectArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- AddEffectCommand (type only)
+export interface AddEffectCommand extends AddEffectArguments {
+    readonly type: 'AddEffect';
+}
+
 ---- AddKeyframeArguments (type only)
 export interface AddKeyframeArguments {
     readonly animationId: string;
@@ -460,7 +485,7 @@ export interface ClosedObjectSchema<K extends string> {
 }
 
 ---- Command (type only)
-export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetKeyframeEasingCommand | SetKeyframeValueCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetNodeFocusCommand | SetNodeRotationCommand | SetNodeOriginCommand | SetNodeCropCommand | SetNodeCornerRadiusCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetTransitionEasingCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | SetTextStyleCommand | AddTextAnimationCommand | RemoveTextAnimationCommand | SetTextAnimationCommand | SetCaptionHighlightCommand | SetCaptionPageAnimationCommand | SetSafeAreaCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand;
+export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetKeyframeEasingCommand | SetKeyframeValueCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetNodeFocusCommand | SetNodeRotationCommand | SetNodeOriginCommand | SetNodeCropCommand | SetNodeCornerRadiusCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetTransitionEasingCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | SetTextStyleCommand | AddTextAnimationCommand | RemoveTextAnimationCommand | SetTextAnimationCommand | SetCaptionHighlightCommand | SetCaptionPageAnimationCommand | SetSafeAreaCommand | AddEffectCommand | RemoveEffectCommand | ReorderEffectCommand | SetEffectCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand;
 
 ---- CommandArguments (type only)
 export type CommandArguments<T extends Command['type']> = Omit<Extract<Command, {
@@ -468,7 +493,7 @@ export type CommandArguments<T extends Command['type']> = Omit<Extract<Command, 
 }>, 'type'>;
 
 ---- CommandArgumentsSchema (type only)
-export type CommandArgumentsSchema = ClosedObjectSchema<string> | AddNodeArgumentsSchema | AddAnimationArgumentsSchema | AddKeyframeArgumentsSchema | AddAudioClipArgumentsSchema | AddSceneArgumentsSchema | AddSceneAudioClipArgumentsSchema | AddSceneTransitionArgumentsSchema | AddClipTransitionArgumentsSchema | SetTransitionEffectArgumentsSchema | SetTransitionEasingArgumentsSchema | SetKeyframeEasingArgumentsSchema | SetKeyframeValueArgumentsSchema | SetCaptionWordsArgumentsSchema | SetCaptionWordArgumentsSchema | SetCaptionStyleArgumentsSchema | SetTextStyleArgumentsSchema | AddTextAnimationArgumentsSchema | RemoveTextAnimationArgumentsSchema | SetTextAnimationArgumentsSchema | SetCaptionHighlightArgumentsSchema | SetCaptionPageAnimationArgumentsSchema | SetSafeAreaArgumentsSchema | AddTemplateInputArgumentsSchema | SetTemplateInputArgumentsSchema | AddTemplateBindingArgumentsSchema | AddTemplateConditionArgumentsSchema | AddTemplateRepeatArgumentsSchema;
+export type CommandArgumentsSchema = ClosedObjectSchema<string> | AddNodeArgumentsSchema | AddAnimationArgumentsSchema | AddKeyframeArgumentsSchema | AddAudioClipArgumentsSchema | AddSceneArgumentsSchema | AddSceneAudioClipArgumentsSchema | AddSceneTransitionArgumentsSchema | AddClipTransitionArgumentsSchema | SetTransitionEffectArgumentsSchema | SetTransitionEasingArgumentsSchema | SetKeyframeEasingArgumentsSchema | SetKeyframeValueArgumentsSchema | SetCaptionWordsArgumentsSchema | SetCaptionWordArgumentsSchema | SetCaptionStyleArgumentsSchema | SetTextStyleArgumentsSchema | AddTextAnimationArgumentsSchema | RemoveTextAnimationArgumentsSchema | SetTextAnimationArgumentsSchema | SetCaptionHighlightArgumentsSchema | SetCaptionPageAnimationArgumentsSchema | SetSafeAreaArgumentsSchema | AddEffectArgumentsSchema | SetEffectArgumentsSchema | AddTemplateInputArgumentsSchema | SetTemplateInputArgumentsSchema | AddTemplateBindingArgumentsSchema | AddTemplateConditionArgumentsSchema | AddTemplateRepeatArgumentsSchema;
 
 ---- CommandBus (type only)
 export interface CommandBus {
@@ -582,7 +607,7 @@ export declare class EditorError extends Error {
 }
 
 ---- EditorErrorCode (type only)
-export type EditorErrorCode = 'invalid-document' | 'unknown-command' | 'invalid-argument' | 'unknown-node' | 'unsupported-node' | 'invalid-result' | 'nothing-to-undo' | 'nothing-to-redo' | 'busy' | 'unknown-parent' | 'index-out-of-range' | 'id-in-use' | 'unknown-asset' | 'asset-type-mismatch' | 'asset-in-use' | 'unknown-scene' | 'last-scene' | 'unknown-clip' | 'time-outside-clip' | 'split-not-exact' | 'clips-not-joinable' | 'unknown-transition' | 'transition-in-use' | 'unknown-input' | 'unknown-binding' | 'unknown-condition' | 'unknown-repeat' | 'input-in-use' | 'binding-in-use' | 'unknown-animation' | 'unknown-keyframe' | 'keyframe-exists' | 'too-few-keyframes' | 'animation-property-mismatch' | 'use-typed-command' | 'duplicate-animation-target' | 'media-facts-missing' | 'source-range-exceeded' | 'not-a-cut' | 'no-room-at-cut';
+export type EditorErrorCode = 'invalid-document' | 'unknown-command' | 'invalid-argument' | 'unknown-node' | 'unsupported-node' | 'invalid-result' | 'nothing-to-undo' | 'nothing-to-redo' | 'busy' | 'unknown-parent' | 'index-out-of-range' | 'id-in-use' | 'unknown-asset' | 'asset-type-mismatch' | 'asset-in-use' | 'unknown-scene' | 'last-scene' | 'unknown-clip' | 'time-outside-clip' | 'split-not-exact' | 'clips-not-joinable' | 'unknown-transition' | 'transition-in-use' | 'unknown-input' | 'unknown-binding' | 'unknown-condition' | 'unknown-repeat' | 'input-in-use' | 'binding-in-use' | 'unknown-animation' | 'unknown-effect' | 'unknown-keyframe' | 'keyframe-exists' | 'too-few-keyframes' | 'animation-property-mismatch' | 'use-typed-command' | 'duplicate-animation-target' | 'media-facts-missing' | 'source-range-exceeded' | 'not-a-cut' | 'no-room-at-cut';
 
 ---- ImageFacts (type only)
 export interface ImageFacts {
@@ -753,6 +778,19 @@ export interface RemoveAudioClipCommand extends RemoveAudioClipArguments {
     readonly type: 'RemoveAudioClip';
 }
 
+---- RemoveEffectArguments (type only)
+export interface RemoveEffectArguments {
+    readonly effectId: string;
+}
+
+---- RemoveEffectArgumentsSchema (type only)
+export type RemoveEffectArgumentsSchema = ClosedObjectSchema<keyof RemoveEffectArguments>;
+
+---- RemoveEffectCommand (type only)
+export interface RemoveEffectCommand extends RemoveEffectArguments {
+    readonly type: 'RemoveEffect';
+}
+
 ---- RemoveKeyframeArguments (type only)
 export interface RemoveKeyframeArguments {
     readonly animationId: string;
@@ -871,6 +909,20 @@ export interface RemoveTransitionCommand extends RemoveTransitionArguments {
     readonly type: 'RemoveTransition';
 }
 
+---- ReorderEffectArguments (type only)
+export interface ReorderEffectArguments {
+    readonly effectId: string;
+    readonly index: number;
+}
+
+---- ReorderEffectArgumentsSchema (type only)
+export type ReorderEffectArgumentsSchema = ClosedObjectSchema<keyof ReorderEffectArguments>;
+
+---- ReorderEffectCommand (type only)
+export interface ReorderEffectCommand extends ReorderEffectArguments {
+    readonly type: 'ReorderEffect';
+}
+
 ---- ReorderNodeArguments (type only)
 export interface ReorderNodeArguments {
     readonly nodeId: string;
@@ -907,6 +959,7 @@ export interface SceneDescription {
     readonly nodes: readonly NodeDescription[];
     readonly clips: readonly unknown[];
     readonly transitions: readonly unknown[];
+    readonly effects: readonly unknown[];
 }
 
 ---- SetCaptionHighlightArguments (type only)
@@ -1070,6 +1123,27 @@ export type SetClipVolumeArgumentsSchema = ClosedObjectSchema<keyof SetClipVolum
 ---- SetClipVolumeCommand (type only)
 export interface SetClipVolumeCommand extends SetClipVolumeArguments {
     readonly type: 'SetClipVolume';
+}
+
+---- SetEffectArguments (type only)
+export interface SetEffectArguments {
+    readonly effect: DocumentObject;
+}
+
+---- SetEffectArgumentsSchema (type only)
+export interface SetEffectArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly effect: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetEffectArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetEffectCommand (type only)
+export interface SetEffectCommand extends SetEffectArguments {
+    readonly type: 'SetEffect';
 }
 
 ---- SetImageAssetArguments (type only)
@@ -1681,6 +1755,9 @@ export declare const addAudioClipArgumentsSchema: AddAudioClipArgumentsSchema;
 ---- addClipTransitionArgumentsSchema
 export declare const addClipTransitionArgumentsSchema: AddClipTransitionArgumentsSchema;
 
+---- addEffectArgumentsSchema
+export declare const addEffectArgumentsSchema: AddEffectArgumentsSchema;
+
 ---- addKeyframeArgumentsSchema
 export declare const addKeyframeArgumentsSchema: AddKeyframeArgumentsSchema;
 
@@ -1756,6 +1833,9 @@ export declare const removeAssetArgumentsSchema: RemoveAssetArgumentsSchema;
 ---- removeAudioClipArgumentsSchema
 export declare const removeAudioClipArgumentsSchema: RemoveAudioClipArgumentsSchema;
 
+---- removeEffectArgumentsSchema
+export declare const removeEffectArgumentsSchema: RemoveEffectArgumentsSchema;
+
 ---- removeKeyframeArgumentsSchema
 export declare const removeKeyframeArgumentsSchema: RemoveKeyframeArgumentsSchema;
 
@@ -1782,6 +1862,9 @@ export declare const removeTextAnimationArgumentsSchema: RemoveTextAnimationArgu
 
 ---- removeTransitionArgumentsSchema
 export declare const removeTransitionArgumentsSchema: RemoveTransitionArgumentsSchema;
+
+---- reorderEffectArgumentsSchema
+export declare const reorderEffectArgumentsSchema: ReorderEffectArgumentsSchema;
 
 ---- reorderNodeArgumentsSchema
 export declare const reorderNodeArgumentsSchema: ReorderNodeArgumentsSchema;
@@ -1812,6 +1895,9 @@ export declare const setClipSourceArgumentsSchema: SetClipSourceArgumentsSchema;
 
 ---- setClipVolumeArgumentsSchema
 export declare const setClipVolumeArgumentsSchema: SetClipVolumeArgumentsSchema;
+
+---- setEffectArgumentsSchema
+export declare const setEffectArgumentsSchema: SetEffectArgumentsSchema;
 
 ---- setImageAssetArgumentsSchema
 export declare const setImageAssetArgumentsSchema: SetImageAssetArgumentsSchema;

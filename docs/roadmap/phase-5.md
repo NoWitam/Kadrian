@@ -406,6 +406,7 @@ y: 0 }`, the top-left corner of D15, so nothing moves;
 
 ### PR-51a — Effects of CSS filters
 
+- Status: in review, with its ADR D71 (Proposed). Deviations from this plan: `sepia` is a kind too, since the probes found it exact; an effect's parameters are animated by the effect's own animations (`property` the parameter's name) rather than by paths `effects/<id>/<parameter>` of its holder, so the types stay discriminated unions; a blur spills beyond the box; the adjustment layer moves to PR-54, because a `backdrop-filter` meets groups, transitions, and blend modes as backdrop roots that were not probed; the acceptance is that an empty list of effects renders byte for byte (D65.5). A blurred 1080p video previews at 180 to 199 ms per frame in the Player (125 to 148 ms in the Producer), a finding of the probes, not a failure.
 - **Goal:** a node, a group, or a scene carries a stack of effects whose
   parameters are animated.
 - **Scope (D71):** schema `0.16`: `effects`, an ordered list of

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.15",
+  "schemaVersion": "0.16",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -116,7 +116,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "node-image-crop",
@@ -183,7 +184,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "node-image-round",
@@ -266,7 +268,8 @@
             "bottom": 0,
             "left": 0
           },
-          "cornerRadius": 0
+          "cornerRadius": 0,
+          "effects": []
         },
         {
           "id": "node-text",
@@ -324,7 +327,8 @@
               "kind": "none"
             }
           },
-          "textAnimations": []
+          "textAnimations": [],
+          "effects": []
         },
         {
           "id": "node-group",
@@ -404,13 +408,16 @@
                 "left": 250
               },
               "cornerRadius": 16,
-              "volume": 0
+              "volume": 0,
+              "effects": []
             }
-          ]
+          ],
+          "effects": []
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "effects": []
     }
   ],
   "clips": [],

@@ -4,7 +4,16 @@
  * reads back as the same double, so every engine writes the same text for the
  * same bits. Nothing is rounded or fixed to a number of digits.
  */
-import type { Circle, CropState, Hole, Inset, TransformState, Vec2, Zoom } from '@kadrion/runtime';
+import type {
+  Circle,
+  CropState,
+  EffectState,
+  Hole,
+  Inset,
+  TransformState,
+  Vec2,
+  Zoom,
+} from '@kadrion/runtime';
 
 /** `-0` becomes `"0"`; below 1e-6 the text has an exponent, a valid CSS number token. */
 export function cssNumber(value: number): string {
@@ -154,4 +163,35 @@ export function cssHole(hole: Hole): string {
   const rectangle = `M0 0H${n(hole.width)}V${n(hole.height)}H0Z`;
   const circle = `M${n(x - r)} ${n(y)}A${n(r)} ${n(r)} 0 1 0 ${n(x + r)} ${n(y)}A${n(r)} ${n(r)} 0 1 0 ${n(x - r)} ${n(y)}Z`;
   return `path(evenodd, "${rectangle}${circle}")`;
+}
+
+/** One effect as a CSS filter function, as the CSS Object Model serialises it (D22, D71). */
+function cssFilterFunction(effect: EffectState): string {
+  switch (effect.kind) {
+    case 'blur':
+      return `blur(${cssPixels(effect.radius)})`;
+    case 'hue-rotate':
+      return `hue-rotate(${cssNumber(effect.angle)}deg)`;
+    case 'drop-shadow': {
+      const { color, opacity, offset, blur } = effect;
+      return `drop-shadow(${cssTranslucent(color, opacity)} ${cssPixels(offset.x)} ${cssPixels(offset.y)} ${cssPixels(blur)})`;
+    }
+    default:
+      return `${effect.kind}(${cssNumber(effect.amount)})`;
+  }
+}
+
+/**
+ * The effects of a node, a group, or a scene as CSS `filter` (D71): one
+ * function per effect in their order, then the blur of a transition, which
+ * acts on the result (D65.6). `null` when there is neither, so that nothing is
+ * written: a filter at its neutral value is not the absence of one (D65.5).
+ */
+export function cssFilter(
+  effects: readonly EffectState[],
+  transitionBlur: number | undefined,
+): string | null {
+  const functions = effects.map(cssFilterFunction);
+  if (transitionBlur !== undefined) functions.push(`blur(${cssPixels(transitionBlur)})`);
+  return functions.length === 0 ? null : functions.join(' ');
 }

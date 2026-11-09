@@ -59,6 +59,8 @@ interface SideEffect {
   readonly clip?: Inset;
   readonly circle?: Circle;
   readonly hole?: Hole;
+  /** The standard deviation of a blur of the side, in composition pixels (D71). */
+  readonly blur?: number;
 }
 
 /** What an effect does to its two sides at one instant, and the colour under them. */
@@ -108,7 +110,10 @@ const NO_INSET: Inset = { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 }
  *   falls from 1 to 0;
  * - `iris`: the incoming side is cut to a circle about `center` whose radius
  *   grows from 0 until it holds the whole frame; an outgoing side above it is
- *   cut to the frame outside that circle.
+ *   cut to the frame outside that circle;
+ * - `blur-dissolve`: the incoming side's opacity rises from 0 to 1 while its
+ *   blur falls from `radius` to 0, and the outgoing side's blur rises from 0
+ *   to `radius`; an outgoing side above it also falls from 1 to 0 (D71).
  */
 function effectAt(
   effect: TransitionEffect,
@@ -197,6 +202,15 @@ function effectAt(
         backdrop: null,
       };
     }
+    case 'blur-dissolve':
+      return {
+        outgoing: later({
+          ...(outgoingAbove ? { opacity: along(1, 0) } : {}),
+          blur: along(0, effect.radius),
+        }),
+        incoming: { opacity: along(0, 1), blur: along(effect.radius, 0) },
+        backdrop: null,
+      };
     default:
       return unsupported(effect, 'kind');
   }

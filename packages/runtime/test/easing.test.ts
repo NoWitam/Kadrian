@@ -241,9 +241,10 @@ describe('the bounds of a sampled value (D67.6)', () => {
         const scalar = channels?.['x'] ?? channels?.['width'] ?? channels?.['top'] ?? value;
         found[property] = { min: scalar['minimum'], max: scalar['maximum'] };
       }
-      // The tracks of a text animation and of a captions style have bounds of their own (D69, D70).
+      // The tracks of a text animation and of a captions style, and the parameters
+      // of an effect, have bounds of their own (D69, D70, D71).
       for (const [key, child] of Object.entries(node)) {
-        if (key !== 'textAnimations' && key !== 'tracks') walk(child);
+        if (key !== 'textAnimations' && key !== 'tracks' && key !== 'effects') walk(child);
       }
     };
     walk(compositionSchema);

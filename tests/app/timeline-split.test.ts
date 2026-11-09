@@ -74,6 +74,7 @@ function document(): ValidatedComposition {
     crop: { top: 0, right: 0, bottom: 0, left: 0 },
     cornerRadius: 0,
     volume: 0.5,
+    effects: [],
   });
   const result = validateComposition(draft);
   if (!result.ok) throw new Error(result.errors[0]?.message);

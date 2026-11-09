@@ -6,6 +6,13 @@ Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by 
 ---- AUDIO_SAMPLE_RATE
 export declare const AUDIO_SAMPLE_RATE = 48000;
 
+---- AmountEffectState (type only)
+export interface AmountEffectState {
+    readonly id: string;
+    readonly kind: 'brightness' | 'contrast' | 'saturate' | 'grayscale' | 'invert' | 'sepia';
+    readonly amount: number;
+}
+
 ---- AudioLayout (type only)
 export interface AudioLayout {
     readonly totalSamples: number;
@@ -39,6 +46,13 @@ export interface BackgroundNodeState extends LifetimeState {
     readonly color: string;
 }
 
+---- BlurEffectState (type only)
+export interface BlurEffectState {
+    readonly id: string;
+    readonly kind: 'blur';
+    readonly radius: number;
+}
+
 ---- CaptionFragmentsState (type only)
 export interface CaptionFragmentsState {
     readonly lines: readonly FragmentState[];
@@ -63,7 +77,7 @@ export interface CaptionPage {
 }
 
 ---- CaptionsNodeState (type only)
-export interface CaptionsNodeState extends LeafNodeState<'captions'> {
+export interface CaptionsNodeState extends LeafNodeState<'captions'>, EffectsState {
     readonly color: string;
     readonly page: number | null;
     readonly word: number | null;
@@ -91,6 +105,7 @@ export interface ClipTransitionState {
     readonly circle?: Circle;
     readonly hole?: Hole;
     readonly backdrop?: string;
+    readonly blur?: number;
 }
 
 ---- CompositionState (type only)
@@ -106,6 +121,24 @@ export interface CropState {
     readonly fromRight: number;
     readonly fromBottom: number;
     readonly fromLeft: number;
+}
+
+---- DropShadowEffectState (type only)
+export interface DropShadowEffectState {
+    readonly id: string;
+    readonly kind: 'drop-shadow';
+    readonly color: string;
+    readonly opacity: number;
+    readonly offset: Vec2;
+    readonly blur: number;
+}
+
+---- EffectState (type only)
+export type EffectState = BlurEffectState | AmountEffectState | HueRotateEffectState | DropShadowEffectState;
+
+---- EffectsState (type only)
+export interface EffectsState {
+    readonly effects: readonly EffectState[];
 }
 
 ---- EvaluationError
@@ -127,7 +160,7 @@ export interface FragmentState {
 }
 
 ---- GroupNodeState (type only)
-export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide {
+export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide, EffectsState {
     readonly id: string;
     readonly type: 'group';
     readonly children: readonly (ImageNodeState | TextNodeState | VideoNodeState)[];
@@ -139,8 +172,15 @@ export interface Hole extends Circle {
     readonly height: number;
 }
 
+---- HueRotateEffectState (type only)
+export interface HueRotateEffectState {
+    readonly id: string;
+    readonly kind: 'hue-rotate';
+    readonly angle: number;
+}
+
 ---- ImageNodeState (type only)
-export interface ImageNodeState extends LeafNodeState<'image'>, PictureState {
+export interface ImageNodeState extends LeafNodeState<'image'>, PictureState, EffectsState {
 }
 
 ---- Inset (type only)
@@ -182,7 +222,7 @@ export interface SampleFade {
 }
 
 ---- SceneState (type only)
-export interface SceneState {
+export interface SceneState extends EffectsState {
     readonly id: string;
     readonly timeUs: number;
     readonly nodes: readonly NodeState[];
@@ -197,6 +237,7 @@ export interface SceneTransitionState {
     readonly zoom?: Zoom;
     readonly clip?: Inset;
     readonly circle?: Circle;
+    readonly blur?: number;
 }
 
 ---- Size (type only)
@@ -236,7 +277,7 @@ export interface TextLine {
 }
 
 ---- TextNodeState (type only)
-export interface TextNodeState extends LeafNodeState<'text'> {
+export interface TextNodeState extends LeafNodeState<'text'>, EffectsState {
     readonly color: string;
     readonly fragments: TextFragmentsState | null;
 }
@@ -270,7 +311,7 @@ export interface Vec2 {
 }
 
 ---- VideoNodeState (type only)
-export interface VideoNodeState extends LeafNodeState<'video'>, PictureState {
+export interface VideoNodeState extends LeafNodeState<'video'>, PictureState, EffectsState {
     readonly sourceTimeUs: number | null;
 }
 
@@ -297,6 +338,9 @@ export declare function captionPages(words: readonly CaptionWord[], style: Pick<
 
 ---- captionsInPieces
 export declare function captionsInPieces(style: CaptionStyle): boolean;
+
+---- effectsAt
+export declare function effectsAt(effects: readonly Effect[], timeUs: number): EffectState[];
 
 ---- evaluateComposition
 export declare function evaluateComposition(composition: ValidatedComposition, timeUs: number): CompositionState;

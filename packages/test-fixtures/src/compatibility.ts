@@ -182,6 +182,25 @@ import templateV015 from './compatibility/v0-15/template.json' with { type: 'jso
 import textV015 from './compatibility/v0-15/text.json' with { type: 'json' };
 import transitionsV015 from './compatibility/v0-15/transitions.json' with { type: 'json' };
 import videoV015 from './compatibility/v0-15/video.json' with { type: 'json' };
+import audioV016 from './compatibility/v0-16/audio.json' with { type: 'json' };
+import captionsV016 from './compatibility/v0-16/captions.json' with { type: 'json' };
+import captionsMotionV016 from './compatibility/v0-16/captions-motion.json' with { type: 'json' };
+import easingV016 from './compatibility/v0-16/easing.json' with { type: 'json' };
+import effectsV016 from './compatibility/v0-16/effects.json' with { type: 'json' };
+import extremesV016 from './compatibility/v0-16/extremes.json' with { type: 'json' };
+import focusV016 from './compatibility/v0-16/focus.json' with { type: 'json' };
+import inputsV016 from './compatibility/v0-16/inputs.json' with { type: 'json' };
+import lifetimeV016 from './compatibility/v0-16/lifetime.json' with { type: 'json' };
+import minimalV016 from './compatibility/v0-16/minimal.json' with { type: 'json' };
+import motionV016 from './compatibility/v0-16/motion.json' with { type: 'json' };
+import pairV016 from './compatibility/v0-16/pair.json' with { type: 'json' };
+import referenceV016 from './compatibility/v0-16/reference.json' with { type: 'json' };
+import repeatsV016 from './compatibility/v0-16/repeats.json' with { type: 'json' };
+import scenesV016 from './compatibility/v0-16/scenes.json' with { type: 'json' };
+import templateV016 from './compatibility/v0-16/template.json' with { type: 'json' };
+import textV016 from './compatibility/v0-16/text.json' with { type: 'json' };
+import transitionsV016 from './compatibility/v0-16/transitions.json' with { type: 'json' };
+import videoV016 from './compatibility/v0-16/video.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -377,6 +396,25 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-15/text.json': textV015,
   'compatibility/v0-15/transitions.json': transitionsV015,
   'compatibility/v0-15/video.json': videoV015,
+  'compatibility/v0-16/audio.json': audioV016,
+  'compatibility/v0-16/captions.json': captionsV016,
+  'compatibility/v0-16/captions-motion.json': captionsMotionV016,
+  'compatibility/v0-16/easing.json': easingV016,
+  'compatibility/v0-16/effects.json': effectsV016,
+  'compatibility/v0-16/extremes.json': extremesV016,
+  'compatibility/v0-16/focus.json': focusV016,
+  'compatibility/v0-16/inputs.json': inputsV016,
+  'compatibility/v0-16/lifetime.json': lifetimeV016,
+  'compatibility/v0-16/minimal.json': minimalV016,
+  'compatibility/v0-16/motion.json': motionV016,
+  'compatibility/v0-16/pair.json': pairV016,
+  'compatibility/v0-16/reference.json': referenceV016,
+  'compatibility/v0-16/repeats.json': repeatsV016,
+  'compatibility/v0-16/scenes.json': scenesV016,
+  'compatibility/v0-16/template.json': templateV016,
+  'compatibility/v0-16/text.json': textV016,
+  'compatibility/v0-16/transitions.json': transitionsV016,
+  'compatibility/v0-16/video.json': videoV016,
 };
 
 function fileOf(path: string): unknown {

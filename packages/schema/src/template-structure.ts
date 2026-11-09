@@ -11,6 +11,7 @@ import type { CompositionV011 } from './v0-11/composition-schema.js';
 import type { CompositionV012 } from './v0-12/composition-schema.js';
 import type { CompositionV013 } from './v0-13/composition-schema.js';
 import type { CompositionV014 } from './v0-14/composition-schema.js';
+import type { CompositionV015 } from './v0-15/composition-schema.js';
 
 /** A scene, or a node with the scene and the group it lies in. */
 export interface TemplateElement {
@@ -60,6 +61,11 @@ type AnyNode =
   | Extract<
       CompositionV014['scenes'][number]['nodes'][number],
       { type: 'group' }
+    >['children'][number]
+  | CompositionV015['scenes'][number]['nodes'][number]
+  | Extract<
+      CompositionV015['scenes'][number]['nodes'][number],
+      { type: 'group' }
     >['children'][number];
 
 /** The assets a node uses: its picture or its font (D14). */
@@ -76,6 +82,7 @@ export function assetsOfNode(node: AnyNode): readonly string[] {
 export function templateStructure(
   composition:
     | Composition
+    | CompositionV015
     | CompositionV014
     | CompositionV013
     | CompositionV012

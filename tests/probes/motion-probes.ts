@@ -89,7 +89,7 @@ const node = (id: string, x: number, y: number) => ({
 /** The probe composition: schema 0.13, one scene, three subjects on a dark background. */
 export function probeComposition(): unknown {
   return {
-    schemaVersion: '0.15',
+    schemaVersion: '0.16',
     width: WIDTH,
     height: HEIGHT,
     safeArea: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
@@ -109,6 +109,7 @@ export function probeComposition(): unknown {
         durationUs: 2_000_000,
         clips: [],
         transitions: [],
+        effects: [],
         nodes: [
           {
             id: 'node-background',
@@ -128,6 +129,7 @@ export function probeComposition(): unknown {
             focus: { x: 500, y: 500 },
             crop: { top: 0, right: 0, bottom: 0, left: 0 },
             cornerRadius: 0,
+            effects: [],
           },
           {
             ...node('node-text', 960, 200),
@@ -138,6 +140,7 @@ export function probeComposition(): unknown {
             color: '#fec84b',
             style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
             textAnimations: [],
+            effects: [],
           },
           {
             ...node('node-video', 120, 600),
@@ -151,6 +154,7 @@ export function probeComposition(): unknown {
             crop: { top: 0, right: 0, bottom: 0, left: 0 },
             cornerRadius: 0,
             volume: 0,
+            effects: [],
           },
         ],
       },

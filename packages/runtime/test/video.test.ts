@@ -62,6 +62,7 @@ describe('the source time of video nodes (D49.5)', () => {
       crop: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
       cornerRadius: 0,
       sourceTimeUs: 500_000,
+      effects: [],
     });
   });
 });

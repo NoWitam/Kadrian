@@ -11,6 +11,7 @@ import {
 } from '@kadrion/schema';
 
 import { captionAt, captionFragments, captionPages } from './captions.js';
+import { effectsAt } from './effects.js';
 import { EvaluationError, unsupported } from './errors.js';
 import { textFragments } from './fragments.js';
 import {
@@ -196,7 +197,11 @@ function evaluateLeaf<Type extends LeafNodeType>(
 
 /** An image leaf with its box and picture (D68). */
 function evaluateImage(node: ImageNode, timeUs: number, factors: Factors): ImageNodeState {
-  return { ...evaluateLeaf(node, timeUs, factors), ...pictureOf(node, timeUs) };
+  return {
+    ...evaluateLeaf(node, timeUs, factors),
+    ...pictureOf(node, timeUs),
+    effects: effectsAt(node.effects, timeUs),
+  };
 }
 
 /** A text leaf with its colour (D68) and its fragments (D69). */
@@ -206,6 +211,7 @@ function evaluateText(node: TextNode, timeUs: number, factors: Factors): TextNod
     ...evaluateLeaf(node, timeUs, factors),
     color,
     fragments: textFragments(node, color, timeUs),
+    effects: effectsAt(node.effects, timeUs),
   };
 }
 
@@ -216,6 +222,7 @@ function evaluateVideo(node: VideoNode, timeUs: number, factors: Factors): Video
     ...leaf,
     ...pictureOf(node, timeUs),
     sourceTimeUs: leaf.active ? sourceTimeUs(node, timeUs) : null,
+    effects: effectsAt(node.effects, timeUs),
   };
 }
 
@@ -234,6 +241,7 @@ function evaluateCaptions(node: CaptionsNode, timeUs: number, factors: Factors):
     ...leaf,
     ...instant,
     fragments: captionFragments(node, pages, instant, leaf.color, timeUs),
+    effects: effectsAt(node.effects, timeUs),
   };
 }
 
@@ -280,6 +288,7 @@ function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeSt
         active: isActive(node, timeUs),
         ...transformOf(node, timeUs, factors),
         children: node.children.map((child) => evaluateChild(child, timeUs, factors)),
+        effects: effectsAt(node.effects, timeUs),
       };
     case 'image':
       return evaluateImage(node, timeUs, factors);
@@ -350,6 +359,7 @@ export function evaluateComposition(
       id: placement.id,
       timeUs: sceneTimeUs,
       nodes: (scene?.nodes ?? []).map((node) => evaluateNode(node, sceneTimeUs, factors)),
+      effects: effectsAt(scene?.effects ?? [], sceneTimeUs),
       ...(effect === null ? {} : { transition: effect }),
     };
   });

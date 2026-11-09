@@ -4,6 +4,7 @@
   (PR #60)
 - Date: 2026-11-07
 - Supersedes: —
+- Amended by: PR-51a (D71) on 2026-11-09: the effect `blur-dissolve`; an outgoing clip above the incoming one fades as in a crossfade (D71.5)
 - Amends: D35 (the step from `0.10` to `0.11` and the frozen `0.10` schema),
   D46 (a tool that is no command: `add_clip_transition_at_cut`), and D56
   (56.1: a clip transition takes every effect; 56.5: what each effect does to

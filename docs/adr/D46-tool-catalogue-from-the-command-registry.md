@@ -19,6 +19,7 @@
 - Amended by: PR-48 (D68) on 2026-11-07: five tools of rotation, origin, crop, corner radius, and keyframe values (D68.7)
 - Amended by: PR-49 (D69) on 2026-11-08: four tools of text styles and text animations; the catalogue has 77 entries (D69.7)
 - Amended by: PR-50 (D70) on 2026-11-08: three tools of captions and the safe area, and the safe area in `describe_document` (D70.8)
+- Amended by: PR-51a (D71) on 2026-11-09: four tools of effects; the catalogue has 84 entries (D71.6)
 - Related: D09, D12, D30, D31, D38, D39, D40, D41, D42,
   [roadmap of phase three](../roadmap/phase-3.md) PR-24
 

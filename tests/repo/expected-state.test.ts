@@ -69,8 +69,9 @@ const PROPERTIES = ['position', 'scale', 'rotation', 'origin', 'opacity'] as con
  */
 const REACHED: Readonly<Record<string, readonly string[]>> = {
   background: ['color'],
-  text: ['color', 'fragments'],
-  image: ['size', 'crop', 'cornerRadius'],
+  text: ['color', 'fragments', 'effects'],
+  image: ['size', 'crop', 'cornerRadius', 'effects'],
+  group: ['effects'],
 };
 
 /** Golden timestamps exactly as `AGENTS.md` lists them. */
