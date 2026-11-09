@@ -57,7 +57,7 @@ export interface TransformState {
   readonly opacity: number;
 }
 
-export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video' | 'captions';
+export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video' | 'captions' | 'shape';
 
 /** A blur of a Gaussian of standard deviation `radius`, in composition pixels (D71). */
 export interface BlurEffectState {
@@ -272,12 +272,92 @@ export interface CaptionFragmentsState {
   readonly words: readonly FragmentState[];
 }
 
+/**
+ * One absolute command of the path of a shape (D73), in composition pixels of
+ * its box; a rectangle and an ellipse are paths too, so that a renderer draws
+ * one kind of element and the browser measures one kind of outline.
+ */
+export type PathCommandState =
+  | { readonly kind: 'move' | 'line'; readonly x: number; readonly y: number }
+  | {
+      readonly kind: 'cubic';
+      readonly x1: number;
+      readonly y1: number;
+      readonly x2: number;
+      readonly y2: number;
+      readonly x: number;
+      readonly y: number;
+    }
+  | {
+      readonly kind: 'quadratic';
+      readonly x1: number;
+      readonly y1: number;
+      readonly x: number;
+      readonly y: number;
+    }
+  | {
+      readonly kind: 'arc';
+      readonly rx: number;
+      readonly ry: number;
+      readonly rotation: number;
+      readonly largeArc: boolean;
+      readonly sweep: boolean;
+      readonly x: number;
+      readonly y: number;
+    }
+  | { readonly kind: 'close' };
+
+/**
+ * What a shape is filled with at one instant (D73): nothing, a colour, animated
+ * or not, or the gradient of the document, which no animation reaches.
+ */
+export type ShapeFillState =
+  | { readonly kind: 'none' }
+  | { readonly kind: 'solid'; readonly color: string }
+  | { readonly kind: 'gradient' };
+
+/** The part of the outline of a shape that its stroke draws, in per mille of its length (D73). */
+export interface TrimState {
+  readonly start: number;
+  readonly end: number;
+}
+
+/**
+ * The stroke of a shape at one instant (D73). `dashArray` is `null` for a
+ * whole outline without dashes; otherwise it lists the visible parts and the
+ * gaps after them in per mille of the outline, measured as `pathLength` 1000,
+ * and `dashOffset` moves its first part to where it begins.
+ */
+export interface ShapeStrokeState {
+  /** `#rrggbb`. */
+  readonly color: string;
+  /** Composition pixels, above 0. */
+  readonly width: number;
+  readonly cap: 'butt' | 'round' | 'square';
+  readonly join: 'miter' | 'round' | 'bevel';
+  readonly dashArray: readonly number[] | null;
+  readonly dashOffset: number;
+}
+
+/**
+ * A shape node (D73): its box, its path in the pixels of the box, its fill, its
+ * trim, and its stroke, `null` while it draws nothing (a width of 0, or
+ * nothing left by its trim and dashes).
+ */
+export interface ShapeNodeState extends LeafNodeState<'shape'>, EffectsState {
+  readonly size: Size;
+  readonly path: readonly PathCommandState[];
+  readonly fill: ShapeFillState;
+  readonly stroke: ShapeStrokeState | null;
+  readonly trim: TrimState;
+}
+
 export interface GroupNodeState
   extends LifetimeState, TransformState, ClipTransitionSide, EffectsState {
   readonly id: string;
   readonly type: 'group';
   /** Array order is the z-order, as in the document; groups do not nest. */
-  readonly children: readonly (ImageNodeState | TextNodeState | VideoNodeState)[];
+  readonly children: readonly (ImageNodeState | TextNodeState | VideoNodeState | ShapeNodeState)[];
 }
 
 export type NodeState =
@@ -287,7 +367,8 @@ export type NodeState =
   | TextNodeState
   | LeafNodeState<'custom-html'>
   | VideoNodeState
-  | CaptionsNodeState;
+  | CaptionsNodeState
+  | ShapeNodeState;
 
 /** Composition pixels cut away from each edge of the frame (D56). */
 export interface Inset {

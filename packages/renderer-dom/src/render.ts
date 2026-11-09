@@ -46,6 +46,7 @@ import {
   SCENE_ATTRIBUTE,
   STAGE_ATTRIBUTE,
 } from './mount.js';
+import { clearShape, writeShape } from './shapes.js';
 import { EFFECTS_ATTRIBUTE, isSvgEffectState, writeEffectFilters } from './svg-filters.js';
 
 /** A node of the state together with the element that was mounted for it. */
@@ -200,6 +201,7 @@ function plan(
     case 'image':
     case 'custom-html':
     case 'video':
+    case 'shape':
       writes.push({ element, state, sceneTimeUs });
       return;
     default:
@@ -331,6 +333,7 @@ export function renderState(root: Element, state: CompositionState): void {
         for (const property of PICTURE_WRITTEN) node.style.removeProperty(property);
       }
       writeCaptions(node, null);
+      clearShape(node);
     }
     for (const fragment of element.querySelectorAll<HTMLElement>(`[${FRAGMENT_ATTRIBUTE}]`)) {
       for (const property of FRAGMENT_WRITTEN) fragment.style.removeProperty(property);
@@ -342,6 +345,7 @@ export function renderState(root: Element, state: CompositionState): void {
   for (const { element, state: node } of tree.nodes) {
     if (node.type === 'captions') writeCaptions(element, node);
     if (node.type === 'text') writeFragments(element, node);
+    if (node.type === 'shape') writeShape(element, node);
     writeProperties(element, node);
     if (node.type !== 'background') {
       const moved = cssTransitionTransform(node.transition ?? {});

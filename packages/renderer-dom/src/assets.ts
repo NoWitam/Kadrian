@@ -50,6 +50,7 @@ export function usedAssetIds(composition: ValidatedComposition): Set<string> {
       case 'background':
       case 'custom-html':
       case 'video':
+      case 'shape':
         break;
       default:
         unsupportedNode(node);

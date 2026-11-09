@@ -1,8 +1,8 @@
 /**
  * @kadrion/schema — JSON Schema, TypeScript types, validation, migrations.
  *
- * Schema 0.17, as decided by D13–D17, D42, D50, D52, D54, D56, D57, D58, D59, D63, D66, D67,
- * D68, D69, D70, D71, and D72: the one version this build validates (D35.1). The schemas of 0.1 to 0.16 and the forward migration live behind
+ * Schema 0.18, as decided by D13–D17, D42, D50, D52, D54, D56, D57, D58, D59, D63, D66, D67,
+ * D68, D69, D70, D71, D72, and D73: the one version this build validates (D35.1). The schemas of 0.1 to 0.17 and the forward migration live behind
  * the entry point `@kadrion/schema/migrate`, and the instantiation of a template behind
  * `@kadrion/schema/template`, so that the render page, which imports this entry only, carries
  * none of them (D21, D42.8, D58.4, D59.4).
@@ -65,11 +65,17 @@ export type {
   ImageNode,
   NodeAnimation,
   Origin,
+  PathCommand,
   SafeArea,
   Scene,
   SceneNode,
   SceneTransition,
   SceneTransitionEffect,
+  ShapeFill,
+  ShapeGeometry,
+  ShapeNode,
+  ShapeStroke,
+  ShapeTrim,
   Template,
   TemplateBinding,
   TemplateCondition,

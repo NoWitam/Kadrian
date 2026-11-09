@@ -203,7 +203,7 @@ export interface GlowEffectState {
 export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide, EffectsState {
     readonly id: string;
     readonly type: 'group';
-    readonly children: readonly (ImageNodeState | TextNodeState | VideoNodeState)[];
+    readonly children: readonly (ImageNodeState | TextNodeState | VideoNodeState | ShapeNodeState)[];
 }
 
 ---- Hole (type only)
@@ -238,7 +238,7 @@ export interface LeafNodeState<Type extends LeafNodeType = LeafNodeType> extends
 }
 
 ---- LeafNodeType (type only)
-export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video' | 'captions';
+export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video' | 'captions' | 'shape';
 
 ---- LifetimeState (type only)
 export interface LifetimeState {
@@ -246,7 +246,39 @@ export interface LifetimeState {
 }
 
 ---- NodeState (type only)
-export type NodeState = BackgroundNodeState | GroupNodeState | ImageNodeState | TextNodeState | LeafNodeState<'custom-html'> | VideoNodeState | CaptionsNodeState;
+export type NodeState = BackgroundNodeState | GroupNodeState | ImageNodeState | TextNodeState | LeafNodeState<'custom-html'> | VideoNodeState | CaptionsNodeState | ShapeNodeState;
+
+---- PathCommandState (type only)
+export type PathCommandState = {
+    readonly kind: 'move' | 'line';
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly kind: 'cubic';
+    readonly x1: number;
+    readonly y1: number;
+    readonly x2: number;
+    readonly y2: number;
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly kind: 'quadratic';
+    readonly x1: number;
+    readonly y1: number;
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly kind: 'arc';
+    readonly rx: number;
+    readonly ry: number;
+    readonly rotation: number;
+    readonly largeArc: boolean;
+    readonly sweep: boolean;
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly kind: 'close';
+};
 
 ---- PictureState (type only)
 export interface PictureState {
@@ -278,6 +310,35 @@ export interface SceneTransitionState {
     readonly clip?: Inset;
     readonly circle?: Circle;
     readonly blur?: number;
+}
+
+---- ShapeFillState (type only)
+export type ShapeFillState = {
+    readonly kind: 'none';
+} | {
+    readonly kind: 'solid';
+    readonly color: string;
+} | {
+    readonly kind: 'gradient';
+};
+
+---- ShapeNodeState (type only)
+export interface ShapeNodeState extends LeafNodeState<'shape'>, EffectsState {
+    readonly size: Size;
+    readonly path: readonly PathCommandState[];
+    readonly fill: ShapeFillState;
+    readonly stroke: ShapeStrokeState | null;
+    readonly trim: TrimState;
+}
+
+---- ShapeStrokeState (type only)
+export interface ShapeStrokeState {
+    readonly color: string;
+    readonly width: number;
+    readonly cap: 'butt' | 'round' | 'square';
+    readonly join: 'miter' | 'round' | 'bevel';
+    readonly dashArray: readonly number[] | null;
+    readonly dashOffset: number;
 }
 
 ---- Size (type only)
@@ -342,6 +403,12 @@ export interface TransformState {
     readonly rotation: number;
     readonly origin: Vec2;
     readonly opacity: number;
+}
+
+---- TrimState (type only)
+export interface TrimState {
+    readonly start: number;
+    readonly end: number;
 }
 
 ---- UNICODE_VERSION

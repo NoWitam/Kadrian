@@ -31,6 +31,10 @@ import {
   parseSetTransitionEasing,
   parseSetCaptionStyle,
   parseSetTextStyle,
+  parseSetShapeFill,
+  parseSetShapeGeometry,
+  parseSetShapeStroke,
+  parseSetShapeTrim,
   parseAddTextAnimation,
   parseRemoveTextAnimation,
   parseSetTextAnimation,
@@ -445,7 +449,7 @@ function locatedEffect(document: DocumentObject, effectId: string): EffectLocati
 }
 
 /** The node types that take effects (D71). */
-const EFFECT_OWNERS = ['image', 'video', 'text', 'captions', 'group'] as const;
+const EFFECT_OWNERS = ['image', 'video', 'text', 'captions', 'group', 'shape'] as const;
 
 /** The animation with that ID, or `unknown-animation` (D41.2). */
 function locatedTextAnimation(
@@ -2377,6 +2381,65 @@ const DEFINITIONS = deepFreeze<Definitions>({
         return {
           node: { ...node, style: command.style },
           inverse: parseSetTextStyle({ ...command, style }),
+        };
+      }),
+  },
+  SetShapeGeometry: {
+    parse: parseSetShapeGeometry,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['shape'], command.nodeId);
+        const geometry: unknown = node['geometry'];
+        if (sameData(geometry, command.geometry)) return null;
+        return {
+          node: { ...node, geometry: command.geometry },
+          inverse: parseSetShapeGeometry({ ...command, geometry }),
+        };
+      }),
+  },
+  SetShapeFill: {
+    parse: parseSetShapeFill,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['shape'], command.nodeId);
+        const fill: unknown = node['fill'];
+        if (sameData(fill, command.fill)) return null;
+        return {
+          node: { ...node, fill: command.fill },
+          inverse: parseSetShapeFill({ ...command, fill }),
+        };
+      }),
+  },
+  SetShapeStroke: {
+    parse: parseSetShapeStroke,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['shape'], command.nodeId);
+        const stroke: unknown = node['stroke'];
+        if (sameData(stroke, command.stroke)) return null;
+        return {
+          node: { ...node, stroke: command.stroke },
+          inverse: parseSetShapeStroke({ ...command, stroke }),
+        };
+      }),
+  },
+  SetShapeTrim: {
+    parse: parseSetShapeTrim,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['shape'], command.nodeId);
+        const stored = node['trim'];
+        if (!isObject(stored)) {
+          throw new EditorError('unsupported-node', `The node \`${command.nodeId}\` has no trim.`);
+        }
+        const trim = {
+          start: numberField(stored, 'start', command.nodeId),
+          end: numberField(stored, 'end', command.nodeId),
+        };
+        if (sameData(trim, command.trim)) return null;
+        return {
+          node: { ...node, trim: command.trim },
+          inverse: parseSetShapeTrim({ ...command, trim }),
         };
       }),
   },

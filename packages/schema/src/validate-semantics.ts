@@ -34,6 +34,8 @@ import type {
   FragmentTrack,
   NodeAnimation,
   SceneNode,
+  ShapeGeometry,
+  ShapeNode,
   TemplateCondition,
   TemplateInput,
   TemplateRepeat,
@@ -56,6 +58,7 @@ import type { CompositionV013 } from './v0-13/composition-schema.js';
 import type { CompositionV014 } from './v0-14/composition-schema.js';
 import type { CompositionV015 } from './v0-15/composition-schema.js';
 import type { CompositionV016 } from './v0-16/composition-schema.js';
+import type { CompositionV017 } from './v0-17/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -69,6 +72,8 @@ type SceneNodeV014 = CompositionV014['scenes'][number]['nodes'][number];
 type SceneNodeV015 = CompositionV015['scenes'][number]['nodes'][number];
 /** A node of 0.16, whose effects are CSS filters only (D72). */
 type SceneNodeV016 = CompositionV016['scenes'][number]['nodes'][number];
+/** A node of 0.17, which has no shape (D73). */
+type SceneNodeV017 = CompositionV017['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -206,6 +211,85 @@ function checkCaptionWords(
   });
 }
 
+/**
+ * The structure of a geometry (D73): its kind, and the kinds of its commands
+ * with the flags of its arcs, or the number of its points. Two geometries of
+ * one structure morph number by number.
+ */
+export function geometryStructure(geometry: ShapeGeometry): string {
+  switch (geometry.kind) {
+    case 'rect':
+    case 'ellipse':
+      return geometry.kind;
+    case 'polygon':
+      return `polygon:${String(geometry.points.length)}`;
+    case 'path':
+      return `path:${geometry.fillRule}:${geometry.commands
+        .map((command) =>
+          command.kind === 'arc'
+            ? `arc${command.largeArc ? '1' : '0'}${command.sweep ? '1' : '0'}`
+            : command.kind,
+        )
+        .join(',')}`;
+  }
+}
+
+/**
+ * The rules of a shape (D73): its path starts with a move, the stops of a
+ * gradient ascend, its dashes come in pairs, only a solid fill is animated,
+ * and every keyframe of its geometry has the structure of its geometry.
+ */
+function checkShape(node: ShapeNode, path: string, errors: ValidationError[]): void {
+  const { geometry, fill, stroke } = node;
+  if (geometry.kind === 'path' && geometry.commands[0]?.kind !== 'move') {
+    errors.push({
+      code: 'path-start-not-move',
+      path: pointer(pointer(pointer(path, 'geometry'), 'commands'), 0),
+      message: 'A path starts with a move.',
+    });
+  }
+  if (fill.kind === 'linear-gradient' || fill.kind === 'radial-gradient') {
+    fill.stops.forEach((stop, index) => {
+      const previous = fill.stops[index - 1];
+      if (previous !== undefined && stop.offset < previous.offset) {
+        errors.push({
+          code: 'gradient-stops-not-ascending',
+          path: pointer(pointer(pointer(pointer(path, 'fill'), 'stops'), index), 'offset'),
+          message: 'The stops of a gradient ascend in offset.',
+        });
+      }
+    });
+  }
+  if (stroke.dash.length % 2 !== 0) {
+    errors.push({
+      code: 'stroke-dash-odd',
+      path: pointer(pointer(path, 'stroke'), 'dash'),
+      message: 'The dashes of a stroke are pairs of a dash and a gap.',
+    });
+  }
+  const structure = geometryStructure(geometry);
+  node.animations.forEach((animation, index) => {
+    const animationPath = pointer(pointer(path, 'animations'), index);
+    if (animation.property === 'fill' && fill.kind !== 'solid') {
+      errors.push({
+        code: 'fill-not-solid',
+        path: pointer(animationPath, 'property'),
+        message: 'Only a fill of one colour is animated.',
+      });
+    }
+    if (animation.property !== 'geometry') return;
+    animation.keyframes.forEach((keyframe, keyframeIndex) => {
+      if (geometryStructure(keyframe.value) === structure) return;
+      errors.push({
+        code: 'geometry-mismatch',
+        path: pointer(pointer(pointer(animationPath, 'keyframes'), keyframeIndex), 'value'),
+        message:
+          "A geometry keyframe has the structure of the shape's geometry: its kind, its number of points, and its commands in the same order with the same arc flags.",
+      });
+    });
+  });
+}
+
 export function validateSemantics(
   composition:
     | Composition
@@ -224,7 +308,8 @@ export function validateSemantics(
     | CompositionV013
     | CompositionV014
     | CompositionV015
-    | CompositionV016,
+    | CompositionV016
+    | CompositionV017,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -243,6 +328,7 @@ export function validateSemantics(
   const animationErrors: ValidationError[] = [];
   const sourceErrors: ValidationError[] = [];
   const captionErrors: ValidationError[] = [];
+  const shapeErrors: ValidationError[] = [];
 
   composition.scenes.forEach((scene, sceneIndex) => {
     const nodesPath = pointer(pointer(pointer('', 'scenes'), sceneIndex), 'nodes');
@@ -306,6 +392,9 @@ export function validateSemantics(
               }
             }
           }
+        }
+        if (member.node.type === 'shape') {
+          checkShape(member.node, member.path, shapeErrors);
         }
         // A background has animations since 0.13 (D68).
         if ('animations' in member.node) {
@@ -417,6 +506,7 @@ export function validateSemantics(
     ...durationErrors,
     ...transitionErrors,
     ...captionErrors,
+    ...shapeErrors,
     ...safeAreaErrors,
     ...templateErrors,
   ];
@@ -533,6 +623,7 @@ function checkTemplate(
     | CompositionV012
     | CompositionV015
     | CompositionV016
+    | CompositionV017
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -947,6 +1038,7 @@ function subtreeOf(
     | CompositionV012
     | CompositionV015
     | CompositionV016
+    | CompositionV017
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1011,7 +1103,9 @@ interface Located {
     | SceneNodeV015
     | Extract<SceneNodeV015, { type: 'group' }>['children'][number]
     | SceneNodeV016
-    | Extract<SceneNodeV016, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV016, { type: 'group' }>['children'][number]
+    | SceneNodeV017
+    | Extract<SceneNodeV017, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -1036,7 +1130,8 @@ function checkTransitions(
     | CompositionV013
     | CompositionV014
     | CompositionV015
-    | CompositionV016,
+    | CompositionV016
+    | CompositionV017,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

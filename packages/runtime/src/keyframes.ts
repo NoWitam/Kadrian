@@ -30,6 +30,12 @@ export const PROPERTY_BOUNDS: Readonly<Record<NodeAnimation['property'], Bounds>
   color: { min: 0, max: 255 },
   crop: { min: 0, max: 1000 },
   cornerRadius: { min: 0, max: 1_000_000 },
+  fill: { min: 0, max: 255 },
+  'stroke/color': { min: 0, max: 255 },
+  'stroke/width': { min: 0, max: 1000 },
+  'trim/start': { min: 0, max: 1000 },
+  'trim/end': { min: 0, max: 1000 },
+  geometry: { min: -1_000_000, max: 1_000_000 },
 };
 
 /**
@@ -40,7 +46,7 @@ export const PROPERTY_BOUNDS: Readonly<Record<NodeAnimation['property'], Bounds>
  * interpolated, by the easing of the earlier of the two (D67). Keyframe times
  * ascend strictly, which validation guarantees.
  */
-function sample<Value, Out>(
+export function sampleKeyframes<Value, Out>(
   keyframes: readonly Keyframe<Value>[],
   timeUs: number,
   held: (value: Value) => Out,
@@ -73,7 +79,7 @@ function sampleChannels<Value, K extends string>(
   channels: readonly K[],
   read: (value: Value) => Readonly<Record<K, number>>,
 ): Readonly<Record<K, number>> {
-  return sample(keyframes, timeUs, read, (previous, next) => {
+  return sampleKeyframes(keyframes, timeUs, read, (previous, next) => {
     const elapsedUs = timeUs - previous.timeUs;
     const spanUs = next.timeUs - previous.timeUs;
     const a = read(previous.value);
@@ -167,7 +173,7 @@ export function sampleColorKeyframes(
   timeUs: number,
 ): string {
   const bounds = PROPERTY_BOUNDS.color;
-  return sample(
+  return sampleKeyframes(
     keyframes,
     timeUs,
     (value) => value,

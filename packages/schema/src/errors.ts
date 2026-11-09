@@ -75,7 +75,17 @@ export type ValidationErrorCode =
   /** An ID has the form of the ID of a copy of a repeat, `<id>--<index>` (D59.2). */
   | 'repeat-id-reserved'
   /** An item binding or placeholder lies outside every repeat over its list (D59.3). */
-  | 'item-outside-repeat';
+  | 'item-outside-repeat'
+  /** The path of a shape does not start with a move (D73). */
+  | 'path-start-not-move'
+  /** The stops of a gradient do not ascend in offset (D73). */
+  | 'gradient-stops-not-ascending'
+  /** The dashes of a stroke are an odd number of lengths (D73). */
+  | 'stroke-dash-odd'
+  /** A fill animation on a shape whose fill is not one colour (D73). */
+  | 'fill-not-solid'
+  /** A geometry keyframe whose structure is not that of the shape's geometry (D73). */
+  | 'geometry-mismatch';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

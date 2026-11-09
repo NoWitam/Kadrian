@@ -2,13 +2,14 @@
  * `migrateComposition` and the steps 0.1 → 0.2, 0.2 → 0.3, 0.3 → 0.4,
  * 0.4 → 0.5, 0.5 → 0.6, 0.6 → 0.7, 0.7 → 0.8, 0.8 → 0.9, 0.9 → 0.10,
  * 0.10 → 0.11, 0.11 → 0.12, 0.12 → 0.13, 0.13 → 0.14, 0.14 → 0.15,
- * 0.15 → 0.16, and 0.16 → 0.17 (D35.2–D35.5, D42.7, D42.8, D50.7, D52.6,
- * D54.4, D56.4, D57, D58.5, D59.5, D63, D66, D67, D68, D69, D70, D71, D72).
+ * 0.15 → 0.16, 0.16 → 0.17, and 0.17 → 0.18 (D35.2–D35.5, D42.7, D42.8, D50.7,
+ * D52.6, D54.4, D56.4, D57, D58.5, D59.5, D63, D66, D67, D68, D69, D70, D71, D72,
+ * D73).
  *
  * Every expected document here was written by hand and none by a step: the
- * pairs of `@kadrion/test-fixtures`, and the reference composition of 0.17 beside
- * its frozen 0.1 to 0.16 originals. A pair that has nothing the step to 0.4
- * changes reaches 0.4 by its version alone, and 0.17 by its version, the
+ * pairs of `@kadrion/test-fixtures`, and the reference composition of 0.18 beside
+ * its frozen 0.1 to 0.17 originals. A pair that has nothing the step to 0.4
+ * changes reaches 0.4 by its version alone, and 0.18 by its version, the
  * duration, the clips, and the transitions of its one scene, the
  * composition's transitions, its empty template section, and the centred
  * focus of its images, and the linear easing of its keyframes in place of the
@@ -16,7 +17,7 @@
  * corner of every transformed node, no crop and no rounded corners of its
  * images, and no animations of its background, and the plain style and no
  * text animations of its texts, and the safe area of the whole canvas, and no
- * effects of its scene and its nodes, which the test states by hand (`as17`); a document of 0.5 reaches 0.6 by its version and its
+ * effects of its scene and its nodes, which the test states by hand (`as18`); a document of 0.5 reaches 0.6 by its version and its
  * empty lists of transitions (`to06`), a document of 0.6 reaches 0.7 by its
  * version alone, and a document of 0.7 reaches 0.8 by its version and an empty
  * template section at its end, and a document of 0.8 reaches 0.9 by its version
@@ -33,7 +34,8 @@
  * area of the whole canvas, and the highlight set and the plain style of every
  * captions node, and a document of 0.15 reaches 0.16 by its version and no
  * effects of every scene, image, video, text, captions node, and group, and a
- * document of 0.16 reaches 0.17 by its version alone.
+ * document of 0.16 reaches 0.17 by its version alone, and a document of 0.17
+ * reaches 0.18 by its version alone.
  * Nothing the step produces is used as its own
  * expectation, and documents are compared as JSON text, so the order of the keys
  * is part of every comparison. What the repository can show is the frozen
@@ -67,6 +69,7 @@ import {
   migrationPair014To015,
   migrationPair015To016,
   migrationPair016To017,
+  migrationPair017To018,
   referenceComposition,
   referenceCompositionV01,
   referenceCompositionV02,
@@ -84,6 +87,7 @@ import {
   referenceCompositionV014,
   referenceCompositionV015,
   referenceCompositionV016,
+  referenceCompositionV017,
   invalidCompositionCasesV07,
   invalidCompositionCasesV08,
   invalidCompositionCasesV09,
@@ -94,6 +98,7 @@ import {
   invalidCompositionCasesV014,
   invalidCompositionCasesV015,
   invalidCompositionCasesV016,
+  invalidCompositionCasesV017,
 } from '@kadrion/test-fixtures';
 import { compatibilityCorpus } from '@kadrion/test-fixtures/compatibility';
 import { describe, expect, it, vi } from 'vitest';
@@ -117,6 +122,7 @@ import { step013To014 } from '../src/migration/step-0-13-to-0-14.js';
 import { step014To015 } from '../src/migration/step-0-14-to-0-15.js';
 import { step015To016 } from '../src/migration/step-0-15-to-0-16.js';
 import { step016To017 } from '../src/migration/step-0-16-to-0-17.js';
+import { step017To018 } from '../src/migration/step-0-17-to-0-18.js';
 import type { CompositionV01 } from '../src/v0-1/composition-schema.js';
 import type { CompositionV02 } from '../src/v0-2/composition-schema.js';
 import type { CompositionV03 } from '../src/v0-3/composition-schema.js';
@@ -133,6 +139,7 @@ import type { CompositionV013 } from '../src/v0-13/composition-schema.js';
 import type { CompositionV014 } from '../src/v0-14/composition-schema.js';
 import type { CompositionV015 } from '../src/v0-15/composition-schema.js';
 import type { CompositionV016 } from '../src/v0-16/composition-schema.js';
+import type { CompositionV017 } from '../src/v0-17/composition-schema.js';
 import { applyPatch } from './apply-patch.js';
 
 /** `render.compositionHash` of the golden manifest while the reference was a 0.1 document. */
@@ -336,14 +343,14 @@ function plain(node: Record<string, unknown>): Record<string, unknown> {
   return EFFECT_HOLDERS.has(node['type'] as string) ? { ...out, effects: [] } : out;
 }
 
-function as17(document: unknown): unknown {
+function as18(document: unknown): unknown {
   const source = document as {
     durationUs: number;
     scenes: { id: string; nodes: Record<string, unknown>[] }[];
   };
   return {
     ...withSafeArea(source),
-    schemaVersion: '0.17',
+    schemaVersion: '0.18',
     scenes: source.scenes.map((scene) => {
       expect(Object.keys(scene)).toEqual(['id', 'nodes']);
       return {
@@ -482,8 +489,14 @@ describe('the evidence of the step, written before it (D35.5)', () => {
     );
   });
 
+  it('starts the pair of 0.17 → 0.18 where the pair of 0.16 → 0.17 ends', () => {
+    expect(JSON.stringify(migrationPair017To018.before)).toBe(
+      JSON.stringify(migrationPair016To017.after),
+    );
+  });
+
   it('holds documents the validators tell apart', () => {
-    for (const current of [referenceComposition, migrationPair016To017.after]) {
+    for (const current of [referenceComposition, migrationPair017To018.after]) {
       expect(validateComposition(current).ok).toBe(true);
     }
     for (const older of [
@@ -520,6 +533,8 @@ describe('the evidence of the step, written before it (D35.5)', () => {
       migrationPair014To015.after,
       referenceCompositionV016,
       migrationPair015To016.after,
+      referenceCompositionV017,
+      migrationPair016To017.after,
     ]) {
       const result = validateComposition(older);
       expect(result.ok ? [] : result.errors.map(({ code }) => code)).toEqual([
@@ -542,9 +557,9 @@ describe('the step 0.1 → 0.2 (D42.7)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair01To02.before, as17(migrationPair02To03.after)],
+    ['the hand-written pair', migrationPair01To02.before, as18(migrationPair02To03.after)],
     ['the reference composition', referenceCompositionV01, referenceComposition],
-  ])('carries %s through every step to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s through every step to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -565,6 +580,7 @@ describe('the step 0.1 → 0.2 (D42.7)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
     expect(validateComposition(result.composition).ok).toBe(true);
   });
@@ -661,9 +677,9 @@ describe('the step 0.2 → 0.3 (D50.7)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair02To03.before, as17(migrationPair02To03.after)],
+    ['the hand-written pair', migrationPair02To03.before, as18(migrationPair02To03.after)],
     ['the reference composition', referenceCompositionV02, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -683,6 +699,7 @@ describe('the step 0.2 → 0.3 (D50.7)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
   });
 
@@ -742,9 +759,9 @@ describe('the step 0.3 → 0.4 (D52.6)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair03To04.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair03To04.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV03, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -763,6 +780,7 @@ describe('the step 0.3 → 0.4 (D52.6)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
   });
 
@@ -839,9 +857,9 @@ describe('the step 0.4 → 0.5 (D54.4)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair04To05.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair04To05.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV04, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -859,6 +877,7 @@ describe('the step 0.4 → 0.5 (D54.4)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
   });
 
@@ -923,9 +942,9 @@ describe('the step 0.5 → 0.6 (D56.4)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair05To06.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair05To06.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV05, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -942,6 +961,7 @@ describe('the step 0.5 → 0.6 (D56.4)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
   });
 
@@ -995,9 +1015,9 @@ describe('the step 0.6 → 0.7 (D57)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair06To07.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair06To07.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV06, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -1013,6 +1033,7 @@ describe('the step 0.6 → 0.7 (D57)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
   });
 
@@ -1045,9 +1066,9 @@ describe('the step 0.7 → 0.8 (D58.5)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair07To08.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair07To08.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV07, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -1062,6 +1083,7 @@ describe('the step 0.7 → 0.8 (D58.5)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
   });
 
@@ -1098,9 +1120,9 @@ describe('the step 0.8 → 0.9 (D59.5)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair08To09.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair08To09.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV08, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -1114,6 +1136,7 @@ describe('the step 0.8 → 0.9 (D59.5)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
   });
 
@@ -1162,9 +1185,9 @@ describe('the step 0.9 → 0.10 (D63)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair09To10.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair09To10.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV09, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -1177,6 +1200,7 @@ describe('the step 0.9 → 0.10 (D63)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
   });
 
@@ -1232,9 +1256,9 @@ describe('the step 0.10 → 0.11 (D66)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair010To011.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair010To011.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV010, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
     expect(result.versions).toEqual([
@@ -1246,6 +1270,7 @@ describe('the step 0.10 → 0.11 (D66)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
   });
 
@@ -1278,12 +1303,21 @@ describe('the step 0.11 → 0.12 (D67)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair011To012.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair011To012.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV011, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
-    expect(result.versions).toEqual(['0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17']);
+    expect(result.versions).toEqual([
+      '0.11',
+      '0.12',
+      '0.13',
+      '0.14',
+      '0.15',
+      '0.16',
+      '0.17',
+      '0.18',
+    ]);
   });
 
   it('eases every keyframe and every transition linearly, drops the interpolation, and changes nothing else', () => {
@@ -1324,12 +1358,12 @@ describe('the step 0.12 → 0.13 (D68)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair012To013.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair012To013.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV012, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
-    expect(result.versions).toEqual(['0.12', '0.13', '0.14', '0.15', '0.16', '0.17']);
+    expect(result.versions).toEqual(['0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18']);
   });
 
   it('places every transformed node about its top-left corner, unrotated, with whole pictures and square corners', () => {
@@ -1390,12 +1424,12 @@ describe('the step 0.13 → 0.14 (D69)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair013To014.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair013To014.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV013, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
-    expect(result.versions).toEqual(['0.13', '0.14', '0.15', '0.16', '0.17']);
+    expect(result.versions).toEqual(['0.13', '0.14', '0.15', '0.16', '0.17', '0.18']);
   });
 
   it('draws every text in one piece, plain, and changes nothing else', () => {
@@ -1446,12 +1480,12 @@ describe('the step 0.14 → 0.15 (D70)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair014To015.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair014To015.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV014, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
-    expect(result.versions).toEqual(['0.14', '0.15', '0.16', '0.17']);
+    expect(result.versions).toEqual(['0.14', '0.15', '0.16', '0.17', '0.18']);
   });
 
   it('gives the composition the whole canvas as its safe area, right after its height', () => {
@@ -1532,12 +1566,12 @@ describe('the step 0.15 → 0.16 (D71)', () => {
   );
 
   it.each([
-    ['the hand-written pair', migrationPair015To016.before, migrationPair016To017.after],
+    ['the hand-written pair', migrationPair015To016.before, migrationPair017To018.after],
     ['the reference composition', referenceCompositionV015, referenceComposition],
-  ])('carries %s on to its hand-written result of 0.17', (_, before, after) => {
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
     const result = success(migrateComposition(before));
     expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
-    expect(result.versions).toEqual(['0.15', '0.16', '0.17']);
+    expect(result.versions).toEqual(['0.15', '0.16', '0.17', '0.18']);
   });
 
   /** A saved document of 0.15: an entry of the corpus of 0.15, or one of 0.14 taken one step on. */
@@ -1580,16 +1614,22 @@ describe('the step 0.15 → 0.16 (D71)', () => {
 describe('the step 0.16 → 0.17 (D72)', () => {
   it.each([
     ['the hand-written pair', migrationPair016To017.before, migrationPair016To017.after],
-    ['the reference composition', referenceCompositionV016, referenceComposition],
+    ['the reference composition', referenceCompositionV016, referenceCompositionV017],
   ])(
     'carries %s to its hand-written result, key for key and in their order',
     (_, before, after) => {
-      const result = success(migrateComposition(before));
-      expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
-      expect(result.versions).toEqual(['0.16', '0.17']);
       expect(JSON.stringify(step016To017(before as CompositionV016))).toBe(JSON.stringify(after));
     },
   );
+
+  it.each([
+    ['the hand-written pair', migrationPair016To017.before, migrationPair017To018.after],
+    ['the reference composition', referenceCompositionV016, referenceComposition],
+  ])('carries %s on to its hand-written result of 0.18', (_, before, after) => {
+    const result = success(migrateComposition(before));
+    expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
+    expect(result.versions).toEqual(['0.16', '0.17', '0.18']);
+  });
 
   it.each(['scenes', 'captions', 'effects', 'repeats', 'transitions', 'video', 'text'])(
     'changes the version and nothing else: %s',
@@ -1616,12 +1656,54 @@ describe('the step 0.16 → 0.17 (D72)', () => {
   });
 });
 
+describe('the step 0.17 → 0.18 (D73)', () => {
+  it.each([
+    ['the hand-written pair', migrationPair017To018.before, migrationPair017To018.after],
+    ['the reference composition', referenceCompositionV017, referenceComposition],
+  ])(
+    'carries %s to its hand-written result, key for key and in their order',
+    (_, before, after) => {
+      const result = success(migrateComposition(before));
+      expect(JSON.stringify(result.composition)).toBe(JSON.stringify(after));
+      expect(result.versions).toEqual(['0.17', '0.18']);
+      expect(JSON.stringify(step017To018(before as CompositionV017))).toBe(JSON.stringify(after));
+    },
+  );
+
+  it.each([
+    'scenes',
+    'captions',
+    'effects',
+    'effects-svg',
+    'repeats',
+    'transitions',
+    'video',
+    'text',
+  ])('changes the version and nothing else: %s', (id) => {
+    const input = compatibilityCorpus.find((entry) => entry.id === `${id}-0-17`)?.input;
+    expect(input).toBeDefined();
+    const result = step017To018(input as CompositionV017);
+    expect(JSON.stringify(result)).toBe(
+      JSON.stringify({ ...(input as object), schemaVersion: '0.18' }),
+    );
+  });
+
+  it('never writes its input, and shares no object with it at any depth', () => {
+    const input = copy(referenceCompositionV017);
+    const text = JSON.stringify(input);
+    const result = step017To018(input as CompositionV017);
+    expect(JSON.stringify(input)).toBe(text);
+    const mine = objectsOf(input);
+    expect([...objectsOf(result)].filter((object) => mine.has(object))).toEqual([]);
+  });
+});
+
 describe('a document that is current already (D42.8)', () => {
   it('is validated and returned as a new tree, with the one version it went through', () => {
     const input = copy(referenceComposition);
     const text = JSON.stringify(input);
     const result = success(migrateComposition(input));
-    expect(result.versions).toEqual(['0.17']);
+    expect(result.versions).toEqual(['0.18']);
     expect(result.composition).not.toBe(input);
     expect(JSON.stringify(result.composition)).toBe(text);
     expect(JSON.stringify(input)).toBe(text);
@@ -1684,7 +1766,7 @@ function keepingVersion<Case extends { readonly patch: readonly { readonly path:
 }
 
 describe('an input that is invalid under its own version (D35.3, D35.4)', () => {
-  it('has frozen corpora of 0.1 to 0.16 to be judged by', () => {
+  it('has frozen corpora of 0.1 to 0.17 to be judged by', () => {
     expect(keepingVersion(invalidCompositionCasesV01).length).toBeGreaterThan(35);
     expect(keepingVersion(invalidCompositionCasesV02).length).toBeGreaterThan(45);
     expect(keepingVersion(invalidCompositionCasesV03).length).toBeGreaterThan(50);
@@ -1701,7 +1783,18 @@ describe('an input that is invalid under its own version (D35.3, D35.4)', () => 
     expect(keepingVersion(invalidCompositionCasesV014).length).toBeGreaterThan(100);
     expect(keepingVersion(invalidCompositionCasesV015).length).toBeGreaterThan(100);
     expect(keepingVersion(invalidCompositionCasesV016).length).toBeGreaterThan(100);
+    expect(keepingVersion(invalidCompositionCasesV017).length).toBeGreaterThan(100);
   });
+
+  it.each(keepingVersion(invalidCompositionCasesV017))(
+    'is refused as 0.17 with exactly the errors 0.17 had: $name',
+    ({ patch, expectedErrors }) => {
+      const result = failure(migrateComposition(applyPatch(referenceCompositionV017, patch)));
+      expect(result.version).toBe('0.17');
+      expect(result.versions).toEqual(['0.17']);
+      expect(result.errors.map(({ code, path }) => ({ code, path }))).toEqual(expectedErrors);
+    },
+  );
 
   it.each(keepingVersion(invalidCompositionCasesV016))(
     'is refused as 0.16 with exactly the errors 0.16 had: $name',
@@ -1864,11 +1957,11 @@ describe('an input that is invalid under its own version (D35.3, D35.4)', () => 
   );
 
   it.each(keepingVersion(invalidCompositionCases))(
-    'is refused as 0.17 with the errors of validateComposition: $name',
+    'is refused as 0.18 with the errors of validateComposition: $name',
     ({ patch, expectedErrors }) => {
       const result = failure(migrateComposition(applyPatch(referenceComposition, patch)));
-      expect(result.version).toBe('0.17');
-      expect(result.versions).toEqual(['0.17']);
+      expect(result.version).toBe('0.18');
+      expect(result.versions).toEqual(['0.18']);
       expect(result.errors.map(({ code, path }) => ({ code, path }))).toEqual(expectedErrors);
     },
   );
@@ -2092,7 +2185,7 @@ describe('a version nobody knows (D42.8)', () => {
     ['an object without a version', { width: 1 }],
     ['the number 0.1', { schemaVersion: 0.1 }],
     ['null as the version', { schemaVersion: null }],
-    ['a future version', { ...copy(referenceComposition), schemaVersion: '0.18' }],
+    ['a future version', { ...copy(referenceComposition), schemaVersion: '0.19' }],
     ['the empty string', { schemaVersion: '' }],
     ['"constructor"', { schemaVersion: 'constructor' }],
     ['"__proto__"', { schemaVersion: '__proto__' }],
@@ -2157,14 +2250,14 @@ describe('the validation of the target is always enforced (D35.3, D42.8)', () =>
       {
         version: '0.1',
         errors: () => [],
-        next: (document) => ({ ...(document as object), schemaVersion: '0.17' }),
+        next: (document) => ({ ...(document as object), schemaVersion: '0.18' }),
       },
-      { version: '0.17', errors: () => [] },
+      { version: '0.18', errors: () => [] },
     ];
     const result = migrateThrough(table, valid, referenceCompositionV01);
     if (result.ok) throw new Error('The invalid result was accepted.');
-    expect(result.version).toBe('0.17');
-    expect(result.versions).toEqual(['0.1', '0.17']);
+    expect(result.version).toBe('0.18');
+    expect(result.versions).toEqual(['0.1', '0.18']);
     expect(new Set(result.errors.map(({ code }) => code))).toEqual(
       new Set(['missing-field', 'unknown-field']),
     );

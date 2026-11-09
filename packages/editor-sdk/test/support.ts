@@ -50,6 +50,33 @@ export const VIDEO_NODE = Object.freeze({
   effects: Object.freeze([]),
 });
 
+/** The shape node `everyType` adds to the reference composition (D73). */
+export const SHAPE_NODE = Object.freeze({
+  id: 'node-shape',
+  type: 'shape',
+  startUs: 0,
+  durationUs: 1_000_000,
+  position: Object.freeze({ x: 30, y: 40 }),
+  scale: Object.freeze({ x: 1, y: 1 }),
+  rotation: 0,
+  origin: Object.freeze({ x: 0, y: 0 }),
+  opacity: 1,
+  animations: Object.freeze([]),
+  width: 200,
+  height: 120,
+  geometry: Object.freeze({ kind: 'rect', cornerRadius: 16 }),
+  fill: Object.freeze({ kind: 'solid', color: '#12b76a' }),
+  stroke: Object.freeze({
+    color: '#ffffff',
+    width: 4,
+    dash: Object.freeze([]),
+    cap: 'butt',
+    join: 'miter',
+  }),
+  trim: Object.freeze({ start: 0, end: 1000 }),
+  effects: Object.freeze([]),
+});
+
 /** The captions node `everyType` adds to the reference composition (D57). */
 export const CAPTIONS_NODE = Object.freeze({
   id: 'node-captions',
@@ -107,6 +134,7 @@ export function everyType(): ValidatedComposition {
   draft.assets.push(structuredClone(VIDEO_ASSET));
   draft.scenes[0]?.nodes.push(structuredClone(VIDEO_NODE));
   draft.scenes[0]?.nodes.push(structuredClone(CAPTIONS_NODE));
+  draft.scenes[0]?.nodes.push(structuredClone(SHAPE_NODE));
   return validated(draft);
 }
 

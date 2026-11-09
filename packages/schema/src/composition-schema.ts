@@ -1,5 +1,5 @@
 /**
- * Composition schema 0.15: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.18: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
@@ -31,8 +31,10 @@
  * 0.16 is 0.15 plus the effects of images, videos, texts, captions, groups,
  * and scenes, with their animated parameters, and the transition
  * blur-dissolve (D71); 0.17 is 0.16 plus the effects drawn by SVG filters:
- * curves, a colour grade, a glow, a vignette, and a chroma key (D72). The
- * schemas of 0.1 to 0.16 are kept as data in `v0-1` to `v0-16` (D35.4).
+ * curves, a colour grade, a glow, a vignette, and a chroma key (D72); 0.18 is
+ * 0.17 plus the node `shape`, a rectangle, an ellipse, a polygon, or a path,
+ * filled with a colour or a gradient, stroked, trimmed, and morphed (D73). The
+ * schemas of 0.1 to 0.17 are kept as data in `v0-1` to `v0-17` (D35.4).
  */
 import {
   closedObject,
@@ -45,7 +47,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.17';
+export const SCHEMA_VERSION = '0.18';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -364,6 +366,276 @@ export const cornerRadiusAnimationSchema = animation(
   cornerRadius,
 );
 
+/** A coordinate of a point of a shape, in composition pixels of the node's box; a JSON number (D73). */
+const shapeCoordinate = {
+  type: 'number',
+  description:
+    "A coordinate in composition pixels of the node's box, from its top-left corner; x grows right, y grows down; any number, fractions included, so that a drawing keeps its detail (D73).",
+  minimum: -1_000_000,
+  maximum: 1_000_000,
+} as const satisfies NumberSchema;
+
+/** A point of a polygon (D73). */
+const shapePoint = closedObject("A point in composition pixels of the node's box (D73).", {
+  x: shapeCoordinate,
+  y: shapeCoordinate,
+});
+
+/** A length of a shape, such as a radius of an arc, in composition pixels (D73). */
+const shapeLength = {
+  type: 'number',
+  description: 'A length in composition pixels, from 0 (D73).',
+  minimum: 0,
+  maximum: 1_000_000,
+} as const satisfies NumberSchema;
+
+export const moveCommandSchema = closedObject(
+  'Starts a new subpath at the point x, y without drawing (SVG M, D73).',
+  { kind: { type: 'string', const: 'move' }, x: shapeCoordinate, y: shapeCoordinate },
+);
+
+export const lineCommandSchema = closedObject(
+  'A straight line from the current point to x, y (SVG L, D73).',
+  { kind: { type: 'string', const: 'line' }, x: shapeCoordinate, y: shapeCoordinate },
+);
+
+export const cubicCommandSchema = closedObject(
+  'A cubic Bézier curve from the current point to x, y, with the control points x1, y1 and x2, y2 (SVG C, D73).',
+  {
+    kind: { type: 'string', const: 'cubic' },
+    x1: shapeCoordinate,
+    y1: shapeCoordinate,
+    x2: shapeCoordinate,
+    y2: shapeCoordinate,
+    x: shapeCoordinate,
+    y: shapeCoordinate,
+  },
+);
+
+export const quadraticCommandSchema = closedObject(
+  'A quadratic Bézier curve from the current point to x, y, with the control point x1, y1 (SVG Q, D73).',
+  {
+    kind: { type: 'string', const: 'quadratic' },
+    x1: shapeCoordinate,
+    y1: shapeCoordinate,
+    x: shapeCoordinate,
+    y: shapeCoordinate,
+  },
+);
+
+export const arcCommandSchema = closedObject(
+  'An elliptical arc from the current point to x, y, of radii rx and ry, its axes turned by rotation degrees; largeArc and sweep choose one of the four arcs as SVG A does (D73).',
+  {
+    kind: { type: 'string', const: 'arc' },
+    rx: shapeLength,
+    ry: shapeLength,
+    rotation: {
+      type: 'number',
+      description: 'Degrees the axes of the ellipse are turned by, positive clockwise (D73).',
+      minimum: -360,
+      maximum: 360,
+    },
+    largeArc: { type: 'boolean', description: 'The arc of more than 180 degrees (D73).' },
+    sweep: { type: 'boolean', description: 'The arc drawn clockwise (D73).' },
+    x: shapeCoordinate,
+    y: shapeCoordinate,
+  },
+);
+
+export const closeCommandSchema = closedObject(
+  'A straight line back to the start of the subpath, which closes it (SVG Z, D73).',
+  { kind: { type: 'string', const: 'close' } },
+);
+
+/** One command of a path, absolute (D73). */
+export const pathCommandSchema = {
+  description:
+    'One command of a path, in absolute coordinates of the node box: move, line, cubic, quadratic, arc, or close; the commands of SVG path data in a parsed form, without relative or shorthand commands (D73).',
+  oneOf: [
+    moveCommandSchema,
+    lineCommandSchema,
+    cubicCommandSchema,
+    quadraticCommandSchema,
+    arcCommandSchema,
+    closeCommandSchema,
+  ],
+} as const satisfies UnionSchema;
+
+export const rectGeometrySchema = closedObject(
+  "A rectangle that fills the node's box, its corners rounded by cornerRadius composition pixels; a radius above half a side is reduced to it. Its stroke starts at the top edge, where the rounding of the top-left corner ends, and runs clockwise (D73).",
+  {
+    kind: { type: 'string', const: 'rect' },
+    cornerRadius: shapeLength,
+  },
+);
+
+export const ellipseGeometrySchema = closedObject(
+  "An ellipse that fills the node's box. Its stroke starts at its rightmost point and runs clockwise (D73).",
+  { kind: { type: 'string', const: 'ellipse' } },
+);
+
+export const polygonGeometrySchema = closedObject(
+  'A closed polygon through its points in their order, at least 3; its stroke starts at the first point (D73).',
+  {
+    kind: { type: 'string', const: 'polygon' },
+    points: { type: 'array', minItems: 3, maxItems: 1000, items: shapePoint },
+  },
+);
+
+export const pathGeometrySchema = closedObject(
+  'A path of absolute commands, the first a move; fillRule says which areas a path that crosses itself fills, as SVG fill-rule (D73).',
+  {
+    kind: { type: 'string', const: 'path' },
+    fillRule: {
+      type: 'string',
+      description: 'nonzero fills every area the path winds around; evenodd leaves holes (D73).',
+      enum: ['nonzero', 'evenodd'],
+    },
+    commands: { type: 'array', minItems: 1, maxItems: 1000, items: pathCommandSchema },
+  },
+);
+
+/** The geometry of a shape, in composition pixels of the node's box (D73). */
+export const shapeGeometrySchema = {
+  description:
+    "What a shape draws, in composition pixels of the node's box: a rect or an ellipse fills the box and follows its size, a polygon and a path lie at their own coordinates, which may leave the box (D73).",
+  oneOf: [rectGeometrySchema, ellipseGeometrySchema, polygonGeometrySchema, pathGeometrySchema],
+} as const satisfies UnionSchema;
+
+/** One stop of a gradient (D73). */
+const gradientStop = closedObject(
+  'A colour of a gradient at offset per mille of its length, from 0 at its start to 1000 at its end, with an opacity from 0 to 1; stops are in ascending order of offset, two may share one (D73).',
+  { offset: permille, color, opacity },
+);
+
+const gradientStops = {
+  type: 'array',
+  description:
+    'At least two stops, ascending in offset; before the first and after the last the nearest colour holds (D73).',
+  minItems: 2,
+  maxItems: 16,
+  items: gradientStop,
+} as const satisfies ArraySchema;
+
+export const noFillSchema = closedObject('The shape is not filled (D73).', {
+  kind: { type: 'string', const: 'none' },
+});
+
+export const solidFillSchema = closedObject('The shape is filled with one colour (D73).', {
+  kind: { type: 'string', const: 'solid' },
+  color,
+});
+
+export const linearGradientFillSchema = closedObject(
+  "The shape is filled with a linear gradient from the point start to the point end, in composition pixels of the node's box (D73).",
+  {
+    kind: { type: 'string', const: 'linear-gradient' },
+    start: shapePoint,
+    end: shapePoint,
+    stops: gradientStops,
+  },
+);
+
+export const radialGradientFillSchema = closedObject(
+  "The shape is filled with a radial gradient about the point center, of radius composition pixels, in the node's box (D73).",
+  {
+    kind: { type: 'string', const: 'radial-gradient' },
+    center: shapePoint,
+    radius: { ...shapeLength, minimum: 1 },
+    stops: gradientStops,
+  },
+);
+
+/** What a shape is filled with (D73). */
+export const shapeFillSchema = {
+  description:
+    'What the inside of the shape is painted with: nothing, one colour, or a linear or radial gradient (D73).',
+  oneOf: [noFillSchema, solidFillSchema, linearGradientFillSchema, radialGradientFillSchema],
+} as const satisfies UnionSchema;
+
+/** The width of a stroke, in composition pixels (D73). */
+const strokeWidth = {
+  type: 'number',
+  description:
+    'Width of the stroke in composition pixels, centred on the outline; 0 draws no stroke (D73).',
+  minimum: 0,
+  maximum: 1000,
+} as const satisfies NumberSchema;
+
+/** The outline of a shape (D73). */
+export const shapeStrokeSchema = closedObject(
+  'The outline of the shape: its colour and width, its dashes in per mille of the length of the outline, and its caps and joins as SVG draws them (D73).',
+  {
+    color,
+    width: strokeWidth,
+    dash: {
+      type: 'array',
+      description:
+        'Lengths of dashes and gaps in turn, in per mille of the length of the whole outline, repeated from its start; an even number of them, [] for a solid stroke (D73).',
+      maxItems: 16,
+      items: {
+        type: 'integer',
+        description: 'A dash or a gap, in per mille of the length of the outline (D73).',
+        minimum: 1,
+        maximum: 1000,
+      },
+    },
+    cap: {
+      type: 'string',
+      description: 'The ends of open subpaths and dashes, as SVG stroke-linecap (D73).',
+      enum: ['butt', 'round', 'square'],
+    },
+    join: {
+      type: 'string',
+      description:
+        'The corners of the outline, as SVG stroke-linejoin, a miter limited to 4 (D73).',
+      enum: ['miter', 'round', 'bevel'],
+    },
+  },
+);
+
+/** The part of the outline that is drawn (D73). */
+export const shapeTrimSchema = closedObject(
+  'The part of the outline the stroke draws, from start to end per mille of its length, measured by the browser as pathLength 1000 so that no length is computed; 0 and 1000 is the whole outline, and an end at or before the start draws nothing. The fill is not trimmed (D73).',
+  { start: permille, end: permille },
+);
+
+export const strokeColorAnimationSchema = animation(
+  'stroke/color',
+  "Colours that replace the colour of the shape's stroke: each channel moves on its own and is rounded to an integer (D65.1, D73).",
+  color,
+);
+
+export const fillAnimationSchema = animation(
+  'fill',
+  "Colours that replace the colour of a shape's solid fill: each channel moves on its own and is rounded to an integer (D65.1, D73).",
+  color,
+);
+
+export const strokeWidthAnimationSchema = animation(
+  'stroke/width',
+  "Widths in composition pixels that replace the width of the shape's stroke (D65.1, D73).",
+  strokeWidth,
+);
+
+export const trimStartAnimationSchema = animation(
+  'trim/start',
+  'Per mille that replace where the drawn part of the outline starts (D65.1, D73).',
+  permille,
+);
+
+export const trimEndAnimationSchema = animation(
+  'trim/end',
+  'Per mille that replace where the drawn part of the outline ends (D65.1, D73).',
+  permille,
+);
+
+export const geometryAnimationSchema = animation(
+  'geometry',
+  "Geometries that replace the shape's own: every keyframe has the structure of the shape's geometry (its kind, the number of its points, its commands in the same order, the same arc flags), and every number moves on its own, so that a path morphs into another (D65.1, D73).",
+  shapeGeometrySchema,
+);
+
 /**
  * Every animation of the table of D65.1 that schema 0.13 has: a transform row
  * modifies its base value (offset or factor), every other row replaces it
@@ -371,7 +643,7 @@ export const cornerRadiusAnimationSchema = animation(
  */
 export const animationSchema = {
   description:
-    'An animation of one property of the node that owns it: position, rotation, and origin are offsets added to the base value, scale and opacity factors multiplied with it, and size, color, crop, and cornerRadius values that replace it (D16.6, D65.1, D68).',
+    'An animation of one property of the node that owns it: position, rotation, and origin are offsets added to the base value, scale and opacity factors multiplied with it, and size, color, crop, cornerRadius, and the fill, stroke/color, stroke/width, trim/start, trim/end, and geometry of a shape values that replace it (D16.6, D65.1, D68, D73).',
   oneOf: [
     opacityAnimationSchema,
     positionAnimationSchema,
@@ -382,6 +654,12 @@ export const animationSchema = {
     colorAnimationSchema,
     cropAnimationSchema,
     cornerRadiusAnimationSchema,
+    fillAnimationSchema,
+    strokeColorAnimationSchema,
+    strokeWidthAnimationSchema,
+    trimStartAnimationSchema,
+    trimEndAnimationSchema,
+    geometryAnimationSchema,
   ],
 } as const satisfies UnionSchema;
 
@@ -419,6 +697,18 @@ const pictureTransform = transform([
   sizeAnimationSchema,
   cropAnimationSchema,
   cornerRadiusAnimationSchema,
+] as const);
+
+/** A shape: the transform rows, size, and the rows of its fill, stroke, trim, and geometry (D73). */
+const shapeTransform = transform([
+  ...TRANSFORM_ANIMATIONS,
+  sizeAnimationSchema,
+  fillAnimationSchema,
+  strokeColorAnimationSchema,
+  strokeWidthAnimationSchema,
+  trimStartAnimationSchema,
+  trimEndAnimationSchema,
+  geometryAnimationSchema,
 ] as const);
 
 /** A length of a blur, in composition pixels (D71). */
@@ -1401,6 +1691,23 @@ export const customHtmlNodeSchema = closedObject(
   },
 );
 
+export const shapeNodeSchema = closedObject(
+  "A vector shape drawn as inline SVG in the node's box: its geometry, filled and stroked, the stroke drawn from trim.start to trim.end of its length. Its fill lies under its stroke, and neither is cut by the box (D73).",
+  {
+    id,
+    type: { type: 'string', const: 'shape' },
+    ...lifetime,
+    ...shapeTransform,
+    width: length,
+    height: length,
+    geometry: shapeGeometrySchema,
+    fill: shapeFillSchema,
+    stroke: shapeStrokeSchema,
+    trim: shapeTrimSchema,
+    effects,
+  },
+);
+
 export const groupNodeSchema = closedObject(
   "Children follow the group's transform; a child is shown only while its group is active too (D42.4). Groups do not nest (D16).",
   {
@@ -1411,7 +1718,7 @@ export const groupNodeSchema = closedObject(
     children: {
       type: 'array',
       description: 'Array order is the z-order; the first child is at the bottom.',
-      items: { oneOf: [imageNodeSchema, textNodeSchema, videoNodeSchema] },
+      items: { oneOf: [imageNodeSchema, textNodeSchema, videoNodeSchema, shapeNodeSchema] },
     },
     effects: {
       ...effects,
@@ -1430,6 +1737,7 @@ export const sceneNodeSchema = {
     customHtmlNodeSchema,
     videoNodeSchema,
     captionsNodeSchema,
+    shapeNodeSchema,
   ],
 } as const satisfies UnionSchema;
 
@@ -2127,7 +2435,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.17',
+  title: 'Kadrion composition 0.18',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

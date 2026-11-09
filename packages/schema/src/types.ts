@@ -19,6 +19,12 @@ import type {
   sceneNodeSchema,
   sceneSchema,
   sceneTransitionSchema,
+  shapeFillSchema,
+  shapeGeometrySchema,
+  shapeNodeSchema,
+  shapeStrokeSchema,
+  shapeTrimSchema,
+  pathCommandSchema,
   templateBindingSchema,
   templateConditionSchema,
   templateFieldSchema,
@@ -62,6 +68,18 @@ export type ImageNode = Infer<typeof imageNodeSchema>;
 export type TextNode = Infer<typeof textNodeSchema>;
 export type VideoNode = Infer<typeof videoNodeSchema>;
 export type CustomHtmlNode = Infer<typeof customHtmlNodeSchema>;
+/** A vector shape: a geometry, filled, stroked, and trimmed (D73). */
+export type ShapeNode = Infer<typeof shapeNodeSchema>;
+/** What a shape draws, in composition pixels of its box (D73). */
+export type ShapeGeometry = Infer<typeof shapeGeometrySchema>;
+/** One absolute command of the path of a shape (D73). */
+export type PathCommand = Infer<typeof pathCommandSchema>;
+/** What the inside of a shape is painted with (D73). */
+export type ShapeFill = Infer<typeof shapeFillSchema>;
+/** The outline of a shape (D73). */
+export type ShapeStroke = Infer<typeof shapeStrokeSchema>;
+/** The part of the outline of a shape its stroke draws, in per mille (D73). */
+export type ShapeTrim = Infer<typeof shapeTrimSchema>;
 /** Captions from a transcription: timed words in a style (D57). */
 export type CaptionsNode = Infer<typeof captionsNodeSchema>;
 /** One timed word of a captions node (D57). */

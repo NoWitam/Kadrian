@@ -46,6 +46,11 @@ const ERROR_CODES = [
   'crop-empty',
   'safe-area-empty',
   'bound-property-animated',
+  'path-start-not-move',
+  'gradient-stops-not-ascending',
+  'stroke-dash-odd',
+  'fill-not-solid',
+  'geometry-mismatch',
 ] as const;
 
 describe('negative fixtures', () => {

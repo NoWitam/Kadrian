@@ -5,6 +5,7 @@ import {
   type ImageNode,
   type NodeAnimation,
   type SceneNode,
+  type ShapeNode,
   type TextNode,
   type ValidatedComposition,
   type VideoNode,
@@ -14,6 +15,7 @@ import { captionAt, captionFragments, captionPages } from './captions.js';
 import { effectsAt } from './effects.js';
 import { EvaluationError, unsupported } from './errors.js';
 import { textFragments } from './fragments.js';
+import { shapeAt } from './shapes.js';
 import {
   cropState,
   sampleColor,
@@ -37,6 +39,7 @@ import type {
   LeafNodeType,
   NodeState,
   PictureState,
+  ShapeNodeState,
   TextNodeState,
   TransformState,
   Vec2,
@@ -54,6 +57,7 @@ const REPLACED: Readonly<Record<SceneNode['type'], readonly NodeAnimation['prope
   captions: ['color'],
   image: ['size', 'crop', 'cornerRadius'],
   video: ['size', 'crop', 'cornerRadius'],
+  shape: ['size', 'fill', 'stroke/color', 'stroke/width', 'trim/start', 'trim/end', 'geometry'],
 };
 
 /**
@@ -98,6 +102,12 @@ function evaluateTransform(node: TransformedNode, timeUs: number): TransformStat
       case 'color':
       case 'crop':
       case 'cornerRadius':
+      case 'fill':
+      case 'stroke/color':
+      case 'stroke/width':
+      case 'trim/start':
+      case 'trim/end':
+      case 'geometry':
         // Rows of `replace` mode, read where the node's type takes them (D65.1, D68).
         if (!REPLACED[node.type].includes(animation.property)) {
           unsupported(animation as never, 'property');
@@ -245,7 +255,16 @@ function evaluateCaptions(node: CaptionsNode, timeUs: number, factors: Factors):
   };
 }
 
-/** A child of a group: an image, a text, or a video. */
+/** A shape leaf with its box, path, fill, stroke, and trim (D73). */
+function evaluateShape(node: ShapeNode, timeUs: number, factors: Factors): ShapeNodeState {
+  return {
+    ...evaluateLeaf(node, timeUs, factors),
+    ...shapeAt(node, timeUs),
+    effects: effectsAt(node.effects, timeUs),
+  };
+}
+
+/** A child of a group: an image, a text, a video, or a shape. */
 function evaluateChild(
   child: Extract<SceneNode, { readonly type: 'group' }>['children'][number],
   timeUs: number,
@@ -258,6 +277,8 @@ function evaluateChild(
       return evaluateImage(child, timeUs, factors);
     case 'text':
       return evaluateText(child, timeUs, factors);
+    case 'shape':
+      return evaluateShape(child, timeUs, factors);
     default:
       return unsupported(child, 'type');
   }
@@ -300,6 +321,8 @@ function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeSt
       return evaluateVideo(node, timeUs, factors);
     case 'captions':
       return evaluateCaptions(node, timeUs, factors);
+    case 'shape':
+      return evaluateShape(node, timeUs, factors);
     default:
       return unsupported(node, 'type');
   }

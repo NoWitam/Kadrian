@@ -2,8 +2,9 @@
  * Builds the DOM tree of a document (D22.3). Only static properties of the
  * document are written here; `renderState` writes the evaluated ones, every
  * property an animation can reach included, animated or not (D68): the
- * colour of a background, a text, and captions, and the size, crop, and
- * corner radius of an image or a video.
+ * colour of a background, a text, and captions, the size, crop, and
+ * corner radius of an image or a video, and the box, path, fill, and stroke of
+ * a shape (D73).
  */
 import { captionPages, captionsInPieces, textLayout } from '@kadrion/runtime';
 import type {
@@ -27,6 +28,7 @@ import {
   type MountOptions,
 } from './policy.js';
 import { sandboxFrame } from './sandbox.js';
+import { shapeContent } from './shapes.js';
 import { effectFilters, isSvgEffect } from './svg-filters.js';
 
 /** Attributes that address the elements of a mounted tree. They hold IDs, never state. */
@@ -406,6 +408,12 @@ function nodeElement(
     }
     case 'captions':
       return captionsElement(document, node, address);
+    case 'shape': {
+      // The box, sized by `renderState` (D73), holds the shape's own SVG.
+      const box = create(document, 'div', address, TRANSFORMED);
+      box.append(shapeContent(document, node));
+      return box;
+    }
     case 'custom-html': {
       // A sized placeholder that carries the transform. Only a trusted element
       // gets the sandboxed frame inside it, the only place the document's HTML
