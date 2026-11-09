@@ -1,6 +1,7 @@
 # D70 — Animated captions and the safe area: schema 0.15
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-09, after PR-50 was merged
+  (PR #69)
 - Date: 2026-11-08
 - Supersedes: —
 - Amends: D16 (captions have a highlight, a text style, and page animations;
