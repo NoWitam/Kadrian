@@ -406,7 +406,7 @@ y: 0 }`, the top-left corner of D15, so nothing moves;
 
 ### PR-51a — Effects of CSS filters
 
-- Status: in review, with its ADR D71 (Proposed). Deviations from this plan: `sepia` is a kind too, since the probes found it exact; an effect's parameters are animated by the effect's own animations (`property` the parameter's name) rather than by paths `effects/<id>/<parameter>` of its holder, so the types stay discriminated unions; a blur spills beyond the box; the adjustment layer moves to PR-54, because a `backdrop-filter` meets groups, transitions, and blend modes as backdrop roots that were not probed; the acceptance is that an empty list of effects renders byte for byte (D65.5). A blurred 1080p video previews at 180 to 199 ms per frame in the Player (125 to 148 ms in the Producer), a finding of the probes, not a failure.
+- Status: done (PR #71, merged 2026-11-09), with its ADR D71 (accepted by the owner on 2026-11-09). Q14 is open until a green push run of main after it. Deviations from this plan: `sepia` is a kind too, since the probes found it exact; an effect's parameters are animated by the effect's own animations (`property` the parameter's name) rather than by paths `effects/<id>/<parameter>` of its holder, so the types stay discriminated unions; a blur spills beyond the box; the adjustment layer moves to PR-54, because a `backdrop-filter` meets groups, transitions, and blend modes as backdrop roots that were not probed; the acceptance is that an empty list of effects renders byte for byte (D65.5). A blurred 1080p video previews at 180 to 199 ms per frame in the Player (125 to 148 ms in the Producer), a finding of the probes, not a failure.
 - **Goal:** a node, a group, or a scene carries a stack of effects whose
   parameters are animated.
 - **Scope (D71):** schema `0.16`: `effects`, an ordered list of
@@ -523,6 +523,9 @@ inverted`, `luminance`, `luminance inverted`); the matte is not drawn by
   - commands `SetBlendMode`, `SetNodeMask`, and `SetNodeMatte`, each with its
     tool; a command that would remove a node used as a matte is refused, as
     D56.7 refuses one that breaks a transition.
+  - **an adjustment layer** (moved here from PR-51a, D71.8): an effect on
+    everything below it in a scene, as `backdrop-filter`, once its backdrop
+    roots (groups, transitions, blend modes) are probed.
 - **Decisions (D75):** how a blend mode is isolated (a scene, a group); which
   node types may be a matte; whether a matte follows its own lifetime or the
   masked node's.

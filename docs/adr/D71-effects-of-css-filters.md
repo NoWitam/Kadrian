@@ -1,6 +1,7 @@
 # D71 — Effects of CSS filters: schema 0.16
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-09, after PR-51a was merged
+  (PR #71)
 - Date: 2026-11-09
 - Supersedes: —
 - Amends: D16 (images, videos, texts, captions, groups, and scenes have
