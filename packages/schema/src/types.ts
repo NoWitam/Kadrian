@@ -80,7 +80,7 @@ export type AnimationKeyframe = NodeAnimation['keyframes'][number];
 /** How a segment of an animation or a transition moves from its start to its end (D67). */
 export type Easing = Infer<typeof easingSchema>;
 export type AudioClip = Infer<typeof audioClipSchema>;
-/** One effect of a node, a group, or a scene: a CSS filter with its animated parameters (D71). */
+/** One effect of a node, a group, or a scene: a CSS or an SVG filter with its animated parameters (D71, D72). */
 export type Effect = Infer<typeof effectSchema>;
 /** The kind of an effect (D71). */
 export type EffectKind = Effect['kind'];

@@ -13,6 +13,8 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 import {
+  GREEN_SCREEN_FIXTURE,
+  greenScreenFixtureArguments,
   VIDEO_FIXTURE,
   VIDEO_SOUND_FIXTURE,
   videoFixtureArguments,
@@ -29,6 +31,11 @@ export function makeVideoFixture(ffmpegPath: string): Promise<Uint8Array> {
 /** The bytes of the fixture video with sound (D52.7), made and checked the same way. */
 export function makeVideoSoundFixture(ffmpegPath: string): Promise<Uint8Array> {
   return made(ffmpegPath, videoSoundFixtureArguments, VIDEO_SOUND_FIXTURE.contentHash);
+}
+
+/** The bytes of the green-screen video of the SVG effects (D72), made and checked the same way. */
+export function makeGreenScreenFixture(ffmpegPath: string): Promise<Uint8Array> {
+  return made(ffmpegPath, greenScreenFixtureArguments, GREEN_SCREEN_FIXTURE.contentHash);
 }
 
 async function made(

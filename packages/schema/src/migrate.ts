@@ -31,6 +31,7 @@ import { step012To013 } from './migration/step-0-12-to-0-13.js';
 import { step013To014 } from './migration/step-0-13-to-0-14.js';
 import { step014To015 } from './migration/step-0-14-to-0-15.js';
 import { step015To016 } from './migration/step-0-15-to-0-16.js';
+import { step016To017 } from './migration/step-0-16-to-0-17.js';
 import { parseThrough, type ParseOutcome } from './migration/text.js';
 import {
   compositionSchemaV01,
@@ -107,6 +108,11 @@ import {
   SCHEMA_VERSION_V015,
   type CompositionV015,
 } from './v0-15/composition-schema.js';
+import {
+  compositionSchemaV016,
+  SCHEMA_VERSION_V016,
+  type CompositionV016,
+} from './v0-16/composition-schema.js';
 import { validateSemantics } from './validate-semantics.js';
 import { validateStructure } from './validate-structure.js';
 import { validateComposition } from './validate.js';
@@ -128,7 +134,8 @@ export type SchemaVersion =
   | '0.13'
   | '0.14'
   | '0.15'
-  | '0.16';
+  | '0.16'
+  | '0.17';
 
 /** What `migrateComposition` returns (D42.8). */
 export type MigrationResult = MigrationOutcome<SchemaVersion>;
@@ -251,6 +258,13 @@ function errorsOfV015(input: unknown): readonly ValidationError[] {
   return validateSemantics(input as CompositionV015);
 }
 
+/** The validation a document of 0.16 had (D35.4, D72), as for 0.1. */
+function errorsOfV016(input: unknown): readonly ValidationError[] {
+  const structural = validateStructure(compositionSchemaV016, input);
+  if (structural.length > 0) return structural;
+  return validateSemantics(input as CompositionV016);
+}
+
 function errorsOfCurrent(input: unknown): readonly ValidationError[] {
   const result = validateComposition(input);
   return result.ok ? [] : result.errors;
@@ -333,7 +347,12 @@ const VERSIONS: readonly VersionEntry<SchemaVersion>[] = Object.freeze([
     errors: errorsOfV015,
     next: (document: unknown) => step015To016(document as CompositionV015),
   }),
-  Object.freeze({ version: '0.16', errors: errorsOfCurrent }),
+  Object.freeze({
+    version: SCHEMA_VERSION_V016,
+    errors: errorsOfV016,
+    next: (document: unknown) => step016To017(document as CompositionV016),
+  }),
+  Object.freeze({ version: '0.17', errors: errorsOfCurrent }),
 ]);
 
 /**
@@ -358,7 +377,7 @@ export const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[] = Object.freeze
  *    document of 0.1 is validated as 0.2 before the step to 0.3 reads it;
  * 3. the result is validated in full under the current version, always;
  * 4. `versions` reports the versions it went through: `['0.1', '0.2', '0.3',
- *    '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16']` for a document of 0.1, `['0.16']` for a document that was
+ *    '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17']` for a document of 0.1, `['0.17']` for a document that was
  *    current already.
  *
  * A document without an own `schemaVersion` that is a known string gets one

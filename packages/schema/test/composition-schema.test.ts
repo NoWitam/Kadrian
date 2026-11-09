@@ -156,11 +156,12 @@ describe('schema conventions', () => {
     ).toEqual([]);
   });
 
-  it('requires a stable ID for every entity: all array items except keyframes, caption words, the tracks of a text animation, and the fields and items of a list input', () => {
+  it('requires a stable ID for every entity: all array items except keyframes, caption words, the tracks of a text animation, the fields and items of a list input, and the levels of a curve', () => {
     // A keyframe is addressed by its time, a caption word by its index (D57), a
     // field of a list input by its key, an item of its default by its index, and
-    // a value of an item by its field (D58.1), and a track of a text animation
-    // by its property, which it holds once (D69).
+    // a value of an item by its field (D58.1), a track of a text animation
+    // by its property, which it holds once (D69), and a level of a curve by its
+    // index, a number and no entity (D72).
     const values = locationsWhere(({ name }) => name === 'default').map(
       (location) => `${location}/items`,
     );
@@ -168,7 +169,9 @@ describe('schema conventions', () => {
       .filter(
         ({ name, location, schema }) =>
           schema.type === 'array' &&
-          !['keyframes', 'words', 'fields', 'default', 'tracks'].includes(name ?? '') &&
+          !['keyframes', 'words', 'fields', 'default', 'tracks', 'red', 'green', 'blue'].includes(
+            name ?? '',
+          ) &&
           !values.includes(location),
       )
       .flatMap(({ location, schema: { items } }) => {
@@ -276,9 +279,59 @@ function mutantsOf(document: Json): { readonly label: string; readonly mutant: J
   return mutants;
 }
 
+/**
+ * The schema for the reference implementation, with every large subschema that
+ * occurs more than once moved into `$defs` and referred to: the same schema,
+ * since a `$ref` validates as the schema it names. Inlined, the effects of
+ * schema 0.17 (D72) at every holder make Ajv generate one function of some
+ * 17 MB, which the worker of Node 24 in the pinned container cannot run.
+ */
+function factored(schema: JsonObject): JsonObject {
+  const counts = new Map<string, number>();
+  for (const { location, schema: sub } of subschemas(schema)) {
+    if (location === '#') continue;
+    const key = JSON.stringify(sub);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  const defs: Record<string, Json> = {};
+  const names = new Map<string, string>();
+  const rewrite = (sub: JsonObject, root: boolean): JsonObject => {
+    const key = JSON.stringify(sub);
+    if (!root && key.length >= 2_000 && (counts.get(key) ?? 0) > 1) {
+      let name = names.get(key);
+      if (name === undefined) {
+        name = `s${String(names.size)}`;
+        names.set(key, name);
+        defs[name] = children(sub);
+      }
+      return { $ref: `#/$defs/${name}` };
+    }
+    return children(sub);
+  };
+  const children = (sub: JsonObject): JsonObject => {
+    const copy: JsonObject = { ...sub };
+    const { properties, items, oneOf } = sub;
+    if (isObject(properties)) {
+      copy.properties = Object.fromEntries(
+        Object.entries(properties).map(([key, child]) => [
+          key,
+          isObject(child) ? rewrite(child, false) : child,
+        ]),
+      );
+    }
+    if (isObject(items)) copy.items = rewrite(items, false);
+    if (Array.isArray(oneOf)) {
+      copy.oneOf = oneOf.map((branch) => (isObject(branch) ? rewrite(branch, false) : branch));
+    }
+    return copy;
+  };
+  const result = rewrite(schema, true);
+  return { ...result, $defs: defs };
+}
+
 describe('conformance with JSON Schema draft 2020-12 (D17)', () => {
-  const ajv = new Ajv2020({ strict: true, allErrors: false });
-  const ajvValidate = ajv.compile(schemaJson);
+  const ajv = new Ajv2020({ strict: true, allErrors: false, inlineRefs: false });
+  const ajvValidate = ajv.compile(factored(schemaJson));
   const isStructurallyValid = (document: unknown): boolean =>
     validateStructure(compositionSchema, document).length === 0;
 

@@ -8,6 +8,7 @@
 import { captionPages, captionsInPieces, textLayout } from '@kadrion/runtime';
 import type {
   CaptionsNode,
+  Effect,
   FragmentUnit,
   GroupNode,
   SceneNode,
@@ -26,6 +27,7 @@ import {
   type MountOptions,
 } from './policy.js';
 import { sandboxFrame } from './sandbox.js';
+import { effectFilters, isSvgEffect } from './svg-filters.js';
 
 /** Attributes that address the elements of a mounted tree. They hold IDs, never state. */
 export const STAGE_ATTRIBUTE = 'data-kadrion-composition';
@@ -431,6 +433,22 @@ function nodeElement(
   }
 }
 
+/** The IDs of the effects drawn by SVG filters, in document order (D72). */
+function svgEffectIds(composition: ValidatedComposition): string[] {
+  const ids: string[] = [];
+  const collect = (holder: { readonly effects?: readonly Effect[] }): void => {
+    for (const effect of holder.effects ?? []) if (isSvgEffect(effect)) ids.push(effect.id);
+  };
+  for (const scene of composition.scenes) {
+    collect(scene);
+    for (const node of scene.nodes) {
+      if ('effects' in node) collect(node);
+      if (node.type === 'group') for (const child of node.children) collect(child);
+    }
+  }
+  return ids;
+}
+
 /**
  * Replaces the content of `root` with the tree of `composition` (D22.3). The
  * host's Custom HTML policy is required and checked first (D36), then the asset
@@ -475,5 +493,8 @@ export function mountComposition(
     );
     stage.append(sceneElement);
   }
+  // The filters of the effects drawn by SVG filters, after the scenes (D72).
+  const filters = effectFilters(document, svgEffectIds(composition));
+  if (filters !== null) stage.append(filters);
   root.replaceChildren(stage);
 }

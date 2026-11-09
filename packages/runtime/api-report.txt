@@ -84,6 +84,16 @@ export interface CaptionsNodeState extends LeafNodeState<'captions'>, EffectsSta
     readonly fragments: CaptionFragmentsState | null;
 }
 
+---- ChromaKeyEffectState (type only)
+export interface ChromaKeyEffectState {
+    readonly id: string;
+    readonly kind: 'chroma-key';
+    readonly key: 'green' | 'blue';
+    readonly tolerance: number;
+    readonly softness: number;
+    readonly spill: number;
+}
+
 ---- Circle (type only)
 export interface Circle {
     readonly x: number;
@@ -108,6 +118,17 @@ export interface ClipTransitionState {
     readonly blur?: number;
 }
 
+---- ColorGradeEffectState (type only)
+export interface ColorGradeEffectState {
+    readonly id: string;
+    readonly kind: 'color-grade';
+    readonly lift: number;
+    readonly gamma: number;
+    readonly gain: number;
+    readonly temperature: number;
+    readonly tint: number;
+}
+
 ---- CompositionState (type only)
 export interface CompositionState {
     readonly timeUs: number;
@@ -123,6 +144,16 @@ export interface CropState {
     readonly fromLeft: number;
 }
 
+---- CurvesEffectState (type only)
+export interface CurvesEffectState {
+    readonly id: string;
+    readonly kind: 'curves';
+    readonly red: readonly number[];
+    readonly green: readonly number[];
+    readonly blue: readonly number[];
+    readonly amount: number;
+}
+
 ---- DropShadowEffectState (type only)
 export interface DropShadowEffectState {
     readonly id: string;
@@ -134,7 +165,7 @@ export interface DropShadowEffectState {
 }
 
 ---- EffectState (type only)
-export type EffectState = BlurEffectState | AmountEffectState | HueRotateEffectState | DropShadowEffectState;
+export type EffectState = BlurEffectState | AmountEffectState | HueRotateEffectState | DropShadowEffectState | SvgEffectState;
 
 ---- EffectsState (type only)
 export interface EffectsState {
@@ -157,6 +188,15 @@ export interface FragmentState {
     readonly scale: Vec2;
     readonly rotation: number;
     readonly color: string;
+}
+
+---- GlowEffectState (type only)
+export interface GlowEffectState {
+    readonly id: string;
+    readonly kind: 'glow';
+    readonly color: string;
+    readonly opacity: number;
+    readonly radius: number;
 }
 
 ---- GroupNodeState (type only)
@@ -256,6 +296,9 @@ export interface SoundLayout {
     readonly fadeOut: SampleFade | null;
 }
 
+---- SvgEffectState (type only)
+export type SvgEffectState = CurvesEffectState | ColorGradeEffectState | GlowEffectState | VignetteEffectState | ChromaKeyEffectState;
+
 ---- TextFragmentsState (type only)
 export interface TextFragmentsState {
     readonly lines: readonly FragmentState[];
@@ -313,6 +356,14 @@ export interface Vec2 {
 ---- VideoNodeState (type only)
 export interface VideoNodeState extends LeafNodeState<'video'>, PictureState, EffectsState {
     readonly sourceTimeUs: number | null;
+}
+
+---- VignetteEffectState (type only)
+export interface VignetteEffectState {
+    readonly id: string;
+    readonly kind: 'vignette';
+    readonly amount: number;
+    readonly size: number;
 }
 
 ---- Zoom (type only)

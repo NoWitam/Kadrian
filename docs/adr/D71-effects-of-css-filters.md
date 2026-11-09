@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-11-09, after PR-51a was merged
   (PR #71)
 - Date: 2026-11-09
+- Amended by: PR-51b (D72) on 2026-11-09: five kinds drawn by an SVG filter of their own, written as `url("#kadrion-effect-<id>")` at their place among the CSS functions of 71.4 (D72.1, D72.4)
 - Supersedes: —
 - Amends: D16 (images, videos, texts, captions, groups, and scenes have
   `effects`), D22 (the `filter` of a node, a group, or a scene), D35 (the step

@@ -55,6 +55,7 @@ import type { CompositionV012 } from './v0-12/composition-schema.js';
 import type { CompositionV013 } from './v0-13/composition-schema.js';
 import type { CompositionV014 } from './v0-14/composition-schema.js';
 import type { CompositionV015 } from './v0-15/composition-schema.js';
+import type { CompositionV016 } from './v0-16/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -66,6 +67,8 @@ type SceneNodeV013 = CompositionV013['scenes'][number]['nodes'][number];
 type SceneNodeV014 = CompositionV014['scenes'][number]['nodes'][number];
 /** A node of 0.15, which has no effects (D71). */
 type SceneNodeV015 = CompositionV015['scenes'][number]['nodes'][number];
+/** A node of 0.16, whose effects are CSS filters only (D72). */
+type SceneNodeV016 = CompositionV016['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -220,7 +223,8 @@ export function validateSemantics(
     | CompositionV012
     | CompositionV013
     | CompositionV014
-    | CompositionV015,
+    | CompositionV015
+    | CompositionV016,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -528,6 +532,7 @@ function checkTemplate(
     | Composition
     | CompositionV012
     | CompositionV015
+    | CompositionV016
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -941,6 +946,7 @@ function subtreeOf(
     | Composition
     | CompositionV012
     | CompositionV015
+    | CompositionV016
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1003,7 +1009,9 @@ interface Located {
     | SceneNodeV014
     | Extract<SceneNodeV014, { type: 'group' }>['children'][number]
     | SceneNodeV015
-    | Extract<SceneNodeV015, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV015, { type: 'group' }>['children'][number]
+    | SceneNodeV016
+    | Extract<SceneNodeV016, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -1027,7 +1035,8 @@ function checkTransitions(
     | CompositionV012
     | CompositionV013
     | CompositionV014
-    | CompositionV015,
+    | CompositionV015
+    | CompositionV016,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

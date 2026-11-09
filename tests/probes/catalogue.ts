@@ -264,6 +264,29 @@ export const PROBES: readonly Probe[] = [
     '<feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  1 -2 1 0 1" result="k"/><feComponentTransfer in="k"><feFuncA type="linear" slope="3" intercept="-0.5"/></feComponentTransfer>',
   ),
   svgFilter('identity', '<feColorMatrix type="identity"/>'),
+  // The primitives the kinds of D72 add to the ones above: an arithmetic mix
+  // (the amount of curves), a gamma on the colour of a matrix (color-grade),
+  // light from a point over a flat surface in the units of the box (vignette),
+  // and the matte and spill of a key by channel difference (chroma-key).
+  svgFilter(
+    'curves-amount-arithmetic',
+    '<feComponentTransfer result="c"><feFuncR type="table" tableValues="0 0.2 0.6 0.9 1"/><feFuncG type="table" tableValues="1 0"/><feFuncB type="table" tableValues="0.1 0.4 0.9"/></feComponentTransfer><feComposite in="c" in2="SourceGraphic" operator="arithmetic" k1="0" k2="0.4" k3="0.6" k4="0"/>',
+  ),
+  svgFilter(
+    'color-grade-matrix-gamma',
+    '<feColorMatrix type="matrix" values="1.25 0 0 0 0.1  0 1.0 0 0 0.1  0 0 0.75 0 0.1  0 0 0 1 0"/><feComponentTransfer><feFuncR type="gamma" amplitude="1" exponent="0.7142857142857143" offset="0"/><feFuncG type="gamma" amplitude="1" exponent="0.7142857142857143" offset="0"/><feFuncB type="gamma" amplitude="1" exponent="0.7142857142857143" offset="0"/></feComponentTransfer>',
+  ),
+  {
+    id: 'svg-filter/vignette-point-light',
+    group: 'svg-filter',
+    subjects: VISUAL,
+    css: { filter: 'url(#kadrion-probe-filter)' },
+    defs: '<filter id="kadrion-probe-filter" filterUnits="userSpaceOnUse" x="-4000000" y="-4000000" width="8000000" height="8000000" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB"><feFlood flood-color="#ffffff" result="outside"/><feFlood flood-color="#ffffff" x="0" y="0" width="1" height="1" result="flat"/><feDiffuseLighting in="flat" surfaceScale="0" diffuseConstant="1" lighting-color="#ffffff" result="light"><fePointLight x="0.5" y="0.5" z="0.4"/></feDiffuseLighting><feComponentTransfer in="light" result="shade"><feFuncR type="gamma" amplitude="0.8" exponent="4" offset="0.2"/><feFuncG type="gamma" amplitude="0.8" exponent="4" offset="0.2"/><feFuncB type="gamma" amplitude="0.8" exponent="4" offset="0.2"/></feComponentTransfer><feMerge result="mask"><feMergeNode in="outside"/><feMergeNode in="shade"/></feMerge><feComposite in="SourceGraphic" in2="mask" operator="arithmetic" k1="1" k2="0" k3="0" k4="0"/></filter>',
+  },
+  svgFilter(
+    'chroma-key-matte-spill',
+    '<feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -0.5 1 -0.5 0 0" result="d"/><feComponentTransfer in="d" result="matte"><feFuncA type="linear" slope="-5" intercept="1.5"/></feComponentTransfer><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 1  0.25 -0.5 0.25 0 1  0 0 0 0 1  0 0 0 0 1" result="factor"/><feComposite in="SourceGraphic" in2="factor" operator="arithmetic" k1="1" k2="0" k3="0" k4="0" result="despilled"/><feComposite in="despilled" in2="matte" operator="in"/>',
+  ),
 
   // Blend modes (PR-54) over a striped underlay.
   ...[

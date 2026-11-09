@@ -30,8 +30,9 @@
  * and the text style of captions, and the safe area of the composition (D70);
  * 0.16 is 0.15 plus the effects of images, videos, texts, captions, groups,
  * and scenes, with their animated parameters, and the transition
- * blur-dissolve (D71). The schemas of 0.1 to 0.15 are kept as data in `v0-1`
- * to `v0-15` (D35.4).
+ * blur-dissolve (D71); 0.17 is 0.16 plus the effects drawn by SVG filters:
+ * curves, a colour grade, a glow, a vignette, and a chroma key (D72). The
+ * schemas of 0.1 to 0.16 are kept as data in `v0-1` to `v0-16` (D35.4).
  */
 import {
   closedObject,
@@ -44,7 +45,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.16';
+export const SCHEMA_VERSION = '0.17';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -597,10 +598,203 @@ export const dropShadowEffectSchema = closedObject(
   },
 );
 
-/** One effect of a node, a group, or a scene: a CSS filter the probes found exact (D65.5, D71). */
-export const effectSchema = {
+/** One value of a curve: an output level from 0 (none) to 1 (full) (D72). */
+const curveLevel = {
+  type: 'number',
+  description: 'An output level of the channel, from 0 (none) to 1 (full) (D72).',
+  minimum: 0,
+  maximum: 1,
+} as const satisfies NumberSchema;
+
+/** The curve of one colour channel as a table, as SVG feFuncR, feFuncG, and feFuncB of type table (D72). */
+const curveTable = (channel: string) =>
+  ({
+    type: 'array',
+    description: `The curve of the ${channel} channel: 2 to 32 output levels at evenly spaced input levels from 0 to 1, joined by straight lines, as an SVG table transfer; [0, 1] changes nothing (D72).`,
+    minItems: 2,
+    maxItems: 32,
+    items: curveLevel,
+  }) as const satisfies ArraySchema;
+
+export const curvesEffectSchema = closedObject(
+  'Maps every level of the red, green, and blue channels through a curve of its own, then mixes the result with the pixels it was given by amount (D72).',
+  {
+    id,
+    kind: { type: 'string', const: 'curves' },
+    red: curveTable('red'),
+    green: curveTable('green'),
+    blue: curveTable('blue'),
+    amount: {
+      ...effectAmount,
+      description:
+        'How much of the curves applies, from 0 (none) to 1 (all of it); the curves themselves are not animated (D72).',
+    },
+    animations: effectAnimations([effectAnimation('amount', effectAmount)] as const),
+  },
+);
+
+/** The black level of a colour grade (D72). */
+const gradeLift = {
+  type: 'number',
   description:
-    'One effect: a filter of the pixels of what holds it, applied after its content and its corner radius and before its opacity and transform; effects apply in the order of their list (D65.6, D71).',
+    'The level black is lifted to, from -1 to 1: 0 changes nothing, above 0 greys the shadows, below 0 crushes them (D72).',
+  minimum: -1,
+  maximum: 1,
+} as const satisfies NumberSchema;
+
+/** The mid-tones of a colour grade (D72). */
+const gradeGamma = {
+  type: 'number',
+  description:
+    'The gamma of the mid-tones, from 0.1 to 10: 1 changes nothing, above 1 brightens them, below 1 darkens them (D72).',
+  minimum: 0.1,
+  maximum: 10,
+} as const satisfies NumberSchema;
+
+/** The white level of a colour grade (D72). */
+const gradeGain = {
+  type: 'number',
+  description:
+    'The level white is scaled to, from 0 to 10: 1 changes nothing, above 1 brightens the highlights, below 1 dims them (D72).',
+  minimum: 0,
+  maximum: 10,
+} as const satisfies NumberSchema;
+
+/** One axis of the white balance of a colour grade (D72). */
+const gradeBalance = (axis: string) =>
+  ({
+    type: 'number',
+    description: `${axis}, from -1 to 1; 0 changes nothing (D72).`,
+    minimum: -1,
+    maximum: 1,
+  }) as const satisfies NumberSchema;
+
+const gradeTemperature = gradeBalance(
+  'The temperature: above 0 warmer (red up by a quarter of it, blue down), below 0 cooler',
+);
+const gradeTint = gradeBalance(
+  'The tint: above 0 towards magenta (green down by a quarter of it), below 0 towards green',
+);
+
+export const colorGradeEffectSchema = closedObject(
+  'A primary colour grade of every channel: the white balance scales it, lift and gain set its black and white levels, and gamma bends its mid-tones; alpha is kept (D72).',
+  {
+    id,
+    kind: { type: 'string', const: 'color-grade' },
+    lift: gradeLift,
+    gamma: gradeGamma,
+    gain: gradeGain,
+    temperature: gradeTemperature,
+    tint: gradeTint,
+    animations: effectAnimations([
+      effectAnimation('lift', gradeLift),
+      effectAnimation('gamma', gradeGamma),
+      effectAnimation('gain', gradeGain),
+      effectAnimation('temperature', gradeTemperature),
+      effectAnimation('tint', gradeTint),
+    ] as const),
+  },
+);
+
+const glowOpacity = {
+  ...opacity,
+  description: 'Opacity of the colour of the glow, from 0 (transparent) to 1 (opaque) (D72).',
+} as const satisfies NumberSchema;
+
+const glowRadius = {
+  ...blurLength,
+  description:
+    'The standard deviation of the blur of the glow, in composition pixels, from 0 to 1000; the glow spills beyond the box (D72).',
+} as const satisfies NumberSchema;
+
+export const glowEffectSchema = closedObject(
+  'A glow: the shape of what it applies to, blurred by radius and filled with color, drawn under it (D72).',
+  {
+    id,
+    kind: { type: 'string', const: 'glow' },
+    color,
+    opacity: glowOpacity,
+    radius: glowRadius,
+    animations: effectAnimations([
+      effectAnimation('color', color),
+      effectAnimation('opacity', glowOpacity),
+      effectAnimation('radius', glowRadius),
+    ] as const),
+  },
+);
+
+const vignetteAmount = {
+  ...effectAmount,
+  description:
+    'How dark the vignette makes the edges, from 0 (not at all) to 1 (its full falloff) (D72).',
+} as const satisfies NumberSchema;
+
+const vignetteSize = {
+  type: 'number',
+  description:
+    'How far the bright middle reaches, from 0.05 to 10: the height above the centre of the box of a light whose falloff, to the fourth power, darkens the box, in units of the root mean square of its sides; small is a tight vignette, large a gentle one (D72).',
+  minimum: 0.05,
+  maximum: 10,
+} as const satisfies NumberSchema;
+
+export const vignetteEffectSchema = closedObject(
+  'Darkens the box of what it applies to towards its edges and corners, its centre untouched; alpha is kept (D72).',
+  {
+    id,
+    kind: { type: 'string', const: 'vignette' },
+    amount: vignetteAmount,
+    size: vignetteSize,
+    animations: effectAnimations([
+      effectAnimation('amount', vignetteAmount),
+      effectAnimation('size', vignetteSize),
+    ] as const),
+  },
+);
+
+const keyTolerance = {
+  ...effectAmount,
+  description:
+    'How far the key channel must exceed the mean of the other two before a pixel starts to turn transparent, from 0 to 1 (D72).',
+} as const satisfies NumberSchema;
+
+const keySoftness = {
+  type: 'number',
+  description:
+    'Over how much more of that excess a pixel goes from opaque to transparent, from 0.01 (a hard edge) to 1 (D72).',
+  minimum: 0.01,
+  maximum: 1,
+} as const satisfies NumberSchema;
+
+const keySpill = {
+  ...effectAmount,
+  description:
+    'How much of the key channel is pulled towards the mean of the other two in what remains, from 0 (none) to 1 (all of it) (D72).',
+} as const satisfies NumberSchema;
+
+export const chromaKeyEffectSchema = closedObject(
+  'A key by channel difference: a pixel turns transparent as its key channel exceeds the mean of the other two by more than tolerance, over softness; spill pulls the key colour out of what remains (D72).',
+  {
+    id,
+    kind: { type: 'string', const: 'chroma-key' },
+    key: {
+      type: 'string',
+      description: 'The channel of the screen: green or blue (D72).',
+      enum: ['green', 'blue'],
+    },
+    tolerance: keyTolerance,
+    softness: keySoftness,
+    spill: keySpill,
+    animations: effectAnimations([
+      effectAnimation('tolerance', keyTolerance),
+      effectAnimation('softness', keySoftness),
+      effectAnimation('spill', keySpill),
+    ] as const),
+  },
+);
+
+const effectSchemaValue = {
+  description:
+    'One effect: a filter of the pixels of what holds it, applied after its content and its corner radius and before its opacity and transform; effects apply in the order of their list (D65.6, D71, D72).',
   oneOf: [
     blurEffectSchema,
     brightnessEffectSchema,
@@ -611,8 +805,28 @@ export const effectSchema = {
     invertEffectSchema,
     sepiaEffectSchema,
     dropShadowEffectSchema,
+    curvesEffectSchema,
+    colorGradeEffectSchema,
+    glowEffectSchema,
+    vignetteEffectSchema,
+    chromaKeyEffectSchema,
   ],
 } as const satisfies UnionSchema;
+
+/**
+ * The type of `effectSchema`, named so that the declarations of the schemas
+ * that hold effects refer to it instead of spelling it out at every holder.
+ *
+ * An interface, not an alias: an alias would be spelled out again and pass the
+ * limit of TypeScript on the length of an inferred type (TS7056).
+ */
+export interface EffectSchema extends EffectSchemaValue {
+  readonly oneOf: EffectSchemaValue['oneOf'];
+}
+type EffectSchemaValue = typeof effectSchemaValue;
+
+/** One effect of a node, a group, or a scene: a CSS or an SVG filter the probes found exact (D65.5, D71, D72). */
+export const effectSchema: EffectSchema = effectSchemaValue;
 
 /** The effects of a node, a group, or a scene, in the order they apply (D71). */
 const effects = {
@@ -1913,7 +2127,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.16',
+  title: 'Kadrion composition 0.17',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

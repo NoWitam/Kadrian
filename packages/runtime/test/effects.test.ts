@@ -130,7 +130,10 @@ describe('the parameters of an effect (D71)', () => {
     const kinds = scene.nodes.flatMap((node) =>
       'effects' in node ? node.effects.map(({ kind }) => `${node.type} ${kind}`) : [],
     );
-    for (const kind of Object.keys(EFFECT_BOUNDS)) {
+    // The kinds of CSS filters; those of SVG filters are in effects-svg.test.ts (D72).
+    const css = Object.keys(EFFECT_BOUNDS).slice(0, 9);
+    expect(css.at(-1)).toBe('drop-shadow');
+    for (const kind of css) {
       for (const type of ['image', 'text', 'video']) expect(kinds).toContain(`${type} ${kind}`);
     }
   });

@@ -91,9 +91,70 @@ export interface DropShadowEffectState {
   readonly blur: number;
 }
 
-/** One effect at one instant, its parameters animated or not (D71). */
+/** Curves of the colour channels, each a table of output levels, mixed in by `amount` (D72). */
+export interface CurvesEffectState {
+  readonly id: string;
+  readonly kind: 'curves';
+  readonly red: readonly number[];
+  readonly green: readonly number[];
+  readonly blue: readonly number[];
+  readonly amount: number;
+}
+
+/** A primary colour grade: black and white levels, mid-tones, and white balance (D72). */
+export interface ColorGradeEffectState {
+  readonly id: string;
+  readonly kind: 'color-grade';
+  readonly lift: number;
+  readonly gamma: number;
+  readonly gain: number;
+  readonly temperature: number;
+  readonly tint: number;
+}
+
+/** A glow of a colour under the shape, blurred by `radius` in composition pixels (D72). */
+export interface GlowEffectState {
+  readonly id: string;
+  readonly kind: 'glow';
+  /** `#rrggbb`. */
+  readonly color: string;
+  readonly opacity: number;
+  readonly radius: number;
+}
+
+/** A vignette of the box: how dark, and how far the bright middle reaches (D72). */
+export interface VignetteEffectState {
+  readonly id: string;
+  readonly kind: 'vignette';
+  readonly amount: number;
+  readonly size: number;
+}
+
+/** A key by channel difference (D72). */
+export interface ChromaKeyEffectState {
+  readonly id: string;
+  readonly kind: 'chroma-key';
+  readonly key: 'green' | 'blue';
+  readonly tolerance: number;
+  readonly softness: number;
+  readonly spill: number;
+}
+
+/** An effect drawn by an SVG filter of its own (D72). */
+export type SvgEffectState =
+  | CurvesEffectState
+  | ColorGradeEffectState
+  | GlowEffectState
+  | VignetteEffectState
+  | ChromaKeyEffectState;
+
+/** One effect at one instant, its parameters animated or not (D71, D72). */
 export type EffectState =
-  BlurEffectState | AmountEffectState | HueRotateEffectState | DropShadowEffectState;
+  | BlurEffectState
+  | AmountEffectState
+  | HueRotateEffectState
+  | DropShadowEffectState
+  | SvgEffectState;
 
 /**
  * The effects of a node, a group, or a scene at one instant, in the order they

@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.17"
+        "value": "0.18"
       }
     ],
     "expectedErrors": [
@@ -6714,14 +6714,14 @@
   },
   {
     "name": "effect-unknown-kind",
-    "description": "An effect is one of the kinds of D71; a vignette is not among them.",
+    "description": "An effect is one of the kinds of D71 and D72; a 3D colour table is not among them (D72.6).",
     "patch": [
       {
         "op": "add",
         "path": "/scenes/0/nodes/2/effects/-",
         "value": {
-          "id": "effect-title-vignette",
-          "kind": "vignette",
+          "id": "effect-title-lut",
+          "kind": "lut",
           "amount": 1,
           "animations": []
         }
@@ -7072,6 +7072,325 @@
       {
         "code": "unknown-field",
         "path": "/scenes/0/nodes/3/effects"
+      }
+    ]
+  },
+  {
+    "name": "effect-curves-table-too-short",
+    "description": "A curve has at least two levels, the outputs at 0 and 1 (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-curves",
+          "kind": "curves",
+          "red": [0.5],
+          "green": [0, 1],
+          "blue": [0, 1],
+          "amount": 1,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-length",
+        "path": "/scenes/0/nodes/2/effects/0/red"
+      }
+    ]
+  },
+  {
+    "name": "effect-curves-table-too-long",
+    "description": "A curve has at most 32 levels (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-curves",
+          "kind": "curves",
+          "red": [0, 1],
+          "green": [
+            0.0, 0.03125, 0.0625, 0.09375, 0.125, 0.15625, 0.1875, 0.21875, 0.25, 0.28125, 0.3125,
+            0.34375, 0.375, 0.40625, 0.4375, 0.46875, 0.5, 0.53125, 0.5625, 0.59375, 0.625, 0.65625,
+            0.6875, 0.71875, 0.75, 0.78125, 0.8125, 0.84375, 0.875, 0.90625, 0.9375, 0.96875, 1.0
+          ],
+          "blue": [0, 1],
+          "amount": 1,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-length",
+        "path": "/scenes/0/nodes/2/effects/0/green"
+      }
+    ]
+  },
+  {
+    "name": "effect-curves-level-out-of-range",
+    "description": "A level of a curve lies from 0 to 1 (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-curves",
+          "kind": "curves",
+          "red": [0, 1],
+          "green": [0, 1],
+          "blue": [0, 1.2],
+          "amount": 1,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/effects/0/blue/1"
+      }
+    ]
+  },
+  {
+    "name": "effect-curves-table-animated",
+    "description": "Only the amount of curves is animated, never a table (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-curves",
+          "kind": "curves",
+          "red": [0, 1],
+          "green": [0, 1],
+          "blue": [0, 1],
+          "amount": 1,
+          "animations": [
+            {
+              "id": "effect-title-curves-a-red",
+              "property": "red",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": [0, 1],
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 1000000,
+                  "value": [1, 0],
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/effects/0/animations/0/property"
+      }
+    ]
+  },
+  {
+    "name": "effect-color-grade-gamma-zero",
+    "description": "The gamma of a colour grade is at least 0.1 (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-grade",
+          "kind": "color-grade",
+          "lift": 0,
+          "gamma": 0,
+          "gain": 1,
+          "temperature": 0,
+          "tint": 0,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/effects/0/gamma"
+      }
+    ]
+  },
+  {
+    "name": "effect-color-grade-missing-tint",
+    "description": "A colour grade states every parameter; there is no default (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-grade",
+          "kind": "color-grade",
+          "lift": 0,
+          "gamma": 1,
+          "gain": 1,
+          "temperature": 0,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/scenes/0/nodes/2/effects/0/tint"
+      }
+    ]
+  },
+  {
+    "name": "effect-glow-radius-out-of-range",
+    "description": "The radius of a glow is at most 1000 composition pixels (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-glow",
+          "kind": "glow",
+          "color": "#f79009",
+          "opacity": 1,
+          "radius": 1001,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/effects/0/radius"
+      }
+    ]
+  },
+  {
+    "name": "effect-vignette-size-out-of-range",
+    "description": "The size of a vignette is at least 0.05 (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-vignette",
+          "kind": "vignette",
+          "amount": 1,
+          "size": 0,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/effects/0/size"
+      }
+    ]
+  },
+  {
+    "name": "effect-chroma-key-red",
+    "description": "A chroma key keys a green or a blue screen (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-key",
+          "kind": "chroma-key",
+          "key": "red",
+          "tolerance": 0.1,
+          "softness": 0.1,
+          "spill": 0,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/effects/0/key"
+      }
+    ]
+  },
+  {
+    "name": "effect-chroma-key-softness-zero",
+    "description": "The softness of a chroma key is at least 0.01, so the matte is a line, never a step (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-key",
+          "kind": "chroma-key",
+          "key": "green",
+          "tolerance": 0.1,
+          "softness": 0,
+          "spill": 0,
+          "animations": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/effects/0/softness"
+      }
+    ]
+  },
+  {
+    "name": "effect-chroma-key-key-animated",
+    "description": "The key channel of a chroma key is not animated (D72).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/effects/-",
+        "value": {
+          "id": "effect-title-key",
+          "kind": "chroma-key",
+          "key": "green",
+          "tolerance": 0.1,
+          "softness": 0.1,
+          "spill": 0,
+          "animations": [
+            {
+              "id": "effect-title-key-a-key",
+              "property": "key",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": "green",
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 1000000,
+                  "value": "blue",
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/effects/0/animations/0/property"
       }
     ]
   }

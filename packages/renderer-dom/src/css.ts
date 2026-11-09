@@ -165,9 +165,24 @@ export function cssHole(hole: Hole): string {
   return `path(evenodd, "${rectangle}${circle}")`;
 }
 
-/** One effect as a CSS filter function, as the CSS Object Model serialises it (D22, D71). */
+/** The ID of the `<filter>` element of an effect drawn by an SVG filter: a document ID is unique (D16, D72). */
+export function filterId(effectId: string): string {
+  return `kadrion-effect-${effectId}`;
+}
+
+/**
+ * One effect as a CSS filter function, as the CSS Object Model serialises it
+ * (D22, D71); an effect drawn by an SVG filter is a reference to its filter
+ * (D72).
+ */
 function cssFilterFunction(effect: EffectState): string {
   switch (effect.kind) {
+    case 'curves':
+    case 'color-grade':
+    case 'glow':
+    case 'vignette':
+    case 'chroma-key':
+      return `url("#${filterId(effect.id)}")`;
     case 'blur':
       return `blur(${cssPixels(effect.radius)})`;
     case 'hue-rotate':
@@ -182,7 +197,7 @@ function cssFilterFunction(effect: EffectState): string {
 }
 
 /**
- * The effects of a node, a group, or a scene as CSS `filter` (D71): one
+ * The effects of a node, a group, or a scene as CSS `filter` (D71, D72): one
  * function per effect in their order, then the blur of a transition, which
  * acts on the result (D65.6). `null` when there is neither, so that nothing is
  * written: a filter at its neutral value is not the absence of one (D65.5).

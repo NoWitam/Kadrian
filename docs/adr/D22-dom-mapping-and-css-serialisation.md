@@ -17,6 +17,7 @@
 - Amended by: PR-49 (D69) on 2026-11-08: the stroke, shadow, and box of a text, and a text in nested fragments whose opacity, transform, and colour are written on every render (D69.5)
 - Amended by: PR-50 (D70) on 2026-11-08: captions with a moving or underlaid word are drawn in pieces, lines and words whose values every render writes (D70.5)
 - Amended by: PR-51a (D71) on 2026-11-09: the `filter` of a node, a group, or a scene, written by every render and removed where there is no effect (D71.4)
+- Amended by: PR-51b (D72) on 2026-11-09: a hidden `<svg data-kadrion-effects>`, the last child of the stage, holds the filters of SVG effects, written by every render (D72.4)
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, and open
   question Q5

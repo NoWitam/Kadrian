@@ -151,3 +151,75 @@ export function videoSoundFixtureArguments(output: string): readonly string[] {
     output,
   ];
 }
+
+/**
+ * A green screen (D72): two seconds at 320x180 and 25 fps of a flat studio
+ * green, `#00b140`, with the 128x96 picture of `testsrc2` moving across it
+ * from x 40 by 50 pixels a second, made by the pinned FFmpeg like the video
+ * above, every assembly off (`-cpuflags 0`) and the scaling bit-exact. The
+ * chroma key of the SVG effects composition keys it.
+ */
+export const GREEN_SCREEN_FIXTURE = Object.freeze({
+  id: 'asset-video-green',
+  mediaType: 'video/mp4',
+  contentHash: 'sha256:958229c517ad183021bbb60f90078b14a17d3727e04fc5a0463f06fb21a98f07',
+  width: 320,
+  height: 180,
+  frames: 50,
+  sourceDurationUs: 2_000_000,
+});
+
+/** The arguments of the pinned `ffmpeg` that make the green screen at `output`. */
+export function greenScreenFixtureArguments(output: string): readonly string[] {
+  return [
+    '-nostdin',
+    '-v',
+    'error',
+    '-y',
+    '-cpuflags',
+    '0',
+    '-f',
+    'lavfi',
+    '-i',
+    'color=c=0x00b140:size=320x180:rate=25:duration=2',
+    '-f',
+    'lavfi',
+    '-i',
+    'testsrc2=size=128x96:rate=25:duration=2',
+    '-filter_complex',
+    "[0:v][1:v]overlay=x='40+50*t':y=42:shortest=1:format=yuv420,format=yuv420p[v]",
+    '-sws_flags',
+    'bitexact+accurate_rnd+full_chroma_int',
+    '-map',
+    '[v]',
+    '-c:v',
+    'libx264',
+    '-preset',
+    'medium',
+    '-crf',
+    '20',
+    '-g',
+    '25',
+    '-bf',
+    '2',
+    '-threads',
+    '1',
+    '-filter_complex_threads',
+    '1',
+    '-x264-params',
+    'asm=0',
+    '-pix_fmt',
+    'yuv420p',
+    '-map_metadata',
+    '-1',
+    '-fflags',
+    '+bitexact',
+    '-flags:v',
+    '+bitexact',
+    '-movflags',
+    '+faststart',
+    '-f',
+    'mp4',
+    output,
+  ];
+}
