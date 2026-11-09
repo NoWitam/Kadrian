@@ -249,9 +249,23 @@ describe('the bounds of a sampled value (D67.6)', () => {
     };
     walk(compositionSchema);
     // A colour is a string in the schema; it is held per channel, from 0 to 255 (D68).
-    expect(found['color']).toEqual({ min: undefined, max: undefined });
-    expect(found).toEqual({ ...PROPERTY_BOUNDS, color: found['color'] });
-    expect(PROPERTY_BOUNDS.color).toEqual({ min: 0, max: 255 });
+    const colours = ['color', 'fill', 'stroke/color'] as const;
+    for (const colour of colours) {
+      expect(found[colour]).toEqual({ min: undefined, max: undefined });
+      expect(PROPERTY_BOUNDS[colour]).toEqual({ min: 0, max: 255 });
+    }
+    // A geometry is a union of shapes in the schema; each number is held within
+    // its own bounds, and a coordinate, the widest of them, within these (D73).
+    expect(found['geometry']).toEqual({ min: undefined, max: undefined });
+    expect(JSON.stringify(compositionSchema)).toContain('"minimum":-1000000,"maximum":1000000');
+    expect(PROPERTY_BOUNDS.geometry).toEqual({ min: -1_000_000, max: 1_000_000 });
+    expect(found).toEqual({
+      ...PROPERTY_BOUNDS,
+      color: found['color'],
+      fill: found['fill'],
+      'stroke/color': found['stroke/color'],
+      geometry: found['geometry'],
+    });
   });
 
   it('hold an overshoot of opacity within 0 and 1, and leave a value inside as it is', () => {

@@ -30,6 +30,10 @@ import {
   KEYFRAME_VALUES,
   setCaptionStyleArgumentsSchema,
   setTextStyleArgumentsSchema,
+  setShapeGeometryArgumentsSchema,
+  setShapeFillArgumentsSchema,
+  setShapeStrokeArgumentsSchema,
+  setShapeTrimArgumentsSchema,
   addTextAnimationArgumentsSchema,
   removeTextAnimationArgumentsSchema,
   setTextAnimationArgumentsSchema,
@@ -110,6 +114,9 @@ import {
   type SetKeyframeValueArgumentsSchema,
   type SetCaptionStyleArgumentsSchema,
   type SetTextStyleArgumentsSchema,
+  type SetShapeGeometryArgumentsSchema,
+  type SetShapeFillArgumentsSchema,
+  type SetShapeStrokeArgumentsSchema,
   type AddTextAnimationArgumentsSchema,
   type RemoveTextAnimationArgumentsSchema,
   type SetTextAnimationArgumentsSchema,
@@ -155,6 +162,9 @@ export type CommandArgumentsSchema =
   | SetCaptionWordArgumentsSchema
   | SetCaptionStyleArgumentsSchema
   | SetTextStyleArgumentsSchema
+  | SetShapeGeometryArgumentsSchema
+  | SetShapeFillArgumentsSchema
+  | SetShapeStrokeArgumentsSchema
   | AddTextAnimationArgumentsSchema
   | RemoveTextAnimationArgumentsSchema
   | SetTextAnimationArgumentsSchema
@@ -236,7 +246,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, or group ends with its effects, [] for none (add_effect describes one). A group takes text, image, and video nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, or group ends with its effects, [] for none (add_effect describes one). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -334,7 +344,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: removeAssetArgumentsSchema,
   },
   AddAnimation: {
-    description: `Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property, which the node must not animate yet (position, scale, opacity, rotation, or origin on every node but a background; size, crop, and cornerRadius on an image or a video; color on a text, captions, or a background, which has no other animation); and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({"kind":"linear"} for a constant speed; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. ${KEYFRAME_VALUES} ${TIME_US} Refused with unknown-node, duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
+    description: `Adds one complete animation to a node, at an index of its animations: an ID unused in the document; the property, which the node must not animate yet (position, scale, opacity, rotation, or origin on every node but a background; size, crop, and cornerRadius on an image or a video; color on a text, captions, or a background, which has no other animation; size, fill (a solid fill only), stroke/color, stroke/width, trim/start, trim/end, and geometry on a shape); and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({"kind":"linear"} for a constant speed; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1. ${KEYFRAME_VALUES} ${TIME_US} Refused with unknown-node, duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
     example: {
       nodeId: 'node-custom-html',
       index: 0,
@@ -397,7 +407,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setKeyframeEasingArgumentsSchema,
   },
   SetKeyframeValue: {
-    description: `Sets the value of an animation of rotation, origin, size, color, crop, or cornerRadius at a time: replaces the value of the keyframe at that time, or inserts one, eased as the keyframe before it. ${KEYFRAME_VALUES} ${TIME_US} ${ANIMATED} Refused with unknown-animation, use-typed-command for an animation of opacity, position, or scale (use set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe), invalid-argument for a value of the wrong form, and invalid-result for a value outside the range of the property.`,
+    description: `Sets the value of an animation of rotation, origin, size, color, crop, cornerRadius, or of a shape's fill, stroke/color, stroke/width, trim/start, trim/end, or geometry at a time: replaces the value of the keyframe at that time, or inserts one, eased as the keyframe before it. ${KEYFRAME_VALUES} ${TIME_US} ${ANIMATED} Refused with unknown-animation, use-typed-command for an animation of opacity, position, or scale (use set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe), invalid-argument for a value of the wrong form, and invalid-result for a value outside the range of the property.`,
     example: { animationId: 'anim-image-rotation', timeUs: 1_000_000, value: 360 },
     argumentsSchema: setKeyframeValueArgumentsSchema,
   },
@@ -701,6 +711,55 @@ const METADATA = deepFreeze<MetadataTable>({
       },
     },
     argumentsSchema: setTextStyleArgumentsSchema,
+  },
+  SetShapeGeometry: {
+    description:
+      'Replaces what a shape draws with a complete geometry, in composition pixels of its box: {"kind":"rect", cornerRadius} fills the box with its corners rounded by cornerRadius pixels (above half a side it is reduced to half), its outline starting on the top edge and running clockwise; {"kind":"ellipse"} fills the box, its outline starting at its rightmost point and running clockwise; {"kind":"polygon", points} is closed through 3 to 1000 points {x, y}; {"kind":"path", fillRule, commands} is 1 to 1000 absolute commands, the first a move: {"kind":"move", x, y} starts a subpath, {"kind":"line", x, y}, {"kind":"cubic", x1, y1, x2, y2, x, y}, {"kind":"quadratic", x1, y1, x, y}, {"kind":"arc", rx, ry, rotation, largeArc, sweep, x, y} as SVG path data A, and {"kind":"close"}; fillRule "evenodd" leaves holes where subpaths overlap, "nonzero" fills them. No relative or shorthand commands: convert SVG path data to absolute M, L, C, Q, A, and Z first. Coordinates are numbers from -1000000 to 1000000 and may leave the box; a rect and an ellipse follow a size animation, a polygon and a path do not. A geometry animation must keep the structure: replace it in the same transaction. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a shape, and invalid-result, also when a path does not start with a move or a geometry animation no longer has its structure.',
+    example: {
+      nodeId: 'node-shape',
+      geometry: {
+        kind: 'path',
+        fillRule: 'nonzero',
+        commands: [
+          { kind: 'move', x: 0, y: 100 },
+          { kind: 'quadratic', x1: 100, y1: -60, x: 200, y: 100 },
+          { kind: 'close' },
+        ],
+      },
+    },
+    argumentsSchema: setShapeGeometryArgumentsSchema,
+  },
+  SetShapeFill: {
+    description:
+      'Replaces what the inside of a shape is painted with: {"kind":"none"}; {"kind":"solid", color}; {"kind":"linear-gradient", start: {x, y}, end: {x, y}, stops} from the point start to the point end; or {"kind":"radial-gradient", center: {x, y}, radius, stops} about center, points and radius (at least 1) in composition pixels of its box. stops are 2 to 16 {offset, color, opacity}: offset an integer per mille of the gradient (0 at its start, 1000 at its end) in ascending order, two may share one; opacity 0 to 1; before the first and after the last stop its colour holds. Colours are lowercase #rrggbb. Only a solid fill is animated (a fill animation replaces its colour); remove a fill animation in the same transaction before another kind. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a shape, and invalid-result.',
+    example: {
+      nodeId: 'node-shape',
+      fill: {
+        kind: 'linear-gradient',
+        start: { x: 0, y: 0 },
+        end: { x: 200, y: 0 },
+        stops: [
+          { offset: 0, color: '#7a5af8', opacity: 1 },
+          { offset: 1000, color: '#ee46bc', opacity: 1 },
+        ],
+      },
+    },
+    argumentsSchema: setShapeFillArgumentsSchema,
+  },
+  SetShapeStroke: {
+    description:
+      'Replaces the outline of a shape with a complete stroke {color, width, dash, cap, join}: color lowercase #rrggbb; width in composition pixels from 0 to 1000, centred on the outline, 0 for none; dash an even list of at most 16 integers, the lengths of dashes and gaps in turn in per mille of the length of the whole outline (1 to 1000), repeated from its start, [] for a solid line; cap "butt", "round", or "square" for the ends of open paths and of dashes; join "miter" (limited to 4), "round", or "bevel" for its corners. The stroke is drawn over the fill and is not cut by the box; stroke/color and stroke/width animations replace its colour and width, and the trim (set_shape_trim) chooses the part drawn. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a shape, and invalid-result, also for an odd number of dashes.',
+    example: {
+      nodeId: 'node-shape',
+      stroke: { color: '#ffffff', width: 6, dash: [], cap: 'round', join: 'round' },
+    },
+    argumentsSchema: setShapeStrokeArgumentsSchema,
+  },
+  SetShapeTrim: {
+    description:
+      'Sets the part of the outline of a shape that its stroke draws, as integers in per mille of the length of the outline from where it starts: start 0 and end 1000 draw it all, and an end at or before the start draws none of it, caps included. The browser measures the outline; nothing about its length need be known. To draw a stroke on, animate trim/end from 0 to 1000 with add_animation; to run a segment along it, animate trim/start and trim/end together. The fill is not trimmed: set the fill to {"kind":"none"} for a line alone. Refused with invalid-argument for a value that is not an integer from 0 to 1000, unknown-node, and unsupported-node for a node that is not a shape.',
+    example: { nodeId: 'node-shape', trim: { start: 0, end: 500 } },
+    argumentsSchema: setShapeTrimArgumentsSchema,
   },
   AddTextAnimation: {
     description: `Animates the letters, words, or lines of a text node one after another, at an index of its text animations: {id, unit, phase, staggerUs, order, tracks}. unit is "letter" (a character as a reader sees it, an emoji or an accented letter included; white space is no letter), "word" (a run without white space), or "line" (a line of the text as written that holds a word). Every fragment runs the same tracks in its own time, which starts staggerUs (integer microseconds) after the fragment before it in the order: phase {"kind":"in"} starts the first fragment at the node's startUs, {"kind":"out"} ends the last fragment's last keyframe at the node's end, {"kind":"accent", startUs} starts the first at that scene time, which moves with the node. order is {"kind":"forward"}, {"kind":"backward"}, {"kind":"center"} (from the middle outwards), {"kind":"edges"} (from both ends inwards), or {"kind":"random", seed} (an unsigned 32-bit integer; the same seed gives the same order). tracks are at least one, at most one per property: {property, keyframes} with property "opacity" (factor 0 to 1), "offset" ({x, y} integer pixels from the fragment's place), "scale" ({x, y} factors about its centre), "rotation" (degrees about its centre), or "color" (#rrggbb that replaces the text's colour), and at least two keyframes {timeUs, value, easing} in ascending time, timeUs in the fragment's own time from 0. Before its first keyframe a fragment holds the first value, after its last the last, so an entrance usually starts at opacity 0. Several text animations combine in their order: opacities and scales multiply, offsets and rotations add, the last colour wins. A text with a text animation is drawn in fragments for its whole lifetime, without kerning between them. Refused with unknown-node, unsupported-node for a node that is not a text, index-out-of-range, id-in-use, and invalid-result.`,

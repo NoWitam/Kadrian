@@ -489,6 +489,7 @@ export const ARTIFACT_FILES = Object.freeze([
   'presentation-barrier.json',
   'producer-processes.json',
   'scenes/alone-vs-sequence.json',
+  'shapes/golden-comparison.json',
   'text/golden-comparison.json',
   'text/node-vs-chromium.json',
   'transitions/clip-edges.json',

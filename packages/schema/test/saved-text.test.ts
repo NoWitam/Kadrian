@@ -177,6 +177,7 @@ describe('the supported versions (D43.5)', () => {
       '0.15',
       '0.16',
       '0.17',
+      '0.18',
     ]);
     expect(Object.isFrozen(SUPPORTED_SCHEMA_VERSIONS)).toBe(true);
     expect(SUPPORTED_SCHEMA_VERSIONS.at(-1)).toBe(SCHEMA_VERSION);
@@ -197,7 +198,8 @@ describe('the supported versions (D43.5)', () => {
   );
 
   it.each([
-    '0.18',
+    '0.19',
+    '0.180',
     '0.170',
     '0.160',
     '0.150',
@@ -342,7 +344,7 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
       ({ name, patch }) => [`0.1: ${name}`, applyPatch(referenceCompositionV01, patch)] as const,
     ),
     ...invalidCompositionCases.map(
-      ({ name, patch }) => [`0.17: ${name}`, applyPatch(referenceComposition, patch)] as const,
+      ({ name, patch }) => [`0.18: ${name}`, applyPatch(referenceComposition, patch)] as const,
     ),
   ];
 
@@ -378,15 +380,15 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
 
 describe('the rules of JSON, and no others (D43.2)', () => {
   it('lets the last of two equal keys win, as JSON.parse does', () => {
-    // A valid 0.17 body with two versions: the later one decides.
+    // A valid 0.18 body with two versions: the later one decides.
     const current = referenceText.replace(
-      '"schemaVersion":"0.17"',
-      '"schemaVersion":"0.1","schemaVersion":"0.17"',
+      '"schemaVersion":"0.18"',
+      '"schemaVersion":"0.1","schemaVersion":"0.18"',
     );
-    expect(loaded(parseComposition(current)).versions).toEqual(['0.17']);
+    expect(loaded(parseComposition(current)).versions).toEqual(['0.18']);
     const older = referenceText.replace(
-      '"schemaVersion":"0.17"',
-      '"schemaVersion":"0.17","schemaVersion":"0.1"',
+      '"schemaVersion":"0.18"',
+      '"schemaVersion":"0.18","schemaVersion":"0.1"',
     );
     const judged = refused(parseComposition(older));
     // Judged as the 0.1 document its last key says it is, which it is not.
@@ -513,15 +515,15 @@ describe('deeply nested JSON (D43.4)', () => {
   function nestedGroups(version: string, depth: number): string {
     const lifetime = version === '0.1' ? '' : '"startUs":0,"durationUs":1,';
     // From 0.13 a transformed node has a rotation and an origin (D68).
-    const turn = ['0.13', '0.14', '0.15', '0.16', '0.17'].includes(version)
+    const turn = ['0.13', '0.14', '0.15', '0.16', '0.17', '0.18'].includes(version)
       ? '"rotation":0,"origin":{"x":0,"y":0},'
       : '';
     // From 0.15 the composition has a safe area (D70).
-    const safeArea = ['0.15', '0.16', '0.17'].includes(version)
+    const safeArea = ['0.15', '0.16', '0.17', '0.18'].includes(version)
       ? '"safeArea":{"fromTop":0,"fromRight":0,"fromBottom":0,"fromLeft":0},'
       : '';
     // From 0.16 a group and a scene have effects (D71).
-    const effects = ['0.16', '0.17'].includes(version) ? ',"effects":[]' : '';
+    const effects = ['0.16', '0.17', '0.18'].includes(version) ? ',"effects":[]' : '';
     // From 0.5 a scene has its own duration and clips (D54.1), from 0.6 its
     // transitions, as the composition has (D56.1), from 0.8 the composition
     // has a template section (D58.5), and from 0.9 it has conditions and repeats (D59.5).
@@ -608,6 +610,7 @@ describe('ownership and freezing (D43.4, D43.3)', () => {
         '0.14',
         '0.15',
         '0.16',
+        '0.17',
         SCHEMA_VERSION,
       ],
     ],

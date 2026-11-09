@@ -81,11 +81,12 @@ describe('the node types the bus accepts (D30.8)', () => {
       'custom-html',
       'group',
       'image',
+      'shape',
       'text',
       'video',
     ]);
     expect(positioned.get('background')).toBe(false);
-    expect([...positioned.values()].filter(Boolean)).toHaveLength(6);
+    expect([...positioned.values()].filter(Boolean)).toHaveLength(7);
   });
 
   it('has no nested group, which is why searching two levels deep is enough (D16)', () => {
@@ -127,7 +128,7 @@ describe('the node types the bus accepts (D30.8)', () => {
         .filter(([, has]) => has)
         .map(([type]) => type)
         .sort(),
-    ).toEqual(['captions', 'custom-html', 'group', 'image', 'text', 'video']);
+    ).toEqual(['captions', 'custom-html', 'group', 'image', 'shape', 'text', 'video']);
     expect([...texted].filter(([, has]) => has).map(([type]) => type)).toEqual(['text']);
   });
 
@@ -248,10 +249,11 @@ describe('the node types the commands of D40 accept (D30.8)', () => {
       'custom-html',
       'group',
       'image',
+      'shape',
       'text',
       'video',
     ]);
-    expect(carriers('width')).toEqual(['captions', 'custom-html', 'image', 'video']);
+    expect(carriers('width')).toEqual(['captions', 'custom-html', 'image', 'shape', 'video']);
     expect(carriers('height')).toEqual(carriers('width'));
     // The colours and the size of captions are their style's (D57).
     expect(carriers('color')).toEqual(['background', 'text']);
@@ -310,12 +312,18 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
       'color',
       'cornerRadius',
       'crop',
+      'fill',
+      'geometry',
       'opacity',
       'origin',
       'position',
       'rotation',
       'scale',
       'size',
+      'stroke/color',
+      'stroke/width',
+      'trim/end',
+      'trim/start',
     ]);
     for (const [property, minimum] of minimums) {
       expect(keyframeMinimum(compositionSchema, property), property).toBe(minimum);
@@ -391,6 +399,15 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
       { top: 100, right: 0, bottom: 0, left: 0 },
     ],
     cornerRadius: [0, 10],
+    fill: ['#000000', '#ffffff'],
+    'stroke/color': ['#000000', '#ffffff'],
+    'stroke/width': [1, 8],
+    'trim/start': [0, 500],
+    'trim/end': [500, 1000],
+    geometry: [
+      { kind: 'rect', cornerRadius: 0 },
+      { kind: 'rect', cornerRadius: 20 },
+    ],
   };
 
   it.each(animationShapes().map(({ type, shapes }) => [type, shapes] as const))(

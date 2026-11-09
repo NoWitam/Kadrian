@@ -426,7 +426,9 @@ export interface SetKeyframeValueArguments {
 /**
  * Sets, or inserts, the keyframe at a time of an animation of a property of
  * schema 0.13 — rotation, origin, size, color, crop, or cornerRadius (D65.2,
- * D68). Opacity, position, and scale keep their typed commands.
+ * D68) — or of a shape — fill, stroke/color, stroke/width, trim/start,
+ * trim/end, or geometry (D73). Opacity, position, and scale keep their typed
+ * commands.
  */
 export interface SetKeyframeValueCommand extends SetKeyframeValueArguments {
   readonly type: 'SetKeyframeValue';
@@ -812,6 +814,59 @@ export interface SetTextStyleCommand extends SetTextStyleArguments {
   readonly type: 'SetTextStyle';
 }
 
+/** What a caller states for `SetShapeGeometry` (D73). */
+export interface SetShapeGeometryArguments {
+  readonly nodeId: string;
+  /** The complete geometry, as the document stores it. */
+  readonly geometry: DocumentObject;
+}
+
+/** Replaces what a shape draws: a rectangle, an ellipse, a polygon, or a path (D73). */
+export interface SetShapeGeometryCommand extends SetShapeGeometryArguments {
+  readonly type: 'SetShapeGeometry';
+}
+
+/** What a caller states for `SetShapeFill` (D73). */
+export interface SetShapeFillArguments {
+  readonly nodeId: string;
+  /** The complete fill, as the document stores it. */
+  readonly fill: DocumentObject;
+}
+
+/** Replaces what the inside of a shape is painted with (D73). */
+export interface SetShapeFillCommand extends SetShapeFillArguments {
+  readonly type: 'SetShapeFill';
+}
+
+/** What a caller states for `SetShapeStroke` (D73). */
+export interface SetShapeStrokeArguments {
+  readonly nodeId: string;
+  /** The complete stroke, as the document stores it. */
+  readonly stroke: DocumentObject;
+}
+
+/** Replaces the outline of a shape: its colour, width, dashes, caps, and joins (D73). */
+export interface SetShapeStrokeCommand extends SetShapeStrokeArguments {
+  readonly type: 'SetShapeStroke';
+}
+
+/** The part of the outline of a shape that its stroke draws, in per mille of its length (D73). */
+export interface ShapeTrim {
+  readonly start: number;
+  readonly end: number;
+}
+
+/** What a caller states for `SetShapeTrim` (D73). */
+export interface SetShapeTrimArguments {
+  readonly nodeId: string;
+  readonly trim: ShapeTrim;
+}
+
+/** Sets the part of the outline of a shape that its stroke draws (D73). */
+export interface SetShapeTrimCommand extends SetShapeTrimArguments {
+  readonly type: 'SetShapeTrim';
+}
+
 /** What a caller states for `AddTextAnimation` (D69). */
 export interface AddTextAnimationArguments {
   readonly nodeId: string;
@@ -1103,6 +1158,10 @@ export type Command =
   | SetCaptionWordCommand
   | SetCaptionStyleCommand
   | SetTextStyleCommand
+  | SetShapeGeometryCommand
+  | SetShapeFillCommand
+  | SetShapeStrokeCommand
+  | SetShapeTrimCommand
   | AddTextAnimationCommand
   | RemoveTextAnimationCommand
   | SetTextAnimationCommand
@@ -1424,6 +1483,52 @@ export interface SetTextStyleArgumentsSchema {
   };
   readonly required: readonly (keyof SetTextStyleArguments)[];
   readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetShapeGeometry`: closed, with `geometry` an open object (D73). */
+export interface SetShapeGeometryArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly geometry: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetShapeGeometryArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetShapeFill`: closed, with `fill` an open object (D73). */
+export interface SetShapeFillArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly fill: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetShapeFillArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetShapeStroke`: closed, with `stroke` an open object (D73). */
+export interface SetShapeStrokeArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly stroke: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetShapeStrokeArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetShapeTrim`, typed by the fields of its arguments (D73). */
+export interface SetShapeTrimArgumentsSchema extends ClosedObjectSchema<
+  keyof SetShapeTrimArguments
+> {
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly trim: ClosedObjectSchema<keyof ShapeTrim>;
+  };
 }
 
 /** The argument schema of `AddTextAnimation`: closed, with `animation` an open object (D69). */
@@ -1803,6 +1908,19 @@ const TOP = 'top';
 const CROP: Bounds = {
   minimum: VIDEO_SHAPE.properties.crop.properties[TOP].minimum,
   maximum: VIDEO_SHAPE.properties.crop.properties[TOP].maximum,
+};
+type ShapeNodeShape = Extract<
+  (typeof NODE_SHAPES)[number],
+  { readonly properties: { readonly type: { readonly const: 'shape' } } }
+>;
+const SHAPE_NODE_SHAPE = NODE_SHAPES.find(
+  (shape): shape is ShapeNodeShape => shape.properties.type.const === 'shape',
+);
+if (SHAPE_NODE_SHAPE === undefined) throw new Error('The schema has no shape node.');
+/** The bounds of a point of a trim, read from the schema (D73). */
+const TRIM: Bounds = {
+  minimum: SHAPE_NODE_SHAPE.properties.trim.properties.start.minimum,
+  maximum: SHAPE_NODE_SHAPE.properties.trim.properties.start.maximum,
 };
 /** The bounds of `sourceStartUs`, read from the schema (D50.1). */
 const SOURCE_START: Bounds = {
@@ -2375,13 +2493,13 @@ export const setKeyframeEasingArgumentsSchema: SetKeyframeEasingArgumentsSchema 
  * (D65.2, D68). Exported for the descriptions of the tools.
  */
 export const KEYFRAME_VALUES =
-  'The value depends on the property of the animation: rotation, a number of degrees added to the node\'s rotation; origin, {"x":…,"y":…} integers in per mille (-1000 to 1000) added to the node\'s origin; size, {"width":…,"height":…} in composition pixels (rounded) that replaces the node\'s size; color, "#rrggbb" that replaces the node\'s colour; crop, {"top":…,"right":…,"bottom":…,"left":…} integers in per mille that replaces the node\'s crop; cornerRadius, composition pixels (rounded) that replace the node\'s corner radius.';
+  'The value depends on the property of the animation: rotation, a number of degrees added to the node\'s rotation; origin, {"x":…,"y":…} integers in per mille (-1000 to 1000) added to the node\'s origin; size, {"width":…,"height":…} in composition pixels (rounded) that replaces the node\'s size; color, "#rrggbb" that replaces the node\'s colour; crop, {"top":…,"right":…,"bottom":…,"left":…} integers in per mille that replaces the node\'s crop; cornerRadius, composition pixels (rounded) that replace the node\'s corner radius; fill and stroke/color, "#rrggbb" that replaces the colour of a shape\'s solid fill or of its stroke; stroke/width, composition pixels (0 to 1000) that replace the width of its stroke; trim/start and trim/end, integers in per mille (0 to 1000) of the outline that replace where its drawn part starts or ends; geometry, a complete geometry of the structure of the shape\'s own (its kind, its number of points, its commands in the same order with the same arc flags) that replaces it, every number moving on its own, so that a path morphs.';
 
 /** The JSON Schema of the arguments of `SetKeyframeValue` (D65.2): the value is the row's to judge. */
 export const setKeyframeValueArgumentsSchema: SetKeyframeValueArgumentsSchema = deepFreeze({
   type: 'object',
   description:
-    'Sets the keyframe at a time of an animation of rotation, origin, size, color, crop, or cornerRadius, inserting it when none is there.',
+    'Sets the keyframe at a time of an animation of rotation, origin, size, color, crop, cornerRadius, fill, stroke/color, stroke/width, trim/start, trim/end, or geometry, inserting it when none is there.',
   properties: {
     animationId: {
       type: 'string',
@@ -2837,6 +2955,87 @@ export const setTextStyleArgumentsSchema: SetTextStyleArgumentsSchema = deepFree
   additionalProperties: false,
 });
 
+const SHAPE_ID = 'The stable ID of a shape node.';
+
+const SHAPE_GEOMETRY =
+  'The complete geometry, in composition pixels of the node\'s box: {kind: "rect", cornerRadius} fills the box, its corners rounded by cornerRadius pixels; {kind: "ellipse"} fills the box; {kind: "polygon", points} is closed through 3 to 1000 points {x, y}; {kind: "path", fillRule, commands} is 1 to 1000 absolute commands, the first a move: {kind: "move", x, y}, {kind: "line", x, y}, {kind: "cubic", x1, y1, x2, y2, x, y}, {kind: "quadratic", x1, y1, x, y}, {kind: "arc", rx, ry, rotation, largeArc, sweep, x, y}, {kind: "close"}, with fillRule "nonzero" or "evenodd". Coordinates are numbers from -1000000 to 1000000 and may leave the box.';
+
+const SHAPE_FILL =
+  'The complete fill: {kind: "none"}; {kind: "solid", color}; {kind: "linear-gradient", start: {x, y}, end: {x, y}, stops}; or {kind: "radial-gradient", center: {x, y}, radius, stops}, points and radius in composition pixels of the node\'s box; stops are 2 to 16 {offset, color, opacity}, offset an integer per mille of the gradient (0 to 1000) in ascending order, opacity 0 to 1. Colours are lowercase #rrggbb.';
+
+const SHAPE_STROKE =
+  'The complete stroke: {color, width, dash, cap, join}: color lowercase #rrggbb; width in composition pixels (0 to 1000, 0 draws none) centred on the outline; dash an even list of integer lengths of dashes and gaps in turn (1 to 1000 per mille of the whole outline, at most 16), [] for a solid stroke; cap "butt", "round", or "square"; join "miter", "round", or "bevel".';
+
+/** The JSON Schema of the arguments of `SetShapeGeometry` (D73): the geometry is the document's to judge. */
+export const setShapeGeometryArgumentsSchema: SetShapeGeometryArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces what a shape draws.',
+  properties: {
+    nodeId: { type: 'string', description: SHAPE_ID, minLength: 1 },
+    geometry: { type: 'object', description: SHAPE_GEOMETRY },
+  },
+  required: ['nodeId', 'geometry'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetShapeFill` (D73): the fill is the document's to judge. */
+export const setShapeFillArgumentsSchema: SetShapeFillArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces what the inside of a shape is painted with.',
+  properties: {
+    nodeId: { type: 'string', description: SHAPE_ID, minLength: 1 },
+    fill: { type: 'object', description: SHAPE_FILL },
+  },
+  required: ['nodeId', 'fill'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetShapeStroke` (D73): the stroke is the document's to judge. */
+export const setShapeStrokeArgumentsSchema: SetShapeStrokeArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces the outline of a shape.',
+  properties: {
+    nodeId: { type: 'string', description: SHAPE_ID, minLength: 1 },
+    stroke: { type: 'object', description: SHAPE_STROKE },
+  },
+  required: ['nodeId', 'stroke'],
+  additionalProperties: false,
+});
+
+const TRIM_POINT = `An integer from ${String(TRIM.minimum)} to ${String(TRIM.maximum)}, per mille of the length of the outline from where it starts,`;
+
+/** The JSON Schema of the arguments of `SetShapeTrim` (D73): two integers in per mille. */
+export const setShapeTrimArgumentsSchema: SetShapeTrimArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets the part of the outline of a shape that its stroke draws.',
+  properties: {
+    nodeId: { type: 'string', description: SHAPE_ID, minLength: 1 },
+    trim: {
+      type: 'object',
+      description:
+        'The drawn part of the outline: from start to end; 0 and 1000 is the whole outline, and an end at or before the start draws none of it. The fill is not trimmed.',
+      properties: {
+        start: {
+          type: 'integer',
+          description: `${TRIM_POINT} where the drawn part begins.`,
+          minimum: TRIM.minimum,
+          maximum: TRIM.maximum,
+        },
+        end: {
+          type: 'integer',
+          description: `${TRIM_POINT} where the drawn part ends.`,
+          minimum: TRIM.minimum,
+          maximum: TRIM.maximum,
+        },
+      },
+      required: ['start', 'end'],
+      additionalProperties: false,
+    },
+  },
+  required: ['nodeId', 'trim'],
+  additionalProperties: false,
+});
+
 /** The JSON Schema of the arguments of `AddTextAnimation` (D69). */
 export const addTextAnimationArgumentsSchema: AddTextAnimationArgumentsSchema = deepFreeze({
   type: 'object',
@@ -3195,7 +3394,7 @@ export const addNodeArgumentsSchema: AddNodeArgumentsSchema = deepFreeze({
     parentId: {
       type: 'string',
       description:
-        'The ID of the scene, or of a group, whose list receives the node. A group takes image and text nodes only.',
+        'The ID of the scene, or of a group, whose list receives the node. A group takes image, text, video, and shape nodes only.',
       minLength: 1,
     },
     index: {
@@ -4154,6 +4353,12 @@ export const GENERIC_KEYFRAME_PROPERTIES = Object.freeze([
   'color',
   'crop',
   'cornerRadius',
+  'fill',
+  'stroke/color',
+  'stroke/width',
+  'trim/start',
+  'trim/end',
+  'geometry',
 ] as const);
 
 /**
@@ -4186,13 +4391,28 @@ export function normalizedKeyframeValue(
     case 'cornerRadius':
       return integerPixels(value, 'The value of a cornerRadius keyframe');
     case 'color':
+    case 'fill':
+    case 'stroke/color':
       if (typeof value !== 'string' || !new RegExp(COLOR_INPUT).test(value)) {
         throw new EditorError(
           'invalid-argument',
-          'The value of a color keyframe must be `#` and six hexadecimal digits, such as #1a2b3c.',
+          `The value of a ${property} keyframe must be \`#\` and six hexadecimal digits, such as #1a2b3c.`,
         );
       }
       return value.toLowerCase();
+    case 'stroke/width':
+      return finite(value, 'The value of a stroke/width keyframe');
+    case 'trim/start':
+    case 'trim/end':
+      return integer(value, `The value of a ${property} keyframe`);
+    case 'geometry':
+      if (typeof value !== 'object') {
+        throw new EditorError(
+          'invalid-argument',
+          'The value of a geometry keyframe must be a complete geometry object.',
+        );
+      }
+      return value;
     case 'origin': {
       const fields = fieldsOf(value, ['x', 'y'], 'The value of an origin keyframe');
       return Object.freeze({
@@ -4625,6 +4845,50 @@ export function parseSetTextStyle(value: unknown): SetTextStyleCommand {
     type: 'SetTextStyle',
     nodeId,
     style: dataOf(fields['style'], 'style'),
+  });
+}
+
+/** The fields of a `SetShapeGeometry` (D73); the document's validation judges the geometry. */
+export function parseSetShapeGeometry(value: unknown): SetShapeGeometryCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'geometry'], 'The command `SetShapeGeometry`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetShapeGeometry',
+    nodeId,
+    geometry: dataOf(fields['geometry'], 'geometry'),
+  });
+}
+
+/** The fields of a `SetShapeFill` (D73); the document's validation judges the fill. */
+export function parseSetShapeFill(value: unknown): SetShapeFillCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'fill'], 'The command `SetShapeFill`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({ type: 'SetShapeFill', nodeId, fill: dataOf(fields['fill'], 'fill') });
+}
+
+/** The fields of a `SetShapeStroke` (D73); the document's validation judges the stroke. */
+export function parseSetShapeStroke(value: unknown): SetShapeStrokeCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'stroke'], 'The command `SetShapeStroke`');
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetShapeStroke',
+    nodeId,
+    stroke: dataOf(fields['stroke'], 'stroke'),
+  });
+}
+
+/** The fields of a `SetShapeTrim` (D73): two integers in per mille, in the schema's bounds. */
+export function parseSetShapeTrim(value: unknown): SetShapeTrimCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'trim'], 'The command `SetShapeTrim`');
+  const nodeId = nodeIdOf(fields);
+  const trim = fieldsOf(fields['trim'], ['start', 'end'], '`trim`');
+  return Object.freeze({
+    type: 'SetShapeTrim',
+    nodeId,
+    trim: Object.freeze({
+      start: boundedInteger(trim['start'], TRIM, '`trim.start`'),
+      end: boundedInteger(trim['end'], TRIM, '`trim.end`'),
+    }),
   });
 }
 

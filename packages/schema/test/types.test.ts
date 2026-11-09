@@ -22,9 +22,13 @@ import type {
   GroupNode,
   ImageNode,
   NodeAnimation,
+  PathCommand,
   SafeArea,
   Scene,
   SceneNode,
+  ShapeFill,
+  ShapeGeometry,
+  ShapeNode,
   Template,
   TemplateBinding,
   TemplateCondition,
@@ -201,7 +205,85 @@ type ExpectedPictureAnimation =
   | ExpectedAnimation<'crop', ExpectedCrop>
   | ExpectedAnimation<'cornerRadius', number>;
 
-type ExpectedNodeAnimation = ExpectedPictureAnimation | ExpectedColorAnimation;
+type ExpectedPoint = { readonly x: number; readonly y: number };
+
+type ExpectedPathCommand =
+  | { readonly kind: 'move'; readonly x: number; readonly y: number }
+  | { readonly kind: 'line'; readonly x: number; readonly y: number }
+  | {
+      readonly kind: 'cubic';
+      readonly x1: number;
+      readonly y1: number;
+      readonly x2: number;
+      readonly y2: number;
+      readonly x: number;
+      readonly y: number;
+    }
+  | {
+      readonly kind: 'quadratic';
+      readonly x1: number;
+      readonly y1: number;
+      readonly x: number;
+      readonly y: number;
+    }
+  | {
+      readonly kind: 'arc';
+      readonly rx: number;
+      readonly ry: number;
+      readonly rotation: number;
+      readonly largeArc: boolean;
+      readonly sweep: boolean;
+      readonly x: number;
+      readonly y: number;
+    }
+  | { readonly kind: 'close' };
+
+/** The geometry of a shape (D73). */
+type ExpectedGeometry =
+  | { readonly kind: 'rect'; readonly cornerRadius: number }
+  | { readonly kind: 'ellipse' }
+  | { readonly kind: 'polygon'; readonly points: readonly ExpectedPoint[] }
+  | {
+      readonly kind: 'path';
+      readonly fillRule: 'nonzero' | 'evenodd';
+      readonly commands: readonly ExpectedPathCommand[];
+    };
+
+interface ExpectedStop {
+  readonly offset: number;
+  readonly color: string;
+  readonly opacity: number;
+}
+
+/** The fill of a shape (D73). */
+type ExpectedFill =
+  | { readonly kind: 'none' }
+  | { readonly kind: 'solid'; readonly color: string }
+  | {
+      readonly kind: 'linear-gradient';
+      readonly start: ExpectedPoint;
+      readonly end: ExpectedPoint;
+      readonly stops: readonly ExpectedStop[];
+    }
+  | {
+      readonly kind: 'radial-gradient';
+      readonly center: ExpectedPoint;
+      readonly radius: number;
+      readonly stops: readonly ExpectedStop[];
+    };
+
+type ExpectedShapeAnimation =
+  | ExpectedTransformAnimation
+  | ExpectedAnimation<'size', { readonly width: number; readonly height: number }>
+  | ExpectedAnimation<'fill', string>
+  | ExpectedAnimation<'stroke/color', string>
+  | ExpectedAnimation<'stroke/width', number>
+  | ExpectedAnimation<'trim/start', number>
+  | ExpectedAnimation<'trim/end', number>
+  | ExpectedAnimation<'geometry', ExpectedGeometry>;
+
+type ExpectedNodeAnimation =
+  ExpectedPictureAnimation | ExpectedColorAnimation | ExpectedShapeAnimation;
 
 /** The lifetime every node has since schema 0.2 (D42.1). */
 interface ExpectedLifetime {
@@ -328,10 +410,31 @@ interface ExpectedCustomHtmlNode extends ExpectedTransform {
   readonly html: string;
 }
 
+/** A vector shape (D73). */
+interface ExpectedShapeNode extends ExpectedTransform<ExpectedShapeAnimation> {
+  readonly id: string;
+  readonly type: 'shape';
+  readonly width: number;
+  readonly height: number;
+  readonly geometry: ExpectedGeometry;
+  readonly fill: ExpectedFill;
+  readonly stroke: {
+    readonly color: string;
+    readonly width: number;
+    readonly dash: readonly number[];
+    readonly cap: 'butt' | 'round' | 'square';
+    readonly join: 'miter' | 'round' | 'bevel';
+  };
+  readonly trim: { readonly start: number; readonly end: number };
+  readonly effects: readonly ExpectedEffect[];
+}
+
 interface ExpectedGroupNode extends ExpectedTransform {
   readonly id: string;
   readonly type: 'group';
-  readonly children: readonly (ExpectedImageNode | ExpectedTextNode | ExpectedVideoNode)[];
+  readonly children: readonly (
+    ExpectedImageNode | ExpectedTextNode | ExpectedVideoNode | ExpectedShapeNode
+  )[];
   readonly effects: readonly ExpectedEffect[];
 }
 
@@ -404,7 +507,8 @@ type ExpectedSceneNode =
   | ExpectedTextNode
   | ExpectedCustomHtmlNode
   | ExpectedVideoNode
-  | ExpectedCaptionsNode;
+  | ExpectedCaptionsNode
+  | ExpectedShapeNode;
 
 interface ExpectedAsset {
   readonly id: string;
@@ -601,7 +705,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.17';
+  readonly schemaVersion: '0.18';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {
@@ -655,6 +759,10 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<TemplateCondition>().toEqualTypeOf<ExpectedCondition>();
     expectTypeOf<TemplateRepeat>().toEqualTypeOf<ExpectedRepeat>();
     expectTypeOf<Effect>().toEqualTypeOf<ExpectedEffect>();
+    expectTypeOf<ShapeNode>().toEqualTypeOf<ExpectedShapeNode>();
+    expectTypeOf<ShapeGeometry>().toEqualTypeOf<ExpectedGeometry>();
+    expectTypeOf<PathCommand>().toEqualTypeOf<ExpectedPathCommand>();
+    expectTypeOf<ShapeFill>().toEqualTypeOf<ExpectedFill>();
   });
 
   it('narrow by their discriminators', () => {

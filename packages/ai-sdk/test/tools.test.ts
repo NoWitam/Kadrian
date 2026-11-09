@@ -255,6 +255,34 @@ const TWO_EFFECTS_SETUP: readonly Command[] = [
   },
 ];
 
+/** A shape of the examples (D73). */
+const SHAPE_SETUP: readonly Command[] = [
+  {
+    type: 'AddNode',
+    parentId: 'scene-main',
+    index: 4,
+    node: {
+      id: 'node-shape',
+      type: 'shape',
+      startUs: 0,
+      durationUs: 1_000_000,
+      position: { x: 0, y: 0 },
+      scale: { x: 1, y: 1 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
+      opacity: 1,
+      animations: [],
+      width: 200,
+      height: 100,
+      geometry: { kind: 'rect', cornerRadius: 0 },
+      fill: { kind: 'solid', color: '#f79009' },
+      stroke: { color: '#000000', width: 0, dash: [], cap: 'butt', join: 'miter' },
+      trim: { start: 0, end: 1000 },
+      effects: [],
+    },
+  },
+];
+
 const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetNodePosition: [],
   SetNodeOpacity: [],
@@ -365,6 +393,10 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetCaptionWord: CAPTIONS_SETUP,
   SetCaptionStyle: CAPTIONS_SETUP,
   SetTextStyle: [],
+  SetShapeGeometry: SHAPE_SETUP,
+  SetShapeFill: SHAPE_SETUP,
+  SetShapeStroke: SHAPE_SETUP,
+  SetShapeTrim: SHAPE_SETUP,
   AddTextAnimation: [],
   RemoveTextAnimation: TEXT_ANIMATION_SETUP,
   SetTextAnimation: TEXT_ANIMATION_SETUP,

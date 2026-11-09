@@ -455,6 +455,33 @@ export const PROBES: readonly Probe[] = [
     subjects: ['shape'],
     shape: `<defs><radialGradient id="kadrion-probe-radial" cx="0.4" cy="0.45" r="0.6"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#155eef"/></radialGradient></defs><rect x="20" y="20" width="560" height="360" rx="40" fill="url(#kadrion-probe-radial)"/>`,
   },
+  // The primitives of D73 beyond trims and box gradients: absolute curves and
+  // arcs under the even-odd rule, dash patterns over a path length with each
+  // cap and join, and gradients in the pixels of the shape with stop opacity.
+  {
+    id: 'shape/path-curves-arcs-evenodd',
+    group: 'shape',
+    subjects: ['shape'],
+    shape: `<path fill-rule="evenodd" d="M 40 200 C 120 20 220 20 300 200 Q 400 380 500 200 A 60 60 0 0 1 500 360 L 40 360 Z M 120 240 L 220 240 L 220 320 L 120 320 Z" fill="#2e90fa" stroke="#ffffff" stroke-width="6" stroke-linecap="butt" stroke-linejoin="bevel" stroke-miterlimit="4"/>`,
+  },
+  ...(
+    [
+      ['butt', 'miter', '60 30', '0'],
+      ['square', 'miter', '10 10 40 10', '-120'],
+      ['round', 'round', '250 100 10 640', '-37.5'],
+    ] as const
+  ).map(([cap, join, dashes, offset]): Probe => ({
+    id: `shape/dash-${cap}-${join}`,
+    group: 'shape',
+    subjects: ['shape'],
+    shape: `<path d="${STAR_PATH}" pathLength="1000" fill="none" stroke="#f79009" stroke-width="14" stroke-linecap="${cap}" stroke-linejoin="${join}" stroke-miterlimit="4" stroke-dasharray="${dashes}" stroke-dashoffset="${offset}"/>`,
+  })),
+  {
+    id: 'gradient/svg-user-space',
+    group: 'gradient',
+    subjects: ['shape'],
+    shape: `<defs><linearGradient id="kadrion-probe-user" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="600" y2="400"><stop offset="0" stop-color="#7a5af8" stop-opacity="1"/><stop offset="0.5" stop-color="#ee46bc" stop-opacity="1"/><stop offset="1" stop-color="#fdb022" stop-opacity="0.6"/></linearGradient><radialGradient id="kadrion-probe-user-radial" gradientUnits="userSpaceOnUse" cx="300" cy="200" r="160"><stop offset="0" stop-color="#ffffff" stop-opacity="0.8"/><stop offset="1" stop-color="#155eef" stop-opacity="1"/></radialGradient></defs><path d="${STAR_PATH}" fill="url(#kadrion-probe-user)"/><path d="M 380 200 A 80 80 0 0 1 220 200 A 80 80 0 0 1 380 200 Z" fill="url(#kadrion-probe-user-radial)"/>`,
+  },
   {
     id: 'gradient/css-linear',
     group: 'gradient',

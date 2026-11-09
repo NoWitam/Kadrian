@@ -6,6 +6,7 @@
 - Amended by: PR-49 (D69) on 2026-11-08: 65.3: fragments of text as built, letters by a table of Unicode 17.0.0 (D69.2, D69.5)
 - Amended by: PR-51a (D71) on 2026-11-09: 65.1: an effect's parameters are animated by the effect's own animations, not by paths `effects/<id>/<parameter>` of its holder; 65.6: a blur spills beyond the box (D71.2, D71.4)
 - Amended by: PR-51b (D72) on 2026-11-09: 65.5: the SVG primitives of the kinds of D72 (an arithmetic mix, a matrix and a gamma, light from a point in the units of the box, a key's matte and spill) are added to the probes (D72)
+- Amended by: PR-52 (D73) on 2026-11-09: 65.1: the rows of shapes as built; a shape's corner radius lies in its geometry and animates with the `geometry` row, not `cornerRadius`; 65.5: the primitives of shapes (absolute curves and arcs, the even-odd rule, dash patterns with each cap and join, gradients in user space) are added to the probes (D73.4)
 - Supersedes: —
 - Related: D03, D15, D16, D18, D19, D22, D23, D26, D28, D33, D34, D41, D46,
   D49, D56, D57, D58, D59, [phase five](../roadmap/phase-5.md) (PR-45), the

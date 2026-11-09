@@ -5,7 +5,7 @@
  * of the captions composition (D57), of the focus composition (D63), of the
  * easing composition (D67), of the motion composition (D68), of the text
  * composition (D69), of the animated captions composition (D70), and of the
- * effects composition (D71), and of the SVG effects composition (D72) with the Producer and writes the golden frames and their manifests into
+ * effects composition (D71), of the SVG effects composition (D72), and of the composition of shapes (D73) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -46,6 +46,8 @@ import {
   GREEN_SCREEN_FIXTURE,
   motionComposition,
   motionGoldenTimestamps,
+  shapesComposition,
+  shapesGoldenTimestamps,
   textComposition,
   textGoldenTimestamps,
   transitionsComposition,
@@ -319,6 +321,24 @@ try {
       `${JSON.stringify({ render: effectsSvgResult.manifest, environment, frames: effectsSvgFrames }, null, 2)}\n`,
     );
     for (const frame of effectsSvgFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The composition of shapes: geometries, gradients, strokes, trims, and a morph (D73).
+    const shapesResult = await renderFrames({
+      document: shapesComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: shapesGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const shapesFrames = shapesResult.frames.map(({ index, timeUs, png }) => {
+      const file = `shapes-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'shapes.golden-frames.json'),
+      `${JSON.stringify({ render: shapesResult.manifest, environment, frames: shapesFrames }, null, 2)}\n`,
+    );
+    for (const frame of shapesFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

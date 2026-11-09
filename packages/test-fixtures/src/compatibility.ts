@@ -221,6 +221,27 @@ import templateV017 from './compatibility/v0-17/template.json' with { type: 'jso
 import textV017 from './compatibility/v0-17/text.json' with { type: 'json' };
 import transitionsV017 from './compatibility/v0-17/transitions.json' with { type: 'json' };
 import videoV017 from './compatibility/v0-17/video.json' with { type: 'json' };
+import audioV018 from './compatibility/v0-18/audio.json' with { type: 'json' };
+import captionsMotionV018 from './compatibility/v0-18/captions-motion.json' with { type: 'json' };
+import captionsV018 from './compatibility/v0-18/captions.json' with { type: 'json' };
+import easingV018 from './compatibility/v0-18/easing.json' with { type: 'json' };
+import effectsSvgV018 from './compatibility/v0-18/effects-svg.json' with { type: 'json' };
+import effectsV018 from './compatibility/v0-18/effects.json' with { type: 'json' };
+import extremesV018 from './compatibility/v0-18/extremes.json' with { type: 'json' };
+import focusV018 from './compatibility/v0-18/focus.json' with { type: 'json' };
+import inputsV018 from './compatibility/v0-18/inputs.json' with { type: 'json' };
+import lifetimeV018 from './compatibility/v0-18/lifetime.json' with { type: 'json' };
+import minimalV018 from './compatibility/v0-18/minimal.json' with { type: 'json' };
+import motionV018 from './compatibility/v0-18/motion.json' with { type: 'json' };
+import pairV018 from './compatibility/v0-18/pair.json' with { type: 'json' };
+import referenceV018 from './compatibility/v0-18/reference.json' with { type: 'json' };
+import repeatsV018 from './compatibility/v0-18/repeats.json' with { type: 'json' };
+import scenesV018 from './compatibility/v0-18/scenes.json' with { type: 'json' };
+import shapesV018 from './compatibility/v0-18/shapes.json' with { type: 'json' };
+import templateV018 from './compatibility/v0-18/template.json' with { type: 'json' };
+import textV018 from './compatibility/v0-18/text.json' with { type: 'json' };
+import transitionsV018 from './compatibility/v0-18/transitions.json' with { type: 'json' };
+import videoV018 from './compatibility/v0-18/video.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -455,6 +476,27 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-17/text.json': textV017,
   'compatibility/v0-17/transitions.json': transitionsV017,
   'compatibility/v0-17/video.json': videoV017,
+  'compatibility/v0-18/audio.json': audioV018,
+  'compatibility/v0-18/captions-motion.json': captionsMotionV018,
+  'compatibility/v0-18/captions.json': captionsV018,
+  'compatibility/v0-18/easing.json': easingV018,
+  'compatibility/v0-18/effects-svg.json': effectsSvgV018,
+  'compatibility/v0-18/effects.json': effectsV018,
+  'compatibility/v0-18/extremes.json': extremesV018,
+  'compatibility/v0-18/focus.json': focusV018,
+  'compatibility/v0-18/inputs.json': inputsV018,
+  'compatibility/v0-18/lifetime.json': lifetimeV018,
+  'compatibility/v0-18/minimal.json': minimalV018,
+  'compatibility/v0-18/motion.json': motionV018,
+  'compatibility/v0-18/pair.json': pairV018,
+  'compatibility/v0-18/reference.json': referenceV018,
+  'compatibility/v0-18/repeats.json': repeatsV018,
+  'compatibility/v0-18/scenes.json': scenesV018,
+  'compatibility/v0-18/shapes.json': shapesV018,
+  'compatibility/v0-18/template.json': templateV018,
+  'compatibility/v0-18/text.json': textV018,
+  'compatibility/v0-18/transitions.json': transitionsV018,
+  'compatibility/v0-18/video.json': videoV018,
 };
 
 function fileOf(path: string): unknown {

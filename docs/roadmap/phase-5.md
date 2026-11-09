@@ -456,6 +456,7 @@ y: 0 }`, the top-left corner of D15, so nothing moves;
 
 ### PR-52 — Vector shapes and paths
 
+- Status: in review, with its ADR D73 (Proposed). Deviations from this plan: the corner radius of a rectangle lies in its geometry and animates with the `geometry` row, not with `cornerRadius`; a gradient is a fill of shapes only and does not animate (question 9 for shapes; backgrounds later); path commands are absolute only. Every geometry is drawn as one `<path>`, trim and dashes as one dash array over `pathLength="1000"`; a stroke that draws nothing is not written. The primitives the probes of PR-45 had not covered are added to `tests/probes/catalogue.ts` and measured exact (299 rows in `docs/spike/motion-probes.json`).
 - **Goal:** rectangles, ellipses, polygons, and paths, filled and stroked,
   drawn on by their stroke, and morphed between compatible paths.
 - **Scope (D73):** schema `0.18`: a node `shape` with `geometry` (`rect`,
