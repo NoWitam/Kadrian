@@ -348,7 +348,7 @@
   },
   {
     "name": "set_image_asset",
-    "description": "Points an image node at another image asset that the document declares; the node keeps its size. Refused with unknown-node, unsupported-node for a node that is not an image, unknown-asset, and asset-type-mismatch when the asset is not an image. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"assetId\":\"asset-photo\"}",
+    "description": "Points an image node at another image or SVG asset that the document declares; the node keeps its size, and an SVG asset is shown as an image. Refused with unknown-node, unsupported-node for a node that is not an image, unknown-asset, and asset-type-mismatch when the asset is neither an image nor an SVG. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"assetId\":\"asset-photo\"}",
     "inputSchema": {
       "type": "object",
       "description": "Points an image at another image asset of the document; its size stays.",
@@ -373,7 +373,7 @@
   },
   {
     "name": "add_asset",
-    "description": "Declares an image, audio, font, or video asset at an index of the document's assets, under an unused ID and the SHA-256 of its exact bytes. Declare only assets whose bytes the host has: the host must supply them whenever the document is loaded, even while nothing uses the asset. Refused with id-in-use and index-out-of-range. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"asset\":{\"id\":\"asset-photo\",\"type\":\"image\",\"contentHash\":\"sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae\"},\"index\":3}",
+    "description": "Declares an image, audio, font, video, or svg asset at an index of the document's assets, under an unused ID and the SHA-256 of its exact bytes. An svg asset is a drawing of a closed subset of SVG that an image node shows as an image; the host loads it only if the sanitiser accepts its bytes. Declare only assets whose bytes the host has: the host must supply them whenever the document is loaded, even while nothing uses the asset. Refused with id-in-use and index-out-of-range. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"asset\":{\"id\":\"asset-photo\",\"type\":\"image\",\"contentHash\":\"sha256:2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae\"},\"index\":3}",
     "inputSchema": {
       "type": "object",
       "description": "Declares an asset, pinned by the hash of its exact bytes. The host must then supply those bytes whenever the document is loaded, even while nothing uses the asset.",
@@ -394,7 +394,8 @@
                 "image",
                 "audio",
                 "font",
-                "video"
+                "video",
+                "svg"
               ]
             },
             "contentHash": {

@@ -19,6 +19,7 @@ import {
   frameCount,
   frameToTimeUs,
   isTemplate,
+  readSvg,
   timeUsToFrame,
   validateComposition,
   type ValidatedComposition,
@@ -297,7 +298,7 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
       async load(documentJson, assets) {
         const visual = assets
           .filter(isBytesAsset)
-          .filter(({ type }) => type === 'image' || type === 'font');
+          .filter(({ type }) => type === 'image' || type === 'svg' || type === 'font');
         const messages = visual.map(({ id, mediaType, bytes }) => ({
           id,
           mediaType,
@@ -313,10 +314,20 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
         );
         checked(outcome);
         noRequests();
-        // The size read from every image's header is the size the pinned Chromium decodes (D62.3).
+        // The size read from every image's header is the size the pinned Chromium
+        // decodes (D62.3), and so is the size the sanitiser reads from an SVG (D74.6).
         for (const { id, type, mediaType, bytes } of visual) {
-          if (type !== 'image' || !imageSizeKnown(mediaType)) continue;
-          const read = readImageSize(bytes, mediaType);
+          let read: { readonly width: number; readonly height: number };
+          if (type === 'svg') {
+            const reading = readSvg(bytes);
+            // Unreachable: the asset was resolved through the sanitiser.
+            if (!reading.ok) throw new ProducerError('svg-refused', reading.error.message);
+            read = reading.svg;
+          } else if (type === 'image' && imageSizeKnown(mediaType)) {
+            read = readImageSize(bytes, mediaType);
+          } else {
+            continue;
+          }
           const decoded = await within(
             renderFrame.evaluate(
               ([given, data]) =>

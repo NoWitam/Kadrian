@@ -76,7 +76,7 @@ export interface DocumentDescription {
    * D50.6, D53); a video whose sound the host read states its
    * `soundDurationUs`, `null` when it has none (D53). An image asset whose
    * facts the host supplied states its `width` and `height` as an image node
-   * lays it out (D62).
+   * lays it out (D62); an SVG asset also states its `viewBox` (D74.6).
    */
   readonly assets: readonly unknown[];
   /** The composition's clips, in composition time, as the document stores them. */
@@ -156,6 +156,10 @@ export function describeDocument(
       const facts = asset.type === 'font' ? null : mediaFactsOf(asset.contentHash);
       if (facts === null || facts.type !== asset.type) return asset;
       if (facts.type === 'image') return { ...asset, width: facts.width, height: facts.height };
+      if (facts.type === 'svg') {
+        const { width, height, viewBox } = facts;
+        return { ...asset, width, height, viewBox: { ...viewBox } };
+      }
       if (facts.type === 'audio' || facts.audioDurationUs === undefined) {
         return { ...asset, sourceDurationUs: facts.durationUs };
       }

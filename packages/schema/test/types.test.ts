@@ -512,7 +512,7 @@ type ExpectedSceneNode =
 
 interface ExpectedAsset {
   readonly id: string;
-  readonly type: 'image' | 'audio' | 'font' | 'video';
+  readonly type: 'image' | 'audio' | 'font' | 'video' | 'svg';
   readonly contentHash: string;
 }
 
@@ -705,7 +705,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.18';
+  readonly schemaVersion: '0.19';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

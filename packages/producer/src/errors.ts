@@ -33,6 +33,8 @@ export type ProducerErrorCode =
   | 'readiness-unsupported'
   /** The bytes of a PNG, JPEG, or WebP image are not a whole file of its media type (D62.1). */
   | 'image-invalid'
+  /** The bytes of an SVG asset are refused by the sanitiser; the message names the offence (D74.3). */
+  | 'svg-refused'
   /** The pinned Chromium decodes an image to another size than its header states (D62.3). */
   | 'image-size-mismatch'
   /** A Custom HTML element did not acknowledge the time (D23.4). */
@@ -102,6 +104,7 @@ const PAGE_CODES: readonly ProducerErrorCode[] = [
   'asset-decode-failed',
   'readiness-unsupported',
   'image-invalid',
+  'svg-refused',
   'custom-html-timeout',
   'custom-html-navigated',
   'video-frames-invalid',

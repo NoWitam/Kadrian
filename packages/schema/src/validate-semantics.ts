@@ -59,6 +59,7 @@ import type { CompositionV014 } from './v0-14/composition-schema.js';
 import type { CompositionV015 } from './v0-15/composition-schema.js';
 import type { CompositionV016 } from './v0-16/composition-schema.js';
 import type { CompositionV017 } from './v0-17/composition-schema.js';
+import type { CompositionV018 } from './v0-18/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -74,6 +75,8 @@ type SceneNodeV015 = CompositionV015['scenes'][number]['nodes'][number];
 type SceneNodeV016 = CompositionV016['scenes'][number]['nodes'][number];
 /** A node of 0.17, which has no shape (D73). */
 type SceneNodeV017 = CompositionV017['scenes'][number]['nodes'][number];
+/** A node of 0.18, whose images show no SVG asset (D74). */
+type SceneNodeV018 = CompositionV018['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -309,19 +312,25 @@ export function validateSemantics(
     | CompositionV014
     | CompositionV015
     | CompositionV016
-    | CompositionV017,
+    | CompositionV017
+    | CompositionV018,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
 
   const assets = new Map(composition.assets.map((asset) => [asset.id, asset]));
-  const checkReference = (assetId: string, type: Asset['type'], path: string): void => {
+  const checkReference = (
+    assetId: string,
+    type: Asset['type'] | readonly Asset['type'][],
+    path: string,
+  ): void => {
     const asset = assets.get(assetId);
+    const types: readonly Asset['type'][] = typeof type === 'string' ? [type] : type;
     if (asset === undefined) {
       const message = `No asset has the ID "${assetId}".`;
       errors.push({ code: 'unresolved-asset-reference', path, message });
-    } else if (asset.type !== type) {
-      const message = `Asset "${assetId}" is of type ${asset.type}, expected ${type}.`;
+    } else if (!types.includes(asset.type)) {
+      const message = `Asset "${assetId}" is of type ${asset.type}, expected ${types.join(' or ')}.`;
       errors.push({ code: 'asset-type-mismatch', path, message });
     }
   };
@@ -343,7 +352,8 @@ export function validateSemantics(
           : [];
       for (const member of [{ node, path: nodePath }, ...members]) {
         if (member.node.type === 'image') {
-          checkReference(member.node.assetId, 'image', pointer(member.path, 'assetId'));
+          // An image node shows an image, or an SVG drawing as an image (D74).
+          checkReference(member.node.assetId, ['image', 'svg'], pointer(member.path, 'assetId'));
         } else if (member.node.type === 'video') {
           checkReference(member.node.assetId, 'video', pointer(member.path, 'assetId'));
           // Every source time of the lifetime stays a safe integer (D50.2), so the
@@ -624,6 +634,7 @@ function checkTemplate(
     | CompositionV015
     | CompositionV016
     | CompositionV017
+    | CompositionV018
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1039,6 +1050,7 @@ function subtreeOf(
     | CompositionV015
     | CompositionV016
     | CompositionV017
+    | CompositionV018
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1105,7 +1117,9 @@ interface Located {
     | SceneNodeV016
     | Extract<SceneNodeV016, { type: 'group' }>['children'][number]
     | SceneNodeV017
-    | Extract<SceneNodeV017, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV017, { type: 'group' }>['children'][number]
+    | SceneNodeV018
+    | Extract<SceneNodeV018, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -1131,7 +1145,8 @@ function checkTransitions(
     | CompositionV014
     | CompositionV015
     | CompositionV016
-    | CompositionV017,
+    | CompositionV017
+    | CompositionV018,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

@@ -105,8 +105,9 @@ export interface EditorSession {
    * `image-invalid` for bytes that are not a whole file of theirs. Call it
    * before dispatching a command that makes a node show a video, or a clip or
    * node hear a source, that the document did not use yet, and before placing
-   * an image whose size the host needs. Fonts have no facts and resolve with
-   * `null`.
+   * an image whose size the host needs. For an SVG asset, the sanitiser reads
+   * its natural size and its view box, or refuses it with `svg-refused`
+   * (D74.6). Fonts have no facts and resolve with `null`.
    */
   readMediaFacts(asset: PlayerAssetRequest): Promise<MediaFacts | null>;
   /** Calls `listener` with every event until the returned function is called. */
@@ -190,8 +191,9 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     const known = facts.get(asset.contentHash);
     if (known?.type === 'video' && (!sound || known.audioDurationUs !== undefined)) return known;
     const durationUs =
-      (known === undefined || known.type === 'image' ? undefined : known.durationUs) ??
-      (await player.prepareVideo(asset, resolveAsset)).durationUs;
+      (known === undefined || known.type === 'image' || known.type === 'svg'
+        ? undefined
+        : known.durationUs) ?? (await player.prepareVideo(asset, resolveAsset)).durationUs;
     const audioDurationUs = sound ? await soundOf(asset) : undefined;
     const read: MediaFacts = Object.freeze(
       audioDurationUs === undefined
@@ -215,6 +217,23 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
     if (known?.type === 'image') return known;
     const { width, height } = await player.prepareImage(asset, resolveAsset);
     const read: MediaFacts = Object.freeze({ type: 'image', width, height });
+    facts.set(asset.contentHash, read);
+    return read;
+  };
+  /** The natural size and the view box of an SVG asset, read by the sanitiser (D74.6). */
+  const readSvgFacts = async (asset: PlayerAssetRequest): Promise<MediaFacts> => {
+    const known = facts.get(asset.contentHash);
+    if (known?.type === 'svg') return known;
+    const { width, height, viewBox } = await player.prepareImage(asset, resolveAsset);
+    if (viewBox === undefined) {
+      throw new PlayerError('svg-refused', `The SVG "${asset.id}" has no view box.`);
+    }
+    const read: MediaFacts = Object.freeze({
+      type: 'svg',
+      width,
+      height,
+      viewBox: Object.freeze({ ...viewBox }),
+    });
     facts.set(asset.contentHash, read);
     return read;
   };
@@ -340,6 +359,7 @@ export async function createEditorSession(options: EditorSessionOptions): Promis
       if (type === 'video') return readVideo(asset, true);
       if (type === 'audio') return readAudio(asset);
       if (type === 'image') return readImage(asset);
+      if (type === 'svg') return readSvgFacts(asset);
       if (type === 'font') return null;
       throw new PlayerError(
         'invalid-options',

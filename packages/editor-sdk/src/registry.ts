@@ -428,13 +428,18 @@ function requireType(node: DocumentObject, types: readonly string[], nodeId: str
   }
 }
 
-function requireAsset(document: DocumentObject, assetId: string, type: string): void {
+function requireAsset(
+  document: DocumentObject,
+  assetId: string,
+  type: string | readonly string[],
+): void {
   const found = locateAsset(document, assetId);
   if (found === null) throw unknownAsset(assetId);
-  if (found.asset['type'] !== type) {
+  const types: readonly string[] = typeof type === 'string' ? [type] : type;
+  if (!types.includes(found.asset['type'] as string)) {
     throw new EditorError(
       'asset-type-mismatch',
-      `The asset \`${assetId}\` is of type ${String(found.asset['type'])}, not ${type}.`,
+      `The asset \`${assetId}\` is of type ${String(found.asset['type'])}, not ${types.join(' or ')}.`,
     );
   }
 }
@@ -1271,7 +1276,8 @@ const DEFINITIONS = deepFreeze<Definitions>({
         // A video has an asset too, of another type and through its own command (D50.6).
         requireType(node, ['image'], command.nodeId);
         const assetId = stringField(node, 'assetId', command.nodeId);
-        requireAsset(document, command.assetId, 'image');
+        // An image node shows an image, or an SVG drawing as an image (D74).
+        requireAsset(document, command.assetId, ['image', 'svg']);
         if (assetId === command.assetId) return null;
         return {
           node: { ...node, assetId: command.assetId },

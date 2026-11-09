@@ -607,7 +607,7 @@ export declare class EditorError extends Error {
 }
 
 ---- EditorErrorCode (type only)
-export type EditorErrorCode = 'invalid-document' | 'unknown-command' | 'invalid-argument' | 'unknown-node' | 'unsupported-node' | 'invalid-result' | 'nothing-to-undo' | 'nothing-to-redo' | 'busy' | 'unknown-parent' | 'index-out-of-range' | 'id-in-use' | 'unknown-asset' | 'asset-type-mismatch' | 'asset-in-use' | 'unknown-scene' | 'last-scene' | 'unknown-clip' | 'time-outside-clip' | 'split-not-exact' | 'clips-not-joinable' | 'unknown-transition' | 'transition-in-use' | 'unknown-input' | 'unknown-binding' | 'unknown-condition' | 'unknown-repeat' | 'input-in-use' | 'binding-in-use' | 'unknown-animation' | 'unknown-effect' | 'unknown-keyframe' | 'keyframe-exists' | 'too-few-keyframes' | 'animation-property-mismatch' | 'use-typed-command' | 'duplicate-animation-target' | 'media-facts-missing' | 'source-range-exceeded' | 'not-a-cut' | 'no-room-at-cut';
+export type EditorErrorCode = 'invalid-document' | 'unknown-command' | 'invalid-argument' | 'unknown-node' | 'unsupported-node' | 'invalid-result' | 'nothing-to-undo' | 'nothing-to-redo' | 'busy' | 'unknown-parent' | 'index-out-of-range' | 'id-in-use' | 'unknown-asset' | 'asset-type-mismatch' | 'asset-in-use' | 'unknown-scene' | 'last-scene' | 'unknown-clip' | 'time-outside-clip' | 'split-not-exact' | 'clips-not-joinable' | 'unknown-transition' | 'transition-in-use' | 'unknown-input' | 'unknown-binding' | 'unknown-condition' | 'unknown-repeat' | 'input-in-use' | 'binding-in-use' | 'unknown-animation' | 'unknown-effect' | 'svg-refused' | 'svg-not-convertible' | 'unknown-keyframe' | 'keyframe-exists' | 'too-few-keyframes' | 'animation-property-mismatch' | 'use-typed-command' | 'duplicate-animation-target' | 'media-facts-missing' | 'source-range-exceeded' | 'not-a-cut' | 'no-room-at-cut';
 
 ---- ImageFacts (type only)
 export interface ImageFacts {
@@ -665,7 +665,7 @@ export interface KeyframeValueSchema {
 export type ListenerErrorHandler = (error: unknown, change: BusChange) => void;
 
 ---- MediaFacts (type only)
-export type MediaFacts = VideoFacts | AudioFacts | ImageFacts;
+export type MediaFacts = VideoFacts | AudioFacts | ImageFacts | SvgFacts;
 
 ---- MediaFactsLookup (type only)
 export type MediaFactsLookup = (contentHash: string) => MediaFacts | null;
@@ -1794,6 +1794,30 @@ export interface SplitClipCommand extends SplitClipArguments {
     readonly type: 'SplitClip';
 }
 
+---- SvgFacts (type only)
+export interface SvgFacts {
+    readonly type: 'svg';
+    readonly width: number;
+    readonly height: number;
+    readonly viewBox: {
+        readonly x: number;
+        readonly y: number;
+        readonly width: number;
+        readonly height: number;
+    };
+}
+
+---- SvgToShapesOptions (type only)
+export interface SvgToShapesOptions {
+    readonly idPrefix: string;
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly startUs: number;
+    readonly durationUs: number;
+}
+
 ---- TransactionResult (type only)
 export interface TransactionResult {
     readonly document: ValidatedComposition;
@@ -2103,6 +2127,9 @@ export declare const setVideoVolumeArgumentsSchema: SetVideoVolumeArgumentsSchem
 
 ---- splitClipArgumentsSchema
 export declare const splitClipArgumentsSchema: SplitClipArgumentsSchema;
+
+---- svgToShapes
+export declare function svgToShapes(source: SvgDrawing | Uint8Array | string, options: SvgToShapesOptions): ShapeNode[];
 
 ---- trimClipEndArgumentsSchema
 export declare const trimClipEndArgumentsSchema: TrimClipEndArgumentsSchema;

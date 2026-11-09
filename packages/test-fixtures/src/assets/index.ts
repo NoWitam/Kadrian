@@ -8,10 +8,12 @@
 import { generateAudio } from './audio.js';
 import { generateFont } from './font.js';
 import { generateImage } from './image.js';
+import { generateSvg } from './svg.js';
 
 export { AUDIO_SAMPLE_RATE, AUDIO_SECONDS } from './audio.js';
 export { FONT_FAMILY_NAME, FONT_GLYPHS, FONT_UNITS_PER_EM } from './font.js';
 export { IMAGE_SIZE } from './image.js';
+export { SVG_BADGE, SVG_BADGE_SIZE } from './svg.js';
 export {
   GREEN_SCREEN_FIXTURE,
   greenScreenFixtureArguments,
@@ -35,4 +37,12 @@ export function generateReferenceAssets(): readonly FixtureAsset[] {
     { id: 'asset-audio', mediaType: 'audio/wav', bytes: generateAudio() },
     { id: 'asset-font', mediaType: 'font/ttf', bytes: generateFont() },
   ];
+}
+
+/**
+ * The SVG asset of the composition of SVG assets (D74), apart from the
+ * reference assets: fresh bytes on every call.
+ */
+export function generateSvgAsset(): FixtureAsset {
+  return { id: 'asset-svg', mediaType: 'image/svg+xml', bytes: generateSvg() };
 }

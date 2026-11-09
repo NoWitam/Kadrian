@@ -114,7 +114,13 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.18";
+export declare const SCHEMA_VERSION = "0.19";
+
+---- SVG_IDENTITY
+export declare const SVG_IDENTITY: SvgMatrix;
+
+---- SVG_NAMESPACE
+export declare const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 ---- SafeArea (type only)
 export type SafeArea = Composition['safeArea'];
@@ -183,6 +189,108 @@ export interface SourceMapping {
 export interface SourceRange {
     readonly startUs: number;
     readonly durationUs: number;
+}
+
+---- SvgDrawing (type only)
+export interface SvgDrawing {
+    readonly width: number;
+    readonly height: number;
+    readonly viewBox: SvgViewBox;
+    readonly root: SvgElement;
+}
+
+---- SvgElement (type only)
+export interface SvgElement {
+    readonly name: SvgElementName;
+    readonly attributes: Readonly<Record<string, string>>;
+    readonly children: readonly SvgElement[];
+}
+
+---- SvgElementName (type only)
+export type SvgElementName = 'svg' | 'g' | 'defs' | 'title' | 'desc' | 'path' | 'rect' | 'circle' | 'ellipse' | 'line' | 'polyline' | 'polygon' | 'linearGradient' | 'radialGradient' | 'stop';
+
+---- SvgError (type only)
+export interface SvgError {
+    readonly code: SvgErrorCode;
+    readonly message: string;
+    readonly path: string;
+}
+
+---- SvgErrorCode (type only)
+export type SvgErrorCode = 'svg-encoding' | 'svg-malformed' | 'svg-doctype' | 'svg-processing-instruction' | 'svg-not-svg' | 'svg-script' | 'svg-foreign-object' | 'svg-style' | 'svg-event-attribute' | 'svg-external-reference' | 'svg-animation' | 'svg-element' | 'svg-attribute' | 'svg-value' | 'svg-size' | 'svg-too-large';
+
+---- SvgMatrix (type only)
+export type SvgMatrix = readonly [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number
+];
+
+---- SvgPaint (type only)
+export type SvgPaint = {
+    readonly kind: 'none';
+} | {
+    readonly kind: 'color';
+    readonly color: string;
+} | {
+    readonly kind: 'gradient';
+    readonly id: string;
+};
+
+---- SvgPathCommand (type only)
+export type SvgPathCommand = {
+    readonly kind: 'move';
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly kind: 'line';
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly kind: 'cubic';
+    readonly x1: number;
+    readonly y1: number;
+    readonly x2: number;
+    readonly y2: number;
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly kind: 'quadratic';
+    readonly x1: number;
+    readonly y1: number;
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly kind: 'arc';
+    readonly rx: number;
+    readonly ry: number;
+    readonly rotation: number;
+    readonly largeArc: boolean;
+    readonly sweep: boolean;
+    readonly x: number;
+    readonly y: number;
+} | {
+    readonly kind: 'close';
+};
+
+---- SvgReading (type only)
+export type SvgReading = {
+    readonly ok: true;
+    readonly svg: SvgDrawing;
+} | {
+    readonly ok: false;
+    readonly error: SvgError;
+};
+
+---- SvgViewBox (type only)
+export interface SvgViewBox {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
 }
 
 ---- Template (type only)
@@ -285,7 +393,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.18";
+            readonly const: "0.19";
         };
         readonly width: {
             readonly type: "integer";
@@ -347,11 +455,13 @@ export declare const compositionSchema: {
                 };
                 readonly type: {
                     readonly type: "string";
+                    readonly description: "image, audio, font, or video; svg is a drawing of the closed subset of SVG that readSvg accepts, shown by an image node as an image (D14, D50, D74).";
                     readonly enum: readonly [
                         "image",
                         "audio",
                         "font",
-                        "video"
+                        "video",
+                        "svg"
                     ];
                 };
                 readonly contentHash: {
@@ -18170,7 +18280,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.18";
+    readonly title: "Kadrion composition 0.19";
 };
 
 ---- frameCount
@@ -18191,6 +18301,9 @@ export declare function isTemplate(composition: {
 
 ---- placedVideos
 export declare function placedVideos(composition: ValidatedComposition): PlacedVideo[];
+
+---- readSvg
+export declare function readSvg(source: Uint8Array | string): SvgReading;
 
 ---- sampledSourceRange
 export declare function sampledSourceRange(node: SourceMapping, sceneDurationUs: number): SourceRange | null;
@@ -18215,6 +18328,24 @@ export declare function sourceRangeFits(range: SourceRange, sourceDurationUs: nu
 
 ---- sourceTimeUs
 export declare function sourceTimeUs(node: SourceMapping, timeUs: number): number;
+
+---- svgColor
+export declare function svgColor(value: string): string | null;
+
+---- svgLength
+export declare function svgLength(value: string): number | null;
+
+---- svgMultiply
+export declare function svgMultiply(a: SvgMatrix, b: SvgMatrix): SvgMatrix;
+
+---- svgPaint
+export declare function svgPaint(value: string): SvgPaint | null;
+
+---- svgPathCommands
+export declare function svgPathCommands(data: string): SvgPathCommand[] | null;
+
+---- svgTransform
+export declare function svgTransform(value: string): SvgMatrix | null;
 
 ---- timeUsToFrame
 export declare function timeUsToFrame(timeUs: number, fps: number): number;
@@ -18243,7 +18374,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

@@ -1,5 +1,5 @@
 /**
- * Composition schema 0.18: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.19: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
@@ -33,8 +33,10 @@
  * blur-dissolve (D71); 0.17 is 0.16 plus the effects drawn by SVG filters:
  * curves, a colour grade, a glow, a vignette, and a chroma key (D72); 0.18 is
  * 0.17 plus the node `shape`, a rectangle, an ellipse, a polygon, or a path,
- * filled with a colour or a gradient, stroked, trimmed, and morphed (D73). The
- * schemas of 0.1 to 0.17 are kept as data in `v0-1` to `v0-17` (D35.4).
+ * filled with a colour or a gradient, stroked, trimmed, and morphed (D73); 0.19
+ * is 0.18 plus the asset type `svg`, a drawing of a closed subset of SVG that
+ * an image node shows as an image (D74). The schemas of 0.1 to 0.18 are kept
+ * as data in `v0-1` to `v0-18` (D35.4).
  */
 import {
   closedObject,
@@ -47,7 +49,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.18';
+export const SCHEMA_VERSION = '0.19';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -1186,20 +1188,23 @@ const focus = closedObject(
   },
 );
 
-export const imageNodeSchema = closedObject('An image asset fitted to the box of the node.', {
-  id,
-  type: { type: 'string', const: 'image' },
-  ...lifetime,
-  ...pictureTransform,
-  assetId: assetReference,
-  width: length,
-  height: length,
-  fit,
-  focus,
-  crop,
-  cornerRadius,
-  effects,
-});
+export const imageNodeSchema = closedObject(
+  'An image asset, or an SVG asset shown as an image (D74), fitted to the box of the node.',
+  {
+    id,
+    type: { type: 'string', const: 'image' },
+    ...lifetime,
+    ...pictureTransform,
+    assetId: assetReference,
+    width: length,
+    height: length,
+    fit,
+    focus,
+    crop,
+    cornerRadius,
+    effects,
+  },
+);
 
 export const videoNodeSchema = closedObject(
   'A video asset: at each instant of its lifetime the source frame of D49.5, fitted to the box of the node, and, at a volume above 0, the sound of its source at the same source time (D50, D52).',
@@ -1973,7 +1978,12 @@ export const assetSchema = closedObject(
   'Pinned by content hash; the host resolves the bytes and the engine verifies them (D14).',
   {
     id,
-    type: { type: 'string', enum: ['image', 'audio', 'font', 'video'] },
+    type: {
+      type: 'string',
+      description:
+        'image, audio, font, or video; svg is a drawing of the closed subset of SVG that readSvg accepts, shown by an image node as an image (D14, D50, D74).',
+      enum: ['image', 'audio', 'font', 'video', 'svg'],
+    },
     contentHash: {
       type: 'string',
       description: 'Algorithm, a colon, and the lowercase hex digest of the exact bytes.',
@@ -2435,7 +2445,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.18',
+  title: 'Kadrion composition 0.19',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

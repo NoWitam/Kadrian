@@ -242,6 +242,28 @@ import templateV018 from './compatibility/v0-18/template.json' with { type: 'jso
 import textV018 from './compatibility/v0-18/text.json' with { type: 'json' };
 import transitionsV018 from './compatibility/v0-18/transitions.json' with { type: 'json' };
 import videoV018 from './compatibility/v0-18/video.json' with { type: 'json' };
+import audioV019 from './compatibility/v0-19/audio.json' with { type: 'json' };
+import captionsMotionV019 from './compatibility/v0-19/captions-motion.json' with { type: 'json' };
+import captionsV019 from './compatibility/v0-19/captions.json' with { type: 'json' };
+import easingV019 from './compatibility/v0-19/easing.json' with { type: 'json' };
+import effectsSvgV019 from './compatibility/v0-19/effects-svg.json' with { type: 'json' };
+import effectsV019 from './compatibility/v0-19/effects.json' with { type: 'json' };
+import extremesV019 from './compatibility/v0-19/extremes.json' with { type: 'json' };
+import focusV019 from './compatibility/v0-19/focus.json' with { type: 'json' };
+import inputsV019 from './compatibility/v0-19/inputs.json' with { type: 'json' };
+import lifetimeV019 from './compatibility/v0-19/lifetime.json' with { type: 'json' };
+import minimalV019 from './compatibility/v0-19/minimal.json' with { type: 'json' };
+import motionV019 from './compatibility/v0-19/motion.json' with { type: 'json' };
+import pairV019 from './compatibility/v0-19/pair.json' with { type: 'json' };
+import referenceV019 from './compatibility/v0-19/reference.json' with { type: 'json' };
+import repeatsV019 from './compatibility/v0-19/repeats.json' with { type: 'json' };
+import scenesV019 from './compatibility/v0-19/scenes.json' with { type: 'json' };
+import shapesV019 from './compatibility/v0-19/shapes.json' with { type: 'json' };
+import svgV019 from './compatibility/v0-19/svg.json' with { type: 'json' };
+import templateV019 from './compatibility/v0-19/template.json' with { type: 'json' };
+import textV019 from './compatibility/v0-19/text.json' with { type: 'json' };
+import transitionsV019 from './compatibility/v0-19/transitions.json' with { type: 'json' };
+import videoV019 from './compatibility/v0-19/video.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -497,6 +519,28 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-18/text.json': textV018,
   'compatibility/v0-18/transitions.json': transitionsV018,
   'compatibility/v0-18/video.json': videoV018,
+  'compatibility/v0-19/audio.json': audioV019,
+  'compatibility/v0-19/captions-motion.json': captionsMotionV019,
+  'compatibility/v0-19/captions.json': captionsV019,
+  'compatibility/v0-19/easing.json': easingV019,
+  'compatibility/v0-19/effects-svg.json': effectsSvgV019,
+  'compatibility/v0-19/effects.json': effectsV019,
+  'compatibility/v0-19/extremes.json': extremesV019,
+  'compatibility/v0-19/focus.json': focusV019,
+  'compatibility/v0-19/inputs.json': inputsV019,
+  'compatibility/v0-19/lifetime.json': lifetimeV019,
+  'compatibility/v0-19/minimal.json': minimalV019,
+  'compatibility/v0-19/motion.json': motionV019,
+  'compatibility/v0-19/pair.json': pairV019,
+  'compatibility/v0-19/reference.json': referenceV019,
+  'compatibility/v0-19/repeats.json': repeatsV019,
+  'compatibility/v0-19/scenes.json': scenesV019,
+  'compatibility/v0-19/shapes.json': shapesV019,
+  'compatibility/v0-19/svg.json': svgV019,
+  'compatibility/v0-19/template.json': templateV019,
+  'compatibility/v0-19/text.json': textV019,
+  'compatibility/v0-19/transitions.json': transitionsV019,
+  'compatibility/v0-19/video.json': videoV019,
 };
 
 function fileOf(path: string): unknown {

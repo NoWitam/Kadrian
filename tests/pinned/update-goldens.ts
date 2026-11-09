@@ -5,7 +5,8 @@
  * of the captions composition (D57), of the focus composition (D63), of the
  * easing composition (D67), of the motion composition (D68), of the text
  * composition (D69), of the animated captions composition (D70), and of the
- * effects composition (D71), of the SVG effects composition (D72), and of the composition of shapes (D73) with the Producer and writes the golden frames and their manifests into
+ * effects composition (D71), of the SVG effects composition (D72), of the composition of shapes (D73), and of the SVG composition (D74) with the
+ * Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -27,6 +28,7 @@ import {
 } from '@kadrion/producer';
 import {
   generateReferenceAssets,
+  generateSvgAsset,
   goldenTimestamps,
   referenceComposition,
   captionsComposition,
@@ -48,6 +50,8 @@ import {
   motionGoldenTimestamps,
   shapesComposition,
   shapesGoldenTimestamps,
+  svgComposition,
+  svgGoldenTimestamps,
   textComposition,
   textGoldenTimestamps,
   transitionsComposition,
@@ -62,7 +66,9 @@ import { makeGreenScreenFixture, makeVideoFixture } from './video-fixture.ts';
 const directory = fileURLToPath(
   new URL('../../packages/test-fixtures/src/golden-frames/', import.meta.url),
 );
-const assets = Object.fromEntries(generateReferenceAssets().map((asset) => [asset.id, asset]));
+const assets = Object.fromEntries(
+  [...generateReferenceAssets(), generateSvgAsset()].map((asset) => [asset.id, asset]),
+);
 
 const chromium = await launchChromium();
 try {
@@ -339,6 +345,24 @@ try {
       `${JSON.stringify({ render: shapesResult.manifest, environment, frames: shapesFrames }, null, 2)}\n`,
     );
     for (const frame of shapesFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The SVG composition: an SVG asset shown as an image, and its shapes (D74).
+    const svgResult = await renderFrames({
+      document: svgComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: svgGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const svgFrames = svgResult.frames.map(({ index, timeUs, png }) => {
+      const file = `svg-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'svg.golden-frames.json'),
+      `${JSON.stringify({ render: svgResult.manifest, environment, frames: svgFrames }, null, 2)}\n`,
+    );
+    for (const frame of svgFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();
