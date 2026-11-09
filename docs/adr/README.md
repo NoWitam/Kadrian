@@ -77,7 +77,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D67](D67-easing-curves.md)                                   | Easing curves: schema 0.12                                                                   | Accepted          |
 | [D68](D68-rotation-origin-and-more-animated-properties.md)    | Rotation, origin, animated properties: schema 0.13                                           | Accepted          |
 | [D69](D69-text-styles-and-text-animated-in-fragments.md)      | Text styles and fragments: schema 0.14                                                       | Accepted          |
-| [D70](D70-animated-captions-and-the-safe-area.md)             | Animated captions and the safe area: schema 0.15                                             | Proposed          |
+| [D70](D70-animated-captions-and-the-safe-area.md)             | Animated captions and the safe area: schema 0.15                                             | Accepted          |
 
 ## Provenance of D01–D10
 

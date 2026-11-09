@@ -377,7 +377,7 @@ y: 0 }`, the top-left corner of D15, so nothing moves;
 
 ### PR-50 — Animated captions
 
-- Status: in review, with its ADR D70 (Proposed). Deviations from this plan: the bounce is the fragment tracks of D69 in the word's own time, so any property can move; there is no captions placement field — a captions node is placed by its position and size inside the safe area that `describe_document` reports; captions are drawn in pieces only when their style moves a word or draws under one, so every document of `0.14` keeps its pixels.
+- Status: done (PR #69, merged 2026-11-09), with its ADR D70 (accepted by the owner on 2026-11-09). Q14 is open until a green push run of main after it. Deviations from this plan: the bounce is the fragment tracks of D69 in the word's own time, so any property can move; there is no captions placement field — a captions node is placed by its position and size inside the safe area that `describe_document` reports; captions are drawn in pieces only when their style moves a word or draws under one, so every document of `0.14` keeps its pixels.
 - **Goal:** the spoken word grows, bounces, is underlined, or gets a box, and
   each page of captions enters and leaves with an animation.
 - **Scope (D70):** schema `0.15`:
