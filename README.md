@@ -1134,12 +1134,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.3.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.3.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.4.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.4.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.3.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.3.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.4.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.4.0.tgz"
   }
 }
 ```
