@@ -4,6 +4,7 @@
   (PR #29)
 - Date: 2026-11-02
 - Amended by: PR-49 (D69) on 2026-11-08: 57.2: the word of a text animation is the word of captions, a run without white space (D69.2)
+- Amended by: PR-50 (D70) on 2026-11-08: 57.1: `highlightColor` becomes `highlight`, with the text style and page animations; 57.6: captions drawn in pieces; 57.9: the animated word and the highlight background are decided (D70)
 - Supersedes: —
 - Extends: D19 (19.4: a captions node of the state carries the page it shows
   and the word being spoken), D22 (the mount of a captions node and what a

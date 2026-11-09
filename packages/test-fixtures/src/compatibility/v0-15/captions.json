@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "0.15",
+  "width": 640,
+  "height": 360,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 3000000,
+  "assets": [
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-captions",
+      "durationUs": 3000000,
+      "nodes": [
+        {
+          "id": "captions-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 3000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 3000000,
+          "position": {
+            "x": 40,
+            "y": 200
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 560,
+          "height": 140,
+          "style": {
+            "fontSize": 40,
+            "lineHeight": 56,
+            "color": "#ffffff",
+            "highlight": {
+              "color": "#ffd400",
+              "scale": 1,
+              "tracks": [],
+              "underline": {
+                "kind": "none"
+              },
+              "box": {
+                "kind": "none"
+              }
+            },
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 16,
+            "maxLines": 2,
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "pageIn": {
+              "kind": "none"
+            },
+            "pageOut": {
+              "kind": "none"
+            }
+          },
+          "words": [
+            {
+              "text": "Kadrion",
+              "startUs": 200000,
+              "durationUs": 300000
+            },
+            {
+              "text": "renders",
+              "startUs": 500000,
+              "durationUs": 300000
+            },
+            {
+              "text": "scenes",
+              "startUs": 800000,
+              "durationUs": 300000
+            },
+            {
+              "text": "on",
+              "startUs": 1100000,
+              "durationUs": 200000
+            },
+            {
+              "text": "time",
+              "startUs": 1300000,
+              "durationUs": 300000
+            },
+            {
+              "text": "and",
+              "startUs": 1800000,
+              "durationUs": 200000
+            },
+            {
+              "text": "does",
+              "startUs": 2000000,
+              "durationUs": 300000
+            },
+            {
+              "text": "it",
+              "startUs": 2300000,
+              "durationUs": 200000
+            },
+            {
+              "text": "by",
+              "startUs": 2500000,
+              "durationUs": 200000
+            },
+            {
+              "text": "design",
+              "startUs": 2700000,
+              "durationUs": 300000
+            }
+          ]
+        }
+      ],
+      "clips": [],
+      "transitions": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

@@ -10,6 +10,8 @@ import type {
   Asset,
   AudioClip,
   BackgroundNode,
+  CaptionHighlight,
+  CaptionPageAnimation,
   CaptionStyle,
   CaptionsNode,
   CaptionWord,
@@ -19,6 +21,7 @@ import type {
   GroupNode,
   ImageNode,
   NodeAnimation,
+  SafeArea,
   Scene,
   SceneNode,
   Template,
@@ -230,15 +233,47 @@ interface ExpectedCaptionWord {
   readonly durationUs: number;
 }
 
+/** What the word being spoken shows (D70). */
+interface ExpectedCaptionHighlight {
+  readonly color: string;
+  readonly scale: number;
+  readonly tracks: readonly ExpectedFragmentTrack[];
+  readonly underline:
+    | { readonly kind: 'none' }
+    | {
+        readonly kind: 'solid';
+        readonly color: string;
+        readonly thickness: number;
+        readonly offset: number;
+      };
+  readonly box: ExpectedTextStyle['box'];
+}
+
+/** How every page enters or leaves (D70). */
+type ExpectedPageAnimation =
+  | { readonly kind: 'none' }
+  | {
+      readonly kind: 'animate';
+      readonly unit: 'word' | 'line';
+      readonly staggerUs: number;
+      readonly order: ExpectedTextAnimation['order'];
+      readonly tracks: readonly ExpectedFragmentTrack[];
+    };
+
 interface ExpectedCaptionStyle {
   readonly fontSize: number;
   readonly lineHeight: number;
   readonly color: string;
-  readonly highlightColor: string;
+  readonly highlight: ExpectedCaptionHighlight;
   readonly align: 'left' | 'center' | 'right';
   readonly verticalAlign: 'top' | 'middle' | 'bottom';
   readonly maxLineLength: number;
   readonly maxLines: number;
+  readonly stroke: ExpectedTextStyle['stroke'];
+  readonly shadow: ExpectedTextStyle['shadow'];
+  readonly box: ExpectedTextStyle['box'];
+  readonly pageIn: ExpectedPageAnimation;
+  readonly pageOut: ExpectedPageAnimation;
 }
 
 interface ExpectedCaptionsNode extends ExpectedTransform<
@@ -455,9 +490,15 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.14';
+  readonly schemaVersion: '0.15';
   readonly width: number;
   readonly height: number;
+  readonly safeArea: {
+    readonly fromTop: number;
+    readonly fromRight: number;
+    readonly fromBottom: number;
+    readonly fromLeft: number;
+  };
   readonly fps: number;
   readonly durationUs: number;
   readonly assets: readonly ExpectedAsset[];
@@ -485,6 +526,9 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<CaptionsNode>().toEqualTypeOf<ExpectedCaptionsNode>();
     expectTypeOf<CaptionWord>().toEqualTypeOf<ExpectedCaptionWord>();
     expectTypeOf<CaptionStyle>().toEqualTypeOf<ExpectedCaptionStyle>();
+    expectTypeOf<CaptionHighlight>().toEqualTypeOf<ExpectedCaptionHighlight>();
+    expectTypeOf<CaptionPageAnimation>().toEqualTypeOf<ExpectedPageAnimation>();
+    expectTypeOf<SafeArea>().toEqualTypeOf<ExpectedComposition['safeArea']>();
     expectTypeOf<NodeAnimation>().toEqualTypeOf<ExpectedNodeAnimation>();
     expectTypeOf<Easing>().toEqualTypeOf<ExpectedEasing>();
     expectTypeOf<AnimationKeyframe>().toEqualTypeOf<ExpectedNodeAnimation['keyframes'][number]>();

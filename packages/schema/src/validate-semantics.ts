@@ -52,6 +52,7 @@ import type { CompositionV010 } from './v0-10/composition-schema.js';
 import type { CompositionV011 } from './v0-11/composition-schema.js';
 import type { CompositionV012 } from './v0-12/composition-schema.js';
 import type { CompositionV013 } from './v0-13/composition-schema.js';
+import type { CompositionV014 } from './v0-14/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -59,6 +60,8 @@ type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
 type SceneNodeV012 = CompositionV012['scenes'][number]['nodes'][number];
 /** A node of 0.13, whose texts have no style and no text animations (D69). */
 type SceneNodeV013 = CompositionV013['scenes'][number]['nodes'][number];
+/** A node of 0.14, whose captions have a highlight colour only (D70). */
+type SceneNodeV014 = CompositionV014['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -199,7 +202,8 @@ export function validateSemantics(
     | CompositionV010
     | CompositionV011
     | CompositionV012
-    | CompositionV013,
+    | CompositionV013
+    | CompositionV014,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -259,6 +263,28 @@ export function validateSemantics(
         } else if (member.node.type === 'captions') {
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
           checkCaptionWords(member.node.words, pointer(member.path, 'words'), captionErrors);
+          // The tracks of the highlight and of the page animations of 0.15 follow the
+          // rules of animations (D70).
+          const { style } = member.node;
+          const stylePath = pointer(member.path, 'style');
+          if ('highlight' in style) {
+            const highlightPath = pointer(stylePath, 'highlight');
+            checkAnimations(
+              style.highlight.tracks,
+              pointer(highlightPath, 'tracks'),
+              animationErrors,
+            );
+            for (const key of ['pageIn', 'pageOut'] as const) {
+              const page = style[key];
+              if (page.kind === 'animate') {
+                checkAnimations(
+                  page.tracks,
+                  pointer(pointer(stylePath, key), 'tracks'),
+                  animationErrors,
+                );
+              }
+            }
+          }
         }
         // A background has animations since 0.13 (D68).
         if ('animations' in member.node) {
@@ -335,6 +361,22 @@ export function validateSemantics(
     });
   }
 
+  // The safe area of 0.15 (D70); no earlier document has the field.
+  const safeAreaErrors: ValidationError[] = [];
+  if ('safeArea' in composition) {
+    const area = composition.safeArea;
+    if (
+      area.fromLeft + area.fromRight >= composition.width ||
+      area.fromTop + area.fromBottom >= composition.height
+    ) {
+      safeAreaErrors.push({
+        code: 'safe-area-empty',
+        path: '/safeArea',
+        message: 'Two opposite insets of the safe area leave at least 1 pixel of the canvas.',
+      });
+    }
+  }
+
   // The template section of 0.8 (D58); no earlier document has the field.
   const templateErrors = 'template' in composition ? checkTemplate(composition) : [];
 
@@ -346,6 +388,7 @@ export function validateSemantics(
     ...durationErrors,
     ...transitionErrors,
     ...captionErrors,
+    ...safeAreaErrors,
     ...templateErrors,
   ];
 }
@@ -459,6 +502,7 @@ function checkTemplate(
   composition:
     | Composition
     | CompositionV012
+    | CompositionV014
     | CompositionV013
     | CompositionV011
     | CompositionV010
@@ -870,6 +914,7 @@ function subtreeOf(
   composition:
     | Composition
     | CompositionV012
+    | CompositionV014
     | CompositionV013
     | CompositionV011
     | CompositionV010
@@ -927,7 +972,9 @@ interface Located {
     | SceneNodeV012
     | Extract<SceneNodeV012, { type: 'group' }>['children'][number]
     | SceneNodeV013
-    | Extract<SceneNodeV013, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV013, { type: 'group' }>['children'][number]
+    | SceneNodeV014
+    | Extract<SceneNodeV014, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -949,7 +996,8 @@ function checkTransitions(
     | CompositionV010
     | CompositionV011
     | CompositionV012
-    | CompositionV013,
+    | CompositionV013
+    | CompositionV014,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

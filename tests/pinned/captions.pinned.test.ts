@@ -26,7 +26,7 @@ import {
 
 interface CaptionsDraft {
   type: string;
-  style: { color: string; highlightColor: string };
+  style: { color: string; highlight: { color: string } };
   words: { startUs: number }[];
 }
 
@@ -88,7 +88,7 @@ describe('captions in pinned Chromium (D57)', () => {
     // At 1.2 s "on" is spoken; at 1.7 s the same page shows no highlight. Without a
     // highlight colour of its own, the spoken word looks like the pause.
     const plain = edited((node) => {
-      node.style.highlightColor = node.style.color;
+      node.style.highlight.color = node.style.color;
     });
     const spoken = await frameAt(captionsComposition, 1_200_000);
     const pause = await frameAt(captionsComposition, 1_700_000);

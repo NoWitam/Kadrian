@@ -22,7 +22,7 @@ import {
   type CompositionState,
 } from '@kadrion/runtime';
 import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
-import { scenesComposition } from '@kadrion/test-fixtures';
+import { captionsMotionComposition, scenesComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
 const VIDEO_HASH = `sha256:${'c'.repeat(64)}`;
@@ -254,5 +254,36 @@ describe('a split clip renders as the unsplit one (D49.1, D55.4)', () => {
     expect(
       firstDifference(heard(onGrid, new Map([['tail', 'middle-voice']])), heard(whole, new Map())),
     ).toBeNull();
+  });
+});
+
+describe('split animated captions render as the unsplit ones (D70)', () => {
+  const result = validateComposition(captionsMotionComposition);
+  if (!result.ok) throw new Error(result.errors[0]?.message);
+  const base = result.composition;
+  // In the middle of an entrance, at a word, in the middle of an exit, and in the pause after the last word.
+  it.each([
+    ['captions-pop', 160_000],
+    ['captions-pop', 1_050_000],
+    ['captions-bounce', 300_000],
+    ['captions-bounce', 1_900_000],
+  ])('%s split at %i µs: the same pages, words, and fragments at every time', (clipId, atUs) => {
+    const split = applyCommand(base, {
+      type: 'SplitClip',
+      clipId,
+      atUs,
+      newClipId: 'tail',
+    }).document;
+    const alias = new Map([['tail', clipId]]);
+    const none = new Map<string, string>();
+    const grid = Array.from({ length: 201 }, (_, index) => index * 10_000 - 1).filter(
+      (timeUs) => timeUs >= 0 && timeUs < 2_000_000,
+    );
+    for (const timeUs of [...grid, atUs - 1, atUs, atUs + 1]) {
+      expect(
+        JSON.stringify(visible(evaluateComposition(split, timeUs), alias)),
+        String(timeUs),
+      ).toBe(JSON.stringify(visible(evaluateComposition(base, timeUs), none)));
+    }
   });
 });

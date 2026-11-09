@@ -1725,7 +1725,7 @@
   },
   {
     "name": "set_caption_words",
-    "description": "Replaces every word of a captions node with a new list, as for a new transcription: each word {text, startUs, durationUs}, in the order they are spoken, each starting no earlier than the one before it ends; text is at least one character and no white space. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken takes highlightColor. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result when a word is not one the document can hold or two words overlap. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"words\":[{\"text\":\"Made\",\"startUs\":0,\"durationUs\":300000},{\"text\":\"with\",\"startUs\":300000,\"durationUs\":200000},{\"text\":\"Kadrion\",\"startUs\":500000,\"durationUs\":600000}]}",
+    "description": "Replaces every word of a captions node with a new list, as for a new transcription: each word {text, startUs, durationUs}, in the order they are spoken, each starting no earlier than the one before it ends; text is at least one character and no white space. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result when a word is not one the document can hold or two words overlap. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"words\":[{\"text\":\"Made\",\"startUs\":0,\"durationUs\":300000},{\"text\":\"with\",\"startUs\":300000,\"durationUs\":200000},{\"text\":\"Kadrion\",\"startUs\":500000,\"durationUs\":600000}]}",
     "inputSchema": {
       "type": "object",
       "description": "Replaces every word of a captions node, as a new transcription.",
@@ -1753,7 +1753,7 @@
   },
   {
     "name": "set_caption_word",
-    "description": "Replaces one word of a captions node with a complete word {text, startUs, durationUs}: a corrected text, a new timing, or both; it must still start no earlier than the word before it ends and end no later than the next one starts. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken takes highlightColor. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, index-out-of-range, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"index\":2,\"word\":{\"text\":\"Kadrion\",\"startUs\":500000,\"durationUs\":600000}}",
+    "description": "Replaces one word of a captions node with a complete word {text, startUs, durationUs}: a corrected text, a new timing, or both; it must still start no earlier than the word before it ends and end no later than the next one starts. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, index-out-of-range, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"index\":2,\"word\":{\"text\":\"Kadrion\",\"startUs\":500000,\"durationUs\":600000}}",
     "inputSchema": {
       "type": "object",
       "description": "Replaces one word of a captions node: its text, its timing, or both.",
@@ -1784,7 +1784,7 @@
   },
   {
     "name": "set_caption_style",
-    "description": "Replaces the style of a captions node with a complete style {fontSize, lineHeight, color, highlightColor, align, verticalAlign, maxLineLength, maxLines}: its size and colours, where its lines lie in its box, and how many characters fit on a line and lines on a page, which changes how the words are grouped. No word and no time changes. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken takes highlightColor. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Lengths and coordinates are composition pixels, rounded to integers. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"style\":{\"fontSize\":64,\"lineHeight\":80,\"color\":\"#ffffff\",\"highlightColor\":\"#ffd400\",\"align\":\"center\",\"verticalAlign\":\"bottom\",\"maxLineLength\":24,\"maxLines\":2}}",
+    "description": "Replaces the style of a captions node with a complete style {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, stroke, shadow, box, pageIn, pageOut}: its size and colours, what the word being spoken shows (as set_caption_highlight describes it), where its lines lie in its box, how many characters fit on a line and lines on a page, which changes how the words are grouped, the outline, shadow, and box of its lines (as set_text_style describes them, the box lying behind every line of the page shown), and how a page enters and leaves (as set_caption_page_animation describes it). No word and no time changes. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Lengths and coordinates are composition pixels, rounded to integers. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"style\":{\"fontSize\":64,\"lineHeight\":80,\"color\":\"#ffffff\",\"highlight\":{\"color\":\"#ffd400\",\"scale\":1,\"tracks\":[],\"underline\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"}},\"align\":\"center\",\"verticalAlign\":\"bottom\",\"maxLineLength\":24,\"maxLines\":2,\"stroke\":{\"kind\":\"outside\",\"color\":\"#000000\",\"width\":3},\"shadow\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"},\"pageIn\":{\"kind\":\"none\"},\"pageOut\":{\"kind\":\"none\"}}}",
     "inputSchema": {
       "type": "object",
       "description": "Replaces how a captions node shows its words; no word and no time changes.",
@@ -1796,7 +1796,7 @@
         },
         "style": {
           "type": "object",
-          "description": "The complete new style: {fontSize, lineHeight, color, highlightColor, align, verticalAlign, maxLineLength, maxLines}. fontSize and lineHeight are integer composition pixels; color and highlightColor lowercase #rrggbb, the second for the word being spoken; align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100."
+          "description": "The complete new style: {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, stroke, shadow, box, pageIn, pageOut}. fontSize and lineHeight are integer composition pixels; color lowercase #rrggbb; highlight what the word being spoken shows (see set_caption_highlight); align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100; stroke, shadow, and box as the style of a text, the box lying behind every line; pageIn and pageOut how a page enters and leaves (see set_caption_page_animation)."
         }
       },
       "required": [
@@ -1894,6 +1894,81 @@
       },
       "required": [
         "animation"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_caption_highlight",
+    "description": "Replaces what the word being spoken shows in a captions node, from its startUs for its durationUs and at no other time, with a complete highlight {color, scale, tracks, underline, box}: color its colour (lowercase #rrggbb); scale a factor of its size about its centre on both axes (1 for none, 1.2 to make it grow); tracks, at most one per property, {property, keyframes} as the tracks of add_text_animation (opacity, offset, scale, rotation, color) in the word's own time from 0 at its startUs, for a bounce or a pop, [] for none; underline {\"kind\":\"none\"} or {\"kind\":\"solid\", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word's line; box {\"kind\":\"none\"} or {\"kind\":\"solid\", color, opacity, padding, cornerRadius}, a filled box behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are. Any scale, track, underline, or box draws the node in pieces (an element per line and per word) for its whole lifetime. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"highlight\":{\"color\":\"#ffd400\",\"scale\":1.15,\"tracks\":[{\"property\":\"offset\",\"keyframes\":[{\"timeUs\":0,\"value\":{\"x\":0,\"y\":0},\"easing\":{\"kind\":\"ease-out\"}},{\"timeUs\":100000,\"value\":{\"x\":0,\"y\":-12},\"easing\":{\"kind\":\"ease-in\"}},{\"timeUs\":200000,\"value\":{\"x\":0,\"y\":0},\"easing\":{\"kind\":\"linear\"}}]}],\"underline\":{\"kind\":\"solid\",\"color\":\"#ffd400\",\"thickness\":4,\"offset\":2},\"box\":{\"kind\":\"none\"}}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Replaces what the word being spoken shows in a captions node.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of a captions node.",
+          "minLength": 1
+        },
+        "highlight": {
+          "type": "object",
+          "description": "The complete highlight: {color, scale, tracks, underline, box}, shown on the word being spoken from its startUs for its durationUs and at no other time. color is lowercase #rrggbb; scale a factor of its size about its centre on both axes, 1 for none; tracks a list, at most one per property, of {property, keyframes} as the tracks of a text animation, in the word's own time from 0 at its startUs (a bounce, a pop), [] for none; underline {kind: \"none\"} or {kind: \"solid\", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word's line; box {kind: \"none\"} or {kind: \"solid\", color, opacity, padding, cornerRadius} behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are."
+        }
+      },
+      "required": [
+        "nodeId",
+        "highlight"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_caption_page_animation",
+    "description": "Replaces how every page of a captions node enters (phase \"in\") or leaves (phase \"out\") with a complete page animation: {\"kind\":\"none\"} for at once, or {\"kind\":\"animate\", unit, staggerUs, order, tracks}: unit \"word\" or \"line\" of the page; every fragment runs the same tracks in its own time, which starts staggerUs (integer microseconds) after the fragment before it in the order; order and tracks as for add_text_animation. An entrance starts the first fragment's own time at the start of the page's first word; an exit ends the last fragment's last keyframe at the start of the next page, or on the last page at the end of the last word, so an exit usually ends at opacity 0. The page shown, and the words and lines on it, stay those of the style. An animated page draws the node in pieces for its whole lifetime. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"phase\":\"in\",\"animation\":{\"kind\":\"animate\",\"unit\":\"word\",\"staggerUs\":60000,\"order\":{\"kind\":\"forward\"},\"tracks\":[{\"property\":\"opacity\",\"keyframes\":[{\"timeUs\":0,\"value\":0,\"easing\":{\"kind\":\"linear\"}},{\"timeUs\":200000,\"value\":1,\"easing\":{\"kind\":\"linear\"}}]},{\"property\":\"offset\",\"keyframes\":[{\"timeUs\":0,\"value\":{\"x\":0,\"y\":24},\"easing\":{\"kind\":\"ease-out\"}},{\"timeUs\":200000,\"value\":{\"x\":0,\"y\":0},\"easing\":{\"kind\":\"linear\"}}]}]}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Replaces how every page of a captions node enters or leaves.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of a captions node.",
+          "minLength": 1
+        },
+        "phase": {
+          "type": "string",
+          "description": "in for how a page enters, out for how it leaves.",
+          "enum": [
+            "in",
+            "out"
+          ]
+        },
+        "animation": {
+          "type": "object",
+          "description": "The complete page animation: {kind: \"none\"}, or {kind: \"animate\", unit, staggerUs, order, tracks} with unit \"word\" or \"line\" of the page, staggerUs the integer microseconds between two fragments that follow each other, order as for a text animation, and tracks as for a text animation, in each fragment's own time. An entrance starts the first fragment at the start of the page's first word; an exit ends the last fragment's last keyframe at the start of the next page, or on the last page at the end of the last word."
+        }
+      },
+      "required": [
+        "nodeId",
+        "phase",
+        "animation"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_safe_area",
+    "description": "Replaces the safe area of the composition, {fromTop, fromRight, fromBottom, fromLeft}: integer composition pixels from each edge of the canvas to the part of the frame where captions and other text that must be read belong, clear of what a platform draws over the video; two opposite insets leave at least 1 pixel, and all zero is the whole canvas. It is a frame of reference, not a clip: it cuts and moves nothing, and nothing outside it is hidden. Keep captions inside it by placing their box with set_node_position and set_node_size. describe_document shows it. Refused with invalid-argument and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"safeArea\":{\"fromTop\":160,\"fromRight\":64,\"fromBottom\":320,\"fromLeft\":64}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Replaces the safe area of the composition.",
+      "properties": {
+        "safeArea": {
+          "type": "object",
+          "description": "The complete safe area: {fromTop, fromRight, fromBottom, fromLeft}, integer composition pixels from each edge of the canvas; two opposite insets leave at least 1 pixel, and all zero is the whole canvas."
+        }
+      },
+      "required": [
+        "safeArea"
       ],
       "additionalProperties": false
     }
@@ -2233,6 +2308,9 @@
                   "add_text_animation",
                   "remove_text_animation",
                   "set_text_animation",
+                  "set_caption_highlight",
+                  "set_caption_page_animation",
+                  "set_safe_area",
                   "add_template_input",
                   "remove_template_input",
                   "set_template_input",

@@ -847,6 +847,43 @@ export interface SetTextAnimationCommand extends SetTextAnimationArguments {
   readonly type: 'SetTextAnimation';
 }
 
+/** What a caller states for `SetCaptionHighlight` (D70). */
+export interface SetCaptionHighlightArguments {
+  readonly nodeId: string;
+  /** The complete highlight, as the document stores it. */
+  readonly highlight: DocumentObject;
+}
+
+/** Replaces what the word being spoken shows in a captions node (D70). */
+export interface SetCaptionHighlightCommand extends SetCaptionHighlightArguments {
+  readonly type: 'SetCaptionHighlight';
+}
+
+/** What a caller states for `SetCaptionPageAnimation` (D70). */
+export interface SetCaptionPageAnimationArguments {
+  readonly nodeId: string;
+  /** `in` for how every page enters, `out` for how it leaves. */
+  readonly phase: 'in' | 'out';
+  /** The complete page animation, or `{ kind: 'none' }`, as the document stores it. */
+  readonly animation: DocumentObject;
+}
+
+/** Replaces how every page of a captions node enters or leaves (D70). */
+export interface SetCaptionPageAnimationCommand extends SetCaptionPageAnimationArguments {
+  readonly type: 'SetCaptionPageAnimation';
+}
+
+/** What a caller states for `SetSafeArea` (D70). */
+export interface SetSafeAreaArguments {
+  /** The complete safe area, as the document stores it. */
+  readonly safeArea: DocumentObject;
+}
+
+/** Replaces the safe area of the composition (D70). */
+export interface SetSafeAreaCommand extends SetSafeAreaArguments {
+  readonly type: 'SetSafeArea';
+}
+
 /** What a caller states for `AddTemplateInput` (D58.6). */
 export interface AddTemplateInputArguments {
   /** The input's index in the template's inputs after the insertion. */
@@ -1021,6 +1058,9 @@ export type Command =
   | AddTextAnimationCommand
   | RemoveTextAnimationCommand
   | SetTextAnimationCommand
+  | SetCaptionHighlightCommand
+  | SetCaptionPageAnimationCommand
+  | SetSafeAreaCommand
   | AddTemplateInputCommand
   | RemoveTemplateInputCommand
   | SetTemplateInputCommand
@@ -1350,6 +1390,42 @@ export interface AddTextAnimationArgumentsSchema {
 export type RemoveTextAnimationArgumentsSchema = ClosedObjectSchema<
   keyof RemoveTextAnimationArguments
 >;
+
+/** The argument schema of `SetCaptionHighlight`: closed, with `highlight` an open object (D70). */
+export interface SetCaptionHighlightArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly highlight: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetCaptionHighlightArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetCaptionPageAnimation`: closed, with `animation` an open object (D70). */
+export interface SetCaptionPageAnimationArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly phase: ArgumentSchema;
+    readonly animation: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetCaptionPageAnimationArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetSafeArea`: closed, with `safeArea` an open object (D70). */
+export interface SetSafeAreaArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly safeArea: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetSafeAreaArguments)[];
+  readonly additionalProperties: false;
+}
 
 /** The argument schema of `SetTextAnimation`: closed, with `animation` an open object (D69). */
 export interface SetTextAnimationArgumentsSchema {
@@ -2654,7 +2730,7 @@ export const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema = de
     style: {
       type: 'object',
       description:
-        'The complete new style: {fontSize, lineHeight, color, highlightColor, align, verticalAlign, maxLineLength, maxLines}. fontSize and lineHeight are integer composition pixels; color and highlightColor lowercase #rrggbb, the second for the word being spoken; align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100.',
+        'The complete new style: {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, stroke, shadow, box, pageIn, pageOut}. fontSize and lineHeight are integer composition pixels; color lowercase #rrggbb; highlight what the word being spoken shows (see set_caption_highlight); align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100; stroke, shadow, and box as the style of a text, the box lying behind every line; pageIn and pageOut how a page enters and leaves (see set_caption_page_animation).',
     },
   },
   required: ['nodeId', 'style'],
@@ -2728,6 +2804,63 @@ export const setTextAnimationArgumentsSchema: SetTextAnimationArgumentsSchema = 
     },
   },
   required: ['animation'],
+  additionalProperties: false,
+});
+
+const CAPTION_HIGHLIGHT =
+  'The complete highlight: {color, scale, tracks, underline, box}, shown on the word being spoken from its startUs for its durationUs and at no other time. color is lowercase #rrggbb; scale a factor of its size about its centre on both axes, 1 for none; tracks a list, at most one per property, of {property, keyframes} as the tracks of a text animation, in the word\'s own time from 0 at its startUs (a bounce, a pop), [] for none; underline {kind: "none"} or {kind: "solid", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word\'s line; box {kind: "none"} or {kind: "solid", color, opacity, padding, cornerRadius} behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are.';
+
+const PAGE_ANIMATION =
+  'The complete page animation: {kind: "none"}, or {kind: "animate", unit, staggerUs, order, tracks} with unit "word" or "line" of the page, staggerUs the integer microseconds between two fragments that follow each other, order as for a text animation, and tracks as for a text animation, in each fragment\'s own time. An entrance starts the first fragment at the start of the page\'s first word; an exit ends the last fragment\'s last keyframe at the start of the next page, or on the last page at the end of the last word.';
+
+/** The JSON Schema of the arguments of `SetCaptionHighlight` (D70): the highlight is the document's to judge. */
+export const setCaptionHighlightArgumentsSchema: SetCaptionHighlightArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces what the word being spoken shows in a captions node.',
+  properties: {
+    nodeId: { type: 'string', description: CAPTIONS_ID, minLength: 1 },
+    highlight: { type: 'object', description: CAPTION_HIGHLIGHT },
+  },
+  required: ['nodeId', 'highlight'],
+  additionalProperties: false,
+});
+
+/** The phases of a page of captions (D70). */
+const PAGE_PHASES: readonly SetCaptionPageAnimationArguments['phase'][] = Object.freeze([
+  'in',
+  'out',
+]);
+
+/** The JSON Schema of the arguments of `SetCaptionPageAnimation` (D70): the animation is the document's to judge. */
+export const setCaptionPageAnimationArgumentsSchema: SetCaptionPageAnimationArgumentsSchema =
+  deepFreeze({
+    type: 'object',
+    description: 'Replaces how every page of a captions node enters or leaves.',
+    properties: {
+      nodeId: { type: 'string', description: CAPTIONS_ID, minLength: 1 },
+      phase: {
+        type: 'string',
+        description: 'in for how a page enters, out for how it leaves.',
+        enum: PAGE_PHASES,
+      },
+      animation: { type: 'object', description: PAGE_ANIMATION },
+    },
+    required: ['nodeId', 'phase', 'animation'],
+    additionalProperties: false,
+  });
+
+/** The JSON Schema of the arguments of `SetSafeArea` (D70): the safe area is the document's to judge. */
+export const setSafeAreaArgumentsSchema: SetSafeAreaArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces the safe area of the composition.',
+  properties: {
+    safeArea: {
+      type: 'object',
+      description:
+        'The complete safe area: {fromTop, fromRight, fromBottom, fromLeft}, integer composition pixels from each edge of the canvas; two opposite insets leave at least 1 pixel, and all zero is the whole canvas.',
+    },
+  },
+  required: ['safeArea'],
   additionalProperties: false,
 });
 
@@ -4379,6 +4512,54 @@ export function parseSetTextAnimation(value: unknown): SetTextAnimationCommand {
   return Object.freeze({
     type: 'SetTextAnimation',
     animation: dataOf(fields['animation'], 'animation'),
+  });
+}
+
+/** The fields of a `SetCaptionHighlight` (D70); the document's validation judges the highlight. */
+export function parseSetCaptionHighlight(value: unknown): SetCaptionHighlightCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'highlight'],
+    'The command `SetCaptionHighlight`',
+  );
+  const nodeId = nodeIdOf(fields);
+  return Object.freeze({
+    type: 'SetCaptionHighlight',
+    nodeId,
+    highlight: dataOf(fields['highlight'], 'highlight'),
+  });
+}
+
+/** The fields of a `SetCaptionPageAnimation` (D70); the document's validation judges the animation. */
+export function parseSetCaptionPageAnimation(value: unknown): SetCaptionPageAnimationCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'phase', 'animation'],
+    'The command `SetCaptionPageAnimation`',
+  );
+  const nodeId = nodeIdOf(fields);
+  const phase: unknown = fields['phase'];
+  const known = PAGE_PHASES.find((item) => item === phase);
+  if (known === undefined) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`phase\` must be one of ${PAGE_PHASES.join(', ')}.`,
+    );
+  }
+  return Object.freeze({
+    type: 'SetCaptionPageAnimation',
+    nodeId,
+    phase: known,
+    animation: dataOf(fields['animation'], 'animation'),
+  });
+}
+
+/** The fields of a `SetSafeArea` (D70); the document's validation judges the safe area. */
+export function parseSetSafeArea(value: unknown): SetSafeAreaCommand {
+  const fields = fieldsOf(value, ['type', 'safeArea'], 'The command `SetSafeArea`');
+  return Object.freeze({
+    type: 'SetSafeArea',
+    safeArea: dataOf(fields['safeArea'], 'safeArea'),
   });
 }
 

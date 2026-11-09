@@ -129,6 +129,7 @@ describe('evaluateComposition of captions (D57.4)', () => {
       color: '#ffffff',
       page: 0,
       word: 0,
+      fragments: null,
     });
   });
 });

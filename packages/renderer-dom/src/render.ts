@@ -5,6 +5,7 @@
  */
 import type {
   CaptionsNodeState,
+  FragmentState,
   Circle,
   ClipTransitionState,
   CompositionState,
@@ -29,8 +30,11 @@ import {
 } from './css.js';
 import { RenderError, unsupportedNode } from './errors.js';
 import {
+  CAPTION_LINE_ATTRIBUTE,
   CAPTION_PAGE_ATTRIBUTE,
+  CAPTION_UNDERLINE_ATTRIBUTE,
   CAPTION_WORD_ATTRIBUTE,
+  CAPTION_WORD_BOX_ATTRIBUTE,
   CLIP_FRAME_ATTRIBUTE,
   FRAGMENT_ATTRIBUTE,
   HIGHLIGHT_PROPERTY,
@@ -143,6 +147,22 @@ function plan(
       if (state.page !== null && state.page >= pages) {
         mismatch(
           `The captions \`${state.id}\` have ${String(pages)} pages mounted where the state shows page ${String(state.page)}.`,
+        );
+      }
+      // Its pieces must be those the mount built (D70): none for a node drawn as
+      // D57 draws it, and the lines and words of the page shown otherwise.
+      const pieces = element.querySelector(`[${CAPTION_LINE_ATTRIBUTE}]`) !== null;
+      const shown = shownPage(element, state.page);
+      const lines = shown === null ? 0 : piecesOf(shown, CAPTION_LINE_ATTRIBUTE).length;
+      const words = shown === null ? 0 : piecesOf(shown, CAPTION_WORD_ATTRIBUTE).length;
+      const fragments = state.fragments;
+      if (
+        (fragments === null && pieces) ||
+        (fragments !== null &&
+          (fragments.lines.length !== lines || fragments.words.length !== words))
+      ) {
+        mismatch(
+          `The captions \`${state.id}\` have ${String(lines)} lines and ${String(words)} words in pieces mounted on the page shown where the state has ${fragments === null ? 'none' : `${String(fragments.lines.length)} and ${String(fragments.words.length)}`}.`,
         );
       }
       writes.push({ element, state, sceneTimeUs });
@@ -368,11 +388,29 @@ function writeFragments(element: HTMLElement, node: TextNodeState): void {
   }
 }
 
+/** The element of the page of a captions node that a state shows, or `null`. */
+function shownPage(element: HTMLElement, page: number | null): HTMLElement | null {
+  if (page === null) return null;
+  return element.querySelector<HTMLElement>(`[${CAPTION_PAGE_ATTRIBUTE}="${String(page)}"]`);
+}
+
+/** The pieces of one kind inside an element, in the order of the page (D70). */
+function piecesOf(element: HTMLElement, attribute: string): HTMLElement[] {
+  return [...element.querySelectorAll<HTMLElement>(`[${attribute}]`)];
+}
+
+/** The declarations `renderState` writes on a line or a word of captions in pieces (D70). */
+const PIECE_WRITTEN = ['opacity', 'transform', 'color'] as const;
+
 /**
  * Shows the page of a captions node that its state names and hides every other
- * one, and gives the word being spoken the highlight colour the mount wrote
- * on the box as a custom property, and every other
- * word none of its own (D57). `null`, or a state without a page, is the tree as
+ * one (D57). A node drawn as D57 draws it gives the word being spoken the
+ * highlight colour the mount wrote on the box as a custom property, and every
+ * other word none of its own. A node drawn in pieces (D70) gets the opacity,
+ * the transform, and the colour of every line and word of the page shown from
+ * its state, at rest too, and the box and the underline of the highlight shown
+ * on the word being spoken alone; the lines and words of every other page lose
+ * what an earlier call wrote. `null`, or a state without a page, is the tree as
  * mounted: every page hidden, no word highlighted. Every page and word is
  * written on every call, so nothing depends on what an earlier call left.
  */
@@ -382,15 +420,50 @@ function writeCaptions(element: HTMLElement, state: CaptionsNodeState | null): v
       state?.page != null && page.getAttribute(CAPTION_PAGE_ATTRIBUTE) === String(state.page);
     page.style.setProperty('display', shown ? 'flex' : 'none');
   }
-  for (const word of element.querySelectorAll<HTMLElement>(`[${CAPTION_WORD_ATTRIBUTE}]`)) {
+  const fragments = state?.fragments ?? null;
+  const shown = fragments === null ? null : shownPage(element, state?.page ?? null);
+  const written = new Map<HTMLElement, FragmentState>();
+  if (fragments !== null && shown !== null) {
+    piecesOf(shown, CAPTION_LINE_ATTRIBUTE).forEach((line, index) => {
+      const value = fragments.lines[index];
+      if (value !== undefined) written.set(line, value);
+    });
+    piecesOf(shown, CAPTION_WORD_ATTRIBUTE).forEach((word, index) => {
+      const value = fragments.words[index];
+      if (value !== undefined) written.set(word, value);
+    });
+  }
+  for (const line of piecesOf(element, CAPTION_LINE_ATTRIBUTE)) {
+    const value = written.get(line);
+    if (value === undefined) {
+      for (const property of PIECE_WRITTEN) line.style.removeProperty(property);
+      continue;
+    }
+    line.style.setProperty('opacity', cssNumber(value.opacity));
+    line.style.setProperty('transform', cssFragmentTransform(value));
+  }
+  for (const word of piecesOf(element, CAPTION_WORD_ATTRIBUTE)) {
     const spoken =
       state?.word != null && word.getAttribute(CAPTION_WORD_ATTRIBUTE) === String(state.word);
-    if (spoken) word.style.setProperty('color', `var(${HIGHLIGHT_PROPERTY})`);
-    else {
-      word.style.removeProperty('color');
-      // A word without a declaration carries no style attribute, as the mount built it.
-      if (word.style.length === 0) word.removeAttribute('style');
+    for (const piece of word.children) {
+      if (
+        piece.hasAttribute(CAPTION_WORD_BOX_ATTRIBUTE) ||
+        piece.hasAttribute(CAPTION_UNDERLINE_ATTRIBUTE)
+      ) {
+        (piece as HTMLElement).style.setProperty('display', spoken ? 'block' : 'none');
+      }
     }
+    const value = written.get(word);
+    if (value !== undefined) {
+      word.style.setProperty('opacity', cssNumber(value.opacity));
+      word.style.setProperty('transform', cssFragmentTransform(value));
+      word.style.setProperty('color', cssColor(value.color));
+      continue;
+    }
+    for (const property of PIECE_WRITTEN) word.style.removeProperty(property);
+    if (spoken && fragments === null) word.style.setProperty('color', `var(${HIGHLIGHT_PROPERTY})`);
+    // A word without a declaration carries no style attribute, as the mount built it.
+    if (word.style.length === 0) word.removeAttribute('style');
   }
 }
 

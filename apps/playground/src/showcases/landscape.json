@@ -1,7 +1,13 @@
 {
-  "schemaVersion": "0.14",
+  "schemaVersion": "0.15",
   "width": 1920,
   "height": 1080,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
   "fps": 24,
   "durationUs": 5000000,
   "assets": [
@@ -143,9 +149,15 @@
           "fontSize": 200,
           "color": "#ffffff",
           "style": {
-            "stroke": { "kind": "none" },
-            "shadow": { "kind": "none" },
-            "box": { "kind": "none" }
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
           },
           "textAnimations": []
         },
@@ -201,9 +213,15 @@
           "fontSize": 72,
           "color": "#98a2b3",
           "style": {
-            "stroke": { "kind": "none" },
-            "shadow": { "kind": "none" },
-            "box": { "kind": "none" }
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
           },
           "textAnimations": []
         }

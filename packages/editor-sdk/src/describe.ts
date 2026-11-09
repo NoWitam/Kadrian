@@ -53,6 +53,17 @@ export interface DocumentDescription {
   /** The canvas, in composition pixels. */
   readonly width: number;
   readonly height: number;
+  /**
+   * The safe area, from each edge of the canvas, as the document stores it
+   * (D70): where captions and other text that must be read belong. It cuts
+   * nothing.
+   */
+  readonly safeArea: {
+    readonly fromTop: number;
+    readonly fromRight: number;
+    readonly fromBottom: number;
+    readonly fromLeft: number;
+  };
   readonly fps: number;
   /** The length of the composition, in integer microseconds. */
   readonly durationUs: number;
@@ -127,6 +138,7 @@ export function describeDocument(
     schemaVersion: copy.schemaVersion,
     width: copy.width,
     height: copy.height,
+    safeArea: copy.safeArea,
     fps: copy.fps,
     durationUs: copy.durationUs,
     scenes: copy.scenes.map((scene, index) => ({

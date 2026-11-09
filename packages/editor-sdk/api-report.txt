@@ -460,7 +460,7 @@ export interface ClosedObjectSchema<K extends string> {
 }
 
 ---- Command (type only)
-export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetKeyframeEasingCommand | SetKeyframeValueCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetNodeFocusCommand | SetNodeRotationCommand | SetNodeOriginCommand | SetNodeCropCommand | SetNodeCornerRadiusCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetTransitionEasingCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | SetTextStyleCommand | AddTextAnimationCommand | RemoveTextAnimationCommand | SetTextAnimationCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand;
+export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetKeyframeEasingCommand | SetKeyframeValueCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetNodeFocusCommand | SetNodeRotationCommand | SetNodeOriginCommand | SetNodeCropCommand | SetNodeCornerRadiusCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetTransitionEasingCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | SetTextStyleCommand | AddTextAnimationCommand | RemoveTextAnimationCommand | SetTextAnimationCommand | SetCaptionHighlightCommand | SetCaptionPageAnimationCommand | SetSafeAreaCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand;
 
 ---- CommandArguments (type only)
 export type CommandArguments<T extends Command['type']> = Omit<Extract<Command, {
@@ -468,7 +468,7 @@ export type CommandArguments<T extends Command['type']> = Omit<Extract<Command, 
 }>, 'type'>;
 
 ---- CommandArgumentsSchema (type only)
-export type CommandArgumentsSchema = ClosedObjectSchema<string> | AddNodeArgumentsSchema | AddAnimationArgumentsSchema | AddKeyframeArgumentsSchema | AddAudioClipArgumentsSchema | AddSceneArgumentsSchema | AddSceneAudioClipArgumentsSchema | AddSceneTransitionArgumentsSchema | AddClipTransitionArgumentsSchema | SetTransitionEffectArgumentsSchema | SetTransitionEasingArgumentsSchema | SetKeyframeEasingArgumentsSchema | SetKeyframeValueArgumentsSchema | SetCaptionWordsArgumentsSchema | SetCaptionWordArgumentsSchema | SetCaptionStyleArgumentsSchema | SetTextStyleArgumentsSchema | AddTextAnimationArgumentsSchema | RemoveTextAnimationArgumentsSchema | SetTextAnimationArgumentsSchema | AddTemplateInputArgumentsSchema | SetTemplateInputArgumentsSchema | AddTemplateBindingArgumentsSchema | AddTemplateConditionArgumentsSchema | AddTemplateRepeatArgumentsSchema;
+export type CommandArgumentsSchema = ClosedObjectSchema<string> | AddNodeArgumentsSchema | AddAnimationArgumentsSchema | AddKeyframeArgumentsSchema | AddAudioClipArgumentsSchema | AddSceneArgumentsSchema | AddSceneAudioClipArgumentsSchema | AddSceneTransitionArgumentsSchema | AddClipTransitionArgumentsSchema | SetTransitionEffectArgumentsSchema | SetTransitionEasingArgumentsSchema | SetKeyframeEasingArgumentsSchema | SetKeyframeValueArgumentsSchema | SetCaptionWordsArgumentsSchema | SetCaptionWordArgumentsSchema | SetCaptionStyleArgumentsSchema | SetTextStyleArgumentsSchema | AddTextAnimationArgumentsSchema | RemoveTextAnimationArgumentsSchema | SetTextAnimationArgumentsSchema | SetCaptionHighlightArgumentsSchema | SetCaptionPageAnimationArgumentsSchema | SetSafeAreaArgumentsSchema | AddTemplateInputArgumentsSchema | SetTemplateInputArgumentsSchema | AddTemplateBindingArgumentsSchema | AddTemplateConditionArgumentsSchema | AddTemplateRepeatArgumentsSchema;
 
 ---- CommandBus (type only)
 export interface CommandBus {
@@ -525,6 +525,12 @@ export interface DocumentDescription {
     readonly schemaVersion: string;
     readonly width: number;
     readonly height: number;
+    readonly safeArea: {
+        readonly fromTop: number;
+        readonly fromRight: number;
+        readonly fromBottom: number;
+        readonly fromLeft: number;
+    };
     readonly fps: number;
     readonly durationUs: number;
     readonly scenes: readonly SceneDescription[];
@@ -901,6 +907,54 @@ export interface SceneDescription {
     readonly nodes: readonly NodeDescription[];
     readonly clips: readonly unknown[];
     readonly transitions: readonly unknown[];
+}
+
+---- SetCaptionHighlightArguments (type only)
+export interface SetCaptionHighlightArguments {
+    readonly nodeId: string;
+    readonly highlight: DocumentObject;
+}
+
+---- SetCaptionHighlightArgumentsSchema (type only)
+export interface SetCaptionHighlightArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly highlight: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetCaptionHighlightArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetCaptionHighlightCommand (type only)
+export interface SetCaptionHighlightCommand extends SetCaptionHighlightArguments {
+    readonly type: 'SetCaptionHighlight';
+}
+
+---- SetCaptionPageAnimationArguments (type only)
+export interface SetCaptionPageAnimationArguments {
+    readonly nodeId: string;
+    readonly phase: 'in' | 'out';
+    readonly animation: DocumentObject;
+}
+
+---- SetCaptionPageAnimationArgumentsSchema (type only)
+export interface SetCaptionPageAnimationArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly phase: ArgumentSchema;
+        readonly animation: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetCaptionPageAnimationArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetCaptionPageAnimationCommand (type only)
+export interface SetCaptionPageAnimationCommand extends SetCaptionPageAnimationArguments {
+    readonly type: 'SetCaptionPageAnimation';
 }
 
 ---- SetCaptionStyleArguments (type only)
@@ -1294,6 +1348,27 @@ export type SetPositionKeyframeArgumentsSchema = ClosedObjectSchema<keyof SetPos
 ---- SetPositionKeyframeCommand (type only)
 export interface SetPositionKeyframeCommand extends SetPositionKeyframeArguments {
     readonly type: 'SetPositionKeyframe';
+}
+
+---- SetSafeAreaArguments (type only)
+export interface SetSafeAreaArguments {
+    readonly safeArea: DocumentObject;
+}
+
+---- SetSafeAreaArgumentsSchema (type only)
+export interface SetSafeAreaArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly safeArea: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetSafeAreaArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetSafeAreaCommand (type only)
+export interface SetSafeAreaCommand extends SetSafeAreaArguments {
+    readonly type: 'SetSafeArea';
 }
 
 ---- SetScaleKeyframeArguments (type only)
@@ -1714,6 +1789,12 @@ export declare const reorderNodeArgumentsSchema: ReorderNodeArgumentsSchema;
 ---- reorderSceneArgumentsSchema
 export declare const reorderSceneArgumentsSchema: ReorderSceneArgumentsSchema;
 
+---- setCaptionHighlightArgumentsSchema
+export declare const setCaptionHighlightArgumentsSchema: SetCaptionHighlightArgumentsSchema;
+
+---- setCaptionPageAnimationArgumentsSchema
+export declare const setCaptionPageAnimationArgumentsSchema: SetCaptionPageAnimationArgumentsSchema;
+
 ---- setCaptionStyleArgumentsSchema
 export declare const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema;
 
@@ -1782,6 +1863,9 @@ export declare const setOpacityKeyframeArgumentsSchema: SetOpacityKeyframeArgume
 
 ---- setPositionKeyframeArgumentsSchema
 export declare const setPositionKeyframeArgumentsSchema: SetPositionKeyframeArgumentsSchema;
+
+---- setSafeAreaArgumentsSchema
+export declare const setSafeAreaArgumentsSchema: SetSafeAreaArgumentsSchema;
 
 ---- setScaleKeyframeArgumentsSchema
 export declare const setScaleKeyframeArgumentsSchema: SetScaleKeyframeArgumentsSchema;

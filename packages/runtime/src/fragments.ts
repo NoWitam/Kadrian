@@ -80,10 +80,10 @@ export function fragmentSteps(order: TextAnimation['order'], count: number): num
   }
 }
 
-/** The time of the last keyframe of any track: the length of one fragment's animation (D69.3). */
-function lengthOf(animation: TextAnimation): number {
+/** The time of the last keyframe of any track: the length of one fragment's animation (D69.3, D70). */
+export function tracksLength(tracks: readonly FragmentTrack[]): number {
   let length = 0;
-  for (const track of animation.tracks) {
+  for (const track of tracks) {
     const last = track.keyframes[track.keyframes.length - 1];
     if (last !== undefined && last.timeUs > length) length = last.timeUs;
   }
@@ -116,7 +116,7 @@ function ownTime(
       return (
         timeUs -
         node.startUs -
-        (node.durationUs - lengthOf(animation) - (steps - 1 - step) * staggerUs)
+        (node.durationUs - tracksLength(animation.tracks) - (steps - 1 - step) * staggerUs)
       );
     default:
       return unsupported(phase, 'kind');
@@ -124,15 +124,16 @@ function ownTime(
 }
 
 /** A fragment at rest: nothing moved, the colour of the text (D69). */
-function rest(color: string): FragmentState {
+export function rest(color: string): FragmentState {
   return { opacity: 1, offset: { x: 0, y: 0 }, scale: { x: 1, y: 1 }, rotation: 0, color };
 }
 
 /**
  * One fragment after the tracks of one animation at its own time: opacity and
- * scale multiply, offset and rotation add, and a colour replaces (D69.3).
+ * scale multiply, offset and rotation add, and a colour replaces (D69.3). The
+ * highlight and the page animations of captions use the same rule (D70).
  */
-function applied(
+export function applied(
   fragment: FragmentState,
   tracks: readonly FragmentTrack[],
   ownTimeUs: number,

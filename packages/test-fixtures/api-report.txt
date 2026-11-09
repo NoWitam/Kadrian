@@ -167,6 +167,12 @@ export declare const captionsComposition: unknown;
 ---- captionsGoldenTimestamps
 export declare const captionsGoldenTimestamps: readonly GoldenTimestamp[];
 
+---- captionsMotionComposition
+export declare const captionsMotionComposition: unknown;
+
+---- captionsMotionGoldenTimestamps
+export declare const captionsMotionGoldenTimestamps: readonly GoldenTimestamp[];
+
 ---- clipTransitionsComposition
 export declare const clipTransitionsComposition: unknown;
 
@@ -209,6 +215,9 @@ export declare const invalidCompositionCasesV012: readonly InvalidCompositionCas
 ---- invalidCompositionCasesV013
 export declare const invalidCompositionCasesV013: readonly InvalidCompositionCase[];
 
+---- invalidCompositionCasesV014
+export declare const invalidCompositionCasesV014: readonly InvalidCompositionCase[];
+
 ---- invalidCompositionCasesV02
 export declare const invalidCompositionCasesV02: readonly InvalidCompositionCase[];
 
@@ -250,6 +259,9 @@ export declare const migrationPair012To013: MigrationPair;
 
 ---- migrationPair013To014
 export declare const migrationPair013To014: MigrationPair;
+
+---- migrationPair014To015
+export declare const migrationPair014To015: MigrationPair;
 
 ---- migrationPair01To02
 export declare const migrationPair01To02: MigrationPair;
@@ -301,6 +313,9 @@ export declare const referenceCompositionV012: unknown;
 
 ---- referenceCompositionV013
 export declare const referenceCompositionV013: unknown;
+
+---- referenceCompositionV014
+export declare const referenceCompositionV014: unknown;
 
 ---- referenceCompositionV02
 export declare const referenceCompositionV02: unknown;

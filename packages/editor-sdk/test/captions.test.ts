@@ -191,7 +191,11 @@ describe('SetCaptionWord (D57.5)', () => {
 
 describe('SetCaptionStyle (D57.5)', () => {
   it('replaces the style, keeps every word, and is undone exactly', () => {
-    const style = { ...captionsOf(document).style, maxLineLength: 30, highlightColor: '#00ff00' };
+    const style = {
+      ...captionsOf(document).style,
+      maxLineLength: 30,
+      highlight: { ...(captionsOf(document).style['highlight'] as object), color: '#00ff00' },
+    };
     const edited = roundTrip(document, { type: 'SetCaptionStyle', nodeId: 'captions', style });
     expect(captionsOf(edited).style).toEqual(style);
     expect(captionsOf(edited).words).toEqual(captionsOf(document).words);

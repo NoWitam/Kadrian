@@ -89,9 +89,10 @@ const node = (id: string, x: number, y: number) => ({
 /** The probe composition: schema 0.13, one scene, three subjects on a dark background. */
 export function probeComposition(): unknown {
   return {
-    schemaVersion: '0.14',
+    schemaVersion: '0.15',
     width: WIDTH,
     height: HEIGHT,
+    safeArea: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
     fps: FPS,
     durationUs: 2_000_000,
     assets: [

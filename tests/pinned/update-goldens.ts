@@ -3,8 +3,8 @@
  * reference composition, of the video composition (D50.8), of the
  * transitions composition (D56), of the clip transitions composition (D66),
  * of the captions composition (D57), of the focus composition (D63), of the
- * easing composition (D67), of the motion composition (D68), and of the text
- * composition (D69) with the Producer and writes the golden frames and their manifests into
+ * easing composition (D67), of the motion composition (D68), of the text
+ * composition (D69), and of the animated captions composition (D70) with the Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
  * to write anything unless the environment is the pinned container (D26.2)
@@ -30,6 +30,8 @@ import {
   referenceComposition,
   captionsComposition,
   captionsGoldenTimestamps,
+  captionsMotionComposition,
+  captionsMotionGoldenTimestamps,
   clipTransitionsComposition,
   clipTransitionsGoldenTimestamps,
   easingComposition,
@@ -245,6 +247,24 @@ try {
 `,
     );
     for (const frame of textFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The animated captions composition: entrances, a highlight that moves, and an exit (D70).
+    const captionsMotionResult = await renderFrames({
+      document: captionsMotionComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: captionsMotionGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const captionsMotionFrames = captionsMotionResult.frames.map(({ index, timeUs, png }) => {
+      const file = `captions-motion-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'captions-motion.golden-frames.json'),
+      `${JSON.stringify({ render: captionsMotionResult.manifest, environment, frames: captionsMotionFrames }, null, 2)}\n`,
+    );
+    for (const frame of captionsMotionFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

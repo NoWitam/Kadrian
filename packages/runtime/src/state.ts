@@ -150,6 +150,21 @@ export interface CaptionsNodeState extends LeafNodeState<'captions'> {
   readonly color: string;
   readonly page: number | null;
   readonly word: number | null;
+  /**
+   * The lines and words of the page shown, for a node drawn in pieces (D70),
+   * and `null` for one that is not, which is drawn as D57 draws it.
+   */
+  readonly fragments: CaptionFragmentsState | null;
+}
+
+/**
+ * The lines and words of the page a captions node shows (D70), each in the
+ * order of the page: the page's entrance and exit, and on the word being
+ * spoken its highlight. Both lists are empty while no page is shown.
+ */
+export interface CaptionFragmentsState {
+  readonly lines: readonly FragmentState[];
+  readonly words: readonly FragmentState[];
 }
 
 export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide {
