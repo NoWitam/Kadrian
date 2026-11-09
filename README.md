@@ -12,7 +12,7 @@ PR-18 to PR-22; phase three, the engine under a host's video editor
 PR-34b; phase four, a host integrating the engine
 ([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)), delivered PR-37 to
 PR-43; the current phase is motion graphics, effects, and reusable elements
-([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.14` with its forward migrations from `0.1` to `0.13`, the evaluation core, the DOM
+([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.15` with its forward migrations from `0.1` to `0.14`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -179,15 +179,16 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.14`
+A composition is a JSON document of schema `0.15`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.14",
+  "schemaVersion": "0.15",
   "width": 1080,
   "height": 1920,
+  "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
   "fps": 30,
   "durationUs": 3000000,
   "assets": [
@@ -341,8 +342,8 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.14` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.14` document, and none of them
+`validateComposition` accepts schema `0.15` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.15` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
@@ -354,8 +355,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.14 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.13', '0.14'], or ['0.14'] for a document that was current
+  migrated.composition; // a new, validated 0.15 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.14', '0.15'], or ['0.15'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -415,8 +416,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.14 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.13', '0.14'] from 0.1, ['0.14'] when it was current
+  loaded.composition; // a new, validated 0.15 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.14', '0.15'] from 0.1, ['0.15'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -431,7 +432,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -444,7 +445,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.14"`, speaks of that.
+  supports `"0.15"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -1067,7 +1068,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

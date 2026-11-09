@@ -9,7 +9,7 @@
  */
 export { AUDIO_SAMPLE_RATE, audioLayout, audioPlan, sampleAt } from './audio.js';
 export type { AudioLayout, AudioPlan, AudioPlanEntry, SampleFade, SoundLayout } from './audio.js';
-export { captionAt, captionPages } from './captions.js';
+export { captionAt, captionFragments, captionPages, captionsInPieces } from './captions.js';
 export type { CaptionInstant, CaptionLine, CaptionPage } from './captions.js';
 export { EvaluationError } from './errors.js';
 export type { EvaluationErrorCode } from './errors.js';
@@ -20,6 +20,7 @@ export { graphemes, isWhiteSpace, textLayout } from './graphemes.js';
 export type { TextLayout, TextLine, TextRun, TextWord } from './graphemes.js';
 export type {
   BackgroundNodeState,
+  CaptionFragmentsState,
   CaptionsNodeState,
   Circle,
   ClipTransitionSide,

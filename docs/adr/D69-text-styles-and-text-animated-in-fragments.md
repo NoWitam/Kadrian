@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-11-08, after PR-49 was merged
   (PR #66)
 - Date: 2026-11-08
+- Amended by: PR-50 (D70) on 2026-11-08: 69.1 and 69.9: the text style on captions, its box behind every line (D70.1)
 - Supersedes: —
 - Amends: D16 (a text has a `style` and `textAnimations`; the tracks of a text
   animation follow the rules of animations), D22 (the style of a text, its box,

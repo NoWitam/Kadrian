@@ -1,7 +1,13 @@
 {
-  "schemaVersion": "0.14",
+  "schemaVersion": "0.15",
   "width": 640,
   "height": 360,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
   "fps": 30,
   "durationUs": 3600000,
   "assets": [
@@ -54,9 +60,15 @@
           "fontSize": 72,
           "color": "#ffffff",
           "style": {
-            "stroke": { "kind": "none" },
-            "shadow": { "kind": "none" },
-            "box": { "kind": "none" }
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
           },
           "textAnimations": []
         },
@@ -173,9 +185,15 @@
           "fontSize": 72,
           "color": "#101828",
           "style": {
-            "stroke": { "kind": "none" },
-            "shadow": { "kind": "none" },
-            "box": { "kind": "none" }
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
           },
           "textAnimations": []
         }
@@ -220,9 +238,15 @@
           "fontSize": 72,
           "color": "#ffffff",
           "style": {
-            "stroke": { "kind": "none" },
-            "shadow": { "kind": "none" },
-            "box": { "kind": "none" }
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
           },
           "textAnimations": []
         }
@@ -303,9 +327,15 @@
           "fontSize": 72,
           "color": "#ffffff",
           "style": {
-            "stroke": { "kind": "none" },
-            "shadow": { "kind": "none" },
-            "box": { "kind": "none" }
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
           },
           "textAnimations": []
         }
@@ -386,9 +416,15 @@
           "fontSize": 72,
           "color": "#ffffff",
           "style": {
-            "stroke": { "kind": "none" },
-            "shadow": { "kind": "none" },
-            "box": { "kind": "none" }
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
           },
           "textAnimations": []
         }

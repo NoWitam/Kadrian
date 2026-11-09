@@ -44,6 +44,7 @@ const ERROR_CODES = [
   'repeat-id-reserved',
   'item-outside-repeat',
   'crop-empty',
+  'safe-area-empty',
   'bound-property-animated',
 ] as const;
 

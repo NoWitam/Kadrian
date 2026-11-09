@@ -39,6 +39,12 @@ export interface BackgroundNodeState extends LifetimeState {
     readonly color: string;
 }
 
+---- CaptionFragmentsState (type only)
+export interface CaptionFragmentsState {
+    readonly lines: readonly FragmentState[];
+    readonly words: readonly FragmentState[];
+}
+
 ---- CaptionInstant (type only)
 export interface CaptionInstant {
     readonly page: number | null;
@@ -61,6 +67,7 @@ export interface CaptionsNodeState extends LeafNodeState<'captions'> {
     readonly color: string;
     readonly page: number | null;
     readonly word: number | null;
+    readonly fragments: CaptionFragmentsState | null;
 }
 
 ---- Circle (type only)
@@ -282,8 +289,14 @@ export declare function audioPlan(composition: ValidatedComposition): AudioPlan;
 ---- captionAt
 export declare function captionAt(words: CaptionsNode['words'], pages: readonly CaptionPage[], timeUs: number): CaptionInstant;
 
+---- captionFragments
+export declare function captionFragments(node: CaptionsNode, pages: readonly CaptionPage[], instant: CaptionInstant, color: string, timeUs: number): CaptionFragmentsState | null;
+
 ---- captionPages
 export declare function captionPages(words: readonly CaptionWord[], style: Pick<CaptionStyle, 'maxLineLength' | 'maxLines'>): CaptionPage[];
+
+---- captionsInPieces
+export declare function captionsInPieces(style: CaptionStyle): boolean;
 
 ---- evaluateComposition
 export declare function evaluateComposition(composition: ValidatedComposition, timeUs: number): CompositionState;

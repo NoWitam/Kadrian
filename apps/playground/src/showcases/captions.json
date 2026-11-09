@@ -1,7 +1,13 @@
 {
-  "schemaVersion": "0.14",
+  "schemaVersion": "0.15",
   "width": 1280,
   "height": 720,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
   "fps": 30,
   "durationUs": 4000000,
   "assets": [
@@ -92,11 +98,36 @@
             "fontSize": 64,
             "lineHeight": 88,
             "color": "#ffffff",
-            "highlightColor": "#ffd400",
+            "highlight": {
+              "color": "#ffd400",
+              "scale": 1,
+              "tracks": [],
+              "underline": {
+                "kind": "none"
+              },
+              "box": {
+                "kind": "none"
+              }
+            },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
-            "maxLines": 2
+            "maxLines": 2,
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "pageIn": {
+              "kind": "none"
+            },
+            "pageOut": {
+              "kind": "none"
+            }
           },
           "words": [
             {

@@ -33,6 +33,9 @@ import {
   addTextAnimationArgumentsSchema,
   removeTextAnimationArgumentsSchema,
   setTextAnimationArgumentsSchema,
+  setCaptionHighlightArgumentsSchema,
+  setCaptionPageAnimationArgumentsSchema,
+  setSafeAreaArgumentsSchema,
   setCaptionWordArgumentsSchema,
   setCaptionWordsArgumentsSchema,
   addTemplateBindingArgumentsSchema,
@@ -106,6 +109,9 @@ import {
   type AddTextAnimationArgumentsSchema,
   type RemoveTextAnimationArgumentsSchema,
   type SetTextAnimationArgumentsSchema,
+  type SetCaptionHighlightArgumentsSchema,
+  type SetCaptionPageAnimationArgumentsSchema,
+  type SetSafeAreaArgumentsSchema,
   type SetCaptionWordArgumentsSchema,
   type SetCaptionWordsArgumentsSchema,
   type AddTemplateBindingArgumentsSchema,
@@ -146,6 +152,9 @@ export type CommandArgumentsSchema =
   | AddTextAnimationArgumentsSchema
   | RemoveTextAnimationArgumentsSchema
   | SetTextAnimationArgumentsSchema
+  | SetCaptionHighlightArgumentsSchema
+  | SetCaptionPageAnimationArgumentsSchema
+  | SetSafeAreaArgumentsSchema
   | AddTemplateInputArgumentsSchema
   | SetTemplateInputArgumentsSchema
   | AddTemplateBindingArgumentsSchema
@@ -188,7 +197,7 @@ const TRANSITIONS =
   'A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions.';
 
 const CAPTIONS =
-  'A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken takes highlightColor. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0.';
+  'A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0.';
 
 const TEMPLATE =
   'A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section.';
@@ -643,18 +652,29 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setCaptionWordArgumentsSchema,
   },
   SetCaptionStyle: {
-    description: `Replaces the style of a captions node with a complete style {fontSize, lineHeight, color, highlightColor, align, verticalAlign, maxLineLength, maxLines}: its size and colours, where its lines lie in its box, and how many characters fit on a line and lines on a page, which changes how the words are grouped. No word and no time changes. ${CAPTIONS} ${PIXELS} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result.`,
+    description: `Replaces the style of a captions node with a complete style {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, stroke, shadow, box, pageIn, pageOut}: its size and colours, what the word being spoken shows (as set_caption_highlight describes it), where its lines lie in its box, how many characters fit on a line and lines on a page, which changes how the words are grouped, the outline, shadow, and box of its lines (as set_text_style describes them, the box lying behind every line of the page shown), and how a page enters and leaves (as set_caption_page_animation describes it). No word and no time changes. ${CAPTIONS} ${PIXELS} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result.`,
     example: {
       nodeId: 'node-captions',
       style: {
         fontSize: 64,
         lineHeight: 80,
         color: '#ffffff',
-        highlightColor: '#ffd400',
+        highlight: {
+          color: '#ffd400',
+          scale: 1,
+          tracks: [],
+          underline: { kind: 'none' },
+          box: { kind: 'none' },
+        },
         align: 'center',
         verticalAlign: 'bottom',
         maxLineLength: 24,
         maxLines: 2,
+        stroke: { kind: 'outside', color: '#000000', width: 3 },
+        shadow: { kind: 'none' },
+        box: { kind: 'none' },
+        pageIn: { kind: 'none' },
+        pageOut: { kind: 'none' },
       },
     },
     argumentsSchema: setCaptionStyleArgumentsSchema,
@@ -731,6 +751,64 @@ const METADATA = deepFreeze<MetadataTable>({
       },
     },
     argumentsSchema: setTextAnimationArgumentsSchema,
+  },
+  SetCaptionHighlight: {
+    description: `Replaces what the word being spoken shows in a captions node, from its startUs for its durationUs and at no other time, with a complete highlight {color, scale, tracks, underline, box}: color its colour (lowercase #rrggbb); scale a factor of its size about its centre on both axes (1 for none, 1.2 to make it grow); tracks, at most one per property, {property, keyframes} as the tracks of add_text_animation (opacity, offset, scale, rotation, color) in the word's own time from 0 at its startUs, for a bounce or a pop, [] for none; underline {"kind":"none"} or {"kind":"solid", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word's line; box {"kind":"none"} or {"kind":"solid", color, opacity, padding, cornerRadius}, a filled box behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are. Any scale, track, underline, or box draws the node in pieces (an element per line and per word) for its whole lifetime. ${CAPTIONS} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result.`,
+    example: {
+      nodeId: 'node-captions',
+      highlight: {
+        color: '#ffd400',
+        scale: 1.15,
+        tracks: [
+          {
+            property: 'offset',
+            keyframes: [
+              { timeUs: 0, value: { x: 0, y: 0 }, easing: { kind: 'ease-out' } },
+              { timeUs: 100_000, value: { x: 0, y: -12 }, easing: { kind: 'ease-in' } },
+              { timeUs: 200_000, value: { x: 0, y: 0 }, easing: { kind: 'linear' } },
+            ],
+          },
+        ],
+        underline: { kind: 'solid', color: '#ffd400', thickness: 4, offset: 2 },
+        box: { kind: 'none' },
+      },
+    },
+    argumentsSchema: setCaptionHighlightArgumentsSchema,
+  },
+  SetCaptionPageAnimation: {
+    description: `Replaces how every page of a captions node enters (phase "in") or leaves (phase "out") with a complete page animation: {"kind":"none"} for at once, or {"kind":"animate", unit, staggerUs, order, tracks}: unit "word" or "line" of the page; every fragment runs the same tracks in its own time, which starts staggerUs (integer microseconds) after the fragment before it in the order; order and tracks as for add_text_animation. An entrance starts the first fragment's own time at the start of the page's first word; an exit ends the last fragment's last keyframe at the start of the next page, or on the last page at the end of the last word, so an exit usually ends at opacity 0. The page shown, and the words and lines on it, stay those of the style. An animated page draws the node in pieces for its whole lifetime. ${CAPTIONS} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result.`,
+    example: {
+      nodeId: 'node-captions',
+      phase: 'in',
+      animation: {
+        kind: 'animate',
+        unit: 'word',
+        staggerUs: 60_000,
+        order: { kind: 'forward' },
+        tracks: [
+          {
+            property: 'opacity',
+            keyframes: [
+              { timeUs: 0, value: 0, easing: { kind: 'linear' } },
+              { timeUs: 200_000, value: 1, easing: { kind: 'linear' } },
+            ],
+          },
+          {
+            property: 'offset',
+            keyframes: [
+              { timeUs: 0, value: { x: 0, y: 24 }, easing: { kind: 'ease-out' } },
+              { timeUs: 200_000, value: { x: 0, y: 0 }, easing: { kind: 'linear' } },
+            ],
+          },
+        ],
+      },
+    },
+    argumentsSchema: setCaptionPageAnimationArgumentsSchema,
+  },
+  SetSafeArea: {
+    description: `Replaces the safe area of the composition, {fromTop, fromRight, fromBottom, fromLeft}: integer composition pixels from each edge of the canvas to the part of the frame where captions and other text that must be read belong, clear of what a platform draws over the video; two opposite insets leave at least 1 pixel, and all zero is the whole canvas. It is a frame of reference, not a clip: it cuts and moves nothing, and nothing outside it is hidden. Keep captions inside it by placing their box with set_node_position and set_node_size. describe_document shows it. Refused with invalid-argument and invalid-result.`,
+    example: { safeArea: { fromTop: 160, fromRight: 64, fromBottom: 320, fromLeft: 64 } },
+    argumentsSchema: setSafeAreaArgumentsSchema,
   },
   AddTemplateInput: {
     description: `Inserts an input into the template: {id, type, ...constraints, default}, with an ID unused in the document. A text has minLength and maxLength in code points, a number minimum and maximum, a boolean, a color (lowercase #rrggbb), an image, video, or audio only a default content hash, and a list minItems, maxItems, fields ({key, type, ...constraints}, no list among them), and a default whose items each list one {key, type, value} per field in their order; the default meets the constraints. Nothing reads a new input until a binding does; a boolean or a list is read by no binding yet. ${TEMPLATE} Refused with index-out-of-range, id-in-use, and invalid-result when the input is not one the document can hold.`,

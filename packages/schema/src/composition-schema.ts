@@ -1,5 +1,5 @@
 /**
- * Composition schema 0.12: the persistent data contract, as JSON Schema draft
+ * Composition schema 0.15: the persistent data contract, as JSON Schema draft
  * 2020-12 authored in TypeScript so that document types can be derived from it
  * (D17). `JSON.stringify(compositionSchema)` is the schema in its standard form.
  *
@@ -25,8 +25,10 @@
  * animation (D67); 0.13 is 0.12 plus the rotation and the origin of every
  * transformable node, the crop and the corner radius of images and videos, and
  * the animations of rotation, origin, size, colour, crop, and corner radius
- * (D65.1, D68). The schemas of 0.1 to 0.12 are kept as data in `v0-1` to
- * `v0-12` (D35.4).
+ * (D65.1, D68); 0.14 is 0.13 plus the style of a text and its animations in
+ * fragments (D69); 0.15 is 0.14 plus the highlight set, the page animations,
+ * and the text style of captions, and the safe area of the composition (D70).
+ * The schemas of 0.1 to 0.14 are kept as data in `v0-1` to `v0-14` (D35.4).
  */
 import {
   closedObject,
@@ -39,7 +41,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.14';
+export const SCHEMA_VERSION = '0.15';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -74,6 +76,15 @@ const canvasLength = {
   type: 'integer',
   description: 'Canvas side in composition pixels (D15).',
   minimum: 1,
+  maximum: 1920,
+} as const satisfies NumberSchema;
+
+/** How far the safe area lies from one edge of the canvas (D70). */
+const safeInset = {
+  type: 'integer',
+  description:
+    'Composition pixels from the edge of the canvas to the safe area, from 0; two opposite insets leave at least 1 pixel (D70).',
+  minimum: 0,
   maximum: 1920,
 } as const satisfies NumberSchema;
 
@@ -803,9 +814,95 @@ export const captionWordSchema = closedObject(
   },
 );
 
-/** How a captions node shows its words (D57). */
+/** An underline of the word being spoken, or none (D70). */
+export const noUnderlineSchema = closedObject('The word being spoken is not underlined (D70).', {
+  kind: { type: 'string', const: 'none' },
+});
+
+export const solidUnderlineSchema = closedObject(
+  "A bar under the word being spoken, as wide as the word: thickness pixels tall, its bottom edge offset pixels below the bottom of the word's line box. It moves and scales with the word (D70).",
+  {
+    kind: { type: 'string', const: 'solid' },
+    color,
+    thickness: {
+      ...styleLength,
+      minimum: 1,
+      description: 'Height of the bar, in composition pixels, from 1 to 1000 (D70).',
+    },
+    offset: {
+      ...shadowOffset,
+      description:
+        "How far the bottom edge of the bar lies below the bottom of the word's line box, in composition pixels, from -1000 to 1000; a negative offset lifts it into the word (D70).",
+    },
+  },
+);
+
+/** What the word being spoken shows besides the other words (D57, D70). */
+export const captionHighlightSchema = closedObject(
+  "What the word being spoken shows, from its startUs for its durationUs and at no other time: its colour, a scale about its centre, tracks in the word's own time (a bounce, a pop), an underline, and a box behind it. A scaled or moving word never pushes its neighbours: lines and pages stay those of D57.3 (D70).",
+  {
+    color: {
+      ...color,
+      description: 'Colour of the word being spoken, lowercase #rrggbb (D57, D70).',
+    },
+    scale: {
+      ...scaleFactor,
+      description:
+        'Factor of the size of the word being spoken about its centre, on both axes; 1 leaves it as it is (D70).',
+    },
+    tracks: {
+      type: 'array',
+      description:
+        'Tracks of the word being spoken in its own time, 0 at its startUs: opacity and scale are factors, offset and rotation are added, and color replaces the highlight colour; at most one per property, none for no motion (D69, D70).',
+      items: fragmentTrackSchema,
+    },
+    underline: { oneOf: [noUnderlineSchema, solidUnderlineSchema] },
+    box: { oneOf: [noBoxSchema, solidBoxSchema] },
+  },
+);
+
+export const noPageAnimationSchema = closedObject(
+  'A page appears or leaves at once, with no animation (D70).',
+  { kind: { type: 'string', const: 'none' } },
+);
+
+export const pageAnimationSchema = closedObject(
+  "Animates every word or line of a page with the same tracks, each fragment staggerUs after the one before it in the order. An entrance starts the first fragment's own time at the start of the page's first word; an exit ends the last fragment's last keyframe at the start of the next page, or, on the last page, at the end of the last word (D69, D70).",
+  {
+    kind: { type: 'string', const: 'animate' },
+    unit: {
+      type: 'string',
+      description: 'What a fragment is: a word of the page, or a line of the page (D70).',
+      enum: ['word', 'line'],
+    },
+    staggerUs: {
+      type: 'integer',
+      description:
+        'Time in integer microseconds (D04) between the starts of two fragments that follow each other in the order (D69, D70).',
+      minimum: 0,
+      maximum: MAX_SAFE_INTEGER,
+    },
+    order: {
+      oneOf: [
+        forwardOrderSchema,
+        backwardOrderSchema,
+        centerOrderSchema,
+        edgesOrderSchema,
+        randomOrderSchema,
+      ],
+    },
+    tracks: {
+      type: 'array',
+      description: 'At least one track, at most one per property (D69, D70).',
+      minItems: 1,
+      items: fragmentTrackSchema,
+    },
+  },
+);
+
+/** How a captions node shows its words (D57, D70). */
 export const captionStyleSchema = closedObject(
-  'How the words are shown: their font size, line height, colours, alignment in the box, and how many fit on a line and on a page (D57).',
+  'How the words are shown: their font size, line height, colours, the highlight of the word being spoken, alignment in the box, how many fit on a line and on a page, the outline, shadow, and box of every line, and how a page enters and leaves (D57, D70).',
   {
     fontSize: length,
     lineHeight: {
@@ -813,10 +910,7 @@ export const captionStyleSchema = closedObject(
       description: 'Height of one line, in composition pixels (D57).',
     },
     color,
-    highlightColor: {
-      ...color,
-      description: 'Colour of the word being spoken, lowercase #rrggbb (D57).',
-    },
+    highlight: captionHighlightSchema,
     align: {
       type: 'string',
       description: 'Where each line lies across the width of the box (D57).',
@@ -840,6 +934,15 @@ export const captionStyleSchema = closedObject(
       minimum: 1,
       maximum: 100,
     },
+    stroke: { oneOf: [noStrokeSchema, outsideStrokeSchema] },
+    shadow: { oneOf: [noShadowSchema, dropShadowSchema] },
+    box: {
+      description:
+        'A box behind every line of the page shown: the box of the words of the line grown by padding on every side (D70).',
+      oneOf: [noBoxSchema, solidBoxSchema],
+    },
+    pageIn: { oneOf: [noPageAnimationSchema, pageAnimationSchema] },
+    pageOut: { oneOf: [noPageAnimationSchema, pageAnimationSchema] },
   },
 );
 
@@ -1578,11 +1681,20 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.14',
+  title: 'Kadrion composition 0.15',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,
     height: canvasLength,
+    safeArea: closedObject(
+      'The safe area: a frame of reference inside the canvas, given by how far it lies from each edge, where captions and other text that must be read belong. It is reported to hosts and models and cuts nothing: a node outside it is drawn as everywhere else. All zero is the whole canvas (D70).',
+      {
+        fromTop: safeInset,
+        fromRight: safeInset,
+        fromBottom: safeInset,
+        fromLeft: safeInset,
+      },
+    ),
     fps: {
       type: 'integer',
       description: 'Integer frame rate; the frame grid follows D13.',

@@ -18,6 +18,7 @@
 - Amended by: PR-46 (D66) on 2026-11-07: `add_clip_transition_at_cut`, a tool that is no command, between the command tools and `run_transaction`; the catalogue has 66 entries (D66.6)
 - Amended by: PR-48 (D68) on 2026-11-07: five tools of rotation, origin, crop, corner radius, and keyframe values (D68.7)
 - Amended by: PR-49 (D69) on 2026-11-08: four tools of text styles and text animations; the catalogue has 77 entries (D69.7)
+- Amended by: PR-50 (D70) on 2026-11-08: three tools of captions and the safe area, and the safe area in `describe_document` (D70.8)
 - Related: D09, D12, D30, D31, D38, D39, D40, D41, D42,
   [roadmap of phase three](../roadmap/phase-3.md) PR-24
 

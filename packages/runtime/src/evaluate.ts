@@ -10,7 +10,7 @@ import {
   type VideoNode,
 } from '@kadrion/schema';
 
-import { captionAt, captionPages } from './captions.js';
+import { captionAt, captionFragments, captionPages } from './captions.js';
 import { EvaluationError, unsupported } from './errors.js';
 import { textFragments } from './fragments.js';
 import {
@@ -219,14 +219,22 @@ function evaluateVideo(node: VideoNode, timeUs: number, factors: Factors): Video
   };
 }
 
-/** A captions leaf with its colour, the page it shows, and the word being spoken while active (D57, D68). */
+/**
+ * A captions leaf with its colour, the page it shows, the word being spoken
+ * while active, and the pieces of the page shown (D57, D68, D70).
+ */
 function evaluateCaptions(node: CaptionsNode, timeUs: number, factors: Factors): CaptionsNodeState {
   const leaf = {
     ...evaluateLeaf(node, timeUs, factors),
     color: colorOf({ color: node.style.color, animations: node.animations }, timeUs),
   };
-  if (!leaf.active) return { ...leaf, page: null, word: null };
-  return { ...leaf, ...captionAt(node.words, captionPages(node.words, node.style), timeUs) };
+  const pages = captionPages(node.words, node.style);
+  const instant = leaf.active ? captionAt(node.words, pages, timeUs) : { page: null, word: null };
+  return {
+    ...leaf,
+    ...instant,
+    fragments: captionFragments(node, pages, instant, leaf.color, timeUs),
+  };
 }
 
 /** A child of a group: an image, a text, or a video. */

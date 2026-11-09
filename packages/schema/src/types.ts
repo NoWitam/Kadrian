@@ -65,8 +65,14 @@ export type CustomHtmlNode = Infer<typeof customHtmlNodeSchema>;
 export type CaptionsNode = Infer<typeof captionsNodeSchema>;
 /** One timed word of a captions node (D57). */
 export type CaptionWord = CaptionsNode['words'][number];
-/** How a captions node shows its words (D57). */
+/** How a captions node shows its words (D57, D70). */
 export type CaptionStyle = CaptionsNode['style'];
+/** What the word being spoken shows besides the other words (D70). */
+export type CaptionHighlight = CaptionStyle['highlight'];
+/** How every page of a captions node enters or leaves, or none (D70). */
+export type CaptionPageAnimation = CaptionStyle['pageIn'];
+/** The safe area of a composition, from each edge of the canvas (D70). */
+export type SafeArea = Composition['safeArea'];
 export type NodeAnimation = Infer<typeof animationSchema>;
 /** One keyframe of an animation: its time, its value, and the easing of the segment it starts (D67). */
 export type AnimationKeyframe = NodeAnimation['keyframes'][number];

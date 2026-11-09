@@ -34,6 +34,9 @@ import {
   parseAddTextAnimation,
   parseRemoveTextAnimation,
   parseSetTextAnimation,
+  parseSetCaptionHighlight,
+  parseSetCaptionPageAnimation,
+  parseSetSafeArea,
   parseSetCaptionWord,
   parseSetCaptionWords,
   parseAddTemplateBinding,
@@ -2397,6 +2400,51 @@ const DEFINITIONS = deepFreeze<Definitions>({
       };
     },
   },
+  SetCaptionHighlight: {
+    parse: parseSetCaptionHighlight,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['captions'], command.nodeId);
+        const style = captionStyleOf(node);
+        const highlight: unknown = style['highlight'];
+        if (sameData(highlight, command.highlight)) return null;
+        return {
+          // The highlight keeps its place in the style (D30.7).
+          node: { ...node, style: { ...style, highlight: command.highlight } },
+          inverse: parseSetCaptionHighlight({ ...command, highlight }),
+        };
+      }),
+  },
+  SetCaptionPageAnimation: {
+    parse: parseSetCaptionPageAnimation,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['captions'], command.nodeId);
+        const style = captionStyleOf(node);
+        const key = command.phase === 'in' ? 'pageIn' : 'pageOut';
+        const animation: unknown = style[key];
+        if (sameData(animation, command.animation)) return null;
+        return {
+          node: { ...node, style: { ...style, [key]: command.animation } },
+          inverse: parseSetCaptionPageAnimation({ ...command, animation }),
+        };
+      }),
+  },
+  SetSafeArea: {
+    parse: parseSetSafeArea,
+    edit(document, command) {
+      const safeArea: unknown = document['safeArea'];
+      if (sameData(safeArea, command.safeArea)) return null;
+      const inverse = parseSetSafeArea({ type: 'SetSafeArea', safeArea });
+      return {
+        // The safe area keeps its place in the document (D30.7).
+        document: { ...document, safeArea: command.safeArea },
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
   AddTemplateInput: {
     parse: parseAddTemplateInput,
     edit(document, command) {
@@ -2708,6 +2756,12 @@ export function bindingsAt(
     if (isObject(entry) && typeof entry['id'] === 'string') ids.add(entry['id']);
   }
   return [...ids].sort();
+}
+
+/** The style of a captions node, as the document holds it (D57, D70). */
+function captionStyleOf(node: DocumentObject): DocumentObject {
+  const style: unknown = node['style'];
+  return isObject(style) ? style : {};
 }
 
 /** The words of a captions node, as the document holds them (D57). */

@@ -15,6 +15,7 @@
 - Amended by: PR-33 (D57) on 2026-11-02: the captions node as a box of pages, lines, and word spans built at mount; a render shows one page and colours the spoken word (D57.6)
 - Amended by: PR-48 (D68) on 2026-11-07: the transform list with a pivot and a rotation, the canvas as the box of a group, `object-view-box` and `border-radius` of a picture, and colours written on every render (D68.6)
 - Amended by: PR-49 (D69) on 2026-11-08: the stroke, shadow, and box of a text, and a text in nested fragments whose opacity, transform, and colour are written on every render (D69.5)
+- Amended by: PR-50 (D70) on 2026-11-08: captions with a moving or underlaid word are drawn in pieces, lines and words whose values every render writes (D70.5)
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, and open
   question Q5

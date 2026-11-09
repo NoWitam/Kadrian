@@ -5,7 +5,7 @@
  * colour of a background, a text, and captions, and the size, crop, and
  * corner radius of an image or a video.
  */
-import { captionPages, textLayout } from '@kadrion/runtime';
+import { captionPages, captionsInPieces, textLayout } from '@kadrion/runtime';
 import type {
   CaptionsNode,
   FragmentUnit,
@@ -40,6 +40,15 @@ export const CLIP_FRAME_ATTRIBUTE = 'data-kadrion-clip-frame';
 /** The index of a page of captions, and of a word in the node's `words` (D57). */
 export const CAPTION_PAGE_ATTRIBUTE = 'data-kadrion-caption-page';
 export const CAPTION_WORD_ATTRIBUTE = 'data-kadrion-caption-word';
+/**
+ * The pieces of captions drawn in pieces (D70): the element of a line of a page
+ * that its entrance and exit move, the box behind a line, and the box and the
+ * underline of the word being spoken, shown on that word alone.
+ */
+export const CAPTION_LINE_ATTRIBUTE = 'data-kadrion-caption-line';
+export const CAPTION_LINE_BOX_ATTRIBUTE = 'data-kadrion-caption-line-box';
+export const CAPTION_WORD_BOX_ATTRIBUTE = 'data-kadrion-caption-word-box';
+export const CAPTION_UNDERLINE_ATTRIBUTE = 'data-kadrion-caption-underline';
 /**
  * A fragment of a text with text animations (D69): its unit, `line`, `word`, or
  * `letter`. The fragments of one unit are found in the order of the text.
@@ -77,15 +86,29 @@ const JUSTIFY: Readonly<Record<CaptionsNode['style']['verticalAlign'], string>> 
   bottom: 'flex-end',
 });
 
+/** A line or a word of captions drawn in pieces (D70): a box that the pieces under it are placed in. */
+const PIECE: Styles = Object.freeze({ display: 'inline-block', position: 'relative' });
+
 /**
  * The box of a captions node (D57): every page the runtime's `captionPages`
  * makes, each hidden until `renderState` shows it, with its lines and, in
  * them, one element per word, the words joined by one space. The lines are
  * the runtime's, so the browser wraps nothing (`white-space: pre`); a page's
- * lines lie in the box as `verticalAlign` says, each line as `align` says.
+ * lines lie in the box as `verticalAlign` says, each line as `align` says. The
+ * outline and the shadow of the style are written on the box, as on a text
+ * (D70).
+ *
+ * A node drawn in pieces (D70) holds the words of each line in an
+ * `inline-block` element of their own, which the style's box lies behind and
+ * a page's entrance and exit move, and makes every word an `inline-block`
+ * element that holds, under its glyphs, the box and the underline of the
+ * highlight, hidden until the word is spoken. Their values are written by
+ * `renderState`.
  */
 function captionsElement(document: Document, node: CaptionsNode, address: Styles): HTMLElement {
   const { style } = node;
+  const pieces = captionsInPieces(style);
+  const { highlight } = style;
   const box = create(document, 'div', address, {
     ...TRANSFORMED,
     width: cssPixels(node.width),
@@ -97,7 +120,8 @@ function captionsElement(document: Document, node: CaptionsNode, address: Styles
     'font-style': 'normal',
     'white-space': 'pre',
     'text-align': style.align,
-    [HIGHLIGHT_PROPERTY]: cssColor(style.highlightColor),
+    [HIGHLIGHT_PROPERTY]: cssColor(highlight.color),
+    ...textStyle(style),
   });
   captionPages(node.words, style).forEach((page, pageIndex) => {
     const pageElement = create(
@@ -115,12 +139,26 @@ function captionsElement(document: Document, node: CaptionsNode, address: Styles
     );
     for (const line of page.lines) {
       const lineElement = create(document, 'div', {}, {});
+      let wordsParent = lineElement;
+      if (pieces) {
+        wordsParent = create(document, 'span', { [CAPTION_LINE_ATTRIBUTE]: '' }, PIECE);
+        if (style.box.kind === 'solid') {
+          wordsParent.append(textBox(document, style.box, CAPTION_LINE_BOX_ATTRIBUTE));
+        }
+        lineElement.append(wordsParent);
+      }
       line.words.forEach((wordIndex, at) => {
-        if (at > 0) lineElement.append(document.createTextNode(' '));
-        const word = create(document, 'span', { [CAPTION_WORD_ATTRIBUTE]: String(wordIndex) }, {});
+        if (at > 0) wordsParent.append(document.createTextNode(' '));
+        const word = create(
+          document,
+          'span',
+          { [CAPTION_WORD_ATTRIBUTE]: String(wordIndex) },
+          pieces ? PIECE : {},
+        );
+        if (pieces) word.append(...highlightPieces(document, highlight));
         // A text node, never markup: the document's words are not parsed.
         word.append(document.createTextNode(node.words[wordIndex]?.text ?? ''));
-        lineElement.append(word);
+        wordsParent.append(word);
       });
       pageElement.append(lineElement);
     }
@@ -130,13 +168,53 @@ function captionsElement(document: Document, node: CaptionsNode, address: Styles
 }
 
 /**
+ * The box and the underline of the highlight (D70), hidden until the word is
+ * spoken, both under the glyphs of the word (`z-index: -1` inside the stacking
+ * context of the transformed word) and the underline over the box. The
+ * underline is as wide as the word, `thickness` tall, its bottom edge `offset`
+ * below the bottom of the word's line box.
+ */
+function highlightPieces(
+  document: Document,
+  highlight: CaptionsNode['style']['highlight'],
+): HTMLElement[] {
+  const pieces: HTMLElement[] = [];
+  if (highlight.box.kind === 'solid') {
+    const wordBox = textBox(document, highlight.box, CAPTION_WORD_BOX_ATTRIBUTE);
+    wordBox.style.setProperty('display', 'none');
+    pieces.push(wordBox);
+  }
+  if (highlight.underline.kind === 'solid') {
+    const { color, thickness, offset } = highlight.underline;
+    pieces.push(
+      create(
+        document,
+        'span',
+        { [CAPTION_UNDERLINE_ATTRIBUTE]: '' },
+        {
+          position: 'absolute',
+          left: '0px',
+          right: '0px',
+          bottom: cssPixels(-offset),
+          height: cssPixels(thickness),
+          'z-index': '-1',
+          'background-color': cssColor(color),
+          display: 'none',
+        },
+      ),
+    );
+  }
+  return pieces;
+}
+
+/**
  * The declarations of a text's style (D69): an outline drawn outside every
  * glyph — a stroke of twice the width under the fill, so that its inner half is
  * covered — and a shadow. A style of `none` writes nothing, so a text of 0.13
  * is the element it was. Each value is written as the CSS Object Model
  * serialises it: `paint-order: stroke fill` reads back as `stroke`.
  */
-function textStyle(style: TextNode['style']): Styles {
+function textStyle(style: Pick<TextNode['style'], 'stroke' | 'shadow'>): Styles {
   const out: Record<string, string> = {};
   if (style.stroke.kind === 'outside') {
     out['-webkit-text-stroke-width'] = cssPixels(2 * style.stroke.width);
@@ -153,17 +231,22 @@ function textStyle(style: TextNode['style']): Styles {
 
 /**
  * The box behind a text (D69): an element of its own, the first child of the
- * text's element, reaching `padding` beyond the box of the lines on every side
+ * text's element — and so the box behind a line of captions, and behind the
+ * word being spoken (D70) — reaching `padding` beyond the box of the lines on every side
  * and painted under the glyphs (`z-index: -1` inside the stacking context of
  * the transformed text), so that it moves nothing and the node's box stays the
  * box of its lines.
  */
-function textBox(document: Document, box: Extract<TextNode['style']['box'], { kind: 'solid' }>) {
+function textBox(
+  document: Document,
+  box: Extract<TextNode['style']['box'], { kind: 'solid' }>,
+  attribute: string = TEXT_BOX_ATTRIBUTE,
+) {
   const inset = cssPixels(-box.padding);
   return create(
     document,
     'span',
-    { [TEXT_BOX_ATTRIBUTE]: '' },
+    { [attribute]: '' },
     {
       position: 'absolute',
       left: inset,
