@@ -1,6 +1,7 @@
 # D74 — SVG assets: schema 0.19
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-09, after PR-53 was merged
+  (PR #78)
 - Date: 2026-11-09
 - Supersedes: —
 - Amends: D14 (the asset type `svg`), D27 (27.3: an `svg` asset is read by
