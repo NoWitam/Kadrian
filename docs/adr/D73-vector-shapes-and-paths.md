@@ -1,6 +1,7 @@
 # D73 — Vector shapes and paths: schema 0.18
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-09, after PR-52 was merged
+  (PR #76)
 - Date: 2026-11-09
 - Supersedes: —
 - Amends: D65 (65.1: the rows of shapes as built; the corner radius of a
