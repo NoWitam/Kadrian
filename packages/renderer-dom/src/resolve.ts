@@ -6,7 +6,7 @@
  * assets they ask for or which bytes they accept. The host lends the digest
  * (Web Crypto in a browser, `node:crypto` in Node.js).
  */
-import type { Asset, ValidatedComposition } from '@kadrion/schema';
+import { readSvg, type Asset, type ValidatedComposition } from '@kadrion/schema';
 
 import { RenderError } from './errors.js';
 import { readImageSize, imageSizeKnown } from './image-size.js';
@@ -58,8 +58,9 @@ function messageOf(reason: unknown): string {
  * its hash: for each asset, in the document's order, the resolver is called once
  * with a frozen request. A missing asset, a failing resolver, something that is
  * not bytes with a media type, a hash mismatch, or a PNG, JPEG, or WebP image
- * whose header is not a whole file of its media type (`image-invalid`, D62.1)
- * is a `RenderError` before any later asset is asked for. Only declared assets are asked for.
+ * whose header is not a whole file of its media type (`image-invalid`, D62.1),
+ * or an SVG asset the sanitiser refuses (`svg-refused`, D74.3), is a
+ * `RenderError` before any later asset is asked for. Only declared assets are asked for.
  */
 export async function resolveAssets(
   composition: ValidatedComposition,
@@ -98,7 +99,9 @@ export async function resolveOneAsset(
   if (!isBytes(bytes) || typeof mediaType !== 'string' || !mediaTypeFits(type, mediaType)) {
     throw new RenderError(
       'asset-invalid',
-      `The asset "${id}" needs bytes and a media type of the form ${type}/….`,
+      type === 'svg'
+        ? `The asset "${id}" needs bytes and the media type image/svg+xml.`
+        : `The asset "${id}" needs bytes and a media type of the form ${type}/….`,
     );
   }
   // A copy, hashed and returned as it is: what the caller does later changes nothing.
@@ -117,6 +120,17 @@ export async function resolveOneAsset(
     } catch (reason) {
       if (!(reason instanceof RenderError)) throw reason;
       throw new RenderError(reason.code, `The image "${id}" cannot be read: ${reason.message}`);
+    }
+  }
+  // An SVG asset is shown only if the sanitiser accepts its bytes as they are (D74.3).
+  if (type === 'svg') {
+    const reading = readSvg(copy);
+    if (!reading.ok) {
+      const { code, path, message } = reading.error;
+      throw new RenderError(
+        'svg-refused',
+        `${code} ${path === '' ? '' : `at ${path} `}of the SVG "${id}": ${message}`,
+      );
     }
   }
   return { id, type, mediaType, contentHash, bytes: copy };

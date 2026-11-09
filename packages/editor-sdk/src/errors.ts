@@ -78,6 +78,10 @@ export type EditorErrorCode =
   | 'unknown-animation'
   /** No node or scene of the document has an effect with that ID; `details` are empty (D71). */
   | 'unknown-effect'
+  /** `svgToShapes` was given bytes or text the sanitiser refuses; `details` are its code and the path of the offence (D74.3). */
+  | 'svg-refused'
+  /** `svgToShapes` met what a shape node cannot state; `details` name the element (D74.5). */
+  | 'svg-not-convertible'
   /** The animation has no keyframe at that time; `details` are empty (D41.5). */
   | 'unknown-keyframe'
   /** The animation already has a keyframe at the time to fill; `details` are empty (D41.5). */

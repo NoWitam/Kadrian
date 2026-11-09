@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-09-21
 - Date: 2026-09-21
 - Amended by: PR-28a (D50) on 2026-10-31: the asset type `video`, with the entry shape of every asset (D50.1)
+- Amended by: PR-53 (D74) on 2026-11-09: the asset type `svg`, whose bytes the sanitiser `readSvg` reads (D74.1, D74.3)
 - Related: D01, D02, D10, [specification](../spike/vertical-spike.md) §5 P1, §8
   and open question Q6
 

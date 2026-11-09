@@ -81,6 +81,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D71](D71-effects-of-css-filters.md)                          | Effects of CSS filters: schema 0.16                                                          | Accepted          |
 | [D72](D72-effects-of-svg-filters.md)                          | Effects of SVG filters: schema 0.17                                                          | Accepted          |
 | [D73](D73-vector-shapes-and-paths.md)                         | Vector shapes and paths: schema 0.18                                                         | Accepted          |
+| [D74](D74-svg-assets.md)                                      | SVG assets: schema 0.19                                                                      | Proposed          |
 
 ## Provenance of D01–D10
 

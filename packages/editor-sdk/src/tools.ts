@@ -320,13 +320,13 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   SetImageAsset: {
     description:
-      'Points an image node at another image asset that the document declares; the node keeps its size. Refused with unknown-node, unsupported-node for a node that is not an image, unknown-asset, and asset-type-mismatch when the asset is not an image.',
+      'Points an image node at another image or SVG asset that the document declares; the node keeps its size, and an SVG asset is shown as an image. Refused with unknown-node, unsupported-node for a node that is not an image, unknown-asset, and asset-type-mismatch when the asset is neither an image nor an SVG.',
     example: { nodeId: 'node-image', assetId: 'asset-photo' },
     argumentsSchema: setImageAssetArgumentsSchema,
   },
   AddAsset: {
     description:
-      "Declares an image, audio, font, or video asset at an index of the document's assets, under an unused ID and the SHA-256 of its exact bytes. Declare only assets whose bytes the host has: the host must supply them whenever the document is loaded, even while nothing uses the asset. Refused with id-in-use and index-out-of-range.",
+      "Declares an image, audio, font, video, or svg asset at an index of the document's assets, under an unused ID and the SHA-256 of its exact bytes. An svg asset is a drawing of a closed subset of SVG that an image node shows as an image; the host loads it only if the sanitiser accepts its bytes. Declare only assets whose bytes the host has: the host must supply them whenever the document is loaded, even while nothing uses the asset. Refused with id-in-use and index-out-of-range.",
     example: {
       asset: {
         id: 'asset-photo',

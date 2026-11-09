@@ -34,6 +34,11 @@ export type RenderErrorCode =
   | 'image-unsupported'
   /** The bytes of an image asset are not a whole file of its media type: mislabelled, empty, or cut short (D62.1). */
   | 'image-invalid'
+  /**
+   * The bytes of an SVG asset are refused by `readSvg` of `@kadrion/schema`;
+   * the message begins with the sanitiser's code and the path of the offence (D74.3).
+   */
+  | 'svg-refused'
   /** A script for the render page would end or reinterpret its script element (D25.2). */
   | 'unsafe-script'
   /**

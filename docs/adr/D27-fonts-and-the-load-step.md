@@ -5,6 +5,8 @@
   Custom HTML policy)
 - Amended by: PR-39a (D62) on 2026-11-03: 27.3: verifying a PNG, JPEG, or WebP image also reads its
   header, and bytes that are not a whole file of its media type are `image-invalid` (D62.3)
+- Amended by: PR-53 (D74) on 2026-11-09: 27.3: an `svg` asset is resolved as `image/svg+xml` only and read by the
+  sanitiser after its hash is verified; a refused file is `svg-refused` (D74.3)
 - Date: 2026-09-22
 - Supersedes: —
 - Amends (accepted with this ADR): D22.5 ("The renderer never verifies a hash"), D22.6, and

@@ -18,6 +18,7 @@ import {
 import type { AssetResolver } from '@kadrion/renderer-dom';
 import {
   generateReferenceAssets,
+  generateSvgAsset,
   referenceComposition,
   referenceExpectedRender,
   type ExpectedElement,
@@ -43,10 +44,13 @@ export function writeReport(name: string, value: unknown): string {
 // --- assets ---------------------------------------------------------------
 
 const generated = Object.fromEntries(
-  generateReferenceAssets().map(({ id, mediaType, bytes }) => [id, { mediaType, bytes }]),
+  [...generateReferenceAssets(), generateSvgAsset()].map(({ id, mediaType, bytes }) => [
+    id,
+    { mediaType, bytes },
+  ]),
 );
 
-/** The resolver of a host that stores the generated fixture assets (D27.5). */
+/** The resolver of a host that stores the generated fixture assets (D27.5), the SVG badge of D74 among them. */
 export const referenceResolver: AssetResolver = ({ id }) => generated[id] ?? null;
 
 /**

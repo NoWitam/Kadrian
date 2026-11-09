@@ -27,6 +27,8 @@ export type PlayerErrorCode =
   | 'image-unsupported'
   /** The bytes of an image are not a whole file of its media type (D62.1). */
   | 'image-invalid'
+  /** The bytes of an SVG asset are refused by the sanitiser; the message names the offence (D74.3). */
+  | 'svg-refused'
   /** The bytes of a font asset are not a font the browser can load (D27.1). */
   | 'font-load-failed'
   /** The Custom HTML policy is not exactly one of its forms (D36). */
@@ -115,6 +117,7 @@ const PAGE_CODES: readonly PlayerErrorCode[] = [
   'readiness-unsupported',
   'image-unsupported',
   'image-invalid',
+  'svg-refused',
   'font-load-failed',
   'invalid-options',
   'custom-html-timeout',

@@ -57,12 +57,13 @@ export interface PlayerErrorAsset {
 }
 
 ---- PlayerErrorCode (type only)
-export type PlayerErrorCode = 'runtime-hash-mismatch' | 'runtime-unsafe' | 'page-timeout' | 'invalid-document' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'asset-decode-failed' | 'readiness-unsupported' | 'image-unsupported' | 'image-invalid' | 'font-load-failed' | 'invalid-options' | 'custom-html-timeout' | 'custom-html-navigated' | 'video-unsupported' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'audio-invalid' | 'audio-unsupported' | 'time-out-of-range' | 'invalid-play-range' | 'not-loaded' | 'superseded' | 'destroyed' | 'page-error';
+export type PlayerErrorCode = 'runtime-hash-mismatch' | 'runtime-unsafe' | 'page-timeout' | 'invalid-document' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'asset-decode-failed' | 'readiness-unsupported' | 'image-unsupported' | 'image-invalid' | 'svg-refused' | 'font-load-failed' | 'invalid-options' | 'custom-html-timeout' | 'custom-html-navigated' | 'video-unsupported' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'audio-invalid' | 'audio-unsupported' | 'time-out-of-range' | 'invalid-play-range' | 'not-loaded' | 'superseded' | 'destroyed' | 'page-error';
 
 ---- PlayerImageFacts (type only)
 export interface PlayerImageFacts {
     readonly width: number;
     readonly height: number;
+    readonly viewBox?: SvgViewBox;
 }
 
 ---- PlayerListener (type only)

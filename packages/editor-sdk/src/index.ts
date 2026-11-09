@@ -14,6 +14,8 @@
 export { applyCommand } from './apply.js';
 export type { ApplyOptions, CommandResult } from './apply.js';
 export { createCommandBus } from './bus.js';
+export { svgToShapes } from './svg-shapes.js';
+export type { SvgToShapesOptions } from './svg-shapes.js';
 export { clipTransitionAtCut, clipTransitionAtCutArgumentsSchema } from './cut.js';
 export type {
   ClipTransitionAtCutArguments,
@@ -387,7 +389,14 @@ export { describeDocument } from './describe.js';
 export type { DocumentObject } from './document.js';
 export type { DocumentDescription, NodeDescription, SceneDescription } from './describe.js';
 export { EditorError } from './errors.js';
-export type { AudioFacts, ImageFacts, MediaFacts, MediaFactsLookup, VideoFacts } from './media.js';
+export type {
+  AudioFacts,
+  ImageFacts,
+  MediaFacts,
+  MediaFactsLookup,
+  SvgFacts,
+  VideoFacts,
+} from './media.js';
 export type { EditorErrorCode } from './errors.js';
 export { COMMAND_TYPES, parseCommand } from './registry.js';
 export { COMMAND_TOOL_METADATA } from './tools.js';

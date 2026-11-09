@@ -1,6 +1,6 @@
 /**
- * Media facts at the command bus (D49.6, D50.6, D53, D62). A fact of a source —
- * the duration of a video, or of a sound, or the size of an image — is a pure
+ * Media facts at the command bus (D49.6, D50.6, D53, D62, D74). A fact of a source —
+ * the duration of a video, or of a sound, or the size of an image or a drawing — is a pure
  * function of its bytes, and
  * therefore of its `contentHash` (D14); the document never stores one. A host
  * that has verified the bytes supplies the facts by hash, and every command
@@ -54,8 +54,28 @@ export interface ImageFacts {
   readonly height: number;
 }
 
+/**
+ * What a host knows of an SVG asset's bytes (D74.6): its natural size and
+ * its view box, read by the sanitiser. Like an image's, the bus checks
+ * nothing with them; `describeDocument` reports them.
+ */
+export interface SvgFacts {
+  readonly type: 'svg';
+  /** In pixels, a whole number from 1 to 16 384. */
+  readonly width: number;
+  /** In pixels, a whole number from 1 to 16 384. */
+  readonly height: number;
+  /** The box of user space the drawing shows. */
+  readonly viewBox: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
+}
+
 /** The facts of one asset. */
-export type MediaFacts = VideoFacts | AudioFacts | ImageFacts;
+export type MediaFacts = VideoFacts | AudioFacts | ImageFacts | SvgFacts;
 
 /** The facts of the bytes with this content hash, or `null` when the host has none. */
 export type MediaFactsLookup = (contentHash: string) => MediaFacts | null;
@@ -102,15 +122,31 @@ function isSize(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1;
 }
 
+/** A view box of finite numbers with a positive size, copied; anything else is `null`. */
+function viewBoxOf(value: unknown): SvgFacts['viewBox'] | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const { x, y, width, height } = value as Partial<Record<string, unknown>>;
+  const finite = (number: unknown): number is number =>
+    typeof number === 'number' && Number.isFinite(number);
+  if (!finite(x) || !finite(y) || !finite(width) || !finite(height)) return null;
+  return width > 0 && height > 0 ? { x, y, width, height } : null;
+}
+
 /** Reads a host's facts once, as plain data: anything else is no facts. */
 export function factsOf(lookup: MediaFactsLookup, contentHash: string): MediaFacts | null {
   const facts: unknown = lookup(contentHash);
   if (typeof facts !== 'object' || facts === null) return null;
-  const { type, durationUs, audioDurationUs, width, height } = facts as Partial<
+  const { type, durationUs, audioDurationUs, width, height, viewBox } = facts as Partial<
     Record<string, unknown>
   >;
   if (type === 'image') {
     return isSize(width) && isSize(height) ? { type, width, height } : null;
+  }
+  if (type === 'svg') {
+    const box = viewBoxOf(viewBox);
+    return isSize(width) && isSize(height) && box !== null
+      ? { type, width, height, viewBox: box }
+      : null;
   }
   if (!isDuration(durationUs)) return null;
   if (type === 'audio') return { type, durationUs };
@@ -123,7 +159,7 @@ export function factsOf(lookup: MediaFactsLookup, contentHash: string): MediaFac
 
 /** The source length a sound of the plan reads from, `null` for none, or `undefined` if unknown. */
 function soundLength(entry: AudioPlanEntry, facts: MediaFacts | null): number | null | undefined {
-  if (facts === null || facts.type === 'image') return undefined;
+  if (facts === null || facts.type === 'image' || facts.type === 'svg') return undefined;
   if (entry.kind === 'clip') return facts.type === 'audio' ? facts.durationUs : undefined;
   return facts.type === 'video' ? facts.audioDurationUs : undefined;
 }
@@ -168,8 +204,9 @@ export function checkSourceRanges(
     }
     if (video.range === null) continue;
     const facts = lookup === null ? null : factsOf(lookup, video.contentHash);
-    if (facts === null || facts.type === 'image') missing.push(video.nodeId);
-    else if (!sourceRangeFits(video.range, facts.durationUs)) {
+    if (facts === null || facts.type === 'image' || facts.type === 'svg') {
+      missing.push(video.nodeId);
+    } else if (!sourceRangeFits(video.range, facts.durationUs)) {
       exceeded.push(
         `${video.nodeId}: samples ${String(video.range.startUs)} to ${String(video.range.startUs + video.range.durationUs)} µs of a source of ${String(facts.durationUs)} µs`,
       );

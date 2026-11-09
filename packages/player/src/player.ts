@@ -28,7 +28,9 @@ import {
   frameToTimeUs,
   isTemplate,
   timeUsToFrame,
+  readSvg,
   validateComposition,
+  type SvgViewBox,
   type ValidatedComposition,
 } from '@kadrion/schema';
 
@@ -103,6 +105,8 @@ export type { PlayerAudioFacts, PlayerVideoFacts };
 export interface PlayerImageFacts {
   readonly width: number;
   readonly height: number;
+  /** The view box of an SVG asset (D74.6); absent for an image. */
+  readonly viewBox?: SvgViewBox;
 }
 
 /**
@@ -254,7 +258,9 @@ export interface Player {
    * the same as the Producer reads. The verified bytes are kept for a later
    * `load` or `update`. A media type other than PNG, JPEG, or WebP is
    * `image-unsupported`; bytes that are not a whole file of their media type
-   * are `image-invalid`.
+   * are `image-invalid`. An SVG asset is read by the sanitiser instead, which
+   * gives its natural size and its view box, or refuses it with
+   * `svg-refused` (D74.6).
    */
   prepareImage(
     asset: PlayerAssetRequest,
@@ -1552,13 +1558,13 @@ export async function createPlayer(
       ) as Partial<PlayerAssetRequest>;
       if (
         typeof id !== 'string' ||
-        type !== 'image' ||
+        (type !== 'image' && type !== 'svg') ||
         typeof contentHash !== 'string' ||
         !CONTENT_HASH.test(contentHash)
       ) {
         throw new PlayerError(
           'invalid-options',
-          'prepareImage needs { id, type: "image", contentHash } with a sha256 content hash.',
+          'prepareImage needs { id, type: "image" or "svg", contentHash } with a sha256 content hash.',
         );
       }
       try {
@@ -1569,13 +1575,23 @@ export async function createPlayer(
             cached ?? (resolveAsset(request) as PlayerAsset | null | Promise<PlayerAsset | null>),
           sha256,
         );
-        // Checked here too: `resolveOneAsset` reads the header only for the media types it knows.
-        const { width, height } = readImageSize(verified.bytes, verified.mediaType);
+        let facts: PlayerImageFacts;
+        if (type === 'svg') {
+          // `resolveOneAsset` has accepted it, so the reading succeeds (D74.6).
+          const reading = readSvg(verified.bytes);
+          if (!reading.ok) throw new PlayerError('svg-refused', reading.error.message);
+          const { width, height, viewBox } = reading.svg;
+          facts = { width, height, viewBox };
+        } else {
+          // Checked here too: `resolveOneAsset` reads the header only for the media types it knows.
+          const { width, height } = readImageSize(verified.bytes, verified.mediaType);
+          facts = { width, height };
+        }
         preparedImages.set(contentHash, {
           mediaType: verified.mediaType,
           bytes: verified.bytes.slice(),
         });
-        return Object.freeze({ width, height });
+        return Object.freeze(facts);
       } catch (reason) {
         throw withAsset(typed(reason), { id, contentHash });
       }
