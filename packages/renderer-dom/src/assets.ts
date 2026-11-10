@@ -3,7 +3,7 @@
  * D14 exists, the host maps each asset ID to the URL of bytes it has already
  * verified; the renderer only checks that every URL it needs is there.
  */
-import type { SceneNode, ValidatedComposition } from '@kadrion/schema';
+import { instanceDefinition, type SceneNode, type ValidatedComposition } from '@kadrion/schema';
 
 import { RenderError, unsupportedNode, type RenderErrorCode } from './errors.js';
 
@@ -49,6 +49,10 @@ export function usedAssetIds(composition: ValidatedComposition): Set<string> {
         break;
       case 'group':
         node.children.forEach(visit);
+        break;
+      case 'instance':
+        // What a definition shows is used wherever an instance places it (D76).
+        instanceDefinition(composition, node)?.nodes.forEach(visit);
         break;
       case 'background':
       case 'custom-html':

@@ -25,7 +25,7 @@ function parsePosition(value: unknown): SetNodePositionCommand {
 }
 
 describe('parseCommand (D30.3)', () => {
-  it('knows exactly the commands of its closed registry, in a fixed order (D38.1, D39.9, D40.6, D41.1, D42.10, D50.6, D52.6, D54.5, D55.2, D56.6, D57.5, D58.6, D63.4, D67.7, D68, D69, D71, D73, D75)', () => {
+  it('knows exactly the commands of its closed registry, in a fixed order (D38.1, D39.9, D40.6, D41.1, D42.10, D50.6, D52.6, D54.5, D55.2, D56.6, D57.5, D58.6, D63.4, D67.7, D68, D69, D71, D73, D75, D76)', () => {
     expect(COMMAND_TYPES).toEqual([
       'SetNodePosition',
       'SetNodeOpacity',
@@ -115,6 +115,10 @@ describe('parseCommand (D30.3)', () => {
       'RemoveTemplateCondition',
       'AddTemplateRepeat',
       'RemoveTemplateRepeat',
+      'AddDefinition',
+      'RemoveDefinition',
+      'ConvertToDefinition',
+      'ExpandInstance',
     ]);
   });
 

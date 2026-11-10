@@ -81,12 +81,13 @@ describe('the node types the bus accepts (D30.8)', () => {
       'custom-html',
       'group',
       'image',
+      'instance',
       'shape',
       'text',
       'video',
     ]);
     expect(positioned.get('background')).toBe(false);
-    expect([...positioned.values()].filter(Boolean)).toHaveLength(7);
+    expect([...positioned.values()].filter(Boolean)).toHaveLength(8);
   });
 
   it('has no nested group, which is why searching two levels deep is enough (D16)', () => {
@@ -128,7 +129,7 @@ describe('the node types the bus accepts (D30.8)', () => {
         .filter(([, has]) => has)
         .map(([type]) => type)
         .sort(),
-    ).toEqual(['captions', 'custom-html', 'group', 'image', 'shape', 'text', 'video']);
+    ).toEqual(['captions', 'custom-html', 'group', 'image', 'instance', 'shape', 'text', 'video']);
     expect([...texted].filter(([, has]) => has).map(([type]) => type)).toEqual(['text']);
   });
 
@@ -249,18 +250,26 @@ describe('the node types the commands of D40 accept (D30.8)', () => {
       'custom-html',
       'group',
       'image',
+      'instance',
       'shape',
       'text',
       'video',
     ]);
-    expect(carriers('width')).toEqual(['captions', 'custom-html', 'image', 'shape', 'video']);
+    expect(carriers('width')).toEqual([
+      'captions',
+      'custom-html',
+      'image',
+      'instance',
+      'shape',
+      'video',
+    ]);
     expect(carriers('height')).toEqual(carriers('width'));
     // The colours and the size of captions are their style's (D57).
     expect(carriers('color')).toEqual(['background', 'text']);
     expect(carriers('fontSize')).toEqual(['text']);
     expect(carriers('fontAssetId')).toEqual(['captions', 'text']);
     expect(carriers('assetId')).toEqual(['image', 'video']);
-    expect(carriers('fit')).toEqual(['image', 'video']);
+    expect(carriers('fit')).toEqual(['image', 'instance', 'video']);
     expect(carriers('focus')).toEqual(['image', 'video']);
   });
 

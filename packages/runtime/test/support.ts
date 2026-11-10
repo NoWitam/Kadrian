@@ -84,7 +84,7 @@ export function draftNode(draft: Draft, id: string): DraftNode {
 export function stateNode(state: CompositionState, id: string): GroupNodeState | LeafNodeState {
   for (const scene of state.scenes) {
     for (const node of scene.nodes) {
-      if (node.type === 'background') continue;
+      if (node.type === 'background' || node.type === 'instance') continue;
       if (node.id === id) return node;
       const child =
         node.type === 'group' ? node.children.find((item) => item.id === id) : undefined;

@@ -14,7 +14,7 @@ import type { MediaFacts } from './media.js';
 export interface NodeDescription {
   readonly id: string;
   readonly type: string;
-  /** The ID of the scene or the group whose list holds the node. */
+  /** The ID of the scene, the definition, or the group whose list holds the node. */
   readonly parentId: string;
   /** The node's index in that list: 0 is the bottom layer, painted first. */
   readonly layer: number;
@@ -47,6 +47,23 @@ export interface SceneDescription {
   readonly transitions: readonly unknown[];
   /** The effects of the whole scene, in the order they apply, as the document stores them (D71). */
   readonly effects: readonly unknown[];
+}
+
+/** One definition, a nested composition instances place (D76). */
+export interface DefinitionDescription {
+  readonly id: string;
+  /** The definition's own canvas, in its pixels. */
+  readonly width: number;
+  readonly height: number;
+  readonly durationUs: number;
+  /** The definition's nodes from the bottom layer to the top, in definition time. */
+  readonly nodes: readonly NodeDescription[];
+  /** The definition's audio clips, in definition time, as the document stores them. */
+  readonly clips: readonly unknown[];
+  /** The transitions between clips of the definition, as the document stores them. */
+  readonly transitions: readonly unknown[];
+  /** The IDs of the instance nodes that place the definition, in document order. */
+  readonly instanceIds: readonly string[];
 }
 
 /** What `describeDocument` returns; plain JSON, deep-frozen. */
@@ -83,6 +100,8 @@ export interface DocumentDescription {
   readonly clips: readonly unknown[];
   /** The transitions between scenes, as the document stores them (D56.1). */
   readonly transitions: readonly unknown[];
+  /** The definitions, nested compositions that instance nodes place (D76). */
+  readonly definitions: readonly DefinitionDescription[];
   /**
    * The template section, as the document stores it (D58): its inputs with
    * their constraints and defaults, and its bindings; both empty in a
@@ -91,7 +110,9 @@ export interface DocumentDescription {
   readonly template: { readonly inputs: readonly unknown[]; readonly bindings: readonly unknown[] };
 }
 
-type SceneNode = Composition['scenes'][number]['nodes'][number];
+type SceneNode =
+  | Composition['scenes'][number]['nodes'][number]
+  | Composition['definitions'][number]['nodes'][number];
 type ChildNode = Extract<SceneNode, { type: 'group' }>['children'][number];
 
 /** The fields a description states on its own, or leaves out (D46.3). */
@@ -171,6 +192,20 @@ export function describeDocument(
     }),
     clips: copy.clips,
     transitions: copy.transitions,
+    definitions: copy.definitions.map((definition) => ({
+      id: definition.id,
+      width: definition.width,
+      height: definition.height,
+      durationUs: definition.durationUs,
+      nodes: definition.nodes.map((node, at) => describeNode(node, definition.id, at)),
+      clips: definition.clips,
+      transitions: definition.transitions,
+      instanceIds: [...copy.scenes, ...copy.definitions].flatMap((holder) =>
+        holder.nodes.flatMap((node) =>
+          node.type === 'instance' && node.definitionId === definition.id ? [node.id] : [],
+        ),
+      ),
+    })),
     template: copy.template,
   });
 }

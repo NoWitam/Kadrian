@@ -287,7 +287,7 @@ export function sceneTransitionEffects(
 }
 
 /** The position of a node among its siblings, which is its layer (D49.2). */
-function layerOf(scene: Scene, nodeId: string): number {
+function layerOf(scene: Pick<Scene, 'nodes'>, nodeId: string): number {
   for (const [index, node] of scene.nodes.entries()) {
     if (node.id === nodeId) return index;
     if (node.type === 'group') {
@@ -318,7 +318,7 @@ export interface ClipSideEffect {
  * lower of the two sides.
  */
 export function clipTransitionEffects(
-  scene: Scene,
+  scene: Pick<Scene, 'nodes' | 'transitions'>,
   timeUs: number,
   frame: Frame,
 ): Map<string, ClipSideEffect> {
@@ -363,7 +363,7 @@ export function clipTransitionEffects(
 }
 
 /** The `startUs` of a node of the scene, or `null`. */
-function startOf(scene: Scene, nodeId: string): number | null {
+function startOf(scene: Pick<Scene, 'nodes'>, nodeId: string): number | null {
   for (const node of scene.nodes) {
     if (node.id === nodeId) return node.startUs;
     if (node.type === 'group') {

@@ -41,9 +41,71 @@ function objectsIn(value: unknown): readonly DocumentObject[] {
   return (asArray(value) ?? []).filter(isObject);
 }
 
-/** The node with that ID, searched scene by scene and into every group (D16). */
+/**
+ * The two lists of the document whose items hold nodes (D76): its scenes, and
+ * its definitions, the nested compositions an instance places. A node, a clip,
+ * or a transition is looked up in the scenes first, then in the definitions;
+ * IDs are unique across the document (D16.3), so the order decides nothing.
+ */
+export type HolderKind = 'scenes' | 'definitions';
+
+const HOLDER_KINDS: readonly HolderKind[] = ['scenes', 'definitions'];
+
+/** A scene or a definition: the list it is in and its index there (D76). */
+export interface HolderAddress {
+  readonly holder: HolderKind;
+  readonly index: number;
+}
+
+/** The items of one list of holders, in their order. */
+export function holdersOf(document: object, holder: HolderKind): readonly unknown[] {
+  return asArray(fieldsOf(document)[holder]) ?? [];
+}
+
+/** Every scene, then every definition, with its address. */
+function everyHolder(
+  document: object,
+): readonly { readonly value: DocumentObject; readonly address: HolderAddress }[] {
+  return HOLDER_KINDS.flatMap((holder) =>
+    holdersOf(document, holder).flatMap((value, index) =>
+      isObject(value) ? [{ value, address: { holder, index } }] : [],
+    ),
+  );
+}
+
+/** The scene or definition at that address, or `undefined`. */
+export function holderAt(document: object, address: HolderAddress): unknown {
+  return holdersOf(document, address.holder)[address.index];
+}
+
+/** The scene or the definition with that ID and its address, or `null` (D76). */
+export function locateHolder(
+  document: object,
+  holderId: string,
+): { readonly value: DocumentObject; readonly address: HolderAddress } | null {
+  return everyHolder(document).find(({ value }) => value['id'] === holderId) ?? null;
+}
+
+/**
+ * The document with `value` in place of the scene or definition at `address`;
+ * everything else keeps its identity (D30.7).
+ */
+export function replaceHolder(
+  document: object,
+  address: HolderAddress,
+  value: DocumentObject,
+): DocumentObject {
+  const root = fieldsOf(document);
+  const holders = holdersOf(root, address.holder);
+  return {
+    ...root,
+    [address.holder]: holders.map((item, at) => (at === address.index ? value : item)),
+  };
+}
+
+/** The node with that ID, searched scene by scene, then definition by definition, and into every group (D16, D76). */
 export function findNode(document: object, nodeId: string): DocumentObject | null {
-  for (const scene of objectsIn(fieldsOf(document)['scenes'])) {
+  for (const { value: scene } of everyHolder(document)) {
     for (const node of objectsIn(scene['nodes'])) {
       if (node['id'] === nodeId) return node;
       for (const child of objectsIn(node['children'])) {
@@ -73,12 +135,13 @@ function differs(rebuilt: readonly unknown[], original: readonly unknown[]): boo
 }
 
 /**
- * Where a list of nodes lives: the `nodes` of a scene, or the `children` of a
- * group in that scene (D16.4). Groups do not nest, so two indexes suffice.
+ * Where a list of nodes lives: the `nodes` of a scene or a definition (D76), or
+ * the `children` of a group in it (D16.4). Groups do not nest, so two indexes
+ * suffice.
  */
 export interface ListAddress {
-  readonly sceneIndex: number;
-  /** The index of the group in the scene's `nodes`, or `null` for the scene's own list. */
+  readonly holder: HolderAddress;
+  /** The index of the group in the holder's `nodes`, or `null` for the holder's own list. */
   readonly groupIndex: number | null;
 }
 
@@ -86,33 +149,31 @@ export interface ListAddress {
 export interface NodeLocation {
   readonly node: DocumentObject;
   readonly address: ListAddress;
-  /** The ID of the list's owner: the scene or the group. */
+  /** The ID of the list's owner: the scene, the definition, or the group. */
   readonly parentId: string;
   readonly list: readonly unknown[];
   readonly index: number;
 }
 
-function idOf(value: DocumentObject): string {
+export function idOf(value: DocumentObject): string {
   const id = value['id'];
   return typeof id === 'string' ? id : '';
 }
 
 /** The node with that ID and where it lives, searched as `findNode` searches. */
 export function locateNode(document: object, nodeId: string): NodeLocation | null {
-  const scenes = asArray(fieldsOf(document)['scenes']) ?? [];
-  for (const [sceneIndex, scene] of scenes.entries()) {
-    if (!isObject(scene)) continue;
+  for (const { value: scene, address: holder } of everyHolder(document)) {
     const nodes = asArray(scene['nodes']) ?? [];
     for (const [index, node] of nodes.entries()) {
       if (!isObject(node)) continue;
       if (node['id'] === nodeId) {
-        const address = { sceneIndex, groupIndex: null };
+        const address = { holder, groupIndex: null };
         return { node, address, parentId: idOf(scene), list: nodes, index };
       }
       const children = asArray(node['children']) ?? [];
       for (const [childIndex, child] of children.entries()) {
         if (isObject(child) && child['id'] === nodeId) {
-          const address = { sceneIndex, groupIndex: index };
+          const address = { holder, groupIndex: index };
           return { node: child, address, parentId: idOf(node), list: children, index: childIndex };
         }
       }
@@ -121,33 +182,32 @@ export function locateNode(document: object, nodeId: string): NodeLocation | nul
   return null;
 }
 
-/** A list that can take nodes: the scene with that ID, or a node with a `children` array. */
+/** A list that can take nodes: the scene or definition with that ID, or a node with a `children` array. */
 export type ParentLookup =
   | { readonly kind: 'list'; readonly address: ListAddress; readonly list: readonly unknown[] }
   | { readonly kind: 'no-children' }
   | { readonly kind: 'unknown' };
 
 export function findParent(document: object, parentId: string): ParentLookup {
-  const scenes = asArray(fieldsOf(document)['scenes']) ?? [];
-  for (const [sceneIndex, scene] of scenes.entries()) {
-    if (isObject(scene) && scene['id'] === parentId) {
-      const address = { sceneIndex, groupIndex: null };
-      return { kind: 'list', address, list: asArray(scene['nodes']) ?? [] };
-    }
+  const holder = locateHolder(document, parentId);
+  if (holder !== null) {
+    const address = { holder: holder.address, groupIndex: null };
+    return { kind: 'list', address, list: asArray(holder.value['nodes']) ?? [] };
   }
   const location = locateNode(document, parentId);
   if (location === null) return { kind: 'unknown' };
   const children = asArray(location.node['children']);
   // Whether a node takes children is read from the node, not from its type (D30.8).
   if (children === null || location.address.groupIndex !== null) return { kind: 'no-children' };
-  const address = { sceneIndex: location.address.sceneIndex, groupIndex: location.index };
+  const address = { holder: location.address.holder, groupIndex: location.index };
   return { kind: 'list', address, list: children };
 }
 
 /**
  * The document with the list at `address` replaced by `list`. Every ancestor on
- * the path — the root, `scenes`, the scene, and for a group its list and the
- * group — is a new object; everything else keeps its identity (D30.7).
+ * the path — the root, `scenes` or `definitions`, the holder, and for a group
+ * its list and the group — is a new object; everything else keeps its identity
+ * (D30.7).
  */
 export function replaceList(
   document: object,
@@ -155,8 +215,7 @@ export function replaceList(
   list: readonly unknown[],
 ): DocumentObject {
   const root = fieldsOf(document);
-  const scenes = asArray(root['scenes']) ?? [];
-  const scene = scenes[address.sceneIndex];
+  const scene = holderAt(root, address.holder);
   if (!isObject(scene)) return root;
   let nodes: readonly unknown[] = list;
   if (address.groupIndex !== null) {
@@ -166,11 +225,7 @@ export function replaceList(
     const at = address.groupIndex;
     nodes = sceneNodes.map((node, index) => (index === at ? { ...group, children: list } : node));
   }
-  const editedScene = { ...scene, nodes };
-  return {
-    ...root,
-    scenes: scenes.map((item, index) => (index === address.sceneIndex ? editedScene : item)),
-  };
+  return replaceHolder(root, address.holder, { ...scene, nodes });
 }
 
 /** Every string `id` anywhere in the document, whatever the entity (D16.3). */
@@ -233,7 +288,7 @@ export interface EffectLocation {
   readonly index: number;
 }
 
-/** The effect with that ID, looked up in every scene, its nodes, and their children (D71), or `null`. */
+/** The effect with that ID, looked up in every scene, its nodes, and their children (D71), then in the nodes of every definition (D76), or `null`. */
 export function locateEffect(document: object, effectId: string): EffectLocation | null {
   const find = (owner: DocumentObject, sceneIndex: number | null): EffectLocation | null => {
     const effects = asArray(owner['effects']);
@@ -243,9 +298,9 @@ export function locateEffect(document: object, effectId: string): EffectLocation
     if (!isObject(effect)) return null;
     return { effect, owner, ownerId: idOf(owner), sceneIndex, effects, index };
   };
-  for (const [sceneIndex, scene] of scenesOf(document).entries()) {
-    if (!isObject(scene)) continue;
-    const own = find(scene, sceneIndex);
+  for (const { value: scene, address } of everyHolder(document)) {
+    // A definition has no effects of its own (D76).
+    const own = address.holder === 'scenes' ? find(scene, address.index) : null;
     if (own !== null) return own;
     for (const node of objectsIn(scene['nodes'])) {
       for (const owner of [node, ...objectsIn(node['children'])]) {
@@ -289,8 +344,18 @@ export function replaceNode(
   nodeId: string,
   replacement: DocumentObject,
 ): DocumentObject {
-  const root = fieldsOf(document);
-  const scenes = asArray(root['scenes']);
+  let root = fieldsOf(document);
+  for (const holder of HOLDER_KINDS) root = replaceNodeIn(root, holder, nodeId, replacement);
+  return root;
+}
+
+function replaceNodeIn(
+  root: DocumentObject,
+  holder: HolderKind,
+  nodeId: string,
+  replacement: DocumentObject,
+): DocumentObject {
+  const scenes = asArray(root[holder]);
   if (scenes === null) return root;
   const edited = scenes.map((scene) => {
     if (!isObject(scene)) return scene;
@@ -305,7 +370,7 @@ export function replaceNode(
     });
     return differs(withChildren, nodes) ? { ...scene, nodes: withChildren } : scene;
   });
-  return differs(edited, scenes) ? { ...root, scenes: edited } : root;
+  return differs(edited, scenes) ? { ...root, [holder]: edited } : root;
 }
 
 /** The document's assets, in their order. */
@@ -365,14 +430,15 @@ export function sceneIds(scene: DocumentObject): readonly string[] {
 
 /**
  * Where a list of transitions lives (D56.1): the composition's, for scene
- * transitions, or the scene at that index, for clip transitions.
+ * transitions, or the scene or definition at that address, for clip
+ * transitions (D76).
  */
-export type TransitionOwner = { readonly sceneIndex: number } | null;
+export type TransitionOwner = HolderAddress | null;
 
 /** The transitions of an owner, in their order. */
 export function transitionListOf(document: object, owner: TransitionOwner): readonly unknown[] {
   if (owner === null) return asArray(fieldsOf(document)['transitions']) ?? [];
-  const scene = scenesOf(document)[owner.sceneIndex];
+  const scene = holderAt(document, owner);
   return isObject(scene) ? (asArray(scene['transitions']) ?? []) : [];
 }
 
@@ -383,12 +449,10 @@ export function replaceTransitionList(
   transitions: readonly unknown[],
 ): DocumentObject {
   if (owner === null) return { ...fieldsOf(document), transitions };
-  return replaceScenes(
-    document,
-    scenesOf(document).map((scene, at) =>
-      at === owner.sceneIndex && isObject(scene) ? { ...scene, transitions } : scene,
-    ),
-  );
+  const scene = holderAt(document, owner);
+  return isObject(scene)
+    ? replaceHolder(document, owner, { ...scene, transitions })
+    : fieldsOf(document);
 }
 
 /** A transition with its owner and its index in the owner's list (D56.6). */
@@ -403,10 +467,7 @@ export function locateTransition(
   document: object,
   transitionId: string,
 ): TransitionLocation | null {
-  const owners: TransitionOwner[] = [
-    null,
-    ...scenesOf(document).map((_, sceneIndex) => ({ sceneIndex })),
-  ];
+  const owners: TransitionOwner[] = [null, ...everyHolder(document).map(({ address }) => address)];
   for (const owner of owners) {
     const list = transitionListOf(document, owner);
     const index = list.findIndex((item) => isObject(item) && item['id'] === transitionId);
@@ -416,13 +477,13 @@ export function locateTransition(
   return null;
 }
 
-/** Where a list of audio clips lives: the composition's, or the scene at that index (D54.1). */
-export type ClipOwner = { readonly sceneIndex: number } | null;
+/** Where a list of audio clips lives: the composition's, or the scene or definition at that address (D54.1, D76). */
+export type ClipOwner = HolderAddress | null;
 
 /** The audio clips of an owner, in their order. */
 export function clipListOf(document: object, owner: ClipOwner): readonly unknown[] {
   if (owner === null) return clipsOf(document);
-  const scene = scenesOf(document)[owner.sceneIndex];
+  const scene = holderAt(document, owner);
   return isObject(scene) ? (asArray(scene['clips']) ?? []) : [];
 }
 
@@ -433,13 +494,8 @@ export function replaceClipList(
   clips: readonly unknown[],
 ): DocumentObject {
   if (owner === null) return replaceClips(document, clips);
-  const scenes = scenesOf(document);
-  return replaceScenes(
-    document,
-    scenes.map((scene, at) =>
-      at === owner.sceneIndex && isObject(scene) ? { ...scene, clips } : scene,
-    ),
-  );
+  const scene = holderAt(document, owner);
+  return isObject(scene) ? replaceHolder(document, owner, { ...scene, clips }) : fieldsOf(document);
 }
 
 /** The document with `clips` in place of its clips; everything else keeps its identity (D30.7). */
@@ -449,7 +505,8 @@ export function replaceClips(document: object, clips: readonly unknown[]): Docum
 
 /**
  * The audio clip with that ID, the list that holds it, and its index there, or
- * `null` (D52.6): the composition's clips first, then each scene's (D54.1).
+ * `null` (D52.6): the composition's clips first, then each scene's (D54.1),
+ * then each definition's (D76).
  */
 export function locateClip(
   document: object,
@@ -459,10 +516,7 @@ export function locateClip(
   readonly index: number;
   readonly owner: ClipOwner;
 } | null {
-  const owners: ClipOwner[] = [
-    null,
-    ...scenesOf(document).map((_, sceneIndex) => ({ sceneIndex })),
-  ];
+  const owners: ClipOwner[] = [null, ...everyHolder(document).map(({ address }) => address)];
   for (const owner of owners) {
     const clips = clipListOf(document, owner);
     const index = clips.findIndex((clip) => isObject(clip) && clip['id'] === clipId);
@@ -540,10 +594,11 @@ export interface AnimationLocation {
 
 /**
  * The animation with that ID, looked up in the `animations` of the nodes only —
- * those of the scene and of the groups' children (D41.2) — or `null`.
+ * those of the scenes and definitions and of the groups' children (D41.2,
+ * D76) — or `null`.
  */
 export function locateAnimation(document: object, animationId: string): AnimationLocation | null {
-  for (const scene of objectsIn(fieldsOf(document)['scenes'])) {
+  for (const { value: scene } of everyHolder(document)) {
     for (const node of objectsIn(scene['nodes'])) {
       for (const owner of [node, ...objectsIn(node['children'])]) {
         const animations = asArray(owner['animations']);
@@ -572,13 +627,14 @@ export interface TextAnimationLocation {
 
 /**
  * The text animation with that ID, looked up in the `textAnimations` of the
- * nodes of the scenes and of the groups' children (D69), or `null`.
+ * nodes of the scenes and definitions and of the groups' children (D69, D76),
+ * or `null`.
  */
 export function locateTextAnimation(
   document: object,
   textAnimationId: string,
 ): TextAnimationLocation | null {
-  for (const scene of objectsIn(fieldsOf(document)['scenes'])) {
+  for (const { value: scene } of everyHolder(document)) {
     for (const node of objectsIn(scene['nodes'])) {
       for (const owner of [node, ...objectsIn(node['children'])]) {
         const textAnimations = asArray(owner['textAnimations']);
@@ -657,14 +713,14 @@ export function replaceAnimation(
 
 /**
  * The node a validation error's path points into (D75):
- * `/scenes/<k>/nodes/<i>…` or `/scenes/<k>/nodes/<i>/children/<j>…`, or
- * `undefined`.
+ * `/scenes/<k>/nodes/<i>…` or `/scenes/<k>/nodes/<i>/children/<j>…`, the same
+ * under `/definitions/<k>` (D76), or `undefined`.
  */
 export function nodeAt(document: object, path: string): unknown {
   const tokens = path.split('/').slice(1);
-  if (tokens[0] !== 'scenes' || tokens[2] !== 'nodes') return undefined;
-  const scenes: unknown = (document as Readonly<Record<string, unknown>>)['scenes'];
-  const scene: unknown = Array.isArray(scenes) ? scenes[Number(tokens[1])] : undefined;
+  const holder = tokens[0];
+  if ((holder !== 'scenes' && holder !== 'definitions') || tokens[2] !== 'nodes') return undefined;
+  const scene = holdersOf(document, holder)[Number(tokens[1])];
   if (!isObject(scene) || !Array.isArray(scene['nodes'])) return undefined;
   const node: unknown = scene['nodes'][Number(tokens[3])];
   if (tokens[4] !== 'children' || !isObject(node) || !Array.isArray(node['children'])) return node;
@@ -673,15 +729,30 @@ export function nodeAt(document: object, path: string): unknown {
 
 /**
  * The transition a validation error's path points into (D56.7):
- * `/transitions/<i>…` or `/scenes/<k>/transitions/<i>…`, or `undefined`.
+ * `/transitions/<i>…`, `/scenes/<k>/transitions/<i>…`, or
+ * `/definitions/<k>/transitions/<i>…` (D76), or `undefined`.
  */
 export function transitionAt(document: object, path: string): unknown {
   const tokens = path.split('/').slice(1);
   if (tokens[0] === 'transitions') {
     return transitionListOf(document, null)[Number(tokens[1])];
   }
-  if (tokens[0] === 'scenes' && tokens[2] === 'transitions') {
-    return transitionListOf(document, { sceneIndex: Number(tokens[1]) })[Number(tokens[3])];
+  const holder = tokens[0];
+  if ((holder === 'scenes' || holder === 'definitions') && tokens[2] === 'transitions') {
+    return transitionListOf(document, { holder, index: Number(tokens[1]) })[Number(tokens[3])];
   }
   return undefined;
+}
+
+/**
+ * The IDs of the instance nodes that place the definition with that ID, in the
+ * scenes and in the definitions, in document order (D76). An instance is never
+ * a child of a group, so the lists of the holders are all there is to read.
+ */
+export function instancesOf(document: object, definitionId: string): readonly string[] {
+  return everyHolder(document).flatMap(({ value }) =>
+    objectsIn(value['nodes']).flatMap((node) =>
+      node['type'] === 'instance' && node['definitionId'] === definitionId ? [idOf(node)] : [],
+    ),
+  );
 }
