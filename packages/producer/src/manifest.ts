@@ -202,6 +202,16 @@ export interface ManifestRange {
   readonly frameCount: number;
 }
 
+/**
+ * The grid a render's segments lie on, when it is not the composition's grid of
+ * D47.1 (D80.2): its span, whose first frame starts segment 0 and whose end
+ * ends the last segment, and the shortest last segment, under which the last
+ * one is merged into the one before it. Absent, the grid is D47.1's.
+ */
+export interface ManifestGrid extends ManifestRange {
+  readonly minSegmentFrames: number;
+}
+
 /** One encoded segment (D47.3): its frames and the SHA-256 of its file. */
 export interface ManifestSegment {
   readonly index: number;
@@ -251,6 +261,8 @@ export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpe
   readonly kind: 'segments';
   readonly preset: ManifestMp4Preset;
   readonly segmentFrames: number;
+  /** Only for a grid other than D47.1's (D80.2). */
+  readonly grid?: ManifestGrid;
   readonly range: ManifestRange;
   readonly segments: readonly ManifestSegment[];
   readonly ffmpeg: ManifestFfmpegBuild & { readonly segmentArgs: readonly string[] };
@@ -296,6 +308,8 @@ export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'
   readonly kind: 'export';
   readonly preset: ManifestMp4Preset;
   readonly segmentFrames: number;
+  /** Only for a grid other than D47.1's (D80.2). */
+  readonly grid?: ManifestGrid;
   readonly range: ManifestRange;
   readonly segments: readonly Omit<ManifestSegment, 'file'>[];
   readonly ffmpeg: ManifestFfmpeg;

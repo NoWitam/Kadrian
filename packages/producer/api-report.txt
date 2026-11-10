@@ -111,6 +111,7 @@ export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'
     readonly kind: 'export';
     readonly preset: ManifestMp4Preset;
     readonly segmentFrames: number;
+    readonly grid?: ManifestGrid;
     readonly range: ManifestRange;
     readonly segments: readonly Omit<ManifestSegment, 'file'>[];
     readonly ffmpeg: ManifestFfmpeg;
@@ -188,6 +189,15 @@ export interface FrameRange {
     readonly toUs: number;
     readonly firstFrame: number;
     readonly frameCount: number;
+}
+
+---- GridRequest (type only)
+export interface GridRequest {
+    readonly range?: {
+        readonly fromUs: number;
+        readonly toUs: number;
+    };
+    readonly minSegmentFrames?: number;
 }
 
 ---- JOB_LIMITS
@@ -337,6 +347,11 @@ export interface ManifestFrame {
     readonly index: number;
     readonly timeUs: number;
     readonly sha256: string;
+}
+
+---- ManifestGrid (type only)
+export interface ManifestGrid extends ManifestRange {
+    readonly minSegmentFrames: number;
 }
 
 ---- ManifestMp4Preset (type only)
@@ -595,11 +610,20 @@ export interface Segment {
     readonly frameCount: number;
 }
 
+---- SegmentGrid (type only)
+export interface SegmentGrid {
+    readonly firstFrame: number;
+    readonly frameCount: number;
+    readonly segmentFrames: number;
+    readonly minSegmentFrames: number;
+}
+
 ---- SegmentsManifest (type only)
 export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
     readonly kind: 'segments';
     readonly preset: ManifestMp4Preset;
     readonly segmentFrames: number;
+    readonly grid?: ManifestGrid;
     readonly range: ManifestRange;
     readonly segments: readonly ManifestSegment[];
     readonly ffmpeg: ManifestFfmpegBuild & {
@@ -615,6 +639,7 @@ export interface SegmentsRequest extends RenderTimeouts, EncoderSettings, JobOpt
     readonly preset: string;
     readonly segmentFrames?: number;
     readonly range?: RangeRequest;
+    readonly grid?: GridRequest;
     readonly outputDirectory: string;
     readonly ffmpeg: FfmpegPaths;
     readonly chromium?: LaunchedChromium;
@@ -694,6 +719,9 @@ export declare function canonicalJson(value: unknown): string;
 ---- captureFrame
 export declare function captureFrame(page: Page, width: number, height: number): Promise<Uint8Array>;
 
+---- checkedMinSegmentFrames
+export declare function checkedMinSegmentFrames(value: number | undefined, segmentFrames: number): number;
+
 ---- checkedSegmentFrames
 export declare function checkedSegmentFrames(value: number | undefined): number;
 
@@ -707,7 +735,7 @@ export declare function environmentManifest(reportedVersion: string, viewport: {
 }, facts?: Partial<EnvironmentFacts>): EnvironmentManifest;
 
 ---- estimatePlan
-export declare function estimatePlan(document: unknown, samples?: number, segmentFrames?: number): EstimatePlan;
+export declare function estimatePlan(document: unknown, samples?: number, segmentFrames?: number, renderGrid?: GridRequest): EstimatePlan;
 
 ---- exportMp4
 export declare function exportMp4(request: ExportRequest): Promise<ExportResult>;
@@ -723,6 +751,15 @@ export declare function frameRange(composition: ValidatedComposition, range: {
 
 ---- goldenRefusal
 export declare function goldenRefusal(environment: EnvironmentManifest): string | null;
+
+---- gridRange
+export declare function gridRange(composition: ValidatedComposition, grid: SegmentGrid, range: {
+    readonly fromUs: number;
+    readonly toUs: number;
+} | undefined): FrameRange;
+
+---- gridSegments
+export declare function gridSegments(grid: SegmentGrid): Segment[];
 
 ---- hostDocument
 export declare function hostDocument(runtimeScript: string, width: number, height: number): string;
@@ -775,6 +812,9 @@ export declare function renderStill(request: StillRequest): Promise<StillResult>
 
 ---- segmentFileName
 export declare function segmentFileName(index: number): string;
+
+---- segmentGrid
+export declare function segmentGrid(composition: ValidatedComposition, segmentFrames: number, request?: GridRequest): SegmentGrid;
 
 ---- segmentsOf
 export declare function segmentsOf(composition: ValidatedComposition, segmentFrames: number): Segment[];

@@ -72,17 +72,21 @@ export type {
   SegmentsResult,
 } from './export.js';
 export {
+  checkedMinSegmentFrames,
   checkedSegmentFrames,
   DEFAULT_SEGMENT_FRAMES,
   frameRange,
+  gridRange,
+  gridSegments,
   MAX_SEGMENT_FRAMES,
   PARTIAL_SUFFIX,
   rangeSegmentsOf,
   segmentFileName,
+  segmentGrid,
   segmentsOf,
   STILL_FORMATS,
 } from './segments.js';
-export type { FrameRange, Segment, StillFormat } from './segments.js';
+export type { FrameRange, GridRequest, Segment, SegmentGrid, StillFormat } from './segments.js';
 export type { ProducerAssetResolver, ResolvedPath } from './media-path.js';
 export { renderStill } from './still.js';
 export type { StillRequest, StillResult } from './still.js';
@@ -109,6 +113,7 @@ export type {
   ManifestFfmpeg,
   ManifestFfmpegBuild,
   ManifestFrame,
+  ManifestGrid,
   ManifestMp4Preset,
   ManifestRange,
   ManifestSegment,

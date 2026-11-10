@@ -1,6 +1,7 @@
 # D77 — Elements: nested templates with inputs, schema 0.22
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-10, after PR-55b was merged
+  (PR #86)
 - Date: 2026-11-10
 - Supersedes: —
 - Amends: D21 and D58 (58.4: the core of instantiation lies in the main entry
