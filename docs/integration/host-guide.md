@@ -257,7 +257,9 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
 - **Call:** `kadrion estimate --composition <file> --assets <file> --preset <720p|1080p> [--samples <n>] [--budget-ms <ms>]`,
   or `estimatePlan` and a render of its range in the library. It renders and
   encodes a few frames, keeps none, and reports `msPerFrame`, `segments`, and
-  `segmentsInBudget`.
+  `segmentsInBudget`. With the grid flags of section 13, `segments` counts the
+  segments of that grid. (Proposed in D80; this guide links it once the owner
+  accepts it.)
 - **Errors and limits:** those of every job (section 16).
 - **Authority:** [D48](../adr/D48-render-job-contract.md) (D48.5).
 
@@ -270,6 +272,17 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   In the library: `renderSegments`, `renderAudio`, `joinSegments`.
 - **Result:** the MP4 that one export of the same document and preset writes,
   byte for byte.
+- **A fragment:** for a range whose ends are not boundaries of the
+  composition's grid, give `render-range` the fragment's own grid:
+  `--grid-from-us <t> --grid-to-us <t>` (the fragment) and
+  `--min-segment-frames <n>` (0.5 s is 15 at 30 fps). Its segments start at
+  the fragment's first frame, and a last one shorter than the minimum is
+  merged into the one before it. Every job of the fragment gives the same
+  grid flags and `--segment-frames`, and a range of whole segments of that
+  grid, or no range for all of it; `render-audio` takes the fragment's range; the join checks the
+  grid. The frames, range, and audio are those of the same fragment in
+  segments of one frame. Without these flags nothing changes. (Proposed in
+  D80; this guide links it once the owner accepts it.)
 - **Errors:** `range-invalid` (an end not on the segment grid),
   `segment-length-invalid`, `join-invalid` (parts that are not one render, or
   a gap), `preset-unsupported` (a preset that would upscale or gives odd

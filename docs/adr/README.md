@@ -86,6 +86,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D76](D76-nested-compositions.md)                             | Nested compositions: schema 0.21                                                             | Accepted          |
 | [D77](D77-elements.md)                                        | Elements: nested templates with inputs, schema 0.22                                          | Proposed          |
 | [D79](D79-video-containers-read-with-mediabunny.md)           | Video containers read with Mediabunny, and the verdict of `inspectVideo`                     | Proposed          |
+| [D80](D80-a-segment-grid-anchored-on-a-span.md)               | A segment grid anchored on a span, with a shortest last segment                              | Proposed          |
 
 ## Provenance of D01–D10
 

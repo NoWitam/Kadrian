@@ -1127,6 +1127,11 @@ node packages/cli/dist/bin.js render-still --composition composition.json \
 - **`render-range`:** writes `segment-NNNNNN.mp4` files and
   `segments-<first>-<last>.manifest.json`. Both ends of the range must lie on
   the segment grid; without them the range is the whole composition.
+  `--grid-from-us` and `--grid-to-us` anchor the grid on a fragment instead,
+  and `--min-segment-frames` merges a shorter last segment into the one before
+  it, so a fragment on any frames renders in segments of at least that length;
+  every job of the fragment gives the same grid, and the join checks it
+  (proposed in D80).
 - **`render-audio`:** writes `audio.wav` and `audio.manifest.json`. Its range is
   the range the join must cover, so a preview of a range is that range at
   `720p`, its audio, and a join.

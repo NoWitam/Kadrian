@@ -58,15 +58,140 @@ export function checkedSegmentFrames(value: number | undefined): number {
 /** Every segment of a composition's grid, in order; the last one may be shorter (D47.1). */
 export function segmentsOf(composition: ValidatedComposition, segmentFrames: number): Segment[] {
   const total = frameCount(composition.durationUs, composition.fps);
+  return gridSegments({ firstFrame: 0, frameCount: total, segmentFrames, minSegmentFrames: 1 });
+}
+
+/**
+ * A segment grid anchored on a span of the composition (D80.1): segment `i`
+ * starts at `firstFrame + i × segmentFrames`, the last one ends at the span's
+ * end, and a last segment shorter than `minSegmentFrames` is merged into the
+ * one before it. The grid of D47.1 is the span of the whole composition with
+ * `minSegmentFrames` 1.
+ */
+export interface SegmentGrid {
+  readonly firstFrame: number;
+  /** The frames of the span, at least 1. */
+  readonly frameCount: number;
+  readonly segmentFrames: number;
+  /** 1 to `segmentFrames`; 1 merges nothing. */
+  readonly minSegmentFrames: number;
+}
+
+/** What a request names of a grid (D80.1): its span and its shortest last segment. */
+export interface GridRequest {
+  /** The span the grid is anchored on; the whole composition if not given. */
+  readonly range?: { readonly fromUs: number; readonly toUs: number };
+  /** A last segment shorter than this is merged into the one before it; 1 if not given. */
+  readonly minSegmentFrames?: number;
+}
+
+/** The segments of a grid, in order, indexed from its first frame (D80.1). */
+export function gridSegments(grid: SegmentGrid): Segment[] {
+  const { firstFrame, frameCount: span, segmentFrames, minSegmentFrames } = grid;
+  const end = firstFrame + span;
   const segments: Segment[] = [];
-  for (let first = 0; first < total; first += segmentFrames) {
+  for (let first = firstFrame; first < end; first += segmentFrames) {
     segments.push({
       index: segments.length,
       firstFrame: first,
-      frameCount: Math.min(segmentFrames, total - first),
+      frameCount: Math.min(segmentFrames, end - first),
     });
   }
+  const last = segments.at(-1);
+  const before = segments.at(-2);
+  if (last !== undefined && before !== undefined && last.frameCount < minSegmentFrames) {
+    segments.splice(-2, 2, { ...before, frameCount: before.frameCount + last.frameCount });
+  }
   return segments;
+}
+
+/** A shortest last segment of the settings (D80.1), or `segment-length-invalid`. */
+export function checkedMinSegmentFrames(value: number | undefined, segmentFrames: number): number {
+  const frames = value ?? 1;
+  if (!Number.isSafeInteger(frames) || frames < 1 || frames > segmentFrames) {
+    throw new ProducerError(
+      'segment-length-invalid',
+      `The shortest last segment must be an integer number of frames in [1, ${String(segmentFrames)}] (the segment length), got ${String(frames)}.`,
+    );
+  }
+  return frames;
+}
+
+/**
+ * The grid a request names (D80.1): its span, a range of frame times of the
+ * composition (`range-invalid` otherwise), and its shortest last segment.
+ */
+export function segmentGrid(
+  composition: ValidatedComposition,
+  segmentFrames: number,
+  request: GridRequest = {},
+): SegmentGrid {
+  const span = frameRange(composition, request.range);
+  return {
+    firstFrame: span.firstFrame,
+    frameCount: span.frameCount,
+    segmentFrames,
+    minSegmentFrames: checkedMinSegmentFrames(request.minSegmentFrames, segmentFrames),
+  };
+}
+
+/**
+ * Whether a grid has the segments of the composition's grid of D47.1: it spans
+ * the whole composition and merges no last segment. Such a grid is that grid,
+ * and a manifest does not name it (D80.2).
+ */
+export function isCompositionGrid(composition: ValidatedComposition, grid: SegmentGrid): boolean {
+  const total = frameCount(composition.durationUs, composition.fps);
+  if (grid.firstFrame !== 0 || grid.frameCount !== total) return false;
+  const canonical = segmentsOf(composition, grid.segmentFrames);
+  return gridSegments(grid).length === canonical.length;
+}
+
+/** The grid's span as a range, in frames and in microseconds. */
+export function gridSpan(composition: ValidatedComposition, grid: SegmentGrid): FrameRange {
+  return {
+    fromUs: boundaryUs(composition, grid.firstFrame),
+    toUs: boundaryUs(composition, grid.firstFrame + grid.frameCount),
+    firstFrame: grid.firstFrame,
+    frameCount: grid.frameCount,
+  };
+}
+
+/**
+ * A range of whole segments of a grid (D80.3): both ends on its boundaries,
+ * which are the first frames of its segments and the end of its span. Without
+ * a range, the grid's whole span. Anything else is `range-invalid`.
+ */
+export function gridRange(
+  composition: ValidatedComposition,
+  grid: SegmentGrid,
+  range: { readonly fromUs: number; readonly toUs: number } | undefined,
+): FrameRange {
+  if (range === undefined) return gridSpan(composition, grid);
+  const frames = frameRange(composition, range);
+  const boundaries = new Set([
+    ...gridSegments(grid).map(({ firstFrame }) => firstFrame),
+    grid.firstFrame + grid.frameCount,
+  ]);
+  for (const [name, frame] of [
+    ['fromUs', frames.firstFrame],
+    ['toUs', frames.firstFrame + frames.frameCount],
+  ] as const) {
+    if (!boundaries.has(frame)) {
+      throw rangeInvalid(
+        `${name} is frame ${String(frame)}, not a boundary of the grid of segments of ${String(grid.segmentFrames)} frames from frame ${String(grid.firstFrame)} to ${String(grid.firstFrame + grid.frameCount)} (a last segment under ${String(grid.minSegmentFrames)} frames merged).`,
+      );
+    }
+  }
+  return frames;
+}
+
+/** The segments of a grid that a range of whole segments of it covers. */
+export function gridRangeSegments(grid: SegmentGrid, range: FrameRange): Segment[] {
+  return gridSegments(grid).filter(
+    ({ firstFrame }) =>
+      firstFrame >= range.firstFrame && firstFrame < range.firstFrame + range.frameCount,
+  );
 }
 
 /** The time a frame index starts at, or the composition's end for the frame after the last. */
