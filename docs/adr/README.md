@@ -85,7 +85,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D75](D75-blend-modes-masks-and-mattes.md)                    | Blend modes, masks, and mattes: schema 0.20                                                  | Accepted          |
 | [D76](D76-nested-compositions.md)                             | Nested compositions: schema 0.21                                                             | Accepted          |
 | [D77](D77-elements.md)                                        | Elements: nested templates with inputs, schema 0.22                                          | Accepted          |
-| [D78](D78-custom-html-for-ai-authors.md)                      | Custom HTML for AI authors: a managed clock, fonts, and parameters, schema 0.23              | Proposed          |
+| [D78](D78-custom-html-for-ai-authors.md)                      | Custom HTML for AI authors: a managed clock, fonts, and parameters, schema 0.23              | Accepted          |
 | [D79](D79-video-containers-read-with-mediabunny.md)           | Video containers read with Mediabunny, and the verdict of `inspectVideo`                     | Proposed          |
 | [D80](D80-a-segment-grid-anchored-on-a-span.md)               | A segment grid anchored on a span, with a shortest last segment                              | Proposed          |
 

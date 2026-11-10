@@ -1,6 +1,7 @@
 # D78 — Custom HTML for AI authors: a managed clock, fonts, and parameters, schema 0.23
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-10, after PR-56 was merged
+  (PR #89)
 - Date: 2026-11-10
 - Supersedes: —
 - Amends: D23 (23.2: the shell ends with the managed clock and, before it,
