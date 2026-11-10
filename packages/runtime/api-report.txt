@@ -238,6 +238,15 @@ export interface Inset {
     readonly fromLeft: number;
 }
 
+---- InstanceNodeState (type only)
+export interface InstanceNodeState extends LifetimeState, TransformState, ClipTransitionSide, EffectsState, CompositingState {
+    readonly id: string;
+    readonly type: 'instance';
+    readonly definitionId: string;
+    readonly definitionTimeUs: number;
+    readonly nodes: readonly NodeState[];
+}
+
 ---- LeafNodeState (type only)
 export interface LeafNodeState<Type extends LeafNodeType = LeafNodeType> extends LifetimeState, TransformState, ClipTransitionSide {
     readonly id: string;
@@ -286,7 +295,7 @@ export type MatteState = {
 };
 
 ---- NodeState (type only)
-export type NodeState = BackgroundNodeState | GroupNodeState | ImageNodeState | TextNodeState | LeafNodeState<'custom-html'> | VideoNodeState | CaptionsNodeState | ShapeNodeState;
+export type NodeState = InstanceNodeState | BackgroundNodeState | GroupNodeState | ImageNodeState | TextNodeState | LeafNodeState<'custom-html'> | VideoNodeState | CaptionsNodeState | ShapeNodeState;
 
 ---- PathCommandState (type only)
 export type PathCommandState = {

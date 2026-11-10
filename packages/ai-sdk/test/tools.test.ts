@@ -144,6 +144,44 @@ const REPEAT_SETUP: readonly Command[] = [
   },
 ];
 
+/** A definition, as the example of `AddDefinition` adds it (D76). */
+const DEFINITION_SETUP: readonly Command[] = [
+  {
+    type: 'AddDefinition',
+    index: 0,
+    definition: {
+      id: 'definition-badge',
+      width: 200,
+      height: 200,
+      durationUs: 1_000_000,
+      nodes: [
+        {
+          id: 'node-badge-background',
+          type: 'background',
+          startUs: 0,
+          durationUs: 1_000_000,
+          color: '#000000',
+          animations: [],
+        },
+      ],
+      clips: [],
+      transitions: [],
+    },
+  },
+];
+
+/** The group converted to a definition, as the example of `ConvertToDefinition` does it (D76). */
+const CONVERT_SETUP: readonly Command[] = [
+  {
+    type: 'ConvertToDefinition',
+    fromNodeId: 'node-group',
+    toNodeId: 'node-group',
+    definitionId: 'definition-group',
+    instanceId: 'node-group-instance',
+    index: 0,
+  },
+];
+
 /** A second scene, as the example of `AddScene` adds it. */
 const OUTRO_SETUP: readonly Command[] = [
   {
@@ -424,6 +462,10 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   RemoveTemplateCondition: CONDITION_SETUP,
   AddTemplateRepeat: LIST_SETUP,
   RemoveTemplateRepeat: REPEAT_SETUP,
+  AddDefinition: [],
+  RemoveDefinition: DEFINITION_SETUP,
+  ConvertToDefinition: [],
+  ExpandInstance: CONVERT_SETUP,
 };
 
 function prepared(type: Command['type']): CommandBus {

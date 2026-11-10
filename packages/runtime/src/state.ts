@@ -408,7 +408,28 @@ export interface GroupNodeState
   readonly children: readonly (ImageNodeState | TextNodeState | VideoNodeState | ShapeNodeState)[];
 }
 
+/**
+ * An instance of a definition (D65.4, D76): its box, its transform, and the
+ * nodes of its definition evaluated at the definition time it shows. Every ID
+ * inside it is the path of instance IDs to that entity, `instance/node` (D76.3),
+ * so that two instances of one definition never share one.
+ */
+export interface InstanceNodeState
+  extends LifetimeState, TransformState, ClipTransitionSide, EffectsState, CompositingState {
+  readonly id: string;
+  readonly type: 'instance';
+  readonly definitionId: string;
+  /**
+   * The definition time its nodes are evaluated at: `sourceStartUs + (t −
+   * startUs)` while active, and the nearest instant of its lifetime otherwise.
+   */
+  readonly definitionTimeUs: number;
+  /** Array order is the z-order, as in the definition. */
+  readonly nodes: readonly NodeState[];
+}
+
 export type NodeState =
+  | InstanceNodeState
   | BackgroundNodeState
   | GroupNodeState
   | ImageNodeState

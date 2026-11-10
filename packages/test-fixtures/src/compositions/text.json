@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.20",
+  "schemaVersion": "0.21",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -524,6 +524,7 @@
   ],
   "clips": [],
   "transitions": [],
+  "definitions": [],
   "template": {
     "inputs": [],
     "bindings": [],

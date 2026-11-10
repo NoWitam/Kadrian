@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.21"
+        "value": "0.22"
       }
     ],
     "expectedErrors": [
@@ -8747,6 +8747,690 @@
       {
         "code": "invalid-value",
         "path": "/scenes/0/nodes/2/blendMode"
+      }
+    ]
+  },
+  {
+    "name": "definition-unresolved",
+    "description": "An instance names a definition of the document (D76).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "instance-missing",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "missing",
+          "sourceStartUs": 0,
+          "width": 100,
+          "height": 100,
+          "fit": "fill",
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "unresolved-definition-reference",
+        "path": "/scenes/0/nodes/4/definitionId"
+      }
+    ]
+  },
+  {
+    "name": "instance-exceeds-definition",
+    "description": "An instance shows at most the time its definition has: sourceStartUs + durationUs is at most its durationUs (D65.4, D76).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "definition-short",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "instance-long",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 600000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "definition-short",
+          "sourceStartUs": 500000,
+          "width": 100,
+          "height": 100,
+          "fit": "fill",
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "instance-exceeds-definition",
+        "path": "/scenes/0/nodes/4/sourceStartUs"
+      }
+    ]
+  },
+  {
+    "name": "definition-cycle",
+    "description": "A definition never places itself, directly or through another (D65.4, D76).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "definition-a",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "instance-of-b",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "definition-b",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "definition-b",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "instance-of-a",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "definition-a",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "definition-cycle",
+        "path": "/definitions/0"
+      },
+      {
+        "code": "definition-cycle",
+        "path": "/definitions/1"
+      }
+    ]
+  },
+  {
+    "name": "definition-too-deep",
+    "description": "Instances hold each other at most 8 deep (D65.4, D76).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "deep-1",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "deep-instance-1",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "deep-2",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "deep-2",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "deep-instance-2",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "deep-3",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "deep-3",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "deep-instance-3",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "deep-4",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "deep-4",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "deep-instance-4",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "deep-5",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "deep-5",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "deep-instance-5",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "deep-6",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "deep-6",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "deep-instance-6",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "deep-7",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "deep-7",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "deep-instance-7",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "deep-8",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "deep-8",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "deep-instance-8",
+              "type": "instance",
+              "startUs": 0,
+              "durationUs": 1000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "definitionId": "deep-9",
+              "sourceStartUs": 0,
+              "width": 100,
+              "height": 100,
+              "fit": "fill",
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      },
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "deep-9",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "definition-too-deep",
+        "path": "/definitions/0"
+      }
+    ]
+  },
+  {
+    "name": "definition-holds-custom-html",
+    "description": "A definition holds no Custom HTML and no video (D76).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "definition-html",
+          "width": 100,
+          "height": 100,
+          "durationUs": 1000000,
+          "nodes": [
+            {
+              "id": "node-custom-html",
+              "type": "custom-html",
+              "startUs": 0,
+              "durationUs": 10000000,
+              "position": {
+                "x": 90,
+                "y": 1760
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "width": 900,
+              "height": 40,
+              "html": "<!doctype html><meta charset='utf-8'><style>html,body{margin:0;height:100%;background:#1d2939}#bar{width:0;height:100%;background:#f79009}</style><div id='bar'></div><script>(function(){var meta=document.querySelector('meta[name=kadrion-instance]');var instanceId=meta?meta.getAttribute('content'):null;var KEYS='instanceId,requestId,timeUs,type,version';function count(n){return typeof n==='number'&&Number.isSafeInteger(n)&&n>=0}addEventListener('message',function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=='object'||Array.isArray(data)||Object.keys(data).sort().join(',')!==KEYS)return;if(data.type!=='kadrion:time'||data.version!==1||instanceId===null||data.instanceId!==instanceId||!count(data.requestId)||!count(data.timeUs))return;document.getElementById('bar').style.width=data.timeUs/100000+'%';window.parent.postMessage({type:'kadrion:time-ack',version:1,instanceId:instanceId,requestId:data.requestId,timeUs:data.timeUs},'*')})})()</script>"
+            }
+          ],
+          "clips": [],
+          "transitions": []
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/definitions/0/nodes/0/type"
       }
     ]
   }

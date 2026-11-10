@@ -14,8 +14,16 @@
  * reaches (the repair of the debt of D29.6, where the end of a clip was
  * computed as a sum).
  */
+import { instanceDefinition } from './definitions.js';
 import { scenePlacements } from './scenes.js';
-import type { AudioClip, SceneNode, ValidatedComposition, VideoNode } from './types.js';
+import type {
+  AudioClip,
+  Composition,
+  DefinitionNode,
+  SceneNode,
+  ValidatedComposition,
+  VideoNode,
+} from './types.js';
 
 /** One sound of the plan: an audio clip, or the sound of a video node. */
 export interface AudioPlanEntry {
@@ -46,7 +54,9 @@ export interface AudioPlanEntry {
 
 /**
  * What is heard of a composition: its entries — the composition's clips, then
- * the clips of each scene, then the videos — each in document order.
+ * the clips of each scene, then the clips of the definitions its instances
+ * place (D76), then the videos — each in document order. The ID of a clip of a
+ * definition is its path through the instances that place it (D76.3).
  */
 export interface AudioPlan {
   readonly durationUs: number;
@@ -101,6 +111,72 @@ function clipEntry(clip: AudioClip, offsetUs: number, limitUs: number): AudioPla
 }
 
 /**
+ * Where a definition is heard (D65.4, D76): the composition time of its time 0,
+ * which may lie before the composition starts, and the part of its time an
+ * instance shows, `[fromUs, toUs)`, already cut to whatever holds the
+ * instance.
+ */
+interface Hearing {
+  readonly offsetUs: number;
+  readonly fromUs: number;
+  readonly toUs: number;
+}
+
+/**
+ * The entries of the clips of the definitions that the instances of `nodes`
+ * place, heard as `hearing` hears the time of `nodes` (D76): each instance
+ * shows `[sourceStartUs, sourceStartUs + durationUs)` of its definition from
+ * its `startUs`, cut to the part of its holder that is heard, and a clip of
+ * the definition is cut to that part. A clip the instance shows from after
+ * its start is heard from that instant, its source and its fade-out moved
+ * with the cut and its fade-in dropped, as the sound of a video starts where
+ * its node is cut (D52). Instances inside the definition are heard the same
+ * way, through their own paths of IDs (D76.3).
+ */
+function definitionEntries(
+  composition: Pick<Composition, 'definitions'>,
+  nodes: readonly (SceneNode | DefinitionNode)[],
+  hearing: Hearing,
+  entries: AudioPlanEntry[],
+): void {
+  for (const node of nodes) {
+    if (node.type !== 'instance') continue;
+    const definition = instanceDefinition(composition, node);
+    if (definition === null) continue;
+    // The instance's lifetime in the time of its holder, cut to the part heard.
+    const fromUs = Math.max(node.startUs, hearing.fromUs);
+    const toUs = cutEnd(node.startUs, node.durationUs, hearing.toUs);
+    if (fromUs >= toUs) continue;
+    // Definition time d is heard at holder time startUs + (d − sourceStartUs).
+    const inner: Hearing = {
+      offsetUs: hearing.offsetUs + node.startUs - node.sourceStartUs,
+      fromUs: node.sourceStartUs + (fromUs - node.startUs),
+      toUs: node.sourceStartUs + (toUs - node.startUs),
+    };
+    for (const clip of definition.clips) {
+      if (clip.volume === 0) continue;
+      const startUs = Math.max(clip.startUs, inner.fromUs);
+      const endUs = cutEnd(clip.startUs, clip.durationUs, inner.toUs);
+      if (startUs >= endUs) continue;
+      const cutUs = startUs - clip.startUs;
+      entries.push({
+        kind: 'clip',
+        id: clip.id,
+        assetId: clip.assetId,
+        startUs: inner.offsetUs + startUs,
+        durationUs: endUs - startUs,
+        sourceStartUs: clip.sourceStartUs + cutUs,
+        volume: clip.volume,
+        lifetimeUs: clip.durationUs - cutUs,
+        fadeInUs: cutUs === 0 ? clip.fadeInUs : 0,
+        fadeOutUs: Math.min(clip.fadeOutUs, clip.durationUs - cutUs),
+      });
+    }
+    definitionEntries(composition, definition.nodes, inner, entries);
+  }
+}
+
+/**
  * The audio plan of D52.4 and D54.3. A clip or a video at volume 0 is not heard
  * and is not in the plan, so its source is never read; neither is one whose
  * lifetime lies wholly at or after the end of what holds it. A composition clip
@@ -124,6 +200,16 @@ export function audioPlan(composition: ValidatedComposition): AudioPlan {
       const entry = clipEntry(clip, offset, scene.durationUs);
       if (entry !== null) entries.push(entry);
     }
+  });
+  // The clips of the definitions the instances of each scene place (D76).
+  composition.scenes.forEach((scene, index) => {
+    const offsetUs = placements[index]?.startUs ?? 0;
+    definitionEntries(
+      composition,
+      scene.nodes,
+      { offsetUs, fromUs: 0, toUs: scene.durationUs },
+      entries,
+    );
   });
   composition.scenes.forEach((scene, index) => {
     const offset = placements[index]?.startUs ?? 0;

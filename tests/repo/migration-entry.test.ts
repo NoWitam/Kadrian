@@ -37,6 +37,7 @@ const HISTORICAL = /migrat|v0-1/;
 const MAIN_ENTRY_MODULES = [
   'audio-plan.js',
   'composition-schema.js',
+  'definitions.js',
   'errors.js',
   'frame-grid.js',
   'index.js',

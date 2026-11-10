@@ -121,7 +121,7 @@ export const clipTransitionAtCutArgumentsSchema: ClipTransitionAtCutArgumentsSch
   additionalProperties: false,
 });
 
-/** A node of a scene with the scene it lies in. */
+/** A node of a scene or a definition with the holder it lies in (D76). */
 interface Placed {
   readonly sceneId: string;
   readonly transitions: number;
@@ -130,7 +130,8 @@ interface Placed {
 }
 
 function placed(document: ValidatedComposition, nodeId: string): Placed | null {
-  for (const scene of document.scenes) {
+  // A clip transition joins siblings of a scene or of a definition alike (D76).
+  for (const scene of [...document.scenes, ...document.definitions]) {
     for (const node of scene.nodes) {
       const found =
         node.id === nodeId

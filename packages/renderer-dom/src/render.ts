@@ -44,6 +44,7 @@ import {
   CLIP_FRAME_ATTRIBUTE,
   FRAGMENT_ATTRIBUTE,
   HIGHLIGHT_PROPERTY,
+  INSTANCE_CONTENT_ATTRIBUTE,
   NODE_ATTRIBUTE,
   SCENE_ATTRIBUTE,
   STAGE_ATTRIBUTE,
@@ -232,6 +233,25 @@ function plan(
     case 'shape':
       writes.push({ element, state, sceneTimeUs });
       return;
+    case 'instance': {
+      // The box holds the canvas of its definition alone, and the canvas its nodes (D76).
+      const content = element.firstElementChild;
+      if (
+        element.childElementCount !== 1 ||
+        content?.getAttribute(INSTANCE_CONTENT_ATTRIBUTE) !== state.definitionId
+      ) {
+        mismatch(
+          `The instance \`${state.id}\` does not hold the canvas of definition "${state.definitionId}" alone.`,
+        );
+      }
+      writes.push({ element, state, sceneTimeUs });
+      const ids = state.nodes.map((node) => node.id);
+      matchChildren(content, NODE_ATTRIBUTE, ids).forEach((child, index) => {
+        const nodeState = state.nodes[index];
+        if (nodeState !== undefined) plan(child, nodeState, state.definitionTimeUs, writes);
+      });
+      return;
+    }
     default:
       unsupportedNode(state);
   }
@@ -416,11 +436,22 @@ function maskWritesOf(state: CompositionState): Map<string, MaskState | ShapeNod
       if (target?.type === 'shape') writes.set(matteId(node.id), target);
     }
   };
-  for (const scene of state.scenes) {
-    collect(scene.nodes);
-    for (const node of scene.nodes) if (node.type === 'group') collect(node.children);
-  }
+  for (const scene of state.scenes)
+    for (const siblings of siblingsOf(scene.nodes)) collect(siblings);
   return writes;
+}
+
+/**
+ * The lists of siblings of the state of a scene: its nodes, the children of
+ * each group, and the nodes of each instance, at any depth (D76).
+ */
+function siblingsOf(nodes: readonly NodeState[]): (readonly NodeState[])[] {
+  const lists: (readonly NodeState[])[] = [nodes];
+  for (const node of nodes) {
+    if (node.type === 'group') lists.push(node.children);
+    if (node.type === 'instance') lists.push(...siblingsOf(node.nodes));
+  }
+  return lists;
 }
 
 /** The effects drawn by SVG filters of every evaluated scene and node, by the ID of their filter (D72). */
@@ -432,9 +463,8 @@ function svgEffectsOf(state: CompositionState): Map<string, SvgEffectState> {
   };
   for (const scene of state.scenes) {
     collect(scene.effects);
-    for (const node of scene.nodes) {
-      if ('effects' in node) collect(node.effects);
-      if (node.type === 'group') for (const child of node.children) collect(child.effects);
+    for (const siblings of siblingsOf(scene.nodes)) {
+      for (const node of siblings) if ('effects' in node) collect(node.effects);
     }
   }
   return effects;

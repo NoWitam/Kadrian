@@ -7,18 +7,27 @@
  * a shape (D73).
  */
 import { captionPages, captionsInPieces, textLayout } from '@kadrion/runtime';
-import type {
-  CaptionsNode,
-  Effect,
-  FragmentUnit,
-  GroupNode,
-  SceneNode,
-  TextNode,
-  ValidatedComposition,
+import {
+  instanceDefinition,
+  type CaptionsNode,
+  type Effect,
+  type FragmentUnit,
+  type GroupNode,
+  type InstanceNode,
+  type SceneNode,
+  type TextNode,
+  type ValidatedComposition,
 } from '@kadrion/schema';
 
 import { checkAssetUrls, type AssetUrls } from './assets.js';
-import { cssColor, cssObjectPosition, cssPixels, cssTranslucent, fontFamily } from './css.js';
+import {
+  cssColor,
+  cssNumber,
+  cssObjectPosition,
+  cssPixels,
+  cssTranslucent,
+  fontFamily,
+} from './css.js';
 import { unsupportedNode } from './errors.js';
 import {
   CUSTOM_HTML_ATTRIBUTE,
@@ -50,6 +59,12 @@ export const NODE_ATTRIBUTE = 'data-kadrion-node';
  * the ID of its node.
  */
 export const CLIP_FRAME_ATTRIBUTE = 'data-kadrion-clip-frame';
+/**
+ * The canvas of the definition of an instance (D76): the only child of the
+ * instance's box, as large as the definition's canvas, fitted to the box. It
+ * holds the definition's nodes and carries the ID of the definition.
+ */
+export const INSTANCE_CONTENT_ATTRIBUTE = 'data-kadrion-instance-content';
 /** The index of a page of captions, and of a word in the node's `words` (D57). */
 export const CAPTION_PAGE_ATTRIBUTE = 'data-kadrion-caption-page';
 export const CAPTION_WORD_ATTRIBUTE = 'data-kadrion-caption-word';
@@ -333,8 +348,18 @@ function placedNode(
   customHtml: CustomHtmlPolicy,
   sides: ReadonlySet<string>,
   mattes: ReadonlySet<string>,
+  composition: ValidatedComposition,
 ): HTMLElement {
-  const element = nodeElement(document, node, canvas, assetUrls, customHtml, sides, mattes);
+  const element = nodeElement(
+    document,
+    node,
+    canvas,
+    assetUrls,
+    customHtml,
+    sides,
+    mattes,
+    composition,
+  );
   // A node's own mask lies on its element, after its effects (D65.6, D75).
   if ('mask' in node && node.mask.kind !== 'none') {
     element.style.setProperty('mask', cssMask(maskId(node.id)));
@@ -377,6 +402,7 @@ function nodeElement(
   customHtml: CustomHtmlPolicy,
   sides: ReadonlySet<string>,
   mattes: ReadonlySet<string>,
+  composition: ValidatedComposition,
 ): HTMLElement {
   const address = { [NODE_ATTRIBUTE]: node.id };
   switch (node.type) {
@@ -393,11 +419,13 @@ function nodeElement(
       });
       group.append(
         ...node.children.map((child) =>
-          placedNode(document, child, canvas, assetUrls, customHtml, sides, mattes),
+          placedNode(document, child, canvas, assetUrls, customHtml, sides, mattes, composition),
         ),
       );
       return group;
     }
+    case 'instance':
+      return instanceElement(document, node, address, assetUrls, customHtml, mattes, composition);
     case 'image':
       return create(
         document,
@@ -480,18 +508,97 @@ function nodeElement(
   }
 }
 
-/** The IDs of the effects drawn by SVG filters, in document order (D72). */
+/**
+ * The transform that fits the canvas of a definition into the box of its
+ * instance (D76), as `fit` says, about the top-left corner of the canvas:
+ * `fill` stretches it, `contain` and `cover` scale it by the smaller or the
+ * larger factor and centre it. `null` when the canvas is the box.
+ */
+function fitTransform(
+  fit: InstanceNode['fit'],
+  box: { readonly width: number; readonly height: number },
+  canvas: { readonly width: number; readonly height: number },
+): string | null {
+  let x = box.width / canvas.width;
+  let y = box.height / canvas.height;
+  if (fit !== 'fill') {
+    const factor = fit === 'contain' ? Math.min(x, y) : Math.max(x, y);
+    x = factor;
+    y = factor;
+  }
+  if (x === 1 && y === 1) return null;
+  const left = (box.width - canvas.width * x) / 2;
+  const top = (box.height - canvas.height * y) / 2;
+  const scale = `scale(${cssNumber(x)}, ${cssNumber(y)})`;
+  return left === 0 && top === 0
+    ? scale
+    : `translate(${cssPixels(left)}, ${cssPixels(top)}) ${scale}`;
+}
+
+/**
+ * The element of an instance (D76): its box, which carries its transform,
+ * effects, mask, and blend mode like any node and cuts what it holds to
+ * itself, and inside it the canvas of its definition, fitted to the box, with
+ * the definition's nodes by their paths (D76.3). The canvas is isolated when a
+ * node of it blends, as a scene is (D75), so the instance is one layer.
+ */
+function instanceElement(
+  document: Document,
+  node: InstanceNode,
+  address: Styles,
+  assetUrls: AssetUrls,
+  customHtml: CustomHtmlPolicy,
+  mattes: ReadonlySet<string>,
+  composition: ValidatedComposition,
+): HTMLElement {
+  const box = create(document, 'div', address, {
+    ...TRANSFORMED,
+    width: cssPixels(node.width),
+    height: cssPixels(node.height),
+    overflow: 'hidden',
+  });
+  const definition = instanceDefinition(composition, node);
+  // Validation guarantees the definition (D76).
+  if (definition === null) return box;
+  const canvas = { width: cssPixels(definition.width), height: cssPixels(definition.height) };
+  const fitted = fitTransform(node.fit, node, definition);
+  const content = create(
+    document,
+    'div',
+    { [INSTANCE_CONTENT_ATTRIBUTE]: definition.id },
+    {
+      ...PLACED,
+      ...canvas,
+      ...(fitted === null ? {} : { 'transform-origin': '0px 0px', transform: fitted }),
+      ...(blends(definition.nodes) ? { isolation: 'isolate' } : {}),
+    },
+  );
+  const sides = new Set(
+    definition.transitions.flatMap(({ fromNodeId, toNodeId }) => [fromNodeId, toNodeId]),
+  );
+  content.append(
+    ...definition.nodes.map((child) =>
+      placedNode(document, child, canvas, assetUrls, customHtml, sides, mattes, composition),
+    ),
+  );
+  box.append(content);
+  return box;
+}
+
+/** The IDs of the effects drawn by SVG filters, in document order, inside instances by their paths (D72, D76). */
 function svgEffectIds(composition: ValidatedComposition): string[] {
   const ids: string[] = [];
   const collect = (holder: { readonly effects?: readonly Effect[] }): void => {
     for (const effect of holder.effects ?? []) if (isSvgEffect(effect)) ids.push(effect.id);
   };
+  const visit = (node: SceneNode | GroupNode['children'][number]): void => {
+    if ('effects' in node) collect(node);
+    if (node.type === 'group') node.children.forEach(visit);
+    if (node.type === 'instance') instanceDefinition(composition, node)?.nodes.forEach(visit);
+  };
   for (const scene of composition.scenes) {
     collect(scene);
-    for (const node of scene.nodes) {
-      if ('effects' in node) collect(node);
-      if (node.type === 'group') for (const child of node.children) collect(child);
-    }
+    scene.nodes.forEach(visit);
   }
   return ids;
 }
@@ -539,7 +646,7 @@ export function mountComposition(
     );
     sceneElement.append(
       ...scene.nodes.map((node) =>
-        placedNode(document, node, canvas, urls, customHtml, sides, mattes),
+        placedNode(document, node, canvas, urls, customHtml, sides, mattes, composition),
       ),
     );
     stage.append(sceneElement);

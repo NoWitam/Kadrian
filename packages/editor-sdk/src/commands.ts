@@ -1132,6 +1132,65 @@ export interface RemoveTemplateRepeatCommand extends RemoveTemplateRepeatArgumen
   readonly type: 'RemoveTemplateRepeat';
 }
 
+/** What a caller states for `AddDefinition` (D76). */
+export interface AddDefinitionArguments {
+  /** The definition's index in `definitions` after the insertion, from 0 to their number. */
+  readonly index: number;
+  /** The complete definition, with its canvas, duration, nodes, clips, and transitions. */
+  readonly definition: DocumentObject;
+}
+
+/** Inserts a complete definition, a nested composition an instance node places (D76). */
+export interface AddDefinitionCommand extends AddDefinitionArguments {
+  readonly type: 'AddDefinition';
+}
+
+/** What a caller states for `RemoveDefinition` (D76). */
+export interface RemoveDefinitionArguments {
+  readonly definitionId: string;
+}
+
+/** Removes a definition no instance places (D76). */
+export interface RemoveDefinitionCommand extends RemoveDefinitionArguments {
+  readonly type: 'RemoveDefinition';
+}
+
+/** What a caller states for `ConvertToDefinition` (D76). */
+export interface ConvertToDefinitionArguments {
+  /** The first node of the run of siblings, the lowest layer. */
+  readonly fromNodeId: string;
+  /** The last node of the run, the highest layer; equal to `fromNodeId` for one node. */
+  readonly toNodeId: string;
+  /** The ID of the new definition, unused in the document. */
+  readonly definitionId: string;
+  /** The ID of the new instance node, unused in the document. */
+  readonly instanceId: string;
+  /** The new definition's index in `definitions`, from 0 to their number. */
+  readonly index: number;
+}
+
+/**
+ * Moves a run of sibling nodes of a scene or a definition into a new
+ * definition of the holder's canvas and duration, and places one instance of
+ * it in their stead (D76).
+ */
+export interface ConvertToDefinitionCommand extends ConvertToDefinitionArguments {
+  readonly type: 'ConvertToDefinition';
+}
+
+/** What a caller states for `ExpandInstance` (D76). */
+export interface ExpandInstanceArguments {
+  readonly instanceId: string;
+}
+
+/**
+ * Puts the nodes of an instance's definition in the instance's stead and
+ * removes the definition: the inverse of `ConvertToDefinition` (D76).
+ */
+export interface ExpandInstanceCommand extends ExpandInstanceArguments {
+  readonly type: 'ExpandInstance';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -1220,7 +1279,11 @@ export type Command =
   | AddTemplateConditionCommand
   | RemoveTemplateConditionCommand
   | AddTemplateRepeatCommand
-  | RemoveTemplateRepeatCommand;
+  | RemoveTemplateRepeatCommand
+  | AddDefinitionCommand
+  | RemoveDefinitionCommand
+  | ConvertToDefinitionCommand
+  | ExpandInstanceCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -1762,6 +1825,23 @@ export interface AddTemplateRepeatArgumentsSchema {
 export type RemoveTemplateRepeatArgumentsSchema = ClosedObjectSchema<
   keyof RemoveTemplateRepeatArguments
 >;
+
+/** The argument schema of `AddDefinition`: closed, with `definition` an open object (D76). */
+export interface AddDefinitionArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly index: ArgumentSchema;
+    readonly definition: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof AddDefinitionArguments)[];
+  readonly additionalProperties: false;
+}
+export type RemoveDefinitionArgumentsSchema = ClosedObjectSchema<keyof RemoveDefinitionArguments>;
+export type ConvertToDefinitionArgumentsSchema = ClosedObjectSchema<
+  keyof ConvertToDefinitionArguments
+>;
+export type ExpandInstanceArgumentsSchema = ClosedObjectSchema<keyof ExpandInstanceArguments>;
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
 
@@ -3494,6 +3574,89 @@ export const removeTemplateRepeatArgumentsSchema: RemoveTemplateRepeatArgumentsS
     },
   },
   required: ['repeatId'],
+  additionalProperties: false,
+});
+
+const DEFINITION_ID = 'The stable ID of a definition of the document.';
+
+/** The JSON Schema of the arguments of `AddDefinition` (D76): the definition is the document's to judge. */
+export const addDefinitionArgumentsSchema: AddDefinitionArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Inserts a complete definition, a nested composition with its own canvas and time that instance nodes place.',
+  properties: {
+    index: {
+      type: 'integer',
+      description:
+        'The index in the definitions after the insertion, from 0 to the number of definitions; the order means nothing for the picture.',
+      ...INDEX_BOUNDS,
+    },
+    definition: {
+      type: 'object',
+      description:
+        'The complete definition as the document stores it: its ID, width, height, durationUs, nodes, clips, and transitions, every ID of it unused in the document, every time in it definition time.',
+    },
+  },
+  required: ['index', 'definition'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `RemoveDefinition` (D76). */
+export const removeDefinitionArgumentsSchema: RemoveDefinitionArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Removes a definition with everything in it; no instance may place it.',
+  properties: { definitionId: { type: 'string', description: DEFINITION_ID, minLength: 1 } },
+  required: ['definitionId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `ConvertToDefinition` (D76). */
+export const convertToDefinitionArgumentsSchema: ConvertToDefinitionArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Moves a run of sibling nodes of a scene or a definition into a new definition of the holder's canvas and duration, and places one instance of it, showing it unchanged, at the run's place.",
+  properties: {
+    fromNodeId: {
+      type: 'string',
+      description:
+        'The lowest layer of the run: a node of a scene or a definition, not a child of a group.',
+      minLength: 1,
+    },
+    toNodeId: {
+      type: 'string',
+      description:
+        'The highest layer of the run, a sibling at or above fromNodeId; equal to fromNodeId for one node.',
+      minLength: 1,
+    },
+    definitionId: {
+      type: 'string',
+      description: 'The ID of the new definition, unused in the document.',
+      pattern: ID_PATTERN,
+    },
+    instanceId: {
+      type: 'string',
+      description: 'The ID of the new instance node, unused in the document.',
+      pattern: ID_PATTERN,
+    },
+    index: {
+      type: 'integer',
+      description: "The new definition's index in the definitions, from 0 to their number.",
+      ...INDEX_BOUNDS,
+    },
+  },
+  required: ['fromNodeId', 'toNodeId', 'definitionId', 'instanceId', 'index'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `ExpandInstance` (D76). */
+export const expandInstanceArgumentsSchema: ExpandInstanceArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Puts the nodes of an instance's definition in the instance's place and removes the definition; the inverse of ConvertToDefinition.",
+  properties: {
+    instanceId: { type: 'string', description: 'The stable ID of an instance node.', minLength: 1 },
+  },
+  required: ['instanceId'],
   additionalProperties: false,
 });
 
@@ -5238,4 +5401,58 @@ export function parseAddTemplateRepeat(value: unknown): AddTemplateRepeatCommand
 export function parseRemoveTemplateRepeat(value: unknown): RemoveTemplateRepeatCommand {
   const fields = fieldsOf(value, ['type', 'repeatId'], 'The command `RemoveTemplateRepeat`');
   return Object.freeze({ type: 'RemoveTemplateRepeat', repeatId: nodeIdOf(fields, 'repeatId') });
+}
+
+/** The fields of an `AddDefinition` (D76); the document's validation judges the definition. */
+export function parseAddDefinition(value: unknown): AddDefinitionCommand {
+  const fields = fieldsOf(value, ['type', 'index', 'definition'], 'The command `AddDefinition`');
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'AddDefinition',
+    index,
+    definition: dataOf(fields['definition'], 'definition'),
+  });
+}
+
+/** The fields of a `RemoveDefinition` (D76). */
+export function parseRemoveDefinition(value: unknown): RemoveDefinitionCommand {
+  const fields = fieldsOf(value, ['type', 'definitionId'], 'The command `RemoveDefinition`');
+  return Object.freeze({
+    type: 'RemoveDefinition',
+    definitionId: nodeIdOf(fields, 'definitionId'),
+  });
+}
+
+/** The fields of a `ConvertToDefinition` (D76): the new IDs must match the document's ID pattern. */
+export function parseConvertToDefinition(value: unknown): ConvertToDefinitionCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'fromNodeId', 'toNodeId', 'definitionId', 'instanceId', 'index'],
+    'The command `ConvertToDefinition`',
+  );
+  const fromNodeId = nodeIdOf(fields, 'fromNodeId');
+  const toNodeId = nodeIdOf(fields, 'toNodeId');
+  const definitionId = newIdOf(fields, 'definitionId');
+  const instanceId = newIdOf(fields, 'instanceId');
+  if (definitionId === instanceId) {
+    throw new EditorError(
+      'invalid-argument',
+      '`definitionId` and `instanceId` must differ; IDs are unique in the document.',
+    );
+  }
+  const index = indexOf(fields);
+  return Object.freeze({
+    type: 'ConvertToDefinition',
+    fromNodeId,
+    toNodeId,
+    definitionId,
+    instanceId,
+    index,
+  });
+}
+
+/** The fields of an `ExpandInstance` (D76). */
+export function parseExpandInstance(value: unknown): ExpandInstanceCommand {
+  const fields = fieldsOf(value, ['type', 'instanceId'], 'The command `ExpandInstance`');
+  return Object.freeze({ type: 'ExpandInstance', instanceId: nodeIdOf(fields, 'instanceId') });
 }

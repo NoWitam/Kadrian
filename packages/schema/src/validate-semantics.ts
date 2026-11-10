@@ -22,6 +22,7 @@
  * and pins what they were. A rule that a later version changes gets its own
  * function, never a branch here.
  */
+import { MAX_INSTANCE_DEPTH } from './definitions.js';
 import { pointer, type ValidationError } from './errors.js';
 import { templateStructure } from './template-structure.js';
 import { constraintProblem, copiedFrom, patternParts, valueProblem } from './template-values.js';
@@ -32,6 +33,7 @@ import type {
   Composition,
   EffectAnimation,
   FragmentTrack,
+  InstanceNode,
   Mask,
   MaskAnimation,
   NodeAnimation,
@@ -63,6 +65,7 @@ import type { CompositionV016 } from './v0-16/composition-schema.js';
 import type { CompositionV017 } from './v0-17/composition-schema.js';
 import type { CompositionV018 } from './v0-18/composition-schema.js';
 import type { CompositionV019 } from './v0-19/composition-schema.js';
+import type { CompositionV020 } from './v0-20/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -82,6 +85,8 @@ type SceneNodeV017 = CompositionV017['scenes'][number]['nodes'][number];
 type SceneNodeV018 = CompositionV018['scenes'][number]['nodes'][number];
 /** A node of 0.19, which has no mask, no matte, and no blend mode (D75). */
 type SceneNodeV019 = CompositionV019['scenes'][number]['nodes'][number];
+
+type SceneNodeV020 = CompositionV020['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -419,7 +424,8 @@ export function validateSemantics(
     | CompositionV016
     | CompositionV017
     | CompositionV018
-    | CompositionV019,
+    | CompositionV019
+    | CompositionV020,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -446,14 +452,32 @@ export function validateSemantics(
   const shapeErrors: ValidationError[] = [];
   const matteErrors: ValidationError[] = [];
 
-  composition.scenes.forEach((scene, sceneIndex) => {
+  // The nodes of every scene, and of every definition of 0.21 (D76), which are
+  // checked as the nodes of a scene are.
+  const holders: {
+    readonly nodes: readonly (SceneNode | SceneNodeV09 | SceneNodeV019 | SceneNodeV020)[];
+    readonly transitions?: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
+    readonly effects?: Composition['scenes'][number]['effects'];
+    readonly path: string;
+  }[] = [
+    ...(composition.scenes as readonly Composition['scenes'][number][]).map((scene, index) => ({
+      ...scene,
+      path: pointer(pointer('', 'scenes'), index),
+    })),
+    ...('definitions' in composition ? composition.definitions : []).map((definition, index) => ({
+      nodes: definition.nodes,
+      transitions: definition.transitions,
+      path: pointer(pointer('', 'definitions'), index),
+    })),
+  ];
+  holders.forEach((scene) => {
     // The sides of the clip transitions of 0.6 (D56), which no matte may be (D75).
     const clipSides = new Set(
-      'transitions' in scene
-        ? scene.transitions.flatMap((transition) => [transition.fromNodeId, transition.toNodeId])
-        : [],
+      scene.transitions === undefined
+        ? []
+        : scene.transitions.flatMap((transition) => [transition.fromNodeId, transition.toNodeId]),
     );
-    const nodesPath = pointer(pointer(pointer('', 'scenes'), sceneIndex), 'nodes');
+    const nodesPath = pointer(scene.path, 'nodes');
     scene.nodes.forEach((node, nodeIndex) => {
       const nodePath = pointer(nodesPath, nodeIndex);
       const members =
@@ -547,9 +571,8 @@ export function validateSemantics(
     });
     // The mattes of 0.20 among the nodes of a scene (D75).
     checkMattes(scene.nodes, nodesPath, clipSides, matteErrors);
-    if ('effects' in scene) {
-      const scenePath = pointer(pointer('', 'scenes'), sceneIndex);
-      checkEffects(scene.effects, pointer(scenePath, 'effects'), animationErrors);
+    if (scene.effects !== undefined) {
+      checkEffects(scene.effects, pointer(scene.path, 'effects'), animationErrors);
     }
   });
   const fadeErrors: ValidationError[] = [];
@@ -601,6 +624,20 @@ export function validateSemantics(
     });
     totalUs += BigInt(scene.durationUs);
   }
+  // The clips of the definitions of 0.21, checked as a scene's are (D76).
+  if ('definitions' in composition) {
+    composition.definitions.forEach((definition, definitionIndex) => {
+      definition.clips.forEach((clip, clipIndex) => {
+        checkClip(
+          clip,
+          pointer(
+            pointer(pointer(pointer('', 'definitions'), definitionIndex), 'clips'),
+            clipIndex,
+          ),
+        );
+      });
+    });
+  }
   // The transitions of 0.6 (D56); no earlier document has the field.
   const transitionErrors: ValidationError[] = [];
   if ('transitions' in composition) {
@@ -632,6 +669,9 @@ export function validateSemantics(
     }
   }
 
+  // The definitions and instances of 0.21 (D76); no earlier document has the field.
+  const definitionErrors = 'definitions' in composition ? checkDefinitions(composition) : [];
+
   // The template section of 0.8 (D58); no earlier document has the field.
   const templateErrors = 'template' in composition ? checkTemplate(composition) : [];
 
@@ -646,8 +686,122 @@ export function validateSemantics(
     ...shapeErrors,
     ...matteErrors,
     ...safeAreaErrors,
+    ...definitionErrors,
     ...templateErrors,
   ];
+}
+
+/**
+ * The rules of definitions and instances (D65.4, D76): an instance names a
+ * definition of the document and shows no more of it than it has; no
+ * definition places itself, directly or through others; and no chain of
+ * instances, counted from a scene, is more than `MAX_INSTANCE_DEPTH` deep.
+ */
+function checkDefinitions(composition: Composition): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const definitions = new Map(
+    composition.definitions.map((definition) => [definition.id, definition]),
+  );
+  const checkInstances = (nodes: readonly { readonly type: string }[], nodesPath: string): void => {
+    nodes.forEach((node, index) => {
+      if (!isInstance(node)) return;
+      const path = pointer(nodesPath, index);
+      const definition = definitions.get(node.definitionId);
+      if (definition === undefined) {
+        errors.push({
+          code: 'unresolved-definition-reference',
+          path: pointer(path, 'definitionId'),
+          message: `No definition has the ID "${node.definitionId}".`,
+        });
+      } else if (node.sourceStartUs > definition.durationUs - node.durationUs) {
+        // Compared as a difference, so that no end is formed past the safe integers.
+        errors.push({
+          code: 'instance-exceeds-definition',
+          path: pointer(path, 'sourceStartUs'),
+          message: `sourceStartUs + durationUs must be at most the durationUs of definition "${definition.id}", ${String(definition.durationUs)}.`,
+        });
+      }
+    });
+  };
+  composition.scenes.forEach((scene, index) => {
+    checkInstances(scene.nodes, pointer(pointer(pointer('', 'scenes'), index), 'nodes'));
+  });
+  composition.definitions.forEach((definition, index) => {
+    checkInstances(definition.nodes, pointer(pointer(pointer('', 'definitions'), index), 'nodes'));
+  });
+
+  // The definitions each definition places directly, known ones only.
+  const placed = new Map(
+    composition.definitions.map((definition) => [
+      definition.id,
+      [
+        ...new Set(
+          definition.nodes
+            .filter(isInstance)
+            .map((node) => node.definitionId)
+            .filter((id) => definitions.has(id)),
+        ),
+      ],
+    ]),
+  );
+  // The depth of a definition: 1 and the deepest of what it places; a cycle has none.
+  const depths = new Map<string, number>();
+  const visiting = new Set<string>();
+  const depthOf = (id: string): number | null => {
+    const known = depths.get(id);
+    if (known !== undefined) return known;
+    if (visiting.has(id)) return null;
+    visiting.add(id);
+    let deepest = 0;
+    let cyclic = false;
+    for (const inner of placed.get(id) ?? []) {
+      const depth = depthOf(inner);
+      if (depth === null) cyclic = true;
+      else deepest = Math.max(deepest, depth);
+    }
+    visiting.delete(id);
+    if (cyclic) return null;
+    depths.set(id, deepest + 1);
+    return deepest + 1;
+  };
+  // Whether a definition places itself, directly or through others: only the
+  // definitions on a cycle are named, not those that merely reach one.
+  const placesItself = (id: string): boolean => {
+    const seen = new Set<string>();
+    const pending = [...(placed.get(id) ?? [])];
+    for (let inner = pending.pop(); inner !== undefined; inner = pending.pop()) {
+      if (inner === id) return true;
+      if (seen.has(inner)) continue;
+      seen.add(inner);
+      pending.push(...(placed.get(inner) ?? []));
+    }
+    return false;
+  };
+  composition.definitions.forEach((definition, index) => {
+    const path = pointer(pointer('', 'definitions'), index);
+    // A definition that reaches a cycle without being on it has no depth; the
+    // cycle is named where it is.
+    const depth = depthOf(definition.id);
+    if (placesItself(definition.id)) {
+      errors.push({
+        code: 'definition-cycle',
+        path,
+        message: `Definition "${definition.id}" places itself, directly or through other definitions.`,
+      });
+    } else if (depth !== null && depth > MAX_INSTANCE_DEPTH) {
+      errors.push({
+        code: 'definition-too-deep',
+        path,
+        message: `Definition "${definition.id}" places instances ${String(depth)} deep, more than ${String(MAX_INSTANCE_DEPTH)}.`,
+      });
+    }
+  });
+  return errors;
+}
+
+/** Whether a node is an instance of 0.21 (D76). */
+function isInstance(node: { readonly type: string }): node is InstanceNode {
+  return node.type === 'instance';
 }
 
 /** The errors of one input: its constraints, then its default against them (D58.1). */
@@ -764,6 +918,7 @@ function checkTemplate(
     | CompositionV017
     | CompositionV018
     | CompositionV019
+    | CompositionV020
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1193,6 +1348,7 @@ function subtreeOf(
     | CompositionV017
     | CompositionV018
     | CompositionV019
+    | CompositionV020
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1263,7 +1419,9 @@ interface Located {
     | SceneNodeV018
     | Extract<SceneNodeV018, { type: 'group' }>['children'][number]
     | SceneNodeV019
-    | Extract<SceneNodeV019, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV019, { type: 'group' }>['children'][number]
+    | SceneNodeV020
+    | Extract<SceneNodeV020, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -1291,7 +1449,8 @@ function checkTransitions(
     | CompositionV016
     | CompositionV017
     | CompositionV018
-    | CompositionV019,
+    | CompositionV019
+    | CompositionV020,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));
@@ -1377,8 +1536,18 @@ function checkTransitions(
   });
   sideErrors([...composition.scenes], sceneEntries);
 
-  composition.scenes.forEach((scene, index) => {
-    const scenePath = pointer(pointer('', 'scenes'), index);
+  // The clip transitions of every scene, and of every definition of 0.21 (D76).
+  const holders = [
+    ...composition.scenes.map((scene, index) => ({
+      scene,
+      scenePath: pointer(pointer('', 'scenes'), index),
+    })),
+    ...('definitions' in composition ? composition.definitions : []).map((scene, index) => ({
+      scene,
+      scenePath: pointer(pointer('', 'definitions'), index),
+    })),
+  ];
+  holders.forEach(({ scene, scenePath }) => {
     const located = new Map<string, Located>();
     for (const node of scene.nodes) {
       located.set(node.id, { node, parentId: null });

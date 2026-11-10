@@ -485,6 +485,7 @@ export const ARTIFACT_FILES = Object.freeze([
   'focus/golden-comparison.json',
   'golden-comparison.json',
   'motion/golden-comparison.json',
+  'nested/golden-comparison.json',
   'parity/parity-measurement.json',
   'pinned-test-summary.json',
   'presentation-barrier.json',
