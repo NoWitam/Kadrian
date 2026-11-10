@@ -12,6 +12,8 @@ import { isAbsolute } from 'node:path';
 import process from 'node:process';
 import type { Writable } from 'node:stream';
 
+import { videoOrientation, type VideoOrientation } from '@kadrion/renderer-dom';
+
 import { ProducerError } from './errors.js';
 
 export const FFMPEG_RELEASE = 'autobuild-2026-09-21-13-55';
@@ -228,13 +230,17 @@ export interface AudioProbe {
 
 /**
  * The media facts of the first video stream of a file, as the pinned ffprobe
- * reads them (D49.6, D50.5): its size, its time base, and the presentation
- * timestamp of every decoded frame in presentation order, strictly ascending,
- * with the duration of the last one.
+ * reads them (D49.6, D50.5): its coded size, the orientation of its display
+ * matrix (D81), its time base, and the presentation timestamp of every decoded
+ * frame in presentation order, strictly ascending, with the duration of the
+ * last one.
  */
 export interface VideoProbe {
+  /** The coded size, which the decode gives before the orientation. */
   readonly width: number;
   readonly height: number;
+  /** How a decoded frame is turned after its conversion to RGB (D81). */
+  readonly orientation: VideoOrientation;
   readonly timeBase: { readonly num: number; readonly den: number };
   readonly timestamps: readonly number[];
   /** The duration of the last frame in ticks; the interval before it when the file states none. */
@@ -508,8 +514,46 @@ function positiveInteger(value: unknown): number | null {
 }
 
 /**
- * Reads the facts of D50.5 in two passes: the stream (size and time base, as
- * JSON) and then every decoded frame (best-effort timestamp and duration, one
+ * The display matrix of ffprobe's side data, nine rows of fixed point printed
+ * as `"\n00000000: a b u\n00000001: c d v\n00000002: x y w\n"`, in real
+ * numbers: 16.16 for `a b c d x y`, 2.30 for `u v w` (D81). `null` when the
+ * text is not of that form.
+ */
+export function parseDisplayMatrix(text: string): number[] | null {
+  const values = text
+    .trim()
+    .split('\n')
+    .flatMap((row) => (row.split(':')[1] ?? '').trim().split(/\s+/))
+    .map(Number);
+  if (values.length !== 9 || !values.every((value) => Number.isSafeInteger(value))) return null;
+  return values.map((value, at) => value / (at % 3 === 2 ? 2 ** 30 : 2 ** 16));
+}
+
+/**
+ * The orientation of a stream from its side data (D81): upright without a
+ * display matrix, and `video-undecodable` for a matrix that is not a quarter
+ * turn, with or without a mirror, which the Player refuses as well.
+ */
+function orientationOf(stream: Partial<Record<string, unknown>> | undefined): VideoOrientation {
+  const sideData = Array.isArray(stream?.side_data_list) ? stream.side_data_list : [];
+  const display = (sideData as Partial<Record<string, unknown>>[]).find(
+    (entry) => entry.side_data_type === 'Display Matrix',
+  );
+  if (display === undefined) return { rotation: 0, flipped: false };
+  const text = typeof display.displaymatrix === 'string' ? display.displaymatrix : '';
+  const matrix = parseDisplayMatrix(text);
+  const orientation = matrix === null ? null : videoOrientation(matrix);
+  if (orientation === null) {
+    throw undecodable(
+      `The display matrix [${matrix?.join(', ') ?? text.trim()}] is not a quarter turn, with or without a mirror (D81).`,
+    );
+  }
+  return orientation;
+}
+
+/**
+ * Reads the facts of D50.5 in two passes: the stream (size, time base, and
+ * display matrix, as JSON) and then every decoded frame (best-effort timestamp and duration, one
  * line each, so a long file costs no buffer). The timestamps must be safe
  * integers and strictly ascending: a stream whose decoded order is not its
  * presentation order cannot be sampled by the rule of D49.5.
@@ -520,7 +564,9 @@ async function probeVideoWith(ffprobePath: string, file: string): Promise<VideoP
     ffprobePath,
     [
       ...['-v', 'error', '-select_streams', 'v:0'],
-      ...['-show_entries', 'stream=codec_type,width,height,time_base', '-of', 'json', file],
+      '-show_entries',
+      'stream=codec_type,width,height,time_base:stream_side_data=side_data_type,displaymatrix',
+      ...['-of', 'json', file],
     ],
     (line) => {
       json += `${line}\n`;
@@ -542,6 +588,7 @@ async function probeVideoWith(ffprobePath: string, file: string): Promise<VideoP
   if (num === null || num === undefined || den === null || den === undefined) {
     throw undecodable('The video stream has no time base.');
   }
+  const orientation = orientationOf(stream);
   const timestamps: number[] = [];
   const durations: (number | null)[] = [];
   const found: { problem: string | null } = { problem: null };
@@ -581,13 +628,15 @@ async function probeVideoWith(ffprobePath: string, file: string): Promise<VideoP
         : 'The last frame of the video stream has no duration.',
     );
   }
-  return { width, height, timeBase: { num, den }, timestamps, lastDuration };
+  return { width, height, orientation, timeBase: { num, den }, timestamps, lastDuration };
 }
 
 /** The arguments of the decode of D50.5 for the file at `input`; manifests write `<input>`. */
 export function videoDecodeArgs(input: string): string[] {
   return [
-    ...['-nostdin', '-v', 'error', '-threads', '1', '-i', input, '-map', '0:v:0'],
+    // The display matrix is applied after the conversion to RGB, as the Player does (D81).
+    ...['-nostdin', '-v', 'error', '-threads', '1', '-noautorotate', '-i', input],
+    ...['-map', '0:v:0'],
     ...['-fps_mode', 'passthrough', '-sws_flags', 'bitexact+accurate_rnd+full_chroma_int'],
     ...['-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'],
   ];
@@ -595,7 +644,8 @@ export function videoDecodeArgs(input: string): string[] {
 
 /**
  * The decode of D50.5: one thread, every frame passed through in presentation
- * order (`-fps_mode passthrough`), converted to packed RGB with bit-exact
+ * order (`-fps_mode passthrough`), at its coded size without FFmpeg's own
+ * rotation (`-noautorotate`, D81), converted to packed RGB with bit-exact
  * scaling flags, on standard output. The output is read one frame at a time,
  * and the process is paused while a frame waits, so memory stays two frames.
  */

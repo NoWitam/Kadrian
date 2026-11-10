@@ -8,11 +8,12 @@
  * node is chosen by the rule of `@kadrion/schema` (D49.5), decoded by the
  * browser's own decoder (WebCodecs) in the host window, never in the render
  * page, converted to RGB exactly as the Producer's FFmpeg converts it
- * (`yuv.ts`), and handed to the page as a PNG (D50.4). Decoding
+ * (`yuv.ts`), turned as its container's display matrix asks, by the same
+ * function as the Producer (D81), and handed to the page as a PNG (D50.4). Decoding
  * starts at the last IDR sample before the frame every time (D79.5), so the
  * pixels of a frame do not depend on the frames shown before it.
  */
-import { mediaTypeFits, type AssetRequest } from '@kadrion/renderer-dom';
+import { mediaTypeFits, orientedSize, orientRgb, type AssetRequest } from '@kadrion/renderer-dom';
 import {
   placedVideos,
   sampledSourceRange,
@@ -43,6 +44,7 @@ export interface PlayerVideoFacts {
   readonly type: 'video';
   /** The source duration of D50.3, in microseconds. */
   readonly durationUs: number;
+  /** The size of the picture as it is shown, after the rotation of its container (D81). */
   readonly width: number;
   readonly height: number;
   /** The number of frames of the first video track. */
@@ -166,14 +168,15 @@ export async function readVideo(verified: VerifiedBlob): Promise<VerifiedVideo> 
       `The video "${id}" cannot be read: ${messageOf(reason)}`,
     );
   }
+  const shown = orientedSize(track.width, track.height, track.orientation);
   return {
     ...verified,
     track,
     facts: Object.freeze({
       type: 'video',
       durationUs: sourceDurationUs(track.timestamps, track.lastDuration, track.timeBase),
-      width: track.width,
-      height: track.height,
+      width: shown.width,
+      height: shown.height,
       frames: track.timestamps.length,
     }),
   };
@@ -382,7 +385,8 @@ async function idrBefore(
  * Decodes presentation frame `index` of a video to packed RGB (D51.4): a new
  * decoder, every sample from the IDR sample before it in decode order up to
  * its own sample, then a flush. The output whose timestamp names its sample is
- * kept; every other output is closed at once.
+ * kept; every other output is closed at once. The RGB is of the coded size,
+ * before the orientation of D81.
  */
 async function decodeRgb(codecs: Codecs, video: VerifiedVideo, index: number): Promise<Uint8Array> {
   const { track } = video;
@@ -494,8 +498,16 @@ export function createVideoFrameSource(
     kept.set(video.contentHash, frames);
     const found = frames.get(index);
     if (found !== undefined) return found;
-    const rgb = await decodeRgb(codecs, video, index);
-    const png = await encodePng(codecs, video.track.width, video.track.height, rgb);
+    const { track } = video;
+    // After the conversion of colour, as the Producer turns its frames (D81).
+    const rgb = orientRgb(
+      await decodeRgb(codecs, video, index),
+      track.width,
+      track.height,
+      track.orientation,
+    );
+    const shown = orientedSize(track.width, track.height, track.orientation);
+    const png = await encodePng(codecs, shown.width, shown.height, rgb);
     frames.set(index, png);
     if (frames.size > KEPT_FRAMES) frames.delete(frames.keys().next().value as number);
     return png;

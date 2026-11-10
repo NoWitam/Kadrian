@@ -291,7 +291,13 @@ export function testMp4(options: TestMp4): Uint8Array<ArrayBuffer> {
       u32(0),
       u32(1000),
       u32(0),
-      new Array<number>(80).fill(0),
+      // Rate 1, volume 1, reserved, the identity matrix (D81), pre-defined, and the next track ID.
+      u32(0x00010000),
+      u16(0x0100),
+      new Array<number>(10).fill(0),
+      ...[0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000].map(u32),
+      new Array<number>(24).fill(0),
+      u32(2),
     );
     return box('moov', mvhd, trak);
   };

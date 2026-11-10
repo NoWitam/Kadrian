@@ -106,6 +106,7 @@ export interface RenderManifest {
 export interface ManifestVideoSource {
   readonly assetId: string;
   readonly contentHash: string;
+  /** The size of the picture as it is shown, after the rotation of its container (D81). */
   readonly width: number;
   readonly height: number;
   readonly frames: number;

@@ -23,7 +23,7 @@ import { validateComposition, type ValidatedComposition } from '@kadrion/schema'
 import { VIDEO_FIXTURE, referenceComposition, videoComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
-import type { FfmpegTools, VideoProbe } from '../src/ffmpeg.js';
+import { parseDisplayMatrix, type FfmpegTools, type VideoProbe } from '../src/ffmpeg.js';
 import { isPathAsset, resolveProducerAsset, type PathAsset } from '../src/media-path.js';
 import { encodePng, prepareVideos, videoNodes } from '../src/video.js';
 
@@ -41,6 +41,7 @@ const BYTES = new Uint8Array([1, 2, 3, 4]);
 const PROBE: VideoProbe = {
   width: WIDTH,
   height: HEIGHT,
+  orientation: { rotation: 0, flipped: false },
   timeBase: VIDEO_FIXTURE.timeBase,
   timestamps: Array.from(
     { length: VIDEO_FIXTURE.frames },
@@ -230,6 +231,22 @@ describe('the frames of a frame loop (D49.5, D50.4)', () => {
     await source.close();
   });
 
+  it('turns the frames of a rotated video after the conversion to RGB, and records the size as shown (D81)', async () => {
+    const run = fakeTools({ ...PROBE, orientation: { rotation: 90, flipped: false } });
+    const library = await prepareVideos(VIDEO, [VIDEO_ASSET], run.tools);
+    expect(library?.manifest.sources[0]).toMatchObject({ width: HEIGHT, height: WIDTH });
+    expect(library?.manifest.decodeArgs).toContain('-noautorotate');
+    const source = await library?.open();
+    if (source === undefined) throw new Error('no source');
+    const [full] = await source.framesAt(1_000_000);
+    // FFmpeg decodes the coded size; the PNG is of the turned picture.
+    expect(run.log.filter((line) => line.startsWith('decode'))[0]).toBe('decode 4x2');
+    const data = Buffer.from(full?.bytes ?? new Uint8Array());
+    expect([data.readUInt32BE(16), data.readUInt32BE(20)]).toEqual([HEIGHT, WIDTH]);
+    expect(pixelOf(full?.bytes ?? new Uint8Array())).toBe(25);
+    await source.close();
+  });
+
   it('refuses a video that decodes to fewer frames than it was probed with', async () => {
     const run = fakeTools(PROBE, 10);
     const library = await prepareVideos(VIDEO, [VIDEO_ASSET], run.tools);
@@ -322,6 +339,27 @@ describe('a video read by path (D64)', () => {
     } finally {
       done();
     }
+  });
+});
+
+describe('the display matrix of ffprobe (D81)', () => {
+  it('reads the fixed point of its three rows as real numbers', () => {
+    expect(
+      parseDisplayMatrix(
+        '\n00000000:            0      -65536           0\n00000001:        65536           0           0\n00000002:            0           0  1073741824\n',
+      ),
+    ).toEqual([0, -1, 0, 1, 0, 0, 0, 0, 1]);
+    expect(
+      parseDisplayMatrix(
+        '\n00000000:        46340      -46340           0\n00000001:        46340       46340           0\n00000002:            0           0  1073741824\n',
+      )?.slice(0, 2),
+    ).toEqual([46340 / 65536, -46340 / 65536]);
+  });
+
+  it('refuses text of another form', () => {
+    expect(parseDisplayMatrix('')).toBeNull();
+    expect(parseDisplayMatrix('\n00000000: 0 1\n')).toBeNull();
+    expect(parseDisplayMatrix('\n00000000: a b c\n00000001: 0 0 0\n00000002: 0 0 1\n')).toBeNull();
   });
 });
 
