@@ -40,8 +40,11 @@
  * texts, captions, shapes, and groups (D75); 0.21 is 0.20 plus the definitions
  * of a document, compositions with their own canvas and time, and the node
  * `instance`, which places a definition in a scene or in another definition
- * as one layer (D65.4, D76). The schemas of 0.1 to 0.20 are kept as data in
- * `v0-1` to `v0-20` (D35.4).
+ * as one layer (D65.4, D76); 0.22 is 0.21 plus elements: a definition with a
+ * template section and the content hash a host gave it, an instance with the
+ * values of its inputs, and the binding of the words of a captions node to a
+ * list (D77). The schemas of 0.1 to 0.21 are kept as data in `v0-1` to `v0-21`
+ * (D35.4).
  */
 import {
   closedObject,
@@ -54,7 +57,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.21';
+export const SCHEMA_VERSION = '0.22';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -1963,6 +1966,199 @@ export interface GroupNodeSchema extends GroupNodeSchemaValue {
 type GroupNodeSchemaValue = typeof groupNodeSchemaValue;
 export const groupNodeSchema: GroupNodeSchema = groupNodeSchemaValue;
 
+const contentHash = {
+  type: 'string',
+  description: 'Algorithm, a colon, and the lowercase hex digest of the exact bytes.',
+  pattern: '^sha256:[0-9a-f]{64}$',
+} as const satisfies StringSchema;
+
+const textLength = {
+  type: 'integer',
+  description: 'A number of characters, counted as Unicode code points (D58.1).',
+  minimum: 0,
+  maximum: 1_000_000,
+} as const satisfies NumberSchema;
+
+const numberBound = {
+  type: 'number',
+  description: 'A bound of a number input, inclusive (D58.1).',
+  minimum: -MAX_SAFE_INTEGER,
+  maximum: MAX_SAFE_INTEGER,
+} as const satisfies NumberSchema;
+
+const fieldKey = {
+  type: 'string',
+  description:
+    'The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).',
+  pattern: '^[A-Za-z0-9_-]+$',
+} as const satisfies StringSchema;
+
+const textValue = {
+  type: 'string',
+  description: 'A text (D58.1).',
+} as const satisfies StringSchema;
+const numberValue = {
+  ...numberBound,
+  description: 'A number (D58.1).',
+} as const satisfies NumberSchema;
+const booleanValue = {
+  type: 'boolean',
+  description: 'true or false (D58.1).',
+} as const satisfies BooleanSchema;
+const colorValue = color;
+const assetValue = {
+  ...contentHash,
+  description:
+    'The content hash of the bytes of an asset, which the host resolves like those of any asset (D14, D58.1).',
+} as const satisfies StringSchema;
+
+const textConstraints = {
+  minLength: {
+    ...textLength,
+    description: 'The fewest characters of a value, code points (D58.1).',
+  },
+  maxLength: { ...textLength, description: 'The most characters of a value, code points (D58.1).' },
+} as const;
+
+const numberConstraints = {
+  minimum: { ...numberBound, description: 'The least value, inclusive (D58.1).' },
+  maximum: { ...numberBound, description: 'The greatest value, inclusive (D58.1).' },
+} as const;
+
+const fieldType = <const T extends string>(type: T) => ({ type: 'string', const: type }) as const;
+
+/** One field of the items of a list input: a key, a type, and its constraints (D58.1). */
+export const templateFieldSchema = {
+  description: 'One field of the items of a list input (D58.1).',
+  oneOf: [
+    closedObject('A text field, with its least and greatest number of characters (D58.1).', {
+      key: fieldKey,
+      type: fieldType('text'),
+      ...textConstraints,
+    }),
+    closedObject('A number field, with its least and greatest value (D58.1).', {
+      key: fieldKey,
+      type: fieldType('number'),
+      ...numberConstraints,
+    }),
+    closedObject('A field that is true or false (D58.1).', {
+      key: fieldKey,
+      type: fieldType('boolean'),
+    }),
+    closedObject('A colour field, lowercase #rrggbb (D58.1).', {
+      key: fieldKey,
+      type: fieldType('color'),
+    }),
+    closedObject('A field that holds the content hash of an image (D58.1).', {
+      key: fieldKey,
+      type: fieldType('image'),
+    }),
+    closedObject('A field that holds the content hash of a video (D58.1).', {
+      key: fieldKey,
+      type: fieldType('video'),
+    }),
+    closedObject('A field that holds the content hash of a sound (D58.1).', {
+      key: fieldKey,
+      type: fieldType('audio'),
+    }),
+  ],
+} as const satisfies UnionSchema;
+
+/** The value of one field of one item of a list, as the document stores a default (D58.1). */
+export const templateFieldValueSchema = {
+  description:
+    'The value of one field of one item, tagged with its key and type; an item lists one value for each field, in the order of the fields (D58.1).',
+  oneOf: [
+    closedObject('The value of a text field of one item (D58.1).', {
+      key: fieldKey,
+      type: fieldType('text'),
+      value: textValue,
+    }),
+    closedObject('The value of a number field of one item (D58.1).', {
+      key: fieldKey,
+      type: fieldType('number'),
+      value: numberValue,
+    }),
+    closedObject('The value of a boolean field of one item (D58.1).', {
+      key: fieldKey,
+      type: fieldType('boolean'),
+      value: booleanValue,
+    }),
+    closedObject('The value of a colour field of one item (D58.1).', {
+      key: fieldKey,
+      type: fieldType('color'),
+      value: colorValue,
+    }),
+    closedObject('The value of an image field of one item (D58.1).', {
+      key: fieldKey,
+      type: fieldType('image'),
+      value: assetValue,
+    }),
+    closedObject('The value of a video field of one item (D58.1).', {
+      key: fieldKey,
+      type: fieldType('video'),
+      value: assetValue,
+    }),
+    closedObject('The value of an audio field of one item (D58.1).', {
+      key: fieldKey,
+      type: fieldType('audio'),
+      value: assetValue,
+    }),
+  ],
+} as const satisfies UnionSchema;
+
+const instanceInputReference = {
+  type: 'string',
+  description: 'ID of an input of the template of the definition the instance places (D77).',
+  pattern: '^[A-Za-z0-9_-]+$',
+} as const satisfies StringSchema;
+
+/**
+ * The value an instance gives one input of its element (D77), tagged with the
+ * input's type, as a list's default is stored (D58.1). An element has no
+ * inputs of an asset type, so no value is a content hash.
+ */
+export const instanceInputSchema = {
+  description:
+    "The value the instance gives one input of its definition's template, tagged with the input's type; an input the instance gives no value takes its default (D77).",
+  oneOf: [
+    closedObject('The value of a text input (D77).', {
+      inputId: instanceInputReference,
+      type: fieldType('text'),
+      value: textValue,
+    }),
+    closedObject('The value of a number input (D77).', {
+      inputId: instanceInputReference,
+      type: fieldType('number'),
+      value: numberValue,
+    }),
+    closedObject('The value of a boolean input (D77).', {
+      inputId: instanceInputReference,
+      type: fieldType('boolean'),
+      value: booleanValue,
+    }),
+    closedObject('The value of a colour input, lowercase #rrggbb (D77).', {
+      inputId: instanceInputReference,
+      type: fieldType('color'),
+      value: colorValue,
+    }),
+    closedObject('The items of a list input (D77).', {
+      inputId: instanceInputReference,
+      type: fieldType('list'),
+      value: {
+        type: 'array',
+        description:
+          'The items, each a value for each field in the order of the fields, as a default is stored (D58.1, D77).',
+        items: {
+          type: 'array',
+          description: 'One item: a value for each field, in the order of the fields (D58.1).',
+          items: templateFieldValueSchema,
+        },
+      },
+    }),
+  ],
+} as const satisfies UnionSchema;
+
 const definitionReference = {
   type: 'string',
   description: 'ID of a definition of this document (D76).',
@@ -1977,6 +2173,12 @@ const instanceNodeSchemaValue = closedObject(
     ...lifetime,
     ...plainTransform,
     definitionId: definitionReference,
+    inputs: {
+      type: 'array',
+      description:
+        "The values of the inputs of the definition's template, sorted by inputId, each input at most once; the instance shows the definition instantiated with these values as a template is (D58.4, D77).",
+      items: instanceInputSchema,
+    },
     sourceStartUs: {
       ...timeUs,
       description:
@@ -2263,44 +2465,6 @@ export const sceneSchema = closedObject(
   },
 );
 
-export const definitionSchema = closedObject(
-  'A composition built once and placed by instances (D65.4, D76): its own canvas and duration, its nodes, its sounds, and the transitions between its clips, every time inside it definition time, from 0 at its start. It holds no assets of its own; its nodes name the assets of the document.',
-  {
-    id,
-    width: {
-      ...canvasLength,
-      description: 'The width of the canvas of the definition, in pixels (D76).',
-    },
-    height: {
-      ...canvasLength,
-      description: 'The height of the canvas of the definition, in pixels (D76).',
-    },
-    durationUs: {
-      ...durationUs,
-      description:
-        'How long the definition lasts, in integer microseconds; an instance shows at most this much of it (D65.4, D76).',
-    },
-    nodes: {
-      type: 'array',
-      description:
-        'Array order is the z-order; the first node is at the bottom. A definition holds no video and no Custom HTML (D76).',
-      items: definitionNodeSchema,
-    },
-    clips: {
-      type: 'array',
-      description:
-        'Audio clips in definition time, heard where an instance shows that time; mixed with every other clip regardless of their order (D52, D65.4, D76).',
-      items: audioClipSchema,
-    },
-    transitions: {
-      type: 'array',
-      description:
-        "Transitions between two clips of one layer of this definition, whose frame is the definition's canvas; their order has no meaning (D56, D66, D76).",
-      items: clipTransitionSchema,
-    },
-  },
-);
-
 export const assetSchema = closedObject(
   'Pinned by content hash; the host resolves the bytes and the engine verifies them (D14).',
   {
@@ -2318,147 +2482,6 @@ export const assetSchema = closedObject(
     },
   },
 );
-
-const contentHash = {
-  type: 'string',
-  description: 'Algorithm, a colon, and the lowercase hex digest of the exact bytes.',
-  pattern: '^sha256:[0-9a-f]{64}$',
-} as const satisfies StringSchema;
-
-const textLength = {
-  type: 'integer',
-  description: 'A number of characters, counted as Unicode code points (D58.1).',
-  minimum: 0,
-  maximum: 1_000_000,
-} as const satisfies NumberSchema;
-
-const numberBound = {
-  type: 'number',
-  description: 'A bound of a number input, inclusive (D58.1).',
-  minimum: -MAX_SAFE_INTEGER,
-  maximum: MAX_SAFE_INTEGER,
-} as const satisfies NumberSchema;
-
-const fieldKey = {
-  type: 'string',
-  description:
-    'The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).',
-  pattern: '^[A-Za-z0-9_-]+$',
-} as const satisfies StringSchema;
-
-const textValue = {
-  type: 'string',
-  description: 'A text (D58.1).',
-} as const satisfies StringSchema;
-const numberValue = {
-  ...numberBound,
-  description: 'A number (D58.1).',
-} as const satisfies NumberSchema;
-const booleanValue = {
-  type: 'boolean',
-  description: 'true or false (D58.1).',
-} as const satisfies BooleanSchema;
-const colorValue = color;
-const assetValue = {
-  ...contentHash,
-  description:
-    'The content hash of the bytes of an asset, which the host resolves like those of any asset (D14, D58.1).',
-} as const satisfies StringSchema;
-
-const textConstraints = {
-  minLength: {
-    ...textLength,
-    description: 'The fewest characters of a value, code points (D58.1).',
-  },
-  maxLength: { ...textLength, description: 'The most characters of a value, code points (D58.1).' },
-} as const;
-
-const numberConstraints = {
-  minimum: { ...numberBound, description: 'The least value, inclusive (D58.1).' },
-  maximum: { ...numberBound, description: 'The greatest value, inclusive (D58.1).' },
-} as const;
-
-const fieldType = <const T extends string>(type: T) => ({ type: 'string', const: type }) as const;
-
-/** One field of the items of a list input: a key, a type, and its constraints (D58.1). */
-export const templateFieldSchema = {
-  description: 'One field of the items of a list input (D58.1).',
-  oneOf: [
-    closedObject('A text field, with its least and greatest number of characters (D58.1).', {
-      key: fieldKey,
-      type: fieldType('text'),
-      ...textConstraints,
-    }),
-    closedObject('A number field, with its least and greatest value (D58.1).', {
-      key: fieldKey,
-      type: fieldType('number'),
-      ...numberConstraints,
-    }),
-    closedObject('A field that is true or false (D58.1).', {
-      key: fieldKey,
-      type: fieldType('boolean'),
-    }),
-    closedObject('A colour field, lowercase #rrggbb (D58.1).', {
-      key: fieldKey,
-      type: fieldType('color'),
-    }),
-    closedObject('A field that holds the content hash of an image (D58.1).', {
-      key: fieldKey,
-      type: fieldType('image'),
-    }),
-    closedObject('A field that holds the content hash of a video (D58.1).', {
-      key: fieldKey,
-      type: fieldType('video'),
-    }),
-    closedObject('A field that holds the content hash of a sound (D58.1).', {
-      key: fieldKey,
-      type: fieldType('audio'),
-    }),
-  ],
-} as const satisfies UnionSchema;
-
-/** The value of one field of one item of a list, as the document stores a default (D58.1). */
-export const templateFieldValueSchema = {
-  description:
-    'The value of one field of one item, tagged with its key and type; an item lists one value for each field, in the order of the fields (D58.1).',
-  oneOf: [
-    closedObject('The value of a text field of one item (D58.1).', {
-      key: fieldKey,
-      type: fieldType('text'),
-      value: textValue,
-    }),
-    closedObject('The value of a number field of one item (D58.1).', {
-      key: fieldKey,
-      type: fieldType('number'),
-      value: numberValue,
-    }),
-    closedObject('The value of a boolean field of one item (D58.1).', {
-      key: fieldKey,
-      type: fieldType('boolean'),
-      value: booleanValue,
-    }),
-    closedObject('The value of a colour field of one item (D58.1).', {
-      key: fieldKey,
-      type: fieldType('color'),
-      value: colorValue,
-    }),
-    closedObject('The value of an image field of one item (D58.1).', {
-      key: fieldKey,
-      type: fieldType('image'),
-      value: assetValue,
-    }),
-    closedObject('The value of a video field of one item (D58.1).', {
-      key: fieldKey,
-      type: fieldType('video'),
-      value: assetValue,
-    }),
-    closedObject('The value of an audio field of one item (D58.1).', {
-      key: fieldKey,
-      type: fieldType('audio'),
-      value: assetValue,
-    }),
-  ],
-} as const satisfies UnionSchema;
 
 const DEFAULT =
   'The value of the input when the host gives none; every property or asset bound to the input holds it (D58.1, D58.3).';
@@ -2632,6 +2655,17 @@ export const itemAssetBindingSchema = closedObject(
   },
 );
 
+/** A binding of the words of a captions node to a list of timed words (D57, D77). */
+export const wordsBindingSchema = closedObject(
+  'The words of the captions node are the items of the list input, one word for each item, read from its fields text (a text), startUs, and durationUs (numbers), in the order of the items (D57, D77).',
+  {
+    id,
+    kind: { type: 'string', const: 'words' },
+    nodeId: boundNode,
+    inputId: listReference,
+  },
+);
+
 export const templateBindingSchema = {
   description: 'Where the value of an input or of a field of an item goes (D58.2, D59.3).',
   oneOf: [
@@ -2640,6 +2674,7 @@ export const templateBindingSchema = {
     assetBindingSchema,
     itemPropertyBindingSchema,
     itemAssetBindingSchema,
+    wordsBindingSchema,
   ],
 } as const satisfies UnionSchema;
 
@@ -2757,6 +2792,55 @@ export const templateSchema = closedObject(
   },
 );
 
+export const definitionSchema = closedObject(
+  'A composition built once and placed by instances (D65.4, D76): its own canvas and duration, its nodes, its sounds, and the transitions between its clips, every time inside it definition time, from 0 at its start. It holds no assets of its own; its nodes name the assets of the document. A definition with a template is an element: every instance gives the values of its inputs (D77).',
+  {
+    id,
+    sourceHash: {
+      type: 'string',
+      description:
+        'The content hash of the bytes the host made this definition from, so that it knows which version of an element a document holds, or empty when it gave none; Kadrion never computes or checks it, and an edit inside the definition leaves it as it is, since the definition was still made from those bytes (D77).',
+      pattern: '^(sha256:[0-9a-f]{64})?$',
+    },
+    width: {
+      ...canvasLength,
+      description: 'The width of the canvas of the definition, in pixels (D76).',
+    },
+    height: {
+      ...canvasLength,
+      description: 'The height of the canvas of the definition, in pixels (D76).',
+    },
+    durationUs: {
+      ...durationUs,
+      description:
+        'How long the definition lasts, in integer microseconds; an instance shows at most this much of it (D65.4, D76).',
+    },
+    nodes: {
+      type: 'array',
+      description:
+        'Array order is the z-order; the first node is at the bottom. A definition holds no video and no Custom HTML (D76).',
+      items: definitionNodeSchema,
+    },
+    clips: {
+      type: 'array',
+      description:
+        'Audio clips in definition time, heard where an instance shows that time; mixed with every other clip regardless of their order (D52, D65.4, D76).',
+      items: audioClipSchema,
+    },
+    transitions: {
+      type: 'array',
+      description:
+        "Transitions between two clips of one layer of this definition, whose frame is the definition's canvas; their order has no meaning (D56, D66, D76).",
+      items: clipTransitionSchema,
+    },
+    template: {
+      ...templateSchema,
+      description:
+        "The inputs of the element, their bindings into the definition's nodes, the conditions, and the repeats; empty in a definition that is no element. Each instance shows the definition instantiated with the instance's values as a template is (D58, D59, D77).",
+    },
+  },
+);
+
 /**
  * Freezes a schema and everything reachable from it. `validate-structure.ts`
  * remembers which schema objects it has checked; a frozen schema cannot change
@@ -2772,7 +2856,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.21',
+  title: 'Kadrion composition 0.22',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

@@ -128,7 +128,13 @@ export type EditorErrorCode =
    * directly would, or another instance places the definition too, so putting
    * the nodes in its stead would change the picture (D76).
    */
-  | 'instance-not-expandable';
+  | 'instance-not-expandable'
+  /**
+   * The command would leave an element instance whose values no longer fit the
+   * inputs of its definition, or whose instantiation is no valid definition;
+   * `details` name the instances, sorted (D77).
+   */
+  | 'instance-inputs-mismatch';
 
 /**
  * A typed failure of the command bus (D30.8). Check `code` instead of

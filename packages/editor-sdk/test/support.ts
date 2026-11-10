@@ -133,6 +133,7 @@ export const CAPTIONS_NODE = Object.freeze({
 /** The definition `everyType` adds to the reference composition (D76). */
 export const DEFINITION = Object.freeze({
   id: 'definition-card',
+  sourceHash: '',
   width: 320,
   height: 180,
   durationUs: 2_000_000,
@@ -148,6 +149,12 @@ export const DEFINITION = Object.freeze({
   ]),
   clips: Object.freeze([]),
   transitions: Object.freeze([]),
+  template: Object.freeze({
+    inputs: Object.freeze([]),
+    bindings: Object.freeze([]),
+    conditions: Object.freeze([]),
+    repeats: Object.freeze([]),
+  }),
 });
 
 /** The instance node `everyType` adds to the reference composition (D76). */
@@ -163,6 +170,7 @@ export const INSTANCE_NODE = Object.freeze({
   opacity: 1,
   animations: Object.freeze([]),
   definitionId: 'definition-card',
+  inputs: Object.freeze([]),
   sourceStartUs: 0,
   width: 320,
   height: 180,

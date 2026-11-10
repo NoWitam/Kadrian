@@ -20,6 +20,7 @@
     "kadrion": "./dist/bin.js"
   },
   "dependencies": {
+    "@kadrion/player": "workspace:*",
     "@kadrion/producer": "workspace:*",
     "@kadrion/schema": "workspace:*"
   },

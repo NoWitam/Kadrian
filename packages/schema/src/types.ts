@@ -18,6 +18,7 @@ import type {
   effectSchema,
   groupNodeSchema,
   imageNodeSchema,
+  instanceInputSchema,
   instanceNodeSchema,
   maskSchema,
   matteSchema,
@@ -75,6 +76,8 @@ export type VideoNode = Infer<typeof videoNodeSchema>;
 export type CustomHtmlNode = Infer<typeof customHtmlNodeSchema>;
 /** A definition placed as one layer, at a time of its own (D65.4, D76). */
 export type InstanceNode = Infer<typeof instanceNodeSchema>;
+/** The value an instance gives one input of its element, tagged with the input's type (D77). */
+export type InstanceInput = Infer<typeof instanceInputSchema>;
 /** A composition built once and placed by instances: a canvas, a duration, nodes, sounds, and transitions (D76). */
 export type Definition = Infer<typeof definitionSchema>;
 /** A node of a definition: any node of a scene but a video and Custom HTML (D76). */

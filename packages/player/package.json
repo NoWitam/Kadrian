@@ -19,7 +19,8 @@
   "dependencies": {
     "@kadrion/renderer-dom": "workspace:*",
     "@kadrion/runtime": "workspace:*",
-    "@kadrion/schema": "workspace:*"
+    "@kadrion/schema": "workspace:*",
+    "mediabunny": "1.62.1"
   },
   "devDependencies": {
     "@kadrion/test-fixtures": "workspace:*",

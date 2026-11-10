@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "0.22",
+  "width": 1,
+  "height": 1,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 1,
+  "durationUs": 1,
+  "assets": [],
+  "scenes": [
+    {
+      "id": "minimal-scene",
+      "durationUs": 1,
+      "nodes": [],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

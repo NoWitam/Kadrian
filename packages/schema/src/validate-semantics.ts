@@ -22,10 +22,19 @@
  * and pins what they were. A rule that a later version changes gets its own
  * function, never a branch here.
  */
+import { compositionSchema, SCHEMA_VERSION } from './composition-schema.js';
 import { MAX_INSTANCE_DEPTH } from './definitions.js';
 import { pointer, type ValidationError } from './errors.js';
+import { instantiateDefinition, MAX_REPEAT_IDS, valuesOf } from './template-fill.js';
 import { templateStructure } from './template-structure.js';
-import { constraintProblem, copiedFrom, patternParts, valueProblem } from './template-values.js';
+import {
+  constraintProblem,
+  copiedFrom,
+  isTemplate,
+  patternParts,
+  valueProblem,
+} from './template-values.js';
+import { validateStructure } from './validate-structure.js';
 import type {
   Asset,
   AudioClip,
@@ -40,7 +49,10 @@ import type {
   SceneNode,
   ShapeGeometry,
   ShapeNode,
+  Definition,
+  InstanceInput,
   TemplateCondition,
+  TemplateFieldValue,
   TemplateInput,
   TemplateRepeat,
 } from './types.js';
@@ -66,6 +78,7 @@ import type { CompositionV017 } from './v0-17/composition-schema.js';
 import type { CompositionV018 } from './v0-18/composition-schema.js';
 import type { CompositionV019 } from './v0-19/composition-schema.js';
 import type { CompositionV020 } from './v0-20/composition-schema.js';
+import type { CompositionV021 } from './v0-21/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -87,6 +100,7 @@ type SceneNodeV018 = CompositionV018['scenes'][number]['nodes'][number];
 type SceneNodeV019 = CompositionV019['scenes'][number]['nodes'][number];
 
 type SceneNodeV020 = CompositionV020['scenes'][number]['nodes'][number];
+type SceneNodeV021 = CompositionV021['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -425,7 +439,9 @@ export function validateSemantics(
     | CompositionV017
     | CompositionV018
     | CompositionV019
-    | CompositionV020,
+    | CompositionV020
+    | CompositionV021,
+  options: SemanticOptions = CHECK_EVERYTHING,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   checkUniqueIds(composition, '', new Set(), errors);
@@ -455,7 +471,9 @@ export function validateSemantics(
   // The nodes of every scene, and of every definition of 0.21 (D76), which are
   // checked as the nodes of a scene are.
   const holders: {
-    readonly nodes: readonly (SceneNode | SceneNodeV09 | SceneNodeV019 | SceneNodeV020)[];
+    readonly nodes: readonly (
+      SceneNode | SceneNodeV09 | SceneNodeV019 | SceneNodeV020 | SceneNodeV021
+    )[];
     readonly transitions?: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
     readonly effects?: Composition['scenes'][number]['effects'];
     readonly path: string;
@@ -670,7 +688,13 @@ export function validateSemantics(
   }
 
   // The definitions and instances of 0.21 (D76); no earlier document has the field.
-  const definitionErrors = 'definitions' in composition ? checkDefinitions(composition) : [];
+  const definitionErrors: ValidationError[] =
+    'definitions' in composition ? checkDefinitions(composition) : [];
+
+  // The elements of 0.22 (D77): the templates of definitions and the values of instances.
+  if (composition.schemaVersion === SCHEMA_VERSION) {
+    definitionErrors.push(...checkElements(composition, options));
+  }
 
   // The template section of 0.8 (D58); no earlier document has the field.
   const templateErrors = 'template' in composition ? checkTemplate(composition) : [];
@@ -697,7 +721,7 @@ export function validateSemantics(
  * definition places itself, directly or through others; and no chain of
  * instances, counted from a scene, is more than `MAX_INSTANCE_DEPTH` deep.
  */
-function checkDefinitions(composition: Composition): ValidationError[] {
+function checkDefinitions(composition: Composition | CompositionV021): ValidationError[] {
   const errors: ValidationError[] = [];
   const definitions = new Map(
     composition.definitions.map((definition) => [definition.id, definition]),
@@ -736,7 +760,7 @@ function checkDefinitions(composition: Composition): ValidationError[] {
       definition.id,
       [
         ...new Set(
-          definition.nodes
+          (definition.nodes as readonly { readonly type: string }[])
             .filter(isInstance)
             .map((node) => node.definitionId)
             .filter((id) => definitions.has(id)),
@@ -799,6 +823,272 @@ function checkDefinitions(composition: Composition): ValidationError[] {
   return errors;
 }
 
+/** What `validateSemantics` checks besides the rules every document follows. */
+export interface SemanticOptions {
+  /**
+   * Whether the values of every instance are checked against its element (D77).
+   * The validation of an instantiated definition leaves them out: the values
+   * of the instances inside it are the document's, checked once there.
+   */
+  readonly instanceValues: boolean;
+}
+
+const CHECK_EVERYTHING: SemanticOptions = Object.freeze({ instanceValues: true });
+
+/** A definition seen as a composition of one scene: its nodes, clips, and transitions (D77). */
+function definitionHolder(
+  composition: Composition,
+  definition: Definition,
+  definitions: readonly Definition[],
+  template: Composition['template'],
+): Composition {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    width: definition.width,
+    height: definition.height,
+    safeArea: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
+    fps: composition.fps,
+    durationUs: definition.durationUs,
+    assets: composition.assets,
+    scenes: [
+      {
+        id: definition.id,
+        durationUs: definition.durationUs,
+        nodes: definition.nodes,
+        clips: definition.clips,
+        transitions: definition.transitions,
+        effects: [],
+      },
+    ],
+    clips: [],
+    transitions: [],
+    definitions,
+    template,
+  };
+}
+
+/** A path into a definition's holder as a path into the definition at `base` (D77). */
+function heldPath(path: string, base: string): string {
+  if (path === '/scenes/0' || path.startsWith('/scenes/0/')) return base + path.slice(9);
+  if (path === '/template' || path.startsWith('/template/')) return base + path;
+  return path;
+}
+
+const ASSET_TYPES: readonly string[] = ['image', 'video', 'audio'];
+
+/**
+ * The rules of elements (D77): the template of a definition follows the rules
+ * of a document's template over the definition's nodes, with no input of an
+ * asset type, no binding of an asset, and no target but a node of it; the
+ * values of an instance name inputs of its definition once each, sorted by
+ * input ID, and fit their types and constraints; and the definition
+ * instantiated with them is a valid definition. The copies of the repeats of
+ * every instance count together toward `MAX_REPEAT_IDS`.
+ */
+function checkElements(composition: Composition, options: SemanticOptions): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const definitions = new Map(
+    composition.definitions.map((definition) => [definition.id, definition]),
+  );
+  composition.definitions.forEach((definition, index) => {
+    const base = pointer(pointer('', 'definitions'), index);
+    const { template } = definition;
+    if (!isTemplate(definition)) return;
+    const templatePath = pointer(base, 'template');
+    template.inputs.forEach((input, at) => {
+      const asset =
+        ASSET_TYPES.includes(input.type) ||
+        (input.type === 'list' && input.fields.some((field) => ASSET_TYPES.includes(field.type)));
+      if (asset) {
+        errors.push({
+          code: 'element-asset-input',
+          path: pointer(pointer(templatePath, 'inputs'), at),
+          message: `Input "${input.id}" holds an asset; an element has no inputs of an asset type (D77).`,
+        });
+      }
+    });
+    template.bindings.forEach((binding, at) => {
+      if (binding.kind === 'asset' || binding.kind === 'item-asset') {
+        errors.push({
+          code: 'element-asset-input',
+          path: pointer(pointer(templatePath, 'bindings'), at),
+          message: `Binding "${binding.id}" writes an asset; an element binds no asset (D77).`,
+        });
+      }
+    });
+    for (const key of ['conditions', 'repeats'] as const) {
+      template[key].forEach((item, at) => {
+        if (item.targetId !== definition.id) return;
+        errors.push({
+          code: 'unresolved-target-reference',
+          path: pointer(pointer(pointer(templatePath, key), at), 'targetId'),
+          message: `The template of definition "${definition.id}" targets its nodes, not the definition.`,
+        });
+      });
+    }
+    const holder = definitionHolder(composition, definition, [], template);
+    for (const error of checkTemplate(holder)) {
+      errors.push({ ...error, path: heldPath(error.path, base) });
+    }
+  });
+  if (!options.instanceValues) return errors;
+
+  // The definitions an instance of each definition reaches, which its instantiation's validation reads.
+  const reached = (id: string): Definition[] => {
+    const seen = new Set<string>([id]);
+    const found: Definition[] = [];
+    const pending = [id];
+    for (let at = pending.pop(); at !== undefined; at = pending.pop()) {
+      for (const node of definitions.get(at)?.nodes ?? []) {
+        if (node.type !== 'instance' || seen.has(node.definitionId)) continue;
+        seen.add(node.definitionId);
+        const inner = definitions.get(node.definitionId);
+        if (inner === undefined) continue;
+        found.push(inner);
+        pending.push(inner.id);
+      }
+    }
+    return found;
+  };
+  // One instantiation for each definition and values, however many instances share them.
+  const verdicts = new Map<string, { problems: readonly ValidationError[]; copiedIds: number }>();
+  let copiedIds = 0;
+  const checkInstance = (node: InstanceNode, path: string): void => {
+    const definition = definitions.get(node.definitionId);
+    if (definition === undefined) return;
+    const inputsPath = pointer(path, 'inputs');
+    const own = instanceValueErrors(node.inputs, definition, inputsPath);
+    if (own.length > 0) {
+      errors.push(...own);
+      return;
+    }
+    if (!isTemplate(definition)) return;
+    const key = `${definition.id}\u0000${JSON.stringify(node.inputs)}`;
+    let verdict = verdicts.get(key);
+    if (verdict === undefined) {
+      const made = instantiateDefinition(definition, valuesOf(node.inputs));
+      if (!made.ok) {
+        verdict = {
+          problems: made.errors.map((error) => ({
+            code: 'instance-input-invalid',
+            path: inputsPath,
+            message: `${error.message}${error.path === '' ? '' : ` (at ${error.path})`}`,
+          })),
+          copiedIds: 0,
+        };
+      } else {
+        const instantiated = definitionHolder(
+          composition,
+          made.definition,
+          reached(definition.id),
+          { inputs: [], bindings: [], conditions: [], repeats: [] },
+        );
+        const found = [...validateStructure(compositionSchema, instantiated)];
+        if (found.length === 0) {
+          found.push(
+            ...validateSemantics(instantiated, { instanceValues: false }).filter(
+              (error) => heldPath(error.path, '') !== error.path,
+            ),
+          );
+        }
+        verdict = {
+          problems: found.map((error) => ({
+            code: 'instance-input-invalid',
+            path: inputsPath,
+            message: `Definition "${definition.id}" instantiated with these values is no valid definition: ${error.message} (at ${heldPath(error.path, '')}).`,
+          })),
+          copiedIds: made.copiedIds,
+        };
+      }
+      verdicts.set(key, verdict);
+    }
+    errors.push(...verdict.problems);
+    copiedIds += verdict.copiedIds;
+  };
+  const visit = (nodes: readonly { readonly type: string }[], nodesPath: string): void => {
+    nodes.forEach((node, index) => {
+      if (isInstance(node)) checkInstance(node, pointer(nodesPath, index));
+    });
+  };
+  composition.scenes.forEach((scene, index) => {
+    visit(scene.nodes, pointer(pointer(pointer('', 'scenes'), index), 'nodes'));
+  });
+  composition.definitions.forEach((definition, index) => {
+    visit(definition.nodes, pointer(pointer(pointer('', 'definitions'), index), 'nodes'));
+  });
+  if (copiedIds > MAX_REPEAT_IDS) {
+    errors.push({
+      code: 'instance-input-invalid',
+      path: '/definitions',
+      message: `The copies of the repeats of every instance would hold ${String(copiedIds)} IDs, more than ${String(MAX_REPEAT_IDS)} (D59.4, D77).`,
+    });
+  }
+  return errors;
+}
+
+/** The errors of the values of one instance against the inputs of its definition (D77). */
+function instanceValueErrors(
+  inputs: readonly InstanceInput[],
+  definition: Definition,
+  path: string,
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+  const invalid = (at: string, message: string): ValidationError => ({
+    code: 'instance-input-invalid',
+    path: at,
+    message,
+  });
+  const byId = new Map(definition.template.inputs.map((input) => [input.id, input]));
+  inputs.forEach((given, index) => {
+    const at = pointer(path, index);
+    const before = inputs[index - 1];
+    // UTF-16 code units, as Array.prototype.sort orders strings: no locale (D77).
+    if (before !== undefined && !(before.inputId < given.inputId)) {
+      errors.push(
+        invalid(
+          pointer(at, 'inputId'),
+          'The values are sorted by inputId, each input at most once.',
+        ),
+      );
+    }
+    const input = byId.get(given.inputId);
+    if (input === undefined) {
+      errors.push({
+        code: 'unresolved-input-reference',
+        path: pointer(at, 'inputId'),
+        message: `Definition "${definition.id}" has no input "${given.inputId}".`,
+      });
+      return;
+    }
+    if (input.type !== given.type) {
+      errors.push(
+        invalid(
+          pointer(at, 'type'),
+          `Input "${input.id}" is of type ${input.type}, not ${given.type}.`,
+        ),
+      );
+      return;
+    }
+    if (input.type === 'list' && given.type === 'list') {
+      const valuePath = pointer(at, 'value');
+      if (given.value.length < input.minItems || given.value.length > input.maxItems) {
+        errors.push(
+          invalid(
+            valuePath,
+            `Expected ${String(input.minItems)} to ${String(input.maxItems)} items, got ${String(given.value.length)}.`,
+          ),
+        );
+      }
+      errors.push(...itemErrors(input, given.value, valuePath, invalid));
+      return;
+    }
+    if (input.type === 'list') return;
+    const problem = valueProblem(input, given.value);
+    if (problem !== null) errors.push(invalid(pointer(at, 'value'), problem));
+  });
+  return errors;
+}
+
 /** Whether a node is an instance of 0.21 (D76). */
 function isInstance(node: { readonly type: string }): node is InstanceNode {
   return node.type === 'instance';
@@ -849,8 +1139,24 @@ function inputErrors(input: TemplateInput, path: string): ValidationError[] {
       ),
     );
   }
-  input.default.forEach((item, itemIndex) => {
-    const itemPath = pointer(defaultPath, itemIndex);
+  errors.push(...itemErrors(input, input.default, defaultPath, invalid));
+  return errors;
+}
+
+/**
+ * The errors of the items of a list as the document stores them (D58.1): each
+ * item a value for each field, in the order of the fields, with its key and
+ * type, and a value of the field's type and constraints.
+ */
+function itemErrors(
+  input: Extract<TemplateInput, { type: 'list' }>,
+  items: readonly (readonly TemplateFieldValue[])[],
+  path: string,
+  invalid: (at: string, message: string) => ValidationError,
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+  items.forEach((item, itemIndex) => {
+    const itemPath = pointer(path, itemIndex);
     if (item.length !== input.fields.length) {
       errors.push(
         invalid(
@@ -886,6 +1192,13 @@ const BOUND_PROPERTIES = {
   color: { nodeTypes: ['text', 'background'], inputType: 'color' },
 } as const;
 
+/** The fields of a list whose items are timed words (D57, D77). */
+const WORD_FIELDS: readonly (readonly [string, 'text' | 'number'])[] = [
+  ['text', 'text'],
+  ['startUs', 'number'],
+  ['durationUs', 'number'],
+];
+
 /** The field types an item binding of a property takes (D59.3), as `BOUND_PROPERTIES`. */
 const ITEM_FIELD_TYPES = { text: 'text', color: 'color' } as const;
 
@@ -919,6 +1232,7 @@ function checkTemplate(
     | CompositionV018
     | CompositionV019
     | CompositionV020
+    | CompositionV021
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1068,6 +1382,53 @@ function checkTemplate(
         pointer(path, 'nodeId'),
         `No node has the ID "${binding.nodeId}".`,
       );
+    }
+    if (binding.kind === 'words') {
+      const input = inputOf(binding.inputId);
+      if (node === undefined || input === undefined) return;
+      if (node.type !== 'captions') {
+        push('binding-type-mismatch', pointer(path, 'nodeId'), `A ${node.type} node has no words.`);
+        return;
+      }
+      if (input.type !== 'list') {
+        push(
+          'binding-type-mismatch',
+          pointer(path, 'inputId'),
+          `Words are read from a list input, and "${input.id}" is of type ${input.type}.`,
+        );
+        return;
+      }
+      // Exactly the fields of a timed word, in any order (D57, D77).
+      const missing = WORD_FIELDS.filter(([key, type]) => fieldOf(input, key)?.type !== type);
+      if (missing.length > 0 || input.fields.length !== WORD_FIELDS.length) {
+        push(
+          'binding-type-mismatch',
+          pointer(path, 'inputId'),
+          `Words are read from a list whose fields are exactly text (a text), startUs, and durationUs (numbers); "${input.id}" has other fields.`,
+        );
+        return;
+      }
+      if (!claim(`node:${node.id}/words`)) return;
+      const value = (entries: readonly TemplateFieldValue[], key: string): unknown =>
+        entries.find((entry) => entry.key === key)?.value;
+      const expected = input.default.map((entries) => ({
+        text: value(entries, 'text'),
+        startUs: value(entries, 'startUs'),
+        durationUs: value(entries, 'durationUs'),
+      }));
+      const stored = node.words.map(({ text, startUs, durationUs }) => ({
+        text,
+        startUs,
+        durationUs,
+      }));
+      if (JSON.stringify(stored) !== JSON.stringify(expected)) {
+        push(
+          'binding-value-mismatch',
+          path,
+          `The words of "${node.id}" must be the default items of input "${input.id}".`,
+        );
+      }
+      return;
     }
     if (binding.kind === 'placeholders') {
       if (node === undefined) return;
@@ -1349,6 +1710,7 @@ function subtreeOf(
     | CompositionV018
     | CompositionV019
     | CompositionV020
+    | CompositionV021
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1421,7 +1783,9 @@ interface Located {
     | SceneNodeV019
     | Extract<SceneNodeV019, { type: 'group' }>['children'][number]
     | SceneNodeV020
-    | Extract<SceneNodeV020, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV020, { type: 'group' }>['children'][number]
+    | SceneNodeV021
+    | Extract<SceneNodeV021, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -1450,7 +1814,8 @@ function checkTransitions(
     | CompositionV017
     | CompositionV018
     | CompositionV019
-    | CompositionV020,
+    | CompositionV020
+    | CompositionV021,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

@@ -7,6 +7,8 @@
  * depend on the order of seeks or on how the video was delivered, and every
  * problem of a video is typed before the first frame. Skipped without
  * `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where the run is pinned.
+ * The same holds for the fixture's stream copied into fragmented MP4, MOV and
+ * MKV, which the Player reads through Mediabunny (D79.2).
  */
 import {
   launchChromium,
@@ -24,8 +26,11 @@ import {
   videoGoldenTimestamps,
 } from '@kadrion/test-fixtures';
 import { timeUsToFrame, validateComposition } from '@kadrion/schema';
-import { readFileSync, rmSync } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -72,6 +77,39 @@ const VIDEO_MANIFEST = join(repoRoot, goldenManifestPath('video'));
 const validatedVideo = validateComposition(videoComposition);
 if (!validatedVideo.ok) throw new Error('The video composition is not valid.');
 const { width: WIDTH, height: HEIGHT, fps: FPS } = validatedVideo.composition;
+const run = promisify(execFile);
+
+/**
+ * The containers the Player reads besides MP4 (D79.2): the fixture's own
+ * stream, copied without decoding into each by the pinned FFmpeg.
+ */
+const REMUXES: readonly (readonly [string, string, readonly string[]])[] = [
+  ['fragmented MP4', 'mp4', ['-movflags', 'frag_keyframe+empty_moov+default_base_moof']],
+  ['MOV', 'mov', []],
+  ['MKV', 'mkv', []],
+];
+
+/** The fixture's stream in another container, copied by the pinned FFmpeg. */
+async function remuxed(
+  ffmpeg: string,
+  bytes: Uint8Array,
+  extension: string,
+  options: readonly string[],
+): Promise<Uint8Array> {
+  const directory = mkdtempSync(join(tmpdir(), 'kadrion-remux-'));
+  try {
+    const input = join(directory, 'input.mp4');
+    const output = join(directory, `output.${extension}`);
+    writeFileSync(input, bytes);
+    await run(ffmpeg, [
+      ...['-nostdin', '-v', 'error', '-y', '-i', input, '-map', '0:v:0', '-c', 'copy'],
+      ...['-map_metadata', '-1', '-fflags', '+bitexact', ...options, output],
+    ]);
+    return new Uint8Array(readFileSync(output));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
 
 interface HostWindow {
   readonly conformance: {
@@ -203,6 +241,52 @@ describe.skipIf(!available)('video in the Player (D51)', () => {
       await closeConformanceHost(other);
     }
   });
+
+  it.each(REMUXES)(
+    "shows the Producer's frames of the fixture remuxed into %s, to the pixel (D34, D79.2)",
+    async (_name, extension, options) => {
+      const bytes = await remuxed(ffmpegPath ?? '', video, extension, options);
+      const contentHash = sha256(bytes);
+      const text = edited((draft) => {
+        const asset = draft.assets.find((candidate) => candidate.id === VIDEO_FIXTURE.id);
+        if (asset === undefined) throw new Error('No video asset.');
+        asset.contentHash = contentHash;
+      });
+      const given = assets.map((asset) =>
+        asset.id === VIDEO_FIXTURE.id ? { ...asset, bytes } : asset,
+      );
+      const resolveAsset: AssetResolver = ({ id }) =>
+        given.find((asset) => asset.id === id) ?? null;
+      const reference = await renderFrames({
+        document: JSON.parse(text) as unknown,
+        resolveAsset,
+        timesUs: TIMES,
+        chromium,
+        ffmpeg: { ffmpegPath: ffmpegPath ?? '', ffprobePath: ffprobePath ?? '' },
+      });
+      const target = await openConformanceHost(chromium, text, given);
+      try {
+        const source = reference.manifest.video?.sources[0];
+        expect(await preparedFacts(target, VIDEO_FIXTURE.id, contentHash)).toEqual({
+          type: 'video',
+          durationUs: source?.sourceDurationUs,
+          width: VIDEO_FIXTURE.width,
+          height: VIDEO_FIXTURE.height,
+          frames: source?.frames,
+        });
+        for (const timeUs of TIMES) {
+          const shown = await seekAndCapture(target, timeUs, null);
+          const frame = reference.frames.find((candidate) => candidate.timeUs === timeUs)?.png;
+          if (frame === undefined) throw new Error(`No Producer frame of ${String(timeUs)}.`);
+          const metric = measure(decodePng(shown.png), decodePng(frame));
+          expect(metric.differingPixels, String(timeUs)).toBe(0);
+          expect(metric.maxChannelDifference, String(timeUs)).toBe(0);
+        }
+      } finally {
+        await closeConformanceHost(target);
+      }
+    },
+  );
 
   it('types every problem of a video before the first frame (D49.6, D51)', async () => {
     const target = await openConformanceHost(chromium, TEXT, assets);

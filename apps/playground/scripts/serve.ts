@@ -1,7 +1,8 @@
 /**
  * A local static server for the playground (D25.9). It serves only the page,
- * the playground's own build, the built output of the packages the page needs,
- * the runtime build artifact, and the media `scripts/media.ts` makes into a
+ * the playground's own build, the built output of the packages the page needs
+ * and the bundle of the Player's container reader (D79.7), the runtime build
+ * artifact, and the media `scripts/media.ts` makes into a
  * directory Git ignores (D32.10) — nothing else in the repository, and never a
  * path outside those directories.
  *
@@ -28,12 +29,15 @@ export const ROUTES: Readonly<Record<string, string>> = {
   '/pkg/runtime/': 'packages/runtime/dist',
   '/pkg/schema/': 'packages/schema/dist',
   '/pkg/test-fixtures/': 'packages/test-fixtures/dist',
+  // The Player's container reader, its installed bundle (D79.7).
+  '/vendor/mediabunny/': 'packages/player/node_modules/mediabunny/dist/bundles',
   '/media/': MEDIA_DIRECTORY,
 };
 
 const TYPES: Readonly<Record<string, string>> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.mp4': 'video/mp4',
 };

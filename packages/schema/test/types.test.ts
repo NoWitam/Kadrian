@@ -23,6 +23,7 @@ import type {
   Effect,
   GroupNode,
   ImageNode,
+  InstanceInput,
   InstanceNode,
   NodeAnimation,
   PathCommand,
@@ -595,6 +596,7 @@ interface ExpectedInstanceNode extends ExpectedTransform {
   readonly id: string;
   readonly type: 'instance';
   readonly definitionId: string;
+  readonly inputs: readonly ExpectedInstanceInput[];
   readonly sourceStartUs: number;
   readonly width: number;
   readonly height: number;
@@ -753,6 +755,23 @@ type ExpectedBinding =
       readonly assetId: string;
       readonly inputId: string;
       readonly key: string;
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'words';
+      readonly nodeId: string;
+      readonly inputId: string;
+    };
+
+type ExpectedInstanceInput =
+  | { readonly inputId: string; readonly type: 'text'; readonly value: string }
+  | { readonly inputId: string; readonly type: 'number'; readonly value: number }
+  | { readonly inputId: string; readonly type: 'boolean'; readonly value: boolean }
+  | { readonly inputId: string; readonly type: 'color'; readonly value: string }
+  | {
+      readonly inputId: string;
+      readonly type: 'list';
+      readonly value: readonly (readonly ExpectedFieldValue[])[];
     };
 
 interface ExpectedTest<T extends string> {
@@ -806,16 +825,18 @@ interface ExpectedTemplate {
 
 interface ExpectedDefinition {
   readonly id: string;
+  readonly sourceHash: string;
   readonly width: number;
   readonly height: number;
   readonly durationUs: number;
   readonly nodes: readonly ExpectedDefinitionNode[];
   readonly clips: readonly ExpectedAudioClip[];
   readonly transitions: readonly ExpectedClipTransition[];
+  readonly template: ExpectedTemplate;
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.21';
+  readonly schemaVersion: '0.22';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {
@@ -841,6 +862,7 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<Scene>().toEqualTypeOf<ExpectedScene>();
     expectTypeOf<SceneNode>().toEqualTypeOf<ExpectedSceneNode>();
     expectTypeOf<InstanceNode>().toEqualTypeOf<ExpectedInstanceNode>();
+    expectTypeOf<InstanceInput>().toEqualTypeOf<ExpectedInstanceInput>();
     expectTypeOf<Definition>().toEqualTypeOf<ExpectedDefinition>();
     expectTypeOf<DefinitionNode>().toEqualTypeOf<ExpectedDefinitionNode>();
     expectTypeOf<BackgroundNode>().toEqualTypeOf<ExpectedBackgroundNode>();
