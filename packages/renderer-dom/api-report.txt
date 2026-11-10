@@ -103,6 +103,9 @@ export interface ResolvedAsset {
 ---- Sha256 (type only)
 export type Sha256 = (bytes: Uint8Array) => Promise<string>;
 
+---- UPRIGHT
+export declare const UPRIGHT: VideoOrientation;
+
 ---- VerifiedAsset (type only)
 export interface VerifiedAsset {
     readonly id: string;
@@ -118,6 +121,15 @@ export interface VideoFrame {
     readonly mediaType: string;
     readonly bytes: ArrayBuffer;
 }
+
+---- VideoOrientation (type only)
+export interface VideoOrientation {
+    readonly rotation: VideoRotation;
+    readonly flipped: boolean;
+}
+
+---- VideoRotation (type only)
+export type VideoRotation = 0 | 90 | 180 | 270;
 
 ---- applyVideoFrames
 export declare function applyVideoFrames(root: Element, state: CompositionState, frames: unknown): void;
@@ -140,6 +152,15 @@ export declare function mediaTypeFits(type: Asset['type'], mediaType: string): b
 ---- mountComposition
 export declare function mountComposition(root: Element, composition: ValidatedComposition, assetUrls: AssetUrls, options: MountOptions): void;
 
+---- orientRgb
+export declare function orientRgb(rgb: Uint8Array, width: number, height: number, orientation: VideoOrientation): Uint8Array;
+
+---- orientedSize
+export declare function orientedSize(width: number, height: number, orientation: VideoOrientation): {
+    readonly width: number;
+    readonly height: number;
+};
+
 ---- readImageSize
 export declare function readImageSize(bytes: Uint8Array, mediaType: string): ImageSize;
 
@@ -157,6 +178,9 @@ export declare function resolveOneAsset(asset: AssetRequest, resolveAsset: Asset
 
 ---- synchronizeCustomHtml
 export declare function synchronizeCustomHtml(root: Element, state: CompositionState, host: CustomHtmlHost): Promise<void>;
+
+---- videoOrientation
+export declare function videoOrientation(matrix: readonly number[]): VideoOrientation | null;
 
 ==== Entry "./runtime-build/kadrion-runtime.js"
 
