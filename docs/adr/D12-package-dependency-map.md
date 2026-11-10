@@ -33,6 +33,11 @@ the host facade. It may depend on `editor-sdk`, `player`, and `schema`; no
 package may depend on it, and it may not depend on `runtime`, `renderer-dom`, or
 `producer`. The map and the tables below include it.
 
+Amended by K1 (D79) on 2026-11-10: the allowlist `externalRuntimeDependencies`
+gains its first entry, `mediabunny` (MPL-2.0, used by `@kadrion/player` without
+modification, D79.1), and `cli` may depend on `player` for `kadrion inspect`
+(D79.6). The table below includes the edge.
+
 The identifier D12 may collide with a decision defined in the missing
 `/bootstrap-kadrion` skill (see D11); the project owner should confirm it.
 
@@ -52,7 +57,7 @@ and enforced by `tests/repo/package-boundaries.test.ts`.
 | `renderer-dom`   | `runtime`, `schema`                 |
 | `player`         | `renderer-dom`, `runtime`, `schema` |
 | `producer`       | `renderer-dom`, `runtime`, `schema` |
-| `cli`            | `producer`, `schema`                |
+| `cli`            | `player`, `producer`, `schema`      |
 | `test-fixtures`  | — (dev-only, pure data)             |
 
 Every edge falls into one of three categories:
@@ -84,7 +89,8 @@ Further rules enforced by the same test:
 - Workspace packages are linked with the `workspace:` protocol.
 - External **runtime** dependencies must be on the allowlist
   `externalRuntimeDependencies`, which starts empty. Every entry records a
-  reason and a licence, which doubles as the licence audit for D10.
+  reason and a licence, which doubles as the licence audit for D10. Since K1
+  (D79.1) it holds `mediabunny` (MPL-2.0).
   `devDependencies` are not restricted by the allowlist.
 - Source files import only declared runtime dependencies (added by PR-01): every
   bare import specifier in `packages/<name>/src` must name a package listed in

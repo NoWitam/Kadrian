@@ -336,11 +336,14 @@ Unknown fields are errors. This one shows a text that fades in:
   the container's own timestamps (D49, D50). Every source time a node samples
   must lie inside the video. The Producer decodes video with the pinned FFmpeg,
   so rendering a document with video nodes needs `--ffmpeg` and `--ffprobe`.
-  The Player decodes H.264 MP4 in its host window with WebCodecs and converts
+  The Player reads H.264 in MP4, fragmented MP4, QuickTime, or Matroska with
+  Mediabunny (D79), decodes it in its host window with WebCodecs, and converts
   colour exactly as the Producer does, so both show the same pixels (D51); its
   resolver may return a video as a `Blob`, verified by SHA-256 before use, and
-  it refuses files it cannot show exactly (such as 10-bit or BT.2020) with
-  `video-unsupported`.
+  it refuses files it cannot show exactly (such as HEVC, VP9, AV1, 10-bit,
+  interlaced, BT.2020, or rotated) with `video-unsupported`, whose `details`
+  list every reason. `inspectVideo` gives the same verdict before a load
+  (section 4).
 - **Lifetimes:** every node has `startUs` and `durationUs`, in the time of its
   scene, and is shown at scene time `t` while `startUs <= t < startUs +
 durationUs`. A child of a group is shown only while its group is shown too. A
@@ -688,6 +691,21 @@ player.destroy();
   at `startUs`, sound included, sample for sample; `null` is the whole
   document. A `PlayerError` about an asset names it in
   `asset: { id, contentHash }`.
+
+**Whether a video plays as it is.** `inspectVideo(blobOrBytes)` of
+`@kadrion/player` reads a file and returns the Player's verdict on it, from the
+same examination the Player uses when it loads the video (D79.4):
+`{ playable, reasons, container, format, video, audio }`. Each reason has a
+`code` (`unreadable`, `container`, `no-video`, `codec`, `bit-depth`, `chroma`,
+`interlaced`, `colour`, `rotation`, `timing`, or `audio-channels`; treat a code
+you do not know as "not directly") and a `message`; `video` holds the codec,
+size, rotation, frames, `durationUs`, time base, and frame rate, and `audio`
+the codec, channels, and sample rate. A host transcodes a file that is not
+`playable` before it uses it. It reads no URL: fetch the file and pass the
+`Blob`. The Player imports `mediabunny`; a host that serves the Player's
+`dist` through an import map maps `mediabunny` to
+`mediabunny/dist/bundles/mediabunny.mjs` of the installed package, as the
+playground does, and a bundler resolves it by itself.
 
 **Sound in the Player.** A Player plays no sound unless the host passes an
 `AudioContext` at 48 kHz, created on a gesture of the user:
@@ -1183,6 +1201,16 @@ node packages/cli/dist/bin.js migrate saved.json --check
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```
+
+The Player's verdict on a video file, without a browser (D79.6):
+
+```bash
+node packages/cli/dist/bin.js inspect --json upload.mov
+```
+
+- **`inspect`:** prints the verdict of `inspectVideo` (section 4) as JSON with
+  `--json`, or as lines of text without, and exits 0 whether the file plays or
+  not; 1 when the file cannot be opened, 2 for a usage error.
 
 For a host's worker (D45):
 

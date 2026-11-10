@@ -450,11 +450,23 @@ export const RUNTIME_FILES = [
   'packages/renderer-dom/dist/runtime-build/kadrion-runtime.json',
 ] as const;
 export const PLAYER_ENTRY = 'packages/player/dist/index.js';
+/**
+ * The external runtime dependencies of the Player (D12) that the host maps by
+ * name, each to the one self-contained ES module of its installed build: the
+ * bytes the Player runs with are part of what parity measures (D79.7).
+ */
+export const HOST_MODULES: Readonly<Record<string, string>> = {
+  mediabunny: 'packages/player/node_modules/mediabunny/dist/bundles/mediabunny.mjs',
+};
 
 const DIST_PATH = /^packages\/[a-z-]+\/dist\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+$/;
 
-/** Whether a path is repository-relative POSIX inside a package's dist, with no `..` (D33.10). */
+/**
+ * Whether a path is repository-relative POSIX inside a package's dist, with no
+ * `..`, or the module of a host-mapped dependency (D33.10, D79.7).
+ */
 export function isDistPath(path: string): boolean {
+  if (Object.values(HOST_MODULES).includes(path)) return true;
   return DIST_PATH.test(path) && !path.split('/').some((part) => part === '..' || part === '.');
 }
 
@@ -488,6 +500,8 @@ function resolveSpecifier(from: string, specifier: string): string {
     }
     return `packages/${bare[1]}/dist/index.js`;
   }
+  const external = HOST_MODULES[specifier];
+  if (external !== undefined) return external;
   if (!specifier.startsWith('./') && !specifier.startsWith('../')) {
     throw new Error(`${from} imports ${specifier}, which the host cannot serve.`);
   }
@@ -516,6 +530,8 @@ export function servedDist(read: (path: string) => Uint8Array): Map<string, Uint
     if (files.has(path)) continue;
     const bytes = read(path);
     files.set(path, bytes);
+    // A host-mapped module is one bundle that imports nothing (checked by tests/parity).
+    if (Object.values(HOST_MODULES).includes(path)) continue;
     const text = Buffer.from(bytes).toString('utf8');
     for (const match of text.matchAll(SPECIFIER)) {
       if (match[1] !== undefined) pending.push(resolveSpecifier(path, match[1]));

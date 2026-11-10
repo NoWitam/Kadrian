@@ -26,7 +26,7 @@
       "allowedDependencies": ["renderer-dom", "runtime", "schema"]
     },
     "cli": {
-      "allowedDependencies": ["producer", "schema"]
+      "allowedDependencies": ["player", "producer", "schema"]
     },
     "test-fixtures": {
       "allowedDependencies": [],
@@ -90,6 +90,10 @@
     }
   ],
   "externalRuntimeDependencies": {
+    "mediabunny": {
+      "reason": "The Player reads video containers (MP4, fragmented MP4, QuickTime, Matroska) with Mediabunny, pinned to an exact version and used without modification (D79). Used by @kadrion/player only.",
+      "license": "MPL-2.0"
+    },
     "playwright-core": {
       "reason": "The Producer drives the pinned Chromium through Playwright; the exact version pins the browser build (D26.1). Used by @kadrion/producer only.",
       "license": "Apache-2.0"

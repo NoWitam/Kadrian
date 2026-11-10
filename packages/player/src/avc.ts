@@ -2,8 +2,9 @@
  * The colour facts of an H.264 stream (D51.4): what the Producer's decode
  * reads to convert YUV to RGB. The sequence parameter set in the `avcC` record
  * gives the chroma format, the bit depth, whether frames are progressive, and
- * the VUI's range and colour description; an MP4 `colr` box (`nclx`) must
- * agree with it. A browser decoder reports an unspecified
+ * the VUI's range and colour description; what the container states (an MP4
+ * or QuickTime `colr` box, Matroska's `Colour`, as Mediabunny reads it, D79)
+ * must agree with it. A browser decoder reports an unspecified
  * matrix as BT.709, while FFmpeg converts it as BT.601, so the Player reads
  * the facts from the bitstream itself rather than from the decoded frame.
  * Pure: no DOM.
@@ -17,7 +18,7 @@ export interface AvcColour {
   readonly fullRange: boolean;
 }
 
-/** The colour description of an `nclx` box, or of the VUI. */
+/** The colour description of the VUI. */
 export interface ColourDescription {
   readonly primaries: number;
   readonly transfer: number;
@@ -25,8 +26,33 @@ export interface ColourDescription {
   readonly fullRange: boolean | null;
 }
 
-function unsupported(message: string): PlayerError {
-  return new PlayerError('video-unsupported', message);
+/**
+ * What a container states about colour, as code points of H.273 (D79.3);
+ * `null` where it states nothing.
+ */
+export interface ContainerColour {
+  readonly primaries: number | null;
+  readonly transfer: number | null;
+  readonly matrix: number | null;
+  readonly fullRange: boolean | null;
+}
+
+/** Why the Player does not convert a stream's frames as the Producer does (D79.4). */
+export type AvcRefusal = 'bit-depth' | 'chroma' | 'interlaced' | 'colour';
+
+/** A stream the Player does not convert, with the reason of D79.4. */
+export class AvcUnsupported extends PlayerError {
+  readonly reason: AvcRefusal | null;
+
+  constructor(reason: AvcRefusal | null, message: string) {
+    super('video-unsupported', message);
+    this.reason = reason;
+  }
+}
+
+/** A sequence parameter set that cannot be read. */
+function unsupported(message: string): AvcUnsupported {
+  return new AvcUnsupported(null, message);
 }
 
 /** The RBSP of a NAL unit: its payload without emulation-prevention bytes. */
@@ -176,46 +202,87 @@ const PLAIN_TRANSFERS = new Set([1, 2, 4, 5, 6]);
 /**
  * How the Producer converts the frames of this stream (D51.4): 8-bit 4:2:0,
  * progressive, the BT.601 matrix for an unspecified, BT.470 BG, or SMPTE 170M
- * one and BT.709 for BT.709, limited range unless the VUI states full. A
- * `colr` box must agree with the VUI. Anything else is `video-unsupported`,
- * never converted approximately.
+ * one and BT.709 for BT.709, limited range unless the VUI states full. What
+ * the container states must agree with the VUI, field by field (D79.3).
+ * Anything else is `video-unsupported` with its reason, never converted
+ * approximately.
  */
-export function avcColour(avcC: Uint8Array, colr: ColourDescription | null): AvcColour {
+export function avcColour(avcC: Uint8Array, container: ContainerColour | null): AvcColour {
   const sps = readSps(firstSps(avcC));
-  if (sps.chromaFormat !== 1 || sps.bitDepth !== 8) {
-    throw unsupported(
-      `The Player converts 8-bit 4:2:0 video, not chroma format ${String(sps.chromaFormat)} at ${String(sps.bitDepth)} bits.`,
+  if (sps.bitDepth !== 8) {
+    throw new AvcUnsupported(
+      'bit-depth',
+      `The Player converts 8-bit video, not ${String(sps.bitDepth)}-bit.`,
     );
   }
-  if (!sps.progressive) throw unsupported('The Player does not convert interlaced video.');
-  const vui = sps.vui;
-  const plain = (d: ColourDescription | null): boolean =>
-    d === null || (d.matrix === 2 && d.primaries === 2 && d.transfer === 2);
-  // A `colr` box must say what the bitstream says, or nothing: which of the two
-  // FFmpeg follows when only one speaks is not something the Player guesses.
-  if (colr !== null) {
-    const same =
-      plain(colr) === plain(vui) &&
-      (plain(colr) ||
-        (colr.matrix === vui?.matrix &&
-          colr.primaries === vui.primaries &&
-          colr.transfer === vui.transfer));
-    const sameRange = colr.fullRange === null || colr.fullRange === (vui?.fullRange ?? false);
-    if (!same || !sameRange) {
-      throw unsupported('The "colr" box and the sequence parameter set describe other colours.');
-    }
+  if (sps.chromaFormat !== 1) {
+    throw new AvcUnsupported(
+      'chroma',
+      `The Player converts 4:2:0 video, not chroma format ${String(sps.chromaFormat)}.`,
+    );
   }
+  if (!sps.progressive) {
+    throw new AvcUnsupported('interlaced', 'The Player does not convert interlaced video.');
+  }
+  const vui = sps.vui;
   const matrixCode = vui?.matrix ?? 2;
   const primaries = vui?.primaries ?? 2;
   const transfer = vui?.transfer ?? 2;
   const fullRange = vui?.fullRange ?? false;
+  // What the container states must be what the bitstream says: which of the two
+  // FFmpeg follows when only one speaks is not something the Player guesses.
+  if (container !== null) {
+    const stated: [string, number | null, number][] = [
+      ['primaries', container.primaries, primaries],
+      ['transfer', container.transfer, transfer],
+      ['matrix', container.matrix, matrixCode],
+    ];
+    for (const [name, said, bitstream] of stated) {
+      if (said !== null && said !== 2 && said !== bitstream) {
+        throw new AvcUnsupported(
+          'colour',
+          `The container states ${name} ${String(said)}, the sequence parameter set ${String(bitstream)}.`,
+        );
+      }
+    }
+    if (container.fullRange !== null && container.fullRange !== fullRange) {
+      throw new AvcUnsupported(
+        'colour',
+        'The container and the sequence parameter set state other ranges.',
+      );
+    }
+  }
   if (!PLAIN_PRIMARIES.has(primaries) || !PLAIN_TRANSFERS.has(transfer)) {
-    throw unsupported(
+    throw new AvcUnsupported(
+      'colour',
       `The Player does not convert primaries ${String(primaries)} with transfer ${String(transfer)}.`,
     );
   }
   if (matrixCode === 1) return { matrix: 'bt709', fullRange };
   if (matrixCode === 2 || matrixCode === 5 || matrixCode === 6)
     return { matrix: 'bt601', fullRange };
-  throw unsupported(`The Player does not convert matrix ${String(matrixCode)}.`);
+  throw new AvcUnsupported('colour', `The Player does not convert matrix ${String(matrixCode)}.`);
+}
+
+/**
+ * Whether a sample holds an IDR slice (D79.5): the NAL units of its
+ * length-prefixed data, the length size taken from the `avcC` record. A
+ * container's key flag is not enough: decoding from a recovery point that is
+ * not an IDR picture could give other pixels than the Producer's decode from
+ * the start.
+ */
+export function holdsIdr(avcC: Uint8Array, sample: Uint8Array): boolean {
+  const lengthSize = ((avcC[4] ?? 3) & 3) + 1;
+  let at = 0;
+  while (at + lengthSize <= sample.length) {
+    let length = 0;
+    for (let byte = 0; byte < lengthSize; byte += 1) {
+      length = length * 256 + (sample[at + byte] as number);
+    }
+    at += lengthSize;
+    if (length === 0 || at + length > sample.length) return false;
+    if (((sample[at] as number) & 0x1f) === 5) return true;
+    at += length;
+  }
+  return false;
 }

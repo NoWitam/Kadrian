@@ -19,6 +19,7 @@ export interface CliHosts {
     readonly renderStill: RenderStill;
     readonly fetchFfmpeg: FetchFfmpeg;
     readonly doctor: Doctor;
+    readonly inspect: Inspect;
     readonly env: Readonly<Record<string, string | undefined>>;
     readonly signal: AbortSignal | undefined;
     readonly now: () => number;
@@ -152,6 +153,9 @@ export type FfmpegInstallErrorCode = (typeof FFMPEG_INSTALL_ERROR_CODES)[number]
 
 ---- INVALID_DOCUMENT
 export declare const INVALID_DOCUMENT = "invalid-document";
+
+---- Inspect (type only)
+export type Inspect = (file: Blob) => Promise<VideoInspection>;
 
 ---- InstallOptions (type only)
 export interface InstallOptions {

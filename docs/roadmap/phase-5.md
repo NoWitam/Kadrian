@@ -542,7 +542,7 @@ inverted`, `luminance`, `luminance inverted`); the matte is not drawn by
 
 ### PR-55a — Nested compositions
 
-- Status: in review, with its ADR D76 (Proposed). Decisions: definitions are embedded in the document, not delivered as assets; the depth limit is 8 instances counted from a scene; an instance does not loop; its effects, mask, matte, opacity, and blend mode apply to the definition composited as one layer, and it has a box of its own with a `fit`. Deviations from this plan: the existing commands work inside a definition by its document IDs instead of a `definitionId` argument, since IDs are unique across the document; `ExpandInstance` is added as the inverse of `ConvertToDefinition`, which converts a contiguous run of siblings; a definition holds no video and no Custom HTML.
+- Status: done (PR #82, merged 2026-11-10), with its ADR D76 (accepted by the owner on 2026-11-10). Q14 is open until a green push run of main after it. Decisions: definitions are embedded in the document, not delivered as assets; the depth limit is 8 instances counted from a scene; an instance does not loop; its effects, mask, matte, opacity, and blend mode apply to the definition composited as one layer, and it has a box of its own with a `fit`. Deviations from this plan: the existing commands work inside a definition by its document IDs instead of a `definitionId` argument, since IDs are unique across the document; `ExpandInstance` is added as the inverse of `ConvertToDefinition`, which converts a contiguous run of siblings; a definition holds no video and no Custom HTML.
 - **Goal:** a part of a film is built once as its own composition, with its
   own time, and placed as one node, as a precomposition.
 - **Scope (D76):** schema `0.21`:

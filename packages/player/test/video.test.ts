@@ -1,29 +1,39 @@
 /**
- * The parts of the Player's video path that need no browser (D51): the
- * incremental SHA-256, the MP4 reader, the colour facts of the H.264 stream,
- * and the YUV-to-RGB conversion that repeats the Producer's FFmpeg. That the
- * reader's facts equal ffprobe's and the conversion equals FFmpeg's on real
- * H.264 is proven in pinned Chromium (`tests/pinned/player-video.pinned.test.ts`);
+ * The parts of the Player's video path that need no browser (D51, D79): the
+ * incremental SHA-256, the container reader on Mediabunny and the verdict of
+ * `inspectVideo`, the colour facts of the H.264 stream, the IDR check, and the
+ * YUV-to-RGB conversion that repeats the Producer's FFmpeg. Files of every
+ * container are written here by Mediabunny's own muxer around opaque samples;
+ * that the reader's facts equal ffprobe's and the pixels equal FFmpeg's on
+ * real files of the pinned FFmpeg is proven by the pinned tests
+ * (`tests/pinned/inspect.pinned.test.ts`, `tests/pinned/player-video.pinned.test.ts`);
  * here the conversion is checked against three outputs of the pinned FFmpeg
  * for one small frame.
  */
 import { createHash } from 'node:crypto';
 
+import {
+  BufferTarget,
+  EncodedAudioPacketSource,
+  EncodedPacket,
+  EncodedVideoPacketSource,
+  MkvOutputFormat,
+  MovOutputFormat,
+  Mp4OutputFormat,
+  Output,
+  WebMOutputFormat,
+  type OutputFormat,
+  type Rotation,
+} from 'mediabunny';
 import { describe, expect, it } from 'vitest';
 
-import { avcColour } from '../src/avc.js';
-import { readMp4VideoTrack, type ByteSource } from '../src/mp4.js';
+import { inspectVideo } from '../src/index.js';
+import { avcColour, holdsIdr } from '../src/avc.js';
+import { readVideoTrack } from '../src/container.js';
 import { Sha256 } from '../src/sha256.js';
 import { blobSha256 } from '../src/video.js';
 import { yuv420ToRgb } from '../src/yuv.js';
-import { testMp4, testSps, type TestSample } from './media.js';
-
-function source(bytes: Uint8Array): ByteSource {
-  return {
-    size: bytes.length,
-    read: (offset, length) => Promise.resolve(bytes.slice(offset, offset + length)),
-  };
-}
+import { nalSample, payloadOf, testMp4, testSps, type TestSample } from './media.js';
 
 function nodeSha256(bytes: Uint8Array): string {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
@@ -53,69 +63,7 @@ describe('the incremental SHA-256 (D51.2)', () => {
   });
 });
 
-/** Five samples in decode order I P B B P, as an encoder with B-frames writes them. */
-const reordered: TestSample[] = [
-  { data: new Uint8Array([10, 0]), duration: 40, offset: 80, sync: true },
-  { data: new Uint8Array([20, 1]), duration: 40, offset: 160, sync: false },
-  { data: new Uint8Array([30, 2]), duration: 40, offset: 40, sync: false },
-  { data: new Uint8Array([40, 3]), duration: 40, offset: 40, sync: false },
-  { data: new Uint8Array([50, 4]), duration: 40, offset: 80, sync: false },
-];
-
-describe('the MP4 reader (D51.3)', () => {
-  it('reads presentation timestamps in presentation order, shifted by the edit, and the last duration', async () => {
-    const track = await readMp4VideoTrack(
-      source(testMp4({ samples: reordered, editMediaTime: 80, timescale: 1000 })),
-    );
-    // pts = dts + offset: 80, 200, 120, 160, 240; minus the edit of 80.
-    expect(track.timestamps).toEqual([0, 40, 80, 120, 160]);
-    expect(track.presentation).toEqual([0, 2, 3, 1, 4]);
-    expect(track.samples.map(({ sync }) => sync)).toEqual([true, false, false, false, false]);
-    expect(track.lastDuration).toBe(40);
-    expect(track.timeBase).toEqual({ num: 1, den: 1000 });
-    expect(track.codec).toBe('avc1.42001e');
-    expect({ width: track.width, height: track.height }).toEqual({ width: 32, height: 16 });
-    expect(track.colour).toEqual({ matrix: 'bt601', fullRange: false });
-  });
-
-  it('places every sample at its bytes', async () => {
-    const file = testMp4({ samples: reordered });
-    const track = await readMp4VideoTrack(source(file));
-    for (const [at, sample] of track.samples.entries()) {
-      expect([...file.subarray(sample.offset, sample.offset + sample.size)]).toEqual([
-        ...(reordered[at]?.data ?? []),
-      ]);
-    }
-  });
-
-  it.each([
-    ['a file without a moov box', { samples: reordered, withoutMoov: true }, /no "moov"/],
-    ['a fragmented file', { samples: reordered, fragmented: true }, /fragmented/],
-    ['another codec', { samples: reordered, entry: 'hvc1' }, /H\.264/],
-    ['an edit that cuts frames', { samples: reordered, editMediaTime: 120 }, /cuts frames/],
-    [
-      'two frames at one time',
-      {
-        samples: [
-          { data: new Uint8Array([1]), duration: 40, offset: 40, sync: true },
-          { data: new Uint8Array([2]), duration: 40, offset: 0, sync: false },
-        ],
-      },
-      /same presentation time/,
-    ],
-    [
-      'a first sample that is not a sync sample',
-      { samples: [reordered[1] as TestSample, reordered[0] as TestSample] },
-      /first sample/,
-    ],
-  ])('refuses %s with video-unsupported', async (_, options, message) => {
-    await expect(readMp4VideoTrack(source(testMp4(options)))).rejects.toMatchObject({
-      code: 'video-unsupported',
-      message: expect.stringMatching(message) as unknown,
-    });
-  });
-});
-
+/** The `avcC` record of a stream with this sequence parameter set (4-byte NAL lengths). */
 function avcC(sps: Uint8Array): Uint8Array {
   return new Uint8Array([
     1,
@@ -130,6 +78,303 @@ function avcC(sps: Uint8Array): Uint8Array {
     0,
   ]);
 }
+
+/** One track of a file Mediabunny's muxer writes: its packets and its configuration. */
+interface Muxed {
+  readonly format: OutputFormat;
+  readonly codec?: 'avc' | 'hevc' | 'vp9' | 'av1';
+  readonly config?: VideoDecoderConfig;
+  readonly rotation?: Rotation;
+  /** Packets in decode order: presentation time in seconds and whether it is a key. */
+  readonly packets?: readonly { readonly time: number; readonly key: boolean }[];
+  readonly audioChannels?: number;
+}
+
+const AVC_CONFIG: VideoDecoderConfig = {
+  codec: 'avc1.42001e',
+  codedWidth: 32,
+  codedHeight: 16,
+  description: avcC(testSps(32, 16)),
+};
+
+/** I P B B P at 25 fps, in decode order, as an encoder with B-frames writes them. */
+const REORDERED = [
+  { time: 0, key: true },
+  { time: 0.12, key: false },
+  { time: 0.04, key: false },
+  { time: 0.08, key: false },
+  { time: 0.16, key: false },
+];
+
+/** A file of one video track, and optionally a sound, written by Mediabunny's muxer. */
+async function muxed(options: Muxed): Promise<Uint8Array<ArrayBuffer>> {
+  const target = new BufferTarget();
+  const output = new Output({ format: options.format, target });
+  const video = new EncodedVideoPacketSource(options.codec ?? 'avc');
+  output.addVideoTrack(video, { frameRate: 25, rotation: options.rotation ?? 0 });
+  const audio =
+    options.audioChannels === undefined ? null : new EncodedAudioPacketSource('pcm-s16');
+  if (audio !== null) output.addAudioTrack(audio);
+  await output.start();
+  for (const [at, { time, key }] of (options.packets ?? REORDERED).entries()) {
+    await video.add(
+      new EncodedPacket(
+        nalSample(new Uint8Array([16 + at, at]), key),
+        key ? 'key' : 'delta',
+        time,
+        0.04,
+      ),
+      at === 0 ? { decoderConfig: options.config ?? AVC_CONFIG } : undefined,
+    );
+  }
+  if (audio !== null) {
+    const channels = options.audioChannels ?? 2;
+    await audio.add(new EncodedPacket(new Uint8Array(channels * 2 * 480), 'key', 0, 0.01), {
+      decoderConfig: { codec: 'pcm-s16', numberOfChannels: channels, sampleRate: 48_000 },
+    });
+  }
+  await output.finalize();
+  if (target.buffer === null) throw new Error('The muxer wrote nothing.');
+  return new Uint8Array(target.buffer);
+}
+
+/** The codes of the reasons of a file's verdict. */
+async function codesOf(bytes: Uint8Array): Promise<string[]> {
+  return (await inspectVideo(bytes)).reasons.map(({ code }) => code);
+}
+
+describe('the container reader on Mediabunny (D51.3, D79)', () => {
+  /** Five samples in decode order I P B B P, as an encoder with B-frames writes them. */
+  const reordered: TestSample[] = [
+    { data: new Uint8Array([10, 0]), duration: 40, offset: 80, sync: true },
+    { data: new Uint8Array([20, 1]), duration: 40, offset: 160, sync: false },
+    { data: new Uint8Array([30, 2]), duration: 40, offset: 40, sync: false },
+    { data: new Uint8Array([40, 3]), duration: 40, offset: 40, sync: false },
+    { data: new Uint8Array([50, 4]), duration: 40, offset: 80, sync: false },
+  ];
+
+  it('reads presentation timestamps in presentation order, shifted by the edit, and the last duration', async () => {
+    const track = await readVideoTrack(
+      new Blob([testMp4({ samples: reordered, editMediaTime: 80, timescale: 1000 })]),
+    );
+    // pts = dts + offset: 80, 200, 120, 160, 240; minus the edit of 80.
+    expect(track.timestamps).toEqual([0, 40, 80, 120, 160]);
+    expect(track.presentation).toEqual([0, 2, 3, 1, 4]);
+    expect(track.samples.map(({ sync }) => sync)).toEqual([true, false, false, false, false]);
+    expect(track.lastDuration).toBe(40);
+    expect(track.timeBase).toEqual({ num: 1, den: 1000 });
+    expect(track.codec).toBe('avc1.42001e');
+    expect({ width: track.width, height: track.height }).toEqual({ width: 32, height: 16 });
+    expect(track.colour).toEqual({ matrix: 'bt601', fullRange: false });
+  });
+
+  it('reads the bytes of every sample in decode order, from any sample', async () => {
+    const track = await readVideoTrack(new Blob([testMp4({ samples: reordered })]));
+    const all: number[][] = [];
+    for await (const bytes of track.readSamples(0, 4)) all.push([...payloadOf(bytes)]);
+    expect(all).toEqual(reordered.map(({ data }) => [...data]));
+    const middle: number[][] = [];
+    for await (const bytes of track.readSamples(2, 3)) middle.push([...payloadOf(bytes)]);
+    expect(middle).toEqual([
+      [30, 2],
+      [40, 3],
+    ]);
+  });
+
+  it.each([
+    ['MP4', new Mp4OutputFormat(), 'mp4', { num: 1, den: 25 }],
+    [
+      'fragmented MP4',
+      new Mp4OutputFormat({ fastStart: 'fragmented' }),
+      'mp4',
+      { num: 1, den: 25 },
+    ],
+    ['QuickTime', new MovOutputFormat(), 'mov', { num: 1, den: 25 }],
+    ['Matroska', new MkvOutputFormat(), 'mkv', { num: 1, den: 1000 }],
+  ] as const)('reads H.264 in %s with the same frames', async (_, format, container, timeBase) => {
+    const bytes = await muxed({ format });
+    const inspection = await inspectVideo(bytes);
+    expect(inspection).toMatchObject({ playable: true, reasons: [], container });
+    expect(inspection.video).toMatchObject({
+      codec: 'avc',
+      codecString: 'avc1.42001e',
+      width: 32,
+      height: 16,
+      frames: 5,
+      durationUs: 200_000,
+      timeBase,
+      frameRate: { num: 25, den: 1 },
+    });
+    const track = await readVideoTrack(new Blob([bytes]));
+    const ticks = timeBase.den / 25;
+    expect(track.timestamps).toEqual([0, 1, 2, 3, 4].map((frame) => frame * ticks));
+    expect(track.presentation).toEqual([0, 2, 3, 1, 4]);
+    const payloads: number[] = [];
+    for await (const sample of track.readSamples(0, 4)) payloads.push(payloadOf(sample)[0] ?? 0);
+    expect(payloads).toEqual([16, 17, 18, 19, 20]);
+  });
+
+  it.each([
+    [
+      'VP9 in WebM',
+      {
+        format: new WebMOutputFormat(),
+        codec: 'vp9',
+        config: { codec: 'vp09.00.10.08', codedWidth: 32, codedHeight: 16 },
+      },
+      'webm',
+    ],
+    [
+      'AV1 in Matroska',
+      {
+        format: new MkvOutputFormat(),
+        codec: 'av1',
+        config: { codec: 'av01.0.04M.08', codedWidth: 32, codedHeight: 16 },
+      },
+      'mkv',
+    ],
+  ] as const)('gives the verdict "codec" for %s, with its facts', async (_, options, container) => {
+    const inspection = await inspectVideo(await muxed(options));
+    expect(inspection).toMatchObject({ playable: false, container });
+    expect(inspection.reasons.map(({ code }) => code)).toEqual(['codec']);
+    expect(inspection.video).toMatchObject({
+      codec: options.codec,
+      frames: 5,
+      durationUs: 200_000,
+    });
+    await expect(readVideoTrack(new Blob([await muxed(options)]))).rejects.toMatchObject({
+      code: 'video-unsupported',
+      details: [expect.stringMatching(/^codec: /) as unknown],
+    });
+  });
+
+  it('gives the verdict "rotation" for a track its container rotates', async () => {
+    const inspection = await inspectVideo(
+      await muxed({ format: new Mp4OutputFormat(), rotation: 90 }),
+    );
+    expect(inspection.reasons.map(({ code }) => code)).toEqual(['rotation']);
+    expect(inspection.video).toMatchObject({ rotation: 90, flipped: false });
+  });
+
+  it('states the sound, and refuses one of more than two channels for the sound only (D53.2)', async () => {
+    const stereo = await inspectVideo(
+      await muxed({ format: new MkvOutputFormat(), audioChannels: 2 }),
+    );
+    expect(stereo).toMatchObject({
+      playable: true,
+      audio: { codec: 'pcm-s16', channels: 2, sampleRate: 48_000 },
+    });
+    const surround = await muxed({ format: new MkvOutputFormat(), audioChannels: 6 });
+    expect(await codesOf(surround)).toEqual(['audio-channels']);
+    // The picture still plays: the Player refuses such a sound only where it plays it.
+    expect((await readVideoTrack(new Blob([surround]))).timestamps).toHaveLength(5);
+  });
+
+  it('reads a frame rate only when every frame lasts as long', async () => {
+    const uneven = await inspectVideo(
+      await muxed({
+        format: new MkvOutputFormat(),
+        packets: [
+          { time: 0, key: true },
+          { time: 0.04, key: false },
+          { time: 0.1, key: false },
+        ],
+      }),
+    );
+    expect(uneven.video).toMatchObject({ frames: 3, frameRate: null });
+  });
+
+  it.each([
+    ['a file of no known format', new Uint8Array([1, 2, 3, 4, 5]), ['unreadable']],
+    ['a file without a moov box', testMp4({ samples: reordered, withoutMoov: true }), ['no-video']],
+    ['an edit that cuts frames', testMp4({ samples: reordered, editMediaTime: 120 }), ['timing']],
+    [
+      'two edits, which Mediabunny reads only in part',
+      testMp4({
+        samples: reordered,
+        edits: [
+          { duration: 80, mediaTime: 80 },
+          { duration: 80, mediaTime: 200 },
+        ],
+      }),
+      ['timing'],
+    ],
+    [
+      'two frames at one time',
+      testMp4({
+        samples: [
+          { data: new Uint8Array([1]), duration: 40, offset: 40, sync: true },
+          { data: new Uint8Array([2]), duration: 40, offset: 0, sync: false },
+        ],
+      }),
+      ['timing'],
+    ],
+    [
+      'a first sample that is not a sync sample',
+      testMp4({ samples: [reordered[1] as TestSample, reordered[0] as TestSample] }),
+      ['timing'],
+    ],
+    [
+      '10-bit H.264',
+      testMp4({ samples: reordered, sps: { profile: 100, bitDepth: 10 } }),
+      ['bit-depth'],
+    ],
+    [
+      '4:2:2 H.264',
+      testMp4({ samples: reordered, sps: { profile: 100, chromaFormat: 2 } }),
+      ['chroma'],
+    ],
+    [
+      'interlaced H.264',
+      testMp4({ samples: reordered, sps: { progressive: false } }),
+      ['interlaced'],
+    ],
+    [
+      'BT.2020 H.264',
+      testMp4({
+        samples: reordered,
+        sps: { vui: { fullRange: false, primaries: 9, transfer: 16, matrix: 9 } },
+      }),
+      ['colour'],
+    ],
+  ])(
+    'gives the verdict of %s, and the Player refuses it with video-unsupported',
+    async (_, bytes, codes) => {
+      expect(await codesOf(bytes)).toEqual(codes);
+      await expect(readVideoTrack(new Blob([bytes]))).rejects.toMatchObject({
+        code: 'video-unsupported',
+      });
+    },
+  );
+
+  it('copies bytes, and takes a Blob as it is', async () => {
+    const bytes = testMp4({ samples: reordered });
+    const inspection = await inspectVideo(bytes);
+    bytes.fill(0);
+    expect(inspection.playable).toBe(true);
+    expect((await inspectVideo(new Blob([testMp4({ samples: reordered })]))).playable).toBe(true);
+    expect(Object.isFrozen(inspection) && Object.isFrozen(inspection.reasons)).toBe(true);
+  });
+});
+
+describe('the IDR picture a decode starts from (D79.5)', () => {
+  const record = avcC(testSps(32, 16));
+
+  it('finds an IDR slice among the NAL units of a sample', () => {
+    expect(holdsIdr(record, nalSample(new Uint8Array([1, 2]), true))).toBe(true);
+    expect(holdsIdr(record, nalSample(new Uint8Array([1, 2]), false))).toBe(false);
+    const both = new Uint8Array([
+      ...nalSample(new Uint8Array([6]), false),
+      ...nalSample(new Uint8Array([7]), true),
+    ]);
+    expect(holdsIdr(record, both)).toBe(true);
+  });
+
+  it('refuses bytes whose NAL lengths do not fit', () => {
+    expect(holdsIdr(record, new Uint8Array([0, 0, 0, 9, 0x65]))).toBe(false);
+    expect(holdsIdr(record, new Uint8Array([]))).toBe(false);
+  });
+});
 
 describe('the colour facts of the stream (D51.4)', () => {
   it.each([
@@ -159,28 +404,53 @@ describe('the colour facts of the stream (D51.4)', () => {
   });
 
   it.each([
-    ['10-bit video', testSps(32, 16, { profile: 100, bitDepth: 10 }), null],
-    ['4:2:2 video', testSps(32, 16, { profile: 100, chromaFormat: 2 }), null],
-    ['interlaced video', testSps(32, 16, { progressive: false }), null],
+    ['10-bit video', testSps(32, 16, { profile: 100, bitDepth: 10 }), null, 'bit-depth'],
+    ['4:2:2 video', testSps(32, 16, { profile: 100, chromaFormat: 2 }), null, 'chroma'],
+    ['interlaced video', testSps(32, 16, { progressive: false }), null, 'interlaced'],
     [
       'BT.2020',
       testSps(32, 16, { vui: { fullRange: false, primaries: 9, transfer: 16, matrix: 9 } }),
       null,
+      'colour',
     ],
     [
-      'a colr box that disagrees',
+      'a container colour that disagrees',
       testSps(32, 16, { vui: { fullRange: false, primaries: 1, transfer: 1, matrix: 1 } }),
       { primaries: 6, transfer: 6, matrix: 6, fullRange: false },
+      'colour',
     ],
     [
-      'a colr box where the stream says nothing',
+      'a container colour where the stream says nothing',
       testSps(32, 16),
       { primaries: 1, transfer: 1, matrix: 1, fullRange: false },
+      'colour',
     ],
-  ])('refuses %s with video-unsupported', (_, sps, colr) => {
+    [
+      'a container range that disagrees',
+      testSps(32, 16, { vui: { fullRange: true } }),
+      { primaries: null, transfer: null, matrix: null, fullRange: false },
+      'colour',
+    ],
+    [
+      'a container colour by a name the Player does not know',
+      testSps(32, 16),
+      { primaries: null, transfer: null, matrix: -1, fullRange: null },
+      'colour',
+    ],
+  ] as const)('refuses %s with video-unsupported and its reason', (_, sps, colr, reason) => {
     expect(() => avcColour(avcC(sps), colr)).toThrow(
-      expect.objectContaining({ code: 'video-unsupported' }),
+      expect.objectContaining({ code: 'video-unsupported', reason }),
     );
+  });
+
+  it('follows the stream where the container states nothing, field by field', () => {
+    const sps = testSps(32, 16, {
+      vui: { fullRange: false, primaries: 5, transfer: 5, matrix: 5 },
+    });
+    // Mediabunny names no transfer 5 (gamma 2.8): the container states nothing of it.
+    expect(
+      avcColour(avcC(sps), { primaries: 5, transfer: null, matrix: 5, fullRange: false }),
+    ).toEqual({ matrix: 'bt601', fullRange: false });
   });
 
   it('accepts High profile 8-bit 4:2:0 and a colr box that agrees', () => {

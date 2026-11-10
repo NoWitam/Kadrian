@@ -6,7 +6,9 @@
  * `seek`, `play`, and `pause` (D25). The Player decides no pixel and loads
  * nothing but the runtime build and the asset bytes the application passes.
  * Video nodes are decoded in the host window by the browser's WebCodecs
- * decoder and reach the page as images (D51). With an audio context from the
+ * decoder and reach the page as images (D51); Mediabunny reads their
+ * containers, and `inspectVideo` tells a host before any load whether the
+ * Player shows a file as it is, and why not (D79). With an audio context from the
  * host, the audio plan is played with Web Audio on the Producer's sample grid,
  * and its clock drives the picture (D53).
  */
@@ -35,4 +37,13 @@ export type {
   PlayerVideoFacts,
 } from './player.js';
 export { decodeSound, scheduleSounds } from './audio.js';
+export { inspectVideo } from './container.js';
+export type {
+  InspectedAudioTrack,
+  InspectedVideoTrack,
+  VideoContainer,
+  VideoInspection,
+  VideoInspectionCode,
+  VideoInspectionReason,
+} from './container.js';
 export type { ScheduledSounds, SoundContext } from './audio.js';

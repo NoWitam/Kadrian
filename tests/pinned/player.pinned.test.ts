@@ -23,6 +23,8 @@ import { goldenTimestamps, referenceComposition } from '@kadrion/test-fixtures';
 import type { BrowserContext, Frame, Page } from 'playwright-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { HOST_MODULES } from '../parity/parity.js';
+
 import { ISOLATION_PROBE } from './probes.js';
 import {
   BAR,
@@ -57,15 +59,18 @@ const PAGE_POLICY = [
 const PACKAGES = ['player', 'renderer-dom', 'runtime', 'schema', 'test-fixtures'];
 const TYPES: Readonly<Record<string, string>> = {
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
 };
 
 const HARNESS = `<!doctype html><html><head><meta charset="utf-8">
 <style>html,body{margin:0;padding:0;overflow:hidden}</style>
 <script type="importmap">${JSON.stringify({
-  imports: Object.fromEntries(
-    PACKAGES.map((name) => [`@kadrion/${name}`, `/pkg/${name}/index.js`]),
-  ),
+  imports: {
+    ...Object.fromEntries(PACKAGES.map((name) => [`@kadrion/${name}`, `/pkg/${name}/index.js`])),
+    // The Player's external dependencies, each its installed bundle (D79.7).
+    ...Object.fromEntries(Object.keys(HOST_MODULES).map((name) => [name, `/vendor/${name}.mjs`])),
+  },
 })}</script>
 <script type="module">
 import { createPlayer } from '@kadrion/player';
@@ -120,8 +125,11 @@ function served(pathname: string): { body: Buffer; type: string } | null {
   if (pathname === '/') return { body: Buffer.from(HARNESS), type: 'text/html; charset=utf-8' };
   const runtime = /^\/runtime\/(kadrion-runtime\.(?:js|json))$/.exec(pathname);
   const pkg = /^\/pkg\/([a-z-]+)\/(.+)$/.exec(pathname);
+  const vendor = /^\/vendor\/([a-z-]+)\.mjs$/.exec(pathname)?.[1];
   let file: string | null = null;
-  if (runtime?.[1] !== undefined) {
+  if (vendor !== undefined && HOST_MODULES[vendor] !== undefined) {
+    file = join(repoRoot, ...HOST_MODULES[vendor].split('/'));
+  } else if (runtime?.[1] !== undefined) {
     file = join(repoRoot, 'packages', 'renderer-dom', 'dist', 'runtime-build', runtime[1]);
   } else if (pkg?.[1] !== undefined && pkg[2] !== undefined && PACKAGES.includes(pkg[1])) {
     const base = join(repoRoot, 'packages', pkg[1], 'dist');

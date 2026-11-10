@@ -1,6 +1,7 @@
 # D76 — Nested compositions: schema 0.21
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-10, after PR-55a was merged
+  (PR #82)
 - Date: 2026-11-10
 - Supersedes: —
 - Amends: D16 (an instance places a definition's nodes; groups still do not

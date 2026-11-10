@@ -2,8 +2,9 @@
  * `kadrion render-frames` (D28.8), `kadrion export` (D29.10), and the jobs of a
  * segmented render and stills (D47) with injected
  * Producer functions: arguments, the asset map and its relative paths, the
- * files written, where FFmpeg comes from, and the exit codes. That the default
- * functions render and encode is `tests/pinned`'s business.
+ * files written, where FFmpeg comes from, and the exit codes; and `kadrion
+ * inspect` (D79.6) with an injected verdict. That the default functions render
+ * and encode, and inspect real files, is `tests/pinned`'s business.
  */
 import {
   existsSync,
@@ -31,6 +32,7 @@ import {
   type StillRequest,
   type StillResult,
 } from '@kadrion/producer';
+import type { VideoInspection } from '@kadrion/player';
 import { generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
@@ -1049,5 +1051,94 @@ describe('kadrion estimate (D48.5)', () => {
         env: FFMPEG_ENV,
       }),
     ).resolves.toBe(EXIT_PRODUCER_ERROR);
+  });
+});
+
+describe('kadrion inspect (D79.6)', () => {
+  /** A verdict as `inspectVideo` gives it, for the plumbing of the command. */
+  const verdict: VideoInspection = {
+    playable: false,
+    reasons: [{ code: 'codec', message: 'The Player decodes H.264, not hevc.' }],
+    container: 'mp4',
+    format: 'MP4',
+    video: {
+      codec: 'hevc',
+      codecString: 'hvc1.1.6.L93.B0',
+      width: 64,
+      height: 36,
+      rotation: 0,
+      flipped: false,
+      frames: 25,
+      durationUs: 1_000_000,
+      timeBase: { num: 1, den: 12_800 },
+      frameRate: { num: 25, den: 1 },
+    },
+    audio: { codec: 'aac', channels: 2, sampleRate: 48_000 },
+  };
+
+  function videoFile(bytes: Uint8Array): string {
+    const dir = mkdtempSync(join(tmpdir(), 'kadrion-inspect-'));
+    writeFileSync(join(dir, 'video.mp4'), bytes);
+    return join(dir, 'video.mp4');
+  }
+
+  it('prints the verdict of the file as JSON with --json, read as a Blob, and exits 0 whatever it is', async () => {
+    const path = videoFile(new Uint8Array([1, 2, 3, 4]));
+    const seen: number[] = [];
+    const { out, err, io: streams } = io();
+    const code = await runCli(['inspect', '--json', path], streams, {
+      inspect: async (blob) => {
+        seen.push(blob.size);
+        return Promise.resolve(verdict);
+      },
+    });
+    expect(code).toBe(EXIT_OK);
+    expect(seen).toEqual([4]);
+    expect(JSON.parse(out.join('\n'))).toEqual(verdict);
+    expect(err).toEqual([]);
+    expect(JOB_COMMANDS).not.toContain('inspect');
+  });
+
+  it('prints the verdict as text without --json', async () => {
+    const path = videoFile(new Uint8Array([1]));
+    const { out, io: streams } = io();
+    await runCli(['inspect', path], streams, { inspect: () => Promise.resolve(verdict) });
+    expect(out).toEqual([
+      `${path}: not as it is`,
+      '  codec: The Player decodes H.264, not hevc.',
+      '  container: mp4 (MP4)',
+      '  video: hvc1.1.6.L93.B0 64x36, 25 frames, 1000000 µs, 25/1 fps',
+      '  audio: aac, 2 channels, 48000 Hz',
+    ]);
+  });
+
+  it('gives the verdict of the Player itself by default', async () => {
+    const path = videoFile(new Uint8Array([1, 2, 3, 4, 5]));
+    const { out, io: streams } = io();
+    await expect(runCli(['inspect', '--json', path], streams, {})).resolves.toBe(EXIT_OK);
+    expect(JSON.parse(out.join('\n'))).toMatchObject({
+      playable: false,
+      reasons: [{ code: 'unreadable' }],
+      container: null,
+    });
+  });
+
+  it.each([
+    ['no file', ['inspect', '--json']],
+    ['two files', ['inspect', 'a.mp4', 'b.mp4']],
+    ['an unknown flag', ['inspect', '--nope', 'a.mp4']],
+  ])('refuses %s with the usage', async (_, argv) => {
+    const { out, err, io: streams } = io();
+    await expect(runCli(argv, streams, {})).resolves.toBe(EXIT_USAGE);
+    expect(out).toEqual([]);
+    expect(err).toContain(USAGE);
+  });
+
+  it('exits 1 for a file that cannot be opened', async () => {
+    const { out, err, io: streams } = io();
+    const missing = join(mkdtempSync(join(tmpdir(), 'kadrion-inspect-')), 'missing.mp4');
+    await expect(runCli(['inspect', missing], streams, {})).resolves.toBe(EXIT_PRODUCER_ERROR);
+    expect(out).toEqual([]);
+    expect(err[0]).toMatch(/^error file-unreadable: /);
   });
 });

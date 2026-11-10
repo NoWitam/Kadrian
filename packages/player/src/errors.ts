@@ -38,8 +38,9 @@ export type PlayerErrorCode =
   /** A Custom HTML element loaded another document than its shell; the render ends (D23.9). */
   | 'custom-html-navigated'
   /**
-   * A video the Player cannot read or decode in this window: not H.264 in an MP4 file it
-   * reads exactly, or no WebCodecs decoder for it (D51.3, D51.4).
+   * A video the Player cannot read or decode in this window: not a file of D79.2 (H.264,
+   * 8-bit 4:2:0, progressive, BT.601 or BT.709, in MP4, QuickTime, or Matroska), whose
+   * reasons of D79.4 are the details, or no WebCodecs decoder for it (D51.3, D51.4).
    */
   | 'video-unsupported'
   /** The browser's decoder failed on a frame of a video it accepted (D51.4). */
