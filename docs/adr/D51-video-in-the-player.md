@@ -7,6 +7,9 @@
   QuickTime, and Matroska, read with Mediabunny, under the same rule for the stream), and
   the MP4 reader of D51.3 is replaced by Mediabunny (D79.1); decoding starts at an IDR
   picture (D79.5)
+- Amended by: K2 (D81) on 2026-11-10: D51.4: the RGB of a decoded frame is turned by the display
+  matrix of its container, by the Producer's function, and the media facts state the size as
+  shown (D81.2)
 - Extends: D25 (the resolver may return a `Blob` for a video, the protocol
   version 2, `prepareVideo`), D28 (the page receives video frames with `seek`
   and `update`), D33 and D34 (the video rows of the parity measurement), D44

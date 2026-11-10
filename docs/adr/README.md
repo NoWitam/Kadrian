@@ -86,6 +86,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D76](D76-nested-compositions.md)                             | Nested compositions: schema 0.21                                                             | Accepted          |
 | [D77](D77-elements.md)                                        | Elements: nested templates with inputs, schema 0.22                                          | Proposed          |
 | [D79](D79-video-containers-read-with-mediabunny.md)           | Video containers read with Mediabunny, and the verdict of `inspectVideo`                     | Proposed          |
+| [D81](D81-video-turned-by-its-container.md)                   | Video turned by its container: the display matrix applied after the conversion to RGB        | Proposed          |
 
 ## Provenance of D01–D10
 
