@@ -17,6 +17,7 @@ import {
   AUDIO_SECONDS,
   FONT_GLYPHS,
   referenceComposition,
+  svgComposition,
   VIDEO_FIXTURE,
 } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
@@ -53,11 +54,14 @@ interface Document {
 const sourceOf = (file: string): unknown => JSON.parse(readText(...file.split('/'))) as unknown;
 
 /**
- * The assets the page generates, as the reference composition declares them
- * (D32.2), and the video it serves from the recipe of the fixtures (D32.10).
+ * The assets the page generates, as the reference composition and, since
+ * PR-57, the SVG composition declare them (D32.2, D74), and the video it
+ * serves from the recipe of the fixtures (D32.10).
  */
 const PROVIDED = new Map([
-  ...(referenceComposition as Document).assets.map((asset) => [asset.id, asset] as const),
+  ...[...(referenceComposition as Document).assets, ...(svgComposition as Document).assets].map(
+    (asset) => [asset.id, asset] as const,
+  ),
   [
     VIDEO_FIXTURE.id,
     { id: VIDEO_FIXTURE.id, type: 'video', contentHash: VIDEO_FIXTURE.contentHash },
@@ -179,6 +183,209 @@ describe('the features the showcases show (D32.10)', () => {
       'set_transition_effect',
       'set_caption_word',
       'set_template_input',
+    ]) {
+      expect(names, name).toContain(name);
+    }
+  });
+});
+
+describe('the features of phase five the showcases show (D32.11)', () => {
+  const documents = SHOWCASES.map((showcase) => validated(sourceOf(showcase.sourceFile)));
+  /** Every node of a document: in scenes, in groups, and in definitions (D76). */
+  const everyNode = (document: ValidatedComposition): Record<string, unknown>[] => {
+    const found: Record<string, unknown>[] = [];
+    const visit = (node: Record<string, unknown>): void => {
+      found.push(node);
+      for (const child of (node['children'] as Record<string, unknown>[] | undefined) ?? []) {
+        visit(child);
+      }
+    };
+    for (const scene of document.scenes) for (const node of scene.nodes) visit(node);
+    for (const definition of document.definitions) for (const node of definition.nodes) visit(node);
+    return found;
+  };
+  const nodes = documents.flatMap(everyNode);
+  const animations = nodes.flatMap(
+    (node) =>
+      (node['animations'] as
+        { property: string; keyframes: { easing: { kind: string } }[] }[] | undefined) ?? [],
+  );
+  const effects = [
+    ...nodes.flatMap((node) => (node['effects'] as { kind: string }[] | undefined) ?? []),
+    ...documents.flatMap((document) => document.scenes.flatMap((scene) => scene.effects)),
+  ];
+  const clipTransitions = documents.flatMap((document) =>
+    document.scenes.flatMap((scene) => scene.transitions),
+  );
+
+  it('include clip transitions of the kinds of D66 and their easing (D66, D67)', () => {
+    const kinds = new Set(clipTransitions.map((transition) => transition.effect.kind));
+    for (const kind of ['push', 'zoom', 'iris', 'blur-dissolve'])
+      expect(kinds, kind).toContain(kind);
+    expect(clipTransitions.some((transition) => transition.easing.kind !== 'linear')).toBe(true);
+  });
+
+  it('include every kind of easing (D67)', () => {
+    const kinds = new Set(
+      animations.flatMap((animation) =>
+        animation.keyframes.map((keyframe) => keyframe.easing.kind),
+      ),
+    );
+    for (const kind of [
+      'linear',
+      'hold',
+      'ease-in',
+      'ease-out',
+      'ease-in-out',
+      'cubic-bezier',
+      'steps',
+    ]) {
+      expect(kinds, kind).toContain(kind);
+    }
+  });
+
+  it('include rotation, origin, crop, and corner radius, animated (D68)', () => {
+    const properties = new Set(animations.map((animation) => animation.property));
+    for (const property of [
+      'rotation',
+      'crop',
+      'cornerRadius',
+      'size',
+      'color',
+      'fill',
+      'trim/end',
+      'geometry',
+    ]) {
+      expect(properties, property).toContain(property);
+    }
+    expect(nodes.some((node) => (node['origin'] as { x: number } | undefined)?.x === 500)).toBe(
+      true,
+    );
+    expect(
+      nodes.some((node) => typeof node['rotation'] === 'number' && node['rotation'] !== 0),
+    ).toBe(true);
+  });
+
+  it('include text styles and text animated by letter and by word (D69)', () => {
+    const texts = nodes.filter((node) => node['type'] === 'text');
+    const units = new Set(
+      texts.flatMap((node) =>
+        (node['textAnimations'] as { unit: string }[]).map((animation) => animation.unit),
+      ),
+    );
+    for (const unit of ['letter', 'word']) expect(units, unit).toContain(unit);
+    for (const part of ['stroke', 'shadow', 'box']) {
+      expect(
+        texts.some(
+          (node) => (node['style'] as Record<string, { kind: string }>)[part]?.kind !== 'none',
+        ),
+        part,
+      ).toBe(true);
+    }
+  });
+
+  it('include animated captions inside a safe area (D70)', () => {
+    const captions = nodes.filter((node) => node['type'] === 'captions');
+    const styles = captions.map(
+      (node) =>
+        node['style'] as {
+          highlight: { scale: number; tracks: unknown[]; box: { kind: string } };
+          pageIn: { kind: string };
+          pageOut: { kind: string };
+        },
+    );
+    expect(
+      styles.some(
+        (style) =>
+          style.highlight.scale !== 1 &&
+          style.highlight.tracks.length > 0 &&
+          style.highlight.box.kind !== 'none' &&
+          style.pageIn.kind === 'animate' &&
+          style.pageOut.kind === 'animate',
+      ),
+    ).toBe(true);
+    expect(
+      documents.some((document) => Object.values(document.safeArea).some((inset) => inset > 0)),
+    ).toBe(true);
+  });
+
+  it('include CSS and SVG effects on nodes and on a scene (D71, D72)', () => {
+    const kinds = new Set(effects.map((effect) => effect.kind));
+    for (const kind of [
+      'blur',
+      'drop-shadow',
+      'hue-rotate',
+      'grayscale',
+      'sepia',
+      'curves',
+      'color-grade',
+      'glow',
+      'vignette',
+    ]) {
+      expect(kinds, kind).toContain(kind);
+    }
+    expect(
+      documents.some((document) => document.scenes.some((scene) => scene.effects.length > 0)),
+    ).toBe(true);
+  });
+
+  it('include every kind of shape geometry and fill, and an SVG asset (D73, D74)', () => {
+    const shapes = nodes.filter((node) => node['type'] === 'shape');
+    const geometries = new Set(shapes.map((node) => (node['geometry'] as { kind: string }).kind));
+    for (const kind of ['rect', 'ellipse', 'polygon', 'path'])
+      expect(geometries, kind).toContain(kind);
+    const fills = new Set(shapes.map((node) => (node['fill'] as { kind: string }).kind));
+    for (const kind of ['none', 'solid', 'linear-gradient', 'radial-gradient'])
+      expect(fills, kind).toContain(kind);
+    expect(
+      documents.some((document) => document.assets.some((asset) => asset.type === 'svg')),
+    ).toBe(true);
+  });
+
+  it('include a blend mode, a shape and an image mask, and a track matte (D75)', () => {
+    expect(
+      nodes.some((node) => node['blendMode'] !== undefined && node['blendMode'] !== 'normal'),
+    ).toBe(true);
+    const masks = new Set(
+      nodes.map((node) => (node['mask'] as { kind: string } | undefined)?.kind),
+    );
+    for (const kind of ['shape', 'image']) expect(masks, kind).toContain(kind);
+    expect(
+      nodes.some((node) => (node['matte'] as { kind: string } | undefined)?.kind === 'node'),
+    ).toBe(true);
+  });
+
+  it('include a definition placed more than once and an Element with values (D76, D77)', () => {
+    const instances = nodes.filter((node) => node['type'] === 'instance');
+    const placed = instances.map((node) => node['definitionId']);
+    expect(placed.some((id, index) => placed.indexOf(id) !== index)).toBe(true);
+    expect(instances.some((node) => (node['sourceStartUs'] as number) > 0)).toBe(true);
+    expect(instances.some((node) => (node['inputs'] as unknown[]).length > 0)).toBe(true);
+  });
+
+  it('include Custom HTML with parameters and no script (D78)', () => {
+    expect(
+      nodes.some(
+        (node) =>
+          node['type'] === 'custom-html' &&
+          (node['parameters'] as unknown[]).length > 0 &&
+          !(node['html'] as string).includes('<script'),
+      ),
+    ).toBe(true);
+  });
+
+  it('call a tool of the feature of each step of phase five', () => {
+    const names = new Set(SHOWCASES.map((showcase) => showcase.toolCall.name));
+    for (const name of [
+      'set_transition_easing',
+      'set_keyframe_easing',
+      'add_text_animation',
+      'set_caption_highlight',
+      'add_effect',
+      'set_shape_fill',
+      'set_blend_mode',
+      'set_instance_input',
+      'set_custom_html',
     ]) {
       expect(names, name).toContain(name);
     }

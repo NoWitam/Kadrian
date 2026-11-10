@@ -1,0 +1,774 @@
+[
+  {
+    "request": "Animate this title letter by letter.",
+    "document": "apps/playground/src/showcases/text-motion.json",
+    "calls": [
+      {
+        "name": "add_text_animation",
+        "arguments": {
+          "nodeId": "text-plain",
+          "index": 0,
+          "animation": {
+            "id": "text-plain-letters",
+            "unit": "letter",
+            "phase": {
+              "kind": "in"
+            },
+            "staggerUs": 50000,
+            "order": {
+              "kind": "forward"
+            },
+            "tracks": [
+              {
+                "property": "opacity",
+                "keyframes": [
+                  {
+                    "timeUs": 0,
+                    "value": 0,
+                    "easing": {
+                      "kind": "ease-out"
+                    }
+                  },
+                  {
+                    "timeUs": 300000,
+                    "value": 1,
+                    "easing": {
+                      "kind": "linear"
+                    }
+                  }
+                ]
+              },
+              {
+                "property": "offset",
+                "keyframes": [
+                  {
+                    "timeUs": 0,
+                    "value": {
+                      "x": 0,
+                      "y": 40
+                    },
+                    "easing": {
+                      "kind": "ease-out"
+                    }
+                  },
+                  {
+                    "timeUs": 300000,
+                    "value": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "easing": {
+                      "kind": "linear"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/4/textAnimations/0",
+        "value": {
+          "id": "text-plain-letters",
+          "unit": "letter",
+          "phase": {
+            "kind": "in"
+          },
+          "staggerUs": 50000,
+          "order": {
+            "kind": "forward"
+          },
+          "tracks": [
+            {
+              "property": "opacity",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "ease-out"
+                  }
+                },
+                {
+                  "timeUs": 300000,
+                  "value": 1,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            },
+            {
+              "property": "offset",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 0,
+                    "y": 40
+                  },
+                  "easing": {
+                    "kind": "ease-out"
+                  }
+                },
+                {
+                  "timeUs": 300000,
+                  "value": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "request": "Put a push between these clips.",
+    "document": "apps/playground/src/showcases/elements.json",
+    "calls": [
+      {
+        "name": "add_clip_transition_at_cut",
+        "arguments": {
+          "transition": {
+            "id": "transition-badge-push",
+            "fromNodeId": "badge-first",
+            "toNodeId": "badge-again",
+            "durationUs": 500000,
+            "effect": {
+              "kind": "push",
+              "direction": "left"
+            },
+            "easing": {
+              "kind": "ease-in-out"
+            }
+          },
+          "alignment": "center"
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/1/durationUs",
+        "value": 3250000
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/startUs",
+        "value": 2750000
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/durationUs",
+        "value": 3250000
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/transitions/0",
+        "value": {
+          "id": "transition-badge-push",
+          "fromNodeId": "badge-first",
+          "toNodeId": "badge-again",
+          "durationUs": 500000,
+          "effect": {
+            "kind": "push",
+            "direction": "left"
+          },
+          "easing": {
+            "kind": "ease-in-out"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "request": "Make the photo spin once around its centre in the first two seconds.",
+    "document": "apps/playground/src/showcases/effects.json",
+    "calls": [
+      {
+        "name": "run_transaction",
+        "arguments": {
+          "calls": [
+            {
+              "name": "set_node_origin",
+              "arguments": {
+                "nodeId": "image-plain",
+                "origin": {
+                  "x": 500,
+                  "y": 500
+                }
+              }
+            },
+            {
+              "name": "add_animation",
+              "arguments": {
+                "nodeId": "image-plain",
+                "index": 0,
+                "animation": {
+                  "id": "anim-plain-spin",
+                  "property": "rotation",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 0,
+                      "easing": {
+                        "kind": "ease-in-out"
+                      }
+                    },
+                    {
+                      "timeUs": 2000000,
+                      "value": 360,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/1/origin/x",
+        "value": 500
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/1/origin/y",
+        "value": 500
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/animations/0",
+        "value": {
+          "id": "anim-plain-spin",
+          "property": "rotation",
+          "keyframes": [
+            {
+              "timeUs": 0,
+              "value": 0,
+              "easing": {
+                "kind": "ease-in-out"
+              }
+            },
+            {
+              "timeUs": 2000000,
+              "value": 360,
+              "easing": {
+                "kind": "linear"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "request": "Make the title bounce in.",
+    "document": "apps/playground/src/showcases/motion.json",
+    "calls": [
+      {
+        "name": "add_animation",
+        "arguments": {
+          "nodeId": "motion-title",
+          "index": 1,
+          "animation": {
+            "id": "anim-title-bounce",
+            "property": "scale",
+            "keyframes": [
+              {
+                "timeUs": 0,
+                "value": {
+                  "x": 0,
+                  "y": 0
+                },
+                "easing": {
+                  "kind": "cubic-bezier",
+                  "x1": 0.34,
+                  "y1": 1.56,
+                  "x2": 0.64,
+                  "y2": 1
+                }
+              },
+              {
+                "timeUs": 600000,
+                "value": {
+                  "x": 1,
+                  "y": 1
+                },
+                "easing": {
+                  "kind": "linear"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/animations/1",
+        "value": {
+          "id": "anim-title-bounce",
+          "property": "scale",
+          "keyframes": [
+            {
+              "timeUs": 0,
+              "value": {
+                "x": 0,
+                "y": 0
+              },
+              "easing": {
+                "kind": "cubic-bezier",
+                "x1": 0.34,
+                "y1": 1.56,
+                "x2": 0.64,
+                "y2": 1
+              }
+            },
+            {
+              "timeUs": 600000,
+              "value": {
+                "x": 1,
+                "y": 1
+              },
+              "easing": {
+                "kind": "linear"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "request": "Start the photo blurred and bring it into focus over a second.",
+    "document": "apps/playground/src/showcases/effects.json",
+    "calls": [
+      {
+        "name": "add_effect",
+        "arguments": {
+          "ownerId": "image-plain",
+          "index": 0,
+          "effect": {
+            "id": "effect-plain-focus",
+            "kind": "blur",
+            "radius": 0,
+            "animations": [
+              {
+                "id": "effect-plain-focus-radius",
+                "property": "radius",
+                "keyframes": [
+                  {
+                    "timeUs": 0,
+                    "value": 12,
+                    "easing": {
+                      "kind": "ease-out"
+                    }
+                  },
+                  {
+                    "timeUs": 1000000,
+                    "value": 0,
+                    "easing": {
+                      "kind": "linear"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/effects/0",
+        "value": {
+          "id": "effect-plain-focus",
+          "kind": "blur",
+          "radius": 0,
+          "animations": [
+            {
+              "id": "effect-plain-focus-radius",
+              "property": "radius",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 12,
+                  "easing": {
+                    "kind": "ease-out"
+                  }
+                },
+                {
+                  "timeUs": 1000000,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "request": "Make the spoken word pop out in red.",
+    "document": "apps/playground/src/showcases/animated-captions.json",
+    "calls": [
+      {
+        "name": "set_caption_highlight",
+        "arguments": {
+          "nodeId": "captions-pop",
+          "highlight": {
+            "color": "#f04438",
+            "scale": 1.3,
+            "tracks": [],
+            "underline": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
+          }
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/style/highlight/color",
+        "value": "#f04438"
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/style/highlight/scale",
+        "value": 1.3
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/style/highlight/tracks",
+        "value": []
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/style/highlight/box",
+        "value": {
+          "kind": "none"
+        }
+      }
+    ]
+  },
+  {
+    "request": "Draw a circle that draws itself on.",
+    "document": "apps/playground/src/showcases/shapes.json",
+    "calls": [
+      {
+        "name": "run_transaction",
+        "arguments": {
+          "calls": [
+            {
+              "name": "add_node",
+              "arguments": {
+                "parentId": "scene-shapes",
+                "index": 7,
+                "node": {
+                  "id": "shape-circle",
+                  "type": "shape",
+                  "startUs": 0,
+                  "durationUs": 5000000,
+                  "position": {
+                    "x": 1040,
+                    "y": 200
+                  },
+                  "scale": {
+                    "x": 1,
+                    "y": 1
+                  },
+                  "rotation": 0,
+                  "origin": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "opacity": 1,
+                  "animations": [],
+                  "width": 160,
+                  "height": 160,
+                  "geometry": {
+                    "kind": "ellipse"
+                  },
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "stroke": {
+                    "color": "#ffffff",
+                    "width": 8,
+                    "dash": [],
+                    "cap": "round",
+                    "join": "round"
+                  },
+                  "trim": {
+                    "start": 0,
+                    "end": 0
+                  },
+                  "effects": [],
+                  "mask": {
+                    "kind": "none"
+                  },
+                  "matte": {
+                    "kind": "none"
+                  },
+                  "blendMode": "normal"
+                }
+              }
+            },
+            {
+              "name": "add_animation",
+              "arguments": {
+                "nodeId": "shape-circle",
+                "index": 0,
+                "animation": {
+                  "id": "anim-circle-draw",
+                  "property": "trim/end",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 0,
+                      "easing": {
+                        "kind": "ease-in-out"
+                      }
+                    },
+                    {
+                      "timeUs": 1500000,
+                      "value": 1000,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/7",
+        "value": {
+          "id": "shape-circle",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 1040,
+            "y": 200
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "anim-circle-draw",
+              "property": "trim/end",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 1500000,
+                  "value": 1000,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 160,
+          "height": 160,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "none"
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 8,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 0
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ]
+  },
+  {
+    "request": "Put the photo in a circle.",
+    "document": "apps/playground/src/showcases/effects.json",
+    "calls": [
+      {
+        "name": "set_node_mask",
+        "arguments": {
+          "nodeId": "image-plain",
+          "mask": {
+            "kind": "shape",
+            "x": 80,
+            "y": 0,
+            "width": 200,
+            "height": 200,
+            "geometry": {
+              "kind": "ellipse"
+            },
+            "inverted": false,
+            "feather": 0,
+            "animations": []
+          }
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/1/mask",
+        "value": {
+          "kind": "shape",
+          "x": 80,
+          "y": 0,
+          "width": 200,
+          "height": 200,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "inverted": false,
+          "feather": 0,
+          "animations": []
+        }
+      }
+    ]
+  },
+  {
+    "request": "Change the name on the second lower third to Dean.",
+    "document": "apps/playground/src/showcases/elements.json",
+    "calls": [
+      {
+        "name": "set_instance_input",
+        "arguments": {
+          "instanceId": "third-kim",
+          "input": {
+            "inputId": "title",
+            "type": "text",
+            "value": "Dean"
+          }
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/5/inputs/1/value",
+        "value": "Dean"
+      }
+    ]
+  },
+  {
+    "request": "Give the last line an outline and a drop shadow.",
+    "document": "apps/playground/src/showcases/text-motion.json",
+    "calls": [
+      {
+        "name": "set_text_style",
+        "arguments": {
+          "nodeId": "text-plain",
+          "style": {
+            "stroke": {
+              "kind": "outside",
+              "color": "#000000",
+              "width": 3
+            },
+            "shadow": {
+              "kind": "drop",
+              "color": "#000000",
+              "opacity": 0.6,
+              "offset": {
+                "x": 4,
+                "y": 4
+              },
+              "blur": 8
+            },
+            "box": {
+              "kind": "none"
+            }
+          }
+        }
+      }
+    ],
+    "changes": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/4/style/stroke",
+        "value": {
+          "kind": "outside",
+          "color": "#000000",
+          "width": 3
+        }
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/4/style/shadow",
+        "value": {
+          "kind": "drop",
+          "color": "#000000",
+          "opacity": 0.6,
+          "offset": {
+            "x": 4,
+            "y": 4
+          },
+          "blur": 8
+        }
+      }
+    ]
+  }
+]

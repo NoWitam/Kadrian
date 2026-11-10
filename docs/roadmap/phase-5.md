@@ -644,6 +644,7 @@ width, height, fit }`, whose content at scene time `t` is the definition
 
 ### PR-57 — Showcases, the catalogue, and the release
 
+- Status: in review, with the amendment D32.11 of D32 (no new ADR). Nine showcases of phase five, checked by the test of PR-42; a fixture of ten requests, each checked by `executeTool` against its expected document; every package is version `0.6.0` for the release `v0.6.0`. The review of the catalogue changed four descriptions: `add_clip_transition_at_cut` now names the easing every transition has had since `0.12`, and its example carries one, since the example without it was refused; `add_node` names the instance node and its fields; `describe_document` names the transitions, definitions, template, and safe area it returns; and the easing `hold` reads for transitions as well as keyframes. Deviations from this plan: the descriptions changed are in `@kadrion/editor-sdk`, where the metadata of the commands lives (D46), as well as in `@kadrion/ai-sdk`; the page resolves the SVG drawing of the fixtures, so that an SVG asset can be shown.
 - **Goal:** every feature of this phase can be seen in the playground, the
   catalogue of tools reads well to a model as a whole, and the host receives
   a release.
@@ -756,4 +757,5 @@ own.
     of D79; the segment grid anchored on a span of D80), so that the host can
     read more video formats and export a fragment with a minimum segment;
     every package is version `0.5.0`, and the release of the phase moves to
-    `v0.6.0`.
+    `v0.6.0`. PR-57 sets every package to `0.6.0`; the owner pushes the tag
+    `v0.6.0` from `main` after it.

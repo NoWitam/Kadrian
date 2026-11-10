@@ -208,4 +208,179 @@ export const SHOWCASES: readonly Showcase[] = [
       ],
     },
   },
+  {
+    id: 'clip-transitions',
+    title: 'Clip transitions',
+    description:
+      'Five clips of one layer, each a group, overlap by 0.4 s: a push eased in and out, a zoom from half size on a curve that overshoots, an iris opening from the centre, and a blur dissolve. The frame of a clip transition is the canvas, so the clips move across the whole frame (D66, D67).',
+    features: ['D56', 'D66', 'D67'],
+    url: '/app/showcases/clip-transitions.json',
+    sourceFile: 'apps/playground/src/showcases/clip-transitions.json',
+    dragNodeId: null,
+    toolCall: {
+      name: 'set_transition_easing',
+      arguments: { transitionId: 'transition-zoom', easing: { kind: 'ease-in-out' } },
+    },
+    templateValues: null,
+  },
+  {
+    id: 'motion',
+    title: 'Easing, rotation, and crop',
+    description:
+      'An image turns once about its centre, eased in and out; another pops in on a curve that overshoots, holds, falls back in four steps, and grows again; a third is cropped towards its middle while its corners round. A text is turned about its bottom-left corner (D67, D68).',
+    features: ['D67', 'D68'],
+    url: '/app/showcases/motion.json',
+    sourceFile: 'apps/playground/src/showcases/motion.json',
+    dragNodeId: 'motion-title',
+    toolCall: {
+      name: 'set_keyframe_easing',
+      arguments: { animationId: 'anim-pop-scale', timeUs: 0, easing: { kind: 'ease-out' } },
+    },
+    templateValues: null,
+  },
+  {
+    id: 'text-motion',
+    title: 'Text styles and text in fragments',
+    description:
+      'A title with an outline rises letter by letter; a line on a box with a shadow grows word by word from its middle; a glowing line turns its letters in a seeded random order at 2 s. The last line has no text animation: the tool call animates it letter by letter (D69).',
+    features: ['D65', 'D69'],
+    url: '/app/showcases/text-motion.json',
+    sourceFile: 'apps/playground/src/showcases/text-motion.json',
+    dragNodeId: 'text-plain',
+    toolCall: {
+      name: 'add_text_animation',
+      arguments: {
+        nodeId: 'text-plain',
+        index: 0,
+        animation: {
+          id: 'text-plain-in',
+          unit: 'letter',
+          phase: { kind: 'in' },
+          staggerUs: 50_000,
+          order: { kind: 'forward' },
+          tracks: [
+            {
+              property: 'opacity',
+              keyframes: [
+                { timeUs: 0, value: 0, easing: { kind: 'ease-out' } },
+                { timeUs: 300_000, value: 1, easing: { kind: 'linear' } },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    templateValues: null,
+  },
+  {
+    id: 'animated-captions',
+    title: 'Animated captions and the safe area',
+    description:
+      'Captions inside the safe area of the composition, drawn here as a dashed frame: every page enters word by word and leaves line by line, and the word being spoken grows, bounces, and sits on a box (D70).',
+    features: ['D57', 'D70'],
+    url: '/app/showcases/animated-captions.json',
+    sourceFile: 'apps/playground/src/showcases/animated-captions.json',
+    dragNodeId: 'captions-pop',
+    toolCall: {
+      name: 'set_caption_highlight',
+      arguments: {
+        nodeId: 'captions-pop',
+        highlight: {
+          color: '#f04438',
+          scale: 1.3,
+          tracks: [],
+          underline: { kind: 'solid', color: '#f04438', thickness: 4, offset: 2 },
+          box: { kind: 'none' },
+        },
+      },
+    },
+    templateValues: null,
+  },
+  {
+    id: 'effects',
+    title: 'Effects',
+    description:
+      'The same image without effects and with eight: a blur that clears, a drop shadow, a hue that turns, grayscale with contrast, and sepia are CSS filters; curves, a colour grade from cold to warm, and a vignette are SVG filters, as is the glow of the text. The scene itself is saturated (D71, D72).',
+    features: ['D65', 'D71', 'D72'],
+    url: '/app/showcases/effects.json',
+    sourceFile: 'apps/playground/src/showcases/effects.json',
+    dragNodeId: 'image-plain',
+    toolCall: {
+      name: 'add_effect',
+      arguments: {
+        ownerId: 'image-plain',
+        index: 0,
+        effect: { id: 'effect-plain-blur', kind: 'blur', radius: 6, animations: [] },
+      },
+    },
+    templateValues: null,
+  },
+  {
+    id: 'shapes',
+    title: 'Vector shapes and an SVG asset',
+    description:
+      'A rounded rectangle with a gradient and a dashed outline that grows, an ellipse with a radial gradient, a star that turns and changes colour, a wave whose stroke draws itself on, and a path that morphs. Bottom right, an SVG asset shown by an image node; the page accepts its bytes only after the sanitiser of D74 does (D73, D74).',
+    features: ['D73', 'D74'],
+    url: '/app/showcases/shapes.json',
+    sourceFile: 'apps/playground/src/showcases/shapes.json',
+    dragNodeId: 'shape-sun',
+    toolCall: {
+      name: 'set_shape_fill',
+      arguments: { nodeId: 'shape-sun', fill: { kind: 'solid', color: '#fec84b' } },
+    },
+    templateValues: null,
+  },
+  {
+    id: 'compositing',
+    title: 'Blend modes, masks, and a track matte',
+    description:
+      'A title blends with the bar below it by difference; an image is masked by an ellipse whose edge softens and sharpens; a gradient is masked by the brightness of an image; and an image shows only through a turning star, a sibling shape used as its track matte (D75).',
+    features: ['D65', 'D75'],
+    url: '/app/showcases/compositing.json',
+    sourceFile: 'apps/playground/src/showcases/compositing.json',
+    dragNodeId: 'compositing-circle',
+    toolCall: {
+      name: 'set_blend_mode',
+      arguments: { nodeId: 'compositing-title', blendMode: 'screen' },
+    },
+    templateValues: null,
+  },
+  {
+    id: 'elements',
+    title: 'Nested compositions and Elements',
+    description:
+      'A badge built once as a definition and placed three times: from its start, from one second into it while it turns, and again after the first ends. A lower third is an Element, a definition with a template: two instances give its title, colour, and dot other values (D76, D77).',
+    features: ['D65', 'D76', 'D77'],
+    url: '/app/showcases/elements.json',
+    sourceFile: 'apps/playground/src/showcases/elements.json',
+    dragNodeId: 'third-dina',
+    toolCall: {
+      name: 'set_instance_input',
+      arguments: {
+        instanceId: 'third-dina',
+        input: { inputId: 'title', type: 'text', value: 'Dean' },
+      },
+    },
+    templateValues: null,
+  },
+  {
+    id: 'custom-html-clock',
+    title: 'Custom HTML with the managed clock',
+    description:
+      'A Custom HTML element written as an AI would write it: plain CSS @keyframes and no script. The managed clock drives the animations from the time of the scene, so seeking works, and the colour and size come from its parameters. It runs only when "Run Custom HTML" is on (D36, D78).',
+    features: ['D23', 'D36', 'D78'],
+    url: '/app/showcases/custom-html-clock.json',
+    sourceFile: 'apps/playground/src/showcases/custom-html-clock.json',
+    dragNodeId: 'html-clock',
+    toolCall: {
+      name: 'set_custom_html',
+      arguments: {
+        nodeId: 'html-clock',
+        html: '<style>html,body{margin:0;height:100%;background:#1d2939}#dot{width:80px;height:80px;border-radius:50%;background:var(--accent);animation:move 2s ease-in-out infinite alternate}@keyframes move{to{transform:translateX(800px)}}</style><div id="dot"></div>',
+        fontAssetIds: [],
+        parameters: [{ key: 'accent', type: 'color', value: '#12b76a' }],
+      },
+    },
+    templateValues: null,
+  },
 ];

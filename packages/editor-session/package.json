@@ -1,6 +1,6 @@
 {
   "name": "@kadrion/editor-session",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "host facade joining the document, command bus, Player, and asset resolver.",
   "license": "UNLICENSED",

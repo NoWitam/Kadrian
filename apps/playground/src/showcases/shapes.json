@@ -1,0 +1,736 @@
+{
+  "schemaVersion": "0.23",
+  "width": 1280,
+  "height": 720,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 5000000,
+  "assets": [
+    {
+      "id": "asset-svg",
+      "type": "svg",
+      "contentHash": "sha256:de6d2d851644c4f6b52277dcea21e4991a3efe6d2a2942af4031e4d546f7d834"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-shapes",
+      "durationUs": 5000000,
+      "nodes": [
+        {
+          "id": "background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "color": "#0c111d",
+          "animations": []
+        },
+        {
+          "id": "shape-card",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 80,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "anim-card-size",
+              "property": "size",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "width": 280,
+                    "height": 180
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 2000000,
+                  "value": {
+                    "width": 360,
+                    "height": 220
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 4000000,
+                  "value": {
+                    "width": 280,
+                    "height": 180
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 280,
+          "height": 180,
+          "geometry": {
+            "kind": "rect",
+            "cornerRadius": 24
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 280,
+              "y": 180
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#7a5af8",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#ee46bc",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 6,
+            "dash": [60, 30],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "shape-sun",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 520,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 220,
+          "height": 220,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "radial-gradient",
+            "center": {
+              "x": 110,
+              "y": 110
+            },
+            "radius": 110,
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#fec84b",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "shape-star",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 860,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 500,
+            "y": 500
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "anim-star-rotation",
+              "property": "rotation",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 5000000,
+                  "value": 144,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "anim-star-fill",
+              "property": "fill",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": "#12b76a",
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 2500000,
+                  "value": "#155eef",
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 5000000,
+                  "value": "#12b76a",
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 260,
+          "height": 260,
+          "geometry": {
+            "kind": "polygon",
+            "points": [
+              {
+                "x": 130,
+                "y": 5
+              },
+              {
+                "x": 162,
+                "y": 86
+              },
+              {
+                "x": 249,
+                "y": 91
+              },
+              {
+                "x": 182,
+                "y": 147
+              },
+              {
+                "x": 203,
+                "y": 231
+              },
+              {
+                "x": 130,
+                "y": 185
+              },
+              {
+                "x": 57,
+                "y": 231
+              },
+              {
+                "x": 78,
+                "y": 147
+              },
+              {
+                "x": 11,
+                "y": 91
+              },
+              {
+                "x": 98,
+                "y": 86
+              }
+            ]
+          },
+          "fill": {
+            "kind": "solid",
+            "color": "#12b76a"
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "shape-wave",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 80,
+            "y": 380
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "anim-wave-trim",
+              "property": "trim/end",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 2500000,
+                  "value": 1000,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 600,
+          "height": 200,
+          "geometry": {
+            "kind": "path",
+            "fillRule": "nonzero",
+            "commands": [
+              {
+                "kind": "move",
+                "x": 0,
+                "y": 100
+              },
+              {
+                "kind": "cubic",
+                "x1": 100,
+                "y1": -40,
+                "x2": 200,
+                "y2": 240,
+                "x": 300,
+                "y": 100
+              },
+              {
+                "kind": "cubic",
+                "x1": 400,
+                "y1": -40,
+                "x2": 500,
+                "y2": 240,
+                "x": 600,
+                "y": 100
+              }
+            ]
+          },
+          "fill": {
+            "kind": "none"
+          },
+          "stroke": {
+            "color": "#36bffa",
+            "width": 10,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "shape-blob",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 760,
+            "y": 380
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "anim-blob-geometry",
+              "property": "geometry",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "kind": "path",
+                    "fillRule": "nonzero",
+                    "commands": [
+                      {
+                        "kind": "move",
+                        "x": 100,
+                        "y": 0
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 200,
+                        "y1": 0,
+                        "x": 200,
+                        "y": 100
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 200,
+                        "y1": 200,
+                        "x": 100,
+                        "y": 200
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 0,
+                        "y1": 200,
+                        "x": 0,
+                        "y": 100
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 0,
+                        "y1": 0,
+                        "x": 100,
+                        "y": 0
+                      },
+                      {
+                        "kind": "close"
+                      }
+                    ]
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 2500000,
+                  "value": {
+                    "kind": "path",
+                    "fillRule": "nonzero",
+                    "commands": [
+                      {
+                        "kind": "move",
+                        "x": 100,
+                        "y": 0
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 280,
+                        "y1": 0,
+                        "x": 200,
+                        "y": 100
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 200,
+                        "y1": 120,
+                        "x": 100,
+                        "y": 200
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": -80,
+                        "y1": 200,
+                        "x": 0,
+                        "y": 100
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 0,
+                        "y1": 80,
+                        "x": 100,
+                        "y": 0
+                      },
+                      {
+                        "kind": "close"
+                      }
+                    ]
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 5000000,
+                  "value": {
+                    "kind": "path",
+                    "fillRule": "nonzero",
+                    "commands": [
+                      {
+                        "kind": "move",
+                        "x": 100,
+                        "y": 0
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 200,
+                        "y1": 0,
+                        "x": 200,
+                        "y": 100
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 200,
+                        "y1": 200,
+                        "x": 100,
+                        "y": 200
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 0,
+                        "y1": 200,
+                        "x": 0,
+                        "y": 100
+                      },
+                      {
+                        "kind": "quadratic",
+                        "x1": 0,
+                        "y1": 0,
+                        "x": 100,
+                        "y": 0
+                      },
+                      {
+                        "kind": "close"
+                      }
+                    ]
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 200,
+          "height": 200,
+          "geometry": {
+            "kind": "path",
+            "fillRule": "nonzero",
+            "commands": [
+              {
+                "kind": "move",
+                "x": 100,
+                "y": 0
+              },
+              {
+                "kind": "quadratic",
+                "x1": 200,
+                "y1": 0,
+                "x": 200,
+                "y": 100
+              },
+              {
+                "kind": "quadratic",
+                "x1": 200,
+                "y1": 200,
+                "x": 100,
+                "y": 200
+              },
+              {
+                "kind": "quadratic",
+                "x1": 0,
+                "y1": 200,
+                "x": 0,
+                "y": 100
+              },
+              {
+                "kind": "quadratic",
+                "x1": 0,
+                "y1": 0,
+                "x": 100,
+                "y": 0
+              },
+              {
+                "kind": "close"
+              }
+            ]
+          },
+          "fill": {
+            "kind": "solid",
+            "color": "#ee46bc"
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "image-svg",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 1000,
+            "y": 400
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-svg",
+          "width": 240,
+          "height": 180,
+          "fit": "contain",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

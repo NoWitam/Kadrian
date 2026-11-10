@@ -2727,7 +2727,7 @@ export const moveKeyframeArgumentsSchema: MoveKeyframeArgumentsSchema = deepFree
  * Exported for the descriptions of the tools.
  */
 export const EASINGS =
-  'An easing is an object with its kind: {"kind":"linear"} (a constant speed), {"kind":"hold"} (the value stays until the next keyframe, then jumps), {"kind":"ease-in"} (starts slowly), {"kind":"ease-out"} (slows down at the end), {"kind":"ease-in-out"} (both), {"kind":"cubic-bezier","x1":0.34,"y1":1.56,"x2":0.64,"y2":1} (the curve of CSS cubic-bezier(); x1 and x2 from 0 to 1, y1 and y2 from -1 to 2, where a y outside 0 to 1 overshoots and the value is held within the range of its property), or {"kind":"steps","count":4,"position":"end"} (count equal jumps, 1 to 1000, at the end or the start of each interval, as CSS steps()).';
+  'An easing is an object with its kind: {"kind":"linear"} (a constant speed), {"kind":"hold"} (the value stays until the end of the interval, at the next keyframe or at the end of the transition, then jumps), {"kind":"ease-in"} (starts slowly), {"kind":"ease-out"} (slows down at the end), {"kind":"ease-in-out"} (both), {"kind":"cubic-bezier","x1":0.34,"y1":1.56,"x2":0.64,"y2":1} (the curve of CSS cubic-bezier(); x1 and x2 from 0 to 1, y1 and y2 from -1 to 2, where a y outside 0 to 1 overshoots and the value is held within the range of its property), or {"kind":"steps","count":4,"position":"end"} (count equal jumps, 1 to 1000, at the end or the start of each interval, as CSS steps()).';
 
 /** The JSON Schema of the arguments of `SetKeyframeEasing` (D67.7): the easing is the document's to judge. */
 export const setKeyframeEasingArgumentsSchema: SetKeyframeEasingArgumentsSchema = deepFreeze({

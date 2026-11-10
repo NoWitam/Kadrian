@@ -1,0 +1,698 @@
+{
+  "schemaVersion": "0.23",
+  "width": 1280,
+  "height": 720,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 5000000,
+  "assets": [
+    {
+      "id": "asset-image",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    },
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-effects",
+      "durationUs": 5000000,
+      "nodes": [
+        {
+          "id": "background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "image-plain",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 80,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 360,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 16,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "image-blur",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 480,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 360,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 16,
+          "effects": [
+            {
+              "id": "effect-blur",
+              "kind": "blur",
+              "radius": 12,
+              "animations": [
+                {
+                  "id": "effect-blur-radius",
+                  "property": "radius",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 12,
+                      "easing": {
+                        "kind": "ease-out"
+                      }
+                    },
+                    {
+                      "timeUs": 2000000,
+                      "value": 0,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "image-shadow",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 880,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 360,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 16,
+          "effects": [
+            {
+              "id": "effect-shadow",
+              "kind": "drop-shadow",
+              "color": "#000000",
+              "opacity": 0.7,
+              "offset": {
+                "x": 12,
+                "y": 12
+              },
+              "blur": 16,
+              "animations": []
+            }
+          ],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "image-hue",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 80,
+            "y": 290
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 360,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 16,
+          "effects": [
+            {
+              "id": "effect-hue",
+              "kind": "hue-rotate",
+              "angle": 0,
+              "animations": [
+                {
+                  "id": "effect-hue-angle",
+                  "property": "angle",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 0,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    },
+                    {
+                      "timeUs": 5000000,
+                      "value": 360,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "image-mono",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 480,
+            "y": 290
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 360,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 16,
+          "effects": [
+            {
+              "id": "effect-mono",
+              "kind": "grayscale",
+              "amount": 1,
+              "animations": []
+            },
+            {
+              "id": "effect-mono-contrast",
+              "kind": "contrast",
+              "amount": 1.5,
+              "animations": []
+            }
+          ],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "image-sepia",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 880,
+            "y": 290
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 360,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 16,
+          "effects": [
+            {
+              "id": "effect-sepia",
+              "kind": "sepia",
+              "amount": 1,
+              "animations": []
+            }
+          ],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "image-curves",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 80,
+            "y": 520
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 360,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 16,
+          "effects": [
+            {
+              "id": "effect-curves",
+              "kind": "curves",
+              "red": [0, 0.2, 0.6, 1],
+              "green": [0, 0.15, 0.5, 0.85, 1],
+              "blue": [0.15, 0.45, 0.9],
+              "amount": 0,
+              "animations": [
+                {
+                  "id": "effect-curves-amount",
+                  "property": "amount",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 0,
+                      "easing": {
+                        "kind": "ease-in-out"
+                      }
+                    },
+                    {
+                      "timeUs": 2000000,
+                      "value": 1,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "image-grade",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 480,
+            "y": 520
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 360,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 16,
+          "effects": [
+            {
+              "id": "effect-grade",
+              "kind": "color-grade",
+              "lift": 0.05,
+              "gamma": 1.2,
+              "gain": 1.1,
+              "temperature": -0.8,
+              "tint": 0,
+              "animations": [
+                {
+                  "id": "effect-grade-temperature",
+                  "property": "temperature",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": -0.8,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    },
+                    {
+                      "timeUs": 5000000,
+                      "value": 0.8,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "image-vignette",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 880,
+            "y": 520
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 360,
+          "height": 200,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 16,
+          "effects": [
+            {
+              "id": "effect-vignette",
+              "kind": "vignette",
+              "amount": 1,
+              "size": 0.4,
+              "animations": []
+            }
+          ],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "effects-glow",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 5000000,
+          "position": {
+            "x": 80,
+            "y": 640
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion",
+          "fontAssetId": "asset-font",
+          "fontSize": 56,
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
+          },
+          "textAnimations": [],
+          "effects": [
+            {
+              "id": "effect-glow",
+              "kind": "glow",
+              "color": "#f79009",
+              "opacity": 0.9,
+              "radius": 2,
+              "animations": [
+                {
+                  "id": "effect-glow-radius",
+                  "property": "radius",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 2,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    },
+                    {
+                      "timeUs": 2500000,
+                      "value": 12,
+                      "easing": {
+                        "kind": "ease-in-out"
+                      }
+                    },
+                    {
+                      "timeUs": 5000000,
+                      "value": 2,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": [
+        {
+          "id": "effect-scene-saturate",
+          "kind": "saturate",
+          "amount": 1.2,
+          "animations": []
+        }
+      ]
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}
