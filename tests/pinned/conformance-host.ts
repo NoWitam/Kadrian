@@ -23,7 +23,7 @@ import {
 import { validateComposition } from '@kadrion/schema';
 import type { BrowserContext, Frame, Page } from 'playwright-core';
 
-import { HOST_PACKAGES } from '../parity/parity.js';
+import { HOST_MODULES, HOST_PACKAGES } from '../parity/parity.js';
 
 import { expectedTree, inSinglePrecision, repoRoot, shownTree } from './support.js';
 
@@ -43,6 +43,7 @@ const POLICY = [
 export { HOST_PACKAGES };
 const TYPES: Readonly<Record<string, string>> = {
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
 };
 
@@ -97,9 +98,13 @@ export const HOST_STYLE = 'html,body{margin:0;padding:0;overflow:hidden}';
 export const HOST_PAGE = `<!doctype html><html><head><meta charset="utf-8">
 <style>${HOST_STYLE}</style>
 <script type="importmap">${JSON.stringify({
-  imports: Object.fromEntries(
-    HOST_PACKAGES.map((name) => [`@kadrion/${name}`, `/pkg/${name}/index.js`]),
-  ),
+  imports: {
+    ...Object.fromEntries(
+      HOST_PACKAGES.map((name) => [`@kadrion/${name}`, `/pkg/${name}/index.js`]),
+    ),
+    // The Player's external dependencies, each its installed bundle (D79.7).
+    ...Object.fromEntries(Object.keys(HOST_MODULES).map((name) => [name, `/vendor/${name}.mjs`])),
+  },
 })}</script>
 <script type="module">${HOST_SCRIPT}</script></head><body><div id="stage"></div></body></html>`;
 
@@ -131,8 +136,11 @@ function served(pathname: string): { body: Buffer; type: string; path: string | 
   }
   const runtime = /^\/runtime\/(kadrion-runtime\.(?:js|json))$/.exec(pathname);
   const pkg = /^\/pkg\/([a-z-]+)\/(.+)$/.exec(pathname);
+  const vendor = /^\/vendor\/([a-z-]+)\.mjs$/.exec(pathname)?.[1];
   let file: string | null = null;
-  if (runtime?.[1] !== undefined) {
+  if (vendor !== undefined && HOST_MODULES[vendor] !== undefined) {
+    file = join(repoRoot, ...HOST_MODULES[vendor].split('/'));
+  } else if (runtime?.[1] !== undefined) {
     // The files the Producer loads too (D28.2).
     file = join(repoRoot, 'packages', 'renderer-dom', 'dist', 'runtime-build', runtime[1]);
   } else if (

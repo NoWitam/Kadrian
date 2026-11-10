@@ -121,6 +121,14 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   Chromium applies it. The bus refuses a clip or a heard video that reads past
   its source (`source-range-exceeded`) or whose facts it does not have
   (`media-facts-missing`).
+- **Before an upload is used:** `inspectVideo(blob)` of `@kadrion/player`, or
+  `kadrion inspect --json <file>` on the worker, says whether the Player shows
+  a video as it is (`playable`) and if not, why (`reasons[].code`), with its
+  facts. H.264 in MP4, fragmented MP4, QuickTime, or Matroska plays; transcode
+  anything else before placing it. A host that loads the Player's `dist`
+  through an import map maps `mediabunny` to the package's
+  `dist/bundles/mediabunny.mjs`. (Proposed in D79; this guide links it once
+  the owner accepts it.)
 - **Authority:** [D49](../adr/D49-the-timeline-model.md) (facts outside the
   document), [D51](../adr/D51-video-in-the-player.md),
   [D53](../adr/D53-audio-in-the-player.md), [D62](../adr/D62-image-facts.md).

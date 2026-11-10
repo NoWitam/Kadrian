@@ -4,9 +4,12 @@
  * exact, every binding of a row is refused when it fails, and a record that is
  * incomplete or inconsistent with the golden manifest is caught.
  */
+import { readFileSync } from 'node:fs';
 import { crc32, deflateSync } from 'node:zlib';
 
 import { describe, expect, it } from 'vitest';
+
+import { repoPath } from '../repo/repo.js';
 
 import {
   bucketOf,
@@ -16,6 +19,7 @@ import {
   distTreeSha256,
   goldenFileName,
   HISTOGRAM_BUCKETS,
+  HOST_MODULES,
   isDistPath,
   measure,
   PARITY_THRESHOLDS,
@@ -1016,6 +1020,26 @@ describe("the Player's dist tree (D33.10)", () => {
     // Quoted import text in a comment is followed too: it fails closed, never silently.
     disk.set('packages/player/dist/errors.js', text("// see: import x from './also-gone.js'\n"));
     expect(() => servedDist(read)).toThrow(/missing packages\/player\/dist\/also-gone\.js/);
+    // A host-mapped dependency is its one bundle, served and hashed, never followed (D79.7).
+    const bundle = HOST_MODULES.mediabunny ?? '';
+    disk.set('packages/player/dist/errors.js', text("import { Input } from 'mediabunny';\n"));
+    disk.set(bundle, text('const s = "import x from \'./not-a-module.js\'";\nexport { s };\n'));
+    expect([...servedDist(read).keys()]).toContain(bundle);
+    disk.set('packages/player/dist/errors.js', text("import 'left-pad';\n"));
+    expect(() => servedDist(read)).toThrow(/cannot serve/);
+  });
+
+  it('maps exactly the installed bundle of Mediabunny, a module that imports nothing (D79.7)', () => {
+    expect(HOST_MODULES).toEqual({
+      mediabunny: 'packages/player/node_modules/mediabunny/dist/bundles/mediabunny.mjs',
+    });
+    expect(isDistPath(HOST_MODULES.mediabunny ?? '')).toBe(true);
+    expect(isDistPath('packages/player/node_modules/mediabunny/dist/modules/src/index.js')).toBe(
+      false,
+    );
+    const bundle = readFileSync(repoPath(...(HOST_MODULES.mediabunny ?? '').split('/')), 'utf8');
+    expect(bundle).not.toMatch(/^\s*import[\s{*'"]/m);
+    expect(bundle).not.toMatch(/^\s*export\s[^;]*\sfrom\s/m);
   });
 });
 

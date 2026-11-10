@@ -1,8 +1,9 @@
 /**
- * Test media for the Player's video path (D51): a writer of minimal MP4 files
- * with one H.264 track, whose samples are opaque bytes, and a stand-in for
- * WebCodecs that "decodes" a sample into a flat 4:2:0 frame whose luma is the
- * sample's first byte. Real H.264 and the real decoder are the pinned test's
+ * Test media for the Player's video path (D51, D79): a writer of minimal MP4
+ * files with one H.264 track, whose samples are one NAL unit each (an IDR
+ * slice for a sync sample unless said otherwise, D79.5) around opaque bytes,
+ * and a stand-in for WebCodecs that "decodes" a sample into a flat 4:2:0 frame
+ * whose luma is the first of those bytes. Real H.264 and the real decoder are the pinned test's
  * (`tests/pinned/player-video.pinned.test.ts`). Nothing here is part of the package.
  */
 
@@ -13,6 +14,26 @@ export interface TestSample {
   /** The composition offset (`ctts`); 0 when absent. */
   readonly offset?: number;
   readonly sync: boolean;
+  /** Whether the NAL unit is an IDR slice; a sync sample's by default (D79.5). */
+  readonly idr?: boolean;
+}
+
+/** The bytes of a sample as H.264 in an `avcC` stream: one NAL unit with a 4-byte length. */
+export function nalSample(data: Uint8Array, idr: boolean): Uint8Array {
+  const length = data.length + 1;
+  return new Uint8Array([
+    (length >>> 24) & 255,
+    (length >>> 16) & 255,
+    (length >>> 8) & 255,
+    length & 255,
+    idr ? 0x65 : 0x41,
+    ...data,
+  ]);
+}
+
+/** The opaque bytes inside a sample of `nalSample`. */
+export function payloadOf(sample: Uint8Array): Uint8Array {
+  return sample.subarray(5);
 }
 
 export interface TestVui {
@@ -40,6 +61,8 @@ export interface TestMp4 {
   readonly sps?: TestSps;
   /** `null` for no edit list; a media time for one edit. */
   readonly editMediaTime?: number | null;
+  /** Edits of their own, in place of `editMediaTime`: an empty edit has media time -1. */
+  readonly edits?: readonly { readonly duration: number; readonly mediaTime: number }[];
   readonly colr?: { primaries: number; transfer: number; matrix: number; fullRange: boolean };
   readonly fragmented?: boolean;
   readonly withoutMoov?: boolean;
@@ -141,11 +164,14 @@ function fullBox(type: string, version: number, ...parts: (Uint8Array | number[]
 }
 
 /** A minimal MP4: `ftyp`, `moov` with one video track, `mdat` with the samples in one chunk. */
-export function testMp4(options: TestMp4): Uint8Array {
+export function testMp4(options: TestMp4): Uint8Array<ArrayBuffer> {
   const width = options.width ?? 32;
   const height = options.height ?? 16;
   const timescale = options.timescale ?? 1000;
-  const { samples } = options;
+  const samples = options.samples.map((sample) => ({
+    ...sample,
+    data: nalSample(sample.data, sample.idr ?? sample.sync),
+  }));
   const sps = testSps(width, height, options.sps);
   const avcC = box('avcC', [1, sps[1] ?? 66, 0, 30, 0xff, 0xe1], u16(sps.length), sps, [0]);
   const colr =
@@ -215,16 +241,49 @@ export function testMp4(options: TestMp4): Uint8Array {
     const hdlr = fullBox('hdlr', 0, u32(0), ascii('vide'), new Array<number>(13).fill(0));
     const mdhd = fullBox('mdhd', 0, u32(0), u32(0), u32(timescale), u32(0), u16(0x55c4), u16(0));
     const mdia = box('mdia', mdhd, hdlr, minf);
+    const edits =
+      options.edits ??
+      (options.editMediaTime === undefined || options.editMediaTime === null
+        ? []
+        : [{ duration: 1000, mediaTime: options.editMediaTime }]);
     const edit =
-      options.editMediaTime === undefined || options.editMediaTime === null
+      edits.length === 0
         ? []
         : [
             box(
               'edts',
-              fullBox('elst', 0, u32(1), u32(1000), u32(options.editMediaTime), u16(1), u16(0)),
+              fullBox(
+                'elst',
+                0,
+                u32(edits.length),
+                ...edits.map(({ duration, mediaTime }) => [
+                  ...u32(duration),
+                  ...u32(mediaTime >>> 0),
+                  ...u16(1),
+                  ...u16(0),
+                ]),
+              ),
             ),
           ];
-    const trak = box('trak', ...edit, mdia);
+    // A track header with track ID 1 and the identity matrix (the picture is not rotated).
+    const tkhd = box(
+      'tkhd',
+      [0, 0, 0, 3],
+      u32(0),
+      u32(0),
+      u32(1),
+      u32(0),
+      u32(0),
+      new Array<number>(8).fill(0),
+      u16(0),
+      u16(0),
+      u16(0),
+      u16(0),
+      ...[0x00010000, 0, 0, 0, 0x00010000, 0, 0, 0, 0x40000000].map(u32),
+      u32(width * 0x10000),
+      u32(height * 0x10000),
+    );
+    const trak = box('trak', tkhd, ...edit, mdia);
     const mvhd = fullBox(
       'mvhd',
       0,
@@ -293,8 +352,8 @@ export function installCodecs(view: object, options: { supported?: boolean } = {
     decode(chunk: Chunk): void {
       const width = this.config?.codedWidth ?? 0;
       const height = this.config?.codedHeight ?? 0;
-      log.decoded.push({ timestamp: chunk.timestamp, type: chunk.type, first: chunk.data[0] ?? 0 });
-      const luma = chunk.data[0] ?? 0;
+      const luma = payloadOf(chunk.data)[0] ?? 0;
+      log.decoded.push({ timestamp: chunk.timestamp, type: chunk.type, first: luma });
       this.pending.push(
         Promise.resolve().then(() => {
           const chromaWidth = (width + 1) >> 1;

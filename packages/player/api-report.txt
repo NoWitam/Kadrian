@@ -3,6 +3,30 @@ Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by 
 
 ==== Entry "."
 
+---- InspectedAudioTrack (type only)
+export interface InspectedAudioTrack {
+    readonly codec: string | null;
+    readonly channels: number;
+    readonly sampleRate: number;
+}
+
+---- InspectedVideoTrack (type only)
+export interface InspectedVideoTrack {
+    readonly codec: string | null;
+    readonly codecString: string | null;
+    readonly width: number;
+    readonly height: number;
+    readonly rotation: 0 | 90 | 180 | 270;
+    readonly flipped: boolean;
+    readonly frames: number | null;
+    readonly durationUs: number | null;
+    readonly timeBase: TimeBase | null;
+    readonly frameRate: {
+        readonly num: number;
+        readonly den: number;
+    } | null;
+}
+
 ---- Player (type only)
 export interface Player {
     load(document: unknown, resolveAsset: PlayerAssetResolver): Promise<void>;
@@ -149,11 +173,36 @@ export interface SoundContext {
     createGain(): GainNode;
 }
 
+---- VideoContainer (type only)
+export type VideoContainer = 'mp4' | 'mov' | 'mkv' | 'webm' | 'other';
+
+---- VideoInspection (type only)
+export interface VideoInspection {
+    readonly playable: boolean;
+    readonly reasons: readonly VideoInspectionReason[];
+    readonly container: VideoContainer | null;
+    readonly format: string | null;
+    readonly video: InspectedVideoTrack | null;
+    readonly audio: InspectedAudioTrack | null;
+}
+
+---- VideoInspectionCode (type only)
+export type VideoInspectionCode = 'unreadable' | 'container' | 'no-video' | 'codec' | 'bit-depth' | 'chroma' | 'interlaced' | 'colour' | 'rotation' | 'timing' | 'audio-channels';
+
+---- VideoInspectionReason (type only)
+export interface VideoInspectionReason {
+    readonly code: VideoInspectionCode;
+    readonly message: string;
+}
+
 ---- createPlayer
 export declare function createPlayer(container: HTMLElement, options: PlayerOptions): Promise<Player>;
 
 ---- decodeSound
 export declare function decodeSound(context: Pick<SoundContext, 'decodeAudioData' | 'sampleRate'>, id: string, bytes: ArrayBuffer): Promise<AudioBuffer>;
+
+---- inspectVideo
+export declare function inspectVideo(file: Blob | Uint8Array): Promise<VideoInspection>;
 
 ---- scheduleSounds
 export declare function scheduleSounds(context: SoundContext, layout: AudioLayout, buffers: ReadonlyMap<string, AudioBuffer>, fromSample: number, when: number, toSample?: number): ScheduledSounds;

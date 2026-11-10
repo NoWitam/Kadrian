@@ -2,15 +2,15 @@
  * Video in the Player (D51). A video asset is delivered by the host as a
  * `Blob` (or as bytes), verified against its `contentHash` with an incremental
  * SHA-256 before anything reads it, and read by the container reader of
- * `mp4.ts`. Its media facts give the source duration of D50.3, and every
+ * `container.ts` (Mediabunny, D79). Its media facts give the source duration of D50.3, and every
  * sampled source range is checked against it before the first frame (D49.6).
  * For each frame the Player asks for, the source frame of every active video
  * node is chosen by the rule of `@kadrion/schema` (D49.5), decoded by the
  * browser's own decoder (WebCodecs) in the host window, never in the render
  * page, converted to RGB exactly as the Producer's FFmpeg converts it
  * (`yuv.ts`), and handed to the page as a PNG (D50.4). Decoding
- * starts at the sync sample before the frame every time, so the pixels of a
- * frame do not depend on the frames shown before it.
+ * starts at the last IDR sample before the frame every time (D79.5), so the
+ * pixels of a frame do not depend on the frames shown before it.
  */
 import { mediaTypeFits, type AssetRequest } from '@kadrion/renderer-dom';
 import {
@@ -26,8 +26,9 @@ import {
   type VideoNode,
 } from '@kadrion/schema';
 
+import { holdsIdr } from './avc.js';
+import { readVideoTrack, type VideoTrack } from './container.js';
 import { PlayerError, withAsset } from './errors.js';
-import { readMp4VideoTrack, type ByteSource, type Mp4VideoTrack } from './mp4.js';
 import { Sha256 } from './sha256.js';
 import { yuv420ToRgb } from './yuv.js';
 
@@ -58,7 +59,7 @@ export interface VerifiedBlob {
 
 /** A verified video that was read: its track and its facts. */
 export interface VerifiedVideo extends VerifiedBlob {
-  readonly track: Mp4VideoTrack;
+  readonly track: VideoTrack;
   readonly facts: PlayerVideoFacts;
 }
 
@@ -84,14 +85,6 @@ function isBytes(value: unknown): value is Uint8Array {
 
 function messageOf(reason: unknown): string {
   return reason instanceof Error ? reason.message : String(reason);
-}
-
-function blobSource(blob: Blob): ByteSource {
-  return {
-    size: blob.size,
-    read: async (offset, length) =>
-      new Uint8Array(await blob.slice(offset, offset + length).arrayBuffer()),
-  };
 }
 
 /** The SHA-256 of a `Blob`, chunk by chunk (D51.2). */
@@ -155,17 +148,18 @@ export async function verifyVideo(
 }
 
 /**
- * Reads the first video track of a verified video (D51.3) and its facts; a
- * file the reader refuses is `video-unsupported`.
+ * Reads the primary video track of a verified video (D51.3, D79) and its
+ * facts; a file the reader refuses is `video-unsupported`, every reason of
+ * D79.4 in its details.
  */
 export async function readVideo(verified: VerifiedBlob): Promise<VerifiedVideo> {
   const { id } = verified;
-  let track: Mp4VideoTrack;
+  let track: VideoTrack;
   try {
-    track = await readMp4VideoTrack(blobSource(verified.blob));
+    track = await readVideoTrack(verified.blob);
   } catch (reason) {
     if (reason instanceof PlayerError) {
-      throw new PlayerError(reason.code, `The video "${id}": ${reason.message}`);
+      throw new PlayerError(reason.code, `The video "${id}": ${reason.message}`, reason.details);
     }
     throw new PlayerError(
       'video-unsupported',
@@ -262,7 +256,7 @@ function codecsOf(view: Window): Codecs {
 }
 
 /** The decoder configuration of a track: software decoding, so pixels never depend on a GPU. */
-function configOf(track: Mp4VideoTrack): VideoDecoderConfig {
+function configOf(track: VideoTrack): VideoDecoderConfig {
   return {
     codec: track.codec,
     description: track.description,
@@ -366,8 +360,27 @@ function undecodable(video: VerifiedVideo, message: string): PlayerError {
 }
 
 /**
+ * The decode index of the last sync sample at or before `target` whose bytes
+ * hold an IDR picture (D79.5), and those bytes; a sync sample that is only a
+ * recovery point is passed over for the one before it.
+ */
+async function idrBefore(
+  video: VerifiedVideo,
+  target: number,
+): Promise<{ start: number; first: Uint8Array }> {
+  const { track } = video;
+  for (let start = target; start >= 0; start -= 1) {
+    if (track.samples[start]?.sync !== true) continue;
+    for await (const bytes of track.readSamples(start, start)) {
+      if (holdsIdr(track.description, bytes)) return { start, first: bytes };
+    }
+  }
+  throw undecodable(video, `no IDR picture precedes sample ${String(target)}.`);
+}
+
+/**
  * Decodes presentation frame `index` of a video to packed RGB (D51.4): a new
- * decoder, every sample from the sync sample before it in decode order up to
+ * decoder, every sample from the IDR sample before it in decode order up to
  * its own sample, then a flush. The output whose timestamp names its sample is
  * kept; every other output is closed at once.
  */
@@ -375,8 +388,6 @@ async function decodeRgb(codecs: Codecs, video: VerifiedVideo, index: number): P
   const { track } = video;
   const target = track.presentation[index];
   if (target === undefined) throw undecodable(video, `there is no frame ${String(index)}.`);
-  let start = target;
-  while (start > 0 && track.samples[start]?.sync !== true) start -= 1;
   let kept: VideoFrame | null = null;
   let failure: unknown = null;
   const decoder = new codecs.VideoDecoder({
@@ -389,16 +400,15 @@ async function decodeRgb(codecs: Codecs, video: VerifiedVideo, index: number): P
     },
   });
   try {
+    const { start, first } = await idrBefore(video, target);
     decoder.configure(configOf(track));
-    for (let at = start; at <= target; at += 1) {
-      const sample = track.samples[at];
-      if (sample === undefined) break;
-      const data = new Uint8Array(
-        await video.blob.slice(sample.offset, sample.offset + sample.size).arrayBuffer(),
-      );
-      decoder.decode(
-        new codecs.EncodedVideoChunk({ type: at === start ? 'key' : 'delta', timestamp: at, data }),
-      );
+    decoder.decode(new codecs.EncodedVideoChunk({ type: 'key', timestamp: start, data: first }));
+    if (start < target) {
+      let at = start + 1;
+      for await (const data of track.readSamples(start + 1, target)) {
+        decoder.decode(new codecs.EncodedVideoChunk({ type: 'delta', timestamp: at, data }));
+        at += 1;
+      }
     }
     await decoder.flush();
   } catch (reason) {
@@ -409,6 +419,7 @@ async function decodeRgb(codecs: Codecs, video: VerifiedVideo, index: number): P
   const frame = kept as VideoFrame | null;
   if (failure !== null || frame === null) {
     frame?.close();
+    if (failure instanceof PlayerError) throw failure;
     throw undecodable(
       video,
       failure === null ? `the decoder gave no frame ${String(index)}.` : messageOf(failure),
