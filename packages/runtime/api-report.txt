@@ -77,7 +77,7 @@ export interface CaptionPage {
 }
 
 ---- CaptionsNodeState (type only)
-export interface CaptionsNodeState extends LeafNodeState<'captions'>, EffectsState {
+export interface CaptionsNodeState extends LeafNodeState<'captions'>, EffectsState, CompositingState {
     readonly color: string;
     readonly page: number | null;
     readonly word: number | null;
@@ -127,6 +127,13 @@ export interface ColorGradeEffectState {
     readonly gain: number;
     readonly temperature: number;
     readonly tint: number;
+}
+
+---- CompositingState (type only)
+export interface CompositingState {
+    readonly mask: MaskState;
+    readonly matte: MatteState;
+    readonly blendMode: BlendMode;
 }
 
 ---- CompositionState (type only)
@@ -200,7 +207,7 @@ export interface GlowEffectState {
 }
 
 ---- GroupNodeState (type only)
-export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide, EffectsState {
+export interface GroupNodeState extends LifetimeState, TransformState, ClipTransitionSide, EffectsState, CompositingState {
     readonly id: string;
     readonly type: 'group';
     readonly children: readonly (ImageNodeState | TextNodeState | VideoNodeState | ShapeNodeState)[];
@@ -220,7 +227,7 @@ export interface HueRotateEffectState {
 }
 
 ---- ImageNodeState (type only)
-export interface ImageNodeState extends LeafNodeState<'image'>, PictureState, EffectsState {
+export interface ImageNodeState extends LeafNodeState<'image'>, PictureState, EffectsState, CompositingState {
 }
 
 ---- Inset (type only)
@@ -244,6 +251,39 @@ export type LeafNodeType = 'image' | 'text' | 'custom-html' | 'video' | 'caption
 export interface LifetimeState {
     readonly active: boolean;
 }
+
+---- MaskState (type only)
+export type MaskState = {
+    readonly kind: 'none';
+} | {
+    readonly kind: 'shape';
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly path: readonly PathCommandState[];
+    readonly inverted: boolean;
+    readonly feather: number;
+} | {
+    readonly kind: 'image';
+    readonly assetId: string;
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly mode: 'alpha' | 'luminance';
+    readonly inverted: boolean;
+    readonly feather: number;
+};
+
+---- MatteState (type only)
+export type MatteState = {
+    readonly kind: 'none';
+} | {
+    readonly kind: 'node';
+    readonly nodeId: string;
+    readonly mode: 'alpha' | 'alpha-inverted' | 'luminance' | 'luminance-inverted';
+};
 
 ---- NodeState (type only)
 export type NodeState = BackgroundNodeState | GroupNodeState | ImageNodeState | TextNodeState | LeafNodeState<'custom-html'> | VideoNodeState | CaptionsNodeState | ShapeNodeState;
@@ -323,7 +363,7 @@ export type ShapeFillState = {
 };
 
 ---- ShapeNodeState (type only)
-export interface ShapeNodeState extends LeafNodeState<'shape'>, EffectsState {
+export interface ShapeNodeState extends LeafNodeState<'shape'>, EffectsState, CompositingState {
     readonly size: Size;
     readonly path: readonly PathCommandState[];
     readonly fill: ShapeFillState;
@@ -381,7 +421,7 @@ export interface TextLine {
 }
 
 ---- TextNodeState (type only)
-export interface TextNodeState extends LeafNodeState<'text'>, EffectsState {
+export interface TextNodeState extends LeafNodeState<'text'>, EffectsState, CompositingState {
     readonly color: string;
     readonly fragments: TextFragmentsState | null;
 }
@@ -421,7 +461,7 @@ export interface Vec2 {
 }
 
 ---- VideoNodeState (type only)
-export interface VideoNodeState extends LeafNodeState<'video'>, PictureState, EffectsState {
+export interface VideoNodeState extends LeafNodeState<'video'>, PictureState, EffectsState, CompositingState {
     readonly sourceTimeUs: number | null;
 }
 
@@ -457,6 +497,13 @@ export declare function captionPages(words: readonly CaptionWord[], style: Pick<
 ---- captionsInPieces
 export declare function captionsInPieces(style: CaptionStyle): boolean;
 
+---- compositingAt
+export declare function compositingAt(node: {
+    readonly mask: Mask;
+    readonly matte: Matte;
+    readonly blendMode: BlendMode;
+}, timeUs: number): CompositingState;
+
 ---- effectsAt
 export declare function effectsAt(effects: readonly Effect[], timeUs: number): EffectState[];
 
@@ -471,6 +518,9 @@ export declare function graphemes(text: string): string[];
 
 ---- isWhiteSpace
 export declare function isWhiteSpace(codePoint: number): boolean;
+
+---- maskAt
+export declare function maskAt(mask: Mask, timeUs: number): MaskState;
 
 ---- sampleAt
 export declare function sampleAt(timeUs: bigint): bigint;

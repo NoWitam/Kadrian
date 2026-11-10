@@ -89,9 +89,15 @@ function start(): ValidatedComposition {
         style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
         textAnimations: [],
         effects: [],
+        mask: { kind: 'none' },
+        matte: { kind: 'none' },
+        blendMode: 'normal',
       },
     ],
     effects: [],
+    mask: { kind: 'none' },
+    matte: { kind: 'none' },
+    blendMode: 'normal',
   });
   return validated(draft);
 }

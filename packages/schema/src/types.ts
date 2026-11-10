@@ -16,6 +16,8 @@ import type {
   effectSchema,
   groupNodeSchema,
   imageNodeSchema,
+  maskSchema,
+  matteSchema,
   sceneNodeSchema,
   sceneSchema,
   sceneTransitionSchema,
@@ -104,6 +106,15 @@ export type Effect = Infer<typeof effectSchema>;
 export type EffectKind = Effect['kind'];
 /** An animation of one parameter of an effect (D65.1, D71). */
 export type EffectAnimation = Effect['animations'][number];
+
+/** What masks a node: nothing, a shape, or an image, with its animations (D75). */
+export type Mask = Infer<typeof maskSchema>;
+/** An animation of the geometry or the feather of a mask (D75). */
+export type MaskAnimation = Extract<Mask, { kind: 'shape' }>['animations'][number];
+/** Which sibling shape mattes a node, and how (D75). */
+export type Matte = Infer<typeof matteSchema>;
+/** How a node blends with what lies below it (D75). */
+export type BlendMode = ImageNode['blendMode'];
 
 /** How an image or a video meets its box (D50). */
 export type Fit = ImageNode['fit'];

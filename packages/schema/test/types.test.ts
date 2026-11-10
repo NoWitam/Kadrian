@@ -46,6 +46,9 @@ import type {
   ClipTransition,
   SceneTransition,
   TransitionDirection,
+  Mask,
+  Matte,
+  BlendMode,
 } from '../src/index.js';
 
 interface Vec2 {
@@ -87,6 +90,62 @@ interface ExpectedAmountEffect<Kind extends string> {
   readonly amount: number;
   readonly animations: readonly ExpectedAnimation<'amount', number>[];
 }
+
+/** What masks a node: nothing, a shape, or an image, each in a box of the node (D75). */
+type ExpectedMask =
+  | { readonly kind: 'none' }
+  | {
+      readonly kind: 'shape';
+      readonly x: number;
+      readonly y: number;
+      readonly width: number;
+      readonly height: number;
+      readonly geometry: ExpectedGeometry;
+      readonly inverted: boolean;
+      readonly feather: number;
+      readonly animations: readonly (
+        ExpectedAnimation<'geometry', ExpectedGeometry> | ExpectedAnimation<'feather', number>
+      )[];
+    }
+  | {
+      readonly kind: 'image';
+      readonly assetId: string;
+      readonly x: number;
+      readonly y: number;
+      readonly width: number;
+      readonly height: number;
+      readonly mode: 'alpha' | 'luminance';
+      readonly inverted: boolean;
+      readonly feather: number;
+      readonly animations: readonly ExpectedAnimation<'feather', number>[];
+    };
+
+/** Which sibling shape, if any, mattes a node (D75). */
+type ExpectedMatte =
+  | { readonly kind: 'none' }
+  | {
+      readonly kind: 'node';
+      readonly nodeId: string;
+      readonly mode: 'alpha' | 'alpha-inverted' | 'luminance' | 'luminance-inverted';
+    };
+
+type ExpectedBlendMode =
+  | 'normal'
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'darken'
+  | 'lighten'
+  | 'color-dodge'
+  | 'color-burn'
+  | 'hard-light'
+  | 'soft-light'
+  | 'difference'
+  | 'exclusion'
+  | 'hue'
+  | 'saturation'
+  | 'color'
+  | 'luminosity';
 
 /** One effect of a CSS or an SVG filter, its parameters animated in its own list (D71, D72). */
 type ExpectedEffect =
@@ -318,6 +377,9 @@ interface ExpectedImageNode extends ExpectedTransform<ExpectedPictureAnimation> 
   readonly crop: ExpectedCrop;
   readonly cornerRadius: number;
   readonly effects: readonly ExpectedEffect[];
+  readonly mask: ExpectedMask;
+  readonly matte: ExpectedMatte;
+  readonly blendMode: ExpectedBlendMode;
 }
 
 interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> {
@@ -333,6 +395,9 @@ interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> 
   readonly cornerRadius: number;
   readonly volume: number;
   readonly effects: readonly ExpectedEffect[];
+  readonly mask: ExpectedMask;
+  readonly matte: ExpectedMatte;
+  readonly blendMode: ExpectedBlendMode;
 }
 
 /** The style of a text (D69). */
@@ -400,6 +465,9 @@ interface ExpectedTextNode extends ExpectedTransform<
   readonly style: ExpectedTextStyle;
   readonly textAnimations: readonly ExpectedTextAnimation[];
   readonly effects: readonly ExpectedEffect[];
+  readonly mask: ExpectedMask;
+  readonly matte: ExpectedMatte;
+  readonly blendMode: ExpectedBlendMode;
 }
 
 interface ExpectedCustomHtmlNode extends ExpectedTransform {
@@ -427,6 +495,9 @@ interface ExpectedShapeNode extends ExpectedTransform<ExpectedShapeAnimation> {
   };
   readonly trim: { readonly start: number; readonly end: number };
   readonly effects: readonly ExpectedEffect[];
+  readonly mask: ExpectedMask;
+  readonly matte: ExpectedMatte;
+  readonly blendMode: ExpectedBlendMode;
 }
 
 interface ExpectedGroupNode extends ExpectedTransform {
@@ -436,6 +507,9 @@ interface ExpectedGroupNode extends ExpectedTransform {
     ExpectedImageNode | ExpectedTextNode | ExpectedVideoNode | ExpectedShapeNode
   )[];
   readonly effects: readonly ExpectedEffect[];
+  readonly mask: ExpectedMask;
+  readonly matte: ExpectedMatte;
+  readonly blendMode: ExpectedBlendMode;
 }
 
 interface ExpectedCaptionWord {
@@ -498,6 +572,9 @@ interface ExpectedCaptionsNode extends ExpectedTransform<
   readonly style: ExpectedCaptionStyle;
   readonly words: readonly ExpectedCaptionWord[];
   readonly effects: readonly ExpectedEffect[];
+  readonly mask: ExpectedMask;
+  readonly matte: ExpectedMatte;
+  readonly blendMode: ExpectedBlendMode;
 }
 
 type ExpectedSceneNode =
@@ -705,7 +782,7 @@ interface ExpectedTemplate {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.19';
+  readonly schemaVersion: '0.20';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {
@@ -763,6 +840,9 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<ShapeGeometry>().toEqualTypeOf<ExpectedGeometry>();
     expectTypeOf<PathCommand>().toEqualTypeOf<ExpectedPathCommand>();
     expectTypeOf<ShapeFill>().toEqualTypeOf<ExpectedFill>();
+    expectTypeOf<Mask>().toEqualTypeOf<ExpectedMask>();
+    expectTypeOf<Matte>().toEqualTypeOf<ExpectedMatte>();
+    expectTypeOf<BlendMode>().toEqualTypeOf<ExpectedBlendMode>();
   });
 
   it('narrow by their discriminators', () => {

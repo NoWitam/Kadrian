@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.19",
+  "schemaVersion": "0.20",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -142,7 +142,10 @@
             "start": 0,
             "end": 1000
           },
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "shape-ellipse",
@@ -241,7 +244,10 @@
             "start": 0,
             "end": 1000
           },
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "shape-star",
@@ -366,7 +372,10 @@
             "start": 0,
             "end": 1000
           },
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "shape-morph",
@@ -628,7 +637,10 @@
             "start": 0,
             "end": 1000
           },
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "group-shapes",
@@ -778,7 +790,10 @@
                 "start": 0,
                 "end": 1000
               },
-              "effects": []
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             },
             {
               "id": "shape-badge",
@@ -834,10 +849,16 @@
                   "blur": 4,
                   "animations": []
                 }
-              ]
+              ],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             }
           ],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],

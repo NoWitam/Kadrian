@@ -19,7 +19,7 @@ describe('describeDocument (D46.3)', () => {
   it('lists the scene, its nodes bottom to top with parent and layer, and the group children', () => {
     const description = describeDocument(reference());
     expect(description).toMatchObject({
-      schemaVersion: '0.19',
+      schemaVersion: '0.20',
       width: 1080,
       height: 1920,
       fps: 30,
@@ -68,6 +68,9 @@ describe('describeDocument (D46.3)', () => {
       'style',
       'textAnimations',
       'effects',
+      'mask',
+      'matte',
+      'blendMode',
     ]);
     expect(title?.fields['animations']).toEqual([
       {

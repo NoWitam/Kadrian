@@ -9,7 +9,7 @@
  */
 export { audioPlan } from './audio-plan.js';
 export type { AudioPlan, AudioPlanEntry } from './audio-plan.js';
-export { compositionSchema, SCHEMA_VERSION } from './composition-schema.js';
+export { BLEND_MODES, compositionSchema, SCHEMA_VERSION } from './composition-schema.js';
 export type { ValidationError, ValidationErrorCode, ValidationResult } from './errors.js';
 export {
   placedVideos,
@@ -43,6 +43,7 @@ export type {
   Asset,
   AudioClip,
   BackgroundNode,
+  BlendMode,
   CaptionHighlight,
   CaptionPageAnimation,
   CaptionStyle,
@@ -63,6 +64,9 @@ export type {
   FragmentUnit,
   GroupNode,
   ImageNode,
+  Mask,
+  MaskAnimation,
+  Matte,
   NodeAnimation,
   Origin,
   PathCommand,

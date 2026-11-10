@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.19",
+  "schemaVersion": "0.20",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -111,7 +111,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-grade",
@@ -182,7 +185,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-glow",
@@ -250,7 +256,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-chain",
@@ -309,7 +318,10 @@
               "radius": 2,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-group",
@@ -375,7 +387,10 @@
                   "size": 0.4,
                   "animations": []
                 }
-              ]
+              ],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             },
             {
               "id": "svg-group-text",
@@ -413,7 +428,10 @@
                 }
               },
               "textAnimations": [],
-              "effects": []
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             }
           ],
           "effects": [
@@ -446,7 +464,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-plate",
@@ -483,7 +504,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "svg-key",
@@ -553,7 +577,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],
@@ -646,7 +673,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-curves",
@@ -694,7 +724,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-curves",
@@ -743,7 +776,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-colorgrade",
@@ -791,7 +827,10 @@
               "tint": -0.3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-colorgrade",
@@ -840,7 +879,10 @@
               "tint": -0.3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-colorgrade",
@@ -890,7 +932,10 @@
               "tint": -0.3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-glow",
@@ -936,7 +981,10 @@
               "radius": 5,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-glow",
@@ -983,7 +1031,10 @@
               "radius": 5,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-glow",
@@ -1031,7 +1082,10 @@
               "radius": 5,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-vignette",
@@ -1076,7 +1130,10 @@
               "size": 0.3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-vignette",
@@ -1122,7 +1179,10 @@
               "size": 0.3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-vignette",
@@ -1169,7 +1229,10 @@
               "size": 0.3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-chromakey",
@@ -1216,7 +1279,10 @@
               "spill": 0.5,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-chromakey",
@@ -1264,7 +1330,10 @@
               "spill": 0.5,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-chromakey",
@@ -1313,7 +1382,10 @@
               "spill": 0.5,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-bluekey",
@@ -1362,7 +1434,10 @@
               "spill": 0.3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],

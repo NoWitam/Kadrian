@@ -768,6 +768,9 @@ export function svgToShapes(
       stroke,
       trim: { start: 0, end: 1000 },
       effects: [],
+      mask: { kind: 'none' },
+      matte: { kind: 'none' },
+      blendMode: 'normal',
     });
   };
   visit(drawing.root, '/svg', INITIAL, viewportMatrix(drawing, options), 1);

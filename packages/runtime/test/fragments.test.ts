@@ -33,6 +33,9 @@ function text(content: string, textAnimations: readonly TextAnimation[]): TextNo
     style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
     textAnimations,
     effects: [],
+    mask: { kind: 'none' },
+    matte: { kind: 'none' },
+    blendMode: 'normal',
   };
 }
 

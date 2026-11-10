@@ -485,7 +485,7 @@ export interface ClosedObjectSchema<K extends string> {
 }
 
 ---- Command (type only)
-export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetKeyframeEasingCommand | SetKeyframeValueCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetNodeFocusCommand | SetNodeRotationCommand | SetNodeOriginCommand | SetNodeCropCommand | SetNodeCornerRadiusCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetTransitionEasingCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | SetTextStyleCommand | SetShapeGeometryCommand | SetShapeFillCommand | SetShapeStrokeCommand | SetShapeTrimCommand | AddTextAnimationCommand | RemoveTextAnimationCommand | SetTextAnimationCommand | SetCaptionHighlightCommand | SetCaptionPageAnimationCommand | SetSafeAreaCommand | AddEffectCommand | RemoveEffectCommand | ReorderEffectCommand | SetEffectCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand;
+export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetKeyframeEasingCommand | SetKeyframeValueCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetNodeFocusCommand | SetNodeRotationCommand | SetNodeOriginCommand | SetNodeCropCommand | SetNodeCornerRadiusCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetTransitionEasingCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | SetTextStyleCommand | SetShapeGeometryCommand | SetShapeFillCommand | SetShapeStrokeCommand | SetShapeTrimCommand | SetBlendModeCommand | SetNodeMaskCommand | SetNodeMatteCommand | AddTextAnimationCommand | RemoveTextAnimationCommand | SetTextAnimationCommand | SetCaptionHighlightCommand | SetCaptionPageAnimationCommand | SetSafeAreaCommand | AddEffectCommand | RemoveEffectCommand | ReorderEffectCommand | SetEffectCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand;
 
 ---- CommandArguments (type only)
 export type CommandArguments<T extends Command['type']> = Omit<Extract<Command, {
@@ -493,7 +493,7 @@ export type CommandArguments<T extends Command['type']> = Omit<Extract<Command, 
 }>, 'type'>;
 
 ---- CommandArgumentsSchema (type only)
-export type CommandArgumentsSchema = ClosedObjectSchema<string> | AddNodeArgumentsSchema | AddAnimationArgumentsSchema | AddKeyframeArgumentsSchema | AddAudioClipArgumentsSchema | AddSceneArgumentsSchema | AddSceneAudioClipArgumentsSchema | AddSceneTransitionArgumentsSchema | AddClipTransitionArgumentsSchema | SetTransitionEffectArgumentsSchema | SetTransitionEasingArgumentsSchema | SetKeyframeEasingArgumentsSchema | SetKeyframeValueArgumentsSchema | SetCaptionWordsArgumentsSchema | SetCaptionWordArgumentsSchema | SetCaptionStyleArgumentsSchema | SetTextStyleArgumentsSchema | SetShapeGeometryArgumentsSchema | SetShapeFillArgumentsSchema | SetShapeStrokeArgumentsSchema | AddTextAnimationArgumentsSchema | RemoveTextAnimationArgumentsSchema | SetTextAnimationArgumentsSchema | SetCaptionHighlightArgumentsSchema | SetCaptionPageAnimationArgumentsSchema | SetSafeAreaArgumentsSchema | AddEffectArgumentsSchema | SetEffectArgumentsSchema | AddTemplateInputArgumentsSchema | SetTemplateInputArgumentsSchema | AddTemplateBindingArgumentsSchema | AddTemplateConditionArgumentsSchema | AddTemplateRepeatArgumentsSchema;
+export type CommandArgumentsSchema = ClosedObjectSchema<string> | AddNodeArgumentsSchema | AddAnimationArgumentsSchema | AddKeyframeArgumentsSchema | AddAudioClipArgumentsSchema | AddSceneArgumentsSchema | AddSceneAudioClipArgumentsSchema | AddSceneTransitionArgumentsSchema | AddClipTransitionArgumentsSchema | SetTransitionEffectArgumentsSchema | SetTransitionEasingArgumentsSchema | SetKeyframeEasingArgumentsSchema | SetKeyframeValueArgumentsSchema | SetCaptionWordsArgumentsSchema | SetCaptionWordArgumentsSchema | SetCaptionStyleArgumentsSchema | SetTextStyleArgumentsSchema | SetShapeGeometryArgumentsSchema | SetShapeFillArgumentsSchema | SetBlendModeArgumentsSchema | SetNodeMaskArgumentsSchema | SetNodeMatteArgumentsSchema | SetShapeStrokeArgumentsSchema | AddTextAnimationArgumentsSchema | RemoveTextAnimationArgumentsSchema | SetTextAnimationArgumentsSchema | SetCaptionHighlightArgumentsSchema | SetCaptionPageAnimationArgumentsSchema | SetSafeAreaArgumentsSchema | AddEffectArgumentsSchema | SetEffectArgumentsSchema | AddTemplateInputArgumentsSchema | SetTemplateInputArgumentsSchema | AddTemplateBindingArgumentsSchema | AddTemplateConditionArgumentsSchema | AddTemplateRepeatArgumentsSchema;
 
 ---- CommandBus (type only)
 export interface CommandBus {
@@ -607,7 +607,7 @@ export declare class EditorError extends Error {
 }
 
 ---- EditorErrorCode (type only)
-export type EditorErrorCode = 'invalid-document' | 'unknown-command' | 'invalid-argument' | 'unknown-node' | 'unsupported-node' | 'invalid-result' | 'nothing-to-undo' | 'nothing-to-redo' | 'busy' | 'unknown-parent' | 'index-out-of-range' | 'id-in-use' | 'unknown-asset' | 'asset-type-mismatch' | 'asset-in-use' | 'unknown-scene' | 'last-scene' | 'unknown-clip' | 'time-outside-clip' | 'split-not-exact' | 'clips-not-joinable' | 'unknown-transition' | 'transition-in-use' | 'unknown-input' | 'unknown-binding' | 'unknown-condition' | 'unknown-repeat' | 'input-in-use' | 'binding-in-use' | 'unknown-animation' | 'unknown-effect' | 'svg-refused' | 'svg-not-convertible' | 'unknown-keyframe' | 'keyframe-exists' | 'too-few-keyframes' | 'animation-property-mismatch' | 'use-typed-command' | 'duplicate-animation-target' | 'media-facts-missing' | 'source-range-exceeded' | 'not-a-cut' | 'no-room-at-cut';
+export type EditorErrorCode = 'invalid-document' | 'unknown-command' | 'invalid-argument' | 'unknown-node' | 'unsupported-node' | 'invalid-result' | 'nothing-to-undo' | 'nothing-to-redo' | 'busy' | 'unknown-parent' | 'index-out-of-range' | 'id-in-use' | 'unknown-asset' | 'asset-type-mismatch' | 'asset-in-use' | 'unknown-scene' | 'last-scene' | 'unknown-clip' | 'time-outside-clip' | 'split-not-exact' | 'clips-not-joinable' | 'unknown-transition' | 'transition-in-use' | 'matte-in-use' | 'unknown-input' | 'unknown-binding' | 'unknown-condition' | 'unknown-repeat' | 'input-in-use' | 'binding-in-use' | 'unknown-animation' | 'unknown-effect' | 'svg-refused' | 'svg-not-convertible' | 'unknown-keyframe' | 'keyframe-exists' | 'too-few-keyframes' | 'animation-property-mismatch' | 'use-typed-command' | 'duplicate-animation-target' | 'media-facts-missing' | 'source-range-exceeded' | 'not-a-cut' | 'no-room-at-cut';
 
 ---- ImageFacts (type only)
 export interface ImageFacts {
@@ -962,6 +962,20 @@ export interface SceneDescription {
     readonly effects: readonly unknown[];
 }
 
+---- SetBlendModeArguments (type only)
+export interface SetBlendModeArguments {
+    readonly nodeId: string;
+    readonly blendMode: BlendMode;
+}
+
+---- SetBlendModeArgumentsSchema (type only)
+export type SetBlendModeArgumentsSchema = ClosedObjectSchema<keyof SetBlendModeArguments>;
+
+---- SetBlendModeCommand (type only)
+export interface SetBlendModeCommand extends SetBlendModeArguments {
+    readonly type: 'SetBlendMode';
+}
+
 ---- SetCaptionHighlightArguments (type only)
 export interface SetCaptionHighlightArguments {
     readonly nodeId: string;
@@ -1300,6 +1314,52 @@ export type SetNodeLifetimeArgumentsSchema = ClosedObjectSchema<keyof SetNodeLif
 ---- SetNodeLifetimeCommand (type only)
 export interface SetNodeLifetimeCommand extends SetNodeLifetimeArguments {
     readonly type: 'SetNodeLifetime';
+}
+
+---- SetNodeMaskArguments (type only)
+export interface SetNodeMaskArguments {
+    readonly nodeId: string;
+    readonly mask: DocumentObject;
+}
+
+---- SetNodeMaskArgumentsSchema (type only)
+export interface SetNodeMaskArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly mask: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetNodeMaskArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetNodeMaskCommand (type only)
+export interface SetNodeMaskCommand extends SetNodeMaskArguments {
+    readonly type: 'SetNodeMask';
+}
+
+---- SetNodeMatteArguments (type only)
+export interface SetNodeMatteArguments {
+    readonly nodeId: string;
+    readonly matte: DocumentObject;
+}
+
+---- SetNodeMatteArgumentsSchema (type only)
+export interface SetNodeMatteArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly matte: OpenObjectSchema;
+    };
+    readonly required: readonly (keyof SetNodeMatteArguments)[];
+    readonly additionalProperties: false;
+}
+
+---- SetNodeMatteCommand (type only)
+export interface SetNodeMatteCommand extends SetNodeMatteArguments {
+    readonly type: 'SetNodeMatte';
 }
 
 ---- SetNodeOpacityArguments (type only)
@@ -1990,6 +2050,9 @@ export declare const reorderNodeArgumentsSchema: ReorderNodeArgumentsSchema;
 ---- reorderSceneArgumentsSchema
 export declare const reorderSceneArgumentsSchema: ReorderSceneArgumentsSchema;
 
+---- setBlendModeArgumentsSchema
+export declare const setBlendModeArgumentsSchema: SetBlendModeArgumentsSchema;
+
 ---- setCaptionHighlightArgumentsSchema
 export declare const setCaptionHighlightArgumentsSchema: SetCaptionHighlightArgumentsSchema;
 
@@ -2043,6 +2106,12 @@ export declare const setNodeFocusArgumentsSchema: SetNodeFocusArgumentsSchema;
 
 ---- setNodeLifetimeArgumentsSchema
 export declare const setNodeLifetimeArgumentsSchema: SetNodeLifetimeArgumentsSchema;
+
+---- setNodeMaskArgumentsSchema
+export declare const setNodeMaskArgumentsSchema: SetNodeMaskArgumentsSchema;
+
+---- setNodeMatteArgumentsSchema
+export declare const setNodeMatteArgumentsSchema: SetNodeMatteArgumentsSchema;
 
 ---- setNodeOpacityArgumentsSchema
 export declare const setNodeOpacityArgumentsSchema: SetNodeOpacityArgumentsSchema;

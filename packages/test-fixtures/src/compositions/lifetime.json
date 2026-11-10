@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.19",
+  "schemaVersion": "0.20",
   "width": 400,
   "height": 300,
   "safeArea": {
@@ -87,7 +87,10 @@
                 }
               },
               "textAnimations": [],
-              "effects": []
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             },
             {
               "id": "life-child-late",
@@ -125,10 +128,16 @@
                 }
               },
               "textAnimations": [],
-              "effects": []
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             }
           ],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "life-text",
@@ -193,7 +202,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "life-never",
@@ -231,7 +243,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "life-html",

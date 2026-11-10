@@ -13,8 +13,10 @@ import type {
   CompositionState,
   Hole,
   Inset,
+  MaskState,
   NodeState,
   SceneState,
+  ShapeNodeState,
   TextNodeState,
 } from '@kadrion/runtime';
 
@@ -46,6 +48,14 @@ import {
   SCENE_ATTRIBUTE,
   STAGE_ATTRIBUTE,
 } from './mount.js';
+import {
+  maskId,
+  MASKS_ATTRIBUTE,
+  MATTE_ATTRIBUTE,
+  MATTE_FRAME_ATTRIBUTE,
+  matteId,
+  writeMasks,
+} from './masks.js';
 import { clearShape, writeShape } from './shapes.js';
 import { EFFECTS_ATTRIBUTE, isSvgEffectState, writeEffectFilters } from './svg-filters.js';
 
@@ -108,9 +118,19 @@ function mismatch(message: string): never {
  * node's ID too. Anything else is returned as it is, for `matchChildren` to
  * refuse.
  */
-function unframed(child: Element): Element {
+function unframed(outer: Element): Element {
+  // The frame of a matte holds the node, or the frame of its clip transition (D75).
+  const matteOf = outer.getAttribute(MATTE_FRAME_ATTRIBUTE);
+  let child = outer;
+  if (matteOf !== null) {
+    const inner = outer.firstElementChild;
+    if (outer.childElementCount !== 1 || inner === null || outer.hasAttribute(NODE_ATTRIBUTE)) {
+      mismatch(`The frame of the matte of "${matteOf}" does not hold its node alone.`);
+    }
+    child = inner;
+  }
   const frameOf = child.getAttribute(CLIP_FRAME_ATTRIBUTE);
-  if (frameOf === null) return child;
+  if (frameOf === null) return matched(child, matteOf);
   const node = child.firstElementChild;
   if (
     child.childElementCount !== 1 ||
@@ -119,6 +139,14 @@ function unframed(child: Element): Element {
     node.getAttribute(NODE_ATTRIBUTE) !== frameOf
   ) {
     mismatch(`The frame of the clip transition of "${frameOf}" does not hold its node alone.`);
+  }
+  return matched(node, matteOf);
+}
+
+/** A node element inside the frame of a matte must be the frame's own node (D75). */
+function matched(node: Element, matteOf: string | null): Element {
+  if (matteOf !== null && node.getAttribute(NODE_ATTRIBUTE) !== matteOf) {
+    mismatch(`The frame of the matte of "${matteOf}" does not hold its node alone.`);
   }
   return node;
 }
@@ -231,7 +259,9 @@ function mountedTree(root: Element, state: CompositionState): MountedTree {
   // Every scene of the document is mounted; the state lists the evaluated ones, in
   // the same order (D54.3), so its IDs must be found among the mounted ones in order.
   // The filters of SVG effects follow the scenes (D72).
-  const elements = [...stage.children].filter((child) => !child.hasAttribute(EFFECTS_ATTRIBUTE));
+  const elements = [...stage.children].filter(
+    (child) => !child.hasAttribute(EFFECTS_ATTRIBUTE) && !child.hasAttribute(MASKS_ATTRIBUTE),
+  );
   const mountedIds = elements.map((child) => child.getAttribute(SCENE_ATTRIBUTE));
   const stateIds = state.scenes.map((scene) => scene.id);
   const positions: number[] = [];
@@ -315,6 +345,8 @@ export function renderState(root: Element, state: CompositionState): void {
   const tree = mountedTree(root, state);
   const filters = tree.stage.querySelector(`:scope > [${EFFECTS_ATTRIBUTE}]`);
   if (filters !== null) writeEffectFilters(filters, svgEffectsOf(state));
+  const masks = tree.stage.querySelector(`:scope > [${MASKS_ATTRIBUTE}]`);
+  if (masks !== null) writeMasks(masks, maskWritesOf(state));
   if (state.backdrop === undefined) tree.stage.style.removeProperty('background-color');
   else tree.stage.style.setProperty('background-color', cssColor(state.backdrop));
   for (const { element, state: scene } of tree.scenes) {
@@ -360,9 +392,35 @@ export function renderState(root: Element, state: CompositionState): void {
         writeClipFrame(frame, node.transition);
       }
     }
-    if (node.active) element.style.removeProperty('visibility');
-    else element.style.setProperty('visibility', 'hidden');
+    // A matte is drawn into the mask of the node it mattes only (D75).
+    if (node.active && !element.hasAttribute(MATTE_ATTRIBUTE)) {
+      element.style.removeProperty('visibility');
+    } else element.style.setProperty('visibility', 'hidden');
   }
+}
+
+/**
+ * What the masks hold at this instant (D75): the own mask of every evaluated
+ * node that has one, and, for every evaluated node with a matte, the state of
+ * that sibling shape.
+ */
+function maskWritesOf(state: CompositionState): Map<string, MaskState | ShapeNodeState> {
+  const writes = new Map<string, MaskState | ShapeNodeState>();
+  const collect = (siblings: readonly NodeState[]): void => {
+    for (const node of siblings) {
+      if (!('mask' in node)) continue;
+      if (node.mask.kind !== 'none') writes.set(maskId(node.id), node.mask);
+      const { matte } = node;
+      if (matte.kind !== 'node') continue;
+      const target = siblings.find((sibling) => sibling.id === matte.nodeId);
+      if (target?.type === 'shape') writes.set(matteId(node.id), target);
+    }
+  };
+  for (const scene of state.scenes) {
+    collect(scene.nodes);
+    for (const node of scene.nodes) if (node.type === 'group') collect(node.children);
+  }
+  return writes;
 }
 
 /** The effects drawn by SVG filters of every evaluated scene and node, by the ID of their filter (D72). */

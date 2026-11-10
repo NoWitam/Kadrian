@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.19",
+  "schemaVersion": "0.20",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -140,7 +140,10 @@
               "durationUs": 300000
             }
           ],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],

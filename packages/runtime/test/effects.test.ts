@@ -188,7 +188,8 @@ function findEffects(): Record<string, Record<string, { min: unknown; max: unkno
       found[kind] ??= bounds;
       return;
     }
-    for (const child of Object.values(node)) walk(child);
+    // A mask is no effect; its feather has bounds of its own (D75).
+    for (const [key, child] of Object.entries(node)) if (key !== 'mask') walk(child);
   };
   walk(compositionSchema);
   return found;

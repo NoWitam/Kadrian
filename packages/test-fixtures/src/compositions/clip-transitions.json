@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.19",
+  "schemaVersion": "0.20",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -70,7 +70,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "up-clip-1",
@@ -108,7 +111,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "up-clip-2",
@@ -145,7 +151,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "up-clip-3",
@@ -183,7 +192,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "up-clip-4",
@@ -220,7 +232,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "up-clip-5",
@@ -258,7 +273,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "up-clip-6",
@@ -295,7 +313,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "up-clip-7",
@@ -333,7 +354,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],
@@ -482,7 +506,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "down-clip-6",
@@ -519,7 +546,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "down-clip-5",
@@ -557,7 +587,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "down-clip-4",
@@ -594,7 +627,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "down-clip-3",
@@ -632,7 +668,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "down-clip-2",
@@ -669,7 +708,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "down-clip-1",
@@ -707,7 +749,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "down-clip-0",
@@ -744,7 +789,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],
@@ -913,7 +961,10 @@
                 "left": 0
               },
               "cornerRadius": 0,
-              "effects": []
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             },
             {
               "id": "group-second",
@@ -951,10 +1002,16 @@
                 }
               },
               "textAnimations": [],
-              "effects": []
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             }
           ],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],
@@ -1023,7 +1080,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],

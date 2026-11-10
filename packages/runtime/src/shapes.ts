@@ -170,8 +170,19 @@ function withNumbers(structure: ShapeGeometry, values: readonly number[]): Shape
  * the structure of the shape's geometry, so the numbers pair up one by one.
  */
 export function geometryAt(node: ShapeNode, timeUs: number): ShapeGeometry {
-  const animation = animationOf(node.animations, 'geometry');
-  if (animation === undefined) return node.geometry;
+  return animatedGeometry(node.geometry, animationOf(node.animations, 'geometry'), timeUs);
+}
+
+/**
+ * A geometry at `timeUs` under its animation, if any (D73): the rule of
+ * `geometryAt`, which a shape mask follows too (D75).
+ */
+export function animatedGeometry(
+  geometry: ShapeGeometry,
+  animation: { readonly keyframes: readonly Keyframe<ShapeGeometry>[] } | undefined,
+  timeUs: number,
+): ShapeGeometry {
+  if (animation === undefined) return geometry;
   return sampleKeyframes(
     animation.keyframes,
     timeUs,

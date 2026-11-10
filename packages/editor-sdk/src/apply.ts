@@ -10,7 +10,7 @@ import {
 } from '@kadrion/schema';
 
 import type { Command } from './commands.js';
-import { fieldsOf, isObject, transitionAt } from './document.js';
+import { fieldsOf, isObject, nodeAt, transitionAt } from './document.js';
 import { EditorError } from './errors.js';
 import { checkSourceRanges, type MediaFactsLookup } from './media.js';
 import { bindingsAt, editDocument, parseCommand } from './registry.js';
@@ -59,6 +59,7 @@ export function executeCommand(
     throw (
       edit.refine?.(result.errors) ??
       transitionsInUse(parsed, edit.document, result.errors) ??
+      mattesInUse(parsed, edit.document, result.errors) ??
       bindingsInUse(parsed, edit.document, result.errors) ??
       new EditorError(
         'invalid-result',
@@ -151,6 +152,42 @@ function transitionsInUse(
   return new EditorError(
     'transition-in-use',
     `The command \`${command.type}\` would break a transition; remove the transition first, in the same transaction (D56.7).`,
+    [...ids].sort(),
+  );
+}
+
+/** The validation codes that judge a matte against the node it names (D75). */
+const MATTE_CODES: readonly string[] = Object.freeze([
+  'matte-not-sibling',
+  'matte-not-shape',
+  'matte-not-plain',
+  'matte-in-transition',
+]);
+
+/**
+ * `matte-in-use` when a command other than `SetNodeMatte` would leave a node
+ * whose matte no longer fits it (D75) — the matte removed or moved to another
+ * parent, made no shape, given a mask, a matte, or a blend mode, or made a
+ * side of a clip transition — with the IDs of the nodes it mattes, sorted;
+ * `null` otherwise. Nothing is changed in passing: the host sets their mattes
+ * to none first, in the same transaction.
+ */
+function mattesInUse(
+  command: Command,
+  candidate: object,
+  errors: readonly ValidationError[],
+): EditorError | null {
+  if (command.type === 'SetNodeMatte') return null;
+  const ids = new Set<string>();
+  for (const error of errors) {
+    if (!MATTE_CODES.includes(error.code)) continue;
+    const node = nodeAt(candidate, error.path);
+    if (isObject(node) && typeof node['id'] === 'string') ids.add(node['id']);
+  }
+  if (ids.size === 0) return null;
+  return new EditorError(
+    'matte-in-use',
+    `The command \`${command.type}\` would break the matte of a node; set its matte to none first, in the same transaction (D75).`,
     [...ids].sort(),
   );
 }

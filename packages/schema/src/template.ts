@@ -213,7 +213,10 @@ function copied(
   return Object.fromEntries(
     Object.entries(value).map(([key, child]): [string, unknown] => {
       if (typeof child === 'string') {
-        if ((key === 'id' || key === 'fromNodeId' || key === 'toNodeId') && renamed.has(child)) {
+        if (
+          (key === 'id' || key === 'fromNodeId' || key === 'toNodeId' || key === 'nodeId') &&
+          renamed.has(child)
+        ) {
           return [key, copyId(child, index)];
         }
         if (key === 'assetId' && assets.has(child)) return [key, copyId(child, index)];
@@ -224,7 +227,7 @@ function copied(
   );
 }
 
-/** Moves every scene time of a node, its children, keyframes, effects, words, and accents, by `offset` (D59.2, D69, D71). */
+/** Moves every scene time of a node, its children, keyframes, effects, mask, words, and accents, by `offset` (D59.2, D69, D71, D75). */
 function shifted(node: Mutable, offset: bigint): boolean {
   let safe = true;
   const move = (holder: Mutable, key: string): void => {
@@ -247,6 +250,13 @@ function shifted(node: Mutable, offset: bigint): boolean {
         for (const animation of effect['animations'] as Mutable[]) {
           for (const keyframe of animation['keyframes'] as Mutable[]) move(keyframe, 'timeUs');
         }
+      }
+    }
+    // So are the keyframes of its mask (D75).
+    const mask = member['mask'] as Mutable | undefined;
+    if (mask !== undefined && Array.isArray(mask['animations'])) {
+      for (const animation of mask['animations'] as Mutable[]) {
+        for (const keyframe of animation['keyframes'] as Mutable[]) move(keyframe, 'timeUs');
       }
     }
     const words = member['words'];
@@ -546,6 +556,13 @@ export function instantiateTemplate(
   let totalUs = 0n;
   for (const scene of mutable['scenes'] as Mutable[]) {
     const ids = new Set(nodesIn(scene).map((node) => node['id'] as string));
+    // A matte follows its node: a node whose matte a condition removed takes none (D75).
+    for (const node of nodesIn(scene)) {
+      const matte = node['matte'] as Mutable | undefined;
+      if (matte?.['kind'] === 'node' && !ids.has(matte['nodeId'] as string)) {
+        node['matte'] = { kind: 'none' };
+      }
+    }
     scene['transitions'] = (scene['transitions'] as Mutable[]).filter(
       (transition) =>
         ids.has(transition['fromNodeId'] as string) && ids.has(transition['toNodeId'] as string),

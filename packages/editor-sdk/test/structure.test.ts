@@ -88,6 +88,9 @@ function textNode(id: string, animationId?: string): Record<string, unknown> {
     style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
     textAnimations: [],
     effects: [],
+    mask: { kind: 'none' },
+    matte: { kind: 'none' },
+    blendMode: 'normal',
   };
 }
 
@@ -184,6 +187,9 @@ describe('AddNode (D39.1)', () => {
       animations: [],
       children: [],
       effects: [],
+      mask: { kind: 'none' },
+      matte: { kind: 'none' },
+      blendMode: 'normal',
     };
     expect(codeOf(() => applyCommand(reference(), add(SCENE, 0, group)))).toBe('did not throw');
     expect(codeOf(() => applyCommand(reference(), add(GROUP, 0, group)))).toBe('invalid-result');

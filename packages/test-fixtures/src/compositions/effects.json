@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.19",
+  "schemaVersion": "0.20",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -103,7 +103,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "effects-shadow",
@@ -180,7 +183,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "effects-video",
@@ -232,7 +238,10 @@
               "amount": 1.4,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "effects-hue",
@@ -303,7 +312,10 @@
               "amount": 0.25,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "effects-group",
@@ -368,7 +380,10 @@
                   "amount": 2,
                   "animations": []
                 }
-              ]
+              ],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             },
             {
               "id": "effects-group-text",
@@ -419,7 +434,10 @@
                   "blur": 0,
                   "animations": []
                 }
-              ]
+              ],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
             }
           ],
           "effects": [
@@ -450,7 +468,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "effects-text",
@@ -528,7 +549,10 @@
                 }
               ]
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],
@@ -589,7 +613,10 @@
             "left": 0
           },
           "cornerRadius": 0,
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "dissolve-text",
@@ -627,7 +654,10 @@
             }
           },
           "textAnimations": [],
-          "effects": []
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],
@@ -730,7 +760,10 @@
               "radius": 3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-blur",
@@ -775,7 +808,10 @@
               "radius": 3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-blur",
@@ -821,7 +857,10 @@
               "radius": 3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-brightness",
@@ -865,7 +904,10 @@
               "amount": 1.6,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-brightness",
@@ -910,7 +952,10 @@
               "amount": 1.6,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-brightness",
@@ -956,7 +1001,10 @@
               "amount": 1.6,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-contrast",
@@ -1000,7 +1048,10 @@
               "amount": 0.4,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-contrast",
@@ -1045,7 +1096,10 @@
               "amount": 0.4,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-contrast",
@@ -1091,7 +1145,10 @@
               "amount": 0.4,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-saturate",
@@ -1135,7 +1192,10 @@
               "amount": 3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-saturate",
@@ -1180,7 +1240,10 @@
               "amount": 3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-saturate",
@@ -1226,7 +1289,10 @@
               "amount": 3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-huerotate",
@@ -1270,7 +1336,10 @@
               "angle": 120,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-huerotate",
@@ -1315,7 +1384,10 @@
               "angle": 120,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-huerotate",
@@ -1361,7 +1433,10 @@
               "angle": 120,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-grayscale",
@@ -1405,7 +1480,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-grayscale",
@@ -1450,7 +1528,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-grayscale",
@@ -1496,7 +1577,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-invert",
@@ -1540,7 +1624,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-invert",
@@ -1585,7 +1672,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-invert",
@@ -1631,7 +1721,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-sepia",
@@ -1675,7 +1768,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-sepia",
@@ -1720,7 +1816,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-sepia",
@@ -1766,7 +1865,10 @@
               "amount": 1,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-image-dropshadow",
@@ -1816,7 +1918,10 @@
               "blur": 3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-text-dropshadow",
@@ -1867,7 +1972,10 @@
               "blur": 3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         },
         {
           "id": "kinds-video-dropshadow",
@@ -1919,7 +2027,10 @@
               "blur": 3,
               "animations": []
             }
-          ]
+          ],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
         }
       ],
       "clips": [],

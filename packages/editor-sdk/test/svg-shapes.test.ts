@@ -59,6 +59,9 @@ describe('svgToShapes (D74.5)', () => {
       stroke: { color: '#000000', width: 0, dash: [], cap: 'butt', join: 'miter' },
       trim: { start: 0, end: 1000 },
       effects: [],
+      mask: { kind: 'none' },
+      matte: { kind: 'none' },
+      blendMode: 'normal',
     });
   });
 
