@@ -34,6 +34,7 @@ const POLICY = [
   "script-src 'self' 'unsafe-inline'",
   "style-src 'unsafe-inline'",
   'img-src data:',
+  'font-src data:',
   "connect-src 'self'",
   "base-uri 'none'",
   "form-action 'none'",

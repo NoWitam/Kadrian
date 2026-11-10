@@ -432,6 +432,8 @@ export const ARTIFACT_FILES = Object.freeze([
   'captions/timing.json',
   'ci-identity.json',
   'compositing/golden-comparison.json',
+  'custom-html-ai/golden-comparison.json',
+  'custom-html-ai/player-parity.json',
   'custom-html-netlog.json',
   'custom-html-probes.json',
   'easing/golden-comparison.json',

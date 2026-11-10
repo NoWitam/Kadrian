@@ -166,7 +166,7 @@ describe('schema conventions', () => {
     );
   };
 
-  it('requires a stable ID for every entity: all array items except keyframes, caption words, the tracks of a text animation, the fields and items of a list input, the values of an instance, the levels of a curve, and the points, commands, stops, and dashes of a shape', () => {
+  it('requires a stable ID for every entity: all array items except keyframes, caption words, the tracks of a text animation, the fields and items of a list input, the values of an instance, the levels of a curve, the points, commands, stops, and dashes of a shape, and the fonts and parameters of a Custom HTML element', () => {
     // A keyframe is addressed by its time, a caption word by its index (D57), a
     // field of a list input by its key, an item of its default by its index, and
     // a value of an item by its field (D58.1), a track of a text animation
@@ -175,7 +175,9 @@ describe('schema conventions', () => {
     // geometry, the stops of its gradient, and the dashes of its stroke are
     // values addressed by their index and replaced whole (D73); the values of an
     // instance are addressed by the input they give, and the items of a list value
-    // by their index, as a default's are (D77).
+    // by their index, as a default's are (D77); the fonts of a Custom HTML
+    // element are asset references, and its parameters are addressed by their
+    // key, which they hold once (D78).
     const values = locationsWhere(({ name }) => name === 'default' || name === 'value').map(
       (location) => `${location}/items`,
     );
@@ -197,6 +199,8 @@ describe('schema conventions', () => {
             'stops',
             'dash',
             'value',
+            'fontAssetIds',
+            'parameters',
           ].includes(name ?? '') &&
           !values.includes(location) &&
           !givesInputs(schema),
@@ -229,7 +233,7 @@ describe('schema conventions', () => {
             : undefined;
         const type = typeof tag === 'string' ? tag : 'unknown';
         return Object.keys(fields)
-          .filter((name) => /assetId$/i.test(name))
+          .filter((name) => /assetIds?$/i.test(name))
           .map((name) => `${type}.${name}`);
       });
     // A new site needs a rule in validate-semantics.ts and negative fixtures before it is listed here.
@@ -237,6 +241,7 @@ describe('schema conventions', () => {
       'asset.assetId',
       'audio.assetId',
       'captions.fontAssetId',
+      'custom-html.fontAssetIds',
       'image.assetId',
       'item-asset.assetId',
       'text.fontAssetId',

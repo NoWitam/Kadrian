@@ -410,9 +410,10 @@ describe('P1: the Player in Chromium (D25)', () => {
       await element.waitForFunction(
         () => document.documentElement.hasAttribute('data-probe'),
         undefined,
-        {
-          timeout: 10_000,
-        },
+        // Polled by a timer: the managed clock of the element (D78.1) runs the
+        // frame callbacks of its window, which Playwright polls by default, once per
+        // pushed time only.
+        { timeout: 10_000, polling: 100 },
       );
       const probe = JSON.parse(
         await element.evaluate(() => document.documentElement.getAttribute('data-probe') ?? '{}'),

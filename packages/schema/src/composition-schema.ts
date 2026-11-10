@@ -43,8 +43,9 @@
  * as one layer (D65.4, D76); 0.22 is 0.21 plus elements: a definition with a
  * template section and the content hash a host gave it, an instance with the
  * values of its inputs, and the binding of the words of a captions node to a
- * list (D77). The schemas of 0.1 to 0.21 are kept as data in `v0-1` to `v0-21`
- * (D35.4).
+ * list (D77); 0.23 is 0.22 plus the font assets and the typed parameters of a
+ * Custom HTML element, and the binding of a parameter to an input (D78). The
+ * schemas of 0.1 to 0.22 are kept as data in `v0-1` to `v0-22` (D35.4).
  */
 import {
   closedObject,
@@ -57,7 +58,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.22';
+export const SCHEMA_VERSION = '0.23';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -1894,8 +1895,56 @@ export interface CaptionsNodeSchema extends CaptionsNodeSchemaValue {
 type CaptionsNodeSchemaValue = typeof captionsNodeSchemaValue;
 export const captionsNodeSchema: CaptionsNodeSchema = captionsNodeSchemaValue;
 
+const parameterKey = {
+  type: 'string',
+  description:
+    'The name of the parameter: a letter, then letters, digits, or underscores, so that it is a name in a script and in CSS alike (D78).',
+  pattern: '^[A-Za-z][A-Za-z0-9_]*$',
+} as const satisfies StringSchema;
+
+const parameterType = <const T extends string>(type: T) =>
+  ({ type: 'string', const: type }) as const;
+
+/**
+ * One parameter of a Custom HTML element (D78): a named value of a closed type,
+ * tagged with its type as an input's value is (D77), which the shell gives the
+ * element as `kadrion.parameters` and, for a number or a colour, as the CSS
+ * custom property `--<key>` of the root element.
+ */
+export const customHtmlParameterSchema = {
+  description:
+    'A named value the element reads: kadrion.parameters.<key> in a script, and for a number or a colour also var(--<key>) in CSS (D78).',
+  oneOf: [
+    closedObject('A text parameter (D78).', {
+      key: parameterKey,
+      type: parameterType('text'),
+      value: { type: 'string', description: 'A text (D78).' },
+    }),
+    closedObject('A number parameter (D78).', {
+      key: parameterKey,
+      type: parameterType('number'),
+      value: {
+        type: 'number',
+        description: 'A number (D78).',
+        minimum: -MAX_SAFE_INTEGER,
+        maximum: MAX_SAFE_INTEGER,
+      },
+    }),
+    closedObject('A boolean parameter (D78).', {
+      key: parameterKey,
+      type: parameterType('boolean'),
+      value: { type: 'boolean', description: 'true or false (D78).' },
+    }),
+    closedObject('A colour parameter, lowercase #rrggbb (D78).', {
+      key: parameterKey,
+      type: parameterType('color'),
+      value: color,
+    }),
+  ],
+} as const satisfies UnionSchema;
+
 export const customHtmlNodeSchema = closedObject(
-  'Isolated, capability-limited HTML element (D05). The schema defines no capability.',
+  'Isolated, capability-limited HTML element (D05, D23): its html runs in a sandbox with no network, on a clock the host drives from the time of its scene (D78).',
   {
     id,
     type: { type: 'string', const: 'custom-html' },
@@ -1904,6 +1953,18 @@ export const customHtmlNodeSchema = closedObject(
     width: length,
     height: length,
     html: { type: 'string', description: 'Inline document shown inside the sandbox.' },
+    fontAssetIds: {
+      type: 'array',
+      description:
+        'The font assets the element may use, each at most once, in any order; inside the sandbox the family of each is its asset ID (D78).',
+      items: assetReference,
+    },
+    parameters: {
+      type: 'array',
+      description:
+        'The parameters of the element, each key at most once, sorted by key in UTF-16 code unit order (D78).',
+      items: customHtmlParameterSchema,
+    },
   },
 );
 
@@ -2666,6 +2727,18 @@ export const wordsBindingSchema = closedObject(
   },
 );
 
+/** A binding of a parameter of a Custom HTML element (D78). */
+export const parameterBindingSchema = closedObject(
+  'The parameter of the Custom HTML element holds the value of the input, whose type is the type of the parameter (D78).',
+  {
+    id,
+    kind: { type: 'string', const: 'parameter' },
+    nodeId: boundNode,
+    key: parameterKey,
+    inputId: inputReference,
+  },
+);
+
 export const templateBindingSchema = {
   description: 'Where the value of an input or of a field of an item goes (D58.2, D59.3).',
   oneOf: [
@@ -2675,6 +2748,7 @@ export const templateBindingSchema = {
     itemPropertyBindingSchema,
     itemAssetBindingSchema,
     wordsBindingSchema,
+    parameterBindingSchema,
   ],
 } as const satisfies UnionSchema;
 
@@ -2856,7 +2930,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.22',
+  title: 'Kadrion composition 0.23',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

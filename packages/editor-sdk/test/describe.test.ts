@@ -19,7 +19,7 @@ describe('describeDocument (D46.3)', () => {
   it('lists the scene, its nodes bottom to top with parent and layer, and the group children', () => {
     const description = describeDocument(reference());
     expect(description).toMatchObject({
-      schemaVersion: '0.22',
+      schemaVersion: '0.23',
       width: 1080,
       height: 1920,
       fps: 30,
@@ -50,7 +50,7 @@ describe('describeDocument (D46.3)', () => {
     expect(scene?.nodes[0]?.children).toBeUndefined();
   });
 
-  it('carries lifetimes and stored fields, animations included, and leaves out html', () => {
+  it('carries lifetimes and stored fields, animations included, and includes the html of Custom HTML', () => {
     const [scene] = describeDocument(reference()).scenes;
     const title = scene?.nodes[2];
     expect(title).toMatchObject({ startUs: 0, durationUs: 10_000_000 });
@@ -83,8 +83,14 @@ describe('describeDocument (D46.3)', () => {
       },
     ]);
     const html = scene?.nodes[3];
-    expect(html?.fields).not.toHaveProperty('html');
-    expect(html?.fields).toMatchObject({ width: 900, height: 40 });
+    // An author reads the html, its fonts, and its parameters back to edit them (D78).
+    expect(html?.fields).toMatchObject({
+      width: 900,
+      height: 40,
+      fontAssetIds: [],
+      parameters: [],
+    });
+    expect(typeof html?.fields['html']).toBe('string');
   });
 
   it('lists the assets and clips as the document stores them', () => {

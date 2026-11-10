@@ -1232,6 +1232,22 @@ export interface ReplaceDefinitionCommand extends ReplaceDefinitionArguments {
   readonly type: 'ReplaceDefinition';
 }
 
+/** What a caller states for `SetCustomHtml` (D78). */
+export interface SetCustomHtmlArguments {
+  readonly nodeId: string;
+  /** The inline document the element shows, at most `MAX_CUSTOM_HTML_LENGTH` UTF-16 code units. */
+  readonly html: string;
+  /** The font assets the element may use, each its family by its asset ID. */
+  readonly fontAssetIds: readonly string[];
+  /** The parameters, as the document stores them, sorted by key. */
+  readonly parameters: readonly DocumentObject[];
+}
+
+/** Replaces the html, the fonts, and the parameters of a Custom HTML element at once (D78). */
+export interface SetCustomHtmlCommand extends SetCustomHtmlArguments {
+  readonly type: 'SetCustomHtml';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -1327,7 +1343,8 @@ export type Command =
   | ExpandInstanceCommand
   | SetInstanceInputCommand
   | ClearInstanceInputCommand
-  | ReplaceDefinitionCommand;
+  | ReplaceDefinitionCommand
+  | SetCustomHtmlCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -1901,6 +1918,28 @@ export interface SetInstanceInputArgumentsSchema {
 export type ClearInstanceInputArgumentsSchema = ClosedObjectSchema<
   keyof ClearInstanceInputArguments
 >;
+
+/** The argument schema of `SetCustomHtml` (D78): `parameters` is an array of open objects. */
+export interface SetCustomHtmlArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly html: {
+      readonly type: 'string';
+      readonly description: string;
+      readonly maxLength: number;
+    };
+    readonly fontAssetIds: {
+      readonly type: 'array';
+      readonly description: string;
+      readonly items: { readonly type: 'string'; readonly description: string };
+    };
+    readonly parameters: OpenArraySchema;
+  };
+  readonly required: readonly (keyof SetCustomHtmlArguments)[];
+  readonly additionalProperties: false;
+}
 
 /** The argument schema of `ReplaceDefinition`: closed, with `definition` an open object (D77). */
 export interface ReplaceDefinitionArgumentsSchema {
@@ -3784,6 +3823,42 @@ export const replaceDefinitionArgumentsSchema: ReplaceDefinitionArgumentsSchema 
 });
 
 /**
+ * The longest `html` that `SetCustomHtml` takes, in UTF-16 code units (D78): a
+ * limit of the command, not of the schema, so that every saved document still
+ * loads.
+ */
+export const MAX_CUSTOM_HTML_LENGTH = 262_144;
+
+/** The JSON Schema of the arguments of `SetCustomHtml` (D78): the parameters are the document's to judge. */
+export const setCustomHtmlArgumentsSchema: SetCustomHtmlArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Replaces the html, the fonts, and the parameters of a Custom HTML element at once.',
+  properties: {
+    nodeId: { type: 'string', description: 'The stable ID of a Custom HTML node.', minLength: 1 },
+    html: {
+      type: 'string',
+      description:
+        'The inline document of the element: HTML with its CSS and scripts inline, nothing loaded from anywhere.',
+      maxLength: MAX_CUSTOM_HTML_LENGTH,
+    },
+    fontAssetIds: {
+      type: 'array',
+      description:
+        'The IDs of the font assets the element uses, each once; in its CSS the family of a font is its asset ID.',
+      items: { type: 'string', description: 'The ID of a font asset of the document.' },
+    },
+    parameters: {
+      type: 'array',
+      description:
+        'The parameters of the element, sorted by key, each {key, type, value} with type text, number, boolean, or color (lowercase #rrggbb); an empty list for none.',
+      items: { type: 'object', description: 'One parameter, as the document stores it.' },
+    },
+  },
+  required: ['nodeId', 'html', 'fontAssetIds', 'parameters'],
+  additionalProperties: false,
+});
+
+/**
  * The JSON Schema of the arguments of `AddNode` (D39.1). `node` is an object and
  * nothing more: its shape is the document's schema, which the full validation
  * applies to the result (D30.6, D31.2), so this schema does not restate it.
@@ -5599,6 +5674,49 @@ export function parseClearInstanceInput(value: unknown): ClearInstanceInputComma
     type: 'ClearInstanceInput',
     instanceId: nodeIdOf(fields, 'instanceId'),
     inputId: nodeIdOf(fields, 'inputId'),
+  });
+}
+
+/**
+ * The fields of a `SetCustomHtml` (D78): the html is a string of at most
+ * `MAX_CUSTOM_HTML_LENGTH` code units and the fonts strings; the document's
+ * validation judges the fonts and the parameters.
+ */
+export function parseSetCustomHtml(value: unknown): SetCustomHtmlCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'html', 'fontAssetIds', 'parameters'],
+    'The command `SetCustomHtml`',
+  );
+  const nodeId = nodeIdOf(fields);
+  const html: unknown = fields['html'];
+  if (typeof html !== 'string') {
+    throw new EditorError('invalid-argument', '`html` must be a string.');
+  }
+  if (html.length > MAX_CUSTOM_HTML_LENGTH) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`html\` is ${String(html.length)} UTF-16 code units long; at most ${String(MAX_CUSTOM_HTML_LENGTH)} are taken (D78).`,
+    );
+  }
+  const fonts: unknown = fields['fontAssetIds'];
+  if (!Array.isArray(fonts) || (fonts as unknown[]).some((item) => typeof item !== 'string')) {
+    throw new EditorError('invalid-argument', '`fontAssetIds` must be an array of strings.');
+  }
+  const parameters: unknown = fields['parameters'];
+  if (!Array.isArray(parameters)) {
+    throw new EditorError('invalid-argument', '`parameters` must be an array of parameters.');
+  }
+  return Object.freeze({
+    type: 'SetCustomHtml',
+    nodeId,
+    html,
+    fontAssetIds: Object.freeze([...(fonts as string[])]),
+    parameters: deepFreeze(
+      (parameters as readonly unknown[]).map((item, at) =>
+        dataOf(item, `parameters/${String(at)}`),
+      ),
+    ),
   });
 }
 

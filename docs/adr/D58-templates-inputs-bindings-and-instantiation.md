@@ -6,6 +6,7 @@
 - Supersedes: —
 - Amended by: PR-34b (D59) on 2026-11-02: the section gains `conditions` and `repeats`, item bindings and `{{list.key}}` placeholders, and instantiation applies conditions and repeats (D59.1–D59.4)
 - Amended by: PR-55b (D77) on 2026-11-10: 58.4: the core of instantiation lies in the main entry of `@kadrion/schema`, since an element instance is instantiated wherever it is shown; `@kadrion/schema/template` still exports `instantiateTemplate`; the binding kind `words` (D77.3, D77.4)
+- Amended by: PR-56 (D78) on 2026-11-10: the binding kind `parameter`, which fills a parameter of a Custom HTML element (D78.3)
 - Extends: D17 (the schema subset gains `type: "boolean"`), D25 (the Player
   refuses a template), D35 (the step from `0.7`), D44 (the session previews a
   template as its instantiation), and D46 (five tools), each with an

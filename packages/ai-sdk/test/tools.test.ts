@@ -563,6 +563,7 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetInstanceInput: ELEMENT_SETUP,
   ClearInstanceInput: ELEMENT_VALUE_SETUP,
   ReplaceDefinition: DEFINITION_SETUP,
+  SetCustomHtml: [],
 };
 
 function prepared(type: Command['type']): CommandBus {
@@ -874,8 +875,63 @@ describe('each tool accepts exactly what its inputSchema accepts (D31.9, D46.4)'
   );
 
   it('covers every command type', () => {
-    expect(TOOL_CATALOGUE.slice(1, -2).map(({ name }) => name)).toEqual(
+    expect(TOOL_CATALOGUE.slice(1, -3).map(({ name }) => name)).toEqual(
       COMMAND_TYPES.map(toolNameOf),
+    );
+  });
+});
+
+describe('check_custom_html reads the html and lends the render to the host (D78)', () => {
+  it('reports what reading the html found when the host lends no render check', async () => {
+    const bus = createCommandBus(referenceComposition);
+    bus.dispatch({
+      type: 'SetCustomHtml',
+      nodeId: 'node-custom-html',
+      html: '<script>setTimeout(function(){},10);fetch("x")</script>',
+      fontAssetIds: [],
+      parameters: [],
+    });
+    const { bus: tools, calls } = recording(bus);
+    const result = executeTool(tools, 'check_custom_html', { nodeId: 'node-custom-html' });
+    if (result.kind !== 'check') throw new Error('check_custom_html checked nothing.');
+    const report = await result.result;
+    expect(calls).toEqual(['getDocument']);
+    expect(report.nodeId).toBe('node-custom-html');
+    expect(report.render).toBeNull();
+    expect(report.ok).toBe(false);
+    expect(report.findings.map(({ code }) => code)).toEqual(['timer', 'network']);
+  });
+
+  it('joins the render check of the host, given the document as it is now', async () => {
+    const bus = createCommandBus(referenceComposition);
+    const seen: string[] = [];
+    const tools: ToolBus = Object.freeze({
+      ...toolBus(bus),
+      checkCustomHtml: (document: ReturnType<CommandBus['getDocument']>, nodeId: string) => {
+        seen.push(nodeId);
+        expect(document).toBe(bus.getDocument());
+        return Promise.resolve({
+          timesUs: [0, 9_966_666],
+          problems: [{ code: 'frames-differ' as const, timeUs: 9_966_666, message: 'differs' }],
+        });
+      },
+    });
+    const result = executeTool(tools, 'check_custom_html', { nodeId: 'node-custom-html' });
+    if (result.kind !== 'check') throw new Error('check_custom_html checked nothing.');
+    const report = await result.result;
+    expect(seen).toEqual(['node-custom-html']);
+    expect(report.findings).toEqual([]);
+    expect(report.render?.problems.map(({ code }) => code)).toEqual(['frames-differ']);
+    expect(report.ok).toBe(false);
+  });
+
+  it('refuses a node that is no Custom HTML, and an unknown node', () => {
+    const bus = createCommandBus(referenceComposition);
+    expect(
+      codeOf(() => executeTool(toolBus(bus), 'check_custom_html', { nodeId: 'node-title' })),
+    ).toBe('unsupported-node');
+    expect(codeOf(() => executeTool(toolBus(bus), 'check_custom_html', { nodeId: 'nope' }))).toBe(
+      'unknown-node',
     );
   });
 });

@@ -474,12 +474,21 @@ interface ExpectedTextNode extends ExpectedTransform<
   readonly blendMode: ExpectedBlendMode;
 }
 
+/** A parameter of a Custom HTML element (D78). */
+type ExpectedCustomHtmlParameter =
+  | { readonly key: string; readonly type: 'text'; readonly value: string }
+  | { readonly key: string; readonly type: 'number'; readonly value: number }
+  | { readonly key: string; readonly type: 'boolean'; readonly value: boolean }
+  | { readonly key: string; readonly type: 'color'; readonly value: string };
+
 interface ExpectedCustomHtmlNode extends ExpectedTransform {
   readonly id: string;
   readonly type: 'custom-html';
   readonly width: number;
   readonly height: number;
   readonly html: string;
+  readonly fontAssetIds: readonly string[];
+  readonly parameters: readonly ExpectedCustomHtmlParameter[];
 }
 
 /** A vector shape (D73). */
@@ -761,6 +770,13 @@ type ExpectedBinding =
       readonly kind: 'words';
       readonly nodeId: string;
       readonly inputId: string;
+    }
+  | {
+      readonly id: string;
+      readonly kind: 'parameter';
+      readonly nodeId: string;
+      readonly key: string;
+      readonly inputId: string;
     };
 
 type ExpectedInstanceInput =
@@ -836,7 +852,7 @@ interface ExpectedDefinition {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.22';
+  readonly schemaVersion: '0.23';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

@@ -6,12 +6,17 @@
  */
 import { RenderError } from './errors.js';
 
-/** No network; images as `data:` URLs only; inline script and style for the runtime and Custom HTML. */
+/**
+ * No network; images, and the fonts of Custom HTML, as `data:` URLs only; inline
+ * script and style for the runtime and Custom HTML. An element's document
+ * inherits this policy, so its fonts need `font-src data:` here too (D23.6, D78).
+ */
 export const RENDER_PAGE_POLICY = [
   "default-src 'none'",
   "script-src 'unsafe-inline'",
   "style-src 'unsafe-inline'",
   'img-src data:',
+  'font-src data:',
   "base-uri 'none'",
   "form-action 'none'",
 ].join('; ');

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.22",
+  "schemaVersion": "0.23",
   "width": 400,
   "height": 300,
   "safeArea": {
@@ -270,7 +270,9 @@
           "animations": [],
           "width": 100,
           "height": 40,
-          "html": "<p>E</p>"
+          "html": "<p>E</p>",
+          "fontAssetIds": [],
+          "parameters": []
         }
       ],
       "clips": [],

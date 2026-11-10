@@ -8,21 +8,27 @@
  * refused call leaves the document and the history as they were.
  */
 import {
+  checkCustomHtmlSource,
   clipTransitionAtCut,
   describeDocument,
   EditorError,
   type CommandBus,
   type CommandResult,
+  type CustomHtmlFinding,
   type DocumentDescription,
   type TransactionResult,
 } from '@kadrion/editor-sdk';
 
 import {
   ADD_CLIP_TRANSITION_AT_CUT,
+  CHECK_CUSTOM_HTML,
   commandTypeOf,
   DESCRIBE_DOCUMENT,
   RUN_TRANSACTION,
 } from './catalogue.js';
+
+/** The document a bus holds: validated, and the only document a tool reads (D30.6). */
+type BusDocument = ReturnType<CommandBus['getDocument']>;
 
 /**
  * The capabilities a tool call may use: the three methods of the host's bus
@@ -31,13 +37,51 @@ import {
  * undo, no redo, no subscription (D31.5, D46.4).
  */
 export type ToolBus = Pick<CommandBus, 'getDocument' | 'dispatch' | 'dispatchTransaction'> &
-  Partial<Pick<CommandBus, 'mediaFactsOf'>>;
+  Partial<Pick<CommandBus, 'mediaFactsOf'>> & {
+    /**
+     * Renders one Custom HTML element of the document alone at sampled times,
+     * twice, and reports what failed or differed (D78); lent by a host that can
+     * render, such as one that runs the Producer. Without it,
+     * `check_custom_html` reads the html only.
+     */
+    readonly checkCustomHtml?: (
+      document: BusDocument,
+      nodeId: string,
+    ) => Promise<CustomHtmlRenderCheck>;
+  };
+
+/** One problem a render of a Custom HTML element showed (D78). */
+export interface CustomHtmlRenderProblem {
+  readonly code: 'no-acknowledgement' | 'navigated' | 'frames-differ' | 'render-failed';
+  /** The time of the element, from its start, it concerns; `null` when it concerns no one time. */
+  readonly timeUs: number | null;
+  readonly message: string;
+}
+
+/** What a host's render check of a Custom HTML element found (D78). */
+export interface CustomHtmlRenderCheck {
+  /** The times of the element, from its start, it rendered, in the order of the first render. */
+  readonly timesUs: readonly number[];
+  readonly problems: readonly CustomHtmlRenderProblem[];
+}
+
+/** What `check_custom_html` found (D78). */
+export interface CustomHtmlCheckReport {
+  readonly nodeId: string;
+  /** What reading the html found (`checkCustomHtmlSource`). */
+  readonly findings: readonly CustomHtmlFinding[];
+  /** What the host's render found, or `null` when the host lends no render. */
+  readonly render: CustomHtmlRenderCheck | null;
+  /** Whether nothing was found at all. */
+  readonly ok: boolean;
+}
 
 /** What a tool call did; frozen. */
 export type ToolResult =
   | { readonly kind: 'command'; readonly result: CommandResult }
   | { readonly kind: 'transaction'; readonly result: TransactionResult }
-  | { readonly kind: 'description'; readonly description: DocumentDescription };
+  | { readonly kind: 'description'; readonly description: DocumentDescription }
+  | { readonly kind: 'check'; readonly result: Promise<CustomHtmlCheckReport> };
 
 function isObject(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -96,11 +140,80 @@ function transactionOf(args: unknown): readonly unknown[] {
   });
 }
 
+type BusNode =
+  | BusDocument['scenes'][number]['nodes'][number]
+  | Extract<BusDocument['scenes'][number]['nodes'][number], { type: 'group' }>['children'][number];
+
+/** The node `nodeId` among `nodes` and the children of their groups, or `null`. */
+function findNode(nodes: readonly BusNode[], nodeId: string): BusNode | null {
+  for (const node of nodes) {
+    if (node.id === nodeId) return node;
+    if (node.type === 'group') {
+      const found = findNode(node.children, nodeId);
+      if (found !== null) return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * The html of the Custom HTML node `nodeId` of a scene, a group, or a
+ * definition of the document, or the error the bus would give.
+ */
+function customHtmlOf(document: BusDocument, nodeId: string): string {
+  for (const nodes of [
+    ...document.scenes.map((scene) => scene.nodes),
+    ...document.definitions.map((definition) => definition.nodes),
+  ]) {
+    const node = findNode(nodes, nodeId);
+    if (node === null) continue;
+    if (node.type !== 'custom-html') {
+      throw new EditorError(
+        'unsupported-node',
+        `Node \`${nodeId}\` is a ${node.type} node, not Custom HTML.`,
+      );
+    }
+    return node.html;
+  }
+  throw new EditorError('unknown-node', `No Custom HTML node has the ID \`${nodeId}\`.`);
+}
+
+/**
+ * `check_custom_html` (D78): the findings of the html at once, then the
+ * host's render, if it lends one, of the document as it is now. It writes
+ * nothing.
+ */
+function checkCustomHtml(bus: ToolBus, args: unknown): Promise<CustomHtmlCheckReport> {
+  if (
+    !isObject(args) ||
+    !hasExactly(args, ['nodeId']) ||
+    typeof args['nodeId'] !== 'string' ||
+    args['nodeId'] === ''
+  ) {
+    throw refused(
+      `The arguments of \`${CHECK_CUSTOM_HTML}\` are an object with a non-empty \`nodeId\` alone.`,
+    );
+  }
+  const nodeId = args['nodeId'];
+  const document = bus.getDocument();
+  const findings = checkCustomHtmlSource(customHtmlOf(document, nodeId));
+  const render = bus.checkCustomHtml?.(document, nodeId) ?? Promise.resolve(null);
+  return render.then((checked) =>
+    Object.freeze({
+      nodeId,
+      findings,
+      render: checked,
+      ok: findings.length === 0 && (checked === null || checked.problems.length === 0),
+    }),
+  );
+}
+
 /**
  * Runs the tool `name` with `args` on the host's bus (D46.4): a command tool is
  * exactly one `dispatch`, `run_transaction` and `add_clip_transition_at_cut`
  * exactly one `dispatchTransaction`,
- * and `describe_document` one `getDocument`. An unknown name is refused with
+ * `describe_document` one `getDocument`, and `check_custom_html` one
+ * `getDocument` and the host's render check, if it lends one (D78). An unknown name is refused with
  * `unknown-command`; arguments the tool's schema refuses with
  * `invalid-argument`, as the bus refuses them.
  */
@@ -125,6 +238,9 @@ export function executeTool(bus: ToolBus, name: unknown, args: unknown): ToolRes
       kind: 'transaction',
       result: bus.dispatchTransaction(clipTransitionAtCut(bus.getDocument(), args)),
     });
+  }
+  if (name === CHECK_CUSTOM_HTML) {
+    return Object.freeze({ kind: 'check', result: checkCustomHtml(bus, args) });
   }
   if (name === RUN_TRANSACTION) {
     return Object.freeze({

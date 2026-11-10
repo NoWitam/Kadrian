@@ -242,6 +242,8 @@ function newNode(next: () => number, id: string): Json {
       width: 10,
       height: 10,
       html: '<p>x</p>',
+      fontAssetIds: [],
+      parameters: [],
     };
   }
   const animations =

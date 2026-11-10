@@ -500,7 +500,7 @@ function nodeElement(
         );
       }
       const placeholder = create(document, 'div', address, styles);
-      placeholder.append(sandboxFrame(document, node));
+      placeholder.append(sandboxFrame(document, node, assetUrls));
       return placeholder;
     }
     default:

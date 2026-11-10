@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.23"
+        "value": "0.24"
       }
     ],
     "expectedErrors": [
@@ -11028,5 +11028,345 @@
         "path": "/definitions/0/template/conditions/0/targetId"
       }
     ]
+  },
+  {
+    "name": "custom-html-font-duplicate",
+    "description": "A Custom HTML element lists each of its fonts once (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/fontAssetIds",
+        "value": ["asset-font", "asset-font"]
+      }
+    ],
+    "expectedErrors": [
+      { "code": "duplicate-font-asset", "path": "/scenes/0/nodes/3/fontAssetIds/1" }
+    ]
+  },
+  {
+    "name": "custom-html-font-not-font",
+    "description": "The fonts of a Custom HTML element are font assets (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/fontAssetIds",
+        "value": ["asset-image"]
+      }
+    ],
+    "expectedErrors": [
+      { "code": "asset-type-mismatch", "path": "/scenes/0/nodes/3/fontAssetIds/0" }
+    ]
+  },
+  {
+    "name": "custom-html-font-unresolved",
+    "description": "A font of a Custom HTML element names an asset of the document (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/fontAssetIds",
+        "value": ["asset-missing"]
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-asset-reference", "path": "/scenes/0/nodes/3/fontAssetIds/0" }
+    ]
+  },
+  {
+    "name": "custom-html-parameters-unsorted",
+    "description": "The parameters of a Custom HTML element are sorted by key (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/parameters",
+        "value": [
+          {
+            "key": "size",
+            "type": "number",
+            "value": 2
+          },
+          {
+            "key": "accent",
+            "type": "color",
+            "value": "#f79009"
+          }
+        ]
+      }
+    ],
+    "expectedErrors": [
+      { "code": "parameters-not-sorted", "path": "/scenes/0/nodes/3/parameters/1/key" }
+    ]
+  },
+  {
+    "name": "custom-html-parameter-key-repeated",
+    "description": "Each key names one parameter of a Custom HTML element (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/parameters",
+        "value": [
+          {
+            "key": "size",
+            "type": "number",
+            "value": 2
+          },
+          {
+            "key": "size",
+            "type": "number",
+            "value": 3
+          }
+        ]
+      }
+    ],
+    "expectedErrors": [
+      { "code": "parameters-not-sorted", "path": "/scenes/0/nodes/3/parameters/1/key" }
+    ]
+  },
+  {
+    "name": "custom-html-parameter-key-invalid",
+    "description": "A parameter key is a letter, then letters, digits, and underscores: it names a CSS custom property (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/parameters",
+        "value": [
+          {
+            "key": "a-b",
+            "type": "number",
+            "value": 2
+          }
+        ]
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/3/parameters/0/key" }]
+  },
+  {
+    "name": "custom-html-parameter-color-invalid",
+    "description": "A colour parameter holds a #rrggbb colour (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/parameters",
+        "value": [
+          {
+            "key": "accent",
+            "type": "color",
+            "value": "red"
+          }
+        ]
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-value", "path": "/scenes/0/nodes/3/parameters/0/value" }]
+  },
+  {
+    "name": "custom-html-parameter-type-mismatch",
+    "description": "A parameter holds a value of its own type (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/parameters",
+        "value": [
+          {
+            "key": "flag",
+            "type": "boolean",
+            "value": 1
+          }
+        ]
+      }
+    ],
+    "expectedErrors": [{ "code": "invalid-type", "path": "/scenes/0/nodes/3/parameters/0/value" }]
+  },
+  {
+    "name": "parameter-binding-unresolved",
+    "description": "A parameter binding names a parameter of its element (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/parameters",
+        "value": [
+          {
+            "key": "accent",
+            "type": "color",
+            "value": "#f79009"
+          }
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "accent",
+          "type": "color",
+          "default": "#f79009"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-accent",
+          "kind": "parameter",
+          "nodeId": "node-custom-html",
+          "key": "other",
+          "inputId": "accent"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-parameter-reference", "path": "/template/bindings/0/key" }
+    ]
+  },
+  {
+    "name": "parameter-binding-not-custom-html",
+    "description": "A parameter binding binds a Custom HTML element (D78).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "accent",
+          "type": "color",
+          "default": "#f79009"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-accent",
+          "kind": "parameter",
+          "nodeId": "node-title",
+          "key": "accent",
+          "inputId": "accent"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-type-mismatch", "path": "/template/bindings/0/nodeId" }]
+  },
+  {
+    "name": "parameter-binding-type-mismatch",
+    "description": "A parameter binding joins an input and a parameter of one type (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/parameters",
+        "value": [
+          {
+            "key": "accent",
+            "type": "color",
+            "value": "#f79009"
+          }
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "accent",
+          "type": "text",
+          "default": "#f79009",
+          "minLength": 0,
+          "maxLength": 40
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-accent",
+          "kind": "parameter",
+          "nodeId": "node-custom-html",
+          "key": "accent",
+          "inputId": "accent"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-type-mismatch", "path": "/template/bindings/0/inputId" }]
+  },
+  {
+    "name": "parameter-binding-value-not-default",
+    "description": "A bound parameter holds the default of its input (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/parameters",
+        "value": [
+          {
+            "key": "accent",
+            "type": "color",
+            "value": "#f79009"
+          }
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "accent",
+          "type": "color",
+          "default": "#12b76a"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-accent",
+          "kind": "parameter",
+          "nodeId": "node-custom-html",
+          "key": "accent",
+          "inputId": "accent"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "binding-value-mismatch", "path": "/template/bindings/0" }]
+  },
+  {
+    "name": "parameter-binding-duplicate",
+    "description": "Two bindings never write one parameter (D78).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/3/parameters",
+        "value": [
+          {
+            "key": "accent",
+            "type": "color",
+            "value": "#f79009"
+          }
+        ]
+      },
+      {
+        "op": "add",
+        "path": "/template/inputs/-",
+        "value": {
+          "id": "accent",
+          "type": "color",
+          "default": "#f79009"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-accent",
+          "kind": "parameter",
+          "nodeId": "node-custom-html",
+          "key": "accent",
+          "inputId": "accent"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/template/bindings/-",
+        "value": {
+          "id": "bind-accent-2",
+          "kind": "parameter",
+          "nodeId": "node-custom-html",
+          "key": "accent",
+          "inputId": "accent"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "duplicate-binding-target", "path": "/template/bindings/1" }]
   }
 ]

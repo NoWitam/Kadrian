@@ -29,6 +29,7 @@ import {
   parseRemoveDefinition,
   parseClearInstanceInput,
   parseReplaceDefinition,
+  parseSetCustomHtml,
   parseSetInstanceInput,
   parseAddClipTransition,
   parseAddSceneTransition,
@@ -2859,6 +2860,20 @@ const DEFINITIONS = deepFreeze<Definitions>({
           const node = findNode(edited, nodeId);
           if (node !== null)
             edited = replaceNode(edited, nodeId, { ...node, [property]: fallback });
+        } else if (binding['kind'] === 'parameter') {
+          // The value of the parameter of a Custom HTML element; its key and type stay (D78).
+          const nodeId = binding['nodeId'];
+          const key = binding['key'];
+          if (typeof nodeId !== 'string' || typeof key !== 'string') continue;
+          const node = findNode(edited, nodeId);
+          const parameters: unknown = node?.['parameters'];
+          if (node === null || !Array.isArray(parameters)) continue;
+          edited = replaceNode(edited, nodeId, {
+            ...node,
+            parameters: (parameters as unknown[]).map((item) =>
+              isObject(item) && item['key'] === key ? { ...item, value: fallback } : item,
+            ),
+          });
         } else if (binding['kind'] === 'words') {
           // The words of a captions node hold the list's items, field by field (D77).
           const nodeId = binding['nodeId'];
@@ -3311,6 +3326,29 @@ const DEFINITIONS = deepFreeze<Definitions>({
         removedIds: [...before].filter((id) => !after.has(id)),
       };
     },
+  },
+  SetCustomHtml: {
+    parse: parseSetCustomHtml,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['custom-html'], command.nodeId);
+        const before = {
+          html: node['html'],
+          fontAssetIds: node['fontAssetIds'],
+          parameters: node['parameters'],
+        };
+        const after = {
+          html: command.html,
+          fontAssetIds: command.fontAssetIds,
+          parameters: command.parameters,
+        };
+        if (sameData(before, after)) return null;
+        return {
+          node: { ...node, ...after },
+          // A frozen copy of the fields as they were, so undo restores the same bytes (D30).
+          inverse: parseSetCustomHtml({ type: 'SetCustomHtml', nodeId: command.nodeId, ...before }),
+        };
+      }),
   },
 });
 
