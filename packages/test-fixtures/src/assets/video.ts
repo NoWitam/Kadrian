@@ -224,6 +224,24 @@ export function greenScreenFixtureArguments(output: string): readonly string[] {
   ];
 }
 
+/** One video of `ROTATED_VIDEO_FIXTURES` (D81). */
+export interface RotatedVideoFixture {
+  readonly name: string;
+  readonly mediaType: string;
+  readonly contentHash: string;
+  /** The clockwise turn the container asks for. */
+  readonly rotation: 0 | 90 | 180 | 270;
+  /** Whether the picture is mirrored left to right after the turn. */
+  readonly flipped: boolean;
+  /** The input options of the pinned FFmpeg that write the display matrix. */
+  readonly display: readonly string[];
+  /** The size as shown. */
+  readonly width: number;
+  readonly height: number;
+  readonly frames: number;
+  readonly sourceDurationUs: number;
+}
+
 /**
  * The fixture video turned by its container (D81): the stream of
  * `VIDEO_FIXTURE`, copied without decoding into MP4 by the pinned FFmpeg with
@@ -234,7 +252,7 @@ export function greenScreenFixtureArguments(output: string): readonly string[] {
  * counter-clockwise, so a clockwise 90° is its 270. The bytes are made by
  * `rotatedVideoFixtureArguments` and never committed, like the video itself.
  */
-export const ROTATED_VIDEO_FIXTURES = Object.freeze(
+export const ROTATED_VIDEO_FIXTURES: readonly RotatedVideoFixture[] = Object.freeze(
   (
     [
       [
@@ -286,15 +304,20 @@ export const ROTATED_VIDEO_FIXTURES = Object.freeze(
         ['-display_rotation', '90', '-display_hflip'],
         'bc13580eff39de9f7c4e6120a90667a77a2886a5d84e6e56c95cc1653fb0b2f9',
       ],
-    ] as const
-  ).map(([name, rotation, flipped, display, hash]) =>
+    ] satisfies readonly (readonly [
+      string,
+      0 | 90 | 180 | 270,
+      boolean,
+      readonly string[],
+      string,
+    ])[]
+  ).map(([name, rotation, flipped, display, hash]): RotatedVideoFixture =>
     Object.freeze({
       name,
       mediaType: 'video/mp4',
       contentHash: `sha256:${hash}`,
       rotation,
       flipped,
-      /** The input options of the pinned FFmpeg that write the display matrix. */
       display: Object.freeze([...display]),
       width: rotation % 180 === 0 ? VIDEO_FIXTURE.width : VIDEO_FIXTURE.height,
       height: rotation % 180 === 0 ? VIDEO_FIXTURE.height : VIDEO_FIXTURE.width,

@@ -141,7 +141,7 @@ export {
   videoFixtureArguments,
   videoSoundFixtureArguments,
 } from './assets/index.js';
-export type { FixtureAsset } from './assets/index.js';
+export type { FixtureAsset, RotatedVideoFixture } from './assets/index.js';
 
 /** One step of an RFC 6902 JSON Patch, restricted to `add`, `replace`, and `remove`. */
 export interface FixturePatchOperation {

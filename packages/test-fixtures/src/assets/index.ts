@@ -25,6 +25,7 @@ export {
   videoFixtureArguments,
   videoSoundFixtureArguments,
 } from './video.js';
+export type { RotatedVideoFixture } from './video.js';
 
 /** The bytes of one asset of the reference composition and the media type a host serves them with. */
 export interface FixtureAsset {
