@@ -60,6 +60,8 @@ const ERROR_CODES = [
   'instance-exceeds-definition',
   'definition-cycle',
   'definition-too-deep',
+  'element-asset-input',
+  'instance-input-invalid',
 ] as const;
 
 describe('negative fixtures', () => {

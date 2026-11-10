@@ -84,6 +84,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D74](D74-svg-assets.md)                                      | SVG assets: schema 0.19                                                                      | Accepted          |
 | [D75](D75-blend-modes-masks-and-mattes.md)                    | Blend modes, masks, and mattes: schema 0.20                                                  | Accepted          |
 | [D76](D76-nested-compositions.md)                             | Nested compositions: schema 0.21                                                             | Accepted          |
+| [D77](D77-elements.md)                                        | Elements: nested templates with inputs, schema 0.22                                          | Proposed          |
 | [D79](D79-video-containers-read-with-mediabunny.md)           | Video containers read with Mediabunny, and the verdict of `inspectVideo`                     | Proposed          |
 
 ## Provenance of D01–D10

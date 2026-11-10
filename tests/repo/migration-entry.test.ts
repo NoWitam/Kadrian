@@ -45,6 +45,7 @@ const MAIN_ENTRY_MODULES = [
   'scenes.js',
   'source-frame.js',
   'svg.js',
+  'template-fill.js',
   'template-structure.js',
   'template-values.js',
   'validate-semantics.js',

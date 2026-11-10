@@ -1191,6 +1191,47 @@ export interface ExpandInstanceCommand extends ExpandInstanceArguments {
   readonly type: 'ExpandInstance';
 }
 
+/** What a caller states for `SetInstanceInput` (D77). */
+export interface SetInstanceInputArguments {
+  readonly instanceId: string;
+  /** The complete value, as the instance stores it: `{ inputId, type, value }`. */
+  readonly input: DocumentObject;
+}
+
+/**
+ * Gives an input of an element instance a value: replaces the instance's value
+ * of that input, or inserts it in the order of the input IDs (D77).
+ */
+export interface SetInstanceInputCommand extends SetInstanceInputArguments {
+  readonly type: 'SetInstanceInput';
+}
+
+/** What a caller states for `ClearInstanceInput` (D77). */
+export interface ClearInstanceInputArguments {
+  readonly instanceId: string;
+  readonly inputId: string;
+}
+
+/** Removes an instance's value of an input, which then takes its default (D77). */
+export interface ClearInstanceInputCommand extends ClearInstanceInputArguments {
+  readonly type: 'ClearInstanceInput';
+}
+
+/** What a caller states for `ReplaceDefinition` (D77). */
+export interface ReplaceDefinitionArguments {
+  readonly definitionId: string;
+  /** The complete new definition, as the document stores it, with the same ID. */
+  readonly definition: DocumentObject;
+}
+
+/**
+ * Replaces a definition whole, its template included, keeping its ID and its
+ * index: the one way to edit the template of an element (D77).
+ */
+export interface ReplaceDefinitionCommand extends ReplaceDefinitionArguments {
+  readonly type: 'ReplaceDefinition';
+}
+
 export type Command =
   | SetNodePositionCommand
   | SetNodeOpacityCommand
@@ -1283,7 +1324,10 @@ export type Command =
   | AddDefinitionCommand
   | RemoveDefinitionCommand
   | ConvertToDefinitionCommand
-  | ExpandInstanceCommand;
+  | ExpandInstanceCommand
+  | SetInstanceInputCommand
+  | ClearInstanceInputCommand
+  | ReplaceDefinitionCommand;
 
 /** A JSON Schema of one property of a command's arguments. */
 export type ArgumentSchema =
@@ -1842,6 +1886,33 @@ export type ConvertToDefinitionArgumentsSchema = ClosedObjectSchema<
   keyof ConvertToDefinitionArguments
 >;
 export type ExpandInstanceArgumentsSchema = ClosedObjectSchema<keyof ExpandInstanceArguments>;
+
+/** The argument schema of `SetInstanceInput`: closed, with `input` an open object (D77). */
+export interface SetInstanceInputArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly instanceId: ArgumentSchema;
+    readonly input: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof SetInstanceInputArguments)[];
+  readonly additionalProperties: false;
+}
+export type ClearInstanceInputArgumentsSchema = ClosedObjectSchema<
+  keyof ClearInstanceInputArguments
+>;
+
+/** The argument schema of `ReplaceDefinition`: closed, with `definition` an open object (D77). */
+export interface ReplaceDefinitionArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly definitionId: ArgumentSchema;
+    readonly definition: OpenObjectSchema;
+  };
+  readonly required: readonly (keyof ReplaceDefinitionArguments)[];
+  readonly additionalProperties: false;
+}
 export type AddAssetArgumentsSchema = ClosedObjectSchema<keyof AddAssetArguments>;
 export type RemoveAssetArgumentsSchema = ClosedObjectSchema<keyof RemoveAssetArguments>;
 
@@ -3660,6 +3731,58 @@ export const expandInstanceArgumentsSchema: ExpandInstanceArgumentsSchema = deep
   additionalProperties: false,
 });
 
+const INSTANCE_ID = 'The stable ID of an instance node.';
+
+/** The JSON Schema of the arguments of `SetInstanceInput` (D77): the value is the document's to judge. */
+export const setInstanceInputArgumentsSchema: SetInstanceInputArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Gives one input of an element instance a value, replacing the instance's value of that input.",
+  properties: {
+    instanceId: { type: 'string', description: INSTANCE_ID, minLength: 1 },
+    input: {
+      type: 'object',
+      description:
+        "The value as the instance stores it: { inputId, type, value }, the inputId and type of an input of the instance's definition; a list value is an array of items, each an array of { key, type, value } in the order of the list's fields.",
+    },
+  },
+  required: ['instanceId', 'input'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `ClearInstanceInput` (D77). */
+export const clearInstanceInputArgumentsSchema: ClearInstanceInputArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: "Removes an instance's value of an input, which then takes its default.",
+  properties: {
+    instanceId: { type: 'string', description: INSTANCE_ID, minLength: 1 },
+    inputId: {
+      type: 'string',
+      description: "The ID of an input of the instance's definition.",
+      minLength: 1,
+    },
+  },
+  required: ['instanceId', 'inputId'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `ReplaceDefinition` (D77): the definition is the document's to judge. */
+export const replaceDefinitionArgumentsSchema: ReplaceDefinitionArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Replaces a definition whole, with its nodes, clips, transitions, and template, keeping its ID and its place.',
+  properties: {
+    definitionId: { type: 'string', description: DEFINITION_ID, minLength: 1 },
+    definition: {
+      type: 'object',
+      description:
+        'The complete new definition as the document stores it, with the same ID: its sourceHash, width, height, durationUs, nodes, clips, transitions, and template; every ID it adds unused in the document.',
+    },
+  },
+  required: ['definitionId', 'definition'],
+  additionalProperties: false,
+});
+
 /**
  * The JSON Schema of the arguments of `AddNode` (D39.1). `node` is an object and
  * nothing more: its shape is the document's schema, which the full validation
@@ -5455,4 +5578,40 @@ export function parseConvertToDefinition(value: unknown): ConvertToDefinitionCom
 export function parseExpandInstance(value: unknown): ExpandInstanceCommand {
   const fields = fieldsOf(value, ['type', 'instanceId'], 'The command `ExpandInstance`');
   return Object.freeze({ type: 'ExpandInstance', instanceId: nodeIdOf(fields, 'instanceId') });
+}
+
+/** The fields of a `SetInstanceInput` (D77); the bus and the document's validation judge the value. */
+export function parseSetInstanceInput(value: unknown): SetInstanceInputCommand {
+  const fields = fieldsOf(value, ['type', 'instanceId', 'input'], 'The command `SetInstanceInput`');
+  const instanceId = nodeIdOf(fields, 'instanceId');
+  const input = dataOf(fields['input'], 'input');
+  return Object.freeze({ type: 'SetInstanceInput', instanceId, input });
+}
+
+/** The fields of a `ClearInstanceInput` (D77). */
+export function parseClearInstanceInput(value: unknown): ClearInstanceInputCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'instanceId', 'inputId'],
+    'The command `ClearInstanceInput`',
+  );
+  return Object.freeze({
+    type: 'ClearInstanceInput',
+    instanceId: nodeIdOf(fields, 'instanceId'),
+    inputId: nodeIdOf(fields, 'inputId'),
+  });
+}
+
+/** The fields of a `ReplaceDefinition` (D77); the definition keeps its ID, the document judges the rest. */
+export function parseReplaceDefinition(value: unknown): ReplaceDefinitionCommand {
+  const fields = fieldsOf(
+    value,
+    ['type', 'definitionId', 'definition'],
+    'The command `ReplaceDefinition`',
+  );
+  return Object.freeze({
+    type: 'ReplaceDefinition',
+    definitionId: nodeIdOf(fields, 'definitionId'),
+    definition: dataOf(fields['definition'], 'definition'),
+  });
 }

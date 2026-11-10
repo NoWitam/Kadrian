@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-09-22
 - Amended by: PR-16 (D36) on 2026-09-27 at the owner's request, 21.4 (`mount` takes the host's
   Custom HTML policy)
+- Amended by: PR-55b (D77) on 2026-11-10: the runtime build carries the core of template instantiation, which elements need at render time; `instantiateTemplate` itself stays out (D77.3)
 - Date: 2026-09-22
 - Supersedes: —
 - Related: D10, D11, D12, D14, D19, D20, [specification](../spike/vertical-spike.md)

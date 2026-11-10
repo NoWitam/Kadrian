@@ -438,6 +438,7 @@ export const ARTIFACT_FILES = Object.freeze([
   'easing/node-vs-chromium.json',
   'effects-svg/golden-comparison.json',
   'effects/golden-comparison.json',
+  'elements/golden-comparison.json',
   'export-memory.json',
   'export-report.json',
   'exports/contract/inputs/asset-audio',

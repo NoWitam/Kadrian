@@ -52,6 +52,8 @@ export interface SceneDescription {
 /** One definition, a nested composition instances place (D76). */
 export interface DefinitionDescription {
   readonly id: string;
+  /** The host's label of the source the definition was made from, or `''` (D77). */
+  readonly sourceHash: string;
   /** The definition's own canvas, in its pixels. */
   readonly width: number;
   readonly height: number;
@@ -64,6 +66,17 @@ export interface DefinitionDescription {
   readonly transitions: readonly unknown[];
   /** The IDs of the instance nodes that place the definition, in document order. */
   readonly instanceIds: readonly string[];
+  /**
+   * The definition's template, as the document stores it: the inputs an
+   * instance gives values to, and the bindings, conditions, and repeats that
+   * write them; all empty in a definition that is no element (D77).
+   */
+  readonly template: {
+    readonly inputs: readonly unknown[];
+    readonly bindings: readonly unknown[];
+    readonly conditions: readonly unknown[];
+    readonly repeats: readonly unknown[];
+  };
 }
 
 /** What `describeDocument` returns; plain JSON, deep-frozen. */
@@ -194,6 +207,7 @@ export function describeDocument(
     transitions: copy.transitions,
     definitions: copy.definitions.map((definition) => ({
       id: definition.id,
+      sourceHash: definition.sourceHash,
       width: definition.width,
       height: definition.height,
       durationUs: definition.durationUs,
@@ -205,6 +219,7 @@ export function describeDocument(
           node.type === 'instance' && node.definitionId === definition.id ? [node.id] : [],
         ),
       ),
+      template: definition.template,
     })),
     template: copy.template,
   });

@@ -27,6 +27,9 @@ import {
   parseConvertToDefinition,
   parseExpandInstance,
   parseRemoveDefinition,
+  parseClearInstanceInput,
+  parseReplaceDefinition,
+  parseSetInstanceInput,
   parseAddClipTransition,
   parseAddSceneTransition,
   parseRemoveTransition,
@@ -2856,6 +2859,26 @@ const DEFINITIONS = deepFreeze<Definitions>({
           const node = findNode(edited, nodeId);
           if (node !== null)
             edited = replaceNode(edited, nodeId, { ...node, [property]: fallback });
+        } else if (binding['kind'] === 'words') {
+          // The words of a captions node hold the list's items, field by field (D77).
+          const nodeId = binding['nodeId'];
+          if (typeof nodeId !== 'string' || !Array.isArray(fallback)) continue;
+          const node = findNode(edited, nodeId);
+          if (node === null) continue;
+          // An item is a list of { key, type, value }, one for each field of the list.
+          const words = (fallback as unknown[]).map((item) => {
+            const fields = new Map<unknown, unknown>(
+              (Array.isArray(item) ? (item as unknown[]) : []).map((field) =>
+                isObject(field) ? [field['key'], field['value']] : [null, null],
+              ),
+            );
+            return {
+              text: fields.get('text'),
+              startUs: fields.get('startUs'),
+              durationUs: fields.get('durationUs'),
+            };
+          });
+          edited = replaceNode(edited, nodeId, { ...node, words });
         } else if (binding['kind'] === 'asset') {
           const assetId = binding['assetId'];
           if (typeof assetId !== 'string') continue;
@@ -3107,15 +3130,11 @@ const DEFINITIONS = deepFreeze<Definitions>({
       const frame = frameOf(document, from.address.holder);
       // The nodes keep their times: the instance shows the definition from its start,
       // over the whole holder, at the holder's canvas size (D76).
-      const definition = {
-        id: command.definitionId,
-        width: frame.width,
-        height: frame.height,
-        durationUs: frame.durationUs,
-        nodes: from.list.slice(from.index, to.index + 1),
-        clips: [],
-        transitions: [],
-      };
+      const definition = plainDefinition(
+        command.definitionId,
+        frame,
+        from.list.slice(from.index, to.index + 1),
+      );
       const instance = plainInstance(command.instanceId, command.definitionId, frame);
       const list = [...from.list.slice(0, from.index), instance, ...from.list.slice(to.index + 1)];
       // The list first: a holder that is a definition keeps its index until the insertion.
@@ -3154,19 +3173,11 @@ const DEFINITIONS = deepFreeze<Definitions>({
       const last = nodes.at(-1);
       const plain =
         sameData(instance, plainInstance(command.instanceId, found.id, frame)) &&
-        sameData(found.definition, {
-          id: found.id,
-          width: frame.width,
-          height: frame.height,
-          durationUs: frame.durationUs,
-          nodes,
-          clips: [],
-          transitions: [],
-        });
+        sameData(found.definition, plainDefinition(found.id, frame, nodes));
       if (!plain || !isObject(first) || !isObject(last)) {
         throw new EditorError(
           'instance-not-expandable',
-          `The instance \`${command.instanceId}\` does not show its definition as its nodes placed directly would: it must fill the canvas of its holder from time 0 over the holder's whole duration, untransformed and without effects, and its definition must hold nodes and no clips or transitions (D76).`,
+          `The instance \`${command.instanceId}\` does not show its definition as its nodes placed directly would: it must fill the canvas of its holder from time 0 over the holder's whole duration, untransformed, without effects or input values, and its definition must hold nodes and no clips, transitions, source hash, or template (D76, D77).`,
         );
       }
       const users = instancesOf(document, found.id);
@@ -3199,6 +3210,105 @@ const DEFINITIONS = deepFreeze<Definitions>({
         invert: () => inverse,
         createdIds: [],
         removedIds: [found.id, command.instanceId],
+      };
+    },
+  },
+  SetInstanceInput: {
+    parse: parseSetInstanceInput,
+    edit(document, command) {
+      const element = locatedElement(document, command.instanceId);
+      const inputId: unknown = command.input['inputId'];
+      // The tool's schema cannot state it, so the bus judges it as it judges the document.
+      if (typeof inputId !== 'string') {
+        throw new EditorError(
+          'invalid-result',
+          '`input.inputId` must be the ID of an input of the definition (D77).',
+        );
+      }
+      element.refuseUnknown(inputId);
+      const values = element.values;
+      const index = values.findIndex((value) => isObject(value) && value['inputId'] === inputId);
+      const old = values[index];
+      if (isObject(old) && sameData(old, command.input)) return null;
+      // The values stay sorted by input ID: a new one goes where its ID falls (D77).
+      const at =
+        index >= 0
+          ? index
+          : values.filter((value) => isObject(value) && String(value['inputId']) < inputId).length;
+      const inputs = isObject(old)
+        ? values.map((value, i) => (i === index ? command.input : value))
+        : [...values.slice(0, at), command.input, ...values.slice(at)];
+      const inverse = isObject(old)
+        ? parseSetInstanceInput({ ...command, input: old })
+        : parseClearInstanceInput({
+            type: 'ClearInstanceInput',
+            instanceId: command.instanceId,
+            inputId,
+          });
+      return {
+        document: replaceNode(document, command.instanceId, { ...element.instance, inputs }),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  ClearInstanceInput: {
+    parse: parseClearInstanceInput,
+    edit(document, command) {
+      const element = locatedElement(document, command.instanceId);
+      element.refuseUnknown(command.inputId);
+      const values = element.values;
+      const index = values.findIndex(
+        (value) => isObject(value) && value['inputId'] === command.inputId,
+      );
+      const old = values[index];
+      // An input without a value already takes its default: nothing changes (D30.9).
+      if (!isObject(old)) return null;
+      const inverse = parseSetInstanceInput({
+        type: 'SetInstanceInput',
+        instanceId: command.instanceId,
+        input: old,
+      });
+      return {
+        document: replaceNode(document, command.instanceId, {
+          ...element.instance,
+          inputs: values.filter((_, i) => i !== index),
+        }),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  ReplaceDefinition: {
+    parse: parseReplaceDefinition,
+    edit(document, command) {
+      const found = locatedDefinition(document, command.definitionId);
+      // The tool's schema cannot state it, so the bus judges it as it judges the document.
+      if (command.definition['id'] !== command.definitionId) {
+        throw new EditorError(
+          'invalid-result',
+          '`definition.id` must be `definitionId`: a definition keeps its ID (D77).',
+          [`/definitions/${String(found.index)}/id`],
+        );
+      }
+      if (sameData(found.definition, command.definition)) return null;
+      const before = idsIn(found.definition);
+      const after = idsIn(command.definition);
+      const createdIds = [...after].filter((id) => !before.has(id));
+      refuseTaken(document, createdIds);
+      const inverse = parseReplaceDefinition({ ...command, definition: found.definition });
+      return {
+        document: withDefinitions(
+          document,
+          holdersOf(document, 'definitions').map((definition, at) =>
+            at === found.index ? command.definition : definition,
+          ),
+        ),
+        invert: () => inverse,
+        createdIds,
+        removedIds: [...before].filter((id) => !after.has(id)),
       };
     },
   },
@@ -3268,6 +3378,7 @@ function plainInstance(instanceId: string, definitionId: string, frame: Frame): 
     opacity: 1,
     animations: [],
     definitionId,
+    inputs: [],
     sourceStartUs: 0,
     width: frame.width,
     height: frame.height,
@@ -3276,6 +3387,62 @@ function plainInstance(instanceId: string, definitionId: string, frame: Frame): 
     mask: { kind: 'none' },
     matte: { kind: 'none' },
     blendMode: 'normal',
+  };
+}
+
+/**
+ * The definition of the frame's canvas and duration that holds those nodes
+ * and nothing else: no clips, no transitions, no source hash, no template, in
+ * the schema's field order (D76, D77).
+ */
+function plainDefinition(
+  definitionId: string,
+  frame: Frame,
+  nodes: readonly unknown[],
+): DocumentObject {
+  return {
+    id: definitionId,
+    sourceHash: '',
+    width: frame.width,
+    height: frame.height,
+    durationUs: frame.durationUs,
+    nodes,
+    clips: [],
+    transitions: [],
+    template: { inputs: [], bindings: [], conditions: [], repeats: [] },
+  };
+}
+
+/** An instance node, its values, and a check that an input ID names an input of its definition (D77). */
+interface ElementLocation {
+  readonly instance: DocumentObject;
+  readonly values: readonly unknown[];
+  refuseUnknown(inputId: string): void;
+}
+
+function locatedElement(document: DocumentObject, instanceId: string): ElementLocation {
+  const instance = located(document, instanceId).node;
+  if (instance['type'] !== 'instance') {
+    throw new EditorError(
+      'unsupported-node',
+      `The node \`${instanceId}\` is not an instance (D77).`,
+    );
+  }
+  const definitionId = instance['definitionId'];
+  const found = locatedDefinition(document, typeof definitionId === 'string' ? definitionId : '');
+  const inputs = templateList(templateOf(found.definition), 'inputs');
+  const values: unknown = instance['inputs'];
+  return {
+    instance,
+    values: Array.isArray(values) ? (values as readonly unknown[]) : [],
+    refuseUnknown(inputId) {
+      if (!inputs.some((input) => isObject(input) && input['id'] === inputId)) {
+        throw new EditorError(
+          'unknown-input',
+          `The definition \`${found.id}\` of the instance \`${instanceId}\` has no input \`${inputId}\` (D77).`,
+        );
+      }
+    },
   };
 }
 
@@ -3317,7 +3484,9 @@ export function bindingsAt(
   const ids = new Set<string>();
   for (const { code, path } of errors) {
     if (!codes.includes(code)) continue;
-    const tokens = path.split('/');
+    // `/template/<list>/<i>…`, or `/definitions/<k>/template/<list>/<i>…` (D77).
+    const inDefinition = path.startsWith('/definitions/');
+    const tokens = path.split('/').slice(inDefinition ? 2 : 0);
     const list = tokens[2];
     if (
       tokens[1] !== 'template' ||
@@ -3325,7 +3494,13 @@ export function bindingsAt(
     ) {
       continue;
     }
-    const entry = templateList(template, list)[Number(tokens[3])];
+    const owner: unknown = inDefinition
+      ? holdersOf(document, 'definitions')[Number(path.split('/')[2])]
+      : document;
+    if (!isObject(owner)) continue;
+    const entry = templateList(inDefinition ? templateOf(owner) : template, list)[
+      Number(tokens[3])
+    ];
     if (isObject(entry) && typeof entry['id'] === 'string') ids.add(entry['id']);
   }
   return [...ids].sort();

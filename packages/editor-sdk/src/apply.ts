@@ -10,7 +10,7 @@ import {
 } from '@kadrion/schema';
 
 import type { Command } from './commands.js';
-import { fieldsOf, isObject, nodeAt, transitionAt } from './document.js';
+import { fieldsOf, holdersOf, isObject, nodeAt, transitionAt } from './document.js';
 import { EditorError } from './errors.js';
 import { checkSourceRanges, type MediaFactsLookup } from './media.js';
 import { bindingsAt, editDocument, parseCommand } from './registry.js';
@@ -61,6 +61,7 @@ export function executeCommand(
       transitionsInUse(parsed, edit.document, result.errors) ??
       mattesInUse(parsed, edit.document, result.errors) ??
       bindingsInUse(parsed, edit.document, result.errors) ??
+      instanceInputsInUse(parsed, edit.document, result.errors) ??
       new EditorError(
         'invalid-result',
         `The command \`${parsed.type}\` would produce a document the schema rejects.`,
@@ -203,6 +204,7 @@ const TEMPLATE_COMMANDS: readonly Command['type'][] = Object.freeze([
   'RemoveTemplateCondition',
   'AddTemplateRepeat',
   'RemoveTemplateRepeat',
+  'ReplaceDefinition',
 ]);
 
 /** The validation codes that judge a binding against its target and input (D58.2, D58.3). */
@@ -227,7 +229,8 @@ const BINDING_CODES: readonly string[] = Object.freeze([
  * away from its input's default, a bound text that is no pattern, an item
  * binding moved out of its repeat, a repeat nested or made a side of a clip
  * transition — with their IDs, sorted; `null` otherwise. The host changes the input's default with `SetTemplateInput`, or
- * removes the binding first, in the same transaction.
+ * removes the binding first, in the same transaction; inside a definition, it
+ * replaces the definition with `ReplaceDefinition` (D77).
  */
 function bindingsInUse(
   command: Command,
@@ -239,7 +242,71 @@ function bindingsInUse(
   if (ids.length === 0) return null;
   return new EditorError(
     'binding-in-use',
-    `The command \`${command.type}\` would break a binding, a condition, or a repeat of the template; set the input with SetTemplateInput, or remove them first, in the same transaction (D58.6, D59.6).`,
+    `The command \`${command.type}\` would break a binding, a condition, or a repeat of the template; set the input with SetTemplateInput, or remove them first, in the same transaction; inside a definition, replace it with ReplaceDefinition (D58.6, D59.6, D77).`,
     ids,
+  );
+}
+
+/** The commands that edit the values of an instance themselves: their failures are theirs to report (D77). */
+const INSTANCE_INPUT_COMMANDS: readonly Command['type'][] = Object.freeze([
+  'SetInstanceInput',
+  'ClearInstanceInput',
+]);
+
+/** The validation codes that judge the values of an instance against its definition (D77). */
+const INSTANCE_INPUT_CODES: readonly string[] = Object.freeze([
+  'unresolved-input-reference',
+  'instance-input-invalid',
+]);
+
+/**
+ * `instance-inputs-mismatch` when a command other than an instance's own
+ * would leave an element instance whose values no longer fit its definition
+ * (D77) — an input removed or retyped by `ReplaceDefinition`, or an
+ * instantiation that is no valid definition — with the IDs of those instances,
+ * sorted; `null` otherwise. The host sets or clears their values first, in the
+ * same transaction. A budget of copies spent by all instances together names
+ * every instance that gives a value.
+ */
+function instanceInputsInUse(
+  command: Command,
+  candidate: object,
+  errors: readonly ValidationError[],
+): EditorError | null {
+  if (INSTANCE_INPUT_COMMANDS.includes(command.type)) return null;
+  const ids = new Set<string>();
+  for (const error of errors) {
+    if (!INSTANCE_INPUT_CODES.includes(error.code)) continue;
+    if (error.path === '/definitions') {
+      for (const id of instancesWithValues(candidate)) ids.add(id);
+      continue;
+    }
+    if (error.path.split('/')[5] !== 'inputs') continue;
+    const node = nodeAt(candidate, error.path);
+    if (isObject(node) && typeof node['id'] === 'string') ids.add(node['id']);
+  }
+  if (ids.size === 0) return null;
+  return new EditorError(
+    'instance-inputs-mismatch',
+    `The command \`${command.type}\` would leave an instance whose values do not fit its definition; set or clear them with SetInstanceInput or ClearInstanceInput first, in the same transaction (D77).`,
+    [...ids].sort(),
+  );
+}
+
+/** The IDs of the instance nodes that give at least one value, in the scenes and the definitions. */
+function instancesWithValues(document: object): readonly string[] {
+  return (['scenes', 'definitions'] as const).flatMap((holder) =>
+    holdersOf(document, holder).flatMap((value) => {
+      const nodes: unknown = isObject(value) ? value['nodes'] : [];
+      return (Array.isArray(nodes) ? (nodes as unknown[]) : []).flatMap((node) =>
+        isObject(node) &&
+        node['type'] === 'instance' &&
+        typeof node['id'] === 'string' &&
+        Array.isArray(node['inputs']) &&
+        node['inputs'].length > 0
+          ? [node['id']]
+          : [],
+      );
+    }),
   );
 }

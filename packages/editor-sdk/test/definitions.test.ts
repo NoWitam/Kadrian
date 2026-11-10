@@ -62,6 +62,7 @@ function definition(document: unknown, id: string): HolderView {
 
 const EXTRA = Object.freeze({
   id: 'definition-extra',
+  sourceHash: '',
   width: 100,
   height: 50,
   durationUs: 500_000,
@@ -77,6 +78,7 @@ const EXTRA = Object.freeze({
   ],
   clips: [],
   transitions: [],
+  template: { inputs: [], bindings: [], conditions: [], repeats: [] },
 });
 
 describe('the existing commands inside a definition (D76)', () => {
@@ -244,12 +246,14 @@ describe('ConvertToDefinition and ExpandInstance (D76)', () => {
     expect(definitionsOf(result.document)).toEqual([
       {
         id: 'definition-group',
+        sourceHash: '',
         width: 1080,
         height: 1920,
         durationUs: 10_000_000,
         nodes: [group],
         clips: [],
         transitions: [],
+        template: { inputs: [], bindings: [], conditions: [], repeats: [] },
       },
     ]);
     expect(scenesOf(result.document)[0]?.nodes[1]).toEqual({
@@ -264,6 +268,7 @@ describe('ConvertToDefinition and ExpandInstance (D76)', () => {
       opacity: 1,
       animations: [],
       definitionId: 'definition-group',
+      inputs: [],
       sourceStartUs: 0,
       width: 1080,
       height: 1920,

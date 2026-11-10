@@ -103,7 +103,11 @@ export type ValidationErrorCode =
   /** A definition places itself, directly or through other definitions (D65.4, D76). */
   | 'definition-cycle'
   /** A definition places instances more than 8 deep (D65.4, D76). */
-  | 'definition-too-deep';
+  | 'definition-too-deep'
+  /** The template of a definition has an input of an asset type, or binds an asset: an element has no asset inputs (D77). */
+  | 'element-asset-input'
+  /** The values of an instance do not fit the inputs of its definition, or its definition instantiated with them is no valid definition (D77). */
+  | 'instance-input-invalid';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

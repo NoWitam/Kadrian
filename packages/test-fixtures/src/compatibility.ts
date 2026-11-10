@@ -311,6 +311,31 @@ import templateV021 from './compatibility/v0-21/template.json' with { type: 'jso
 import textV021 from './compatibility/v0-21/text.json' with { type: 'json' };
 import transitionsV021 from './compatibility/v0-21/transitions.json' with { type: 'json' };
 import videoV021 from './compatibility/v0-21/video.json' with { type: 'json' };
+import audioV022 from './compatibility/v0-22/audio.json' with { type: 'json' };
+import captionsMotionV022 from './compatibility/v0-22/captions-motion.json' with { type: 'json' };
+import captionsV022 from './compatibility/v0-22/captions.json' with { type: 'json' };
+import compositingV022 from './compatibility/v0-22/compositing.json' with { type: 'json' };
+import easingV022 from './compatibility/v0-22/easing.json' with { type: 'json' };
+import effectsSvgV022 from './compatibility/v0-22/effects-svg.json' with { type: 'json' };
+import effectsV022 from './compatibility/v0-22/effects.json' with { type: 'json' };
+import elementsV022 from './compatibility/v0-22/elements.json' with { type: 'json' };
+import extremesV022 from './compatibility/v0-22/extremes.json' with { type: 'json' };
+import focusV022 from './compatibility/v0-22/focus.json' with { type: 'json' };
+import inputsV022 from './compatibility/v0-22/inputs.json' with { type: 'json' };
+import lifetimeV022 from './compatibility/v0-22/lifetime.json' with { type: 'json' };
+import minimalV022 from './compatibility/v0-22/minimal.json' with { type: 'json' };
+import motionV022 from './compatibility/v0-22/motion.json' with { type: 'json' };
+import nestedV022 from './compatibility/v0-22/nested.json' with { type: 'json' };
+import pairV022 from './compatibility/v0-22/pair.json' with { type: 'json' };
+import referenceV022 from './compatibility/v0-22/reference.json' with { type: 'json' };
+import repeatsV022 from './compatibility/v0-22/repeats.json' with { type: 'json' };
+import scenesV022 from './compatibility/v0-22/scenes.json' with { type: 'json' };
+import shapesV022 from './compatibility/v0-22/shapes.json' with { type: 'json' };
+import svgV022 from './compatibility/v0-22/svg.json' with { type: 'json' };
+import templateV022 from './compatibility/v0-22/template.json' with { type: 'json' };
+import textV022 from './compatibility/v0-22/text.json' with { type: 'json' };
+import transitionsV022 from './compatibility/v0-22/transitions.json' with { type: 'json' };
+import videoV022 from './compatibility/v0-22/video.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -635,6 +660,31 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-21/text.json': textV021,
   'compatibility/v0-21/transitions.json': transitionsV021,
   'compatibility/v0-21/video.json': videoV021,
+  'compatibility/v0-22/audio.json': audioV022,
+  'compatibility/v0-22/captions-motion.json': captionsMotionV022,
+  'compatibility/v0-22/captions.json': captionsV022,
+  'compatibility/v0-22/compositing.json': compositingV022,
+  'compatibility/v0-22/easing.json': easingV022,
+  'compatibility/v0-22/effects-svg.json': effectsSvgV022,
+  'compatibility/v0-22/effects.json': effectsV022,
+  'compatibility/v0-22/elements.json': elementsV022,
+  'compatibility/v0-22/extremes.json': extremesV022,
+  'compatibility/v0-22/focus.json': focusV022,
+  'compatibility/v0-22/inputs.json': inputsV022,
+  'compatibility/v0-22/lifetime.json': lifetimeV022,
+  'compatibility/v0-22/minimal.json': minimalV022,
+  'compatibility/v0-22/motion.json': motionV022,
+  'compatibility/v0-22/nested.json': nestedV022,
+  'compatibility/v0-22/pair.json': pairV022,
+  'compatibility/v0-22/reference.json': referenceV022,
+  'compatibility/v0-22/repeats.json': repeatsV022,
+  'compatibility/v0-22/scenes.json': scenesV022,
+  'compatibility/v0-22/shapes.json': shapesV022,
+  'compatibility/v0-22/svg.json': svgV022,
+  'compatibility/v0-22/template.json': templateV022,
+  'compatibility/v0-22/text.json': textV022,
+  'compatibility/v0-22/transitions.json': transitionsV022,
+  'compatibility/v0-22/video.json': videoV022,
 };
 
 function fileOf(path: string): unknown {
