@@ -43,6 +43,12 @@ export type {
   NetworkFacts,
   LaunchOptions,
 } from './environment.js';
+export { checkCustomHtml, CUSTOM_HTML_CHECK_SAMPLES } from './custom-html-check.js';
+export type {
+  CustomHtmlCheck,
+  CustomHtmlCheckProblem,
+  CustomHtmlCheckRequest,
+} from './custom-html-check.js';
 export { ProducerError } from './errors.js';
 export { DEFAULT_ESTIMATE_SAMPLES, estimatePlan } from './estimate.js';
 export type { EstimatePlan } from './estimate.js';

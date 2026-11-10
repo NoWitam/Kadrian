@@ -30,7 +30,8 @@ function isPlainObject(value: unknown): value is Readonly<Record<string, unknown
 }
 
 /**
- * Image and font assets that visual nodes and their masks use (D75); audio
+ * Image and font assets that visual nodes and their masks use (D75), and the
+ * fonts of a Custom HTML element (D78); audio
  * belongs to the clip, not to the DOM, and a video's pixels arrive frame by
  * frame, never as a URL (D50.4).
  */
@@ -54,8 +55,11 @@ export function usedAssetIds(composition: ValidatedComposition): Set<string> {
         // What a definition shows is used wherever an instance places it (D76).
         instanceDefinition(composition, node)?.nodes.forEach(visit);
         break;
-      case 'background':
       case 'custom-html':
+        // The fonts of an element enter its sandbox as `data:` URLs (D78).
+        node.fontAssetIds.forEach((assetId) => used.add(assetId));
+        break;
+      case 'background':
       case 'video':
       case 'shape':
         break;

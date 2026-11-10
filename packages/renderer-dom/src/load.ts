@@ -101,7 +101,8 @@ export function pageAssets(assets: unknown): {
 }
 
 /**
- * Registers a face for every font asset that a text or captions node uses, in the order of
+ * Registers a face for every font asset that a text or captions node or a Custom HTML
+ * element uses (D78), so that bytes the browser cannot use fail before any frame, in the order of
  * the document's assets: build it from a copy of its bytes, wait for `load()`,
  * add it to the font set, and finally wait for `document.fonts.ready`
  * (D27.1). The set is cleared first. A missing font set or constructor is

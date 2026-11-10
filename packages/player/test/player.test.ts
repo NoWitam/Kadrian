@@ -512,7 +512,9 @@ describe('typed errors before the first frame, never ready (P1, D25.7)', () => {
       scenes: { nodes: { id: string; html?: string }[] }[];
     };
     const node = silent.scenes[0]?.nodes.find((candidate) => candidate.id === 'node-custom-html');
-    if (node !== undefined) node.html = '<p>silent</p>';
+    // It listens to messages, so the managed clock leaves the answer to it, and it never answers (D78).
+    if (node !== undefined)
+      node.html = '<script>addEventListener("message", function () {})</script>';
     const harness = createHarness();
     const player = await started(harness, { ackTimeoutMs: 20 });
     await expect(player.load(silent, resolve)).rejects.toMatchObject({
@@ -562,7 +564,9 @@ describe('one request at a time (D25.4, D25.6)', () => {
       scenes: { nodes: { id: string; html?: string }[] }[];
     };
     const node = silent.scenes[0]?.nodes.find((candidate) => candidate.id === 'node-custom-html');
-    if (node !== undefined) node.html = '<p>silent</p>';
+    // It listens to messages, so the managed clock leaves the answer to it, and it never answers (D78).
+    if (node !== undefined)
+      node.html = '<script>addEventListener("message", function () {})</script>';
     const harness = createHarness();
     const player = await started(harness, { ackTimeoutMs: 150, requestTimeoutMs: 50 });
     await expect(player.load(silent, resolve)).rejects.toMatchObject({ code: 'page-timeout' });

@@ -108,9 +108,10 @@ async function probeOf(frame: Frame): Promise<Record<string, unknown>> {
   await frame.waitForFunction(
     () => document.documentElement.hasAttribute('data-probe'),
     undefined,
-    {
-      timeout: 10_000,
-    },
+    // Polled by a timer: the managed clock of the element (D78.1) runs the
+    // frame callbacks of its window, which Playwright polls by default, once per
+    // pushed time only.
+    { timeout: 10_000, polling: 100 },
   );
   return JSON.parse(
     await frame.evaluate(() => document.documentElement.getAttribute('data-probe') ?? '{}'),
@@ -349,7 +350,10 @@ describe('a sibling cannot retime a conforming element (D23.3, §7.1)', () => {
     variant((draft) => {
       const scene = draft.scenes[0];
       const node = customHtmlNode(draft);
-      if (silentVictim) node.html = '<p>silent</p>';
+      // A listener of its own, so that the managed clock leaves the answer to it (D78).
+      if (silentVictim) {
+        node.html = '<script>addEventListener("message", function () {})</script>';
+      }
       scene?.nodes.splice(scene.nodes.indexOf(node), 0, {
         ...structuredClone(node),
         id: 'node-attacker',

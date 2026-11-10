@@ -1,0 +1,380 @@
+{
+  "schemaVersion": "0.22",
+  "width": 320,
+  "height": 240,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 25,
+  "durationUs": 3000000,
+  "assets": [
+    {
+      "id": "pair-font",
+      "type": "font",
+      "contentHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "contentHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "type": "image",
+      "id": "pair-image"
+    },
+    {
+      "id": "pair-video",
+      "type": "video",
+      "contentHash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "id": "pair-audio",
+      "type": "audio",
+      "contentHash": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "pair-scene",
+      "durationUs": 3000000,
+      "nodes": [
+        {
+          "id": "pair-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 3000000,
+          "color": "#102030",
+          "animations": []
+        },
+        {
+          "type": "group",
+          "startUs": 0,
+          "durationUs": 3000000,
+          "id": "pair-group",
+          "position": {
+            "y": 20,
+            "x": 10
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "pair-group-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "value": {
+                    "y": 0,
+                    "x": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  },
+                  "timeUs": 0
+                },
+                {
+                  "timeUs": 5000000,
+                  "value": {
+                    "x": 30,
+                    "y": 40
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "children": [
+            {
+              "id": "pair-child-image",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 2,
+                "y": 0.5
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 0.5,
+              "animations": [],
+              "assetId": "pair-image",
+              "width": 100,
+              "height": 50,
+              "type": "image",
+              "startUs": 0,
+              "durationUs": 3000000,
+              "fit": "fill",
+              "focus": {
+                "x": 500,
+                "y": 500
+              },
+              "crop": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "cornerRadius": 0,
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "pair-child-video",
+              "fit": "cover",
+              "focus": {
+                "x": 500,
+                "y": 500
+              },
+              "crop": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "cornerRadius": 0,
+              "type": "video",
+              "startUs": 500000,
+              "durationUs": 2000000,
+              "position": {
+                "x": 120,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "assetId": "pair-video",
+              "sourceStartUs": 250000,
+              "width": 80,
+              "height": 45,
+              "volume": 0,
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "pair-child-text",
+              "type": "text",
+              "startUs": 0,
+              "durationUs": 3000000,
+              "position": {
+                "x": 0,
+                "y": 60
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "text": "Child\ntext",
+              "fontAssetId": "pair-font",
+              "fontSize": 20,
+              "color": "#ffffff",
+              "style": {
+                "stroke": {
+                  "kind": "none"
+                },
+                "shadow": {
+                  "kind": "none"
+                },
+                "box": {
+                  "kind": "none"
+                }
+              },
+              "textAnimations": [],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            }
+          ],
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        },
+        {
+          "id": "pair-text",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 3000000,
+          "position": {
+            "x": 5,
+            "y": 200
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 0.25,
+          "animations": [
+            {
+              "id": "pair-text-opacity",
+              "property": "opacity",
+              "keyframes": [
+                {
+                  "timeUs": 1000000,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 2000000,
+                  "value": 1,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "text": "",
+          "fontAssetId": "pair-font",
+          "fontSize": 16,
+          "color": "#abcdef",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        },
+        {
+          "id": "pair-html",
+          "type": "custom-html",
+          "startUs": 0,
+          "durationUs": 3000000,
+          "position": {
+            "x": 200,
+            "y": 100
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 100,
+          "height": 100,
+          "html": "<p>startUs durationUs</p>"
+        },
+        {
+          "id": "pair-video-node",
+          "startUs": 0,
+          "durationUs": 3000000,
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "pair-video",
+          "sourceStartUs": 0,
+          "width": 160,
+          "height": 90,
+          "fit": "contain",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "type": "video",
+          "volume": 0,
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [
+    {
+      "durationUs": 2500000,
+      "startUs": 500000,
+      "assetId": "pair-audio",
+      "type": "audio",
+      "id": "pair-clip",
+      "sourceStartUs": 0,
+      "volume": 1,
+      "fadeInUs": 0,
+      "fadeOutUs": 0
+    }
+  ],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

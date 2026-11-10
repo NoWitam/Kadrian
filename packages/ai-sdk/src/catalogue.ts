@@ -3,8 +3,8 @@
  * `@kadrion/editor-sdk`, derived from the command's AI metadata, plus two tools
  * for a model that cannot see the canvas — `describe_document`, which reads,
  * and `run_transaction`, which applies several command tools as one history
- * entry, and since 0.11 `add_clip_transition_at_cut`, a transaction of its
- * own (D66). The catalogue is data: deep-frozen, built once by a call, in a fixed
+ * entry, since 0.11 `add_clip_transition_at_cut`, a transaction of its
+ * own (D66), and since 0.23 `check_custom_html`, which reads (D78). The catalogue is data: deep-frozen, built once by a call, in a fixed
  * order with a fixed text, so the same build always offers the same tools.
  */
 import {
@@ -50,6 +50,7 @@ export interface RunTransactionInputSchema {
 export type ToolInputSchema =
   | CommandArgumentsSchema
   | ClosedObjectSchema<never>
+  | ClosedObjectSchema<'nodeId'>
   | RunTransactionInputSchema
   | ClipTransitionAtCutArgumentsSchema;
 
@@ -63,6 +64,7 @@ export interface ToolDefinition {
 export const DESCRIBE_DOCUMENT = 'describe_document';
 export const RUN_TRANSACTION = 'run_transaction';
 export const ADD_CLIP_TRANSITION_AT_CUT = 'add_clip_transition_at_cut';
+export const CHECK_CUSTOM_HTML = 'check_custom_html';
 
 /**
  * The tool name of a command: its type in `snake_case`, so `SetNodePosition`
@@ -101,7 +103,7 @@ function describeDocumentTool(): ToolDefinition {
   return deepFreeze({
     name: DESCRIBE_DOCUMENT,
     description:
-      "Describes the current document and changes nothing. Returns the canvas size in composition pixels, fps, and durationUs; every scene in the order they play, with its ID, its startUs in the composition (derived: the sum of the durations before it), its durationUs, its audio clips in scene time, and its nodes from the bottom layer to the top, each with its ID, type, parentId, layer (0 is the bottom), startUs and durationUs in integer microseconds of the time of its scene, its stored fields (position, scale, opacity, animations with their keyframes, text, colour, and so on; the html of a Custom HTML element is left out), and a group's children; and the declared assets and the composition's clips, in composition time, where a video or audio asset also states its sourceDurationUs, the length of its source in integer microseconds, when the host knows it, and a video its soundDurationUs, the length of its sound, or null when it has none. Call it before editing to learn the IDs that other tools take.\n\nExample arguments: {}",
+      "Describes the current document and changes nothing. Returns the canvas size in composition pixels, fps, and durationUs; every scene in the order they play, with its ID, its startUs in the composition (derived: the sum of the durations before it), its durationUs, its audio clips in scene time, and its nodes from the bottom layer to the top, each with its ID, type, parentId, layer (0 is the bottom), startUs and durationUs in integer microseconds of the time of its scene, its stored fields (position, scale, opacity, animations with their keyframes, text, colour, the html, fonts, and parameters of a Custom HTML element, and so on), and a group's children; and the declared assets and the composition's clips, in composition time, where a video or audio asset also states its sourceDurationUs, the length of its source in integer microseconds, when the host knows it, and a video its soundDurationUs, the length of its sound, or null when it has none. Call it before editing to learn the IDs that other tools take.\n\nExample arguments: {}",
     inputSchema: {
       type: 'object',
       description: 'No arguments.',
@@ -123,6 +125,31 @@ function clipTransitionAtCutTool(): ToolDefinition {
     description: `Adds a transition between two clips of one layer that meet end to end — the outgoing clip ends exactly where the incoming one starts — and makes their overlap in the same step: alignment start lets the outgoing clip last durationUs longer, end lets the incoming clip start durationUs earlier, and center does half of each (the incoming clip starts half of durationUs earlier, rounded down). A video or audio then shows more of its source; no keyframe moves. It is one step: all or nothing, and one undo reverts it. Refused with invalid-argument, unknown-node, not-a-cut when the clips do not meet in one scene, no-room-at-cut when the incoming clip would start before its scene, source-range-exceeded and media-facts-missing when a video lacks source at the cut, and whatever add_clip_transition, trim_clip_start, or trim_clip_end refuse; the error of a refused step names the index of its call. Returns the edited document and the IDs it created.\n\nExample arguments: {"transition":{"id":"transition-cut","fromNodeId":"node-title","toNodeId":"node-custom-html","durationUs":500000,"effect":{"kind":"push","direction":"left"}},"alignment":"center"}`,
     // The very object editor-sdk exports, frozen there (D31.2).
     inputSchema: clipTransitionAtCutArgumentsSchema,
+  });
+}
+
+/**
+ * The check of a Custom HTML element (D78): it reads the document and changes
+ * nothing. The static part reads the element's html; the render part is the
+ * host's, which lends it where a browser can render (`ToolBus.checkCustomHtml`).
+ */
+function checkCustomHtmlTool(): ToolDefinition {
+  return deepFreeze({
+    name: CHECK_CUSTOM_HTML,
+    description: `Checks one Custom HTML element of the current document and changes nothing. It reads its html for what the sandbox refuses or the managed clock does not drive — network requests and loaded resources (network), setTimeout and setInterval (timer), the document timeline and event time stamps (wall-clock), storage and cookies (storage), and navigation, links, and forms (navigation) — each with the offset and the text it matched; and where the host can render, it renders the element alone at sampled times of its lifetime twice, the second time in the reverse order, and reports a time it did not answer (no-acknowledgement), a document it navigated to (navigated), a frame that differs between the two renders (frames-differ, the mark of state kept from frame to frame or read from a clock it does not drive), and any other failure (render-failed). Returns the findings, and the render report or null when the host renders nothing. Call it after set_custom_html, and fix every finding before relying on the element. Refused with unknown-node when the document has no node of that ID, and with unsupported-node when the node is no Custom HTML.\n\nExample arguments: {"nodeId":"node-custom-html"}`,
+    inputSchema: {
+      type: 'object',
+      description: 'The element to check.',
+      properties: {
+        nodeId: {
+          type: 'string',
+          description: 'The stable ID of a Custom HTML node.',
+          minLength: 1,
+        },
+      },
+      required: ['nodeId'],
+      additionalProperties: false,
+    },
   });
 }
 
@@ -166,7 +193,7 @@ function runTransactionTool(commandNames: readonly string[]): ToolDefinition {
 /**
  * Builds the catalogue: `describe_document`, then one tool per command in the
  * order of `COMMAND_TYPES`, then `add_clip_transition_at_cut` (D66), then
- * `run_transaction` (D46.2).
+ * `check_custom_html` (D78), then `run_transaction` (D46.2).
  */
 function catalogue(): readonly ToolDefinition[] {
   const commandTools = COMMAND_TOOL_METADATA.map(commandTool);
@@ -174,6 +201,7 @@ function catalogue(): readonly ToolDefinition[] {
     describeDocumentTool(),
     ...commandTools,
     clipTransitionAtCutTool(),
+    checkCustomHtmlTool(),
     runTransactionTool(commandTools.map(({ name }) => name)),
   ]);
 }

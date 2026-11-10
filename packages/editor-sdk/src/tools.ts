@@ -63,6 +63,7 @@ import {
   setInstanceInputArgumentsSchema,
   clearInstanceInputArgumentsSchema,
   replaceDefinitionArgumentsSchema,
+  setCustomHtmlArgumentsSchema,
   removeTemplateInputArgumentsSchema,
   setTemplateInputArgumentsSchema,
   deepFreeze,
@@ -118,6 +119,7 @@ import {
   type AddDefinitionArgumentsSchema,
   type SetInstanceInputArgumentsSchema,
   type ReplaceDefinitionArgumentsSchema,
+  type SetCustomHtmlArgumentsSchema,
   type AddSceneAudioClipArgumentsSchema,
   type AddClipTransitionArgumentsSchema,
   type AddSceneTransitionArgumentsSchema,
@@ -199,7 +201,8 @@ export type CommandArgumentsSchema =
   | AddTemplateRepeatArgumentsSchema
   | AddDefinitionArgumentsSchema
   | SetInstanceInputArgumentsSchema
-  | ReplaceDefinitionArgumentsSchema;
+  | ReplaceDefinitionArgumentsSchema
+  | SetCustomHtmlArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -240,10 +243,13 @@ const CAPTIONS =
   'A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0.';
 
 const TEMPLATE =
-  'A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, into the words of a captions node (a list whose fields are text, startUs, and durationUs), or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section.';
+  'A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into a parameter of a Custom HTML element (an input of the type of the parameter), into the {{inputId}} placeholders of the text of a text node, into the words of a captions node (a list whose fields are text, startUs, and durationUs), or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section.';
 
 const DEFINITIONS =
   "A definition is a composition built once, with its own canvas (width, height), durationUs, nodes, clips, and clip transitions, and no video or Custom HTML; an instance node places it as one layer: at scene time t it shows the definition at sourceStartUs + (t - startUs), its canvas fitted to the instance's box. Every node, clip, and transition command works inside a definition as in a scene, by the IDs of its nodes, and a definition's ID is a parentId of add_node and a sceneId of add_scene_audio_clip and add_clip_transition; an edit inside a definition changes every instance of it. A definition with a template is an element: an instance gives values to its inputs (set_instance_input, clear_instance_input), and shows the definition instantiated with them, the inputs it gives no value taking their defaults; an element's inputs hold no assets, and its template is edited by replace_definition only. describe_document shows the definitions with their templates, and the values of each instance.";
+
+const CUSTOM_HTML =
+  "A Custom HTML element is a sandboxed page of width x height pixels with no network: inline HTML, CSS, and scripts only, fonts from font assets alone (font-family is the asset's ID), and no storage. Its clock is the time of its scene, from the node's startUs: CSS animations and transitions, the Web Animations API, requestAnimationFrame (called once per frame, with the time in milliseconds), Date.now, new Date(), and performance.now all read that time, every frame is rendered as if the page had run from time 0, and Math.random restarts from the same seed at every frame, so plain CSS @keyframes animate deterministically without any script. setTimeout and setInterval do not follow it: do not use them. Parameters are read in a script as kadrion.parameters.<key>, and a number or colour also in CSS as var(--<key>); a template binds a parameter to an input of its type. An element that listens to message events speaks the time protocol itself and must answer every kadrion:time message. check_custom_html renders the element at sampled times twice and reports what fails or differs.";
 
 const PIXELS = 'Lengths and coordinates are composition pixels, rounded to integers.';
 
@@ -1150,6 +1156,16 @@ const METADATA = deepFreeze<MetadataTable>({
       },
     },
     argumentsSchema: replaceDefinitionArgumentsSchema,
+  },
+  SetCustomHtml: {
+    description: `Replaces the html, the fonts, and the parameters of a Custom HTML element at once. ${CUSTOM_HTML} Refused with invalid-argument when html is longer than 262144 characters, unknown-node, unsupported-node when the node is not Custom HTML, binding-in-use when a template binds a parameter whose value changes, and invalid-result when a font is no font asset of the document or listed twice, or the parameters are not sorted by key.`,
+    example: {
+      nodeId: 'node-custom-html',
+      html: '<style>html,body{margin:0;height:100%}#dot{width:40px;height:40px;border-radius:50%;background:var(--accent);animation:move 2s linear infinite alternate}@keyframes move{to{transform:translateX(200px)}}</style><div id="dot"></div>',
+      fontAssetIds: [],
+      parameters: [{ key: 'accent', type: 'color', value: '#f79009' }],
+    },
+    argumentsSchema: setCustomHtmlArgumentsSchema,
   },
 });
 

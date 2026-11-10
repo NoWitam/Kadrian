@@ -129,6 +129,8 @@ function describeOutcome(outcome: ToolResult): string {
       return outcome.result.inverse === null
         ? 'No change: the document already is so.'
         : `Applied. Undo would dispatch:\n${JSON.stringify(outcome.result.inverse, null, 2)}`;
+    case 'check':
+      return 'Checking the Custom HTML element…';
   }
 }
 
@@ -483,6 +485,16 @@ async function main(): Promise<void> {
         args,
       );
       result.textContent = describeOutcome(outcome);
+      if (outcome.kind === 'check') {
+        // The playground lends no render check: the report holds what reading found (D78).
+        outcome.result
+          .then((found) => {
+            result.textContent = JSON.stringify(found, null, 2);
+          })
+          .catch((reason: unknown) => {
+            result.textContent = `Refused: ${describe(reason)}`;
+          });
+      }
       rerender().catch(report);
     } catch (reason: unknown) {
       result.textContent = `Refused: ${describe(reason)}`;

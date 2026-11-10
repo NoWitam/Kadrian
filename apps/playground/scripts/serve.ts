@@ -45,13 +45,15 @@ const TYPES: Readonly<Record<string, string>> = {
 /**
  * The page's own policy. The render page is a `srcdoc` of this page and
  * inherits it, so it must admit inline script and style and `data:` images
- * (D23.6, D25.2); `connect-src 'self'` lets the page fetch the artifact.
+ * (D23.6, D25.2), and `data:` fonts for the fonts of Custom HTML (D78);
+ * `connect-src 'self'` lets the page fetch the artifact.
  */
 export const PAGE_POLICY = [
   "default-src 'none'",
   "script-src 'self' 'unsafe-inline'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
+  'font-src data:',
   "connect-src 'self'",
   "base-uri 'none'",
   "form-action 'none'",

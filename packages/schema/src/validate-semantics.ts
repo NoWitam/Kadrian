@@ -79,6 +79,7 @@ import type { CompositionV018 } from './v0-18/composition-schema.js';
 import type { CompositionV019 } from './v0-19/composition-schema.js';
 import type { CompositionV020 } from './v0-20/composition-schema.js';
 import type { CompositionV021 } from './v0-21/composition-schema.js';
+import type { CompositionV022 } from './v0-22/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -101,6 +102,7 @@ type SceneNodeV019 = CompositionV019['scenes'][number]['nodes'][number];
 
 type SceneNodeV020 = CompositionV020['scenes'][number]['nodes'][number];
 type SceneNodeV021 = CompositionV021['scenes'][number]['nodes'][number];
+type SceneNodeV022 = CompositionV022['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -440,7 +442,8 @@ export function validateSemantics(
     | CompositionV018
     | CompositionV019
     | CompositionV020
-    | CompositionV021,
+    | CompositionV021
+    | CompositionV022,
   options: SemanticOptions = CHECK_EVERYTHING,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -472,7 +475,7 @@ export function validateSemantics(
   // checked as the nodes of a scene are.
   const holders: {
     readonly nodes: readonly (
-      SceneNode | SceneNodeV09 | SceneNodeV019 | SceneNodeV020 | SceneNodeV021
+      SceneNode | SceneNodeV09 | SceneNodeV019 | SceneNodeV020 | SceneNodeV021 | SceneNodeV022
     )[];
     readonly transitions?: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
     readonly effects?: Composition['scenes'][number]['effects'];
@@ -532,6 +535,9 @@ export function validateSemantics(
               checkAnimations(item.tracks, tracksPath, animationErrors);
             });
           }
+        } else if (member.node.type === 'custom-html' && 'fontAssetIds' in member.node) {
+          // The fonts and parameters of an element of 0.23 (D78).
+          checkCustomHtml(member.node, member.path, checkReference, errors);
         } else if (member.node.type === 'captions') {
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
           checkCaptionWords(member.node.words, pointer(member.path, 'words'), captionErrors);
@@ -692,7 +698,7 @@ export function validateSemantics(
     'definitions' in composition ? checkDefinitions(composition) : [];
 
   // The elements of 0.22 (D77): the templates of definitions and the values of instances.
-  if (composition.schemaVersion === SCHEMA_VERSION) {
+  if (composition.schemaVersion === SCHEMA_VERSION || composition.schemaVersion === '0.22') {
     definitionErrors.push(...checkElements(composition, options));
   }
 
@@ -721,7 +727,9 @@ export function validateSemantics(
  * definition places itself, directly or through others; and no chain of
  * instances, counted from a scene, is more than `MAX_INSTANCE_DEPTH` deep.
  */
-function checkDefinitions(composition: Composition | CompositionV021): ValidationError[] {
+function checkDefinitions(
+  composition: Composition | CompositionV021 | CompositionV022,
+): ValidationError[] {
   const errors: ValidationError[] = [];
   const definitions = new Map(
     composition.definitions.map((definition) => [definition.id, definition]),
@@ -837,7 +845,7 @@ const CHECK_EVERYTHING: SemanticOptions = Object.freeze({ instanceValues: true }
 
 /** A definition seen as a composition of one scene: its nodes, clips, and transitions (D77). */
 function definitionHolder(
-  composition: Composition,
+  composition: Pick<Composition, 'fps' | 'assets'>,
   definition: Definition,
   definitions: readonly Definition[],
   template: Composition['template'],
@@ -867,6 +875,45 @@ function definitionHolder(
   };
 }
 
+/**
+ * The fonts and parameters of a Custom HTML element (D78): every font is a
+ * font asset, listed once; the parameters are sorted by key in UTF-16 code
+ * unit order, each key once, so that one set of parameters has one form.
+ */
+function checkCustomHtml(
+  node: Extract<SceneNode, { type: 'custom-html' }>,
+  path: string,
+  checkReference: (assetId: string, type: Asset['type'], path: string) => void,
+  errors: ValidationError[],
+): void {
+  const fonts = new Set<string>();
+  node.fontAssetIds.forEach((assetId, index) => {
+    const at = pointer(pointer(path, 'fontAssetIds'), index);
+    checkReference(assetId, 'font', at);
+    if (fonts.has(assetId)) {
+      errors.push({
+        code: 'duplicate-font-asset',
+        path: at,
+        message: `Font asset "${assetId}" is listed more than once.`,
+      });
+    }
+    fonts.add(assetId);
+  });
+  node.parameters.forEach((parameter, index) => {
+    const previous = node.parameters[index - 1];
+    if (previous !== undefined && !(previous.key < parameter.key)) {
+      errors.push({
+        code: 'parameters-not-sorted',
+        path: pointer(pointer(pointer(path, 'parameters'), index), 'key'),
+        message:
+          previous.key === parameter.key
+            ? `The parameter "${parameter.key}" is listed more than once.`
+            : `The parameters are sorted by key: "${parameter.key}" comes before "${previous.key}".`,
+      });
+    }
+  });
+}
+
 /** A path into a definition's holder as a path into the definition at `base` (D77). */
 function heldPath(path: string, base: string): string {
   if (path === '/scenes/0' || path.startsWith('/scenes/0/')) return base + path.slice(9);
@@ -885,7 +932,10 @@ const ASSET_TYPES: readonly string[] = ['image', 'video', 'audio'];
  * instantiated with them is a valid definition. The copies of the repeats of
  * every instance count together toward `MAX_REPEAT_IDS`.
  */
-function checkElements(composition: Composition, options: SemanticOptions): ValidationError[] {
+function checkElements(
+  composition: Composition | CompositionV022,
+  options: SemanticOptions,
+): ValidationError[] {
   const errors: ValidationError[] = [];
   const definitions = new Map(
     composition.definitions.map((definition) => [definition.id, definition]),
@@ -1233,6 +1283,7 @@ function checkTemplate(
     | CompositionV019
     | CompositionV020
     | CompositionV021
+    | CompositionV022
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1502,6 +1553,44 @@ function checkTemplate(
       }
       return;
     }
+    if (binding.kind === 'parameter') {
+      const input = inputOf(binding.inputId);
+      if (node === undefined || input === undefined) return;
+      if (node.type !== 'custom-html' || !('parameters' in node)) {
+        push(
+          'binding-type-mismatch',
+          pointer(path, 'nodeId'),
+          `A ${node.type} node has no parameters.`,
+        );
+        return;
+      }
+      const parameter = node.parameters.find((item) => item.key === binding.key);
+      if (parameter === undefined) {
+        push(
+          'unresolved-parameter-reference',
+          pointer(path, 'key'),
+          `The Custom HTML element "${node.id}" has no parameter "${binding.key}".`,
+        );
+        return;
+      }
+      if (input.type !== parameter.type) {
+        push(
+          'binding-type-mismatch',
+          pointer(path, 'inputId'),
+          `The parameter "${parameter.key}" is of type ${parameter.type} and takes an input of its type, not ${input.type}.`,
+        );
+        return;
+      }
+      if (!claim(`node:${node.id}/parameters/${parameter.key}`)) return;
+      if (parameter.value !== input.default) {
+        push(
+          'binding-value-mismatch',
+          path,
+          `The parameter "${parameter.key}" of "${node.id}" must hold the default of input "${input.id}".`,
+        );
+      }
+      return;
+    }
     const input = inputOf(binding.inputId);
     if (node === undefined || input === undefined) return;
     const rule = BOUND_PROPERTIES[binding.property];
@@ -1711,6 +1800,7 @@ function subtreeOf(
     | CompositionV019
     | CompositionV020
     | CompositionV021
+    | CompositionV022
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1785,7 +1875,9 @@ interface Located {
     | SceneNodeV020
     | Extract<SceneNodeV020, { type: 'group' }>['children'][number]
     | SceneNodeV021
-    | Extract<SceneNodeV021, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV021, { type: 'group' }>['children'][number]
+    | SceneNodeV022
+    | Extract<SceneNodeV022, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -1815,7 +1907,8 @@ function checkTransitions(
     | CompositionV018
     | CompositionV019
     | CompositionV020
-    | CompositionV021,
+    | CompositionV021
+    | CompositionV022,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

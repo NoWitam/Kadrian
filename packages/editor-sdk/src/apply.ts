@@ -212,6 +212,7 @@ const BINDING_CODES: readonly string[] = Object.freeze([
   'unresolved-node-reference',
   'unresolved-asset-reference',
   'unresolved-input-reference',
+  'unresolved-parameter-reference',
   'binding-type-mismatch',
   'binding-value-mismatch',
   'duplicate-binding-target',

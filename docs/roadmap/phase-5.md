@@ -606,6 +606,7 @@ width, height, fit }`, whose content at scene time `t` is the definition
 
 ### PR-56 — Custom HTML for AI authors
 
+- Status: in review, with its ADR D78 (Proposed). Decisions: parameters enter the document (schema `0.23`), and a parameter may be bound to a template input. Deviations from this plan: the parameters live in the shell of the element, never in the time message, so the protocol stays version 1; the clock settles CSS animations and transitions by committing their styles at the pushed time and cancelling them, since a paused animation with no timeline does not seek; timers (`setTimeout`, `setInterval`) are not driven by the clock, and `check_custom_html` reports them in its findings; the limit of the html is checked by the command `SetCustomHtml`, not by the schema.
 - **Goal:** an AI agent writes an HTML/CSS/JS animation that renders the same
   frame at the same time in the Player and the Producer, without knowing the
   internals of the sandbox.
