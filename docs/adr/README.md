@@ -83,7 +83,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D73](D73-vector-shapes-and-paths.md)                         | Vector shapes and paths: schema 0.18                                                         | Accepted          |
 | [D74](D74-svg-assets.md)                                      | SVG assets: schema 0.19                                                                      | Accepted          |
 | [D75](D75-blend-modes-masks-and-mattes.md)                    | Blend modes, masks, and mattes: schema 0.20                                                  | Accepted          |
-| [D76](D76-nested-compositions.md)                             | Nested compositions: schema 0.21                                                             | Proposed          |
+| [D76](D76-nested-compositions.md)                             | Nested compositions: schema 0.21                                                             | Accepted          |
 
 ## Provenance of D01–D10
 
