@@ -1,6 +1,7 @@
 # D75 — Blend modes, masks, and mattes: schema 0.20
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-10, after PR-54 was merged
+  (PR #80)
 - Date: 2026-11-09
 - Supersedes: —
 - Amends: D35 (the step from `0.19` to `0.20` and the frozen `0.19`
