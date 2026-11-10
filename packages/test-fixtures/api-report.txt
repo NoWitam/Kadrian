@@ -223,6 +223,12 @@ export declare const effectsSvgComposition: unknown;
 ---- effectsSvgGoldenTimestamps
 export declare const effectsSvgGoldenTimestamps: readonly GoldenTimestamp[];
 
+---- elementsComposition
+export declare const elementsComposition: unknown;
+
+---- elementsGoldenTimestamps
+export declare const elementsGoldenTimestamps: readonly GoldenTimestamp[];
+
 ---- focusComposition
 export declare const focusComposition: unknown;
 
@@ -282,6 +288,9 @@ export declare const invalidCompositionCasesV02: readonly InvalidCompositionCase
 
 ---- invalidCompositionCasesV020
 export declare const invalidCompositionCasesV020: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV021
+export declare const invalidCompositionCasesV021: readonly InvalidCompositionCase[];
 
 ---- invalidCompositionCasesV03
 export declare const invalidCompositionCasesV03: readonly InvalidCompositionCase[];
@@ -345,6 +354,9 @@ export declare const migrationPair01To02: MigrationPair;
 
 ---- migrationPair020To021
 export declare const migrationPair020To021: MigrationPair;
+
+---- migrationPair021To022
+export declare const migrationPair021To022: MigrationPair;
 
 ---- migrationPair02To03
 export declare const migrationPair02To03: MigrationPair;
@@ -423,6 +435,9 @@ export declare const referenceCompositionV02: unknown;
 
 ---- referenceCompositionV020
 export declare const referenceCompositionV020: unknown;
+
+---- referenceCompositionV021
+export declare const referenceCompositionV021: unknown;
 
 ---- referenceCompositionV03
 export declare const referenceCompositionV03: unknown;

@@ -156,15 +156,27 @@ describe('schema conventions', () => {
     ).toEqual([]);
   });
 
-  it('requires a stable ID for every entity: all array items except keyframes, caption words, the tracks of a text animation, the fields and items of a list input, the levels of a curve, and the points, commands, stops, and dashes of a shape', () => {
+  /** Whether an array holds the values an instance gives its inputs, each with an inputId (D77). */
+  const givesInputs = (schema: JsonObject): boolean => {
+    const items = schema['items'];
+    if (!isObject(items) || !Array.isArray(items['oneOf'])) return false;
+    return items['oneOf'].every(
+      (branch) =>
+        isObject(branch) && isObject(branch['properties']) && 'inputId' in branch['properties'],
+    );
+  };
+
+  it('requires a stable ID for every entity: all array items except keyframes, caption words, the tracks of a text animation, the fields and items of a list input, the values of an instance, the levels of a curve, and the points, commands, stops, and dashes of a shape', () => {
     // A keyframe is addressed by its time, a caption word by its index (D57), a
     // field of a list input by its key, an item of its default by its index, and
     // a value of an item by its field (D58.1), a track of a text animation
     // by its property, which it holds once (D69), and a level of a curve by its
     // index, a number and no entity (D72); the points and commands of a shape's
     // geometry, the stops of its gradient, and the dashes of its stroke are
-    // values addressed by their index and replaced whole (D73).
-    const values = locationsWhere(({ name }) => name === 'default').map(
+    // values addressed by their index and replaced whole (D73); the values of an
+    // instance are addressed by the input they give, and the items of a list value
+    // by their index, as a default's are (D77).
+    const values = locationsWhere(({ name }) => name === 'default' || name === 'value').map(
       (location) => `${location}/items`,
     );
     const entities = all
@@ -184,8 +196,10 @@ describe('schema conventions', () => {
             'commands',
             'stops',
             'dash',
+            'value',
           ].includes(name ?? '') &&
-          !values.includes(location),
+          !values.includes(location) &&
+          !givesInputs(schema),
       )
       .flatMap(({ location, schema: { items } }) => {
         const branches = isObject(items) && Array.isArray(items.oneOf) ? items.oneOf : [items];

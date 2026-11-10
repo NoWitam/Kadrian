@@ -60,6 +60,9 @@ import {
   removeDefinitionArgumentsSchema,
   convertToDefinitionArgumentsSchema,
   expandInstanceArgumentsSchema,
+  setInstanceInputArgumentsSchema,
+  clearInstanceInputArgumentsSchema,
+  replaceDefinitionArgumentsSchema,
   removeTemplateInputArgumentsSchema,
   setTemplateInputArgumentsSchema,
   deepFreeze,
@@ -113,6 +116,8 @@ import {
   type AddNodeArgumentsSchema,
   type AddSceneArgumentsSchema,
   type AddDefinitionArgumentsSchema,
+  type SetInstanceInputArgumentsSchema,
+  type ReplaceDefinitionArgumentsSchema,
   type AddSceneAudioClipArgumentsSchema,
   type AddClipTransitionArgumentsSchema,
   type AddSceneTransitionArgumentsSchema,
@@ -192,7 +197,9 @@ export type CommandArgumentsSchema =
   | AddTemplateBindingArgumentsSchema
   | AddTemplateConditionArgumentsSchema
   | AddTemplateRepeatArgumentsSchema
-  | AddDefinitionArgumentsSchema;
+  | AddDefinitionArgumentsSchema
+  | SetInstanceInputArgumentsSchema
+  | ReplaceDefinitionArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -233,10 +240,10 @@ const CAPTIONS =
   'A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0.';
 
 const TEMPLATE =
-  'A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section.';
+  'A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, into the words of a captions node (a list whose fields are text, startUs, and durationUs), or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section.';
 
 const DEFINITIONS =
-  "A definition is a composition built once, with its own canvas (width, height), durationUs, nodes, clips, and clip transitions, and no video or Custom HTML; an instance node places it as one layer: at scene time t it shows the definition at sourceStartUs + (t - startUs), its canvas fitted to the instance's box. Every node, clip, and transition command works inside a definition as in a scene, by the IDs of its nodes, and a definition's ID is a parentId of add_node and a sceneId of add_scene_audio_clip and add_clip_transition; an edit inside a definition changes every instance of it. describe_document shows the definitions.";
+  "A definition is a composition built once, with its own canvas (width, height), durationUs, nodes, clips, and clip transitions, and no video or Custom HTML; an instance node places it as one layer: at scene time t it shows the definition at sourceStartUs + (t - startUs), its canvas fitted to the instance's box. Every node, clip, and transition command works inside a definition as in a scene, by the IDs of its nodes, and a definition's ID is a parentId of add_node and a sceneId of add_scene_audio_clip and add_clip_transition; an edit inside a definition changes every instance of it. A definition with a template is an element: an instance gives values to its inputs (set_instance_input, clear_instance_input), and shows the definition instantiated with them, the inputs it gives no value taking their defaults; an element's inputs hold no assets, and its template is edited by replace_definition only. describe_document shows the definitions with their templates, and the values of each instance.";
 
 const PIXELS = 'Lengths and coordinates are composition pixels, rounded to integers.';
 
@@ -1057,11 +1064,12 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: removeTemplateRepeatArgumentsSchema,
   },
   AddDefinition: {
-    description: `Inserts one complete definition at an index of the definitions. ${DEFINITIONS} The definition is given exactly as the document stores it: an ID unused in the document, width and height in pixels, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), its audio clips, and its clip transitions, every ID unused in the document, every time in definition time. Place it with add_node and an instance node. Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the definition is not one the document can hold.`,
+    description: `Inserts one complete definition at an index of the definitions. ${DEFINITIONS} The definition is given exactly as the document stores it: an ID unused in the document, a sourceHash ('' or the host's sha256: label of the source it was made from, never checked), width and height in pixels, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), its audio clips, its clip transitions, and its template (inputs, bindings, conditions, repeats; all empty for a definition that is no element), every ID unused in the document, every time in definition time. Place it with add_node and an instance node. Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the definition is not one the document can hold.`,
     example: {
       index: 0,
       definition: {
         id: 'definition-badge',
+        sourceHash: '',
         width: 200,
         height: 200,
         durationUs: 1_000_000,
@@ -1077,6 +1085,7 @@ const METADATA = deepFreeze<MetadataTable>({
         ],
         clips: [],
         transitions: [],
+        template: { inputs: [], bindings: [], conditions: [], repeats: [] },
       },
     },
     argumentsSchema: addDefinitionArgumentsSchema,
@@ -1098,9 +1107,49 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: convertToDefinitionArgumentsSchema,
   },
   ExpandInstance: {
-    description: `Puts the nodes of an instance's definition in the instance's place, with their IDs and times, and removes the definition: the inverse of convert_to_definition. ${DEFINITIONS} Refused with unknown-node, unsupported-node when the node is not an instance, and instance-not-expandable unless the instance shows its definition exactly as its nodes placed directly would (from time 0 over the whole holder, filling the holder's canvas, untransformed, without effects, mask, matte, or blend mode, the definition of the holder's canvas and duration with nodes and without clips or transitions) and no other instance places the definition.`,
+    description: `Puts the nodes of an instance's definition in the instance's place, with their IDs and times, and removes the definition: the inverse of convert_to_definition. ${DEFINITIONS} Refused with unknown-node, unsupported-node when the node is not an instance, and instance-not-expandable unless the instance shows its definition exactly as its nodes placed directly would (from time 0 over the whole holder, filling the holder's canvas, untransformed, without effects, mask, matte, blend mode, or input values, the definition of the holder's canvas and duration with nodes and without clips, transitions, source hash, or template) and no other instance places the definition.`,
     example: { instanceId: 'node-group-instance' },
     argumentsSchema: expandInstanceArgumentsSchema,
+  },
+  SetInstanceInput: {
+    description: `Gives one input of an element instance a value, replacing the instance's value of that input; the instance shows its definition instantiated with its values at once. ${DEFINITIONS} The value is given as the instance stores it: { inputId, type, value }, with the input's ID and type (text, number, boolean, color, or list) and a value within the input's constraints; a list value is an array of items, each an array of { key, type, value } in the order of the list's fields. Refused with unknown-node, unsupported-node when the node is not an instance, unknown-input when its definition has no such input, and invalid-result when the value does not fit the input or the definition instantiated with it is not one the document can hold.`,
+    example: {
+      instanceId: 'node-lower-third',
+      input: { inputId: 'title', type: 'text', value: 'Ada Lovelace' },
+    },
+    argumentsSchema: setInstanceInputArgumentsSchema,
+  },
+  ClearInstanceInput: {
+    description: `Removes an instance's value of one input, which then takes its default; nothing changes when the instance gives it no value. ${DEFINITIONS} Refused with unknown-node, unsupported-node when the node is not an instance, unknown-input when its definition has no such input, and invalid-result when the definition instantiated with the defaults is not one the document can hold.`,
+    example: { instanceId: 'node-lower-third', inputId: 'title' },
+    argumentsSchema: clearInstanceInputArgumentsSchema,
+  },
+  ReplaceDefinition: {
+    description: `Replaces one definition whole, keeping its ID and its place among the definitions: its sourceHash, canvas, duration, nodes, clips, transitions, and template, given exactly as the document stores them (see add_definition). It is how an element's template, its inputs, bindings, conditions, and repeats, is edited, and how a host brings an element up to a new version of its source. ${DEFINITIONS} Refused with unknown-definition, invalid-result when definition.id is not definitionId or the definition is not one the document can hold, id-in-use with the IDs it would add that the document already uses, and instance-inputs-mismatch with the IDs of the instances whose values would no longer fit it: set or clear them first, in the same transaction.`,
+    example: {
+      definitionId: 'definition-badge',
+      definition: {
+        id: 'definition-badge',
+        sourceHash: '',
+        width: 200,
+        height: 200,
+        durationUs: 1_000_000,
+        nodes: [
+          {
+            id: 'node-badge-background',
+            type: 'background',
+            startUs: 0,
+            durationUs: 1_000_000,
+            color: '#ffffff',
+            animations: [],
+          },
+        ],
+        clips: [],
+        transitions: [],
+        template: { inputs: [], bindings: [], conditions: [], repeats: [] },
+      },
+    },
+    argumentsSchema: replaceDefinitionArgumentsSchema,
   },
 });
 

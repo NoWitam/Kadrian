@@ -1,0 +1,158 @@
+{
+  "render": {
+    "manifestVersion": 3,
+    "compositionHash": "sha256:25d24a4f2ff077b11c36dae863e041ed3b451dce10c23c9cc6d89fe495d795cb",
+    "schemaVersion": "0.22",
+    "runtime": {
+      "contentHash": "sha256:6c9054c4e3f0615392dc62c15e555d7b1079314d12873a2ba06c9974b4d371ce",
+      "bundler": "esbuild@0.28.2",
+      "compiler": "typescript@6.0.3"
+    },
+    "chromium": {
+      "playwrightCore": "1.63.0",
+      "revision": "1243",
+      "expectedVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ]
+    },
+    "environment": {
+      "pinned": true,
+      "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+      "pinnedPlatform": "linux/amd64",
+      "os": "linux",
+      "arch": "x64",
+      "node": "v24.20.0",
+      "playwrightCore": "1.63.0",
+      "chromiumRevision": "1243",
+      "chromiumVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ],
+      "locale": "en-US",
+      "timezone": "UTC",
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "deviceScaleFactor": 1,
+      "network": {
+        "interfaces": [
+          "lo"
+        ],
+        "loopbackOnly": true
+      }
+    },
+    "assets": [
+      {
+        "id": "asset-font",
+        "type": "font",
+        "mediaType": "font/ttf",
+        "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4",
+        "family": "kadrion-font-asset-font"
+      }
+    ],
+    "durationUs": 2000000,
+    "frameCount": 60,
+    "video": null,
+    "preset": {
+      "name": "frames-png",
+      "width": 640,
+      "height": 360,
+      "fps": 30,
+      "deviceScaleFactor": 1
+    },
+    "frames": [
+      {
+        "index": 0,
+        "timeUs": 0,
+        "sha256": "sha256:f07dc7ca6dc3a6d20d9d9448b3ef24bb3a60839599793533c889d6766ca6228e"
+      },
+      {
+        "index": 15,
+        "timeUs": 500000,
+        "sha256": "sha256:b11780386020c7f701ed159a33fd253813359634dbcb7cfe46e29797c4e4a805"
+      },
+      {
+        "index": 30,
+        "timeUs": 1000000,
+        "sha256": "sha256:cbe4baafc2f58346e5c8d1663f5d8d6bfad5321c8e6555b692407f526e82d045"
+      },
+      {
+        "index": 48,
+        "timeUs": 1600000,
+        "sha256": "sha256:14821791ef1ad9ffce699774932a1468070e58bffcd608ae0b73848f889b4ee2"
+      }
+    ],
+    "blockedRequests": [],
+    "ffmpeg": null
+  },
+  "environment": {
+    "pinned": true,
+    "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+    "pinnedPlatform": "linux/amd64",
+    "os": "linux",
+    "arch": "x64",
+    "node": "v24.20.0",
+    "playwrightCore": "1.63.0",
+    "chromiumRevision": "1243",
+    "chromiumVersion": "153.0.8010.12",
+    "reportedVersion": "153.0.8010.12",
+    "channel": "chromium",
+    "args": [
+      "--force-color-profile=srgb",
+      "--disable-lcd-text",
+      "--hide-scrollbars",
+      "--mute-audio"
+    ],
+    "locale": "en-US",
+    "timezone": "UTC",
+    "viewport": {
+      "width": 1080,
+      "height": 1920
+    },
+    "deviceScaleFactor": 1,
+    "network": {
+      "interfaces": [
+        "lo"
+      ],
+      "loopbackOnly": true
+    }
+  },
+  "frames": [
+    {
+      "file": "elements-0.png",
+      "timeUs": 0,
+      "index": 0,
+      "sha256": "sha256:f07dc7ca6dc3a6d20d9d9448b3ef24bb3a60839599793533c889d6766ca6228e"
+    },
+    {
+      "file": "elements-500000.png",
+      "timeUs": 500000,
+      "index": 15,
+      "sha256": "sha256:b11780386020c7f701ed159a33fd253813359634dbcb7cfe46e29797c4e4a805"
+    },
+    {
+      "file": "elements-1000000.png",
+      "timeUs": 1000000,
+      "index": 30,
+      "sha256": "sha256:cbe4baafc2f58346e5c8d1663f5d8d6bfad5321c8e6555b692407f526e82d045"
+    },
+    {
+      "file": "elements-1600000.png",
+      "timeUs": 1600000,
+      "index": 48,
+      "sha256": "sha256:14821791ef1ad9ffce699774932a1468070e58bffcd608ae0b73848f889b4ee2"
+    }
+  ]
+}

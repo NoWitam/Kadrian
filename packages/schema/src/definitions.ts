@@ -11,6 +11,8 @@
  * inside another (D76.3): an ID of a document never holds a `/`, so a path
  * names one placed entity and never collides with an ID of the document.
  */
+import { instantiateDefinition, valuesOf } from './template-fill.js';
+import { isTemplate } from './template-values.js';
 import type { Composition, Definition, InstanceNode } from './types.js';
 
 /** How many instances may hold each other, counted from a scene (D65.4, D76). */
@@ -57,6 +59,20 @@ function scoped<T>(value: T, prefix: string): T {
   return value;
 }
 
+/** The definition as an instance shows it: an element instantiated with the instance's values (D77). */
+function shownDefinition(
+  definition: Definition,
+  instance: Pick<InstanceNode, 'inputs'> | object,
+): Definition | null {
+  // A definition of 0.21 read by the migration has no template (D76).
+  if (!('template' in definition) || !isTemplate(definition)) return definition;
+  const inputs = 'inputs' in instance ? instance.inputs : [];
+  // No cache: a module keeps no state (D20, D24.4); the instantiation is pure and cheap.
+  const made = instantiateDefinition(definition, valuesOf(inputs));
+  // Validation instantiates every element instance of a document it accepts (D77).
+  return made.ok ? made.definition : null;
+}
+
 /**
  * The definition an instance places, with every ID inside it addressed by its
  * path through `instance` (D76.3): the IDs of its nodes, animations, effects,
@@ -66,14 +82,20 @@ function scoped<T>(value: T, prefix: string): T {
  * paths of nested instances compose. `null` when the document has no such
  * definition, which validation refuses (`unresolved-definition-reference`).
  *
+ * A definition with a template is an element (D77): the instance shows it as
+ * `instantiateTemplate` makes it with the instance's values, its bindings,
+ * conditions, repeats, and placeholders applied, and its template emptied.
+ *
  * The result is a new value that shares no object with the document.
  */
 export function instanceDefinition(
   composition: Pick<Composition, 'definitions'>,
-  instance: Pick<InstanceNode, 'id' | 'definitionId'>,
+  instance: Pick<InstanceNode, 'id' | 'definitionId'> & Partial<Pick<InstanceNode, 'inputs'>>,
 ): Definition | null {
   const definition = composition.definitions.find(({ id }) => id === instance.definitionId);
   if (definition === undefined) return null;
+  const shown = shownDefinition(definition, instance);
+  if (shown === null) return null;
   // The definition keeps its own ID; everything inside it takes the path.
-  return { ...scoped(definition, `${instance.id}${INSTANCE_PATH_SEPARATOR}`), id: definition.id };
+  return { ...scoped(shown, `${instance.id}${INSTANCE_PATH_SEPARATOR}`), id: definition.id };
 }

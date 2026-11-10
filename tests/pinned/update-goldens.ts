@@ -6,7 +6,7 @@
  * easing composition (D67), of the motion composition (D68), of the text
  * composition (D69), of the animated captions composition (D70), and of the
  * effects composition (D71), of the SVG effects composition (D72), of the composition of shapes (D73), of the SVG composition (D74), and of the
- * composition of compositing (D75), and of the nested composition (D76) with the
+ * composition of compositing (D75), of the nested composition (D76), and of the elements (D77) with the
  * Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
@@ -53,6 +53,8 @@ import {
   motionGoldenTimestamps,
   nestedComposition,
   nestedGoldenTimestamps,
+  elementsComposition,
+  elementsGoldenTimestamps,
   shapesComposition,
   shapesGoldenTimestamps,
   svgComposition,
@@ -404,6 +406,24 @@ try {
       `${JSON.stringify({ render: nestedResult.manifest, environment, frames: nestedFrames }, null, 2)}\n`,
     );
     for (const frame of nestedFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The elements: definitions with templates, instantiated with each instance's values (D77).
+    const elementsResult = await renderFrames({
+      document: elementsComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: elementsGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const elementsFrames = elementsResult.frames.map(({ index, timeUs, png }) => {
+      const file = `elements-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'elements.golden-frames.json'),
+      `${JSON.stringify({ render: elementsResult.manifest, environment, frames: elementsFrames }, null, 2)}\n`,
+    );
+    for (const frame of elementsFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

@@ -130,6 +130,9 @@ export declare const INSTANCE_PATH_SEPARATOR = "/";
 ---- ImageNode (type only)
 export type ImageNode = Infer<typeof imageNodeSchema>;
 
+---- InstanceInput (type only)
+export type InstanceInput = Infer<typeof instanceInputSchema>;
+
 ---- InstanceNode (type only)
 export type InstanceNode = Infer<typeof instanceNodeSchema>;
 
@@ -163,7 +166,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.21";
+export declare const SCHEMA_VERSION = "0.22";
 
 ---- SVG_IDENTITY
 export declare const SVG_IDENTITY: SvgMatrix;
@@ -416,7 +419,7 @@ export interface ValidationError {
 }
 
 ---- ValidationErrorCode (type only)
-export type ValidationErrorCode = 'unsupported-schema-version' | 'missing-field' | 'unknown-field' | 'invalid-type' | 'invalid-value' | 'out-of-range' | 'invalid-length' | 'duplicate-id' | 'unresolved-asset-reference' | 'asset-type-mismatch' | 'keyframes-not-ascending' | 'source-time-out-of-range' | 'clip-fades-exceed-duration' | 'composition-duration-mismatch' | 'unresolved-scene-reference' | 'unresolved-node-reference' | 'transition-not-adjacent' | 'transition-not-siblings' | 'transition-node-type' | 'transition-overlap-mismatch' | 'transition-too-long' | 'duplicate-transition' | 'caption-words-overlap' | 'duplicate-animation-target' | 'crop-empty' | 'safe-area-empty' | 'bound-property-animated' | 'template-input-invalid' | 'unresolved-input-reference' | 'binding-type-mismatch' | 'binding-value-mismatch' | 'duplicate-binding-target' | 'invalid-placeholder' | 'unresolved-target-reference' | 'unresolved-field-reference' | 'condition-type-mismatch' | 'repeat-type-mismatch' | 'nested-repeat' | 'repeat-in-transition' | 'repeat-of-matte' | 'repeat-id-reserved' | 'item-outside-repeat' | 'path-start-not-move' | 'gradient-stops-not-ascending' | 'stroke-dash-odd' | 'fill-not-solid' | 'geometry-mismatch' | 'matte-not-sibling' | 'matte-not-shape' | 'matte-not-plain' | 'matte-in-transition' | 'unresolved-definition-reference' | 'instance-exceeds-definition' | 'definition-cycle' | 'definition-too-deep';
+export type ValidationErrorCode = 'unsupported-schema-version' | 'missing-field' | 'unknown-field' | 'invalid-type' | 'invalid-value' | 'out-of-range' | 'invalid-length' | 'duplicate-id' | 'unresolved-asset-reference' | 'asset-type-mismatch' | 'keyframes-not-ascending' | 'source-time-out-of-range' | 'clip-fades-exceed-duration' | 'composition-duration-mismatch' | 'unresolved-scene-reference' | 'unresolved-node-reference' | 'transition-not-adjacent' | 'transition-not-siblings' | 'transition-node-type' | 'transition-overlap-mismatch' | 'transition-too-long' | 'duplicate-transition' | 'caption-words-overlap' | 'duplicate-animation-target' | 'crop-empty' | 'safe-area-empty' | 'bound-property-animated' | 'template-input-invalid' | 'unresolved-input-reference' | 'binding-type-mismatch' | 'binding-value-mismatch' | 'duplicate-binding-target' | 'invalid-placeholder' | 'unresolved-target-reference' | 'unresolved-field-reference' | 'condition-type-mismatch' | 'repeat-type-mismatch' | 'nested-repeat' | 'repeat-in-transition' | 'repeat-of-matte' | 'repeat-id-reserved' | 'item-outside-repeat' | 'path-start-not-move' | 'gradient-stops-not-ascending' | 'stroke-dash-odd' | 'fill-not-solid' | 'geometry-mismatch' | 'matte-not-sibling' | 'matte-not-shape' | 'matte-not-plain' | 'matte-in-transition' | 'unresolved-definition-reference' | 'instance-exceeds-definition' | 'definition-cycle' | 'definition-too-deep' | 'element-asset-input' | 'instance-input-invalid';
 
 ---- ValidationResult (type only)
 export type ValidationResult = {
@@ -438,11 +441,11 @@ export declare const compositionSchema: {
     readonly type: "object";
     readonly description: string;
     readonly additionalProperties: false;
-    readonly required: readonly ("width" | "height" | "durationUs" | "clips" | "transitions" | "schemaVersion" | "safeArea" | "fps" | "assets" | "scenes" | "definitions" | "template")[];
+    readonly required: readonly ("width" | "height" | "durationUs" | "clips" | "transitions" | "template" | "schemaVersion" | "safeArea" | "fps" | "assets" | "scenes" | "definitions")[];
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.21";
+            readonly const: "0.22";
         };
         readonly width: {
             readonly type: "integer";
@@ -4082,6 +4085,11 @@ export declare const compositionSchema: {
                     readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
                     readonly pattern: "^[A-Za-z0-9_-]+$";
                 };
+                readonly sourceHash: {
+                    readonly type: "string";
+                    readonly description: "The content hash of the bytes the host made this definition from, so that it knows which version of an element a document holds, or empty when it gave none; Kadrion never computes or checks it, and an edit inside the definition leaves it as it is, since the definition was still made from those bytes (D77).";
+                    readonly pattern: "^(sha256:[0-9a-f]{64})?$";
+                };
                 readonly width: {
                     readonly description: "The width of the canvas of the definition, in pixels (D76).";
                     readonly type: "integer";
@@ -4544,6 +4552,773 @@ export declare const compositionSchema: {
                             ];
                         };
                     }>;
+                };
+                readonly template: {
+                    readonly description: "The inputs of the element, their bindings into the definition's nodes, the conditions, and the repeats; empty in a definition that is no element. Each instance shows the definition instantiated with the instance's values as a template is (D58, D59, D77).";
+                    readonly type: "object";
+                    readonly additionalProperties: false;
+                    readonly required: readonly ("inputs" | "bindings" | "conditions" | "repeats")[];
+                    readonly properties: {
+                        readonly inputs: {
+                            readonly type: "array";
+                            readonly description: "The inputs, in the order a host shows them (D58.1).";
+                            readonly items: {
+                                readonly description: "One input of a template (D58.1).";
+                                readonly oneOf: readonly [
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly default: {
+                                            readonly description: "The value of the input when the host gives none; every property or asset bound to the input holds it (D58.1, D58.3).";
+                                            readonly type: "string";
+                                        };
+                                        readonly minLength: {
+                                            readonly description: "The fewest characters of a value, code points (D58.1).";
+                                            readonly type: "integer";
+                                            readonly minimum: 0;
+                                            readonly maximum: 1000000;
+                                        };
+                                        readonly maxLength: {
+                                            readonly description: "The most characters of a value, code points (D58.1).";
+                                            readonly type: "integer";
+                                            readonly minimum: 0;
+                                            readonly maximum: 1000000;
+                                        };
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly type: {
+                                            readonly type: "string";
+                                            readonly const: "text";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly default: {
+                                            readonly description: "The value of the input when the host gives none; every property or asset bound to the input holds it (D58.1, D58.3).";
+                                            readonly type: "number";
+                                            readonly minimum: number;
+                                            readonly maximum: 9007199254740991;
+                                        };
+                                        readonly minimum: {
+                                            readonly description: "The least value, inclusive (D58.1).";
+                                            readonly type: "number";
+                                            readonly minimum: number;
+                                            readonly maximum: 9007199254740991;
+                                        };
+                                        readonly maximum: {
+                                            readonly description: "The greatest value, inclusive (D58.1).";
+                                            readonly type: "number";
+                                            readonly minimum: number;
+                                            readonly maximum: 9007199254740991;
+                                        };
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly type: {
+                                            readonly type: "string";
+                                            readonly const: "number";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly type: {
+                                            readonly type: "string";
+                                            readonly const: "boolean";
+                                        };
+                                        readonly default: {
+                                            readonly description: "The value of the input when the host gives none; every property or asset bound to the input holds it (D58.1, D58.3).";
+                                            readonly type: "boolean";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly type: {
+                                            readonly type: "string";
+                                            readonly const: "color";
+                                        };
+                                        readonly default: {
+                                            readonly description: "The value of the input when the host gives none; every property or asset bound to the input holds it (D58.1, D58.3).";
+                                            readonly type: "string";
+                                            readonly pattern: "^#[0-9a-f]{6}$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly type: {
+                                            readonly type: "string";
+                                            readonly const: "image";
+                                        };
+                                        readonly default: {
+                                            readonly description: "The value of the input when the host gives none; every property or asset bound to the input holds it (D58.1, D58.3).";
+                                            readonly type: "string";
+                                            readonly pattern: "^sha256:[0-9a-f]{64}$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly type: {
+                                            readonly type: "string";
+                                            readonly const: "video";
+                                        };
+                                        readonly default: {
+                                            readonly description: "The value of the input when the host gives none; every property or asset bound to the input holds it (D58.1, D58.3).";
+                                            readonly type: "string";
+                                            readonly pattern: "^sha256:[0-9a-f]{64}$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly type: {
+                                            readonly type: "string";
+                                            readonly const: "audio";
+                                        };
+                                        readonly default: {
+                                            readonly description: "The value of the input when the host gives none; every property or asset bound to the input holds it (D58.1, D58.3).";
+                                            readonly type: "string";
+                                            readonly pattern: "^sha256:[0-9a-f]{64}$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly type: {
+                                            readonly type: "string";
+                                            readonly const: "list";
+                                        };
+                                        readonly minItems: {
+                                            readonly type: "integer";
+                                            readonly description: "The fewest items of a value (D58.1).";
+                                            readonly minimum: 0;
+                                            readonly maximum: 10000;
+                                        };
+                                        readonly maxItems: {
+                                            readonly type: "integer";
+                                            readonly description: "The most items of a value (D58.1).";
+                                            readonly minimum: 0;
+                                            readonly maximum: 10000;
+                                        };
+                                        readonly fields: {
+                                            readonly type: "array";
+                                            readonly description: "The fields of every item, in their order, at least one (D58.1).";
+                                            readonly minItems: 1;
+                                            readonly items: {
+                                                readonly description: "One field of the items of a list input (D58.1).";
+                                                readonly oneOf: readonly [
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly minLength: {
+                                                            readonly description: "The fewest characters of a value, code points (D58.1).";
+                                                            readonly type: "integer";
+                                                            readonly minimum: 0;
+                                                            readonly maximum: 1000000;
+                                                        };
+                                                        readonly maxLength: {
+                                                            readonly description: "The most characters of a value, code points (D58.1).";
+                                                            readonly type: "integer";
+                                                            readonly minimum: 0;
+                                                            readonly maximum: 1000000;
+                                                        };
+                                                        readonly key: {
+                                                            readonly type: "string";
+                                                            readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                        };
+                                                        readonly type: {
+                                                            readonly type: "string";
+                                                            readonly const: "text";
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly minimum: {
+                                                            readonly description: "The least value, inclusive (D58.1).";
+                                                            readonly type: "number";
+                                                            readonly minimum: number;
+                                                            readonly maximum: 9007199254740991;
+                                                        };
+                                                        readonly maximum: {
+                                                            readonly description: "The greatest value, inclusive (D58.1).";
+                                                            readonly type: "number";
+                                                            readonly minimum: number;
+                                                            readonly maximum: 9007199254740991;
+                                                        };
+                                                        readonly key: {
+                                                            readonly type: "string";
+                                                            readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                        };
+                                                        readonly type: {
+                                                            readonly type: "string";
+                                                            readonly const: "number";
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly key: {
+                                                            readonly type: "string";
+                                                            readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                        };
+                                                        readonly type: {
+                                                            readonly type: "string";
+                                                            readonly const: "boolean";
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly key: {
+                                                            readonly type: "string";
+                                                            readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                        };
+                                                        readonly type: {
+                                                            readonly type: "string";
+                                                            readonly const: "color";
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly key: {
+                                                            readonly type: "string";
+                                                            readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                        };
+                                                        readonly type: {
+                                                            readonly type: "string";
+                                                            readonly const: "image";
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly key: {
+                                                            readonly type: "string";
+                                                            readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                        };
+                                                        readonly type: {
+                                                            readonly type: "string";
+                                                            readonly const: "video";
+                                                        };
+                                                    }>,
+                                                    import("./json-schema.js").ClosedObject<{
+                                                        readonly key: {
+                                                            readonly type: "string";
+                                                            readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                        };
+                                                        readonly type: {
+                                                            readonly type: "string";
+                                                            readonly const: "audio";
+                                                        };
+                                                    }>
+                                                ];
+                                            };
+                                        };
+                                        readonly default: {
+                                            readonly type: "array";
+                                            readonly description: "The items of the input when the host gives none (D58.1).";
+                                            readonly items: {
+                                                readonly type: "array";
+                                                readonly description: "One item: a value for each field, in the order of the fields (D58.1).";
+                                                readonly items: {
+                                                    readonly description: "The value of one field of one item, tagged with its key and type; an item lists one value for each field, in the order of the fields (D58.1).";
+                                                    readonly oneOf: readonly [
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly key: {
+                                                                readonly type: "string";
+                                                                readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                            };
+                                                            readonly type: {
+                                                                readonly type: "string";
+                                                                readonly const: "text";
+                                                            };
+                                                            readonly value: {
+                                                                readonly type: "string";
+                                                                readonly description: "A text (D58.1).";
+                                                            };
+                                                        }>,
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly key: {
+                                                                readonly type: "string";
+                                                                readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                            };
+                                                            readonly type: {
+                                                                readonly type: "string";
+                                                                readonly const: "number";
+                                                            };
+                                                            readonly value: {
+                                                                readonly description: "A number (D58.1).";
+                                                                readonly type: "number";
+                                                                readonly minimum: number;
+                                                                readonly maximum: 9007199254740991;
+                                                            };
+                                                        }>,
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly key: {
+                                                                readonly type: "string";
+                                                                readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                            };
+                                                            readonly type: {
+                                                                readonly type: "string";
+                                                                readonly const: "boolean";
+                                                            };
+                                                            readonly value: {
+                                                                readonly type: "boolean";
+                                                                readonly description: "true or false (D58.1).";
+                                                            };
+                                                        }>,
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly key: {
+                                                                readonly type: "string";
+                                                                readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                            };
+                                                            readonly type: {
+                                                                readonly type: "string";
+                                                                readonly const: "color";
+                                                            };
+                                                            readonly value: {
+                                                                readonly type: "string";
+                                                                readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                                readonly pattern: "^#[0-9a-f]{6}$";
+                                                            };
+                                                        }>,
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly key: {
+                                                                readonly type: "string";
+                                                                readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                            };
+                                                            readonly type: {
+                                                                readonly type: "string";
+                                                                readonly const: "image";
+                                                            };
+                                                            readonly value: {
+                                                                readonly description: "The content hash of the bytes of an asset, which the host resolves like those of any asset (D14, D58.1).";
+                                                                readonly type: "string";
+                                                                readonly pattern: "^sha256:[0-9a-f]{64}$";
+                                                            };
+                                                        }>,
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly key: {
+                                                                readonly type: "string";
+                                                                readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                            };
+                                                            readonly type: {
+                                                                readonly type: "string";
+                                                                readonly const: "video";
+                                                            };
+                                                            readonly value: {
+                                                                readonly description: "The content hash of the bytes of an asset, which the host resolves like those of any asset (D14, D58.1).";
+                                                                readonly type: "string";
+                                                                readonly pattern: "^sha256:[0-9a-f]{64}$";
+                                                            };
+                                                        }>,
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly key: {
+                                                                readonly type: "string";
+                                                                readonly description: "The key of a field of the items of a list input, unique among its fields; the name of the field in a value (D58.1).";
+                                                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                            };
+                                                            readonly type: {
+                                                                readonly type: "string";
+                                                                readonly const: "audio";
+                                                            };
+                                                            readonly value: {
+                                                                readonly description: "The content hash of the bytes of an asset, which the host resolves like those of any asset (D14, D58.1).";
+                                                                readonly type: "string";
+                                                                readonly pattern: "^sha256:[0-9a-f]{64}$";
+                                                            };
+                                                        }>
+                                                    ];
+                                                };
+                                            };
+                                        };
+                                    }>
+                                ];
+                            };
+                        };
+                        readonly bindings: {
+                            readonly type: "array";
+                            readonly description: "The bindings; their order has no meaning (D58.2).";
+                            readonly items: {
+                                readonly description: "Where the value of an input or of a field of an item goes (D58.2, D59.3).";
+                                readonly oneOf: readonly [
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly kind: {
+                                            readonly type: "string";
+                                            readonly const: "property";
+                                        };
+                                        readonly nodeId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a node of any scene of the composition (D58.2).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly property: {
+                                            readonly type: "string";
+                                            readonly description: "The bound property of the node (D58.2).";
+                                            readonly enum: readonly [
+                                                "text",
+                                                "color"
+                                            ];
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of an input of the template (D58).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly kind: {
+                                            readonly type: "string";
+                                            readonly const: "placeholders";
+                                        };
+                                        readonly nodeId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a node of any scene of the composition (D58.2).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly kind: {
+                                            readonly type: "string";
+                                            readonly const: "asset";
+                                        };
+                                        readonly assetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of an asset of the type that the referring entity expects (D14).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of an input of the template (D58).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly kind: {
+                                            readonly type: "string";
+                                            readonly const: "item-property";
+                                        };
+                                        readonly nodeId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a node of any scene of the composition (D58.2).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly property: {
+                                            readonly type: "string";
+                                            readonly description: "The bound property of the node (D59.3).";
+                                            readonly enum: readonly [
+                                                "text",
+                                                "color"
+                                            ];
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a list input of the template (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly key: {
+                                            readonly description: "The key of a field of the items of the list input (D59).";
+                                            readonly type: "string";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly kind: {
+                                            readonly type: "string";
+                                            readonly const: "item-asset";
+                                        };
+                                        readonly assetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of an asset of the type that the referring entity expects (D14).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a list input of the template (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly key: {
+                                            readonly description: "The key of a field of the items of the list input (D59).";
+                                            readonly type: "string";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly kind: {
+                                            readonly type: "string";
+                                            readonly const: "words";
+                                        };
+                                        readonly nodeId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a node of any scene of the composition (D58.2).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a list input of the template (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>
+                                ];
+                            };
+                        };
+                        readonly conditions: {
+                            readonly type: "array";
+                            readonly description: "The conditions; their order has no meaning (D59.1).";
+                            readonly items: {
+                                readonly description: "The target scene or node, with everything inside it, is kept only when the test holds; every condition of a target must hold (D59.1).";
+                                readonly oneOf: readonly [
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly test: {
+                                            readonly type: "string";
+                                            readonly const: "empty";
+                                        };
+                                        readonly targetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a scene of the composition, or of a node of any scene (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of the input the test reads (D59.1).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly test: {
+                                            readonly type: "string";
+                                            readonly const: "not-empty";
+                                        };
+                                        readonly targetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a scene of the composition, or of a node of any scene (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of the input the test reads (D59.1).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly test: {
+                                            readonly type: "string";
+                                            readonly const: "true";
+                                        };
+                                        readonly targetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a scene of the composition, or of a node of any scene (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of the input the test reads (D59.1).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly test: {
+                                            readonly type: "string";
+                                            readonly const: "false";
+                                        };
+                                        readonly targetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a scene of the composition, or of a node of any scene (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of the input the test reads (D59.1).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly test: {
+                                            readonly type: "string";
+                                            readonly const: "equal-text";
+                                        };
+                                        readonly targetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a scene of the composition, or of a node of any scene (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of the input the test reads (D59.1).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly value: {
+                                            readonly type: "string";
+                                            readonly description: "A text (D58.1).";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly test: {
+                                            readonly type: "string";
+                                            readonly const: "equal-number";
+                                        };
+                                        readonly targetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a scene of the composition, or of a node of any scene (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of the input the test reads (D59.1).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly value: {
+                                            readonly description: "A number (D58.1).";
+                                            readonly type: "number";
+                                            readonly minimum: number;
+                                            readonly maximum: 9007199254740991;
+                                        };
+                                    }>
+                                ];
+                            };
+                        };
+                        readonly repeats: {
+                            readonly type: "array";
+                            readonly description: "The repeats; their order has no meaning (D59.2).";
+                            readonly items: {
+                                readonly description: "The target scene or node is replaced by one copy for each item of the list, in the order of the items, each copy starting where the one before it ends (D59.2).";
+                                readonly oneOf: readonly [
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly duration: {
+                                            readonly type: "string";
+                                            readonly const: "target";
+                                        };
+                                        readonly targetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a scene of the composition, or of a node of any scene (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a list input of the template (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly duration: {
+                                            readonly type: "string";
+                                            readonly const: "field";
+                                        };
+                                        readonly targetId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a scene of the composition, or of a node of any scene (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a list input of the template (D59).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly key: {
+                                            readonly description: "The key of a field of the items of the list input (D59).";
+                                            readonly type: "string";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                    }>
+                                ];
+                            };
+                        };
+                    };
                 };
             }>;
         };
@@ -5081,6 +5856,27 @@ export declare const compositionSchema: {
                                 readonly type: "string";
                                 readonly pattern: "^[A-Za-z0-9_-]+$";
                             };
+                        }>,
+                        import("./json-schema.js").ClosedObject<{
+                            readonly id: {
+                                readonly type: "string";
+                                readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                            };
+                            readonly kind: {
+                                readonly type: "string";
+                                readonly const: "words";
+                            };
+                            readonly nodeId: {
+                                readonly type: "string";
+                                readonly description: "ID of a node of any scene of the composition (D58.2).";
+                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                            };
+                            readonly inputId: {
+                                readonly type: "string";
+                                readonly description: "ID of a list input of the template (D59).";
+                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                            };
                         }>
                     ];
                 };
@@ -5289,7 +6085,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.21";
+    readonly title: "Kadrion composition 0.22";
 };
 
 ---- definitionTimeUs
@@ -5302,7 +6098,7 @@ export declare function frameCount(durationUs: number, fps: number): number;
 export declare function frameToTimeUs(frame: number, fps: number): number;
 
 ---- instanceDefinition
-export declare function instanceDefinition(composition: Pick<Composition, 'definitions'>, instance: Pick<InstanceNode, 'id' | 'definitionId'>): Definition | null;
+export declare function instanceDefinition(composition: Pick<Composition, 'definitions'>, instance: Pick<InstanceNode, 'id' | 'definitionId'> & Partial<Pick<InstanceNode, 'inputs'>>): Definition | null;
 
 ---- isTemplate
 export declare function isTemplate(composition: {
@@ -5389,7 +6185,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {
@@ -5411,7 +6207,7 @@ export declare function serializeComposition(document: unknown): SerializeCompos
 
 ==== Entry "./template"
 
----- InstantiationResult
+---- InstantiationResult (type only)
 export type InstantiationResult = {
     readonly ok: true;
     readonly composition: ValidatedComposition;
@@ -5423,7 +6219,7 @@ export type InstantiationResult = {
 ---- MAX_REPEAT_IDS
 export declare const MAX_REPEAT_IDS = 100000;
 
----- TemplateError
+---- TemplateError (type only)
 export interface TemplateError {
     readonly code: TemplateErrorCode;
     readonly inputId: string | null;
@@ -5431,16 +6227,16 @@ export interface TemplateError {
     readonly message: string;
 }
 
----- TemplateErrorCode
+---- TemplateErrorCode (type only)
 export type TemplateErrorCode = 'invalid-values' | 'unknown-input' | 'invalid-input-value' | 'repeat-limit' | 'invalid-composition';
 
----- TemplateItemValue
+---- TemplateItemValue (type only)
 export type TemplateItemValue = string | number | boolean;
 
----- TemplateValue
+---- TemplateValue (type only)
 export type TemplateValue = string | number | boolean | readonly Readonly<Record<string, TemplateItemValue>>[];
 
----- TemplateValues
+---- TemplateValues (type only)
 export type TemplateValues = Readonly<Record<string, TemplateValue>>;
 
 ---- instantiateTemplate

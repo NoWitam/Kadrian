@@ -12,7 +12,7 @@ PR-18 to PR-22; phase three, the engine under a host's video editor
 PR-34b; phase four, a host integrating the engine
 ([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)), delivered PR-37 to
 PR-43; the current phase is motion graphics, effects, and reusable elements
-([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.21` with its forward migrations from `0.1` to `0.20`, the evaluation core, the DOM
+([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.22` with its forward migrations from `0.1` to `0.21`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -179,13 +179,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.21`
+A composition is a JSON document of schema `0.22`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.21",
+  "schemaVersion": "0.22",
   "width": 1080,
   "height": 1920,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
@@ -320,6 +320,17 @@ Unknown fields are errors. This one shows a text that fades in:
   transition is addressed by the path of instance IDs to it, as
   `card-left/card-title`. The sounds of a definition play where an instance
   shows them (D76).
+- **Elements:** a definition also has a `sourceHash`, `""` or a `sha256:`
+  label a host gives the source it made the definition from (never checked),
+  and a `template` of its own. A definition with a template is an element: an
+  instance gives values to its inputs in `inputs`, sorted by input ID, each
+  `{ inputId, type, value }`, and shows the definition instantiated with them
+  exactly as `instantiateTemplate` instantiates a template; an input it gives
+  no value takes its default. An element's inputs hold no assets. The binding
+  `words` writes a list of `text`, `startUs`, and `durationUs` into the words
+  of a captions node. `SetInstanceInput` and `ClearInstanceInput` edit the
+  values of an instance, and `ReplaceDefinition` replaces a definition whole,
+  its template included (D77).
 - **Video:** a `video` node shows source time
   `sourceStartUs + (t − startUs)` of its video asset; the frame is chosen from
   the container's own timestamps (D49, D50). Every source time a node samples
@@ -387,8 +398,8 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.21` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.21` document, and none of them
+`validateComposition` accepts schema `0.22` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.22` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
@@ -400,8 +411,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.21 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.20', '0.21'], or ['0.21'] for a document that was current
+  migrated.composition; // a new, validated 0.22 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.21', '0.22'], or ['0.22'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -451,6 +462,10 @@ if (migrated.ok) {
   `blendMode: "normal"` after its `effects`: the picture it always had (D75).
 - The step from `0.20` gives the document an empty list of `definitions`
   before its `template`: no nested composition, as it always had (D76).
+- The step from `0.21` gives every instance node an empty list of `inputs`
+  after its `definitionId`, and every definition `sourceHash: ""` after its
+  `id` and an empty `template` as its last key: no element, as it always had
+  (D77).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -475,8 +490,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.21 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.20', '0.21'] from 0.1, ['0.21'] when it was current
+  loaded.composition; // a new, validated 0.22 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.21', '0.22'] from 0.1, ['0.22'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -491,7 +506,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -504,7 +519,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.21"`, speaks of that.
+  supports `"0.22"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -611,7 +626,8 @@ item; an asset bound to a field becomes one asset per item. An instantiation
 whose copies would hold more than 100 000 IDs is refused with `repeat-limit`.
 
 Instantiation is pure: the same template and values give the same document,
-key for key. `@kadrion/editor-session` previews a template as its
+key for key. The same function, from the main entry, instantiates every
+element instance where its definition is shown (D77). `@kadrion/editor-session` previews a template as its
 instantiation with the defaults, while its bus edits the template itself with
 the nine template commands (D58.6, D59.6).
 
@@ -1163,7 +1179,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

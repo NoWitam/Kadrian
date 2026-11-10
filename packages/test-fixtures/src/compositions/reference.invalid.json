@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.22"
+        "value": "0.23"
       }
     ],
     "expectedErrors": [
@@ -8778,6 +8778,7 @@
           "opacity": 1,
           "animations": [],
           "definitionId": "missing",
+          "inputs": [],
           "sourceStartUs": 0,
           "width": 100,
           "height": 100,
@@ -8809,12 +8810,14 @@
         "path": "/definitions/-",
         "value": {
           "id": "definition-short",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -8841,6 +8844,7 @@
           "opacity": 1,
           "animations": [],
           "definitionId": "definition-short",
+          "inputs": [],
           "sourceStartUs": 500000,
           "width": 100,
           "height": 100,
@@ -8872,6 +8876,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "definition-a",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -8897,6 +8902,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "definition-b",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -8912,7 +8918,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -8920,6 +8927,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "definition-b",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -8945,6 +8953,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "definition-a",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -8960,7 +8969,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       }
     ],
@@ -8984,6 +8994,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "deep-1",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -9009,6 +9020,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-2",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -9024,7 +9036,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -9032,6 +9045,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "deep-2",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -9057,6 +9071,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-3",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -9072,7 +9087,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -9080,6 +9096,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "deep-3",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -9105,6 +9122,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-4",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -9120,7 +9138,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -9128,6 +9147,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "deep-4",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -9153,6 +9173,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-5",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -9168,7 +9189,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -9176,6 +9198,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "deep-5",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -9201,6 +9224,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-6",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -9216,7 +9240,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -9224,6 +9249,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "deep-6",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -9249,6 +9275,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-7",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -9264,7 +9291,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -9272,6 +9300,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "deep-7",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -9297,6 +9326,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-8",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -9312,7 +9342,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -9320,6 +9351,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "deep-8",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -9345,6 +9377,7 @@
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-9",
+              "inputs": [],
               "sourceStartUs": 0,
               "width": 100,
               "height": 100,
@@ -9360,7 +9393,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       },
       {
@@ -9368,12 +9402,14 @@
         "path": "/definitions/-",
         "value": {
           "id": "deep-9",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
           "nodes": [],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       }
     ],
@@ -9393,6 +9429,7 @@
         "path": "/definitions/-",
         "value": {
           "id": "definition-html",
+          "sourceHash": "",
           "width": 100,
           "height": 100,
           "durationUs": 1000000,
@@ -9423,7 +9460,8 @@
             }
           ],
           "clips": [],
-          "transitions": []
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
         }
       }
     ],
@@ -9431,6 +9469,1563 @@
       {
         "code": "invalid-value",
         "path": "/definitions/0/nodes/0/type"
+      }
+    ]
+  },
+  {
+    "name": "element-asset-input",
+    "description": "An element has no input of an asset type: its instances would need assets of their own (D77).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "element-speech",
+          "sourceHash": "",
+          "width": 640,
+          "height": 120,
+          "durationUs": 2000000,
+          "nodes": [
+            {
+              "id": "element-plain",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#ffffff",
+                "highlight": {
+                  "color": "#ffd400",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "element-bold",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#fef0c7",
+                "highlight": {
+                  "color": "#f04438",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": [],
+          "template": {
+            "inputs": [
+              {
+                "id": "words",
+                "type": "list",
+                "minItems": 1,
+                "maxItems": 50,
+                "fields": [
+                  { "key": "text", "type": "text", "minLength": 1, "maxLength": 20 },
+                  { "key": "startUs", "type": "number", "minimum": 0, "maximum": 2000000 },
+                  { "key": "durationUs", "type": "number", "minimum": 1, "maximum": 2000000 }
+                ],
+                "default": [
+                  [
+                    { "key": "text", "type": "text", "value": "Kadrion" },
+                    { "key": "startUs", "type": "number", "value": 0 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "renders" },
+                    { "key": "startUs", "type": "number", "value": 500000 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "scenes" },
+                    { "key": "startUs", "type": "number", "value": 1000000 },
+                    { "key": "durationUs", "type": "number", "value": 1000000 }
+                  ]
+                ]
+              },
+              {
+                "id": "style",
+                "type": "text",
+                "minLength": 0,
+                "maxLength": 10,
+                "default": "plain"
+              },
+              {
+                "id": "element-photo",
+                "type": "image",
+                "default": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+              }
+            ],
+            "bindings": [
+              {
+                "id": "element-plain-words",
+                "kind": "words",
+                "nodeId": "element-plain",
+                "inputId": "words"
+              },
+              {
+                "id": "element-bold-words",
+                "kind": "words",
+                "nodeId": "element-bold",
+                "inputId": "words"
+              }
+            ],
+            "conditions": [
+              {
+                "id": "element-plain-shown",
+                "test": "equal-text",
+                "targetId": "element-plain",
+                "inputId": "style",
+                "value": "plain"
+              },
+              {
+                "id": "element-bold-shown",
+                "test": "equal-text",
+                "targetId": "element-bold",
+                "inputId": "style",
+                "value": "bold"
+              }
+            ],
+            "repeats": []
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "element-asset-input", "path": "/definitions/0/template/inputs/2" }
+    ]
+  },
+  {
+    "name": "instance-input-type",
+    "description": "A value of an instance has the type of its input (D77).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "element-speech",
+          "sourceHash": "",
+          "width": 640,
+          "height": 120,
+          "durationUs": 2000000,
+          "nodes": [
+            {
+              "id": "element-plain",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#ffffff",
+                "highlight": {
+                  "color": "#ffd400",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "element-bold",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#fef0c7",
+                "highlight": {
+                  "color": "#f04438",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": [],
+          "template": {
+            "inputs": [
+              {
+                "id": "words",
+                "type": "list",
+                "minItems": 1,
+                "maxItems": 50,
+                "fields": [
+                  { "key": "text", "type": "text", "minLength": 1, "maxLength": 20 },
+                  { "key": "startUs", "type": "number", "minimum": 0, "maximum": 2000000 },
+                  { "key": "durationUs", "type": "number", "minimum": 1, "maximum": 2000000 }
+                ],
+                "default": [
+                  [
+                    { "key": "text", "type": "text", "value": "Kadrion" },
+                    { "key": "startUs", "type": "number", "value": 0 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "renders" },
+                    { "key": "startUs", "type": "number", "value": 500000 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "scenes" },
+                    { "key": "startUs", "type": "number", "value": 1000000 },
+                    { "key": "durationUs", "type": "number", "value": 1000000 }
+                  ]
+                ]
+              },
+              { "id": "style", "type": "text", "minLength": 0, "maxLength": 10, "default": "plain" }
+            ],
+            "bindings": [
+              {
+                "id": "element-plain-words",
+                "kind": "words",
+                "nodeId": "element-plain",
+                "inputId": "words"
+              },
+              {
+                "id": "element-bold-words",
+                "kind": "words",
+                "nodeId": "element-bold",
+                "inputId": "words"
+              }
+            ],
+            "conditions": [
+              {
+                "id": "element-plain-shown",
+                "test": "equal-text",
+                "targetId": "element-plain",
+                "inputId": "style",
+                "value": "plain"
+              },
+              {
+                "id": "element-bold-shown",
+                "test": "equal-text",
+                "targetId": "element-bold",
+                "inputId": "style",
+                "value": "bold"
+              }
+            ],
+            "repeats": []
+          }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "element-instance",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 230 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "element-speech",
+          "inputs": [{ "inputId": "style", "type": "number", "value": 1 }],
+          "sourceStartUs": 0,
+          "width": 640,
+          "height": 120,
+          "fit": "fill",
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "instance-input-invalid", "path": "/scenes/0/nodes/4/inputs/0/type" }
+    ]
+  },
+  {
+    "name": "instance-input-instantiation",
+    "description": "The definition instantiated with the values of an instance is a valid definition: a word holds no white space (D57, D77).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "element-speech",
+          "sourceHash": "",
+          "width": 640,
+          "height": 120,
+          "durationUs": 2000000,
+          "nodes": [
+            {
+              "id": "element-plain",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#ffffff",
+                "highlight": {
+                  "color": "#ffd400",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "element-bold",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#fef0c7",
+                "highlight": {
+                  "color": "#f04438",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": [],
+          "template": {
+            "inputs": [
+              {
+                "id": "words",
+                "type": "list",
+                "minItems": 1,
+                "maxItems": 50,
+                "fields": [
+                  { "key": "text", "type": "text", "minLength": 1, "maxLength": 20 },
+                  { "key": "startUs", "type": "number", "minimum": 0, "maximum": 2000000 },
+                  { "key": "durationUs", "type": "number", "minimum": 1, "maximum": 2000000 }
+                ],
+                "default": [
+                  [
+                    { "key": "text", "type": "text", "value": "Kadrion" },
+                    { "key": "startUs", "type": "number", "value": 0 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "renders" },
+                    { "key": "startUs", "type": "number", "value": 500000 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "scenes" },
+                    { "key": "startUs", "type": "number", "value": 1000000 },
+                    { "key": "durationUs", "type": "number", "value": 1000000 }
+                  ]
+                ]
+              },
+              { "id": "style", "type": "text", "minLength": 0, "maxLength": 10, "default": "plain" }
+            ],
+            "bindings": [
+              {
+                "id": "element-plain-words",
+                "kind": "words",
+                "nodeId": "element-plain",
+                "inputId": "words"
+              },
+              {
+                "id": "element-bold-words",
+                "kind": "words",
+                "nodeId": "element-bold",
+                "inputId": "words"
+              }
+            ],
+            "conditions": [
+              {
+                "id": "element-plain-shown",
+                "test": "equal-text",
+                "targetId": "element-plain",
+                "inputId": "style",
+                "value": "plain"
+              },
+              {
+                "id": "element-bold-shown",
+                "test": "equal-text",
+                "targetId": "element-bold",
+                "inputId": "style",
+                "value": "bold"
+              }
+            ],
+            "repeats": []
+          }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "element-instance",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 230 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "element-speech",
+          "inputs": [
+            {
+              "inputId": "words",
+              "type": "list",
+              "value": [
+                [
+                  { "key": "text", "type": "text", "value": "two words" },
+                  { "key": "startUs", "type": "number", "value": 0 },
+                  { "key": "durationUs", "type": "number", "value": 100000 }
+                ]
+              ]
+            }
+          ],
+          "sourceStartUs": 0,
+          "width": 640,
+          "height": 120,
+          "fit": "fill",
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [{ "code": "instance-input-invalid", "path": "/scenes/0/nodes/4/inputs" }]
+  },
+  {
+    "name": "instance-inputs-unsorted",
+    "description": "The values of an instance are sorted by inputId (D77).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "element-speech",
+          "sourceHash": "",
+          "width": 640,
+          "height": 120,
+          "durationUs": 2000000,
+          "nodes": [
+            {
+              "id": "element-plain",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#ffffff",
+                "highlight": {
+                  "color": "#ffd400",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "element-bold",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#fef0c7",
+                "highlight": {
+                  "color": "#f04438",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": [],
+          "template": {
+            "inputs": [
+              {
+                "id": "words",
+                "type": "list",
+                "minItems": 1,
+                "maxItems": 50,
+                "fields": [
+                  { "key": "text", "type": "text", "minLength": 1, "maxLength": 20 },
+                  { "key": "startUs", "type": "number", "minimum": 0, "maximum": 2000000 },
+                  { "key": "durationUs", "type": "number", "minimum": 1, "maximum": 2000000 }
+                ],
+                "default": [
+                  [
+                    { "key": "text", "type": "text", "value": "Kadrion" },
+                    { "key": "startUs", "type": "number", "value": 0 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "renders" },
+                    { "key": "startUs", "type": "number", "value": 500000 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "scenes" },
+                    { "key": "startUs", "type": "number", "value": 1000000 },
+                    { "key": "durationUs", "type": "number", "value": 1000000 }
+                  ]
+                ]
+              },
+              { "id": "style", "type": "text", "minLength": 0, "maxLength": 10, "default": "plain" }
+            ],
+            "bindings": [
+              {
+                "id": "element-plain-words",
+                "kind": "words",
+                "nodeId": "element-plain",
+                "inputId": "words"
+              },
+              {
+                "id": "element-bold-words",
+                "kind": "words",
+                "nodeId": "element-bold",
+                "inputId": "words"
+              }
+            ],
+            "conditions": [
+              {
+                "id": "element-plain-shown",
+                "test": "equal-text",
+                "targetId": "element-plain",
+                "inputId": "style",
+                "value": "plain"
+              },
+              {
+                "id": "element-bold-shown",
+                "test": "equal-text",
+                "targetId": "element-bold",
+                "inputId": "style",
+                "value": "bold"
+              }
+            ],
+            "repeats": []
+          }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "element-instance",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 230 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "element-speech",
+          "inputs": [
+            {
+              "inputId": "words",
+              "type": "list",
+              "value": [
+                [
+                  { "key": "text", "type": "text", "value": "Kadrion" },
+                  { "key": "startUs", "type": "number", "value": 0 },
+                  { "key": "durationUs", "type": "number", "value": 100000 }
+                ]
+              ]
+            },
+            { "inputId": "style", "type": "text", "value": "bold" }
+          ],
+          "sourceStartUs": 0,
+          "width": 640,
+          "height": 120,
+          "fit": "fill",
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "instance-input-invalid", "path": "/scenes/0/nodes/4/inputs/1/inputId" }
+    ]
+  },
+  {
+    "name": "instance-input-unresolved",
+    "description": "A value of an instance names an input of its definition (D77).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "element-speech",
+          "sourceHash": "",
+          "width": 640,
+          "height": 120,
+          "durationUs": 2000000,
+          "nodes": [
+            {
+              "id": "element-plain",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#ffffff",
+                "highlight": {
+                  "color": "#ffd400",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "element-bold",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#fef0c7",
+                "highlight": {
+                  "color": "#f04438",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": [],
+          "template": {
+            "inputs": [
+              {
+                "id": "words",
+                "type": "list",
+                "minItems": 1,
+                "maxItems": 50,
+                "fields": [
+                  { "key": "text", "type": "text", "minLength": 1, "maxLength": 20 },
+                  { "key": "startUs", "type": "number", "minimum": 0, "maximum": 2000000 },
+                  { "key": "durationUs", "type": "number", "minimum": 1, "maximum": 2000000 }
+                ],
+                "default": [
+                  [
+                    { "key": "text", "type": "text", "value": "Kadrion" },
+                    { "key": "startUs", "type": "number", "value": 0 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "renders" },
+                    { "key": "startUs", "type": "number", "value": 500000 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "scenes" },
+                    { "key": "startUs", "type": "number", "value": 1000000 },
+                    { "key": "durationUs", "type": "number", "value": 1000000 }
+                  ]
+                ]
+              },
+              { "id": "style", "type": "text", "minLength": 0, "maxLength": 10, "default": "plain" }
+            ],
+            "bindings": [
+              {
+                "id": "element-plain-words",
+                "kind": "words",
+                "nodeId": "element-plain",
+                "inputId": "words"
+              },
+              {
+                "id": "element-bold-words",
+                "kind": "words",
+                "nodeId": "element-bold",
+                "inputId": "words"
+              }
+            ],
+            "conditions": [
+              {
+                "id": "element-plain-shown",
+                "test": "equal-text",
+                "targetId": "element-plain",
+                "inputId": "style",
+                "value": "plain"
+              },
+              {
+                "id": "element-bold-shown",
+                "test": "equal-text",
+                "targetId": "element-bold",
+                "inputId": "style",
+                "value": "bold"
+              }
+            ],
+            "repeats": []
+          }
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "element-instance",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 230 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "element-speech",
+          "inputs": [{ "inputId": "element-missing", "type": "text", "value": "x" }],
+          "sourceStartUs": 0,
+          "width": 640,
+          "height": 120,
+          "fit": "fill",
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "unresolved-input-reference", "path": "/scenes/0/nodes/4/inputs/0/inputId" }
+    ]
+  },
+  {
+    "name": "words-binding-default",
+    "description": "The words bound to a list hold its default items (D58.3, D77).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "element-speech",
+          "sourceHash": "",
+          "width": 640,
+          "height": 120,
+          "durationUs": 2000000,
+          "nodes": [
+            {
+              "id": "element-plain",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#ffffff",
+                "highlight": {
+                  "color": "#ffd400",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "element-bold",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#fef0c7",
+                "highlight": {
+                  "color": "#f04438",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kad", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": [],
+          "template": {
+            "inputs": [
+              {
+                "id": "words",
+                "type": "list",
+                "minItems": 1,
+                "maxItems": 50,
+                "fields": [
+                  { "key": "text", "type": "text", "minLength": 1, "maxLength": 20 },
+                  { "key": "startUs", "type": "number", "minimum": 0, "maximum": 2000000 },
+                  { "key": "durationUs", "type": "number", "minimum": 1, "maximum": 2000000 }
+                ],
+                "default": [
+                  [
+                    { "key": "text", "type": "text", "value": "Kadrion" },
+                    { "key": "startUs", "type": "number", "value": 0 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "renders" },
+                    { "key": "startUs", "type": "number", "value": 500000 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "scenes" },
+                    { "key": "startUs", "type": "number", "value": 1000000 },
+                    { "key": "durationUs", "type": "number", "value": 1000000 }
+                  ]
+                ]
+              },
+              { "id": "style", "type": "text", "minLength": 0, "maxLength": 10, "default": "plain" }
+            ],
+            "bindings": [
+              {
+                "id": "element-plain-words",
+                "kind": "words",
+                "nodeId": "element-plain",
+                "inputId": "words"
+              },
+              {
+                "id": "element-bold-words",
+                "kind": "words",
+                "nodeId": "element-bold",
+                "inputId": "words"
+              }
+            ],
+            "conditions": [
+              {
+                "id": "element-plain-shown",
+                "test": "equal-text",
+                "targetId": "element-plain",
+                "inputId": "style",
+                "value": "plain"
+              },
+              {
+                "id": "element-bold-shown",
+                "test": "equal-text",
+                "targetId": "element-bold",
+                "inputId": "style",
+                "value": "bold"
+              }
+            ],
+            "repeats": []
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "binding-value-mismatch", "path": "/definitions/0/template/bindings/1" }
+    ]
+  },
+  {
+    "name": "words-binding-fields",
+    "description": "Words are read from a list whose fields are exactly text, startUs, and durationUs (D77).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "element-speech",
+          "sourceHash": "",
+          "width": 640,
+          "height": 120,
+          "durationUs": 2000000,
+          "nodes": [
+            {
+              "id": "element-plain",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#ffffff",
+                "highlight": {
+                  "color": "#ffd400",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "element-bold",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#fef0c7",
+                "highlight": {
+                  "color": "#f04438",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": [],
+          "template": {
+            "inputs": [
+              {
+                "id": "words",
+                "type": "list",
+                "minItems": 1,
+                "maxItems": 50,
+                "fields": [
+                  { "key": "text", "type": "text", "minLength": 1, "maxLength": 20 },
+                  { "key": "startUs", "type": "number", "minimum": 0, "maximum": 2000000 },
+                  { "key": "durationUs", "type": "number", "minimum": 1, "maximum": 2000000 }
+                ],
+                "default": [
+                  [
+                    { "key": "text", "type": "text", "value": "Kadrion" },
+                    { "key": "startUs", "type": "number", "value": 0 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "renders" },
+                    { "key": "startUs", "type": "number", "value": 500000 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "scenes" },
+                    { "key": "startUs", "type": "number", "value": 1000000 },
+                    { "key": "durationUs", "type": "number", "value": 1000000 }
+                  ]
+                ]
+              },
+              {
+                "id": "style",
+                "type": "list",
+                "minItems": 0,
+                "maxItems": 1,
+                "fields": [{ "key": "text", "type": "text", "minLength": 0, "maxLength": 5 }],
+                "default": []
+              }
+            ],
+            "bindings": [
+              {
+                "id": "element-plain-words",
+                "kind": "words",
+                "nodeId": "element-plain",
+                "inputId": "words"
+              },
+              {
+                "id": "element-bold-words",
+                "kind": "words",
+                "nodeId": "element-bold",
+                "inputId": "style"
+              }
+            ],
+            "conditions": [],
+            "repeats": []
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      { "code": "binding-type-mismatch", "path": "/definitions/0/template/bindings/1/inputId" }
+    ]
+  },
+  {
+    "name": "element-target-definition",
+    "description": "A condition of an element targets one of its nodes, not the definition (D77).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "element-speech",
+          "sourceHash": "",
+          "width": 640,
+          "height": 120,
+          "durationUs": 2000000,
+          "nodes": [
+            {
+              "id": "element-plain",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#ffffff",
+                "highlight": {
+                  "color": "#ffd400",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            },
+            {
+              "id": "element-bold",
+              "type": "captions",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": { "x": 20, "y": 10 },
+              "scale": { "x": 1, "y": 1 },
+              "rotation": 0,
+              "origin": { "x": 0, "y": 0 },
+              "opacity": 1,
+              "animations": [],
+              "fontAssetId": "asset-font",
+              "width": 600,
+              "height": 100,
+              "style": {
+                "fontSize": 32,
+                "lineHeight": 44,
+                "color": "#fef0c7",
+                "highlight": {
+                  "color": "#f04438",
+                  "scale": 1,
+                  "tracks": [],
+                  "underline": { "kind": "none" },
+                  "box": { "kind": "none" }
+                },
+                "align": "center",
+                "verticalAlign": "bottom",
+                "maxLineLength": 16,
+                "maxLines": 2,
+                "stroke": { "kind": "none" },
+                "shadow": { "kind": "none" },
+                "box": { "kind": "none" },
+                "pageIn": { "kind": "none" },
+                "pageOut": { "kind": "none" }
+              },
+              "words": [
+                { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+                { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+                { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+              ],
+              "effects": [],
+              "mask": { "kind": "none" },
+              "matte": { "kind": "none" },
+              "blendMode": "normal"
+            }
+          ],
+          "clips": [],
+          "transitions": [],
+          "template": {
+            "inputs": [
+              {
+                "id": "words",
+                "type": "list",
+                "minItems": 1,
+                "maxItems": 50,
+                "fields": [
+                  { "key": "text", "type": "text", "minLength": 1, "maxLength": 20 },
+                  { "key": "startUs", "type": "number", "minimum": 0, "maximum": 2000000 },
+                  { "key": "durationUs", "type": "number", "minimum": 1, "maximum": 2000000 }
+                ],
+                "default": [
+                  [
+                    { "key": "text", "type": "text", "value": "Kadrion" },
+                    { "key": "startUs", "type": "number", "value": 0 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "renders" },
+                    { "key": "startUs", "type": "number", "value": 500000 },
+                    { "key": "durationUs", "type": "number", "value": 500000 }
+                  ],
+                  [
+                    { "key": "text", "type": "text", "value": "scenes" },
+                    { "key": "startUs", "type": "number", "value": 1000000 },
+                    { "key": "durationUs", "type": "number", "value": 1000000 }
+                  ]
+                ]
+              },
+              { "id": "style", "type": "text", "minLength": 0, "maxLength": 10, "default": "plain" }
+            ],
+            "bindings": [
+              {
+                "id": "element-plain-words",
+                "kind": "words",
+                "nodeId": "element-plain",
+                "inputId": "words"
+              },
+              {
+                "id": "element-bold-words",
+                "kind": "words",
+                "nodeId": "element-bold",
+                "inputId": "words"
+              }
+            ],
+            "conditions": [
+              {
+                "id": "element-plain-shown",
+                "test": "equal-text",
+                "targetId": "element-speech",
+                "inputId": "style",
+                "value": "plain"
+              },
+              {
+                "id": "element-bold-shown",
+                "test": "equal-text",
+                "targetId": "element-bold",
+                "inputId": "style",
+                "value": "bold"
+              }
+            ],
+            "repeats": []
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "unresolved-target-reference",
+        "path": "/definitions/0/template/conditions/0/targetId"
       }
     ]
   }

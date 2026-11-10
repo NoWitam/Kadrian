@@ -151,6 +151,7 @@ const DEFINITION_SETUP: readonly Command[] = [
     index: 0,
     definition: {
       id: 'definition-badge',
+      sourceHash: '',
       width: 200,
       height: 200,
       durationUs: 1_000_000,
@@ -166,7 +167,100 @@ const DEFINITION_SETUP: readonly Command[] = [
       ],
       clips: [],
       transitions: [],
+      template: { inputs: [], bindings: [], conditions: [], repeats: [] },
     },
+  },
+];
+
+/** An element with a title input and an instance of it, as the examples of D77 name them. */
+const ELEMENT_SETUP: readonly Command[] = [
+  {
+    type: 'AddDefinition',
+    index: 0,
+    definition: {
+      id: 'definition-lower-third',
+      sourceHash: '',
+      width: 400,
+      height: 100,
+      durationUs: 1_000_000,
+      nodes: [
+        {
+          id: 'node-lower-third-title',
+          type: 'text',
+          startUs: 0,
+          durationUs: 1_000_000,
+          position: { x: 10, y: 10 },
+          scale: { x: 1, y: 1 },
+          rotation: 0,
+          origin: { x: 0, y: 0 },
+          opacity: 1,
+          animations: [],
+          text: 'Name',
+          fontAssetId: 'asset-font',
+          fontSize: 48,
+          color: '#ffffff',
+          style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
+          textAnimations: [],
+          effects: [],
+          mask: { kind: 'none' },
+          matte: { kind: 'none' },
+          blendMode: 'normal',
+        },
+      ],
+      clips: [],
+      transitions: [],
+      template: {
+        inputs: [{ id: 'title', type: 'text', minLength: 1, maxLength: 40, default: 'Name' }],
+        bindings: [
+          {
+            id: 'lower-third-title',
+            kind: 'property',
+            nodeId: 'node-lower-third-title',
+            property: 'text',
+            inputId: 'title',
+          },
+        ],
+        conditions: [],
+        repeats: [],
+      },
+    },
+  },
+  {
+    type: 'AddNode',
+    parentId: 'scene-main',
+    index: 0,
+    node: {
+      id: 'node-lower-third',
+      type: 'instance',
+      startUs: 0,
+      durationUs: 1_000_000,
+      position: { x: 0, y: 0 },
+      scale: { x: 1, y: 1 },
+      rotation: 0,
+      origin: { x: 0, y: 0 },
+      opacity: 1,
+      animations: [],
+      definitionId: 'definition-lower-third',
+      inputs: [],
+      sourceStartUs: 0,
+      width: 400,
+      height: 100,
+      fit: 'fill',
+      effects: [],
+      mask: { kind: 'none' },
+      matte: { kind: 'none' },
+      blendMode: 'normal',
+    },
+  },
+];
+
+/** The element with a title its instance gives. */
+const ELEMENT_VALUE_SETUP: readonly Command[] = [
+  ...ELEMENT_SETUP,
+  {
+    type: 'SetInstanceInput',
+    instanceId: 'node-lower-third',
+    input: { inputId: 'title', type: 'text', value: 'Grace Hopper' },
   },
 ];
 
@@ -466,6 +560,9 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   RemoveDefinition: DEFINITION_SETUP,
   ConvertToDefinition: [],
   ExpandInstance: CONVERT_SETUP,
+  SetInstanceInput: ELEMENT_SETUP,
+  ClearInstanceInput: ELEMENT_VALUE_SETUP,
+  ReplaceDefinition: DEFINITION_SETUP,
 };
 
 function prepared(type: Command['type']): CommandBus {

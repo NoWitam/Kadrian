@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.21",
+  "schemaVersion": "0.22",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -61,6 +61,7 @@
           "opacity": 1,
           "animations": [],
           "definitionId": "card",
+          "inputs": [],
           "sourceStartUs": 0,
           "width": 320,
           "height": 180,
@@ -95,6 +96,7 @@
           "opacity": 1,
           "animations": [],
           "definitionId": "card",
+          "inputs": [],
           "sourceStartUs": 0,
           "width": 320,
           "height": 180,
@@ -129,6 +131,7 @@
           "opacity": 0.85,
           "animations": [],
           "definitionId": "card",
+          "inputs": [],
           "sourceStartUs": 0,
           "width": 240,
           "height": 120,
@@ -174,6 +177,7 @@
           "opacity": 1,
           "animations": [],
           "definitionId": "badge",
+          "inputs": [],
           "sourceStartUs": 0,
           "width": 120,
           "height": 120,
@@ -205,6 +209,7 @@
   "definitions": [
     {
       "id": "card",
+      "sourceHash": "",
       "width": 320,
       "height": 180,
       "durationUs": 1500000,
@@ -494,6 +499,7 @@
           "opacity": 1,
           "animations": [],
           "definitionId": "badge",
+          "inputs": [],
           "sourceStartUs": 0,
           "width": 64,
           "height": 64,
@@ -534,10 +540,12 @@
             "kind": "linear"
           }
         }
-      ]
+      ],
+      "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
     },
     {
       "id": "badge",
+      "sourceHash": "",
       "width": 80,
       "height": 80,
       "durationUs": 1000000,
@@ -664,7 +672,8 @@
         }
       ],
       "clips": [],
-      "transitions": []
+      "transitions": [],
+      "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
     }
   ],
   "template": {
