@@ -44,6 +44,7 @@ export type {
   Hole,
   HueRotateEffectState,
   ImageNodeState,
+  InstanceNodeState,
   Inset,
   LeafNodeState,
   LeafNodeType,

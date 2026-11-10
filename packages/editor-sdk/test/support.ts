@@ -130,20 +130,67 @@ export const CAPTIONS_NODE = Object.freeze({
   blendMode: 'normal',
 });
 
+/** The definition `everyType` adds to the reference composition (D76). */
+export const DEFINITION = Object.freeze({
+  id: 'definition-card',
+  width: 320,
+  height: 180,
+  durationUs: 2_000_000,
+  nodes: Object.freeze([
+    Object.freeze({
+      id: 'node-card-background',
+      type: 'background',
+      startUs: 0,
+      durationUs: 2_000_000,
+      color: '#203040',
+      animations: Object.freeze([]),
+    }),
+  ]),
+  clips: Object.freeze([]),
+  transitions: Object.freeze([]),
+});
+
+/** The instance node `everyType` adds to the reference composition (D76). */
+export const INSTANCE_NODE = Object.freeze({
+  id: 'node-instance',
+  type: 'instance',
+  startUs: 0,
+  durationUs: 1_000_000,
+  position: Object.freeze({ x: 10, y: 20 }),
+  scale: Object.freeze({ x: 1, y: 1 }),
+  rotation: 0,
+  origin: Object.freeze({ x: 0, y: 0 }),
+  opacity: 1,
+  animations: Object.freeze([]),
+  definitionId: 'definition-card',
+  sourceStartUs: 0,
+  width: 320,
+  height: 180,
+  fit: 'fill',
+  effects: Object.freeze([]),
+  mask: Object.freeze({ kind: 'none' }),
+  matte: Object.freeze({ kind: 'none' }),
+  blendMode: 'normal',
+});
+
 /**
- * The reference composition with one video node and one captions node at the
- * top of its scene, and the video's asset (D50.1, D57): a document that holds
- * a node of every type of the schema.
+ * The reference composition with one video node, one captions node, one shape
+ * node, and one instance node at the top of its scene, the video's asset, and
+ * the instance's definition (D50.1, D57, D73, D76): a document that holds a
+ * node of every type of the schema.
  */
 export function everyType(): ValidatedComposition {
   const draft = structuredClone(referenceComposition) as {
     assets: unknown[];
     scenes: { nodes: unknown[] }[];
+    definitions: unknown[];
   };
   draft.assets.push(structuredClone(VIDEO_ASSET));
   draft.scenes[0]?.nodes.push(structuredClone(VIDEO_NODE));
   draft.scenes[0]?.nodes.push(structuredClone(CAPTIONS_NODE));
   draft.scenes[0]?.nodes.push(structuredClone(SHAPE_NODE));
+  draft.definitions.push(structuredClone(DEFINITION));
+  draft.scenes[0]?.nodes.push(structuredClone(INSTANCE_NODE));
   return validated(draft);
 }
 

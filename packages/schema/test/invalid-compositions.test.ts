@@ -56,6 +56,10 @@ const ERROR_CODES = [
   'matte-not-plain',
   'matte-in-transition',
   'repeat-of-matte',
+  'unresolved-definition-reference',
+  'instance-exceeds-definition',
+  'definition-cycle',
+  'definition-too-deep',
 ] as const;
 
 describe('negative fixtures', () => {

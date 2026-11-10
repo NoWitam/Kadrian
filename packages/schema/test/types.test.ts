@@ -17,10 +17,13 @@ import type {
   CaptionWord,
   Composition,
   CustomHtmlNode,
+  Definition,
+  DefinitionNode,
   Easing,
   Effect,
   GroupNode,
   ImageNode,
+  InstanceNode,
   NodeAnimation,
   PathCommand,
   SafeArea,
@@ -585,7 +588,27 @@ type ExpectedSceneNode =
   | ExpectedCustomHtmlNode
   | ExpectedVideoNode
   | ExpectedCaptionsNode
-  | ExpectedShapeNode;
+  | ExpectedShapeNode
+  | ExpectedInstanceNode;
+
+interface ExpectedInstanceNode extends ExpectedTransform {
+  readonly id: string;
+  readonly type: 'instance';
+  readonly definitionId: string;
+  readonly sourceStartUs: number;
+  readonly width: number;
+  readonly height: number;
+  readonly fit: 'fill' | 'contain' | 'cover';
+  readonly effects: readonly ExpectedEffect[];
+  readonly mask: ExpectedMask;
+  readonly matte: ExpectedMatte;
+  readonly blendMode: ExpectedBlendMode;
+}
+
+type ExpectedDefinitionNode = Exclude<
+  ExpectedSceneNode,
+  ExpectedVideoNode | ExpectedCustomHtmlNode
+>;
 
 interface ExpectedAsset {
   readonly id: string;
@@ -781,8 +804,18 @@ interface ExpectedTemplate {
   readonly repeats: readonly ExpectedRepeat[];
 }
 
+interface ExpectedDefinition {
+  readonly id: string;
+  readonly width: number;
+  readonly height: number;
+  readonly durationUs: number;
+  readonly nodes: readonly ExpectedDefinitionNode[];
+  readonly clips: readonly ExpectedAudioClip[];
+  readonly transitions: readonly ExpectedClipTransition[];
+}
+
 interface ExpectedComposition {
-  readonly schemaVersion: '0.20';
+  readonly schemaVersion: '0.21';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {
@@ -797,6 +830,7 @@ interface ExpectedComposition {
   readonly scenes: readonly ExpectedScene[];
   readonly clips: readonly ExpectedAudioClip[];
   readonly transitions: readonly ExpectedSceneTransition[];
+  readonly definitions: readonly ExpectedDefinition[];
   readonly template: ExpectedTemplate;
 }
 
@@ -806,6 +840,9 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<Asset>().toEqualTypeOf<ExpectedAsset>();
     expectTypeOf<Scene>().toEqualTypeOf<ExpectedScene>();
     expectTypeOf<SceneNode>().toEqualTypeOf<ExpectedSceneNode>();
+    expectTypeOf<InstanceNode>().toEqualTypeOf<ExpectedInstanceNode>();
+    expectTypeOf<Definition>().toEqualTypeOf<ExpectedDefinition>();
+    expectTypeOf<DefinitionNode>().toEqualTypeOf<ExpectedDefinitionNode>();
     expectTypeOf<BackgroundNode>().toEqualTypeOf<ExpectedBackgroundNode>();
     expectTypeOf<GroupNode>().toEqualTypeOf<ExpectedGroupNode>();
     expectTypeOf<ImageNode>().toEqualTypeOf<ExpectedImageNode>();

@@ -1,9 +1,14 @@
 import {
+  definitionTimeUs,
+  instanceDefinition,
   scenesAt,
   sourceTimeUs,
   type CaptionsNode,
+  type Composition,
   type ImageNode,
+  type InstanceNode,
   type NodeAnimation,
+  type Scene,
   type SceneNode,
   type ShapeNode,
   type TextNode,
@@ -36,6 +41,7 @@ import type {
   CompositionState,
   GroupNodeState,
   ImageNodeState,
+  InstanceNodeState,
   LeafNodeState,
   LeafNodeType,
   NodeState,
@@ -53,6 +59,7 @@ type TransformedNode = Exclude<SceneNode, { readonly type: 'background' }>;
 const REPLACED: Readonly<Record<SceneNode['type'], readonly NodeAnimation['property'][]>> = {
   background: ['color'],
   group: [],
+  instance: [],
   'custom-html': [],
   text: ['color'],
   captions: ['color'],
@@ -290,12 +297,69 @@ function evaluateChild(
   }
 }
 
+/** What the evaluation of nested compositions reads of the document: its definitions and its canvas (D76). */
+type Definitions = Pick<Composition, 'definitions'>;
+
+/**
+ * The nodes of a scene or a definition at its own time `timeUs`, with what the
+ * clip transitions among them do in the frame of its canvas (D56, D66, D76).
+ */
+function evaluateNodes(
+  holder: Pick<Scene, 'nodes' | 'transitions'>,
+  timeUs: number,
+  canvas: { readonly width: number; readonly height: number },
+  definitions: Definitions,
+): NodeState[] {
+  const factors = clipTransitionEffects(holder, timeUs, canvas);
+  return holder.nodes.map((node) => evaluateNode(node, timeUs, factors, definitions));
+}
+
+/**
+ * An instance (D65.4, D76): its transform, effects, and compositing as a
+ * group's, and the nodes of its definition evaluated at the definition time it
+ * shows, every ID inside them the path of instance IDs to it (D76.3). An
+ * inactive instance is evaluated at the nearest instant of its lifetime, so the
+ * state still mirrors the document.
+ */
+function evaluateInstance(
+  node: InstanceNode,
+  timeUs: number,
+  factors: Factors,
+  definitions: Definitions,
+): InstanceNodeState {
+  const definition = instanceDefinition(definitions, node);
+  if (definition === null) {
+    // Validation refuses an instance without its definition (D76).
+    throw new EvaluationError(
+      'invalid-document',
+      `The instance "${node.id}" names no definition of the document.`,
+    );
+  }
+  const definitionTime = definitionTimeUs(node, timeUs);
+  return {
+    id: node.id,
+    type: node.type,
+    active: isActive(node, timeUs),
+    ...transformOf(node, timeUs, factors),
+    definitionId: node.definitionId,
+    definitionTimeUs: definitionTime,
+    nodes: evaluateNodes(definition, definitionTime, definition, definitions),
+    effects: effectsAt(node.effects, timeUs),
+    ...compositingAt(node, timeUs),
+  };
+}
+
 /**
  * Children keep their local values: nothing of the group is folded into them
  * (D15), their `active` included (D42.3). An inactive node is evaluated like any
  * other, so the state still mirrors the document.
  */
-function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeState {
+function evaluateNode(
+  node: SceneNode,
+  timeUs: number,
+  factors: Factors,
+  definitions: Definitions,
+): NodeState {
   switch (node.type) {
     case 'background':
       for (const animation of node.animations) {
@@ -330,6 +394,8 @@ function evaluateNode(node: SceneNode, timeUs: number, factors: Factors): NodeSt
       return evaluateCaptions(node, timeUs, factors);
     case 'shape':
       return evaluateShape(node, timeUs, factors);
+    case 'instance':
+      return evaluateInstance(node, timeUs, factors, definitions);
     default:
       return unsupported(node, 'type');
   }
@@ -373,10 +439,6 @@ export function evaluateComposition(
   const transition = sceneTransitionEffects(composition, time);
   const scenes = scenesAt(composition, time).map(({ placement, timeUs: sceneTimeUs }) => {
     const scene = composition.scenes[placement.index];
-    const factors =
-      scene === undefined
-        ? new Map<string, ClipSideEffect>()
-        : clipTransitionEffects(scene, sceneTimeUs, composition);
     const effect =
       transition === null
         ? null
@@ -388,7 +450,7 @@ export function evaluateComposition(
     return {
       id: placement.id,
       timeUs: sceneTimeUs,
-      nodes: (scene?.nodes ?? []).map((node) => evaluateNode(node, sceneTimeUs, factors)),
+      nodes: scene === undefined ? [] : evaluateNodes(scene, sceneTimeUs, composition, composition),
       effects: effectsAt(scene?.effects ?? [], sceneTimeUs),
       ...(effect === null ? {} : { transition: effect }),
     };

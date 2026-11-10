@@ -17,6 +17,7 @@
 - Amended by: PR-34a (D58) on 2026-11-02: the step to `0.8` appends an empty template section, which no time value depends on (D58.5)
 - Amended by: PR-34b (D59) on 2026-11-02: the step to `0.9` appends empty `conditions` and `repeats`, which no time value depends on (D59.5)
 - Amended by: PR-39a (D62) on 2026-11-03: 49.6: the size of an image is a media fact, read from its header by Kadrion's own parser, which `describe_document` reports and the bus checks nothing with (D62.1, D62.4)
+- Amended by: PR-55a (D76) on 2026-11-10: 49.5: an instance shows its definition at `sourceStartUs + (t − startUs)`, the rule of a video's source time; inside a definition clips are nodes, order is z-order, and lifetimes are in definition time (D76.2)
 - Related: D04, D13, D14, D16, D18, D19, D23, D29, D30, D35, D38, D39, D41,
   D42, D47, [roadmap of phase three](../roadmap/phase-3.md) PR-27 to PR-34b
 

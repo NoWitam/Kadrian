@@ -37,8 +37,11 @@
  * is 0.18 plus the asset type `svg`, a drawing of a closed subset of SVG that
  * an image node shows as an image (D74); 0.20 is 0.19 plus the blend mode, the
  * mask (a shape or an image), and the matte (a sibling shape) of images, videos,
- * texts, captions, shapes, and groups (D75). The schemas of 0.1 to 0.19 are
- * kept as data in `v0-1` to `v0-19` (D35.4).
+ * texts, captions, shapes, and groups (D75); 0.21 is 0.20 plus the definitions
+ * of a document, compositions with their own canvas and time, and the node
+ * `instance`, which places a definition in a scene or in another definition
+ * as one layer (D65.4, D76). The schemas of 0.1 to 0.20 are kept as data in
+ * `v0-1` to `v0-20` (D35.4).
  */
 import {
   closedObject,
@@ -51,7 +54,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.20';
+export const SCHEMA_VERSION = '0.21';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -1359,7 +1362,7 @@ const focus = closedObject(
   },
 );
 
-export const imageNodeSchema = closedObject(
+const imageNodeSchemaValue = closedObject(
   'An image asset, or an SVG asset shown as an image (D74), fitted to the box of the node.',
   {
     id,
@@ -1377,6 +1380,16 @@ export const imageNodeSchema = closedObject(
     ...compositing,
   },
 );
+
+/**
+ * The type of `imageNodeSchema`, named so that the declarations of the schemas that
+ * hold it refer to it instead of spelling it out (TS7056), as `EffectSchema`.
+ */
+export interface ImageNodeSchema extends ImageNodeSchemaValue {
+  readonly properties: ImageNodeSchemaValue['properties'];
+}
+type ImageNodeSchemaValue = typeof imageNodeSchemaValue;
+export const imageNodeSchema: ImageNodeSchema = imageNodeSchemaValue;
 
 export const videoNodeSchema = closedObject(
   'A video asset: at each instant of its lifetime the source frame of D49.5, fitted to the box of the node, and, at a volume above 0, the sound of its source at the same source time (D50, D52).',
@@ -1663,7 +1676,7 @@ export const textAnimationSchema = closedObject(
   },
 );
 
-export const textNodeSchema = closedObject('One run of text; line breaks are preserved.', {
+const textNodeSchemaValue = closedObject('One run of text; line breaks are preserved.', {
   id,
   type: { type: 'string', const: 'text' },
   ...lifetime,
@@ -1682,6 +1695,16 @@ export const textNodeSchema = closedObject('One run of text; line breaks are pre
   effects,
   ...compositing,
 });
+
+/**
+ * The type of `textNodeSchema`, named so that the declarations of the schemas that
+ * hold it refer to it instead of spelling it out (TS7056), as `EffectSchema`.
+ */
+export interface TextNodeSchema extends TextNodeSchemaValue {
+  readonly properties: TextNodeSchemaValue['properties'];
+}
+type TextNodeSchemaValue = typeof textNodeSchemaValue;
+export const textNodeSchema: TextNodeSchema = textNodeSchemaValue;
 
 /** One timed word of a caption (D57), in the time of its scene like a keyframe (D55.3). */
 export const captionWordSchema = closedObject(
@@ -1837,7 +1860,7 @@ export const captionStyleSchema = closedObject(
   },
 );
 
-export const captionsNodeSchema = closedObject(
+const captionsNodeSchemaValue = closedObject(
   'Captions from a transcription (D57): the words are broken into lines and the lines into pages by the runtime, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken carries the highlight.',
   {
     id,
@@ -1858,6 +1881,16 @@ export const captionsNodeSchema = closedObject(
   },
 );
 
+/**
+ * The type of `captionsNodeSchema`, named so that the declarations of the schemas that
+ * hold it refer to it instead of spelling it out (TS7056), as `EffectSchema`.
+ */
+export interface CaptionsNodeSchema extends CaptionsNodeSchemaValue {
+  readonly properties: CaptionsNodeSchemaValue['properties'];
+}
+type CaptionsNodeSchemaValue = typeof captionsNodeSchemaValue;
+export const captionsNodeSchema: CaptionsNodeSchema = captionsNodeSchemaValue;
+
 export const customHtmlNodeSchema = closedObject(
   'Isolated, capability-limited HTML element (D05). The schema defines no capability.',
   {
@@ -1871,7 +1904,7 @@ export const customHtmlNodeSchema = closedObject(
   },
 );
 
-export const shapeNodeSchema = closedObject(
+const shapeNodeSchemaValue = closedObject(
   "A vector shape drawn as inline SVG in the node's box: its geometry, filled and stroked, the stroke drawn from trim.start to trim.end of its length. Its fill lies under its stroke, and neither is cut by the box (D73).",
   {
     id,
@@ -1889,7 +1922,17 @@ export const shapeNodeSchema = closedObject(
   },
 );
 
-export const groupNodeSchema = closedObject(
+/**
+ * The type of `shapeNodeSchema`, named so that the declarations of the schemas that
+ * hold it refer to it instead of spelling it out (TS7056), as `EffectSchema`.
+ */
+export interface ShapeNodeSchema extends ShapeNodeSchemaValue {
+  readonly properties: ShapeNodeSchemaValue['properties'];
+}
+type ShapeNodeSchemaValue = typeof shapeNodeSchemaValue;
+export const shapeNodeSchema: ShapeNodeSchema = shapeNodeSchemaValue;
+
+const groupNodeSchemaValue = closedObject(
   "Children follow the group's transform; a child is shown only while its group is active too (D42.4). Groups do not nest (D16).",
   {
     id,
@@ -1910,6 +1953,61 @@ export const groupNodeSchema = closedObject(
   },
 );
 
+/**
+ * The type of `groupNodeSchema`, named so that the declarations of the schemas that
+ * hold it refer to it instead of spelling it out (TS7056), as `EffectSchema`.
+ */
+export interface GroupNodeSchema extends GroupNodeSchemaValue {
+  readonly properties: GroupNodeSchemaValue['properties'];
+}
+type GroupNodeSchemaValue = typeof groupNodeSchemaValue;
+export const groupNodeSchema: GroupNodeSchema = groupNodeSchemaValue;
+
+const definitionReference = {
+  type: 'string',
+  description: 'ID of a definition of this document (D76).',
+  pattern: '^[A-Za-z0-9_-]+$',
+} as const satisfies StringSchema;
+
+const instanceNodeSchemaValue = closedObject(
+  "A definition placed as one layer (D65.4, D76): at scene time t of its lifetime it shows the definition at sourceStartUs + (t - startUs), the definition's canvas fitted to the box of the node and cut to it. Its effects, mask, matte, opacity, and blend mode apply to the definition composited as one picture, as a group's do (D15).",
+  {
+    id,
+    type: { type: 'string', const: 'instance' },
+    ...lifetime,
+    ...plainTransform,
+    definitionId: definitionReference,
+    sourceStartUs: {
+      ...timeUs,
+      description:
+        'Definition time, in integer microseconds from the start of the definition, shown at startUs; speed is 1, and sourceStartUs + durationUs is at most the durationUs of the definition (D49.5, D65.4, D76).',
+    },
+    width: length,
+    height: length,
+    fit: {
+      ...fit,
+      description:
+        "How the definition's canvas meets the box: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and centre the canvas (D50, D76).",
+    },
+    effects: {
+      ...effects,
+      description:
+        'Effects of the instance, applied to its definition composited as one picture, in the order they apply; none leaves the pixels exactly as they are (D15, D65.4, D71, D76).',
+    },
+    ...compositing,
+  },
+);
+
+/**
+ * The type of `instanceNodeSchema`, named so that the declarations of the schemas that
+ * hold it refer to it instead of spelling it out (TS7056), as `EffectSchema`.
+ */
+export interface InstanceNodeSchema extends InstanceNodeSchemaValue {
+  readonly properties: InstanceNodeSchemaValue['properties'];
+}
+type InstanceNodeSchemaValue = typeof instanceNodeSchemaValue;
+export const instanceNodeSchema: InstanceNodeSchema = instanceNodeSchemaValue;
+
 export const sceneNodeSchema = {
   oneOf: [
     backgroundNodeSchema,
@@ -1920,6 +2018,20 @@ export const sceneNodeSchema = {
     videoNodeSchema,
     captionsNodeSchema,
     shapeNodeSchema,
+    instanceNodeSchema,
+  ],
+} as const satisfies UnionSchema;
+
+/** A node of a definition: every node of a scene except a video and Custom HTML (D76). */
+export const definitionNodeSchema = {
+  oneOf: [
+    backgroundNodeSchema,
+    groupNodeSchema,
+    imageNodeSchema,
+    textNodeSchema,
+    captionsNodeSchema,
+    shapeNodeSchema,
+    instanceNodeSchema,
   ],
 } as const satisfies UnionSchema;
 
@@ -2147,6 +2259,44 @@ export const sceneSchema = closedObject(
       ...effects,
       description:
         'Effects of the whole scene, applied to its nodes composited together and animated in scene time, in the order they apply; a scene transition then acts on the result. None leaves the pixels exactly as they are (D65.5, D71).',
+    },
+  },
+);
+
+export const definitionSchema = closedObject(
+  'A composition built once and placed by instances (D65.4, D76): its own canvas and duration, its nodes, its sounds, and the transitions between its clips, every time inside it definition time, from 0 at its start. It holds no assets of its own; its nodes name the assets of the document.',
+  {
+    id,
+    width: {
+      ...canvasLength,
+      description: 'The width of the canvas of the definition, in pixels (D76).',
+    },
+    height: {
+      ...canvasLength,
+      description: 'The height of the canvas of the definition, in pixels (D76).',
+    },
+    durationUs: {
+      ...durationUs,
+      description:
+        'How long the definition lasts, in integer microseconds; an instance shows at most this much of it (D65.4, D76).',
+    },
+    nodes: {
+      type: 'array',
+      description:
+        'Array order is the z-order; the first node is at the bottom. A definition holds no video and no Custom HTML (D76).',
+      items: definitionNodeSchema,
+    },
+    clips: {
+      type: 'array',
+      description:
+        'Audio clips in definition time, heard where an instance shows that time; mixed with every other clip regardless of their order (D52, D65.4, D76).',
+      items: audioClipSchema,
+    },
+    transitions: {
+      type: 'array',
+      description:
+        "Transitions between two clips of one layer of this definition, whose frame is the definition's canvas; their order has no meaning (D56, D66, D76).",
+      items: clipTransitionSchema,
     },
   },
 );
@@ -2622,7 +2772,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.20',
+  title: 'Kadrion composition 0.21',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,
@@ -2662,6 +2812,12 @@ export const compositionSchema = deepFreeze({
       description:
         'Transitions on the boundaries between scenes, at most one per boundary; their order has no meaning (D49.4, D56).',
       items: sceneTransitionSchema,
+    },
+    definitions: {
+      type: 'array',
+      description:
+        'The definitions that instances place, in any order; an instance may place one inside another, at most 8 deep and never in itself (D65.4, D76).',
+      items: definitionSchema,
     },
     template: templateSchema,
   }),

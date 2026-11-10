@@ -12,10 +12,13 @@ import type {
   clipTransitionSchema,
   compositionSchema,
   customHtmlNodeSchema,
+  definitionNodeSchema,
+  definitionSchema,
   easingSchema,
   effectSchema,
   groupNodeSchema,
   imageNodeSchema,
+  instanceNodeSchema,
   maskSchema,
   matteSchema,
   sceneNodeSchema,
@@ -70,6 +73,12 @@ export type ImageNode = Infer<typeof imageNodeSchema>;
 export type TextNode = Infer<typeof textNodeSchema>;
 export type VideoNode = Infer<typeof videoNodeSchema>;
 export type CustomHtmlNode = Infer<typeof customHtmlNodeSchema>;
+/** A definition placed as one layer, at a time of its own (D65.4, D76). */
+export type InstanceNode = Infer<typeof instanceNodeSchema>;
+/** A composition built once and placed by instances: a canvas, a duration, nodes, sounds, and transitions (D76). */
+export type Definition = Infer<typeof definitionSchema>;
+/** A node of a definition: any node of a scene but a video and Custom HTML (D76). */
+export type DefinitionNode = Infer<typeof definitionNodeSchema>;
 /** A vector shape: a geometry, filled, stroked, and trimmed (D73). */
 export type ShapeNode = Infer<typeof shapeNodeSchema>;
 /** What a shape draws, in composition pixels of its box (D73). */

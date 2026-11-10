@@ -107,6 +107,10 @@ export {
   removeTemplateConditionArgumentsSchema,
   addTemplateRepeatArgumentsSchema,
   removeTemplateRepeatArgumentsSchema,
+  addDefinitionArgumentsSchema,
+  removeDefinitionArgumentsSchema,
+  convertToDefinitionArgumentsSchema,
+  expandInstanceArgumentsSchema,
   removeTemplateInputArgumentsSchema,
   setTemplateInputArgumentsSchema,
   moveClipArgumentsSchema,
@@ -233,6 +237,18 @@ export type {
   RemoveTemplateRepeatArguments,
   RemoveTemplateRepeatArgumentsSchema,
   RemoveTemplateRepeatCommand,
+  AddDefinitionArguments,
+  AddDefinitionArgumentsSchema,
+  AddDefinitionCommand,
+  RemoveDefinitionArguments,
+  RemoveDefinitionArgumentsSchema,
+  RemoveDefinitionCommand,
+  ConvertToDefinitionArguments,
+  ConvertToDefinitionArgumentsSchema,
+  ConvertToDefinitionCommand,
+  ExpandInstanceArguments,
+  ExpandInstanceArgumentsSchema,
+  ExpandInstanceCommand,
   RemoveTemplateInputArguments,
   RemoveTemplateInputArgumentsSchema,
   RemoveTemplateInputCommand,
@@ -399,7 +415,12 @@ export type {
 } from './commands.js';
 export { describeDocument } from './describe.js';
 export type { DocumentObject } from './document.js';
-export type { DocumentDescription, NodeDescription, SceneDescription } from './describe.js';
+export type {
+  DefinitionDescription,
+  DocumentDescription,
+  NodeDescription,
+  SceneDescription,
+} from './describe.js';
 export { EditorError } from './errors.js';
 export type {
   AudioFacts,

@@ -118,7 +118,17 @@ export type EditorErrorCode =
    * before its scene, or the outgoing one end past the largest time; `details`
    * name it (D66).
    */
-  | 'no-room-at-cut';
+  | 'no-room-at-cut'
+  /** No definition of the document carries that ID (D76). */
+  | 'unknown-definition'
+  /** An instance places the definition; `details` name the instances (D76). */
+  | 'definition-in-use'
+  /**
+   * The instance does not show its definition exactly as its nodes placed
+   * directly would, or another instance places the definition too, so putting
+   * the nodes in its stead would change the picture (D76).
+   */
+  | 'instance-not-expandable';
 
 /**
  * A typed failure of the command bus (D30.8). Check `code` instead of

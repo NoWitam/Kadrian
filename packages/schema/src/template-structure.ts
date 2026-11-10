@@ -16,6 +16,7 @@ import type { CompositionV016 } from './v0-16/composition-schema.js';
 import type { CompositionV017 } from './v0-17/composition-schema.js';
 import type { CompositionV018 } from './v0-18/composition-schema.js';
 import type { CompositionV019 } from './v0-19/composition-schema.js';
+import type { CompositionV020 } from './v0-20/composition-schema.js';
 
 /** A scene, or a node with the scene and the group it lies in. */
 export interface TemplateElement {
@@ -90,6 +91,11 @@ type AnyNode =
   | Extract<
       CompositionV019['scenes'][number]['nodes'][number],
       { type: 'group' }
+    >['children'][number]
+  | CompositionV020['scenes'][number]['nodes'][number]
+  | Extract<
+      CompositionV020['scenes'][number]['nodes'][number],
+      { type: 'group' }
     >['children'][number];
 
 /** The assets a node uses: its picture or its font (D14), then the image of its mask (D75). */
@@ -111,6 +117,7 @@ export function templateStructure(
     | CompositionV017
     | CompositionV018
     | CompositionV019
+    | CompositionV020
     | CompositionV015
     | CompositionV014
     | CompositionV013
@@ -142,6 +149,17 @@ export function templateStructure(
     for (const clip of scene.clips) use(clip.assetId, scene.id);
   }
   for (const clip of composition.clips) use(clip.assetId, null);
+  // What the definitions of 0.21 use is used by no element a template removes (D76).
+  if ('definitions' in composition) {
+    const visit = (node: AnyNode): void => {
+      for (const assetId of assetsOfNode(node)) use(assetId, null);
+      if (node.type === 'group') node.children.forEach(visit);
+    };
+    for (const definition of composition.definitions) {
+      definition.nodes.forEach(visit);
+      for (const clip of definition.clips) use(clip.assetId, null);
+    }
+  }
   const repeats: readonly TemplateRepeat[] =
     'repeats' in composition.template ? composition.template.repeats : [];
   const repeatOf = new Map<string, TemplateRepeat>();

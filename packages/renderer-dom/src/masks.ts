@@ -35,6 +35,7 @@ import type { GroupNode, SceneNode, ShapeNode, ValidatedComposition } from '@kad
 
 import type { AssetUrls } from './assets.js';
 import { cssFilter, cssNumber, cssPixels } from './css.js';
+import { siblingLists } from './nested.js';
 import { pathData, writeShapePath, clearShapePath } from './shapes.js';
 import { FILTER_REACH, SVG_NAMESPACE } from './svg-filters.js';
 
@@ -168,14 +169,12 @@ function matteMask(document: Document, holderId: string, mode: Mode, matte: Shap
   return mask;
 }
 
-/** The siblings of every parent of the document: the nodes of each scene and the children of each group. */
+/**
+ * The siblings of every parent of the document: the nodes of each scene, the
+ * children of each group, and the nodes inside each instance by their paths (D76).
+ */
 function parentsOf(composition: ValidatedComposition): (readonly Node[])[] {
-  const parents: (readonly Node[])[] = [];
-  for (const scene of composition.scenes) {
-    parents.push(scene.nodes);
-    for (const node of scene.nodes) if (node.type === 'group') parents.push(node.children);
-  }
-  return parents;
+  return siblingLists(composition).map(({ nodes }) => nodes);
 }
 
 /** The IDs of the nodes that matte a sibling (D75). */

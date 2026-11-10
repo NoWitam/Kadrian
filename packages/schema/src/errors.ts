@@ -95,7 +95,15 @@ export type ValidationErrorCode =
   /** A matte has a mask, a matte, or a blend mode other than normal itself (D75). */
   | 'matte-not-plain'
   /** A matte is a side of a clip transition (D75). */
-  | 'matte-in-transition';
+  | 'matte-in-transition'
+  /** An instance names no definition of the document (D76). */
+  | 'unresolved-definition-reference'
+  /** An instance shows more time than its definition has: sourceStartUs + durationUs exceeds it (D65.4, D76). */
+  | 'instance-exceeds-definition'
+  /** A definition places itself, directly or through other definitions (D65.4, D76). */
+  | 'definition-cycle'
+  /** A definition places instances more than 8 deep (D65.4, D76). */
+  | 'definition-too-deep';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

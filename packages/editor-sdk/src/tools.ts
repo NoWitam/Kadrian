@@ -56,6 +56,10 @@ import {
   removeTemplateConditionArgumentsSchema,
   addTemplateRepeatArgumentsSchema,
   removeTemplateRepeatArgumentsSchema,
+  addDefinitionArgumentsSchema,
+  removeDefinitionArgumentsSchema,
+  convertToDefinitionArgumentsSchema,
+  expandInstanceArgumentsSchema,
   removeTemplateInputArgumentsSchema,
   setTemplateInputArgumentsSchema,
   deepFreeze,
@@ -108,6 +112,7 @@ import {
   type AddKeyframeArgumentsSchema,
   type AddNodeArgumentsSchema,
   type AddSceneArgumentsSchema,
+  type AddDefinitionArgumentsSchema,
   type AddSceneAudioClipArgumentsSchema,
   type AddClipTransitionArgumentsSchema,
   type AddSceneTransitionArgumentsSchema,
@@ -186,7 +191,8 @@ export type CommandArgumentsSchema =
   | SetTemplateInputArgumentsSchema
   | AddTemplateBindingArgumentsSchema
   | AddTemplateConditionArgumentsSchema
-  | AddTemplateRepeatArgumentsSchema;
+  | AddTemplateRepeatArgumentsSchema
+  | AddDefinitionArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -228,6 +234,9 @@ const CAPTIONS =
 
 const TEMPLATE =
   'A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into the {{inputId}} placeholders of the text of a text node, or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section.';
+
+const DEFINITIONS =
+  "A definition is a composition built once, with its own canvas (width, height), durationUs, nodes, clips, and clip transitions, and no video or Custom HTML; an instance node places it as one layer: at scene time t it shows the definition at sourceStartUs + (t - startUs), its canvas fitted to the instance's box. Every node, clip, and transition command works inside a definition as in a scene, by the IDs of its nodes, and a definition's ID is a parentId of add_node and a sceneId of add_scene_audio_clip and add_clip_transition; an edit inside a definition changes every instance of it. describe_document shows the definitions.";
 
 const PIXELS = 'Lengths and coordinates are composition pixels, rounded to integers.';
 
@@ -309,7 +318,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setNodeScaleArgumentsSchema,
   },
   SetNodeSize: {
-    description: `Sets the width and height of an image, a video, or a Custom HTML element, from 1 to 1000000 each. ${PIXELS} A text has no size; change its font size instead. Refused with invalid-argument for a size outside the range after rounding, unknown-node, and unsupported-node for any other node.`,
+    description: `Sets the width and height of an image, a video, a Custom HTML element, or an instance, from 1 to 1000000 each. ${PIXELS} A text has no size; change its font size instead. Refused with invalid-argument for a size outside the range after rounding, unknown-node, and unsupported-node for any other node.`,
     example: { nodeId: 'node-image', width: 480, height: 270 },
     argumentsSchema: setNodeSizeArgumentsSchema,
   },
@@ -430,7 +439,7 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   SetNodeFit: {
     description:
-      'Sets how the picture of an image or a video meets the box of its node: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and place the picture by its focus (set_node_focus), the centre by default. Refused with invalid-argument for another fit, unknown-node, and unsupported-node for a node that is neither an image nor a video.',
+      "Sets how the picture of an image or a video, or the canvas of an instance's definition, meets the box of its node: fill stretches it to the box, contain shows all of it inside the box, cover fills the box and crops; contain and cover keep the aspect ratio and place the picture by its focus (set_node_focus), the centre by default, and an instance's canvas at the centre. Refused with invalid-argument for another fit, unknown-node, and unsupported-node for a node that is neither an image, a video, nor an instance.",
     example: { nodeId: 'node-image', fit: 'cover' },
     argumentsSchema: setNodeFitArgumentsSchema,
   },
@@ -775,13 +784,13 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   SetBlendMode: {
     description:
-      'Sets how an image, video, text, captions, shape, or group node blends with what lies below it in its scene or group: "normal" lays it over; "multiply" darkens (white leaves what lies below, black makes black); "screen" lightens (black leaves it, white makes white); "overlay", "soft-light", and "hard-light" raise contrast; "darken" and "lighten" keep the darker or lighter channel; "color-dodge" and "color-burn" brighten or darken what lies below by the node; "difference" and "exclusion" subtract; "hue", "saturation", "color", and "luminosity" take that part of the node and the rest from what lies below. A scene or group holding a node that blends is composited on its own, so a node never blends with another scene or with what lies outside its group. The blend mode applies last, after the mask, matte, opacity, and transform. Refused with invalid-argument, unknown-node, and unsupported-node for a background or a Custom HTML node.',
+      'Sets how an image, video, text, captions, shape, group, or instance node blends with what lies below it in its scene or group: "normal" lays it over; "multiply" darkens (white leaves what lies below, black makes black); "screen" lightens (black leaves it, white makes white); "overlay", "soft-light", and "hard-light" raise contrast; "darken" and "lighten" keep the darker or lighter channel; "color-dodge" and "color-burn" brighten or darken what lies below by the node; "difference" and "exclusion" subtract; "hue", "saturation", "color", and "luminosity" take that part of the node and the rest from what lies below. A scene or group holding a node that blends is composited on its own, so a node never blends with another scene or with what lies outside its group. The blend mode applies last, after the mask, matte, opacity, and transform. Refused with invalid-argument, unknown-node, and unsupported-node for a background or a Custom HTML node.',
     example: { nodeId: 'node-title', blendMode: 'screen' },
     argumentsSchema: setBlendModeArgumentsSchema,
   },
   SetNodeMask: {
     description:
-      'Replaces what masks an image, video, text, captions, shape, or group node, applied after its effects and moving, scaling, and turning with it: {"kind":"none"}; {"kind":"shape", x, y, width, height, geometry, inverted, feather, animations} shows the node only inside a geometry ({"kind":"rect", cornerRadius} and {"kind":"ellipse"} fill the box; polygon and path as set_shape_geometry describes, in pixels of the box) drawn in the box x, y, width, height, integers in pixels from the top-left corner of the node\'s own box (a group\'s box is the canvas); {"kind":"image", assetId, x, y, width, height, mode, inverted, feather, animations} shows the node through an image asset stretched over that box, by its opacity (mode "alpha") or its brightness times its opacity (mode "luminance"), nothing outside the box. inverted true shows the node where the mask does not cover it. feather softens the edge by a blur of that many composition pixels (0 to 1000). animations are [] or at most one each of {id, property: "geometry", keyframes} (shape masks; every keyframe a geometry of the same structure, morphed number by number) and {id, property: "feather", keyframes}, keyframes {timeUs, value, easing} in scene time. Refused with invalid-argument, unknown-node, unsupported-node for a background or a Custom HTML node, and invalid-result (an unknown or non-image asset, a path that does not start with a move, a geometry keyframe of another structure).',
+      'Replaces what masks an image, video, text, captions, shape, group, or instance node, applied after its effects and moving, scaling, and turning with it: {"kind":"none"}; {"kind":"shape", x, y, width, height, geometry, inverted, feather, animations} shows the node only inside a geometry ({"kind":"rect", cornerRadius} and {"kind":"ellipse"} fill the box; polygon and path as set_shape_geometry describes, in pixels of the box) drawn in the box x, y, width, height, integers in pixels from the top-left corner of the node\'s own box (a group\'s box is the canvas); {"kind":"image", assetId, x, y, width, height, mode, inverted, feather, animations} shows the node through an image asset stretched over that box, by its opacity (mode "alpha") or its brightness times its opacity (mode "luminance"), nothing outside the box. inverted true shows the node where the mask does not cover it. feather softens the edge by a blur of that many composition pixels (0 to 1000). animations are [] or at most one each of {id, property: "geometry", keyframes} (shape masks; every keyframe a geometry of the same structure, morphed number by number) and {id, property: "feather", keyframes}, keyframes {timeUs, value, easing} in scene time. Refused with invalid-argument, unknown-node, unsupported-node for a background or a Custom HTML node, and invalid-result (an unknown or non-image asset, a path that does not start with a move, a geometry keyframe of another structure).',
     example: {
       nodeId: 'node-title',
       mask: {
@@ -800,7 +809,7 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   SetNodeMatte: {
     description:
-      'Replaces which sibling shape node mattes an image, video, text, captions, shape, or group node, as a track matte: {"kind":"none"}, or {"kind":"node", nodeId, mode}. The matte is a shape node of the same scene or group (not the node itself) with no mask, no matte, the normal blend mode, and no clip transition of its own; it keeps its own transform, lifetime, opacity, effects, and animations, is drawn only into the mask of the nodes it mattes, and covers nothing while it is not active. mode "alpha" shows the node where the matte is opaque, "luminance" where it is bright and opaque, "alpha-inverted" and "luminance-inverted" the opposite. The matte lies in the space of the parent: moving the node moves it under the matte, while a mask (set_node_mask) moves with the node. A node that mattes another cannot be removed or given a matte of its own until the matte is set to none, in the same transaction. Refused with invalid-argument, unknown-node, unsupported-node for a background or a Custom HTML node, and invalid-result (no such sibling, not a shape, or a matte that is not plain).',
+      'Replaces which sibling shape node mattes an image, video, text, captions, shape, group, or instance node, as a track matte: {"kind":"none"}, or {"kind":"node", nodeId, mode}. The matte is a shape node of the same scene or group (not the node itself) with no mask, no matte, the normal blend mode, and no clip transition of its own; it keeps its own transform, lifetime, opacity, effects, and animations, is drawn only into the mask of the nodes it mattes, and covers nothing while it is not active. mode "alpha" shows the node where the matte is opaque, "luminance" where it is bright and opaque, "alpha-inverted" and "luminance-inverted" the opposite. The matte lies in the space of the parent: moving the node moves it under the matte, while a mask (set_node_mask) moves with the node. A node that mattes another cannot be removed or given a matte of its own until the matte is set to none, in the same transaction. Refused with invalid-argument, unknown-node, unsupported-node for a background or a Custom HTML node, and invalid-result (no such sibling, not a shape, or a matte that is not plain).',
     example: {
       nodeId: 'node-title',
       matte: { kind: 'node', nodeId: 'node-shape', mode: 'alpha' },
@@ -926,7 +935,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setSafeAreaArgumentsSchema,
   },
   AddEffect: {
-    description: `Adds an effect to an image, video, text, captions node, or group, or to a whole scene, at an index of its effects: effects apply in their order, the first to the content itself, after the corner radius and before the opacity and the transform, so a blur or a shadow turns and scales with the node; a group's or a scene's effects apply to everything in it composited together, and a scene transition then acts on the result. The effect is {id, kind, ...parameters, animations}: "blur" {radius} blurs by a Gaussian of that standard deviation in composition pixels (0 to 1000) and spills beyond the box; "brightness", "contrast", and "saturate" {amount} scale by a factor from 0 to 10 (1 changes nothing; brightness 0 is black, contrast and saturate 0 grey); "grayscale", "invert", and "sepia" {amount} apply from 0 (nothing) to 1 (all grey, the negative, all sepia); "hue-rotate" {angle} turns every hue by degrees; "drop-shadow" {color, opacity, offset {x, y}, blur} casts the shape's shadow (lowercase #rrggbb, 0 to 1, pixels -1000 to 1000, a blur radius 0 to 1000). Drawn by SVG filters in sRGB: "curves" {red, green, blue, amount} maps each channel through a table of 2 to 32 output levels from 0 to 1 at evenly spaced inputs ([0, 1] changes nothing, [1, 0] inverts) and mixes the result in by amount 0 to 1 (only amount animates); "color-grade" {lift, gamma, gain, temperature, tint} is a primary grade: white balance first (temperature -1 to 1 warms above 0, tint -1 to 1 goes magenta above 0), then black to lift (-1 to 1) and white to gain (0 to 10), then gamma 0.1 to 10 brightens the mid-tones above 1 (0, 1, 1, 0, 0 change nothing); "glow" {color, opacity, radius} draws the shape blurred by radius (0 to 1000, it spills beyond the box) and filled with the colour under it; "vignette" {amount, size} darkens the box towards its edges, amount 0 to 1, size 0.05 to 10 (small is tight, 0.5 typical); "chroma-key" {key, tolerance, softness, spill} makes a green or blue screen transparent by channel difference: a pixel goes transparent as its key channel exceeds the mean of the other two by tolerance (0 to 1, about 0.1) over softness (0.01 to 1, about 0.1), and spill 0 to 1 pulls the key colour out of what remains; it keys a channel, not any colour. animations animate parameters: at most one per parameter, {id, property, keyframes} with property the parameter's name (radius, amount, angle, color, opacity, offset, blur, lift, gamma, gain, temperature, tint, size, tolerance, softness, spill) and at least two keyframes {timeUs, value, easing} in ascending scene time, like a node's keyframes; a sampled value replaces the parameter, and before the first and after the last keyframe the nearest value holds; [] for none. ${EASINGS} An effect whose values change nothing still draws its holder in a pass of its own, a few levels from none; remove_effect for none. Refused with unknown-node when ownerId names no node or scene, unsupported-node for a background or Custom HTML, index-out-of-range, id-in-use, and invalid-result.`,
+    description: `Adds an effect to an image, video, text, captions node, group, or instance, or to a whole scene, at an index of its effects: effects apply in their order, the first to the content itself, after the corner radius and before the opacity and the transform, so a blur or a shadow turns and scales with the node; a group's or a scene's effects apply to everything in it composited together, and a scene transition then acts on the result. The effect is {id, kind, ...parameters, animations}: "blur" {radius} blurs by a Gaussian of that standard deviation in composition pixels (0 to 1000) and spills beyond the box; "brightness", "contrast", and "saturate" {amount} scale by a factor from 0 to 10 (1 changes nothing; brightness 0 is black, contrast and saturate 0 grey); "grayscale", "invert", and "sepia" {amount} apply from 0 (nothing) to 1 (all grey, the negative, all sepia); "hue-rotate" {angle} turns every hue by degrees; "drop-shadow" {color, opacity, offset {x, y}, blur} casts the shape's shadow (lowercase #rrggbb, 0 to 1, pixels -1000 to 1000, a blur radius 0 to 1000). Drawn by SVG filters in sRGB: "curves" {red, green, blue, amount} maps each channel through a table of 2 to 32 output levels from 0 to 1 at evenly spaced inputs ([0, 1] changes nothing, [1, 0] inverts) and mixes the result in by amount 0 to 1 (only amount animates); "color-grade" {lift, gamma, gain, temperature, tint} is a primary grade: white balance first (temperature -1 to 1 warms above 0, tint -1 to 1 goes magenta above 0), then black to lift (-1 to 1) and white to gain (0 to 10), then gamma 0.1 to 10 brightens the mid-tones above 1 (0, 1, 1, 0, 0 change nothing); "glow" {color, opacity, radius} draws the shape blurred by radius (0 to 1000, it spills beyond the box) and filled with the colour under it; "vignette" {amount, size} darkens the box towards its edges, amount 0 to 1, size 0.05 to 10 (small is tight, 0.5 typical); "chroma-key" {key, tolerance, softness, spill} makes a green or blue screen transparent by channel difference: a pixel goes transparent as its key channel exceeds the mean of the other two by tolerance (0 to 1, about 0.1) over softness (0.01 to 1, about 0.1), and spill 0 to 1 pulls the key colour out of what remains; it keys a channel, not any colour. animations animate parameters: at most one per parameter, {id, property, keyframes} with property the parameter's name (radius, amount, angle, color, opacity, offset, blur, lift, gamma, gain, temperature, tint, size, tolerance, softness, spill) and at least two keyframes {timeUs, value, easing} in ascending scene time, like a node's keyframes; a sampled value replaces the parameter, and before the first and after the last keyframe the nearest value holds; [] for none. ${EASINGS} An effect whose values change nothing still draws its holder in a pass of its own, a few levels from none; remove_effect for none. Refused with unknown-node when ownerId names no node or scene, unsupported-node for a background or Custom HTML, index-out-of-range, id-in-use, and invalid-result.`,
     example: {
       ownerId: 'node-image',
       index: 0,
@@ -1046,6 +1055,52 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Removes a repeat; its target is shown once, as it stands. ${TEMPLATE} Refused with unknown-repeat, and invalid-result while an item binding or a {{list.key}} placeholder still needs it: remove those first, in the same transaction.`,
     example: { repeatId: 'each-title' },
     argumentsSchema: removeTemplateRepeatArgumentsSchema,
+  },
+  AddDefinition: {
+    description: `Inserts one complete definition at an index of the definitions. ${DEFINITIONS} The definition is given exactly as the document stores it: an ID unused in the document, width and height in pixels, durationUs (at least 1), its nodes from the bottom layer to the top (each as add_node takes one), its audio clips, and its clip transitions, every ID unused in the document, every time in definition time. Place it with add_node and an instance node. Refused with index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the definition is not one the document can hold.`,
+    example: {
+      index: 0,
+      definition: {
+        id: 'definition-badge',
+        width: 200,
+        height: 200,
+        durationUs: 1_000_000,
+        nodes: [
+          {
+            id: 'node-badge-background',
+            type: 'background',
+            startUs: 0,
+            durationUs: 1_000_000,
+            color: '#000000',
+            animations: [],
+          },
+        ],
+        clips: [],
+        transitions: [],
+      },
+    },
+    argumentsSchema: addDefinitionArgumentsSchema,
+  },
+  RemoveDefinition: {
+    description: `Removes one definition with its nodes and clips; its assets stay declared. ${DEFINITIONS} Refused with unknown-definition, and definition-in-use with the IDs of the instances that place it: remove or expand them first, in the same transaction.`,
+    example: { definitionId: 'definition-badge' },
+    argumentsSchema: removeDefinitionArgumentsSchema,
+  },
+  ConvertToDefinition: {
+    description: `Moves a run of sibling nodes, from fromNodeId up to toNodeId in layer order, out of a scene or a definition into a new definition with the canvas and duration of that holder, and puts one instance of it in their place, showing them as before: from time 0 over the whole holder, filling the canvas, untransformed. The nodes keep their IDs and times. ${DEFINITIONS} The instance composites its nodes as one layer, so a blend mode inside it blends with the nodes of the definition only. Refused with unknown-node, unsupported-node for a child of a group or when toNodeId is not a sibling at or above fromNodeId, invalid-argument when a new ID is not of the document's form or the two new IDs are equal, index-out-of-range, id-in-use, transition-in-use and matte-in-use while a transition or a matte joins a moved and a staying node (remove them first, in the same transaction), and invalid-result when a moved node cannot be in a definition (a video or Custom HTML node).`,
+    example: {
+      fromNodeId: 'node-group',
+      toNodeId: 'node-group',
+      definitionId: 'definition-group',
+      instanceId: 'node-group-instance',
+      index: 0,
+    },
+    argumentsSchema: convertToDefinitionArgumentsSchema,
+  },
+  ExpandInstance: {
+    description: `Puts the nodes of an instance's definition in the instance's place, with their IDs and times, and removes the definition: the inverse of convert_to_definition. ${DEFINITIONS} Refused with unknown-node, unsupported-node when the node is not an instance, and instance-not-expandable unless the instance shows its definition exactly as its nodes placed directly would (from time 0 over the whole holder, filling the holder's canvas, untransformed, without effects, mask, matte, or blend mode, the definition of the holder's canvas and duration with nodes and without clips or transitions) and no other instance places the definition.`,
+    example: { instanceId: 'node-group-instance' },
+    argumentsSchema: expandInstanceArgumentsSchema,
   },
 });
 

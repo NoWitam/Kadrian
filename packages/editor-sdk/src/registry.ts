@@ -23,6 +23,10 @@ import {
   parseAddKeyframe,
   parseAddNode,
   parseAddScene,
+  parseAddDefinition,
+  parseConvertToDefinition,
+  parseExpandInstance,
+  parseRemoveDefinition,
   parseAddClipTransition,
   parseAddSceneTransition,
   parseRemoveTransition,
@@ -125,6 +129,10 @@ import {
   locateClip,
   locateTextAnimation,
   locateEffect,
+  locateHolder,
+  holderAt,
+  holdersOf,
+  instancesOf,
   effectsIds,
   replaceEffects,
   locateNode,
@@ -145,6 +153,8 @@ import {
   transitionListOf,
   type AnimationLocation,
   type ClipOwner,
+  type HolderAddress,
+  idOf,
   type ListAddress,
   type DocumentObject,
   type NodeLocation,
@@ -422,7 +432,7 @@ function unknownAsset(assetId: string): EditorError {
 
 /** Checks that an asset exists in `assets` and is of the type the field expects (D40.2). */
 /** Refuses a node of another type than `type` with `unsupported-node` (D30.8). */
-/** The node types that blend, take a mask, and take a matte (D75). */
+/** The node types that blend, take a mask, and take a matte (D75, D76). */
 const COMPOSITED_TYPES: readonly string[] = Object.freeze([
   'image',
   'video',
@@ -430,6 +440,7 @@ const COMPOSITED_TYPES: readonly string[] = Object.freeze([
   'captions',
   'shape',
   'group',
+  'instance',
 ]);
 
 function requireType(node: DocumentObject, types: readonly string[], nodeId: string): void {
@@ -467,7 +478,7 @@ function locatedEffect(document: DocumentObject, effectId: string): EffectLocati
 }
 
 /** The node types that take effects (D71). */
-const EFFECT_OWNERS = ['image', 'video', 'text', 'captions', 'group', 'shape'] as const;
+const EFFECT_OWNERS = ['image', 'video', 'text', 'captions', 'group', 'shape', 'instance'] as const;
 
 /** The animation with that ID, or `unknown-animation` (D41.2). */
 function locatedTextAnimation(
@@ -619,6 +630,21 @@ function setKeyframe(
 }
 
 /** The scene with that ID and its index, or `unknown-scene` (D54.5). */
+/** The scene or the definition with that ID and its address, or `unknown-scene` (D76). */
+function locatedHolder(
+  document: DocumentObject,
+  holderId: string,
+): NonNullable<ReturnType<typeof locateHolder>> {
+  const found = locateHolder(document, holderId);
+  if (found === null) {
+    throw new EditorError(
+      'unknown-scene',
+      `The document has no scene or definition \`${holderId}\`.`,
+    );
+  }
+  return found;
+}
+
 function locatedScene(
   document: DocumentObject,
   sceneId: string,
@@ -777,7 +803,7 @@ function nodeClip(
     clip: node,
     items,
     index,
-    list: `nodes:${String(address.sceneIndex)}:${String(address.groupIndex)}`,
+    list: `nodes:${address.holder.holder}:${String(address.holder.index)}:${String(address.groupIndex)}`,
     put: (document, edited) => replaceList(document, address, edited),
   };
 }
@@ -793,7 +819,7 @@ function audioClip(
     clip,
     items,
     index,
-    list: `clips:${owner === null ? 'composition' : String(owner.sceneIndex)}`,
+    list: `clips:${owner === null ? 'composition' : `${owner.holder}:${String(owner.index)}`}`,
     put: (document, edited) => replaceClipList(document, owner, edited),
   };
 }
@@ -1592,7 +1618,7 @@ const DEFINITIONS = deepFreeze<Definitions>({
     parse: parseSetNodeFit,
     edit: (document, command) =>
       onNode(document, command.nodeId, (node) => {
-        requireType(node, ['image', 'video'], command.nodeId);
+        requireType(node, ['image', 'video', 'instance'], command.nodeId);
         const fit = stringField(node, 'fit', command.nodeId);
         if (fit === command.fit) return null;
         return {
@@ -1747,7 +1773,7 @@ const DEFINITIONS = deepFreeze<Definitions>({
       }
       // A frozen copy of the whole clip at its index in its own list, so undo restores
       // the same bytes in the same place (D54.5).
-      const scene = found.owner === null ? null : scenesOf(document)[found.owner.sceneIndex];
+      const scene = found.owner === null ? null : holderAt(document, found.owner);
       const inverse =
         found.owner === null || !isObject(scene)
           ? parseAddAudioClip({ type: 'AddAudioClip', index: found.index, clip: found.clip })
@@ -1926,8 +1952,14 @@ const DEFINITIONS = deepFreeze<Definitions>({
           `The node \`${command.nodeId}\` is a child of a group; it moves with its group (D49.3).`,
         );
       }
+      if (location.address.holder.holder !== 'scenes') {
+        throw new EditorError(
+          'unsupported-node',
+          `The node \`${command.nodeId}\` lies in a definition; only a node of a scene moves to a scene (D76).`,
+        );
+      }
       const target = locatedScene(document, command.sceneId);
-      const from = location.address.sceneIndex;
+      const from = location.address.holder.index;
       const source = scenesOf(document)[from];
       const sourceId = isObject(source) ? source['id'] : undefined;
       const inverse = (): Command =>
@@ -1978,8 +2010,8 @@ const DEFINITIONS = deepFreeze<Definitions>({
   AddSceneAudioClip: {
     parse: parseAddSceneAudioClip,
     edit(document, command) {
-      const found = locatedScene(document, command.sceneId);
-      const owner = { sceneIndex: found.index };
+      // The scene or the definition with that ID: a definition holds clips too (D76).
+      const owner = locatedHolder(document, command.sceneId).address;
       const clips = clipListOf(document, owner);
       if (command.index > clips.length) {
         throw outOfRange(command.index, clips.length, `the clips of \`${command.sceneId}\``);
@@ -2210,8 +2242,8 @@ const DEFINITIONS = deepFreeze<Definitions>({
   AddClipTransition: {
     parse: parseAddClipTransition,
     edit(document, command) {
-      const found = locatedScene(document, command.sceneId);
-      const owner = { sceneIndex: found.index };
+      // The scene or the definition with that ID: a definition holds clips too (D76).
+      const owner = locatedHolder(document, command.sceneId).address;
       const transitions = transitionListOf(document, owner);
       if (command.index > transitions.length) {
         throw outOfRange(
@@ -2239,7 +2271,7 @@ const DEFINITIONS = deepFreeze<Definitions>({
     parse: parseRemoveTransition,
     edit(document, command) {
       const found = locatedTransition(document, command.transitionId);
-      const scene = found.owner === null ? null : scenesOf(document)[found.owner.sceneIndex];
+      const scene = found.owner === null ? null : holderAt(document, found.owner);
       // A frozen copy of the whole transition at its index in its own list, so undo
       // restores the same bytes in the same place (D30, D56.6).
       const inverse =
@@ -2996,7 +3028,256 @@ const DEFINITIONS = deepFreeze<Definitions>({
       };
     },
   },
+  AddDefinition: {
+    parse: parseAddDefinition,
+    edit(document, command) {
+      const definitions = holdersOf(document, 'definitions');
+      if (command.index > definitions.length) {
+        throw outOfRange(command.index, definitions.length, 'the definitions');
+      }
+      // A definition carries IDs as a scene does: its own, its nodes', clips', and transitions'.
+      const createdIds = sceneIds(command.definition);
+      refuseTaken(document, createdIds);
+      const id: unknown = command.definition['id'];
+      return {
+        document: withDefinitions(
+          document,
+          inserted(definitions, command.index, command.definition),
+        ),
+        // The definition validated by now, so its `id` is an ID of the document's form.
+        invert: () => parseRemoveDefinition({ type: 'RemoveDefinition', definitionId: id }),
+        createdIds,
+        removedIds: [],
+      };
+    },
+  },
+  RemoveDefinition: {
+    parse: parseRemoveDefinition,
+    edit(document, command) {
+      const found = locatedDefinition(document, command.definitionId);
+      const users = instancesOf(document, command.definitionId);
+      if (users.length > 0) {
+        throw new EditorError(
+          'definition-in-use',
+          `The definition \`${command.definitionId}\` is placed by an instance; remove or expand the instances first, in the same transaction (D76).`,
+          users,
+        );
+      }
+      // A frozen copy of the whole definition at its index, so undo restores the same bytes (D30).
+      const inverse = parseAddDefinition({
+        type: 'AddDefinition',
+        index: found.index,
+        definition: found.definition,
+      });
+      return {
+        document: withDefinitions(
+          document,
+          holdersOf(document, 'definitions').filter((_, at) => at !== found.index),
+        ),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: sceneIds(found.definition),
+      };
+    },
+  },
+  ConvertToDefinition: {
+    parse: parseConvertToDefinition,
+    edit(document, command) {
+      const from = located(document, command.fromNodeId);
+      const to = located(document, command.toNodeId);
+      for (const location of [from, to]) {
+        if (location.address.groupIndex !== null) {
+          throw new EditorError(
+            'unsupported-node',
+            `The node \`${idOf(location.node)}\` is a child of a group; convert the group instead (D76).`,
+          );
+        }
+      }
+      if (to.list !== from.list || to.index < from.index) {
+        throw new EditorError(
+          'unsupported-node',
+          `The node \`${command.toNodeId}\` must be a sibling of \`${command.fromNodeId}\` at or above it (D76).`,
+        );
+      }
+      const definitions = holdersOf(document, 'definitions');
+      if (command.index > definitions.length) {
+        throw outOfRange(command.index, definitions.length, 'the definitions');
+      }
+      refuseTaken(document, [command.definitionId, command.instanceId]);
+      const frame = frameOf(document, from.address.holder);
+      // The nodes keep their times: the instance shows the definition from its start,
+      // over the whole holder, at the holder's canvas size (D76).
+      const definition = {
+        id: command.definitionId,
+        width: frame.width,
+        height: frame.height,
+        durationUs: frame.durationUs,
+        nodes: from.list.slice(from.index, to.index + 1),
+        clips: [],
+        transitions: [],
+      };
+      const instance = plainInstance(command.instanceId, command.definitionId, frame);
+      const list = [...from.list.slice(0, from.index), instance, ...from.list.slice(to.index + 1)];
+      // The list first: a holder that is a definition keeps its index until the insertion.
+      const edited = replaceList(document, from.address, list);
+      return {
+        document: withDefinitions(
+          edited,
+          inserted(holdersOf(edited, 'definitions'), command.index, definition),
+        ),
+        invert: () =>
+          parseExpandInstance({ type: 'ExpandInstance', instanceId: command.instanceId }),
+        createdIds: [command.definitionId, command.instanceId],
+        removedIds: [],
+      };
+    },
+  },
+  ExpandInstance: {
+    parse: parseExpandInstance,
+    edit(document, command) {
+      const location = located(document, command.instanceId);
+      const instance = location.node;
+      if (instance['type'] !== 'instance') {
+        throw new EditorError(
+          'unsupported-node',
+          `The node \`${command.instanceId}\` is not an instance (D76).`,
+        );
+      }
+      const definitionId = instance['definitionId'];
+      const found = locatedDefinition(
+        document,
+        typeof definitionId === 'string' ? definitionId : '',
+      );
+      const frame = frameOf(document, location.address.holder);
+      const nodes = listOf(found.definition);
+      const first = nodes[0];
+      const last = nodes.at(-1);
+      const plain =
+        sameData(instance, plainInstance(command.instanceId, found.id, frame)) &&
+        sameData(found.definition, {
+          id: found.id,
+          width: frame.width,
+          height: frame.height,
+          durationUs: frame.durationUs,
+          nodes,
+          clips: [],
+          transitions: [],
+        });
+      if (!plain || !isObject(first) || !isObject(last)) {
+        throw new EditorError(
+          'instance-not-expandable',
+          `The instance \`${command.instanceId}\` does not show its definition as its nodes placed directly would: it must fill the canvas of its holder from time 0 over the holder's whole duration, untransformed and without effects, and its definition must hold nodes and no clips or transitions (D76).`,
+        );
+      }
+      const users = instancesOf(document, found.id);
+      if (users.length > 1) {
+        throw new EditorError(
+          'instance-not-expandable',
+          `The definition \`${found.id}\` is placed by other instances too; it stays while they place it (D76).`,
+          users.filter((user) => user !== command.instanceId),
+        );
+      }
+      const list = [
+        ...location.list.slice(0, location.index),
+        ...nodes,
+        ...location.list.slice(location.index + 1),
+      ];
+      const edited = replaceList(document, location.address, list);
+      const inverse = parseConvertToDefinition({
+        type: 'ConvertToDefinition',
+        fromNodeId: first['id'],
+        toNodeId: last['id'],
+        definitionId: found.id,
+        instanceId: command.instanceId,
+        index: found.index,
+      });
+      return {
+        document: withDefinitions(
+          edited,
+          holdersOf(edited, 'definitions').filter((_, at) => at !== found.index),
+        ),
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [found.id, command.instanceId],
+      };
+    },
+  },
 });
+
+/** The document with `definitions` in place of its definitions (D76); everything else keeps its identity. */
+function withDefinitions(
+  document: DocumentObject,
+  definitions: readonly unknown[],
+): DocumentObject {
+  return { ...document, definitions };
+}
+
+/** The definition with that ID and its index, or `unknown-definition` (D76). */
+function locatedDefinition(
+  document: DocumentObject,
+  definitionId: string,
+): { readonly definition: DocumentObject; readonly id: string; readonly index: number } {
+  const definitions = holdersOf(document, 'definitions');
+  const index = definitions.findIndex(
+    (definition) => isObject(definition) && definition['id'] === definitionId,
+  );
+  const definition = definitions[index];
+  if (!isObject(definition)) {
+    throw new EditorError(
+      'unknown-definition',
+      `The document has no definition \`${definitionId}\`.`,
+    );
+  }
+  return { definition, id: definitionId, index };
+}
+
+/** The canvas and the duration of a scene or a definition: a scene's canvas is the composition's (D76). */
+interface Frame {
+  readonly width: number;
+  readonly height: number;
+  readonly durationUs: number;
+}
+
+function frameOf(document: DocumentObject, address: HolderAddress): Frame {
+  const holder = holderAt(document, address);
+  if (!isObject(holder)) throw new EditorError('unknown-scene', 'The node lies in no holder.');
+  const canvas = address.holder === 'scenes' ? document : holder;
+  const id = idOf(holder);
+  return {
+    width: numberField(canvas, 'width', id),
+    height: numberField(canvas, 'height', id),
+    durationUs: numberField(holder, 'durationUs', id),
+  };
+}
+
+/**
+ * The instance that shows a definition of the frame's canvas exactly as its
+ * nodes placed directly: over the whole holder from time 0, at the canvas size,
+ * untransformed, without effects, in the schema's field order (D76).
+ */
+function plainInstance(instanceId: string, definitionId: string, frame: Frame): DocumentObject {
+  return {
+    id: instanceId,
+    type: 'instance',
+    startUs: 0,
+    durationUs: frame.durationUs,
+    position: { x: 0, y: 0 },
+    scale: { x: 1, y: 1 },
+    rotation: 0,
+    origin: { x: 0, y: 0 },
+    opacity: 1,
+    animations: [],
+    definitionId,
+    sourceStartUs: 0,
+    width: frame.width,
+    height: frame.height,
+    fit: 'fill',
+    effects: [],
+    mask: { kind: 'none' },
+    matte: { kind: 'none' },
+    blendMode: 'normal',
+  };
+}
 
 /** The template section of a document (D58, D59): its inputs, bindings, conditions, and repeats. */
 function templateOf(document: DocumentObject): DocumentObject {
