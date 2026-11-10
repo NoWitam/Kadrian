@@ -18,8 +18,9 @@
  *   kadrion migrate <file> (--out <file> | --check)
  *   kadrion fetch-ffmpeg --dir <dir>
  *   kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]
+ *   kadrion inspect [--json] <file>
  *
- * Every command but `fetch-ffmpeg` and `doctor` is a job of D48: its standard
+ * Every command but `fetch-ffmpeg`, `doctor`, and `inspect` is a job of D48: its standard
  * output is JSON lines and nothing else (progress, the files written, and the
  * end), its diagnostics go to standard error, `SIGTERM` or `SIGINT` cancel it,
  * it takes the limits `--max-document-bytes`, `--max-duration-us`,
@@ -50,8 +51,11 @@
  * nothing and exits 6 when the document is not current (D43, amended by PR-41).
  * `fetch-ffmpeg` installs the pinned FFmpeg into a directory and prints the two
  * paths; `doctor` prints a JSON report of whether this process is the reference
- * environment, and exits 3 when it is not (D45).
+ * environment, and exits 3 when it is not (D45). `inspect` prints the verdict
+ * of the Player's `inspectVideo` on one file: whether the Player shows it as it
+ * is, every reason why not, and its facts (D79.6).
  */
+import { openAsBlob } from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -94,6 +98,7 @@ import {
   type StillRequest,
   type StillResult,
 } from '@kadrion/producer';
+import { inspectVideo, type VideoInspection } from '@kadrion/player';
 
 import { runDoctor, type DoctorReport } from './doctor.js';
 import {
@@ -168,6 +173,7 @@ export const USAGE = [
   '       kadrion migrate <file> (--out <file> | --check)',
   '       kadrion fetch-ffmpeg --dir <dir>',
   '       kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion inspect [--json] <file>',
   'Limits of a job: [--max-document-bytes <n>] [--max-duration-us <n>] [--max-frames <n>] [--max-assets <n>] [--max-asset-bytes <n>] [--max-total-asset-bytes <n>] [--max-wall-ms <n>]',
 ].join('\n');
 
@@ -188,6 +194,8 @@ export type Join = (request: JoinRequest) => Promise<JoinResult>;
 export type RenderStill = (request: StillRequest) => Promise<StillResult>;
 export type FetchFfmpeg = (options: FetchFfmpegOptions) => Promise<Installed>;
 export type Doctor = (ffmpeg: Partial<FfmpegPaths>) => Promise<DoctorReport>;
+/** The Player's verdict on a file (D79.4); `inspectVideo` of `@kadrion/player`. */
+export type Inspect = (file: Blob) => Promise<VideoInspection>;
 
 /** Starts a timer and returns how to cancel it: the CLI's clock, never the runtime's (D48.4). */
 export type StartTimer = (fire: () => void, milliseconds: number) => () => void;
@@ -202,6 +210,7 @@ export interface CliHosts {
   readonly renderStill: RenderStill;
   readonly fetchFfmpeg: FetchFfmpeg;
   readonly doctor: Doctor;
+  readonly inspect: Inspect;
   readonly env: Readonly<Record<string, string | undefined>>;
   /** Cancels the job: `bin.ts` aborts it on `SIGTERM` and `SIGINT` (D48.2). */
   readonly signal: AbortSignal | undefined;
@@ -910,6 +919,70 @@ async function doctorCommand(args: readonly string[], io: CliIo, hosts: CliHosts
   return report.reference ? EXIT_OK : EXIT_NOT_REFERENCE;
 }
 
+/** The text of a verdict without `--json`: the verdict, its reasons, and the facts read. */
+function inspectionLines(file: string, inspection: VideoInspection): string[] {
+  const { video, audio } = inspection;
+  const lines = [
+    `${file}: ${inspection.playable ? 'the Player shows it as it is' : 'not as it is'}`,
+  ];
+  for (const { code, message } of inspection.reasons) lines.push(`  ${code}: ${message}`);
+  if (inspection.container !== null) {
+    lines.push(`  container: ${inspection.container} (${inspection.format ?? ''})`);
+  }
+  if (video !== null) {
+    const rate =
+      video.frameRate === null
+        ? 'variable'
+        : `${String(video.frameRate.num)}/${String(video.frameRate.den)}`;
+    lines.push(
+      `  video: ${video.codecString ?? video.codec ?? 'unknown'} ${String(video.width)}x${String(video.height)}, ` +
+        `${String(video.frames ?? '?')} frames, ${String(video.durationUs ?? '?')} µs, ${rate} fps` +
+        (video.rotation === 0 && !video.flipped
+          ? ''
+          : `, rotated ${String(video.rotation)}°${video.flipped ? ' and flipped' : ''}`),
+    );
+  }
+  lines.push(
+    audio === null
+      ? '  audio: none'
+      : `  audio: ${audio.codec ?? 'unknown'}, ${String(audio.channels)} channels, ${String(audio.sampleRate)} Hz`,
+  );
+  return lines;
+}
+
+/**
+ * `kadrion inspect [--json] <file>` (D79.6): the verdict of `inspectVideo` on
+ * the file, read in slices and never whole. It exits 0 whatever the verdict
+ * is, 1 when the file cannot be opened, and 2 on a usage error.
+ */
+async function inspectCommand(
+  args: readonly string[],
+  io: CliIo,
+  inspect: Inspect,
+): Promise<number> {
+  const { values, positionals } = parseArgs({
+    args: [...args],
+    options: { json: { type: 'boolean' } },
+    strict: true,
+    allowPositionals: true,
+  });
+  const [file, ...extra] = positionals;
+  if (file === undefined || extra.length > 0) {
+    throw new UsageError('kadrion inspect takes exactly one file.');
+  }
+  let blob: Blob;
+  try {
+    blob = await openAsBlob(resolve(file));
+  } catch (reason) {
+    io.err(`error file-unreadable: ${reason instanceof Error ? reason.message : String(reason)}`);
+    return EXIT_PRODUCER_ERROR;
+  }
+  const inspection = await inspect(blob);
+  if (values.json === true) io.out(JSON.stringify(inspection, null, 2));
+  else for (const line of inspectionLines(file, inspection)) io.out(line);
+  return EXIT_OK;
+}
+
 /** `--max-wall-ms <n>` or `--max-wall-ms=<n>`, taken out of the arguments of a job (D48.4). */
 function wallLimit(args: readonly string[]): {
   readonly rest: readonly string[];
@@ -1042,6 +1115,7 @@ export async function runCli(
     renderStill: hosts.renderStill ?? renderStill,
     fetchFfmpeg: hosts.fetchFfmpeg ?? fetchFfmpeg,
     doctor: hosts.doctor ?? ((ffmpeg) => runDoctor(ffmpeg)),
+    inspect: hosts.inspect ?? inspectVideo,
     env: hosts.env ?? process.env,
     signal: hosts.signal,
     now: hosts.now ?? (() => performance.now()),
@@ -1051,6 +1125,7 @@ export async function runCli(
   try {
     if (command === 'fetch-ffmpeg') return await fetchFfmpegCommand(rest, io, given.fetchFfmpeg);
     if (command === 'doctor') return await doctorCommand(rest, io, given);
+    if (command === 'inspect') return await inspectCommand(rest, io, given.inspect);
     throw new UsageError(USAGE);
   } catch (reason) {
     if (reason instanceof ProducerError || reason instanceof FfmpegInstallError) {

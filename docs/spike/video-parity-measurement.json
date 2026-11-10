@@ -44,7 +44,7 @@
     "width": 640,
     "height": 360
   },
-  "playerDistTreeSha256": "sha256:4d1b6380877ce76b4b30933fdbad13915e19a9830a5d1389b3d9b751b0190d3c",
+  "playerDistTreeSha256": "sha256:de0679fa22cd200d5f37466f3aa5724e8b5b1b3fd6184daea1792a2c9d5eff9c",
   "playerDistManifest": [
     {
       "path": "packages/player/dist/agent.js",
@@ -58,8 +58,13 @@
     },
     {
       "path": "packages/player/dist/avc.js",
-      "size": 7230,
-      "sha256": "sha256:248adc1eb24fc07d7dbbdfef25acfd5d7dd533b5821f8f2c33ee392c836c5c99"
+      "size": 8815,
+      "sha256": "sha256:ce22d7434d63a1fc201e18144f60642a86a162d7eeb170057d57872f434ffdb6"
+    },
+    {
+      "path": "packages/player/dist/container.js",
+      "size": 15662,
+      "sha256": "sha256:f65278f8ac14361a4cc91cb2b6cf29111b3a481fd0c98da9bb14b0f319d28259"
     },
     {
       "path": "packages/player/dist/errors.js",
@@ -68,13 +73,8 @@
     },
     {
       "path": "packages/player/dist/index.js",
-      "size": 840,
-      "sha256": "sha256:99dffe0fb481231f521d703c49b8ac8911351a48ea90f37e0fcc1718f6b56f7c"
-    },
-    {
-      "path": "packages/player/dist/mp4.js",
-      "size": 16803,
-      "sha256": "sha256:c5537a82110e27e7608a21e448cef5fbc08c86899ec28f4a8e7e5dea04b042ed"
+      "size": 1037,
+      "sha256": "sha256:d364c6b350dab1bdb1f5e402f6b9453fdaca962503e1c268fe04583c35353aa0"
     },
     {
       "path": "packages/player/dist/player.js",
@@ -93,13 +93,18 @@
     },
     {
       "path": "packages/player/dist/video.js",
-      "size": 16874,
-      "sha256": "sha256:d2528d94fcbdb4cb6493accf7a54e768bb2fda6dc96ca5995c94558a34de2eff"
+      "size": 17505,
+      "sha256": "sha256:160b9adbbde739178cc59e9d528e5c39af182a342acdf469ea78ffa002df6893"
     },
     {
       "path": "packages/player/dist/yuv.js",
       "size": 11946,
       "sha256": "sha256:d04b124eb5caf610355f5b06dcb7a5ce585306aeba8dd359e3f98c7407afcaaf"
+    },
+    {
+      "path": "packages/player/node_modules/mediabunny/dist/bundles/mediabunny.mjs",
+      "size": 1520105,
+      "sha256": "sha256:aadb75abda8afce8c08ec9de9772bce24ea831b383add6b9fda8b5ea4567e794"
     },
     {
       "path": "packages/renderer-dom/dist/assets.js",

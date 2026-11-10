@@ -3,6 +3,10 @@
 - Status: Accepted — by the project owner on 2026-10-31, after PR-28b was merged
 - Date: 2026-10-31
 - Supersedes: D50.6 (the Player's refusal of video)
+- Amended by: K1 (D79) on 2026-11-10: D51.1 is superseded by D79.2 (MP4, fragmented MP4,
+  QuickTime, and Matroska, read with Mediabunny, under the same rule for the stream), and
+  the MP4 reader of D51.3 is replaced by Mediabunny (D79.1); decoding starts at an IDR
+  picture (D79.5)
 - Extends: D25 (the resolver may return a `Blob` for a video, the protocol
   version 2, `prepareVideo`), D28 (the page receives video frames with `seek`
   and `update`), D33 and D34 (the video rows of the parity measurement), D44
@@ -48,6 +52,8 @@ stay at zero inside video nodes.
 > D51: The Player reads a video's MP4 container and H.264 colour facts itself, decodes the needed sample with WebCodecs in the host window from the sync sample before it, converts the planes to RGB with a port of the Producer's libswscale path, and gives the page each frame as PNG bytes with the seek; a video comes from the resolver as a `Blob` or as bytes, verified by an incremental SHA-256 before use; `editor-session` reads media facts from those verified bytes; and the video rows of the parity measurement have the same zero thresholds as every other pixel.
 
 ### D51.1 What the Player accepts
+
+_Superseded by D79.2 (K1, 2026-11-10)._
 
 - An MP4 (ISO BMFF) file with one `moov` box, not fragmented, whose first
   video track is H.264 (`avc1` with an `avcC` record, exactly one sample

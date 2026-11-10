@@ -103,10 +103,13 @@ describe('the playground application (D25.9)', () => {
     expect(html).toMatch(/#grip\s*\{[^}]*pointer-events:\s*auto/);
   });
 
-  it('maps only the built packages in its import map', () => {
+  it("maps only the built packages and the Player's container reader in its import map", () => {
     const html = readText('apps', 'playground', 'index.html');
     const map = /<script type="importmap">([\s\S]*?)<\/script>/.exec(html)?.[1] ?? '{}';
-    const imports = (JSON.parse(map) as { imports: Record<string, string> }).imports;
+    const { mediabunny, ...imports } = (JSON.parse(map) as { imports: Record<string, string> })
+      .imports;
+    // The installed bundle of the Player's one external dependency (D79.7).
+    expect(mediabunny).toBe('/vendor/mediabunny/mediabunny.mjs');
     for (const [name, url] of Object.entries(imports)) {
       // A package, or one entry point of it such as `@kadrion/schema/template` (D58.4).
       const [dir = '', entry = 'index'] = name.replace('@kadrion/', '').split('/');
@@ -139,6 +142,9 @@ describe('the playground server (D25.9)', () => {
     '/pkg/player/index.js',
     '/pkg/renderer-dom/runtime-build/kadrion-runtime.js',
     '/pkg/test-fixtures/compositions/reference.json',
+    '/vendor/mediabunny/mediabunny.mjs',
+    '/vendor/mediabunny/mediabunny.cjs',
+    '/vendor/mediabunny/../package.json',
     '/media/video.mp4',
     '/media/video.mp4.partial.mp4/../video.mp4',
     '/media/notes.txt',
@@ -165,7 +171,7 @@ describe('the playground server (D25.9)', () => {
     ),
   ) as (string | null)[];
 
-  it('serves the page, its build, the built packages it needs, its media, and nothing else', () => {
+  it('serves the page, its build, the built packages it needs, the bundle of the container reader, its media, and nothing else', () => {
     expect(Object.fromEntries(probe.map((path, index) => [path, resolved[index]]))).toEqual({
       '/': '/apps/playground/index.html',
       '/app/main.js': '/apps/playground/dist/main.js',
@@ -178,6 +184,11 @@ describe('the playground server (D25.9)', () => {
         '/packages/renderer-dom/dist/runtime-build/kadrion-runtime.js',
       '/pkg/test-fixtures/compositions/reference.json':
         '/packages/test-fixtures/dist/compositions/reference.json',
+      // The bundle of the Player's container reader, as installed (D79.7).
+      '/vendor/mediabunny/mediabunny.mjs':
+        '/packages/player/node_modules/mediabunny/dist/bundles/mediabunny.mjs',
+      '/vendor/mediabunny/mediabunny.cjs': null,
+      '/vendor/mediabunny/../package.json': null,
       // The media of the showcases, made into a directory Git ignores (D32.10).
       '/media/video.mp4': '/.kadrion-cache/playground-media/video.mp4',
       '/media/video.mp4.partial.mp4/../video.mp4': null,

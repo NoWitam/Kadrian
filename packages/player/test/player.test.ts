@@ -1310,6 +1310,32 @@ describe('video in the host window (D51)', () => {
     expect(keys).toEqual([25, 50]);
   });
 
+  it('passes over a sync sample that holds no IDR picture, for the IDR sample before it (D79.5)', async () => {
+    // The sync sample at frame 25 is only a recovery point: a decode cannot start there.
+    const recovery = testMp4({
+      width: 32,
+      height: 16,
+      timescale: 1000,
+      samples: samples.map((sample, at) => (at === 25 ? { ...sample, idr: false } : sample)),
+    });
+    const bytes: Readonly<Record<string, PlayerAsset>> = {
+      ...videoBytes,
+      'asset-video': { bytes: recovery, mediaType: 'video/mp4' },
+    };
+    const draft = (await pinnedTo(videoComposition, bytes)) as VideoDraft;
+    const harness = createHarness();
+    const log = installCodecs(harness.window);
+    const player = await started(harness);
+    await player.load(draft, resolverOf(bytes));
+    log.decoded.length = 0;
+    await player.seek(1_000_000);
+    // Frame 25 of node-video-full decodes from frame 0, every chunk after the first a delta.
+    const full = log.decoded.slice(0, 26);
+    expect(full.map(({ first }) => first - 16)).toEqual(Array.from({ length: 26 }, (_, at) => at));
+    expect(full.filter(({ type }) => type === 'key')).toHaveLength(1);
+    expect(sourceOf(harness, 'node-video-full')).toBe(await expectedPng(25));
+  });
+
   it('removes the frame of a video node that is not active', async () => {
     videoDocument = await withVideoDocument();
     const harness = createHarness();
