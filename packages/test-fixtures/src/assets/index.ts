@@ -17,6 +17,9 @@ export { SVG_BADGE, SVG_BADGE_SIZE } from './svg.js';
 export {
   GREEN_SCREEN_FIXTURE,
   greenScreenFixtureArguments,
+  ROTATED_VIDEO_FIXTURES,
+  rotatedVideoFixtureArguments,
+  TILTED_VIDEO_FIXTURE,
   VIDEO_FIXTURE,
   VIDEO_SOUND_FIXTURE,
   videoFixtureArguments,
