@@ -15,6 +15,7 @@ import { promisify } from 'node:util';
 import {
   GREEN_SCREEN_FIXTURE,
   greenScreenFixtureArguments,
+  rotatedVideoFixtureArguments,
   VIDEO_FIXTURE,
   VIDEO_SOUND_FIXTURE,
   videoFixtureArguments,
@@ -38,15 +39,35 @@ export function makeGreenScreenFixture(ffmpegPath: string): Promise<Uint8Array> 
   return made(ffmpegPath, greenScreenFixtureArguments, GREEN_SCREEN_FIXTURE.contentHash);
 }
 
+/**
+ * The fixture video turned or tilted by its container (D81): the bytes of
+ * `makeVideoFixture` copied with a display matrix, made and checked the same way.
+ */
+export function makeRotatedVideoFixture(
+  ffmpegPath: string,
+  video: Uint8Array,
+  fixture: { readonly display: readonly string[]; readonly contentHash: string },
+): Promise<Uint8Array> {
+  return made(
+    ffmpegPath,
+    (output, directory) => {
+      const input = join(directory, 'upright.mp4');
+      writeFileSync(input, video);
+      return rotatedVideoFixtureArguments(fixture.display, input, output);
+    },
+    fixture.contentHash,
+  );
+}
+
 async function made(
   ffmpegPath: string,
-  recipe: (output: string) => readonly string[],
+  recipe: (output: string, directory: string) => readonly string[],
   contentHash: string,
 ): Promise<Uint8Array> {
   const directory = mkdtempSync(join(tmpdir(), 'kadrion-video-fixture-'));
   try {
     const output = join(directory, 'video.mp4');
-    await run(ffmpegPath, [...recipe(output)]);
+    await run(ffmpegPath, [...recipe(output, directory)]);
     const bytes = new Uint8Array(readFileSync(output));
     const actual = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
     if (actual !== contentHash) {
@@ -62,11 +83,15 @@ async function made(
 
 /**
  * Every frame of the video as the pinned FFmpeg decodes it with the arguments
- * of the Producer (D50.5): packed RGB, in presentation order.
+ * of the Producer (D50.5): packed RGB of the coded size, in presentation
+ * order. With `autorotate`, FFmpeg turns the picture itself, as it shows a
+ * file by default, before its conversion to RGB: what a turned video looks
+ * like to FFmpeg (D81), which the Producer does not use.
  */
 export async function decodedFixtureFrames(
   ffmpegPath: string,
   bytes: Uint8Array,
+  autorotate = false,
 ): Promise<Uint8Array[]> {
   const directory = mkdtempSync(join(tmpdir(), 'kadrion-video-fixture-'));
   try {
@@ -75,12 +100,15 @@ export async function decodedFixtureFrames(
     const { stdout } = await run(
       ffmpegPath,
       [
-        ...['-nostdin', '-v', 'error', '-threads', '1', '-i', input, '-map', '0:v:0'],
+        ...['-nostdin', '-v', 'error', '-threads', '1'],
+        ...(autorotate ? [] : ['-noautorotate']),
+        ...['-i', input, '-map', '0:v:0'],
         ...['-fps_mode', 'passthrough', '-sws_flags', 'bitexact+accurate_rnd+full_chroma_int'],
         ...['-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'],
       ],
       { encoding: 'buffer', maxBuffer: 64 * 1024 * 1024 },
     );
+    // A turn keeps the number of pixels, so every frame has the bytes of the coded size.
     const size = VIDEO_FIXTURE.width * VIDEO_FIXTURE.height * 3;
     return Array.from(
       { length: stdout.length / size },

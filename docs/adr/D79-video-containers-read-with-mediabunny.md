@@ -8,6 +8,10 @@
   manifest names the host modules it is served with), each with an
   `Amended by: K1 (D79)` line
 - Related: D25.8, D34, D37, D49.6, D50.5, D53.2, D60
+- Amended by: K2 (D81) on 2026-11-10: D79.2 and D79.4: a track turned a quarter turn, mirrored
+  or not, is accepted and turned after the conversion to RGB; the reason `rotation` means a
+  display matrix that is no quarter turn; `video.width` and `video.height` are the size as shown
+  (D81.2)
 
 ## Context
 

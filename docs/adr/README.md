@@ -88,6 +88,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D78](D78-custom-html-for-ai-authors.md)                      | Custom HTML for AI authors: a managed clock, fonts, and parameters, schema 0.23              | Proposed          |
 | [D79](D79-video-containers-read-with-mediabunny.md)           | Video containers read with Mediabunny, and the verdict of `inspectVideo`                     | Proposed          |
 | [D80](D80-a-segment-grid-anchored-on-a-span.md)               | A segment grid anchored on a span, with a shortest last segment                              | Proposed          |
+| [D81](D81-video-turned-by-its-container.md)                   | Video turned by its container: the display matrix applied after the conversion to RGB        | Proposed          |
 
 ## Provenance of D01–D10
 

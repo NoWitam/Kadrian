@@ -12,7 +12,8 @@
  * have settled; `resolveAssets` asks the host for the bytes of every asset and
  * verifies their hashes before anything reaches the page (D27.3);
  * `readImageSize` reads the size of a PNG, JPEG, or WebP image from its header
- * (D62). None of them
+ * (D62); `videoOrientation` and `orientRgb` turn a decoded video picture as its
+ * container asks, the same way in both hosts (D81). None of them
  * reads a clock or keeps anything between calls: the host supplies the state,
  * the timer, the digest, and the font constructor, and the DOM is the only
  * memory. The
@@ -49,5 +50,7 @@ export type {
 } from './resolve.js';
 export { synchronizeCustomHtml } from './synchronize.js';
 export { applyVideoFrames } from './video.js';
+export { orientedSize, orientRgb, UPRIGHT, videoOrientation } from './video-orientation.js';
+export type { VideoOrientation, VideoRotation } from './video-orientation.js';
 export type { VideoFrame } from './video.js';
 export type { CustomHtmlHost, MessageListener, MessageTarget } from './synchronize.js';

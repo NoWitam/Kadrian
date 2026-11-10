@@ -8,7 +8,9 @@
  *
  * The rules are D51.1's, widened to these containers only (D79.2): the
  * primary video track is H.264, 8-bit 4:2:0, progressive, BT.601 or BT.709,
- * not rotated or flipped; its presentation times are whole ticks of its time
+ * and its display matrix is a quarter turn, with or without a mirror, which
+ * the Player applies after its conversion to RGB as the Producer does (D81);
+ * its presentation times are whole ticks of its time
  * base, strictly ascending, and never before zero; the first sample is a sync
  * sample that holds an IDR picture. The facts are those the pinned ffprobe reads for the same bytes:
  * the time base, the presentation timestamps, and the duration of the last
@@ -28,6 +30,12 @@ import {
   type InputFormat,
   type InputVideoTrack,
 } from 'mediabunny';
+import {
+  orientedSize,
+  UPRIGHT,
+  videoOrientation,
+  type VideoOrientation,
+} from '@kadrion/renderer-dom';
 import { sourceDurationUs, type TimeBase } from '@kadrion/schema';
 
 import {
@@ -57,7 +65,7 @@ export type VideoInspectionCode =
   | 'interlaced'
   /** Colour other than BT.601 or BT.709, or a container that says other colours than the stream. */
   | 'colour'
-  /** A track rotated or flipped by its container. */
+  /** A display matrix other than a quarter turn, with or without a mirror (D81). */
   | 'rotation'
   /** Timestamps the Player cannot read exactly as the Producer's ffprobe does. */
   | 'timing'
@@ -79,10 +87,13 @@ export interface InspectedVideoTrack {
   readonly codec: string | null;
   /** The codec string of RFC 6381, for example `avc1.64001f`, or `null`. */
   readonly codecString: string | null;
-  /** The coded size, as the container states it. */
+  /**
+   * The size of the picture as it is shown: the coded size, its sides swapped
+   * by a rotation of 90° or 270° (D81).
+   */
   readonly width: number;
   readonly height: number;
-  /** The clockwise rotation the container asks for. */
+  /** The clockwise rotation the container asks for; 0 when its matrix is not a quarter turn. */
   readonly rotation: 0 | 90 | 180 | 270;
   /** Whether the container asks for a horizontal flip after the rotation. */
   readonly flipped: boolean;
@@ -135,8 +146,11 @@ export interface VideoTrack {
   readonly description: Uint8Array;
   /** How the Producer's decode converts its frames to RGB (D51.4). */
   readonly colour: AvcColour;
+  /** The coded size, which the decoder gives. */
   readonly width: number;
   readonly height: number;
+  /** How a decoded picture is turned after its conversion to RGB (D81). */
+  readonly orientation: VideoOrientation;
   readonly timeBase: TimeBase;
   /** Every sample in decode order. */
   readonly samples: readonly VideoSample[];
@@ -378,27 +392,29 @@ async function examine(blob: Blob): Promise<Examination> {
     const codecString = await videoTrack.getCodecParameterString();
     const width = await videoTrack.getCodedWidth();
     const height = await videoTrack.getCodedHeight();
-    const rotation = await videoTrack.getRotation();
-    const flipped = await videoTrack.getFlip();
+    // The matrix itself, not Mediabunny's rotation, which rounds any angle to a quarter turn.
+    const matrix = await videoTrack.getTransformationMatrix();
+    const orientation = videoOrientation(matrix);
     if (codec !== 'avc') {
       add('codec', `The Player decodes H.264, not ${codec ?? codecString ?? 'an unknown codec'}.`);
     }
-    if (rotation !== 0 || flipped) {
+    if (orientation === null) {
       add(
         'rotation',
-        `The container rotates the picture by ${String(rotation)}°${flipped ? ' and flips it' : ''}.`,
+        `The container's display matrix [${matrix.join(', ')}] is not a quarter turn, with or without a mirror (D81).`,
       );
     }
+    const shown = orientedSize(width, height, orientation ?? UPRIGHT);
     if (width <= 0 || height <= 0) add('unreadable', 'The video track has no size.');
     const timing = await timingOf(videoTrack);
     if (typeof timing === 'string') add('timing', timing);
     video = Object.freeze({
       codec,
       codecString,
-      width,
-      height,
-      rotation,
-      flipped,
+      width: shown.width,
+      height: shown.height,
+      rotation: (orientation ?? UPRIGHT).rotation,
+      flipped: (orientation ?? UPRIGHT).flipped,
       frames: typeof timing === 'string' ? null : timing.timestamps.length,
       durationUs:
         typeof timing === 'string'
@@ -443,6 +459,7 @@ async function examine(blob: Blob): Promise<Examination> {
     if (
       reasons.every(({ code }) => code === 'audio-channels') &&
       typeof timing !== 'string' &&
+      orientation !== null &&
       colour !== null &&
       description !== null &&
       codecString !== null
@@ -453,6 +470,7 @@ async function examine(blob: Blob): Promise<Examination> {
         colour,
         width,
         height,
+        orientation,
       });
     }
   } catch (reason) {
@@ -469,7 +487,7 @@ async function examine(blob: Blob): Promise<Examination> {
 function videoTrackOf(
   input: InputVideoTrack,
   timing: Timing,
-  fixed: Pick<VideoTrack, 'codec' | 'description' | 'colour' | 'width' | 'height'>,
+  fixed: Pick<VideoTrack, 'codec' | 'description' | 'colour' | 'width' | 'height' | 'orientation'>,
 ): VideoTrack {
   const sink = new EncodedPacketSink(input);
   const { packets } = timing;

@@ -2,9 +2,11 @@
  * The verdict corpus of `inspectVideo` (D79.4): small videos the pinned FFmpeg
  * makes in the test, one for each case of the Player's rule (D79.2), each with
  * the verdict it must get. H.264 in MP4, fragmented MP4, MOV and MKV plays
- * directly, with the facts ffprobe reads; HEVC, VP9, AV1, 10-bit, 4:2:2,
- * interlaced, BT.2020 and rotated pictures, another container, more than two audio
- * channels and a file without video do not, each for its own reason. The
+ * directly, with the facts ffprobe reads, and so does H.264 turned by its
+ * container a quarter turn, mirrored or not, with the size as shown (D81);
+ * HEVC, VP9, AV1, 10-bit, 4:2:2, interlaced, BT.2020 and tilted pictures,
+ * another container, more than two audio channels and a file without video
+ * do not, each for its own reason. The
  * command `kadrion inspect --json` (D79.6) gives the same verdict for a file.
  * Skipped without `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where the
  * run is pinned.
@@ -41,6 +43,8 @@ interface Case {
   readonly playable: boolean;
   readonly codes: readonly VideoInspectionCode[];
   readonly container: VideoInspection['container'];
+  /** The turn and mirror of the container's display matrix (D81); upright when absent. */
+  readonly orientation?: { readonly rotation: 0 | 90 | 180 | 270; readonly flipped: boolean };
 }
 
 const COPY = ['-map', '0', '-c', 'copy'];
@@ -160,8 +164,38 @@ const CASES: readonly Case[] = [
     container: 'mp4',
   },
   {
-    name: 'rotated H.264 (K2)',
+    name: 'H.264 in MP4 turned 270° (K2, D81)',
     file: 'rotated.mp4',
+    from: 'h264.mp4',
+    made: COPY,
+    playable: true,
+    codes: [],
+    container: 'mp4',
+    orientation: { rotation: 270, flipped: false },
+  },
+  {
+    name: 'H.264 in MOV turned 90° and mirrored (D81)',
+    file: 'rotated-mirrored.mov',
+    from: 'h264.mp4',
+    made: COPY,
+    playable: true,
+    codes: [],
+    container: 'mov',
+    orientation: { rotation: 90, flipped: true },
+  },
+  {
+    name: 'H.264 in MKV turned 180° (D81)',
+    file: 'rotated.mkv',
+    from: 'h264.mp4',
+    made: COPY,
+    playable: true,
+    codes: [],
+    container: 'mkv',
+    orientation: { rotation: 180, flipped: false },
+  },
+  {
+    name: 'H.264 in MP4 tilted 45° (D81)',
+    file: 'tilted.mp4',
     from: 'h264.mp4',
     made: COPY,
     playable: false,
@@ -206,7 +240,11 @@ const CASES: readonly Case[] = [
 
 /** The input options of a case made from another file of the corpus. */
 const INPUT_OPTIONS: Readonly<Record<string, readonly string[]>> = {
+  // FFmpeg turns counter-clockwise: its 90 is a clockwise 270.
   'rotated.mp4': ['-display_rotation', '90'],
+  'rotated-mirrored.mov': ['-display_rotation', '90', '-display_vflip'],
+  'rotated.mkv': ['-display_rotation', '180'],
+  'tilted.mp4': ['-display_rotation', '45'],
 };
 
 describe('the pinned FFmpeg for the verdict corpus (D79.4)', () => {
@@ -274,12 +312,15 @@ describe.skipIf(!available)('the verdict corpus of inspectVideo (D79.2, D79.4)',
       const [num, den] = (stream?.time_base ?? '').split('/').map(Number);
       const [rateNum, rateDen] = (stream?.r_frame_rate ?? '').split('/').map(Number);
       const video = verdicts.get(entry.file)?.video;
+      const { rotation, flipped } = entry.orientation ?? { rotation: 0, flipped: false };
+      // ffprobe states the coded size; the verdict the size as shown (D81).
+      const turned = rotation % 180 !== 0;
       expect(video).toMatchObject({
         codec: 'avc',
-        width: stream?.width,
-        height: stream?.height,
-        rotation: 0,
-        flipped: false,
+        width: turned ? stream?.height : stream?.width,
+        height: turned ? stream?.width : stream?.height,
+        rotation,
+        flipped,
         frames: Number(stream?.nb_read_packets),
         timeBase: { num, den },
         frameRate: { num: rateNum, den: rateDen },
@@ -299,7 +340,7 @@ describe.skipIf(!available)('the verdict corpus of inspectVideo (D79.2, D79.4)',
   });
 
   it('gives the same verdict through `kadrion inspect --json` (D79.6)', async () => {
-    for (const file of ['h264.mkv', 'hevc.mp4', 'rotated.mp4']) {
+    for (const file of ['h264.mkv', 'hevc.mp4', 'rotated.mp4', 'tilted.mp4']) {
       const out: string[] = [];
       const code = await runCli(['inspect', '--json', path(file)], {
         out: (line) => out.push(line),

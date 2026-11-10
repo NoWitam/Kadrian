@@ -727,6 +727,7 @@ export declare const TIMEZONE = "UTC";
 export interface VideoProbe {
     readonly width: number;
     readonly height: number;
+    readonly orientation: VideoOrientation;
     readonly timeBase: {
         readonly num: number;
         readonly den: number;

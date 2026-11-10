@@ -5,8 +5,11 @@
  * of D49.5 selects as FFmpeg decodes it, the frames do not depend on the order
  * of the render, the golden frames of the video composition are met in the
  * pinned environment, the frames are the same when the video is read by path
- * (D64), and every problem of a video is typed before the first frame. Skipped without `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where
- * the run is pinned.
+ * (D64), and every problem of a video is typed before the first frame. A
+ * video turned by its container is decoded at its coded size and turned after
+ * the conversion to RGB, in the orientation FFmpeg itself shows it, and a
+ * display matrix that is no quarter turn is refused (D81). Skipped without
+ * `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where the run is pinned.
  */
 import {
   appendFileSync,
@@ -29,10 +32,12 @@ import {
   type ProducerAssetResolver,
   type RenderResult,
 } from '@kadrion/producer';
-import type { AssetResolver } from '@kadrion/renderer-dom';
+import { orientRgb, type AssetResolver, type VideoOrientation } from '@kadrion/renderer-dom';
 import { sourceFrameIndex, sourceTimeUs } from '@kadrion/schema';
 import {
   generateReferenceAssets,
+  ROTATED_VIDEO_FIXTURES,
+  TILTED_VIDEO_FIXTURE,
   VIDEO_FIXTURE,
   videoComposition,
   videoGoldenTimestamps,
@@ -50,7 +55,11 @@ import {
   writeReport,
   type Draft,
 } from './support.js';
-import { decodedFixtureFrames, makeVideoFixture } from './video-fixture.ts';
+import {
+  decodedFixtureFrames,
+  makeRotatedVideoFixture,
+  makeVideoFixture,
+} from './video-fixture.ts';
 
 const ffmpegPath = process.env.KADRION_FFMPEG;
 const ffprobePath = process.env.KADRION_FFPROBE;
@@ -352,6 +361,106 @@ describe.skipIf(!available)('video nodes in the Producer (D49, D50)', () => {
       bytes[bytes.length - 1] = (bytes.at(-1) ?? 0) ^ 1;
       await expect(render([0], videoComposition, bytes)).rejects.toMatchObject({
         code: 'asset-hash-mismatch',
+      });
+    });
+  });
+
+  describe('a video turned by its container (D81)', () => {
+    /** The time shown, and the source frame node-video-full shows then. */
+    const TIME_US = 1_000_000;
+    const FRAME = 25;
+    const ORIENTATIONS: readonly VideoOrientation[] = [0, 90, 180, 270].flatMap((rotation) =>
+      [false, true].map((flipped) => ({ rotation: rotation as 0 | 90 | 180 | 270, flipped })),
+    );
+
+    /** The video composition with node-video-full alone, at the size the video is shown. */
+    const alone = (contentHash: string, width: number, height: number): unknown =>
+      edited((draft) => {
+        const asset = draft.assets.find(({ id }) => id === VIDEO_FIXTURE.id);
+        const scene = draft.scenes[0];
+        if (asset === undefined || scene === undefined) throw new Error('No video asset.');
+        asset.contentHash = contentHash;
+        scene.nodes = scene.nodes.filter(({ id }) => id === 'node-video-full');
+        const [node] = scene.nodes;
+        if (node === undefined) throw new Error('No node-video-full.');
+        node.width = width;
+        node.height = height;
+      });
+
+    /** The mean difference of two pictures of packed RGB of the same length. */
+    const meanDifference = (a: Uint8Array, b: Uint8Array): number => {
+      let sum = 0;
+      for (let at = 0; at < a.length; at += 1) sum += Math.abs((a[at] ?? 0) - (b[at] ?? 0));
+      return sum / a.length;
+    };
+
+    it.each(ROTATED_VIDEO_FIXTURES)(
+      'shows $name turned after the conversion to RGB, as FFmpeg shows it',
+      async (fixture) => {
+        const bytes = await makeRotatedVideoFixture(FFMPEG.ffmpegPath, video, fixture);
+        const result = await render(
+          [TIME_US],
+          alone(fixture.contentHash, fixture.width, fixture.height),
+          bytes,
+        );
+        expect(result.manifest.video?.sources[0]).toMatchObject({
+          contentHash: fixture.contentHash,
+          width: fixture.width,
+          height: fixture.height,
+          frames: fixture.frames,
+          sourceDurationUs: fixture.sourceDurationUs,
+        });
+        expect(result.manifest.video?.decodeArgs).toContain('-noautorotate');
+        const coded = (await decodedFixtureFrames(FFMPEG.ffmpegPath, bytes))[FRAME];
+        const shownByFfmpeg = (await decodedFixtureFrames(FFMPEG.ffmpegPath, bytes, true))[FRAME];
+        if (coded === undefined || shownByFfmpeg === undefined) throw new Error('No frame.');
+        const { width, height } = VIDEO_FIXTURE;
+        const expected = orientRgb(coded, width, height, fixture);
+        // The frame of the page holds the turned picture at (0, 0), pixel for pixel.
+        const image = decodePng(result.frames[0]?.png ?? new Uint8Array());
+        let differingPixels = 0;
+        for (let y = 0; y < fixture.height; y += 1) {
+          for (let x = 0; x < fixture.width; x += 1) {
+            const at = (y * image.width + x) * 4;
+            const from = (y * fixture.width + x) * 3;
+            if (
+              image.data[at] !== expected[from] ||
+              image.data[at + 1] !== expected[from + 1] ||
+              image.data[at + 2] !== expected[from + 2]
+            ) {
+              differingPixels += 1;
+            }
+          }
+        }
+        expect(differingPixels).toBe(0);
+        // FFmpeg turns before its conversion, so its pixels differ by the chroma filter
+        // only: of the eight orientations, the one of D81 is by far the nearest to it.
+        const distances = ORIENTATIONS.filter(
+          (orientation) => orientation.rotation % 180 === fixture.rotation % 180,
+        ).map((orientation) => ({
+          orientation,
+          mean: meanDifference(orientRgb(coded, width, height, orientation), shownByFfmpeg),
+        }));
+        const nearest = distances.reduce((best, next) => (next.mean < best.mean ? next : best));
+        expect(nearest.orientation).toEqual({
+          rotation: fixture.rotation,
+          flipped: fixture.flipped,
+        });
+        expect(nearest.mean).toBeLessThan(1);
+      },
+    );
+
+    it('refuses a display matrix that is no quarter turn with video-undecodable', async () => {
+      const bytes = await makeRotatedVideoFixture(FFMPEG.ffmpegPath, video, TILTED_VIDEO_FIXTURE);
+      await expect(
+        render(
+          [0],
+          alone(TILTED_VIDEO_FIXTURE.contentHash, VIDEO_FIXTURE.width, VIDEO_FIXTURE.height),
+          bytes,
+        ),
+      ).rejects.toMatchObject({
+        code: 'video-undecodable',
+        message: expect.stringContaining('not a quarter turn') as unknown,
       });
     });
   });

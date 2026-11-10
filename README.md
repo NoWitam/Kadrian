@@ -355,9 +355,13 @@ Unknown fields are errors. This one shows a text that fades in:
   colour exactly as the Producer does, so both show the same pixels (D51); its
   resolver may return a video as a `Blob`, verified by SHA-256 before use, and
   it refuses files it cannot show exactly (such as HEVC, VP9, AV1, 10-bit,
-  interlaced, BT.2020, or rotated) with `video-unsupported`, whose `details`
-  list every reason. `inspectVideo` gives the same verdict before a load
-  (section 4).
+  interlaced, BT.2020, or tilted by an angle other than a quarter turn) with
+  `video-unsupported`, whose `details` list every reason. A video its
+  container turns a quarter turn, mirrored or not, as phones record it, is
+  decoded at its coded size and turned after the conversion to RGB, the same
+  way in the Player and in the Producer (which runs FFmpeg with
+  `-noautorotate`), and its facts state the size as shown (D81).
+  `inspectVideo` gives the same verdict before a load (section 4).
 - **Lifetimes:** every node has `startUs` and `durationUs`, in the time of its
   scene, and is shown at scene time `t` while `startUs <= t < startUs +
 durationUs`. A child of a group is shown only while its group is shown too. A
@@ -715,7 +719,8 @@ same examination the Player uses when it loads the video (D79.4):
 `code` (`unreadable`, `container`, `no-video`, `codec`, `bit-depth`, `chroma`,
 `interlaced`, `colour`, `rotation`, `timing`, or `audio-channels`; treat a code
 you do not know as "not directly") and a `message`; `video` holds the codec,
-size, rotation, frames, `durationUs`, time base, and frame rate, and `audio`
+the size as shown, the turn (`rotation`, clockwise, and `flipped`) its
+container asks for, frames, `durationUs`, time base, and frame rate, and `audio`
 the codec, channels, and sample rate. A host transcodes a file that is not
 `playable` before it uses it. It reads no URL: fetch the file and pass the
 `Blob`. The Player imports `mediabunny`; a host that serves the Player's

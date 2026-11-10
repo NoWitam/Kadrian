@@ -223,3 +223,150 @@ export function greenScreenFixtureArguments(output: string): readonly string[] {
     output,
   ];
 }
+
+/** One video of `ROTATED_VIDEO_FIXTURES` (D81). */
+export interface RotatedVideoFixture {
+  readonly name: string;
+  readonly mediaType: string;
+  readonly contentHash: string;
+  /** The clockwise turn the container asks for. */
+  readonly rotation: 0 | 90 | 180 | 270;
+  /** Whether the picture is mirrored left to right after the turn. */
+  readonly flipped: boolean;
+  /** The input options of the pinned FFmpeg that write the display matrix. */
+  readonly display: readonly string[];
+  /** The size as shown. */
+  readonly width: number;
+  readonly height: number;
+  readonly frames: number;
+  readonly sourceDurationUs: number;
+}
+
+/**
+ * The fixture video turned by its container (D81): the stream of
+ * `VIDEO_FIXTURE`, copied without decoding into MP4 by the pinned FFmpeg with
+ * a display matrix, as a phone writes one into `tkhd`. One for each quarter
+ * turn, with and without a mirror; `rotation` is clockwise and `flipped` a
+ * mirror left to right after it, as `inspectVideo` states them, and `width`
+ * and `height` are the size as shown. FFmpeg's `-display_rotation` turns
+ * counter-clockwise, so a clockwise 90° is its 270. The bytes are made by
+ * `rotatedVideoFixtureArguments` and never committed, like the video itself.
+ */
+export const ROTATED_VIDEO_FIXTURES: readonly RotatedVideoFixture[] = Object.freeze(
+  (
+    [
+      [
+        'rotated-90',
+        90,
+        false,
+        ['-display_rotation', '270'],
+        '0f625bfaf4abbf96b4912d37792a95a69652b276cefcabfe5d432f077e0b65dc',
+      ],
+      [
+        'rotated-180',
+        180,
+        false,
+        ['-display_rotation', '180'],
+        'd5f042340c8313be560f95ed9f560e6e460541dbf9a06b446fb6c251f3384791',
+      ],
+      [
+        'rotated-270',
+        270,
+        false,
+        ['-display_rotation', '90'],
+        '5808649b79525456405ea6ce5cc622851b735749a127b177b26350303cb1c90f',
+      ],
+      [
+        'mirrored',
+        0,
+        true,
+        ['-display_hflip'],
+        '520fd591d0818eb33f47c842fea920909827488c18b2ed53e5722f0430d6005d',
+      ],
+      [
+        'rotated-90-mirrored',
+        90,
+        true,
+        ['-display_rotation', '90', '-display_vflip'],
+        '9c915720373dc00132b03cfcc3a68f5fa869e0a343ed7e61419d87bd695db051',
+      ],
+      [
+        'rotated-180-mirrored',
+        180,
+        true,
+        ['-display_vflip'],
+        '2af20ec33a08b2fa125f508bfc6f3fbbc8201177259519438fcba546bdef28cf',
+      ],
+      [
+        'rotated-270-mirrored',
+        270,
+        true,
+        ['-display_rotation', '90', '-display_hflip'],
+        'bc13580eff39de9f7c4e6120a90667a77a2886a5d84e6e56c95cc1653fb0b2f9',
+      ],
+    ] satisfies readonly (readonly [
+      string,
+      0 | 90 | 180 | 270,
+      boolean,
+      readonly string[],
+      string,
+    ])[]
+  ).map(([name, rotation, flipped, display, hash]): RotatedVideoFixture =>
+    Object.freeze({
+      name,
+      mediaType: 'video/mp4',
+      contentHash: `sha256:${hash}`,
+      rotation,
+      flipped,
+      display: Object.freeze([...display]),
+      width: rotation % 180 === 0 ? VIDEO_FIXTURE.width : VIDEO_FIXTURE.height,
+      height: rotation % 180 === 0 ? VIDEO_FIXTURE.height : VIDEO_FIXTURE.width,
+      frames: VIDEO_FIXTURE.frames,
+      sourceDurationUs: VIDEO_FIXTURE.sourceDurationUs,
+    }),
+  ),
+);
+
+/**
+ * The fixture video tilted by 45° (D81): a display matrix that is no quarter
+ * turn, which both hosts refuse. Made like the turned videos above.
+ */
+export const TILTED_VIDEO_FIXTURE = Object.freeze({
+  name: 'tilted-45',
+  mediaType: 'video/mp4',
+  contentHash: 'sha256:1c19cde7bf05682aa4995b97ad10cfad355b6a88ed80f75625fb3489c64a2208',
+  display: Object.freeze(['-display_rotation', '45']),
+});
+
+/**
+ * The arguments of the pinned `ffmpeg` that copy the fixture video at `input`
+ * into `output` with the display matrix of `display` (D81).
+ */
+export function rotatedVideoFixtureArguments(
+  display: readonly string[],
+  input: string,
+  output: string,
+): readonly string[] {
+  return [
+    '-nostdin',
+    '-v',
+    'error',
+    '-y',
+    ...display,
+    '-i',
+    input,
+    '-map',
+    '0:v:0',
+    '-c',
+    'copy',
+    '-map_metadata',
+    '-1',
+    '-fflags',
+    '+bitexact',
+    '-movflags',
+    '+faststart',
+    '-f',
+    'mp4',
+    output,
+  ];
+}

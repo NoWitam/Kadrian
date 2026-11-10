@@ -8,8 +8,9 @@
  * ffprobe reads the media facts of D49.6, every sampled source range is
  * checked against them before the first frame (D49.6), and for each frame the
  * source frame of every active video node is chosen by the rule of
- * `@kadrion/schema` (D49.5), decoded by the pinned FFmpeg, and handed to the
- * page as a PNG (D50.4). The copies are removed when the frame loop ends.
+ * `@kadrion/schema` (D49.5), decoded by the pinned FFmpeg, turned as the
+ * display matrix of its container asks after the conversion to RGB, by the
+ * same function as the Player (D81), and handed to the page as a PNG (D50.4). The copies are removed when the frame loop ends.
  *
  * The sound sources of the audio pass are given to FFmpeg by the same means
  * (`mediaFiles`, D52.5, D64): this module alone writes copies.
@@ -19,6 +20,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
 
+import { orientedSize, orientRgb } from '@kadrion/renderer-dom';
 import {
   placedVideos,
   sampledSourceRange,
@@ -216,11 +218,16 @@ export async function prepareVideos(
     decodeArgs: videoDecodeArgs('<input>'),
     sources: videos.map(({ id, contentHash }) => {
       const probe = probes.get(id);
+      // The size of the picture as it is shown (D81).
+      const shown =
+        probe === undefined
+          ? { width: 0, height: 0 }
+          : orientedSize(probe.width, probe.height, probe.orientation);
       return {
         assetId: id,
         contentHash,
-        width: probe?.width ?? 0,
-        height: probe?.height ?? 0,
+        width: shown.width,
+        height: shown.height,
         frames: probe?.timestamps.length ?? 0,
         timeBase: `${String(probe?.timeBase.num)}/${String(probe?.timeBase.den)}`,
         sourceDurationUs: durations.get(id) ?? 0,
@@ -277,7 +284,13 @@ async function openFrameSource(
       }
       state.position += 1;
     }
-    const png = encodePng(probe.width, probe.height, rgb ?? new Uint8Array(0));
+    // After the conversion of colour, as the Player turns its frames (D81).
+    const shown = orientedSize(probe.width, probe.height, probe.orientation);
+    const png = encodePng(
+      shown.width,
+      shown.height,
+      orientRgb(rgb ?? new Uint8Array(0), probe.width, probe.height, probe.orientation),
+    );
     state.last = { index, png };
     return png;
   };

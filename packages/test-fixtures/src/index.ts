@@ -138,12 +138,15 @@ export {
   SVG_BADGE_SIZE,
   GREEN_SCREEN_FIXTURE,
   greenScreenFixtureArguments,
+  ROTATED_VIDEO_FIXTURES,
+  rotatedVideoFixtureArguments,
+  TILTED_VIDEO_FIXTURE,
   VIDEO_FIXTURE,
   VIDEO_SOUND_FIXTURE,
   videoFixtureArguments,
   videoSoundFixtureArguments,
 } from './assets/index.js';
-export type { FixtureAsset } from './assets/index.js';
+export type { FixtureAsset, RotatedVideoFixture } from './assets/index.js';
 
 /** One step of an RFC 6902 JSON Patch, restricted to `add`, `replace`, and `remove`. */
 export interface FixturePatchOperation {

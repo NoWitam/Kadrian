@@ -125,10 +125,14 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   `kadrion inspect --json <file>` on the worker, says whether the Player shows
   a video as it is (`playable`) and if not, why (`reasons[].code`), with its
   facts. H.264 in MP4, fragmented MP4, QuickTime, or Matroska plays; transcode
-  anything else before placing it. A host that loads the Player's `dist`
-  through an import map maps `mediabunny` to the package's
-  `dist/bundles/mediabunny.mjs`. (Proposed in D79; this guide links it once
-  the owner accepts it.)
+  anything else before placing it. A file turned by its container a quarter
+  turn, mirrored or not, as phones record, plays too: both hosts turn the
+  picture the same way, and the facts (`width`, `height`) are the size as
+  shown, with `rotation` and `flipped` beside them; `rotation` as a reason
+  means a display matrix that is no quarter turn. A host that loads the
+  Player's `dist` through an import map maps `mediabunny` to the package's
+  `dist/bundles/mediabunny.mjs`. (Proposed in D79 and D81; this guide links
+  them once the owner accepts them.)
 - **Authority:** [D49](../adr/D49-the-timeline-model.md) (facts outside the
   document), [D51](../adr/D51-video-in-the-player.md),
   [D53](../adr/D53-audio-in-the-player.md), [D62](../adr/D62-image-facts.md).

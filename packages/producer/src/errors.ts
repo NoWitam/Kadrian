@@ -67,7 +67,11 @@ export type ProducerErrorCode =
   | 'still-format-unsupported'
   /** A limit the host gave the job is exceeded: document, duration, frames, assets, or wall time (D48.4). */
   | 'limit-exceeded'
-  /** A video asset has no video stream the pinned FFmpeg can decode in presentation order (D50.5). */
+  /**
+   * A video asset has no video stream the pinned FFmpeg can decode in
+   * presentation order (D50.5), or its display matrix is not a quarter turn,
+   * with or without a mirror (D81).
+   */
   | 'video-undecodable'
   /** A video node samples source time at or after the end of its video (D49.6, D50.5). */
   | 'source-range-exceeded'

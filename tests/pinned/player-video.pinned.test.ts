@@ -8,7 +8,9 @@
  * problem of a video is typed before the first frame. Skipped without
  * `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where the run is pinned.
  * The same holds for the fixture's stream copied into fragmented MP4, MOV and
- * MKV, which the Player reads through Mediabunny (D79.2).
+ * MKV, which the Player reads through Mediabunny (D79.2), and for the fixture
+ * turned by its container, a quarter turn mirrored or not, which both hosts
+ * turn after the conversion to RGB (D81); a tilted one the Player refuses.
  */
 import {
   launchChromium,
@@ -21,6 +23,8 @@ import {
 import type { AssetResolver } from '@kadrion/renderer-dom';
 import {
   generateReferenceAssets,
+  ROTATED_VIDEO_FIXTURES,
+  TILTED_VIDEO_FIXTURE,
   VIDEO_FIXTURE,
   videoComposition,
   videoGoldenTimestamps,
@@ -63,7 +67,7 @@ import {
   writeReport,
   type Draft,
 } from './support.js';
-import { makeVideoFixture } from './video-fixture.ts';
+import { makeRotatedVideoFixture, makeVideoFixture } from './video-fixture.ts';
 
 const ffmpegPath = process.env.KADRION_FFMPEG;
 const ffprobePath = process.env.KADRION_FFPROBE;
@@ -287,6 +291,75 @@ describe.skipIf(!available)('video in the Player (D51)', () => {
       }
     },
   );
+
+  it.each(ROTATED_VIDEO_FIXTURES)(
+    "shows the Producer's frames of the fixture $name, with the size as shown, to the pixel (D34, D81)",
+    async (fixture) => {
+      const bytes = await makeRotatedVideoFixture(ffmpegPath ?? '', video, fixture);
+      const text = edited((draft) => {
+        const asset = draft.assets.find((candidate) => candidate.id === VIDEO_FIXTURE.id);
+        if (asset === undefined) throw new Error('No video asset.');
+        asset.contentHash = fixture.contentHash;
+      });
+      const given = assets.map((asset) =>
+        asset.id === VIDEO_FIXTURE.id ? { ...asset, bytes } : asset,
+      );
+      const resolveAsset: AssetResolver = ({ id }) =>
+        given.find((asset) => asset.id === id) ?? null;
+      const reference = await renderFrames({
+        document: JSON.parse(text) as unknown,
+        resolveAsset,
+        timesUs: TIMES,
+        chromium,
+        ffmpeg: { ffmpegPath: ffmpegPath ?? '', ffprobePath: ffprobePath ?? '' },
+      });
+      const target = await openConformanceHost(chromium, text, given);
+      try {
+        expect(reference.manifest.video?.sources[0]).toMatchObject({
+          width: fixture.width,
+          height: fixture.height,
+        });
+        expect(await preparedFacts(target, VIDEO_FIXTURE.id, fixture.contentHash)).toEqual({
+          type: 'video',
+          durationUs: fixture.sourceDurationUs,
+          width: fixture.width,
+          height: fixture.height,
+          frames: fixture.frames,
+        });
+        for (const timeUs of TIMES) {
+          const shown = await seekAndCapture(target, timeUs, null);
+          const frame = reference.frames.find((candidate) => candidate.timeUs === timeUs)?.png;
+          if (frame === undefined) throw new Error(`No Producer frame of ${String(timeUs)}.`);
+          const metric = measure(decodePng(shown.png), decodePng(frame));
+          expect(metric.differingPixels, String(timeUs)).toBe(0);
+          expect(metric.maxChannelDifference, String(timeUs)).toBe(0);
+        }
+      } finally {
+        await closeConformanceHost(target);
+      }
+    },
+  );
+
+  it('refuses the fixture tilted by 45° with video-unsupported before the first frame (D81)', async () => {
+    const bytes = await makeRotatedVideoFixture(ffmpegPath ?? '', video, TILTED_VIDEO_FIXTURE);
+    const text = edited((draft) => {
+      const asset = draft.assets.find((candidate) => candidate.id === VIDEO_FIXTURE.id);
+      if (asset === undefined) throw new Error('No video asset.');
+      asset.contentHash = TILTED_VIDEO_FIXTURE.contentHash;
+    });
+    const target = await openConformanceHost(chromium, TEXT, assets);
+    try {
+      expect(
+        await loadCode(
+          target,
+          text,
+          assets.map((asset) => (asset.id === VIDEO_FIXTURE.id ? { ...asset, bytes } : asset)),
+        ),
+      ).toBe('video-unsupported');
+    } finally {
+      await closeConformanceHost(target);
+    }
+  });
 
   it('types every problem of a video before the first frame (D49.6, D51)', async () => {
     const target = await openConformanceHost(chromium, TEXT, assets);

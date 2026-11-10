@@ -24,6 +24,7 @@ import {
   WebMOutputFormat,
   type OutputFormat,
   type Rotation,
+  type TransformationMatrix,
 } from 'mediabunny';
 import { describe, expect, it } from 'vitest';
 
@@ -85,6 +86,9 @@ interface Muxed {
   readonly codec?: 'avc' | 'hevc' | 'vp9' | 'av1';
   readonly config?: VideoDecoderConfig;
   readonly rotation?: Rotation;
+  readonly flip?: boolean;
+  /** A whole display matrix, which takes precedence over `rotation` and `flip`. */
+  readonly matrix?: TransformationMatrix;
   /** Packets in decode order: presentation time in seconds and whether it is a key. */
   readonly packets?: readonly { readonly time: number; readonly key: boolean }[];
   readonly audioChannels?: number;
@@ -111,7 +115,12 @@ async function muxed(options: Muxed): Promise<Uint8Array<ArrayBuffer>> {
   const target = new BufferTarget();
   const output = new Output({ format: options.format, target });
   const video = new EncodedVideoPacketSource(options.codec ?? 'avc');
-  output.addVideoTrack(video, { frameRate: 25, rotation: options.rotation ?? 0 });
+  output.addVideoTrack(video, {
+    frameRate: 25,
+    rotation: options.rotation ?? 0,
+    flip: options.flip ?? false,
+    ...(options.matrix === undefined ? {} : { transformationMatrix: options.matrix }),
+  });
   const audio =
     options.audioChannels === undefined ? null : new EncodedAudioPacketSource('pcm-s16');
   if (audio !== null) output.addAudioTrack(audio);
@@ -248,12 +257,53 @@ describe('the container reader on Mediabunny (D51.3, D79)', () => {
     });
   });
 
-  it('gives the verdict "rotation" for a track its container rotates', async () => {
-    const inspection = await inspectVideo(
-      await muxed({ format: new Mp4OutputFormat(), rotation: 90 }),
-    );
+  it.each([
+    ['MP4', () => new Mp4OutputFormat(), 90, false],
+    ['MP4', () => new Mp4OutputFormat(), 180, false],
+    ['MP4', () => new Mp4OutputFormat(), 270, true],
+    ['MOV', () => new MovOutputFormat(), 0, true],
+    ['MKV', () => new MkvOutputFormat(), 90, true],
+  ] as const)(
+    'reads %s turned by %i° (mirrored: %s) as it is, with the size as shown (D81)',
+    async (_, format, rotation, flip) => {
+      const bytes = await muxed({ format: format(), rotation, flip });
+      const inspection = await inspectVideo(bytes);
+      expect(inspection.reasons).toEqual([]);
+      const turned = rotation % 180 !== 0;
+      expect(inspection.video).toMatchObject({
+        width: turned ? 16 : 32,
+        height: turned ? 32 : 16,
+        rotation,
+        flipped: flip,
+      });
+      const track = await readVideoTrack(new Blob([bytes]));
+      // The decoder is configured with the coded size; the turn follows the conversion.
+      expect(track).toMatchObject({
+        width: 32,
+        height: 16,
+        orientation: { rotation, flipped: flip },
+      });
+    },
+  );
+
+  it('gives the verdict "rotation" for a display matrix that is not a quarter turn (D81)', async () => {
+    const half = Math.SQRT1_2;
+    const bytes = await muxed({
+      format: new Mp4OutputFormat(),
+      matrix: [half, half, 0, -half, half, 0, 0, 0, 1],
+    });
+    const inspection = await inspectVideo(bytes);
     expect(inspection.reasons.map(({ code }) => code)).toEqual(['rotation']);
-    expect(inspection.video).toMatchObject({ rotation: 90, flipped: false });
+    // Mediabunny rounds the angle to a quarter turn; the verdict states none.
+    expect(inspection.video).toMatchObject({ width: 32, height: 16, rotation: 0, flipped: false });
+    await expect(readVideoTrack(new Blob([bytes]))).rejects.toMatchObject({
+      code: 'video-unsupported',
+      details: [expect.stringMatching(/^rotation: /) as unknown],
+    });
+    const scaled = await inspectVideo(
+      await muxed({ format: new Mp4OutputFormat(), matrix: [2, 0, 0, 0, 2, 0, 0, 0, 1] }),
+    );
+    expect(scaled.reasons.map(({ code }) => code)).toEqual(['rotation']);
   });
 
   it('states the sound, and refuses one of more than two channels for the sound only (D53.2)', async () => {
