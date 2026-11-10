@@ -165,7 +165,17 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   [D54](../adr/D54-scenes-in-sequence.md), [D55](../adr/D55-timeline-commands.md),
   [D56](../adr/D56-transitions.md), [D57](../adr/D57-captions.md),
   [D63](../adr/D63-the-focus-point-of-cover.md), [D66](../adr/D66-clip-transitions-in-the-canvas-frame.md),
-  [D67](../adr/D67-easing-curves.md), [D68](../adr/D68-rotation-origin-and-more-animated-properties.md).
+  [D67](../adr/D67-easing-curves.md), [D68](../adr/D68-rotation-origin-and-more-animated-properties.md),
+  and for the motion graphics of phase five [D69](../adr/D69-text-styles-and-text-animated-in-fragments.md)
+  (text styles and text in fragments), [D70](../adr/D70-animated-captions-and-the-safe-area.md)
+  (animated captions and the safe area), [D71](../adr/D71-effects-of-css-filters.md)
+  and [D72](../adr/D72-effects-of-svg-filters.md) (effects),
+  [D73](../adr/D73-vector-shapes-and-paths.md) and [D74](../adr/D74-svg-assets.md)
+  (vector shapes and SVG assets), [D75](../adr/D75-blend-modes-masks-and-mattes.md)
+  (blend modes, masks, and mattes), [D76](../adr/D76-nested-compositions.md) and
+  [D77](../adr/D77-elements.md) (definitions, instances, and Elements), and
+  [D78](../adr/D78-custom-html-for-ai-authors.md) (Custom HTML for AI authors). The playground shows each of them in a showcase
+  of its own ([D32](../adr/D32-playground-showcases.md)).
 
 ## 6. Edit from a model
 
@@ -174,13 +184,23 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   the same bus as the UI. `describe_document` returns the IDs, types,
   lifetimes, layers, fields, and image sizes and changes nothing;
   `add_clip_transition_at_cut` puts a clip transition on a cut and
-  `run_transaction` applies several calls, each as one undoable step.
+  `run_transaction` applies several calls, each as one undoable step;
+  `check_custom_html` checks a Custom HTML element and, when the host lends
+  `checkCustomHtml` of `@kadrion/producer`, renders it twice.
+- **What a model is expected to call:** the fixture of ten common requests
+  ([`tests/app/fixtures/model-requests.json`](../../tests/app/fixtures/model-requests.json)),
+  such as "animate this title letter by letter" or "put a push between these
+  clips", names the calls for each and the document they must give; it is
+  checked by `executeTool` on every run, and a host can use it to test its own
+  prompts.
 - **Errors:** the bus's `EditorError` codes; a refused call changes nothing.
-- **Limits:** a tool never undoes or redoes; that stays with the host.
+- **Limits:** a tool never undoes or redoes; that stays with the host. Kadrion
+  does not choose, prompt, or evaluate a model.
 - **Authority:** [D09](../adr/D09-ai-edits-through-typed-domain-tools.md),
   [D31](../adr/D31-ai-tool-contract.md), [D46](../adr/D46-tool-catalogue-from-the-command-registry.md),
   [D66](../adr/D66-clip-transitions-in-the-canvas-frame.md), [D67](../adr/D67-easing-curves.md),
-  [D68](../adr/D68-rotation-origin-and-more-animated-properties.md).
+  [D68](../adr/D68-rotation-origin-and-more-animated-properties.md),
+  [D78](../adr/D78-custom-html-for-ai-authors.md).
 
 ## 7. Undo, redo, and the history
 

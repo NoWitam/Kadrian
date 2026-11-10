@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "0.23",
+  "width": 1280,
+  "height": 720,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 6000000,
+  "assets": [
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-html",
+      "durationUs": 6000000,
+      "nodes": [
+        {
+          "id": "background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 6000000,
+          "color": "#0c111d",
+          "animations": []
+        },
+        {
+          "id": "html-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 6000000,
+          "position": {
+            "x": 160,
+            "y": 80
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion is easy",
+          "fontAssetId": "asset-font",
+          "fontSize": 64,
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "html-clock",
+          "type": "custom-html",
+          "startUs": 0,
+          "durationUs": 6000000,
+          "position": {
+            "x": 160,
+            "y": 200
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 960,
+          "height": 320,
+          "html": "<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#1d2939}.ball{position:absolute;left:40px;top:30px;width:calc(var(--ball) * 1px);height:calc(var(--ball) * 1px);border-radius:50%;background:var(--accent);animation:slide 4s ease-in-out infinite alternate}@keyframes slide{to{transform:translateX(760px) rotate(180deg);border-radius:12px}}.label{position:absolute;left:40px;top:120px;font:48px \"asset-font\";color:#ffffff;animation:rise 2s ease-out both}@keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}.bar{position:absolute;left:40px;bottom:20px;width:880px;height:12px;background:#344054}.fill{width:100%;height:100%;background:var(--accent);transform-origin:0 0;animation:grow 6s linear both}@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}</style><div class=\"ball\"></div><div class=\"label\">Kadrion</div><div class=\"bar\"><div class=\"fill\"></div></div>",
+          "fontAssetIds": ["asset-font"],
+          "parameters": [
+            {
+              "key": "accent",
+              "type": "color",
+              "value": "#f79009"
+            },
+            {
+              "key": "ball",
+              "type": "number",
+              "value": 80
+            }
+          ]
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

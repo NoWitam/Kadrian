@@ -12,7 +12,8 @@ PR-18 to PR-22; phase three, the engine under a host's video editor
 PR-34b; phase four, a host integrating the engine
 ([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)), delivered PR-37 to
 PR-43; the current phase is motion graphics, effects, and reusable elements
-([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)). Schema `0.23` with its forward migrations from `0.1` to `0.22`, the evaluation core, the DOM
+([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)), whose last step,
+PR-57, adds its showcases and the release `v0.6.0`. Schema `0.23` with its forward migrations from `0.1` to `0.22`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -33,7 +34,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D64; all accepted except D10, superseded by
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D81; all accepted except D10, superseded by
   D37)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
@@ -116,7 +117,12 @@ It serves http://127.0.0.1:4520/ (set `PORT` to change it). The page offers:
   sandboxed Custom HTML, a landscape canvas at 24 fps, and the features of
   phase three: a video in each `fit`, audio clips with fades, scenes with
   transitions, captions, and a template previewed with its defaults and
-  instantiated with values. Each shows the JSON it
+  instantiated with values; and the features of phase five: clip transitions
+  of every kind, easing, rotation and crop, text styles and text in fragments,
+  animated captions in a safe area, effects of CSS and SVG filters, vector
+  shapes with an SVG asset, blend modes with masks and a track matte, nested
+  compositions and Elements, and Custom HTML on the managed clock (D32.11).
+  Each shows the JSON it
   loads and where that file lives; `http://127.0.0.1:4520/#<id>` opens one
   directly. The sources are `apps/playground/src/showcases/*.json`, listed in
   `apps/playground/src/showcases.ts`; `tests/repo/showcases.test.ts` keeps them
@@ -127,7 +133,8 @@ It serves http://127.0.0.1:4520/ (set `PORT` to change it). The page offers:
 - **Your own JSON** — edit the shown JSON, paste another, or load a file. It is
   validated in full; errors are listed as the bus and the Player report them. A
   document can use the assets listed on the page (one image, one font with the
-  glyphs ` DKabcdegimnorsty`, one audio track, and the fixture video).
+  glyphs ` DKabcdegimnorsty`, one audio track, one SVG drawing, and the fixture
+  video).
 - **Editing** — drag a node on the canvas, run a call of any tool of the AI
   catalogue (D46), and undo or redo either on the one command bus. A template
   can be instantiated with values of your own; the result opens as a new
@@ -1041,6 +1048,12 @@ const result = executeTool(bus, 'set_node_position', {
 - The catalogue is defined by D46, on the contract of D31, and the tool at a
   cut by D66. The same arguments
   give the same document as the equivalent UI command.
+- [`tests/app/fixtures/model-requests.json`](tests/app/fixtures/model-requests.json)
+  holds ten common requests ("animate this title letter by letter", "put a
+  push between these clips", …), the tool calls a model is expected to make
+  for each, and the changes they must make to a showcase;
+  `tests/app/model-requests.test.ts` runs them through `executeTool` and
+  compares the documents. It tests the tools, not a model.
 
 ### 7. Render frames from Node.js
 
@@ -1289,12 +1302,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.5.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.5.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.6.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.6.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.5.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.5.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.6.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.6.0.tgz"
   }
 }
 ```

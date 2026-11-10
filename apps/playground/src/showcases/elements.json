@@ -1,0 +1,637 @@
+{
+  "schemaVersion": "0.23",
+  "width": 1280,
+  "height": 720,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 6000000,
+  "assets": [
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-elements",
+      "durationUs": 6000000,
+      "nodes": [
+        {
+          "id": "background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 6000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "badge-first",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 3000000,
+          "position": {
+            "x": 80,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "definition-badge",
+          "inputs": [],
+          "sourceStartUs": 0,
+          "width": 360,
+          "height": 360,
+          "fit": "fill",
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "badge-later",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 480,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 500,
+            "y": 500
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "anim-badge-later-rotation",
+              "property": "rotation",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": -20,
+                  "easing": {
+                    "kind": "ease-out"
+                  }
+                },
+                {
+                  "timeUs": 2000000,
+                  "value": 20,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "definitionId": "definition-badge",
+          "inputs": [],
+          "sourceStartUs": 1000000,
+          "width": 240,
+          "height": 240,
+          "fit": "fill",
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "badge-again",
+          "type": "instance",
+          "startUs": 3000000,
+          "durationUs": 3000000,
+          "position": {
+            "x": 80,
+            "y": 60
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "definition-badge",
+          "inputs": [],
+          "sourceStartUs": 0,
+          "width": 360,
+          "height": 360,
+          "fit": "fill",
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "third-dina",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 6000000,
+          "position": {
+            "x": 640,
+            "y": 440
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "definition-lower-third",
+          "inputs": [
+            {
+              "inputId": "accent",
+              "type": "color",
+              "value": "#12b76a"
+            },
+            {
+              "inputId": "title",
+              "type": "text",
+              "value": "Dina"
+            }
+          ],
+          "sourceStartUs": 0,
+          "width": 560,
+          "height": 105,
+          "fit": "fill",
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "third-kim",
+          "type": "instance",
+          "startUs": 1000000,
+          "durationUs": 5000000,
+          "position": {
+            "x": 640,
+            "y": 570
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "definition-lower-third",
+          "inputs": [
+            {
+              "inputId": "show-dot",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "inputId": "title",
+              "type": "text",
+              "value": "Kim"
+            }
+          ],
+          "sourceStartUs": 0,
+          "width": 560,
+          "height": 105,
+          "fit": "fill",
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [
+    {
+      "id": "definition-badge",
+      "sourceHash": "",
+      "width": 400,
+      "height": 400,
+      "durationUs": 4000000,
+      "nodes": [
+        {
+          "id": "badge-disc",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 400,
+          "height": 400,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "solid",
+            "color": "#155eef"
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "badge-ring",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 40,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "anim-badge-ring-trim",
+              "property": "trim/end",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 2000000,
+                  "value": 1000,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 320,
+          "height": 320,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "none"
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 16,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "badge-label",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 90,
+            "y": 170
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion",
+          "fontAssetId": "asset-font",
+          "fontSize": 56,
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "template": {
+        "inputs": [],
+        "bindings": [],
+        "conditions": [],
+        "repeats": []
+      }
+    },
+    {
+      "id": "definition-lower-third",
+      "sourceHash": "",
+      "width": 640,
+      "height": 120,
+      "durationUs": 6000000,
+      "nodes": [
+        {
+          "id": "third-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 6000000,
+          "color": "#f79009",
+          "animations": []
+        },
+        {
+          "id": "third-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 6000000,
+          "position": {
+            "x": 32,
+            "y": 30
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "{{title}}",
+          "fontAssetId": "asset-font",
+          "fontSize": 56,
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
+          },
+          "textAnimations": [
+            {
+              "id": "third-title-in",
+              "unit": "letter",
+              "phase": {
+                "kind": "in"
+              },
+              "staggerUs": 40000,
+              "order": {
+                "kind": "forward"
+              },
+              "tracks": [
+                {
+                  "property": "opacity",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 0,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    },
+                    {
+                      "timeUs": 200000,
+                      "value": 1,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "third-dot",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 6000000,
+          "position": {
+            "x": 560,
+            "y": 36
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 48,
+          "height": 48,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "solid",
+            "color": "#ffffff"
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "template": {
+        "inputs": [
+          {
+            "id": "title",
+            "type": "text",
+            "minLength": 1,
+            "maxLength": 20,
+            "default": "Kadrion"
+          },
+          {
+            "id": "accent",
+            "type": "color",
+            "default": "#f79009"
+          },
+          {
+            "id": "show-dot",
+            "type": "boolean",
+            "default": true
+          }
+        ],
+        "bindings": [
+          {
+            "id": "third-accent",
+            "kind": "property",
+            "nodeId": "third-background",
+            "property": "color",
+            "inputId": "accent"
+          },
+          {
+            "id": "third-title-text",
+            "kind": "placeholders",
+            "nodeId": "third-title"
+          }
+        ],
+        "conditions": [
+          {
+            "id": "third-dot-shown",
+            "test": "true",
+            "targetId": "third-dot",
+            "inputId": "show-dot"
+          }
+        ],
+        "repeats": []
+      }
+    }
+  ],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

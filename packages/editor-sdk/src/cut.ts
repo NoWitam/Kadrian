@@ -27,7 +27,7 @@ export interface ClipTransitionAtCutArguments {
   /**
    * The complete clip transition, as `AddClipTransition` takes it: its ID,
    * `fromNodeId` the clip before the cut, `toNodeId` the clip after it,
-   * `durationUs`, and `effect`.
+   * `durationUs`, `effect`, and `easing` (D67).
    */
   readonly transition: unknown;
   /**
@@ -89,7 +89,7 @@ export const clipTransitionAtCutArgumentsSchema: ClipTransitionAtCutArgumentsSch
     transition: {
       type: 'object',
       description:
-        'The complete clip transition, as add_clip_transition takes it: its ID, unused in the document; fromNodeId, the clip that ends at the cut; toNodeId, the clip that starts there, a sibling of it; durationUs; and effect.',
+        'The complete clip transition, as add_clip_transition takes it: its ID, unused in the document; fromNodeId, the clip that ends at the cut; toNodeId, the clip that starts there, a sibling of it; durationUs; effect; and easing, {"kind":"linear"} for a constant speed or another easing as set_transition_easing describes.',
       properties: {
         fromNodeId: {
           type: 'string',

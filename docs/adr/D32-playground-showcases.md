@@ -10,6 +10,8 @@
 - Amended by: PR-42 on 2026-11-04, D32.1, D32.2, D32.5, D32.7, D32.8, and the
   new D32.10 (showcases of phase three, their media, any tool of the catalogue,
   template values, and the check in Chromium that replaces the manual one)
+- Amended by: PR-57 on 2026-11-10, D32.8 and the new D32.11 (showcases of
+  phase five, the SVG drawing among the page's assets)
 - Related: D13, D14, D23, D25, D27, D30, D31, D36,
   [specification](../spike/vertical-spike.md) §5 P1, P3, P4
 
@@ -149,6 +151,9 @@ a feature of phase three: a video in each fit, audio clips with fades, scenes
 with scene and clip transitions, captions, and a template with a condition
 and a repeat.)
 
+(Amended by: PR-57. The test also fails when the showcases stop showing a
+feature of phase five, D32.11, or stop calling a tool of each of its steps.)
+
 ### D32.9 The page's Custom HTML policy (amendment of PR-17, implementing D36)
 
 Recorded at the project owner's request on 2026-09-28, describing what PR-16
@@ -211,6 +216,40 @@ built.
   pinned test file, not a test of `tests/app`, because the browser tests of the
   repository run there (D26), and adding it reopened Q14. Without
   `KADRION_FFMPEG` it is skipped, and where the run is pinned it is required.
+
+### D32.11 Showcases of phase five (amendment of PR-57)
+
+- **The showcases.** `clip-transitions` (a push, a zoom, an iris, and a blur
+  dissolve between clips of one layer, eased), `motion` (every easing,
+  rotation about an origin, an animated crop and corner radius), `text-motion`
+  (text styles and text animated by letter and by word, in and as an accent),
+  `animated-captions` (a highlight that grows, bounces, and sits on a box, pages
+  that enter and leave, and a safe area), `effects` (CSS filters and SVG
+  filters on nodes and on the scene), `shapes` (every geometry and fill, a
+  stroke drawn on, a morph, and an SVG asset), `compositing` (a blend mode, a
+  shape mask and an image mask, and a track matte), `elements` (a definition
+  placed three times and an Element with values), and `custom-html-clock`
+  (Custom HTML of plain CSS on the managed clock, with parameters). Each
+  carries a tool call of its feature: `set_transition_easing`,
+  `set_keyframe_easing`, `add_text_animation`, `set_caption_highlight`,
+  `add_effect`, `set_shape_fill`, `set_blend_mode`, `set_instance_input`, and
+  `set_custom_html`.
+- **Their sources are generated once and committed.** They are 1280×720 at 30
+  fps, 5 to 6.4 seconds long, and use only the assets the page already
+  generates, the glyphs of the generated font, and, new, the SVG drawing of the
+  fixtures (`generateSvgAsset`, D74), which the page resolves and lists with
+  the hash `svgComposition` declares. The green screen video of D72 is not
+  made by the media script, so chroma keying is shown by its pinned test only.
+- **Their check** is the one of D32.10: `tests/pinned/showcases.pinned.test.ts`
+  opens, plays, and edits every entry of the manifest, so the new showcases
+  need no change of a pinned file and do not reopen Q14.
+- **What a model is expected to call.** `tests/app/fixtures/model-requests.json`
+  holds ten common requests, each with the showcase it is made on, the tool
+  calls a model is expected to send, and the changes those calls make, as
+  JSON Patch operations; `tests/app/model-requests.test.ts` runs every call
+  through `executeTool`, compares the document with the showcase changed by
+  the operations, and undoes the calls back to the showcase. It checks the
+  catalogue, not a model.
 
 ## Alternatives considered
 
