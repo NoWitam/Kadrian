@@ -12,5 +12,11 @@
 export { TOOL_CATALOGUE, toolNameOf } from './catalogue.js';
 export type { RunTransactionInputSchema, ToolDefinition, ToolInputSchema } from './catalogue.js';
 export { executeTool } from './execute.js';
-export type { ToolBus, ToolResult } from './execute.js';
+export type {
+  CustomHtmlCheckReport,
+  CustomHtmlRenderCheck,
+  CustomHtmlRenderProblem,
+  ToolBus,
+  ToolResult,
+} from './execute.js';
 export { executeSetNodePosition, setNodePositionTool } from './set-node-position.js';

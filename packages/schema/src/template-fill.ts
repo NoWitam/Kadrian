@@ -443,6 +443,12 @@ export function fillTemplate(
     } else if (binding.kind === 'property') {
       const node = nodes.get(binding.nodeId);
       if (node !== undefined) node[binding.property] = resolved.get(binding.inputId);
+    } else if (binding.kind === 'parameter') {
+      // The value of the parameter of a Custom HTML element; its key and type stay (D78).
+      const node = nodes.get(binding.nodeId);
+      const parameters = node?.['parameters'] as Mutable[] | undefined;
+      const parameter = parameters?.find((item) => item['key'] === binding.key);
+      if (parameter !== undefined) parameter['value'] = resolved.get(binding.inputId);
     } else if (binding.kind === 'words') {
       // One timed word for each item, in the order of the items (D57, D77).
       const node = nodes.get(binding.nodeId);

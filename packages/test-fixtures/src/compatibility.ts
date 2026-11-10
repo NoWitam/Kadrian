@@ -336,6 +336,32 @@ import templateV022 from './compatibility/v0-22/template.json' with { type: 'jso
 import textV022 from './compatibility/v0-22/text.json' with { type: 'json' };
 import transitionsV022 from './compatibility/v0-22/transitions.json' with { type: 'json' };
 import videoV022 from './compatibility/v0-22/video.json' with { type: 'json' };
+import audioV023 from './compatibility/v0-23/audio.json' with { type: 'json' };
+import captionsMotionV023 from './compatibility/v0-23/captions-motion.json' with { type: 'json' };
+import captionsV023 from './compatibility/v0-23/captions.json' with { type: 'json' };
+import compositingV023 from './compatibility/v0-23/compositing.json' with { type: 'json' };
+import customHtmlV023 from './compatibility/v0-23/custom-html.json' with { type: 'json' };
+import easingV023 from './compatibility/v0-23/easing.json' with { type: 'json' };
+import effectsSvgV023 from './compatibility/v0-23/effects-svg.json' with { type: 'json' };
+import effectsV023 from './compatibility/v0-23/effects.json' with { type: 'json' };
+import elementsV023 from './compatibility/v0-23/elements.json' with { type: 'json' };
+import extremesV023 from './compatibility/v0-23/extremes.json' with { type: 'json' };
+import focusV023 from './compatibility/v0-23/focus.json' with { type: 'json' };
+import inputsV023 from './compatibility/v0-23/inputs.json' with { type: 'json' };
+import lifetimeV023 from './compatibility/v0-23/lifetime.json' with { type: 'json' };
+import minimalV023 from './compatibility/v0-23/minimal.json' with { type: 'json' };
+import motionV023 from './compatibility/v0-23/motion.json' with { type: 'json' };
+import nestedV023 from './compatibility/v0-23/nested.json' with { type: 'json' };
+import pairV023 from './compatibility/v0-23/pair.json' with { type: 'json' };
+import referenceV023 from './compatibility/v0-23/reference.json' with { type: 'json' };
+import repeatsV023 from './compatibility/v0-23/repeats.json' with { type: 'json' };
+import scenesV023 from './compatibility/v0-23/scenes.json' with { type: 'json' };
+import shapesV023 from './compatibility/v0-23/shapes.json' with { type: 'json' };
+import svgV023 from './compatibility/v0-23/svg.json' with { type: 'json' };
+import templateV023 from './compatibility/v0-23/template.json' with { type: 'json' };
+import textV023 from './compatibility/v0-23/text.json' with { type: 'json' };
+import transitionsV023 from './compatibility/v0-23/transitions.json' with { type: 'json' };
+import videoV023 from './compatibility/v0-23/video.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -685,6 +711,32 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-22/text.json': textV022,
   'compatibility/v0-22/transitions.json': transitionsV022,
   'compatibility/v0-22/video.json': videoV022,
+  'compatibility/v0-23/audio.json': audioV023,
+  'compatibility/v0-23/captions-motion.json': captionsMotionV023,
+  'compatibility/v0-23/captions.json': captionsV023,
+  'compatibility/v0-23/compositing.json': compositingV023,
+  'compatibility/v0-23/custom-html.json': customHtmlV023,
+  'compatibility/v0-23/easing.json': easingV023,
+  'compatibility/v0-23/effects-svg.json': effectsSvgV023,
+  'compatibility/v0-23/effects.json': effectsV023,
+  'compatibility/v0-23/elements.json': elementsV023,
+  'compatibility/v0-23/extremes.json': extremesV023,
+  'compatibility/v0-23/focus.json': focusV023,
+  'compatibility/v0-23/inputs.json': inputsV023,
+  'compatibility/v0-23/lifetime.json': lifetimeV023,
+  'compatibility/v0-23/minimal.json': minimalV023,
+  'compatibility/v0-23/motion.json': motionV023,
+  'compatibility/v0-23/nested.json': nestedV023,
+  'compatibility/v0-23/pair.json': pairV023,
+  'compatibility/v0-23/reference.json': referenceV023,
+  'compatibility/v0-23/repeats.json': repeatsV023,
+  'compatibility/v0-23/scenes.json': scenesV023,
+  'compatibility/v0-23/shapes.json': shapesV023,
+  'compatibility/v0-23/svg.json': svgV023,
+  'compatibility/v0-23/template.json': templateV023,
+  'compatibility/v0-23/text.json': textV023,
+  'compatibility/v0-23/transitions.json': transitionsV023,
+  'compatibility/v0-23/video.json': videoV023,
 };
 
 function fileOf(path: string): unknown {

@@ -14,6 +14,8 @@
 export { applyCommand } from './apply.js';
 export type { ApplyOptions, CommandResult } from './apply.js';
 export { createCommandBus } from './bus.js';
+export { checkCustomHtmlSource } from './custom-html.js';
+export type { CustomHtmlFinding, CustomHtmlFindingCode } from './custom-html.js';
 export { svgToShapes } from './svg-shapes.js';
 export type { SvgToShapesOptions } from './svg-shapes.js';
 export { clipTransitionAtCut, clipTransitionAtCutArgumentsSchema } from './cut.js';
@@ -114,6 +116,8 @@ export {
   setInstanceInputArgumentsSchema,
   clearInstanceInputArgumentsSchema,
   replaceDefinitionArgumentsSchema,
+  setCustomHtmlArgumentsSchema,
+  MAX_CUSTOM_HTML_LENGTH,
   removeTemplateInputArgumentsSchema,
   setTemplateInputArgumentsSchema,
   moveClipArgumentsSchema,
@@ -261,6 +265,9 @@ export type {
   ReplaceDefinitionArguments,
   ReplaceDefinitionArgumentsSchema,
   ReplaceDefinitionCommand,
+  SetCustomHtmlArguments,
+  SetCustomHtmlArgumentsSchema,
+  SetCustomHtmlCommand,
   RemoveTemplateInputArguments,
   RemoveTemplateInputArgumentsSchema,
   RemoveTemplateInputCommand,

@@ -107,7 +107,13 @@ export type ValidationErrorCode =
   /** The template of a definition has an input of an asset type, or binds an asset: an element has no asset inputs (D77). */
   | 'element-asset-input'
   /** The values of an instance do not fit the inputs of its definition, or its definition instantiated with them is no valid definition (D77). */
-  | 'instance-input-invalid';
+  | 'instance-input-invalid'
+  /** A Custom HTML element lists a font asset more than once (D78). */
+  | 'duplicate-font-asset'
+  /** The parameters of a Custom HTML element are not sorted by key, or a key repeats (D78). */
+  | 'parameters-not-sorted'
+  /** A binding names a parameter that its Custom HTML element does not have (D78). */
+  | 'unresolved-parameter-reference';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

@@ -48,7 +48,7 @@ const ack = (timeUs: number, instanceId = NODE, requestId = REQUEST_ID) =>
 
 /** Written out independently of `sandbox.ts` (D23.2). */
 const POLICY =
-  "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
+  "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'";
 
 /** A mounted reference composition in an attached root, and a double for its element. */
 function mounted(composition = reference) {
@@ -97,9 +97,16 @@ describe('the sandboxed frame (D23.1, D23.2)', () => {
     expect(html).not.toBe('');
     expect(srcdoc.endsWith(html)).toBe(true);
     const shell = srcdoc.slice(0, srcdoc.length - html.length);
-    expect(shell).toBe(
-      `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${POLICY}"><meta name="kadrion-instance" content="node-custom-html"></head>`,
-    );
+    const start = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${POLICY}"><meta name="kadrion-instance" content="node-custom-html">`;
+    expect(shell.startsWith(start)).toBe(true);
+    // Then the managed clock of D78 alone, one script element, and the end of the head.
+    const clock = shell.slice(start.length, -'</head>'.length);
+    expect(shell.endsWith('</head>')).toBe(true);
+    expect(
+      clock.startsWith('<script>(function(){"use strict";var INSTANCE="node-custom-html",START=0,'),
+    ).toBe(true);
+    expect(clock.endsWith('})();</script>')).toBe(true);
+    expect(clock.match(/<script\b/g)).toHaveLength(1);
   });
 
   // Sandbox flags take effect when a frame navigates: a frame that started to

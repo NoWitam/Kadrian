@@ -6,7 +6,7 @@
  * easing composition (D67), of the motion composition (D68), of the text
  * composition (D69), of the animated captions composition (D70), and of the
  * effects composition (D71), of the SVG effects composition (D72), of the composition of shapes (D73), of the SVG composition (D74), and of the
- * composition of compositing (D75), of the nested composition (D76), and of the elements (D77) with the
+ * composition of compositing (D75), of the nested composition (D76), of the elements (D77), and of Custom HTML for AI authors (D78) with the
  * Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
@@ -53,6 +53,8 @@ import {
   motionGoldenTimestamps,
   nestedComposition,
   nestedGoldenTimestamps,
+  customHtmlComposition,
+  customHtmlGoldenTimestamps,
   elementsComposition,
   elementsGoldenTimestamps,
   shapesComposition,
@@ -424,6 +426,24 @@ try {
       `${JSON.stringify({ render: elementsResult.manifest, environment, frames: elementsFrames }, null, 2)}\n`,
     );
     for (const frame of elementsFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // Custom HTML for AI authors: CSS animations and script on the managed clock (D78).
+    const customHtmlResult = await renderFrames({
+      document: customHtmlComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: customHtmlGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const customHtmlFrames = customHtmlResult.frames.map(({ index, timeUs, png }) => {
+      const file = `custom-html-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'custom-html.golden-frames.json'),
+      `${JSON.stringify({ render: customHtmlResult.manifest, environment, frames: customHtmlFrames }, null, 2)}\n`,
+    );
+    for (const frame of customHtmlFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

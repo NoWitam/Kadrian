@@ -49,6 +49,32 @@ export declare const CHROMIUM_REVISION = "1243";
 ---- CHROMIUM_VERSION
 export declare const CHROMIUM_VERSION = "153.0.8010.12";
 
+---- CUSTOM_HTML_CHECK_SAMPLES
+export declare const CUSTOM_HTML_CHECK_SAMPLES = 5;
+
+---- CustomHtmlCheck (type only)
+export interface CustomHtmlCheck {
+    readonly timesUs: readonly number[];
+    readonly problems: readonly CustomHtmlCheckProblem[];
+}
+
+---- CustomHtmlCheckProblem (type only)
+export interface CustomHtmlCheckProblem {
+    readonly code: 'no-acknowledgement' | 'navigated' | 'frames-differ' | 'render-failed';
+    readonly timeUs: number | null;
+    readonly message: string;
+}
+
+---- CustomHtmlCheckRequest (type only)
+export interface CustomHtmlCheckRequest extends RenderTimeouts {
+    readonly document: unknown;
+    readonly nodeId: string;
+    readonly resolveAsset: ProducerAssetResolver;
+    readonly samples?: number;
+    readonly chromium?: LaunchedChromium;
+    readonly runtime?: RuntimeBuild;
+}
+
 ---- DEFAULT_ESTIMATE_SAMPLES
 export declare const DEFAULT_ESTIMATE_SAMPLES = 10;
 
@@ -718,6 +744,9 @@ export declare function canonicalJson(value: unknown): string;
 
 ---- captureFrame
 export declare function captureFrame(page: Page, width: number, height: number): Promise<Uint8Array>;
+
+---- checkCustomHtml
+export declare function checkCustomHtml(request: CustomHtmlCheckRequest): Promise<CustomHtmlCheck>;
 
 ---- checkedMinSegmentFrames
 export declare function checkedMinSegmentFrames(value: number | undefined, segmentFrames: number): number;

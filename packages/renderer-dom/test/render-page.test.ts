@@ -17,7 +17,7 @@ import { createRoot, createWindow, describeRoot, referenceUrls, TRUSTED } from '
 
 /** Written out independently of render-page.ts (D25.2). */
 const POLICY =
-  "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'";
+  "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'";
 
 describe('the render page (D25.2)', () => {
   it('is exactly the policy, the root, and the given scripts in order', () => {

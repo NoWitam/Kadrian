@@ -62,6 +62,9 @@ const ERROR_CODES = [
   'definition-too-deep',
   'element-asset-input',
   'instance-input-invalid',
+  'duplicate-font-asset',
+  'parameters-not-sorted',
+  'unresolved-parameter-reference',
 ] as const;
 
 describe('negative fixtures', () => {

@@ -30,7 +30,7 @@ describe('createCommandBus (D30.9)', () => {
   it('refuses a document that is not a composition', () => {
     expect(codeOf(() => createCommandBus({ schemaVersion: '0.2' }))).toBe('invalid-document');
     expect(codeOf(() => createCommandBus(null))).toBe('invalid-document');
-    expect(errorOf(() => createCommandBus({ schemaVersion: '0.23' })).details.join('\n')).toContain(
+    expect(errorOf(() => createCommandBus({ schemaVersion: '0.24' })).details.join('\n')).toContain(
       'schemaVersion',
     );
   });
@@ -252,6 +252,7 @@ describe('a document of schema 0.1 at the bus (D42.9)', () => {
       '0.20',
       '0.21',
       '0.22',
+      '0.23',
     ]);
     const bus = createCommandBus(migrated.composition);
     expect(json(bus.getDocument())).toBe(json(referenceComposition));

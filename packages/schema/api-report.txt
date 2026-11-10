@@ -91,6 +91,9 @@ export type Crop = ImageNode['crop'];
 ---- CustomHtmlNode (type only)
 export type CustomHtmlNode = Infer<typeof customHtmlNodeSchema>;
 
+---- CustomHtmlParameter (type only)
+export type CustomHtmlParameter = CustomHtmlNode['parameters'][number];
+
 ---- Definition (type only)
 export type Definition = Infer<typeof definitionSchema>;
 
@@ -166,7 +169,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.22";
+export declare const SCHEMA_VERSION = "0.23";
 
 ---- SVG_IDENTITY
 export declare const SVG_IDENTITY: SvgMatrix;
@@ -419,7 +422,7 @@ export interface ValidationError {
 }
 
 ---- ValidationErrorCode (type only)
-export type ValidationErrorCode = 'unsupported-schema-version' | 'missing-field' | 'unknown-field' | 'invalid-type' | 'invalid-value' | 'out-of-range' | 'invalid-length' | 'duplicate-id' | 'unresolved-asset-reference' | 'asset-type-mismatch' | 'keyframes-not-ascending' | 'source-time-out-of-range' | 'clip-fades-exceed-duration' | 'composition-duration-mismatch' | 'unresolved-scene-reference' | 'unresolved-node-reference' | 'transition-not-adjacent' | 'transition-not-siblings' | 'transition-node-type' | 'transition-overlap-mismatch' | 'transition-too-long' | 'duplicate-transition' | 'caption-words-overlap' | 'duplicate-animation-target' | 'crop-empty' | 'safe-area-empty' | 'bound-property-animated' | 'template-input-invalid' | 'unresolved-input-reference' | 'binding-type-mismatch' | 'binding-value-mismatch' | 'duplicate-binding-target' | 'invalid-placeholder' | 'unresolved-target-reference' | 'unresolved-field-reference' | 'condition-type-mismatch' | 'repeat-type-mismatch' | 'nested-repeat' | 'repeat-in-transition' | 'repeat-of-matte' | 'repeat-id-reserved' | 'item-outside-repeat' | 'path-start-not-move' | 'gradient-stops-not-ascending' | 'stroke-dash-odd' | 'fill-not-solid' | 'geometry-mismatch' | 'matte-not-sibling' | 'matte-not-shape' | 'matte-not-plain' | 'matte-in-transition' | 'unresolved-definition-reference' | 'instance-exceeds-definition' | 'definition-cycle' | 'definition-too-deep' | 'element-asset-input' | 'instance-input-invalid';
+export type ValidationErrorCode = 'unsupported-schema-version' | 'missing-field' | 'unknown-field' | 'invalid-type' | 'invalid-value' | 'out-of-range' | 'invalid-length' | 'duplicate-id' | 'unresolved-asset-reference' | 'asset-type-mismatch' | 'keyframes-not-ascending' | 'source-time-out-of-range' | 'clip-fades-exceed-duration' | 'composition-duration-mismatch' | 'unresolved-scene-reference' | 'unresolved-node-reference' | 'transition-not-adjacent' | 'transition-not-siblings' | 'transition-node-type' | 'transition-overlap-mismatch' | 'transition-too-long' | 'duplicate-transition' | 'caption-words-overlap' | 'duplicate-animation-target' | 'crop-empty' | 'safe-area-empty' | 'bound-property-animated' | 'template-input-invalid' | 'unresolved-input-reference' | 'binding-type-mismatch' | 'binding-value-mismatch' | 'duplicate-binding-target' | 'invalid-placeholder' | 'unresolved-target-reference' | 'unresolved-field-reference' | 'condition-type-mismatch' | 'repeat-type-mismatch' | 'nested-repeat' | 'repeat-in-transition' | 'repeat-of-matte' | 'repeat-id-reserved' | 'item-outside-repeat' | 'path-start-not-move' | 'gradient-stops-not-ascending' | 'stroke-dash-odd' | 'fill-not-solid' | 'geometry-mismatch' | 'matte-not-sibling' | 'matte-not-shape' | 'matte-not-plain' | 'matte-in-transition' | 'unresolved-definition-reference' | 'instance-exceeds-definition' | 'definition-cycle' | 'definition-too-deep' | 'element-asset-input' | 'instance-input-invalid' | 'duplicate-font-asset' | 'parameters-not-sorted' | 'unresolved-parameter-reference';
 
 ---- ValidationResult (type only)
 export type ValidationResult = {
@@ -445,7 +448,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.22";
+            readonly const: "0.23";
         };
         readonly width: {
             readonly type: "integer";
@@ -712,6 +715,87 @@ export declare const compositionSchema: {
                                 readonly html: {
                                     readonly type: "string";
                                     readonly description: "Inline document shown inside the sandbox.";
+                                };
+                                readonly fontAssetIds: {
+                                    readonly type: "array";
+                                    readonly description: "The font assets the element may use, each at most once, in any order; inside the sandbox the family of each is its asset ID (D78).";
+                                    readonly items: {
+                                        readonly type: "string";
+                                        readonly description: "ID of an asset of the type that the referring entity expects (D14).";
+                                        readonly pattern: "^[A-Za-z0-9_-]+$";
+                                    };
+                                };
+                                readonly parameters: {
+                                    readonly type: "array";
+                                    readonly description: "The parameters of the element, each key at most once, sorted by key in UTF-16 code unit order (D78).";
+                                    readonly items: {
+                                        readonly description: "A named value the element reads: kadrion.parameters.<key> in a script, and for a number or a colour also var(--<key>) in CSS (D78).";
+                                        readonly oneOf: readonly [
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly key: {
+                                                    readonly type: "string";
+                                                    readonly description: "The name of the parameter: a letter, then letters, digits, or underscores, so that it is a name in a script and in CSS alike (D78).";
+                                                    readonly pattern: "^[A-Za-z][A-Za-z0-9_]*$";
+                                                };
+                                                readonly type: {
+                                                    readonly type: "string";
+                                                    readonly const: "text";
+                                                };
+                                                readonly value: {
+                                                    readonly type: "string";
+                                                    readonly description: "A text (D78).";
+                                                };
+                                            }>,
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly key: {
+                                                    readonly type: "string";
+                                                    readonly description: "The name of the parameter: a letter, then letters, digits, or underscores, so that it is a name in a script and in CSS alike (D78).";
+                                                    readonly pattern: "^[A-Za-z][A-Za-z0-9_]*$";
+                                                };
+                                                readonly type: {
+                                                    readonly type: "string";
+                                                    readonly const: "number";
+                                                };
+                                                readonly value: {
+                                                    readonly type: "number";
+                                                    readonly description: "A number (D78).";
+                                                    readonly minimum: number;
+                                                    readonly maximum: 9007199254740991;
+                                                };
+                                            }>,
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly key: {
+                                                    readonly type: "string";
+                                                    readonly description: "The name of the parameter: a letter, then letters, digits, or underscores, so that it is a name in a script and in CSS alike (D78).";
+                                                    readonly pattern: "^[A-Za-z][A-Za-z0-9_]*$";
+                                                };
+                                                readonly type: {
+                                                    readonly type: "string";
+                                                    readonly const: "boolean";
+                                                };
+                                                readonly value: {
+                                                    readonly type: "boolean";
+                                                    readonly description: "true or false (D78).";
+                                                };
+                                            }>,
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly key: {
+                                                    readonly type: "string";
+                                                    readonly description: "The name of the parameter: a letter, then letters, digits, or underscores, so that it is a name in a script and in CSS alike (D78).";
+                                                    readonly pattern: "^[A-Za-z][A-Za-z0-9_]*$";
+                                                };
+                                                readonly type: {
+                                                    readonly type: "string";
+                                                    readonly const: "color";
+                                                };
+                                                readonly value: {
+                                                    readonly type: "string";
+                                                    readonly description: "Lowercase #rrggbb sRGB colour (D15).";
+                                                    readonly pattern: "^#[0-9a-f]{6}$";
+                                                };
+                                            }>
+                                        ];
+                                    };
                                 };
                                 readonly position: import("./json-schema.js").ClosedObject<{
                                     readonly x: {
@@ -5113,6 +5197,32 @@ export declare const compositionSchema: {
                                             readonly description: "ID of a list input of the template (D59).";
                                             readonly pattern: "^[A-Za-z0-9_-]+$";
                                         };
+                                    }>,
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly kind: {
+                                            readonly type: "string";
+                                            readonly const: "parameter";
+                                        };
+                                        readonly nodeId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of a node of any scene of the composition (D58.2).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly key: {
+                                            readonly type: "string";
+                                            readonly description: "The name of the parameter: a letter, then letters, digits, or underscores, so that it is a name in a script and in CSS alike (D78).";
+                                            readonly pattern: "^[A-Za-z][A-Za-z0-9_]*$";
+                                        };
+                                        readonly inputId: {
+                                            readonly type: "string";
+                                            readonly description: "ID of an input of the template (D58).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
                                     }>
                                 ];
                             };
@@ -5877,6 +5987,32 @@ export declare const compositionSchema: {
                                 readonly description: "ID of a list input of the template (D59).";
                                 readonly pattern: "^[A-Za-z0-9_-]+$";
                             };
+                        }>,
+                        import("./json-schema.js").ClosedObject<{
+                            readonly id: {
+                                readonly type: "string";
+                                readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                            };
+                            readonly kind: {
+                                readonly type: "string";
+                                readonly const: "parameter";
+                            };
+                            readonly nodeId: {
+                                readonly type: "string";
+                                readonly description: "ID of a node of any scene of the composition (D58.2).";
+                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                            };
+                            readonly key: {
+                                readonly type: "string";
+                                readonly description: "The name of the parameter: a letter, then letters, digits, or underscores, so that it is a name in a script and in CSS alike (D78).";
+                                readonly pattern: "^[A-Za-z][A-Za-z0-9_]*$";
+                            };
+                            readonly inputId: {
+                                readonly type: "string";
+                                readonly description: "ID of an input of the template (D58).";
+                                readonly pattern: "^[A-Za-z0-9_-]+$";
+                            };
                         }>
                     ];
                 };
@@ -6085,7 +6221,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.22";
+    readonly title: "Kadrion composition 0.23";
 };
 
 ---- definitionTimeUs
@@ -6185,7 +6321,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

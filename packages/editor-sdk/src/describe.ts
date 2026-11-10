@@ -22,8 +22,9 @@ export interface NodeDescription {
   readonly durationUs: number;
   /**
    * Every other field the document stores for the node, as it stores it —
-   * `animations` included — except `children`, which `children` below
-   * describes, and the `html` of a Custom HTML element, which no command edits.
+   * `animations` and the `html` of a Custom HTML element included, since
+   * `SetCustomHtml` edits it (D78) — except `children`, which `children` below
+   * describes.
    */
   readonly fields: Readonly<Record<string, unknown>>;
   /** A group's children, described the same way; present on groups only. */
@@ -129,7 +130,7 @@ type SceneNode =
 type ChildNode = Extract<SceneNode, { type: 'group' }>['children'][number];
 
 /** The fields a description states on its own, or leaves out (D46.3). */
-const OWN_FIELDS = Object.freeze(['id', 'type', 'startUs', 'durationUs', 'children', 'html']);
+const OWN_FIELDS = Object.freeze(['id', 'type', 'startUs', 'durationUs', 'children']);
 
 function describeNode(
   node: SceneNode | ChildNode,

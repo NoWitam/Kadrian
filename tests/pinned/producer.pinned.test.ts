@@ -119,7 +119,7 @@ describe('P2: the five golden timestamps (D28.4, D28.7)', () => {
     const { manifest } = baseline;
     expect(manifest).toMatchObject({
       manifestVersion: 3,
-      schemaVersion: '0.22',
+      schemaVersion: '0.23',
       preset: { name: 'frames-png', width: 1080, height: 1920, fps: 30, deviceScaleFactor: 1 },
       durationUs: 10_000_000,
       frameCount: 300,
@@ -385,7 +385,8 @@ describe('the rendered page (D22, D27)', () => {
 
 describe('typed errors before the first frame (D28.6)', () => {
   const silent = variant((draft) => {
-    customHtmlNode(draft).html = '<p>no answer</p>';
+    // A listener of its own, so that the managed clock leaves the answer to it (D78).
+    customHtmlNode(draft).html = '<script>addEventListener("message", function () {})</script>';
   });
   // A whole PNG file whose header states 1 x 1 (D62.1) and whose image data is not zlib.
   const pngChunk = (type: string, data: readonly number[]): number[] => [

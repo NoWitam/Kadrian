@@ -74,6 +74,8 @@ export type ImageNode = Infer<typeof imageNodeSchema>;
 export type TextNode = Infer<typeof textNodeSchema>;
 export type VideoNode = Infer<typeof videoNodeSchema>;
 export type CustomHtmlNode = Infer<typeof customHtmlNodeSchema>;
+/** A named value of a closed type that a Custom HTML element reads (D78). */
+export type CustomHtmlParameter = CustomHtmlNode['parameters'][number];
 /** A definition placed as one layer, at a time of its own (D65.4, D76). */
 export type InstanceNode = Infer<typeof instanceNodeSchema>;
 /** The value an instance gives one input of its element, tagged with the input's type (D77). */

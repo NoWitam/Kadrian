@@ -1,0 +1,285 @@
+{
+  "schemaVersion": "0.23",
+  "width": 320,
+  "height": 240,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 25,
+  "durationUs": 3500000,
+  "assets": [
+    {
+      "id": "easing-image",
+      "type": "image",
+      "contentHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "easing-first",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "easing-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#203040",
+          "animations": []
+        },
+        {
+          "id": "easing-left",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 1200000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "easing-left-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "x": 0,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "ease-in"
+                  }
+                },
+                {
+                  "timeUs": 400000,
+                  "value": {
+                    "x": 100,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "ease-out"
+                  }
+                },
+                {
+                  "timeUs": 800000,
+                  "value": {
+                    "x": 100,
+                    "y": 100
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 1200000,
+                  "value": {
+                    "x": 0,
+                    "y": 100
+                  },
+                  "easing": {
+                    "kind": "hold"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "easing-left-opacity",
+              "property": "opacity",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "steps",
+                    "count": 4,
+                    "position": "end"
+                  }
+                },
+                {
+                  "timeUs": 600000,
+                  "value": 1,
+                  "easing": {
+                    "kind": "steps",
+                    "count": 1000,
+                    "position": "start"
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 80,
+          "height": 60,
+          "assetId": "easing-image",
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        },
+        {
+          "id": "easing-right",
+          "type": "image",
+          "startUs": 1000000,
+          "durationUs": 1000000,
+          "position": {
+            "x": 120,
+            "y": 80
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "easing-right-scale",
+              "property": "scale",
+              "keyframes": [
+                {
+                  "timeUs": 1000000,
+                  "value": {
+                    "x": 0.5,
+                    "y": 0.5
+                  },
+                  "easing": {
+                    "kind": "cubic-bezier",
+                    "x1": 0.34,
+                    "y1": 1.56,
+                    "x2": 0.64,
+                    "y2": 1
+                  }
+                },
+                {
+                  "timeUs": 2000000,
+                  "value": {
+                    "x": 1,
+                    "y": 1
+                  },
+                  "easing": {
+                    "kind": "cubic-bezier",
+                    "x1": 0,
+                    "y1": -1,
+                    "x2": 1,
+                    "y2": 2
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 80,
+          "height": 60,
+          "assetId": "easing-image",
+          "fit": "contain",
+          "focus": {
+            "x": 0,
+            "y": 1000
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [
+        {
+          "id": "easing-clip-transition",
+          "fromNodeId": "easing-left",
+          "toNodeId": "easing-right",
+          "durationUs": 200000,
+          "effect": {
+            "kind": "fade-through-color",
+            "color": "#000000"
+          },
+          "easing": {
+            "kind": "steps",
+            "count": 3,
+            "position": "start"
+          }
+        }
+      ],
+      "effects": []
+    },
+    {
+      "id": "easing-second",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "easing-second-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#405060",
+          "animations": []
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [
+    {
+      "id": "easing-scene-transition",
+      "fromSceneId": "easing-first",
+      "toSceneId": "easing-second",
+      "durationUs": 500000,
+      "effect": {
+        "kind": "push",
+        "direction": "left"
+      },
+      "easing": {
+        "kind": "cubic-bezier",
+        "x1": 0.68,
+        "y1": -0.6,
+        "x2": 0.32,
+        "y2": 1.6
+      }
+    }
+  ],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

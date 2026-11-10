@@ -3,6 +3,27 @@ Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by 
 
 ==== Entry "."
 
+---- CustomHtmlCheckReport (type only)
+export interface CustomHtmlCheckReport {
+    readonly nodeId: string;
+    readonly findings: readonly CustomHtmlFinding[];
+    readonly render: CustomHtmlRenderCheck | null;
+    readonly ok: boolean;
+}
+
+---- CustomHtmlRenderCheck (type only)
+export interface CustomHtmlRenderCheck {
+    readonly timesUs: readonly number[];
+    readonly problems: readonly CustomHtmlRenderProblem[];
+}
+
+---- CustomHtmlRenderProblem (type only)
+export interface CustomHtmlRenderProblem {
+    readonly code: 'no-acknowledgement' | 'navigated' | 'frames-differ' | 'render-failed';
+    readonly timeUs: number | null;
+    readonly message: string;
+}
+
 ---- RunTransactionInputSchema (type only)
 export interface RunTransactionInputSchema {
     readonly type: 'object';
@@ -44,7 +65,9 @@ export interface RunTransactionInputSchema {
 export declare const TOOL_CATALOGUE: readonly ToolDefinition[];
 
 ---- ToolBus (type only)
-export type ToolBus = Pick<CommandBus, 'getDocument' | 'dispatch' | 'dispatchTransaction'> & Partial<Pick<CommandBus, 'mediaFactsOf'>>;
+export type ToolBus = Pick<CommandBus, 'getDocument' | 'dispatch' | 'dispatchTransaction'> & Partial<Pick<CommandBus, 'mediaFactsOf'>> & {
+    readonly checkCustomHtml?: (document: BusDocument, nodeId: string) => Promise<CustomHtmlRenderCheck>;
+};
 
 ---- ToolDefinition (type only)
 export interface ToolDefinition {
@@ -54,7 +77,7 @@ export interface ToolDefinition {
 }
 
 ---- ToolInputSchema (type only)
-export type ToolInputSchema = CommandArgumentsSchema | ClosedObjectSchema<never> | RunTransactionInputSchema | ClipTransitionAtCutArgumentsSchema;
+export type ToolInputSchema = CommandArgumentsSchema | ClosedObjectSchema<never> | ClosedObjectSchema<'nodeId'> | RunTransactionInputSchema | ClipTransitionAtCutArgumentsSchema;
 
 ---- ToolResult (type only)
 export type ToolResult = {
@@ -66,6 +89,9 @@ export type ToolResult = {
 } | {
     readonly kind: 'description';
     readonly description: DocumentDescription;
+} | {
+    readonly kind: 'check';
+    readonly result: Promise<CustomHtmlCheckReport>;
 };
 
 ---- executeSetNodePosition

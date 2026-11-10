@@ -18,6 +18,7 @@ interface Vec2 {
 interface DocumentNode {
   id: string;
   type: string;
+  startUs?: number;
   color?: string;
   width?: number;
   height?: number;
@@ -98,22 +99,62 @@ function rgb(hex: string): string {
   return `rgb(${channels.join(', ')})`;
 }
 
-/** D23.2: the policy of the element, one directive per entry. */
+/** D23.2 and D78: the policy of the element, one directive per entry. */
 const POLICY = [
   "default-src 'none'",
   "script-src 'unsafe-inline'",
   "style-src 'unsafe-inline'",
+  'font-src data:',
   "base-uri 'none'",
   "form-action 'none'",
 ];
-/** D23.2: the shell that precedes the document's html in srcdoc, with the instance of D23.3. */
-const shell = (nodeId: string): string =>
+
+/** D23.2: the start of the shell, the policy and the instance of D23.3. */
+const shellStart = (nodeId: string): string =>
   [
     '<!doctype html><html><head><meta charset="utf-8">',
     `<meta http-equiv="Content-Security-Policy" content="${POLICY.join('; ')}">`,
     `<meta name="kadrion-instance" content="${nodeId}">`,
-    '</head>',
   ].join('');
+
+/** Every srcdoc of the golden trees, in their order. */
+function srcdocs(): string[] {
+  const found: string[] = [];
+  const visit = (value: unknown): void => {
+    if (Array.isArray(value)) value.forEach(visit);
+    else if (typeof value === 'object' && value !== null) {
+      for (const [key, child] of Object.entries(value)) {
+        if (key === 'srcdoc' && typeof child === 'string') found.push(child);
+        else visit(child);
+      }
+    }
+  };
+  visit(expected.golden.map((golden) => golden.tree));
+  return found;
+}
+
+/**
+ * D78: the managed clock of an element without fonts and parameters, one
+ * script element. Its program is stated by the ADR, not derived here: it is
+ * read from the fixture, and only its frame is checked by hand.
+ */
+function clock(nodeId: string, startUs: number): string {
+  const start = shellStart(nodeId);
+  const first = srcdocs().find((srcdoc) => srcdoc.startsWith(start)) ?? '';
+  const script = first.slice(start.length, first.indexOf('</head>'));
+  expect(
+    script.startsWith(
+      `<script>(function(){"use strict";var INSTANCE="${nodeId}",START=${String(startUs)},PARAMETERS={},FONTS=[];`,
+    ),
+  ).toBe(true);
+  expect(script.endsWith('})();</script>')).toBe(true);
+  expect(script.slice('<script>'.length, -'</script>'.length)).not.toMatch(/<\/script|<!--/i);
+  return script;
+}
+
+/** D23.2 and D78: the shell that precedes the document's html in srcdoc. */
+const shell = (nodeId: string, startUs: number): string =>
+  `${shellStart(nodeId)}${clock(nodeId, startUs)}</head>`;
 
 /** The request ID the fixture assumes: the frame index of a golden timestamp (§3.3). */
 const FRAME_OF: Readonly<Record<number, number>> = {
@@ -129,7 +170,10 @@ function sandbox(node: DocumentNode): ExpectedElement {
   const none = 'none';
   return {
     tag: 'iframe',
-    attributes: { sandbox: 'allow-scripts', srcdoc: `${shell(node.id)}${node.html ?? ''}` },
+    attributes: {
+      sandbox: 'allow-scripts',
+      srcdoc: `${shell(node.id, node.startUs ?? 0)}${node.html ?? ''}`,
+    },
     style: {
       display: 'block',
       width: px(node.width ?? 0),
@@ -281,7 +325,7 @@ describe('expected DOM tree of the reference composition', () => {
 
   it('states the shell of the Custom HTML element exactly as the trees use it (D23.2)', () => {
     expect(expected.rule.join(' ')).toContain(
-      `srcdoc is the shell ${shell('<nodeId>')} followed by`,
+      `srcdoc is the shell ${shellStart('<nodeId>')} followed by the managed clock of D78`,
     );
   });
 
@@ -313,9 +357,9 @@ describe('Custom HTML element of the reference composition (D23)', () => {
     expect(html).not.toBe('');
     // The html appears once per golden tree, always right after the shell.
     expect(trees.split(JSON.stringify(html).slice(1, -1))).toHaveLength(expected.golden.length + 1);
-    expect(trees.split(JSON.stringify(shell('node-custom-html') + html).slice(1, -1))).toHaveLength(
-      expected.golden.length + 1,
-    );
+    expect(
+      trees.split(JSON.stringify(shell('node-custom-html', 0) + html).slice(1, -1)),
+    ).toHaveLength(expected.golden.length + 1);
   });
 
   // The fixture element must be a conforming element of D23.3. It is data of

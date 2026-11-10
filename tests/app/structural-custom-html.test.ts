@@ -34,6 +34,8 @@ const html = {
   width: 400,
   height: 100,
   html: '<script>parent.postMessage("ran", "*")</script>',
+  fontAssetIds: [],
+  parameters: [],
 };
 
 /**

@@ -1,8 +1,8 @@
 /**
  * @kadrion/schema — JSON Schema, TypeScript types, validation, migrations.
  *
- * Schema 0.22, as decided by D13–D17, D42, D50, D52, D54, D56, D57, D58, D59, D63, D66, D67,
- * D68, D69, D70, D71, D72, D73, D74, D75, D76, and D77: the one version this build validates (D35.1). The schemas of 0.1 to 0.21 and the forward migration live behind
+ * Schema 0.23, as decided by D13–D17, D42, D50, D52, D54, D56, D57, D58, D59, D63, D66, D67,
+ * D68, D69, D70, D71, D72, D73, D74, D75, D76, D77, and D78: the one version this build validates (D35.1). The schemas of 0.1 to 0.22 and the forward migration live behind
  * the entry point `@kadrion/schema/migrate`, so that the render page, which imports this entry
  * only, carries none of them (D21, D42.8). The instantiation of a template is exported by
  * `@kadrion/schema/template`; its core lies in this entry since elements are instantiated
@@ -61,6 +61,7 @@ export type {
   ClipTransitionEffect,
   Crop,
   CustomHtmlNode,
+  CustomHtmlParameter,
   Definition,
   DefinitionNode,
   Easing,
