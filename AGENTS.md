@@ -31,15 +31,15 @@ rendering in range jobs), PR-23 to PR-34b. Phase four
 public surface, the Player's playback events, image facts and the focus point
 of `cover`, media read by path in the Producer, `kadrion migrate`, showcases,
 and the host flow on released tarballs), PR-37 to PR-43, released as
-`v0.2.0`. The current phase is phase five: motion graphics, effects, and
-reusable elements (clip transitions, easing, rotation, text animated in
-fragments, animated captions, effects, vector shapes and SVG assets,
-compositing, nested compositions and elements, and Custom HTML for AI
-authors). `docs/roadmap/phase-5.md` holds the plan; every pull request of it
-is approved separately, before it starts and again before its commit and
-push.
+`v0.2.0`. Phase five (`docs/roadmap/phase-5.md`) delivered motion graphics,
+effects, and reusable elements (clip transitions, easing, rotation, text
+animated in fragments, animated captions, effects, vector shapes and SVG
+assets, compositing, nested compositions and elements, and Custom HTML for AI
+authors), PR-45 to PR-57, released as `v0.6.0`. No later phase is planned
+yet: the next one starts from a roadmap the owner accepts, and every pull
+request of it is approved as that roadmap states.
 
-Do not turn phase five into an end-user editor, a media platform, a plugin
+Do not turn Kadrion into an end-user editor, a media platform, a plugin
 ecosystem, a render service, or a Taskio integration inside this repository.
 
 ## Accepted architectural decisions

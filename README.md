@@ -4,16 +4,16 @@ Kadrion is a TypeScript engine for describing, previewing, editing, and
 deterministically rendering video compositions. It is an engine/SDK, not an
 end-user application, and it does not depend on any consumer product.
 
-**Status: phase five.** The vertical spike is complete
+**Status: phase five complete.** The vertical spike is complete
 ([`docs/spike/report.md`](docs/spike/report.md), section 10); phase two,
 authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
 PR-18 to PR-22; phase three, the engine under a host's video editor
 ([`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md)), delivered PR-23 to
 PR-34b; phase four, a host integrating the engine
 ([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)), delivered PR-37 to
-PR-43; the current phase is motion graphics, effects, and reusable elements
-([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)), whose last step,
-PR-57, adds its showcases and the release `v0.6.0`. Schema `0.23` with its forward migrations from `0.1` to `0.22`, the evaluation core, the DOM
+PR-43; phase five, motion graphics, effects, and reusable elements
+([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)), delivered PR-45 to
+PR-57, released as `v0.6.0`. Schema `0.23` with its forward migrations from `0.1` to `0.22`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
