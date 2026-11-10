@@ -5,6 +5,8 @@
   Accepting this roadmap approves no pull request: each one below is approved
   separately, before it starts and again before its commit and push, with its
   own plan, review, and decisions.
+- Completed: PR-45 to PR-57 merged by 2026-11-10 (D65 to D81, schema
+  `0.23`), released as `v0.6.0` after PR-57.
 - Starting point: `main` at `5e718fa`. Phase four is complete (PR-37 to
   PR-43, D60 to D64), schema `0.10`, 63 AI tools, released as `v0.2.0`. The
   owner chose on 2026-11-04 that this phase starts only after phase four
@@ -644,7 +646,7 @@ width, height, fit }`, whose content at scene time `t` is the definition
 
 ### PR-57 — Showcases, the catalogue, and the release
 
-- Status: in review, with the amendment D32.11 of D32 (no new ADR). Nine showcases of phase five, checked by the test of PR-42; a fixture of ten requests, each checked by `executeTool` against its expected document; every package is version `0.6.0` for the release `v0.6.0`. The review of the catalogue changed four descriptions: `add_clip_transition_at_cut` now names the easing every transition has had since `0.12`, and its example carries one, since the example without it was refused; `add_node` names the instance node and its fields; `describe_document` names the transitions, definitions, template, and safe area it returns; and the easing `hold` reads for transitions as well as keyframes. Deviations from this plan: the descriptions changed are in `@kadrion/editor-sdk`, where the metadata of the commands lives (D46), as well as in `@kadrion/ai-sdk`; the page resolves the SVG drawing of the fixtures, so that an SVG asset can be shown.
+- Status: done (PR #92, merged 2026-11-10), with the amendment D32.11 of D32 (no new ADR). Nine showcases of phase five, checked by the test of PR-42; a fixture of ten requests, each checked by `executeTool` against its expected document; every package is version `0.6.0` for the release `v0.6.0`. The review of the catalogue changed four descriptions: `add_clip_transition_at_cut` now names the easing every transition has had since `0.12`, and its example carries one, since the example without it was refused; `add_node` names the instance node and its fields; `describe_document` names the transitions, definitions, template, and safe area it returns; and the easing `hold` reads for transitions as well as keyframes. Deviations from this plan: the descriptions changed are in `@kadrion/editor-sdk`, where the metadata of the commands lives (D46), as well as in `@kadrion/ai-sdk`; the page resolves the SVG drawing of the fixtures, so that an SVG asset can be shown.
 - **Goal:** every feature of this phase can be seen in the playground, the
   catalogue of tools reads well to a model as a whole, and the host receives
   a release.
