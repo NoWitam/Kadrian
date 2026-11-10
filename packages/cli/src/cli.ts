@@ -8,6 +8,7 @@
  *                  [--segment-frames <n>] [--ffmpeg <path>] [--ffprobe <path>]
  *   kadrion render-range --composition <file> --assets <file> --out <dir> --preset <1080p|720p>
  *                  [--from-us <t> --to-us <t>] [--segment-frames <n>] [--ffmpeg …] [--ffprobe …]
+ *                  [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>]
  *   kadrion render-audio --composition <file> --assets <file> --out <dir>
  *                  [--from-us <t> --to-us <t>] [--ffmpeg <path>] [--ffprobe <path>]
  *   kadrion join --in <dir> [--in <dir> …] --out <dir> [--ffmpeg <path>] [--ffprobe <path>]
@@ -15,6 +16,7 @@
  *                  --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]
  *   kadrion estimate --composition <file> --assets <file> --preset <1080p|720p>
  *                  [--samples <n>] [--segment-frames <n>] [--budget-ms <ms>] [--ffmpeg …] [--ffprobe …]
+ *                  [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>]
  *   kadrion migrate <file> (--out <file> | --check)
  *   kadrion fetch-ffmpeg --dir <dir>
  *   kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]
@@ -43,6 +45,9 @@
  * directories into the same two files `export` writes. `render-still` writes
  * `still-<index>.<png|jpg|webp>` and its manifest. Every file the CLI writes is
  * written under a temporary name and renamed when complete (D47.6).
+ * `render-range` and `estimate` take a grid anchored on a span instead of the
+ * composition's, `--grid-from-us` and `--grid-to-us`, and `--min-segment-frames`,
+ * under which a last segment is merged into the one before it (D80).
  * `estimate` renders and encodes a few frames into a temporary directory and
  * reports the time per frame and how many segments fit into a budget (D48.5).
  * `migrate` reads one saved document, reports the versions it passed through,
@@ -80,6 +85,7 @@ import {
   type ExportRequest,
   type ExportResult,
   type FfmpegPaths,
+  type GridRequest,
   type JoinPart,
   type JoinRequest,
   type JoinResult,
@@ -160,11 +166,11 @@ export type JobLine =
 export const USAGE = [
   'Usage: kadrion render-frames --composition <file> --assets <file> --out <dir> --times <t,...> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion export --composition <file> --assets <file> --out <dir> --preset <1080p|720p> [--segment-frames <n>] [--ffmpeg <path>] [--ffprobe <path>]',
-  '       kadrion render-range --composition <file> --assets <file> --out <dir> --preset <1080p|720p> [--from-us <t> --to-us <t>] [--segment-frames <n>] [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion render-range --composition <file> --assets <file> --out <dir> --preset <1080p|720p> [--from-us <t> --to-us <t>] [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion render-audio --composition <file> --assets <file> --out <dir> [--from-us <t> --to-us <t>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion join --in <dir> [--in <dir> ...] --out <dir> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion render-still --composition <file> --assets <file> --out <dir> --time-us <t> --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]',
-  '       kadrion estimate --composition <file> --assets <file> --preset <1080p|720p> [--samples <n>] [--segment-frames <n>] [--budget-ms <ms>] [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion estimate --composition <file> --assets <file> --preset <1080p|720p> [--samples <n>] [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--budget-ms <ms>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion migrate <file> (--out <file> | --check)',
   '       kadrion fetch-ffmpeg --dir <dir>',
   '       kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]',
@@ -515,6 +521,35 @@ function rangeFlags(values: {
   return { fromUs, toUs };
 }
 
+/**
+ * `--grid-from-us` and `--grid-to-us` (both or neither) and
+ * `--min-segment-frames`: a grid anchored on a span (D80.1), or `undefined`
+ * for the composition's grid of D47.1.
+ */
+function gridFlags(values: {
+  readonly 'grid-from-us'?: string | undefined;
+  readonly 'grid-to-us'?: string | undefined;
+  readonly 'min-segment-frames'?: string | undefined;
+}): GridRequest | undefined {
+  const fromUs = integerFlag('grid-from-us', values['grid-from-us']);
+  const toUs = integerFlag('grid-to-us', values['grid-to-us']);
+  const minSegmentFrames = integerFlag('min-segment-frames', values['min-segment-frames']);
+  if ((fromUs === undefined) !== (toUs === undefined)) {
+    throw new UsageError('--grid-from-us and --grid-to-us go together.');
+  }
+  if (fromUs === undefined && minSegmentFrames === undefined) return undefined;
+  return {
+    ...(fromUs === undefined || toUs === undefined ? {} : { range: { fromUs, toUs } }),
+    ...(minSegmentFrames === undefined ? {} : { minSegmentFrames }),
+  };
+}
+
+const GRID_OPTIONS = {
+  'grid-from-us': { type: 'string' },
+  'grid-to-us': { type: 'string' },
+  'min-segment-frames': { type: 'string' },
+} as const;
+
 const FFMPEG_OPTIONS = { ffmpeg: { type: 'string' }, ffprobe: { type: 'string' } } as const;
 const DOCUMENT_OPTIONS = {
   composition: { type: 'string' },
@@ -552,6 +587,7 @@ async function renderRangeCommand(args: readonly string[], job: Job): Promise<nu
       'from-us': { type: 'string' },
       'to-us': { type: 'string' },
       'segment-frames': { type: 'string' },
+      ...GRID_OPTIONS,
       ...FFMPEG_OPTIONS,
       ...LIMIT_OPTIONS,
     },
@@ -570,6 +606,7 @@ async function renderRangeCommand(args: readonly string[], job: Job): Promise<nu
   if (!/^[0-9a-z]+$/.test(preset)) throw new UsageError('--preset takes a name such as 1080p.');
   const range = rangeFlags(values);
   const segmentFrames = integerFlag('segment-frames', values['segment-frames']);
+  const grid = gridFlags(values);
   const options = jobOptions(job, values);
   const ffmpeg = ffmpegPaths(values, job.hosts);
   const inputs = await readInputs(composition, assets);
@@ -579,6 +616,7 @@ async function renderRangeCommand(args: readonly string[], job: Job): Promise<nu
     preset,
     ...(range === undefined ? {} : { range }),
     ...(segmentFrames === undefined ? {} : { segmentFrames }),
+    ...(grid === undefined ? {} : { grid }),
     outputDirectory: out,
     ffmpeg,
     ...options,
@@ -748,6 +786,7 @@ async function estimateCommand(args: readonly string[], job: Job): Promise<numbe
       preset: { type: 'string' },
       samples: { type: 'string' },
       'segment-frames': { type: 'string' },
+      ...GRID_OPTIONS,
       'budget-ms': { type: 'string' },
       ...FFMPEG_OPTIONS,
       ...LIMIT_OPTIONS,
@@ -763,10 +802,11 @@ async function estimateCommand(args: readonly string[], job: Job): Promise<numbe
   const samples = integerFlag('samples', values.samples) ?? DEFAULT_ESTIMATE_SAMPLES;
   const segmentFrames = integerFlag('segment-frames', values['segment-frames']);
   const budgetMs = integerFlag('budget-ms', values['budget-ms']);
+  const grid = gridFlags(values);
   const options = jobOptions(job, values);
   const ffmpeg = ffmpegPaths(values, job.hosts);
   const inputs = await readInputs(composition, assets);
-  const plan = estimatePlan(inputs.document, samples, segmentFrames);
+  const plan = estimatePlan(inputs.document, samples, segmentFrames, grid);
   const { now } = job.hosts;
   const started = now();
   /** Set by the progress callback: held in an object, so the checks below see them. */

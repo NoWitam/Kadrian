@@ -74,16 +74,21 @@ import {
   audioPassArgs,
   audioPassGraph,
   audioRangeOf,
+  checkedMinSegmentFrames,
   checkedSegmentFrames,
   checkedStillFormat,
   concatList,
   DEFAULT_SEGMENT_FRAMES,
   frameRange,
+  gridRange,
+  gridSegments,
+  isCompositionGrid,
   joinArgs,
   MAX_SEGMENT_FRAMES,
   rangeSegmentsOf,
   segmentArgs,
   segmentFileName,
+  segmentGrid,
   segmentsOf,
   stillArgs,
 } from '../src/segments.js';
@@ -2214,6 +2219,320 @@ describe('the job contract on a fake frame loop and FFmpeg (D48)', () => {
       renderStillWith({ ...base, signal: controller.signal }, deps),
     ).rejects.toMatchObject({ code: 'cancelled' });
     expect(seen).toHaveLength(1);
+  });
+});
+
+/** Frame `n` of the reference composition (30 fps) as a time. */
+const at = (frame: number): number => (frame >= 300 ? 10_000_000 : frameToTimeUs(frame, 30));
+/** The fragment of D80's examples: frames 7 to 73, 67 frames. */
+const FRAGMENT = { fromUs: at(7), toUs: at(74) };
+const FRAGMENT_GRID = { range: FRAGMENT, minSegmentFrames: 15 };
+
+describe('a grid anchored on a span (D80.1–D80.3)', () => {
+  const grid = (
+    firstFrame: number,
+    frameCount: number,
+    segmentFrames: number,
+    minSegmentFrames: number,
+  ) => ({ firstFrame, frameCount, segmentFrames, minSegmentFrames });
+
+  it('starts at the span, ends at its end, and merges a last segment under the minimum', () => {
+    expect(gridSegments(grid(7, 67, 30, 1))).toEqual([
+      { index: 0, firstFrame: 7, frameCount: 30 },
+      { index: 1, firstFrame: 37, frameCount: 30 },
+      { index: 2, firstFrame: 67, frameCount: 7 },
+    ]);
+    expect(gridSegments(grid(7, 67, 30, 7))).toHaveLength(3);
+    expect(gridSegments(grid(7, 67, 30, 8))).toEqual([
+      { index: 0, firstFrame: 7, frameCount: 30 },
+      { index: 1, firstFrame: 37, frameCount: 37 },
+    ]);
+    // Frames 7 to 12 of the host's example: one segment, however short.
+    expect(gridSegments(grid(7, 6, 15, 15))).toEqual([{ index: 0, firstFrame: 7, frameCount: 6 }]);
+    expect(gridSegments(grid(7, 60, 30, 30))).toHaveLength(2);
+  });
+
+  it('is the grid of D47.1 for the whole composition with nothing merged', () => {
+    for (const length of [1, 7, 45, 60, 128, 300, 1_000]) {
+      expect(gridSegments(grid(0, 300, length, 1))).toEqual(segmentsOf(reference, length));
+    }
+    const of = (length: number, min: number) =>
+      isCompositionGrid(reference, segmentGrid(reference, length, { minSegmentFrames: min }));
+    expect(of(60, 60)).toBe(true);
+    expect(of(128, 44)).toBe(true);
+    expect(of(128, 45)).toBe(false);
+    expect(isCompositionGrid(reference, segmentGrid(reference, 60, FRAGMENT_GRID))).toBe(false);
+  });
+
+  it('keeps every segment between the minimum and twice the length, contiguous over the span', () => {
+    let seed = 7;
+    const next = (bound: number): number => {
+      seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
+      return seed % bound;
+    };
+    for (let trial = 0; trial < 2_000; trial += 1) {
+      const length = 1 + next(40);
+      const g = grid(next(50), 1 + next(200), length, 1 + next(length));
+      const segments = gridSegments(g);
+      let frame = g.firstFrame;
+      segments.forEach((segment, index) => {
+        expect(segment.index).toBe(index);
+        expect(segment.firstFrame).toBe(frame);
+        if (index < segments.length - 1) expect(segment.frameCount).toBe(length);
+        else {
+          expect(segment.frameCount).toBeLessThan(2 * length);
+          if (segments.length > 1)
+            expect(segment.frameCount).toBeGreaterThanOrEqual(g.minSegmentFrames);
+        }
+        frame += segment.frameCount;
+      });
+      expect(frame).toBe(g.firstFrame + g.frameCount);
+    }
+  });
+
+  it('takes a shortest last segment from 1 to the segment length', () => {
+    expect(checkedMinSegmentFrames(undefined, 30)).toBe(1);
+    expect(checkedMinSegmentFrames(30, 30)).toBe(30);
+    for (const bad of [0, 31, 1.5, -1, Number.NaN]) {
+      expect(() => checkedMinSegmentFrames(bad, 30)).toThrow(
+        expect.objectContaining({ code: 'segment-length-invalid' }),
+      );
+    }
+  });
+
+  it('takes a span of frame times, and ranges whose ends are its boundaries', () => {
+    const g = segmentGrid(reference, 30, FRAGMENT_GRID);
+    expect(g).toEqual(grid(7, 67, 30, 15));
+    expect(gridRange(reference, g, undefined)).toEqual({
+      ...FRAGMENT,
+      firstFrame: 7,
+      frameCount: 67,
+    });
+    expect(gridRange(reference, g, { fromUs: at(37), toUs: at(74) })).toEqual({
+      fromUs: at(37),
+      toUs: at(74),
+      firstFrame: 37,
+      frameCount: 37,
+    });
+    for (const range of [
+      { fromUs: at(7), toUs: at(67) }, // the boundary the merge removed
+      { fromUs: at(8), toUs: at(37) },
+      { fromUs: 0, toUs: at(37) },
+      { fromUs: at(37), toUs: at(75) },
+    ]) {
+      expect(() => gridRange(reference, g, range)).toThrow(
+        expect.objectContaining({ code: 'range-invalid' }),
+      );
+    }
+    for (const span of [
+      { fromUs: at(7) + 1, toUs: at(74) },
+      { fromUs: at(7), toUs: at(7) },
+      { fromUs: 0, toUs: 10_000_001 },
+    ]) {
+      expect(() => segmentGrid(reference, 30, { range: span })).toThrow(
+        expect.objectContaining({ code: 'range-invalid' }),
+      );
+    }
+  });
+});
+
+describe('jobs on a grid anchored on a span (D80)', () => {
+  const onFragment = { segmentFrames: 30, grid: FRAGMENT_GRID } as const;
+
+  it('render the fragment in jobs of whole segments that join with the audio of the fragment', async () => {
+    const run = fakeRun();
+    const late = await segmentsJob(run, { fromUs: at(37), toUs: at(74) }, '/g/b', onFragment);
+    const early = await segmentsJob(run, { fromUs: at(7), toUs: at(37) }, '/g/a', onFragment);
+    expect(early.manifest.grid).toEqual({
+      ...FRAGMENT,
+      firstFrame: 7,
+      frameCount: 67,
+      minSegmentFrames: 15,
+    });
+    expect(
+      late.manifest.segments.map(({ index, firstFrame, frameCount, file }) => [
+        index,
+        firstFrame,
+        frameCount,
+        file,
+      ]),
+    ).toEqual([[1, 37, 37, 'segment-000001.mp4']]);
+    const audio = await audioJob(run, '/g/audio', { range: FRAGMENT });
+    const { manifest } = await joinSegmentsWith(
+      { segments: [late, early], audio, outputPath: '/g/video.mp4', ffmpeg: PATHS },
+      run.dependencies,
+    );
+    expect(manifest.grid).toEqual(early.manifest.grid);
+    expect(manifest.range).toEqual({ ...FRAGMENT, firstFrame: 7, frameCount: 67 });
+    expect(manifest.segments.map(({ frameCount }) => frameCount)).toEqual([30, 37]);
+    expect(manifest.frames.map(({ index }) => index)).toEqual(
+      Array.from({ length: 67 }, (_, i) => 7 + i),
+    );
+    // One job without a range renders the whole span.
+    const whole = await segmentsJob(fakeRun(), undefined, '/g/c', onFragment);
+    expect(whole.manifest.range).toEqual(manifest.range);
+    expect(whole.manifest.segments).toEqual([
+      ...early.manifest.segments,
+      ...late.manifest.segments,
+    ]);
+  });
+
+  it('join into the frames, range, and audio of the same fragment in segments of one frame', async () => {
+    const run = fakeRun();
+    const onGrid = await segmentsJob(run, undefined, '/s/grid', onFragment);
+    const single = await segmentsJob(run, FRAGMENT, '/s/one', { segmentFrames: 1 });
+    expect(single.manifest.segments).toHaveLength(67);
+    const audio = await audioJob(run, '/s/audio', { range: FRAGMENT });
+    const join = (part: JoinPart<SegmentsManifest>, name: string) =>
+      joinSegmentsWith(
+        { segments: [part], audio, outputPath: `/s/${name}.mp4`, ffmpeg: PATHS },
+        run.dependencies,
+      );
+    const a = (await join(onGrid, 'grid')).manifest;
+    const b = (await join(single, 'one')).manifest;
+    expect(a.frames).toEqual(b.frames);
+    expect(a.range).toEqual(b.range);
+    expect(a.audio).toEqual(b.audio);
+    expect(a.ffmpeg).toEqual(b.ffmpeg);
+    expect(a.segmentFrames).toBe(30);
+    expect('grid' in b).toBe(false);
+  });
+
+  it('write the bytes of D47.1 when the grid is the composition’s, and join with jobs without one', async () => {
+    const run = fakeRun();
+    const plain = await segmentsJob(run, { fromUs: 0, toUs: 4_000_000 }, '/d/a');
+    const named = await segmentsJob(run, { fromUs: 0, toUs: 4_000_000 }, '/d/b', {
+      grid: { range: { fromUs: 0, toUs: 10_000_000 }, minSegmentFrames: 60 },
+    });
+    expect('grid' in plain.manifest).toBe(false);
+    expect(canonicalJson(named.manifest)).toBe(canonicalJson(plain.manifest));
+    expect(JSON.stringify(named.manifest)).toBe(JSON.stringify(plain.manifest));
+    const rest = await segmentsJob(run, { fromUs: 4_000_000, toUs: 10_000_000 }, '/d/c', {
+      grid: { minSegmentFrames: 1 },
+    });
+    const audio = await audioJob(run, '/d/audio');
+    const joined = await joinSegmentsWith(
+      { segments: [named, rest], audio, outputPath: '/d/v.mp4', ffmpeg: PATHS },
+      run.dependencies,
+    );
+    const onePass = await exportWith(request(), fakeRun().dependencies);
+    expect(JSON.stringify(joined.manifest)).toBe(JSON.stringify(onePass.manifest));
+  });
+
+  it('refuse a range off the grid and a shortest segment out of bounds before a browser opens', async () => {
+    for (const [range, change, code] of [
+      [{ fromUs: at(7), toUs: at(67) }, onFragment, 'range-invalid'],
+      [{ fromUs: 0, toUs: 2_000_000 }, onFragment, 'range-invalid'],
+      [
+        undefined,
+        { segmentFrames: 30, grid: { ...FRAGMENT_GRID, minSegmentFrames: 31 } },
+        'segment-length-invalid',
+      ],
+      [
+        undefined,
+        { segmentFrames: 30, grid: { range: { fromUs: at(7), toUs: at(7) } } },
+        'range-invalid',
+      ],
+    ] as const) {
+      const run = fakeRun();
+      await expect(segmentsJob(run, range, '/x', change)).rejects.toMatchObject({ code });
+      expect(run.log).not.toContain('browser');
+    }
+  });
+
+  async function fragmentParts(): Promise<{
+    run: FakeRun;
+    a: JoinPart<SegmentsManifest>;
+    b: JoinPart<SegmentsManifest>;
+    audio: JoinPart<AudioManifest>;
+  }> {
+    const run = fakeRun();
+    const a = await segmentsJob(run, { fromUs: at(7), toUs: at(37) }, '/f/a', onFragment);
+    const b = await segmentsJob(run, { fromUs: at(37), toUs: at(74) }, '/f/b', onFragment);
+    const audio = await audioJob(run, '/f/audio', { range: FRAGMENT });
+    return { run, a, b, audio };
+  }
+
+  const edited = (
+    part: JoinPart<SegmentsManifest>,
+    edit: (manifest: Record<string, unknown> & SegmentsManifest) => void,
+  ): JoinPart<SegmentsManifest> => {
+    const manifest = structuredClone(part.manifest) as Record<string, unknown> & SegmentsManifest;
+    edit(manifest);
+    return { ...part, manifest };
+  };
+  const both =
+    (edit: (manifest: Record<string, unknown> & SegmentsManifest) => void) =>
+    ({ a, b }: Awaited<ReturnType<typeof fragmentParts>>) => [edited(a, edit), edited(b, edit)];
+  const withGrid = (change: Partial<NonNullable<SegmentsManifest['grid']>>) =>
+    both((m) => Object.assign(m, { grid: { ...m.grid, ...change } }));
+
+  it.each([
+    [
+      'a part on the composition’s grid',
+      ({ a, b }: Awaited<ReturnType<typeof fragmentParts>>) => [
+        a,
+        edited(b, (m) => Reflect.deleteProperty(m, 'grid')),
+      ],
+      /differ in grid/,
+    ],
+    [
+      'a part with another shortest segment',
+      ({ a, b }: Awaited<ReturnType<typeof fragmentParts>>) => [
+        a,
+        edited(b, (m) => Object.assign(m, { grid: { ...m.grid, minSegmentFrames: 8 } })),
+      ],
+      /differ in grid/,
+    ],
+    [
+      'a segment that is not the grid’s',
+      ({ a, b }: Awaited<ReturnType<typeof fragmentParts>>) => [
+        a,
+        edited(b, (m) =>
+          Object.assign(m, { segments: m.segments.map((s) => ({ ...s, frameCount: 30 })) }),
+        ),
+      ],
+      /segment grid/,
+    ],
+    ['a gap', ({ b }: Awaited<ReturnType<typeof fragmentParts>>) => [b], /gap/],
+    ['a span past the end', withGrid({ frameCount: 300 }), /not a span/],
+    ['times that are not the span’s', withGrid({ toUs: at(74) + 1 }), /not a span/],
+    ['a shortest segment over the length', withGrid({ minSegmentFrames: 31 }), /shortest/],
+    [
+      'the grid of D47.1 named',
+      withGrid({
+        firstFrame: 0,
+        frameCount: 300,
+        fromUs: 0,
+        toUs: 10_000_000,
+        minSegmentFrames: 1,
+      }),
+      /grid of D47.1/,
+    ],
+  ])('refuse %s with join-invalid', async (_, pick, message) => {
+    const given = await fragmentParts();
+    await expect(
+      joinSegmentsWith(
+        { segments: pick(given), audio: given.audio, outputPath: '/f/v.mp4', ffmpeg: PATHS },
+        given.run.dependencies,
+      ),
+    ).rejects.toMatchObject({
+      code: 'join-invalid',
+      message: expect.stringMatching(message) as unknown,
+    });
+  });
+
+  it('count the segments of the grid in an estimate, and sample the same frames', () => {
+    const plain = estimatePlan(referenceComposition, 10, 30);
+    const onGrid = estimatePlan(referenceComposition, 10, 30, FRAGMENT_GRID);
+    expect(plain.segments).toBe(10);
+    expect(onGrid).toEqual({ ...plain, segments: 2 });
+    expect(estimatePlan(referenceComposition, 10, 60, { minSegmentFrames: 60 })).toEqual(
+      estimatePlan(referenceComposition, 10, 60),
+    );
+    expect(() => estimatePlan(referenceComposition, 10, 30, { minSegmentFrames: 31 })).toThrow(
+      expect.objectContaining({ code: 'segment-length-invalid' }),
+    );
   });
 });
 

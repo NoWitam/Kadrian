@@ -425,6 +425,33 @@ describe('kadrion render-range (D47.3)', () => {
     });
     expect(seen[0]?.range).toBeUndefined();
     expect(seen[0]?.segmentFrames).toBeUndefined();
+    // No grid flag, no grid: the composition's grid of D47.1 (D80.2).
+    expect(seen[0] !== undefined && 'grid' in seen[0]).toBe(false);
+  });
+
+  it('passes a grid anchored on a span and its shortest last segment through (D80)', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    const grid = ['--grid-from-us', '233333', '--grid-to-us', '2466666'];
+    for (const extra of [
+      [...grid, '--min-segment-frames', '15', '--from-us', '233333', '--to-us', '1233333'],
+      [...grid],
+      ['--min-segment-frames', '30'],
+    ]) {
+      await runCli(
+        documentArgs('render-range', dir, '--preset', '720p', '--segment-frames', '30', ...extra),
+        io().io,
+        { renderRange: fakeRange(seen), env: FFMPEG_ENV },
+      );
+    }
+    expect(seen.map(({ grid: given, range }) => ({ grid: given, range }))).toEqual([
+      {
+        grid: { range: { fromUs: 233_333, toUs: 2_466_666 }, minSegmentFrames: 15 },
+        range: { fromUs: 233_333, toUs: 1_233_333 },
+      },
+      { grid: { range: { fromUs: 233_333, toUs: 2_466_666 } }, range: undefined },
+      { grid: { minSegmentFrames: 30 }, range: undefined },
+    ]);
   });
 
   it.each([
@@ -435,6 +462,11 @@ describe('kadrion render-range (D47.3)', () => {
     ],
     ['a segment length that is not an integer', ['--preset', '720p', '--segment-frames', '-1']],
     ['a preset that could name a path', ['--preset', '../x']],
+    ['one end of the grid only', ['--preset', '720p', '--grid-from-us', '0']],
+    [
+      'a shortest segment that is not an integer',
+      ['--preset', '720p', '--min-segment-frames', '1.5'],
+    ],
   ])('exits 2 for %s, before rendering', async (_, extra) => {
     const { dir } = workspace();
     const { err, io: streams } = io();
@@ -1039,6 +1071,26 @@ describe('kadrion estimate (D48.5)', () => {
       segments: 10,
       segmentsInBudget: null,
     });
+  });
+
+  it('counts the segments of a grid anchored on a span, and samples the same frames (D80.5)', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    const clock = { now: 0 };
+    const { out, io: streams } = io();
+    const span = ['--grid-from-us', '233333', '--grid-to-us', '2466666'];
+    await runCli(
+      estimateArgs(dir, '--segment-frames', '30', ...span, '--min-segment-frames', '15'),
+      streams,
+      { renderRange: timedRange(seen, clock), env: FFMPEG_ENV, now: () => clock.now },
+    );
+    // Frames 7 to 73 in segments of 30 from frame 7: the last 7 frames merged.
+    expect(lines(out).at(-2)).toMatchObject({ segmentFrames: 30, segments: 2 });
+    expect(seen[0]).toMatchObject({
+      range: { fromUs: 4_666_666, toUs: 5_000_000 },
+      segmentFrames: 10,
+    });
+    expect(seen[0] !== undefined && 'grid' in seen[0]).toBe(false);
   });
 
   it('refuses one sample with range-invalid before rendering', async () => {

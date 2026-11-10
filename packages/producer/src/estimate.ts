@@ -9,7 +9,13 @@ import { frameCount, frameToTimeUs } from '@kadrion/schema';
 
 import { ProducerError } from './errors.js';
 import { validated } from './render.js';
-import { checkedSegmentFrames, segmentsOf } from './segments.js';
+import {
+  checkedSegmentFrames,
+  gridSegments,
+  segmentGrid,
+  segmentsOf,
+  type GridRequest,
+} from './segments.js';
 
 /** The frames an estimate renders unless the host asks for another number. */
 export const DEFAULT_ESTIMATE_SAMPLES = 10;
@@ -23,22 +29,30 @@ export interface EstimatePlan {
   readonly frames: number;
   /** The segment length the host renders with (D47.1). */
   readonly segmentFrames: number;
-  /** The segments of the whole composition at that length. */
+  /** The segments of the whole composition at that length, or of the grid when one is given (D80.5). */
   readonly segments: number;
 }
 
 /**
  * The range an estimate renders: the middle segment of the grid whose segment
  * length is `samples`. At least two frames are needed to measure the time of
- * one; a composition with fewer frames, or fewer samples, is refused.
+ * one; a composition with fewer frames, or fewer samples, is refused. With a
+ * grid (D80.1), `segments` counts the segments of that grid instead of the
+ * composition's.
  */
 export function estimatePlan(
   document: unknown,
   samples: number = DEFAULT_ESTIMATE_SAMPLES,
   segmentFrames?: number,
+  renderGrid?: GridRequest,
 ): EstimatePlan {
   const composition = validated(document);
   const length = checkedSegmentFrames(segmentFrames);
+  // The grid the host renders on (D80.5); the sampled segment does not depend on it.
+  const counted =
+    renderGrid === undefined
+      ? segmentsOf(composition, length)
+      : gridSegments(segmentGrid(composition, length, renderGrid));
   const total = frameCount(composition.durationUs, composition.fps);
   if (!Number.isSafeInteger(samples) || samples < 2 || samples > total) {
     throw new ProducerError(
@@ -60,6 +74,6 @@ export function estimatePlan(
     sampleSegmentFrames: samples,
     frames: pick.frameCount,
     segmentFrames: length,
-    segments: segmentsOf(composition, length).length,
+    segments: counted.length,
   };
 }

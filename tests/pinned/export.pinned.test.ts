@@ -9,6 +9,7 @@
  * expectations are written out from D29, not taken from the implementation.
  * The job contract of D48 is tested on the CLI in processes of its own:
  * progress lines, cancellation by signal, the wall time, and the estimate.
+ * Last, a fragment on a grid anchored on its first frame (D80).
  */
 import { execFile, spawn } from 'node:child_process';
 import {
@@ -41,7 +42,9 @@ import {
   type ExportResult,
   type LaunchedChromium,
   type RenderResult,
+  type SegmentsManifest,
 } from '@kadrion/producer';
+import { frameToTimeUs } from '@kadrion/schema';
 import {
   generateReferenceAssets,
   goldenTimestamps,
@@ -1062,3 +1065,309 @@ function generatedWav(samples: number): Uint8Array {
   view.setUint32(40, data, true);
   return bytes;
 }
+
+/*
+ * A fragment rendered on a grid anchored on its first frame (D80), by the CLI in
+ * processes of its own. The fragment is frames 7 to 73: on the composition's
+ * grid of D47.1 only segments of one frame have both its ends as boundaries.
+ * On its own grid of 30 frames with a shortest last segment of 15 it is two
+ * jobs (30 and 37 frames, the last 7 frames merged), joined with the audio of
+ * the fragment. Against the same fragment in segments of one frame: the same
+ * frames piped into FFmpeg, range, audio (every AAC packet), packets, and
+ * presentation times. The H.264 bytes differ as for any other segment length
+ * (D47.1); the decoded video is reported, never asserted (P5).
+ */
+const GRID_ROOT = join(OUTPUT_DIRECTORY, 'range-grid');
+const GRID_INPUTS = join(GRID_ROOT, 'inputs');
+const gridFfmpegFlags = ['--ffmpeg', ffmpegPath ?? '', '--ffprobe', ffprobePath ?? ''];
+const gridInputs = [
+  ...['--composition', join(GRID_INPUTS, 'composition.json')],
+  ...['--assets', join(GRID_INPUTS, 'assets.json')],
+];
+/** The time of frame `n` of the reference composition (30 fps). */
+const at = (frame: number): string => String(frameToTimeUs(frame, 30));
+const FIRST = 7;
+const END = 74;
+const FRAMES = END - FIRST;
+const GRID = [
+  ...['--segment-frames', '30', '--min-segment-frames', '15'],
+  ...['--grid-from-us', at(FIRST), '--grid-to-us', at(END)],
+];
+
+async function toolOutput(path: string, args: readonly string[]): Promise<Buffer> {
+  const { stdout } = await run(path, [...args], {
+    encoding: 'buffer',
+    maxBuffer: 512 * 1024 * 1024,
+  });
+  return stdout;
+}
+
+const readJson = (...path: string[]): unknown => JSON.parse(readFileSync(join(...path), 'utf8'));
+
+interface GridJoined {
+  readonly file: string;
+  readonly manifest: ExportManifest;
+}
+
+/** The streams of a file as ffprobe counts them, without what names the encoder's choices. */
+async function probeStreams(file: string): Promise<unknown[]> {
+  const text = await toolOutput(ffprobePath ?? '', [
+    ...['-v', 'error', '-count_frames', '-count_packets', '-of', 'json'],
+    '-show_entries',
+    [
+      'stream=codec_type,codec_name,profile,width,height,pix_fmt,r_frame_rate,avg_frame_rate',
+      'time_base,start_pts,duration_ts,nb_read_frames,nb_read_packets,sample_rate,channels',
+    ].join(','),
+    file,
+  ]);
+  return (JSON.parse(text.toString('utf8')) as { streams: unknown[] }).streams;
+}
+
+/** The presentation time of every video packet, in the stream's time base. */
+async function packetTimestamps(file: string): Promise<number[]> {
+  const text = await toolOutput(ffprobePath ?? '', [
+    ...['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'packet=pts'],
+    ...['-of', 'csv=p=0', file],
+  ]);
+  return text
+    .toString('utf8')
+    .trim()
+    .split('\n')
+    .map(Number)
+    .sort((a, b) => a - b);
+}
+
+/** The SHA-256 of every audio packet of the MP4, copied out as it is stored. */
+async function audioPackets(file: string): Promise<string> {
+  const text = await toolOutput(ffmpegPath ?? '', [
+    ...['-v', 'error', '-i', file, '-map', '0:a', '-c', 'copy'],
+    ...['-f', 'framehash', '-hash', 'sha256', 'pipe:1'],
+  ]);
+  return text
+    .toString('utf8')
+    .split('\n')
+    .filter((line) => !line.startsWith('#'))
+    .join('\n');
+}
+
+/** The decoded RGB frames of the video at the given indices (report only, P5). */
+async function decodedRgb(file: string, indices: readonly number[]): Promise<Buffer[]> {
+  const select = indices.map((index) => `eq(n\\,${String(index)})`).join('+');
+  const bytes = await toolOutput(ffmpegPath ?? '', [
+    ...['-v', 'error', '-i', file, '-vf', `select=${select}`, '-fps_mode', 'passthrough'],
+    ...['-f', 'rawvideo', '-pix_fmt', 'rgb24', 'pipe:1'],
+  ]);
+  const size = bytes.length / indices.length;
+  return indices.map((_, position) => bytes.subarray(position * size, (position + 1) * size));
+}
+
+function rgbPsnr(a: Buffer, b: Buffer): number {
+  let squared = 0;
+  for (let index = 0; index < a.length; index += 1) {
+    const delta = (a[index] ?? 0) - (b[index] ?? 0);
+    squared += delta * delta;
+  }
+  const mse = squared / a.length;
+  return mse === 0 ? Number.POSITIVE_INFINITY : 10 * Math.log10((255 * 255) / mse);
+}
+
+describe.skipIf(!available)('a fragment on a grid anchored on its first frame (D80)', () => {
+  const joined: Record<'grid' | 'single', GridJoined | undefined> = {
+    grid: undefined,
+    single: undefined,
+  };
+  const report: Record<string, unknown> = {};
+
+  beforeAll(async () => {
+    rmSync(GRID_ROOT, { recursive: true, force: true });
+    mkdirSync(GRID_INPUTS, { recursive: true });
+    writeFileSync(join(GRID_INPUTS, 'composition.json'), JSON.stringify(referenceComposition));
+    const map: Record<string, { path: string; mediaType: string }> = {};
+    for (const asset of generateReferenceAssets()) {
+      writeFileSync(join(GRID_INPUTS, asset.id), asset.bytes);
+      map[asset.id] = { path: asset.id, mediaType: asset.mediaType };
+    }
+    writeFileSync(join(GRID_INPUTS, 'assets.json'), JSON.stringify(map));
+    const out = (name: string): string[] => ['--out', join(GRID_ROOT, name)];
+    // The audio of the fragment, once: both joins read it.
+    await job(
+      ['render-audio', ...gridInputs, ...out('audio')].concat(
+        ['--from-us', at(FIRST), '--to-us', at(END)],
+        gridFfmpegFlags,
+      ),
+    );
+    // The grid of the fragment, in two jobs run in reverse order.
+    for (const [name, from, to] of [
+      ['grid-b', 37, END],
+      ['grid-a', FIRST, 37],
+    ] as const) {
+      await job(
+        ['render-range', ...gridInputs, ...out(name), '--preset', '1080p', ...GRID].concat(
+          ['--from-us', at(from), '--to-us', at(to)],
+          gridFfmpegFlags,
+        ),
+      );
+    }
+    // Today's way: the fragment in segments of one frame, in one job.
+    await job(
+      [
+        'render-range',
+        ...gridInputs,
+        ...out('single'),
+        '--preset',
+        '1080p',
+        '--segment-frames',
+        '1',
+      ].concat(['--from-us', at(FIRST), '--to-us', at(END)], gridFfmpegFlags),
+    );
+    for (const [name, parts] of [
+      ['grid', ['grid-a', 'grid-b', 'audio']],
+      ['single', ['single', 'audio']],
+    ] as const) {
+      await job([
+        'join',
+        ...parts.flatMap((part) => ['--in', join(GRID_ROOT, part)]),
+        ...out(`${name}-joined`),
+        ...gridFfmpegFlags,
+      ]);
+      joined[name] = {
+        file: join(GRID_ROOT, `${name}-joined`, 'video-1080p.mp4'),
+        manifest: readJson(
+          GRID_ROOT,
+          `${name}-joined`,
+          'video-1080p.render-manifest.json',
+        ) as ExportManifest,
+      };
+    }
+  }, 1_800_000);
+
+  const both = (): [GridJoined, GridJoined] => {
+    const { grid, single } = joined;
+    if (grid === undefined || single === undefined) throw new Error('The jobs did not run.');
+    return [grid, single];
+  };
+
+  it('renders two segments of 30 and 37 frames on the grid, named by it', () => {
+    const [grid, single] = both();
+    expect(grid.manifest.grid).toEqual({
+      fromUs: frameToTimeUs(FIRST, 30),
+      toUs: frameToTimeUs(END, 30),
+      firstFrame: FIRST,
+      frameCount: FRAMES,
+      minSegmentFrames: 15,
+    });
+    expect(
+      grid.manifest.segments.map(({ index, firstFrame, frameCount }) => [
+        index,
+        firstFrame,
+        frameCount,
+      ]),
+    ).toEqual([
+      [0, 7, 30],
+      [1, 37, 37],
+    ]);
+    expect(single.manifest.segments).toHaveLength(FRAMES);
+    expect('grid' in single.manifest).toBe(false);
+  });
+
+  it('pipes the same frames, for the same range, as segments of one frame do', () => {
+    const [grid, single] = both();
+    expect(grid.manifest.frames).toHaveLength(FRAMES);
+    expect(grid.manifest.frames).toEqual(single.manifest.frames);
+    expect(grid.manifest.range).toEqual(single.manifest.range);
+    expect(grid.manifest.range).toEqual({
+      fromUs: frameToTimeUs(FIRST, 30),
+      toUs: frameToTimeUs(END, 30),
+      firstFrame: FIRST,
+      frameCount: FRAMES,
+    });
+    for (const field of [
+      'compositionHash',
+      'runtime',
+      'assets',
+      'preset',
+      'identity',
+      'video',
+      'ffmpeg',
+    ] as const) {
+      expect(grid.manifest[field], field).toEqual(single.manifest[field]);
+    }
+  });
+
+  it('holds the same audio, packet for packet', async () => {
+    const [grid, single] = both();
+    expect(grid.manifest.audio).not.toBeNull();
+    expect(grid.manifest.audio).toEqual(single.manifest.audio);
+    const [a, b] = [await audioPackets(grid.file), await audioPackets(single.file)];
+    expect(a.split('\n').filter((line) => line !== '').length).toBeGreaterThan(50);
+    expect(a).toBe(b);
+    report.audioPackets = sha256(a);
+  });
+
+  it('holds as many frames at the same times, and the same streams', async () => {
+    const [grid, single] = both();
+    const expected = Array.from({ length: FRAMES }, (_, i) => i * 512);
+    expect(await packetTimestamps(grid.file)).toEqual(expected);
+    expect(await packetTimestamps(single.file)).toEqual(expected);
+    const [a, b] = [await probeStreams(grid.file), await probeStreams(single.file)];
+    expect(a).toEqual(b);
+    expect(a).toMatchObject([
+      { codec_type: 'video', nb_read_frames: String(FRAMES), nb_read_packets: String(FRAMES) },
+      { codec_type: 'audio' },
+    ]);
+    report.streams = a;
+  });
+
+  it('reports the decoded video of both, without asserting it (P5)', async () => {
+    const [grid, single] = both();
+    const indices = [0, 29, 30, 36, 59, 60, FRAMES - 1];
+    const [a, b] = [await decodedRgb(grid.file, indices), await decodedRgb(single.file, indices)];
+    report.decoded = indices.map((index, position) => ({
+      frame: FIRST + index,
+      psnrDb: rgbPsnr(a[position] ?? Buffer.alloc(0), b[position] ?? Buffer.alloc(0)),
+    }));
+    report.files = {
+      grid: { sha256: fileHash(grid.file), bytes: readFileSync(grid.file).length },
+      single: { sha256: fileHash(single.file), bytes: readFileSync(single.file).length },
+    };
+    writeReport('range-grid-report.json', report);
+  });
+
+  it('writes the bytes of D47.1 for a grid that is the composition’s', async () => {
+    const range = ['--from-us', '0', '--to-us', '2000000', '--preset', '1080p'];
+    await job([
+      'render-range',
+      ...gridInputs,
+      '--out',
+      join(GRID_ROOT, 'plain'),
+      ...range,
+      ...gridFfmpegFlags,
+    ]);
+    await job(
+      ['render-range', ...gridInputs, '--out', join(GRID_ROOT, 'named'), ...range].concat(
+        ['--grid-from-us', '0', '--grid-to-us', '10000000', '--min-segment-frames', '60'],
+        gridFfmpegFlags,
+      ),
+    );
+    for (const name of ['segment-000000.mp4', 'segments-000000-000000.manifest.json']) {
+      expect(fileHash(join(GRID_ROOT, 'named', name)), name).toBe(
+        fileHash(join(GRID_ROOT, 'plain', name)),
+      );
+    }
+    expect(
+      'grid' in
+        (readJson(GRID_ROOT, 'plain', 'segments-000000-000000.manifest.json') as SegmentsManifest),
+    ).toBe(false);
+  });
+
+  it('counts the segments of the grid in the estimate', async () => {
+    const lines = (
+      await job(['estimate', ...gridInputs, '--preset', '1080p', ...GRID, ...gridFfmpegFlags])
+    )
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    expect(lines.at(-2)).toMatchObject({ event: 'estimate', segmentFrames: 30, segments: 2 });
+    expect(lines.at(-1)).toEqual({ event: 'done', manifest: null });
+  });
+});
