@@ -19,6 +19,7 @@
 - Amended by: PR-51a (D71) on 2026-11-09: the `filter` of a node, a group, or a scene, written by every render and removed where there is no effect (D71.4)
 - Amended by: PR-51b (D72) on 2026-11-09: a hidden `<svg data-kadrion-effects>`, the last child of the stage, holds the filters of SVG effects, written by every render (D72.4)
 - Amended by: PR-52 (D73) on 2026-11-09: the box of a shape holds an inline `<svg data-kadrion-shape>` with its gradient and one `<path>`, written by every render (D73.5)
+- Amended by: PR-64 (D83) on 2026-11-11, in force from PR-66: 22.6: a text with a frame, and captions broken by width, are drawn as the lines the runtime measured (D83.5)
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, and open
   question Q5
