@@ -93,6 +93,7 @@
         "error",
         "-threads",
         "1",
+        "-noautorotate",
         "-i",
         "<input>",
         "-map",
