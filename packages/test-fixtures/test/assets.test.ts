@@ -287,7 +287,7 @@ describe('the proportional font (D83, PR-65)', () => {
     for (const tag of ['glyf', 'hmtx', 'loca'])
       expect(bmp.get(tag)?.length).toBe(both.get(tag)?.length);
     expect(sha256(generateProportionalFont())).toBe(
-      'sha256:47d9d04524cbaba241f318aab4a4ac2b16dc23748145c8c902cfb654e3c11048',
+      'sha256:4a209658a3a8cde1b117a955ab340c3b57548d94b0c65dd25949fc9a54312de1',
     );
   });
 });

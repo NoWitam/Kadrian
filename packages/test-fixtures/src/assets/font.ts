@@ -48,13 +48,24 @@ export const FONT_GLYPHS: Readonly<Record<string, readonly string[]>> = {
 
 /**
  * The proportional font (D83, PR-65): the glyphs of `FONT_GLYPHS` with some
- * drawn narrower or wider, a few more letters, and one character outside the
+ * drawn narrower or wider, a few more letters, the digits (whose advances
+ * also differ, for the width probe of PR-65), and one character outside the
  * Basic Multilingual Plane, U+1F642, which only a format 12 subtable maps.
  */
 export const PROPORTIONAL_FONT_FAMILY_NAME = 'Kadrion Fixture Proportional';
 
 export const PROPORTIONAL_FONT_GLYPHS: Readonly<Record<string, readonly string[]>> = {
   ...FONT_GLYPHS,
+  '0': ['.###.', '#...#', '#..##', '#.#.#', '##..#', '#...#', '.###.'],
+  '1': ['.#.', '##.', '.#.', '.#.', '.#.', '.#.', '###'],
+  '2': ['.###.', '#...#', '....#', '...#.', '..#..', '.#...', '#####'],
+  '3': ['####.', '....#', '....#', '.###.', '....#', '....#', '####.'],
+  '4': ['...#.', '..##.', '.#.#.', '#..#.', '#####', '...#.', '...#.'],
+  '5': ['#####', '#....', '####.', '....#', '....#', '#...#', '.###.'],
+  '6': ['..##.', '.#...', '#....', '####.', '#...#', '#...#', '.###.'],
+  '7': ['####', '...#', '...#', '..#.', '..#.', '.#..', '.#..'],
+  '8': ['.###.', '#...#', '#...#', '.###.', '#...#', '#...#', '.###.'],
+  '9': ['.###.', '#...#', '#...#', '.####', '....#', '...#.', '.##..'],
   h: ['#....', '#....', '####.', '#...#', '#...#', '#...#', '#...#'],
   i: ['#', '.', '#', '#', '#', '#', '#'],
   l: ['##', '.#', '.#', '.#', '.#', '.#', '.#'],
@@ -74,6 +85,16 @@ export const PROPORTIONAL_FONT_GLYPHS: Readonly<Record<string, readonly string[]
  */
 export const PROPORTIONAL_FONT_ADVANCES: Readonly<Record<string, number>> = {
   ' ': 300,
+  '0': 600,
+  '1': 400,
+  '2': 600,
+  '3': 600,
+  '4': 600,
+  '5': 600,
+  '6': 600,
+  '7': 500,
+  '8': 600,
+  '9': 600,
   D: 600,
   K: 600,
   a: 600,

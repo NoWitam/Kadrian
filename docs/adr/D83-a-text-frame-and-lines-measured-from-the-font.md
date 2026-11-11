@@ -439,17 +439,20 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
   `frameLayout` as functions over explicit arguments, in an entry of their own
   (`@kadrion/runtime/text-frame`) so that the runtime build and the Player's
   dist tree keep their bytes, as PR-59 did; the proportional fixture font; the
-  pinned comparison of Node and Chromium (a pinned test file added while Q14
-  is open). No field, no host change.
+  pinned comparison of Node and Chromium and, by the owner's decision of
+  2026-11-11, the width probe (a pinned test file added while Q14 is open).
+  No field, no host change.
 
-  - Status: in review. The functions, the fixture font, and the readings
-    for the owner to confirm are recorded in the implementation notes below
-    (PR-65). The runtime build keeps its bytes
+  - Status: in review. The functions, the fixture font, the readings the
+    owner accepted on 2026-11-11 (15:38 Europe/Warsaw), and the width probe
+    are recorded in the implementation notes below (PR-65). The runtime
+    build keeps its bytes
     (`sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13`)
     and so does the Player's dist tree
     (`sha256:a7b583cc9d2a65085acf1c4b9a31230ef2ddd03d7269ec725ab78429a77a2452`).
-    Open: the pinned comparison of Node and Chromium runs in the pinned
-    container (a pinned test file added while Q14 is open).
+    Open: the pinned comparison of Node and Chromium and the width probe
+    run in the pinned container (a pinned test file added while Q14 is
+    open).
 
 - **PR-66.** The step from `0.24`, the frozen `0.24`, the fields, the load
   step, the mount and `renderState`, `evaluateComposition(…, fonts)`, the
@@ -492,11 +495,13 @@ nothing in this section is in force for a document before PR-66.
   `@kadrion/test-fixtures` builds the proportional font with the code of the
   monospaced one (whose bytes do not change), so no font file enters the
   repository and its licence is the repository's own (D10, D27.5). Its glyphs
-  advance from 200 to 800 units (`PROPORTIONAL_FONT_ADVANCES`), it writes
+  advance from 200 to 800 units (`PROPORTIONAL_FONT_ADVANCES`; its digits,
+  added for the width probe below, from 400 to 600), it writes
   the advance of its last glyphs once (`numberOfHMetrics` below
   `numGlyphs`), and it maps U+1F642 only through format 12; its variants
   `format-4`, `format-12`, and `both` (the default) differ in `cmap` only.
-- **Readings for the owner to confirm.**
+- **Readings the owner accepted.** The owner accepted all four on 2026-11-11
+  (15:38 Europe/Warsaw).
   1. The `width` mode is `captionPagesByWidth` beside the unchanged
      `captionPages`, because `captions.ts` is part of the runtime build;
      PR-66 gives `captionPages` the mode and the metrics, reading
@@ -521,8 +526,27 @@ nothing in this section is in force for a document before PR-66.
   (framed texts in every alignment at two sizes, texts without a frame, and
   captions in both modes in both fonts) between the pinned Chromium and
   Node, and writes `text-frame/node-vs-chromium.json`; it is a pinned test
-  file added while Q14 is open. That Chromium draws a measured line as wide
-  as `frameLayout` says is checked by PR-66, with the mount (Verification).
+  file added while Q14 is open.
+- **The width probe.** By the owner's decision of 2026-11-11 (15:38
+  Europe/Warsaw), PR-65 already checks in the pinned Chromium that a measured
+  line is drawn as wide as `measureText` and `unitsToPixels` say, so that the
+  premise of D83.2 holds before the step to `0.25`: headless Chromium on
+  Linux could round the advances of glyphs to whole pixels. The same test
+  file loads the proportional font and the monospaced one as faces from their
+  bytes, as the load step does (D27.1), and draws 30 single lines (Latin of
+  mixed advances, digits, runs of spaces at the start, inside, and at the
+  end, and U+1F642 through format 12, in the proportional font; Latin and
+  spaces in the monospaced one) as D83.2 draws a measured line, at 13.5, 17,
+  37, 50, and 96 px. Each width is read from a `Range` over the line's text,
+  which keeps sub-pixel layout (`offsetWidth` rounds). The tolerance is the
+  half pixel of the Verification above, per line, which D83 states; the
+  1/64 px of a LayoutUnit is not asserted, but every case records its text,
+  size, measured and drawn widths, difference, and whether it is within
+  1/64 px in `text-frame/node-vs-chromium.json`. The texts are long enough
+  that advances rounded to whole pixels would miss by more than half a pixel
+  at every fractional size, which the test asserts too, so the tolerance
+  cannot hide that rounding. PR-66 still checks every measured line of the
+  new composition with the mount.
 
 ## Questions for the owner, with recommendations
 
