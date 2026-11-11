@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./stretch": {
+      "types": "./dist/stretch.d.ts",
+      "default": "./dist/stretch.js"
     }
   },
   "files": [

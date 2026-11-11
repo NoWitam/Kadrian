@@ -539,3 +539,48 @@ export declare function textFragments(node: TextNode, color: string, timeUs: num
 
 ---- textLayout
 export declare function textLayout(text: string): TextLayout;
+
+==== Entry "./stretch"
+
+---- STRETCH_BLOCK
+export declare const STRETCH_BLOCK = 32;
+
+---- STRETCH_GRAIN
+export declare const STRETCH_GRAIN = 1024;
+
+---- STRETCH_HOP
+export declare const STRETCH_HOP = 512;
+
+---- STRETCH_RADIUS
+export declare const STRETCH_RADIUS = 512;
+
+---- STRETCH_SEARCH_STEP
+export declare const STRETCH_SEARCH_STEP = 2;
+
+---- StretchRequest
+export interface StretchRequest {
+    readonly map: ClipTimeMap;
+    readonly source: StretchSource;
+    readonly startSample: number;
+    readonly sampleCount: number;
+}
+
+---- StretchSource
+export interface StretchSource {
+    readonly channels: readonly Float32Array[];
+    readonly startSample: number;
+}
+
+---- StretchSourceRange
+export interface StretchSourceRange {
+    readonly startSample: number;
+    readonly endSample: number;
+    readonly startUs: number;
+    readonly endUs: number;
+}
+
+---- stretchSound
+export declare function stretchSound(request: StretchRequest): Float32Array[];
+
+---- stretchSourceRange
+export declare function stretchSourceRange(map: ClipTimeMap, startSample: number, sampleCount: number): StretchSourceRange;

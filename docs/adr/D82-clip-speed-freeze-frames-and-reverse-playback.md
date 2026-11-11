@@ -556,6 +556,98 @@ multiplier.
   and in Chromium; the Player's audio graph within 1e-4 of the Producer's
   intermediate (D53.5); and every earlier golden PNG file byte for byte.
 
+## Implementation notes (PR-59)
+
+PR-59 adds the two shared functions over explicit arguments, before any field
+uses them; nothing in this section is in force for a document before PR-61.
+
+- **Two entries until PR-61.** The map is the entry `@kadrion/schema/time-map`
+  and the stretch the entry `@kadrion/runtime/stretch`, so that the main
+  entries, which the render page and the Player import, reach neither: the
+  runtime build and the Player's dist tree keep their bytes, as the roadmap
+  plans for PR-59. PR-61 makes the main entry of the schema read the map.
+- **The map** (D82.1, D82.2, D82.11) is `packages/schema/src/time-map.ts`:
+  `clipTimeMap`, `sourceTimeOfScene` (the floor rule; `sourceTimeUs` reads it
+  from PR-61), `sceneTimesOfSource`, `clipSourceRange` (the sampled range;
+  `sampledSourceRange` reads it from PR-61), `advanceClipSource`, `parseSpeed`,
+  `formatSpeed`, and `speedProblem`. `clipTimeMap` gives the continuous map
+  `(intercept + slope · u) / den`, `slope` negative when reversed; the time
+  shown at the instant `u` is the floor of the lower end of the image of
+  `[u, u + 1)`, which is `F(e)` forwards and `F(durationUs − 1 − e)` reversed.
+  A trim, a split, and a join leave it unchanged.
+- **Helpers for a host** (asked by the host for PR-59, within D82.1 and
+  D82.6): the scene-to-source map both ways (`sourceTimeOfScene`,
+  `sceneTimesOfSource`), the range the picture samples (`clipSourceRange`),
+  and the source range the sound reads (`stretchSourceRange` of
+  `@kadrion/runtime/stretch`, in samples and in microseconds), exported and listed in
+  the host guide (section 4). `stretchSourceRange` lives beside `stretchSound`
+  because it depends on the grain constants, and `@kadrion/schema` depends on
+  no other package (D12).
+- **The constants of `stretchSound`** (D82.6, question 11), at 48 kHz: a
+  grain of 1 024 samples (21⅓ ms), two grains overlapping at every sample (a
+  hop of 512); the window fades a grain's first half in by `x² · (3 − 2x)`
+  and its second half out by `1 −` that, so every sample's two fades sum to 1;
+  a search radius of 512 samples (10⅔ ms), searched in two passes, every
+  second shift scored over every second sample, then the best and its two
+  neighbours over every sample; and a block of 32 grains (341⅓ ms of
+  composition). At speed 1 there are no grains in either direction. The
+  constants are exported (`STRETCH_GRAIN`, `STRETCH_HOP`, `STRETCH_RADIUS`,
+  `STRETCH_SEARCH_STEP`, `STRETCH_BLOCK`), and the SHA-256 of 24 fixed cases
+  is pinned in `packages/runtime/test/stretch.sha256.json`, so a change of
+  them is seen.
+- **How "anchored" is read (question 11; confirmed by the owner on
+  2026-11-11 at 13:30 Europe/Warsaw).** The
+  strict reading of D82.6, a shift that depends on nothing but the source and
+  `k` with each grain aligned to the continuation of the grain before it at
+  its nominal position, keeps no phase between grains on a pitched sound: two
+  neighbours are as far apart in phase as with no search at all. The quality
+  check measured it beside the two others (the `nominal` column below).
+  `stretchSound` therefore chains the shifts as sequential WSOLA does, within
+  blocks of 32 grains counted from the grain at the map's anchor, and restarts
+  the chain once per block, unshifted, at the grain whose nominal samples hold
+  the least energy, where a jump of phase is least heard. The shift of grain
+  `k` is still a function of the source, the map, and `k` alone, so the
+  property D82.6 asks for holds and is tested: the halves of a split, any
+  range, and the range read from `stretchSourceRange` give the same samples
+  as the whole, byte for byte. What it costs: a range reads source up to two
+  blocks before its first sample (about 683 ms of composition, times the
+  speed), and computing it starts up to 63 grains early.
+- **The quality check.** `packages/runtime/test/stretch-quality.test.ts`
+  stretches the synthetic speech and music fixtures (2 s, generated in
+  `@kadrion/test-fixtures`, no recording committed) at the six speeds three
+  ways and reports the mean deviation of the level from the source's, in
+  10 ms windows (lower is better; cancellation where grains overlap shows as
+  lost level). On 2026-11-11, in Node 22:
+
+  | Fixture | Speed | Anchored (D82.6 as built) | Sequential | Nominal (strict reading) |
+  | ------- | ----- | ------------------------- | ---------- | ------------------------ |
+  | speech  | x0.25 | 1.24 dB                   | 1.27 dB    | 2.11 dB                  |
+  | speech  | x0.5  | 1.21 dB                   | 1.34 dB    | 1.94 dB                  |
+  | speech  | x0.75 | 1.07 dB                   | 1.19 dB    | 1.47 dB                  |
+  | speech  | x1.5  | 1.18 dB                   | 1.20 dB    | 1.72 dB                  |
+  | speech  | x2    | 1.13 dB                   | 1.15 dB    | 2.19 dB                  |
+  | speech  | x4    | 1.19 dB                   | 1.19 dB    | 1.70 dB                  |
+  | music   | x0.25 | 0.81 dB                   | 0.81 dB    | 2.19 dB                  |
+  | music   | x0.5  | 0.81 dB                   | 0.78 dB    | 1.99 dB                  |
+  | music   | x0.75 | 0.92 dB                   | 0.81 dB    | 1.07 dB                  |
+  | music   | x1.5  | 0.91 dB                   | 0.82 dB    | 1.54 dB                  |
+  | music   | x2    | 1.02 dB                   | 1.12 dB    | 1.70 dB                  |
+  | music   | x4    | 0.88 dB                   | 1.08 dB    | 1.70 dB                  |
+
+  The measure is a report, not a gate; the owner decides by ear. With
+  `KADRION_STRETCH_RECORDINGS=<directory>` the same test writes every sound
+  as a 16-bit WAV file (the source, and each speed anchored, sequential,
+  nominal, and reversed) with `report.json`. The fixtures are synthetic; the
+  owner may wish to hear a real voice too before the constants are final.
+
+- **Node and Chromium.** `tests/pinned/stretch.pinned.test.ts` compares the
+  SHA-256 of the 24 cases in the pinned Chromium with Node's and with the
+  pinned file, and writes `stretch/node-vs-chromium.json`; it is a pinned
+  test file added while Q14 is open.
+- **The runtime build** keeps its bytes
+  (`sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13`),
+  and so does the Player's dist tree: neither reaches the two entries.
+
 ## Questions for the owner, with recommendations
 
 Answered by the owner on 2026-11-11 at 10:44 (Europe/Warsaw): every question

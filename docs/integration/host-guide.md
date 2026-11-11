@@ -133,9 +133,30 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   Player's `dist` through an import map maps `mediabunny` to the package's
   `dist/bundles/mediabunny.mjs`. (Proposed in D79 and D81; this guide links
   them once the owner accepts them.)
+- **A clip at another speed, frozen, or reversed:** the time map of D82, ahead
+  of the fields of schema `0.24` (PR-61), so a host computes nothing of its
+  own. Each takes a clip's timing explicitly: `startUs`, `durationUs`,
+  `sourceStartUs`, `sourceStartRemainder`, `speed` (`{ num, den }`), and
+  `reverse`. From `@kadrion/schema/time-map`: `sourceTimeOfScene(clip, timeUs)` is the
+  source time shown at a scene time; `sceneTimesOfSource(clip, sourceTimeUs)`
+  the scene times that show a source time (`{ startUs, durationUs }` or
+  `null`), to retime words; `clipSourceRange(clip, sceneDurationUs)` the source
+  range the picture samples, to check against the facts; `clipTimeMap(clip)`
+  the exact map, which a trim or a split does not change;
+  `advanceClipSource(clip, deltaUs)` the source start moved by a trim; and
+  `parseSpeed(value)` and `formatSpeed(speed)` the multiplier a person or a
+  model reads and writes (`"x0.5"`, `2`, `"x1/3"`; a value with no exact speed
+  is refused with `speed-invalid` and the nearest speed named, never rounded).
+  From `@kadrion/runtime/stretch`: `stretchSourceRange(map, startSample, sampleCount)`
+  the source samples, and their microseconds `[startUs, endUs)`, that the
+  sound of a clip reads for the composition samples heard, which is wider than
+  the range heard; and `stretchSound` the samples, the pitch kept, the same in
+  both hosts.
 - **Authority:** [D49](../adr/D49-the-timeline-model.md) (facts outside the
   document), [D51](../adr/D51-video-in-the-player.md),
-  [D53](../adr/D53-audio-in-the-player.md), [D62](../adr/D62-image-facts.md).
+  [D53](../adr/D53-audio-in-the-player.md), [D62](../adr/D62-image-facts.md),
+  [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md) (the time
+  map, the stretch of sound, and the multiplier).
 
 ## 5. Edit from the UI
 

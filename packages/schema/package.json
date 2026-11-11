@@ -17,6 +17,10 @@
     "./template": {
       "types": "./dist/template.d.ts",
       "default": "./dist/template.js"
+    },
+    "./time-map": {
+      "types": "./dist/time-map.d.ts",
+      "default": "./dist/time-map.js"
     }
   },
   "files": [

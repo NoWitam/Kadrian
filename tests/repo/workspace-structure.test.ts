@@ -85,7 +85,9 @@ describe.each(packageDirs)('@kadrion/%s', (dir) => {
   // D11: workspace packages resolve through `exports` to built output, so `tsc -b`
   // must build a dependency before whatever imports it. The renderer also exports
   // the runtime build artifact and its manifest (D21, D25.5), the schema its
-  // migration entry, which the render page must not import (D42.8), and the
+  // migration entry, which the render page must not import (D42.8), the time
+  // map of a clip, and the runtime the stretch of a sound, which neither the
+  // render page nor the Player reaches before schema 0.24 (D82, PR-59), and the
   // fixtures their compatibility corpus, which the main entry must not load
   // (D43.6); nothing else.
   it('exports its built output', () => {
@@ -101,8 +103,11 @@ describe.each(packageDirs)('@kadrion/%s', (dir) => {
         ? {
             './migrate': { types: './dist/migrate.d.ts', default: './dist/migrate.js' },
             './template': { types: './dist/template.d.ts', default: './dist/template.js' },
+            './time-map': { types: './dist/time-map.d.ts', default: './dist/time-map.js' },
           }
-        : {};
+        : dir === 'runtime'
+          ? { './stretch': { types: './dist/stretch.d.ts', default: './dist/stretch.js' } }
+          : {};
     const corpus =
       dir === 'test-fixtures'
         ? {

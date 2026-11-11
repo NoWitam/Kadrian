@@ -160,6 +160,16 @@ export interface RotatedVideoFixture {
     readonly sourceDurationUs: number;
 }
 
+---- SOUND_FIXTURES
+export declare const SOUND_FIXTURES: readonly [
+    "speech",
+    "music",
+    "sine"
+];
+
+---- SOUND_SAMPLE_RATE
+export declare const SOUND_SAMPLE_RATE = 48000;
+
 ---- SVG_BADGE
 export declare const SVG_BADGE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"160\" height=\"120\" viewBox=\"0 0 160 120\">\n  <title>Kadrion test badge</title>\n  <defs>\n    <linearGradient id=\"sky\" gradientUnits=\"userSpaceOnUse\" x1=\"0\" y1=\"0\" x2=\"160\" y2=\"120\">\n      <stop offset=\"0\" stop-color=\"#7a5af8\"/>\n      <stop offset=\"1\" stop-color=\"#ee46bc\"/>\n    </linearGradient>\n    <radialGradient id=\"sun\" gradientUnits=\"userSpaceOnUse\" cx=\"112\" cy=\"40\" r=\"22\">\n      <stop offset=\"0\" stop-color=\"#fef0c7\"/>\n      <stop offset=\"1\" stop-color=\"#f79009\"/>\n    </radialGradient>\n  </defs>\n  <rect x=\"4\" y=\"4\" width=\"152\" height=\"112\" rx=\"16\" fill=\"url(#sky)\" stroke=\"#ffffff\" stroke-width=\"4\"/>\n  <circle cx=\"112\" cy=\"40\" r=\"20\" fill=\"url(#sun)\"/>\n  <g transform=\"translate(40 66) rotate(-10)\" fill=\"#12b76a\" stroke=\"#0b1020\" stroke-width=\"3\" stroke-linejoin=\"round\">\n    <polygon points=\"0,-28 8,-9 28,-9 12,4 18,24 0,12 -18,24 -12,4 -28,-9 -8,-9\"/>\n  </g>\n  <path d=\"M10 100 C 40 80, 70 120, 100 96 S 140 90, 150 104\" fill=\"none\" stroke=\"#fdb022\" stroke-width=\"5\" stroke-linecap=\"round\"/>\n  <ellipse cx=\"140\" cy=\"88\" rx=\"18\" ry=\"8\" fill=\"#155eef\" opacity=\"0.8\" transform=\"skewX(-15)\"/>\n</svg>\n";
 
@@ -168,6 +178,9 @@ export declare const SVG_BADGE_SIZE: Readonly<{
     width: 160;
     height: 120;
 }>;
+
+---- SoundFixture (type only)
+export type SoundFixture = (typeof SOUND_FIXTURES)[number];
 
 ---- TILTED_VIDEO_FIXTURE
 export declare const TILTED_VIDEO_FIXTURE: Readonly<{
@@ -260,6 +273,9 @@ export declare const elementsComposition: unknown;
 ---- elementsGoldenTimestamps
 export declare const elementsGoldenTimestamps: readonly GoldenTimestamp[];
 
+---- fixtureSine
+export declare function fixtureSine(turns: number): number;
+
 ---- focusComposition
 export declare const focusComposition: unknown;
 
@@ -268,6 +284,9 @@ export declare const focusGoldenTimestamps: readonly GoldenTimestamp[];
 
 ---- generateReferenceAssets
 export declare function generateReferenceAssets(): readonly FixtureAsset[];
+
+---- generateSoundFixture
+export declare function generateSoundFixture(name: SoundFixture, seconds: number): Float32Array;
 
 ---- generateSvgAsset
 export declare function generateSvgAsset(): FixtureAsset;
