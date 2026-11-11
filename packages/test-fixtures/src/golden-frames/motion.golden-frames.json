@@ -1,10 +1,10 @@
 {
   "render": {
     "manifestVersion": 3,
-    "compositionHash": "sha256:1306ed724bd82c6413ee35fbf6aad26c6f2fd33582ae3ff44d39ca07b0ea2d25",
-    "schemaVersion": "0.25",
+    "compositionHash": "sha256:2ac21319faadc2370c15e65ef813229a091d9ccacdf8b0bdac23b0a3a2d8a4e2",
+    "schemaVersion": "0.24",
     "runtime": {
-      "contentHash": "sha256:2d9240d75d0b3dd8b837101394dd91573ba1cf5f6db574d78a556b6916c3ea8c",
+      "contentHash": "sha256:fe72dd3630eb0d0413d282a5eb9cf31e310338162e5e6061938cf7c49d77221e",
       "bundler": "esbuild@0.28.2",
       "compiler": "typescript@6.0.3"
     },
@@ -138,22 +138,22 @@
       {
         "index": 0,
         "timeUs": 0,
-        "sha256": "sha256:9806e9433ff500d1a24b585acf9b52e6ad86efeb08e147eb42a0dc7da260d630"
+        "sha256": "sha256:bb87e07c4a7fdafefc7cfae22a15ae9fb98e15fece23309ea56ff024e96bdf8b"
       },
       {
         "index": 15,
         "timeUs": 500000,
-        "sha256": "sha256:8c875d014310c039f7ef6531adc6b251b5f6299b2e0a349c4cac327732076f39"
+        "sha256": "sha256:b33241895bb3c7f23d2abc27362a1e72333430bfe5f3ce7c636e0145e1643db8"
       },
       {
         "index": 30,
         "timeUs": 1000000,
-        "sha256": "sha256:1769068a36d700a7d69374928edffba35384f627caff359f9663212d46dda6dc"
+        "sha256": "sha256:1c2611a593c5b5e4dde4932dfee072c3785ffb99a125b9cafdf3dcda30316b78"
       },
       {
         "index": 45,
         "timeUs": 1500000,
-        "sha256": "sha256:1ab55de0552c1d60fd03c6303392675d74b0a0e9d6a1254b7950eaf63085b940"
+        "sha256": "sha256:9ac292b60d839daf556da362b9e348c14c88ff13c618b67c99af53a201b55572"
       }
     ],
     "blockedRequests": [],
@@ -196,25 +196,25 @@
       "file": "motion-0.png",
       "timeUs": 0,
       "index": 0,
-      "sha256": "sha256:9806e9433ff500d1a24b585acf9b52e6ad86efeb08e147eb42a0dc7da260d630"
+      "sha256": "sha256:bb87e07c4a7fdafefc7cfae22a15ae9fb98e15fece23309ea56ff024e96bdf8b"
     },
     {
       "file": "motion-500000.png",
       "timeUs": 500000,
       "index": 15,
-      "sha256": "sha256:8c875d014310c039f7ef6531adc6b251b5f6299b2e0a349c4cac327732076f39"
+      "sha256": "sha256:b33241895bb3c7f23d2abc27362a1e72333430bfe5f3ce7c636e0145e1643db8"
     },
     {
       "file": "motion-1000000.png",
       "timeUs": 1000000,
       "index": 30,
-      "sha256": "sha256:1769068a36d700a7d69374928edffba35384f627caff359f9663212d46dda6dc"
+      "sha256": "sha256:1c2611a593c5b5e4dde4932dfee072c3785ffb99a125b9cafdf3dcda30316b78"
     },
     {
       "file": "motion-1500000.png",
       "timeUs": 1500000,
       "index": 45,
-      "sha256": "sha256:1ab55de0552c1d60fd03c6303392675d74b0a0e9d6a1254b7950eaf63085b940"
+      "sha256": "sha256:9ac292b60d839daf556da362b9e348c14c88ff13c618b67c99af53a201b55572"
     }
   ]
 }

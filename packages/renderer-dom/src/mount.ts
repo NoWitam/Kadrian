@@ -25,6 +25,7 @@ import {
   type InstanceNode,
   type SceneNode,
   type TextNode,
+  type TransitionEffect,
   type ValidatedComposition,
 } from '@kadrion/schema';
 
@@ -173,6 +174,63 @@ function metricsOf(
 }
 
 /**
+ * The declaration of an element whose opacity a render can set below 1
+ * (D22.9): every node but a background, a scene that is a side of a scene
+ * transition that fades, a fragment of a text, and a line or a word of
+ * captions whose tracks can take the opacity below 1. It is written at mount,
+ * from the document alone, and never changed: pinned Chromium draws a
+ * transformed element whose opacity was once below 1 as it draws one with
+ * this declaration, so with it every frame is drawn the same way whatever
+ * earlier renders wrote. Every node carries it, not only the animated ones,
+ * so that a document drawn with and without a transition, an animation, or a
+ * node next to it draws its other nodes alike (D49.4).
+ */
+const OPACITY_VARIES: Styles = Object.freeze({ 'will-change': 'opacity' });
+
+/** Whether `varies`, the styles of `OPACITY_VARIES` or none. */
+function opacityStyles(varies: boolean): Styles {
+  return varies ? OPACITY_VARIES : {};
+}
+
+/**
+ * Whether tracks of fragments can take the opacity below 1 (D69, D70): an
+ * opacity track with a keyframe other than 1. A track whose keyframes are all
+ * 1 keeps every opacity 1, whatever its easing.
+ */
+function animatesOpacity(
+  tracks: readonly {
+    readonly property: string;
+    readonly keyframes: readonly { readonly value: unknown }[];
+  }[],
+): boolean {
+  return tracks.some(
+    (track) =>
+      track.property === 'opacity' && track.keyframes.some((keyframe) => keyframe.value !== 1),
+  );
+}
+
+/**
+ * Whether an effect of a transition changes the opacity of a side, between
+ * scenes and between clips alike: the effects whose sides `effectAt` of the
+ * runtime fades (D56, D66, D71). The others move or cut a side only. Only a
+ * scene element needs it; every node is marked anyway.
+ */
+export function transitionFades(effect: TransitionEffect): boolean {
+  switch (effect.kind) {
+    case 'crossfade':
+    case 'fade-through-color':
+    case 'zoom':
+    case 'blur-dissolve':
+      return true;
+    case 'slide':
+    case 'wipe':
+    case 'push':
+    case 'iris':
+      return false;
+  }
+}
+
+/**
  * The box of a captions node (D57): every page the runtime's `captionPages`
  * makes, each hidden until `renderState` shows it, with its lines and, in
  * them, one element per word, the words joined by one space. The lines are
@@ -201,6 +259,15 @@ function captionsElement(
   const metrics = style.lineBreak === 'width' ? metricsOf(fonts, node) : undefined;
   const placed = metrics === undefined ? [] : frameLayout(node, metrics).lines;
   let lineAt = 0;
+  // The units whose opacity an entrance, an exit, or the highlight can take below 1 (D22.9).
+  const fading = new Set(
+    [style.pageIn, style.pageOut].flatMap((animation) =>
+      animation.kind === 'animate' && animatesOpacity(animation.tracks) ? [animation.unit] : [],
+    ),
+  );
+  if (animatesOpacity(highlight.tracks)) fading.add('word');
+  const linePiece: Styles = { ...PIECE, ...opacityStyles(fading.has('line')) };
+  const wordPiece: Styles = { ...PIECE, ...opacityStyles(fading.has('word')) };
   const box = create(document, 'div', address, {
     ...TRANSFORMED,
     width: cssPixels(node.width),
@@ -244,7 +311,7 @@ function captionsElement(
       );
       let wordsParent = lineElement;
       if (pieces) {
-        wordsParent = create(document, 'span', { [CAPTION_LINE_ATTRIBUTE]: '' }, PIECE);
+        wordsParent = create(document, 'span', { [CAPTION_LINE_ATTRIBUTE]: '' }, linePiece);
         if (style.box.kind === 'solid') {
           wordsParent.append(textBox(document, style.box, CAPTION_LINE_BOX_ATTRIBUTE));
         }
@@ -256,7 +323,7 @@ function captionsElement(
           document,
           'span',
           { [CAPTION_WORD_ATTRIBUTE]: String(wordIndex) },
-          pieces ? PIECE : {},
+          pieces ? wordPiece : {},
         );
         if (pieces) word.append(...highlightPieces(document, highlight));
         // A text node, never markup: the document's words are not parsed.
@@ -389,18 +456,22 @@ function textBox(
  * `inline-block` element per fragment, white space and line feeds as text
  * between them. A line holds the fragments of its words, a word those of its
  * letters; a unit no animation uses has no element, and its text stands in
- * the element of the next larger unit. Nothing else is written: the values of
- * a fragment are written by `renderState`.
+ * the element of the next larger unit. A fragment of a unit in `fading`, one
+ * whose opacity an animation can take below 1, carries `will-change: opacity`
+ * (D22.9).
+ * Nothing else is written: the values of a fragment are written by
+ * `renderState`.
  */
 function fragmentContent(
   document: Document,
   parent: HTMLElement,
   text: string,
   units: ReadonlySet<FragmentUnit>,
+  fading: ReadonlySet<FragmentUnit>,
 ): void {
   textLayout(text).lines.forEach((line, lineIndex) => {
     if (lineIndex > 0) parent.append(document.createTextNode('\n'));
-    lineFragments(document, parent, line.runs, units);
+    lineFragments(document, parent, line.runs, units, fading);
   });
 }
 
@@ -414,9 +485,15 @@ function lineFragments(
   parent: HTMLElement,
   runs: readonly TextRun[],
   units: ReadonlySet<FragmentUnit>,
+  fading: ReadonlySet<FragmentUnit>,
 ): void {
   const fragment = (unit: FragmentUnit): HTMLElement =>
-    create(document, 'span', { [FRAGMENT_ATTRIBUTE]: unit }, { display: 'inline-block' });
+    create(
+      document,
+      'span',
+      { [FRAGMENT_ATTRIBUTE]: unit },
+      { display: 'inline-block', ...opacityStyles(fading.has(unit)) },
+    );
   let lineParent = parent;
   if (units.has('line') && runs.some((run) => 'letters' in run)) {
     lineParent = fragment('line');
@@ -442,6 +519,15 @@ function lineFragments(
       wordParent.append(document.createTextNode(run.letters.join('')));
     }
   }
+}
+
+/** The units of a text's fragments whose opacity its animations can take below 1 (D22.9). */
+function fadingUnits(node: TextNode): ReadonlySet<FragmentUnit> {
+  return new Set(
+    node.textAnimations
+      .filter((animation) => animatesOpacity(animation.tracks))
+      .map((animation) => animation.unit),
+  );
 }
 
 /** The declarations of the font of a text (D22.6): its family, size, and line height of 1.25. */
@@ -475,7 +561,7 @@ function textElement(document: Document, node: TextNode, address: Styles): HTMLE
   if (node.textAnimations.length === 0) text.append(document.createTextNode(node.text));
   else {
     const units = new Set(node.textAnimations.map((animation) => animation.unit));
-    fragmentContent(document, text, node.text, units);
+    fragmentContent(document, text, node.text, units, fadingUnits(node));
   }
   return text;
 }
@@ -521,6 +607,7 @@ function framedTextElement(
     text.append(box);
   }
   const units = new Set(node.textAnimations.map((animation) => animation.unit));
+  const fading = fadingUnits(node);
   layout.lines.forEach((placed, index) => {
     const line = create(
       document,
@@ -530,7 +617,7 @@ function framedTextElement(
     );
     // Text nodes, never markup: the document's text is not parsed.
     if (node.textAnimations.length === 0) line.append(document.createTextNode(placed.text));
-    else lineFragments(document, line, lines[index]?.runs ?? [], units);
+    else lineFragments(document, line, lines[index]?.runs ?? [], units, fading);
     text.append(line);
   });
   return text;
@@ -539,7 +626,9 @@ function framedTextElement(
 /**
  * The element of a node, inside the frame of its clip transitions when it is
  * a side of one (D66). The frame is written nothing at mount: unstyled, it
- * neither clips nor paints, so the node renders as it would without it.
+ * neither clips nor paints, so the node renders as it would without it. The
+ * element of every node but a background carries `will-change: opacity`
+ * (D22.9).
  */
 function placedNode(
   document: Document,
@@ -563,6 +652,8 @@ function placedNode(
     composition,
     fonts,
   );
+  // Every node but a background has an opacity that renders write (D22.9).
+  if (node.type !== 'background') element.style.setProperty('will-change', 'opacity');
   // A node's own mask lies on its element, after its effects (D65.6, D75).
   if ('mask' in node && node.mask.kind !== 'none') {
     element.style.setProperty('mask', cssMask(maskId(node.id)));
@@ -861,12 +952,22 @@ export function mountMeasured(
   if (kept !== null) stage.setAttribute(FONT_METRICS_ATTRIBUTE, kept);
   const mattes = matteIds(composition);
   for (const scene of composition.scenes) {
-    // A scene with a node that blends is composited on its own (D75).
+    // A scene with a node that blends is composited on its own (D75); a side of
+    // a scene transition that fades carries `will-change: opacity` (D22.9).
+    const fades = composition.transitions.some(
+      ({ fromSceneId, toSceneId, effect }) =>
+        (fromSceneId === scene.id || toSceneId === scene.id) && transitionFades(effect),
+    );
     const sceneElement = create(
       document,
       'div',
       { [SCENE_ATTRIBUTE]: scene.id },
-      { ...PLACED, ...canvas, ...(blends(scene.nodes) ? { isolation: 'isolate' } : {}) },
+      {
+        ...PLACED,
+        ...canvas,
+        ...(blends(scene.nodes) ? { isolation: 'isolate' } : {}),
+        ...opacityStyles(fades),
+      },
     );
     // Every side of a clip transition gets its frame, whatever the effect (D66).
     const sides = new Set(

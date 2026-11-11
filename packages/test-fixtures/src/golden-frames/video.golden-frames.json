@@ -1,10 +1,10 @@
 {
   "render": {
     "manifestVersion": 3,
-    "compositionHash": "sha256:7b4a8a4c5d2877596b7e77c82f385d4bee254dd286aae9bc84eef2f542465d8c",
-    "schemaVersion": "0.25",
+    "compositionHash": "sha256:d3c34761d8cd3822fb87e158e3f2933b63c16b00b7155e90ee5e5f73022636cf",
+    "schemaVersion": "0.24",
     "runtime": {
-      "contentHash": "sha256:2d9240d75d0b3dd8b837101394dd91573ba1cf5f6db574d78a556b6916c3ea8c",
+      "contentHash": "sha256:fe72dd3630eb0d0413d282a5eb9cf31e310338162e5e6061938cf7c49d77221e",
       "bundler": "esbuild@0.28.2",
       "compiler": "typescript@6.0.3"
     },
@@ -131,27 +131,27 @@
       {
         "index": 0,
         "timeUs": 0,
-        "sha256": "sha256:ea39f34ea1dfc226fd7088ec3bab70ba180e2944ff2bd4ee565168b910f7aee5"
+        "sha256": "sha256:722413fbade6c019b51ce891bab8f3ca8da1febc9225bd8bc8138741b5e22ff2"
       },
       {
         "index": 15,
         "timeUs": 500000,
-        "sha256": "sha256:295eab3adbe297cac37bf877bfb146c4e6be29af14ff06b481e2d0cb3d0d688f"
+        "sha256": "sha256:1cd10684fcd2f45149a1a6458798c90d59d14fd67e6a387077236c549963c519"
       },
       {
         "index": 30,
         "timeUs": 1000000,
-        "sha256": "sha256:eb96ff03646fc67392a3302b4a75eaa6f15bce9da6321b4ae19e383c45f626f7"
+        "sha256": "sha256:d4cb5ac026f6a7fee8761f1f803c7e52b3c470e5902cccd87b4cf94acf85d107"
       },
       {
         "index": 45,
         "timeUs": 1500000,
-        "sha256": "sha256:b4618536ce7452244a4a8cd6872ef45529b311ee8ce0450e41797c0092493f2d"
+        "sha256": "sha256:8e39c2a3e85de0fe9f8ea56e5c460757993b5b39e0196f52bea9c169f49fbab9"
       },
       {
         "index": 59,
         "timeUs": 1966666,
-        "sha256": "sha256:297d6a63023bb7936365785519c08331b9dfc92479b32618a6a9c75c1f644952"
+        "sha256": "sha256:0f6511f9297869d7b9ddf834c8e7e11fdd26ac1328ef76650fa475c1c9777b26"
       }
     ],
     "blockedRequests": [],
@@ -194,31 +194,31 @@
       "file": "video-0.png",
       "timeUs": 0,
       "index": 0,
-      "sha256": "sha256:ea39f34ea1dfc226fd7088ec3bab70ba180e2944ff2bd4ee565168b910f7aee5"
+      "sha256": "sha256:722413fbade6c019b51ce891bab8f3ca8da1febc9225bd8bc8138741b5e22ff2"
     },
     {
       "file": "video-500000.png",
       "timeUs": 500000,
       "index": 15,
-      "sha256": "sha256:295eab3adbe297cac37bf877bfb146c4e6be29af14ff06b481e2d0cb3d0d688f"
+      "sha256": "sha256:1cd10684fcd2f45149a1a6458798c90d59d14fd67e6a387077236c549963c519"
     },
     {
       "file": "video-1000000.png",
       "timeUs": 1000000,
       "index": 30,
-      "sha256": "sha256:eb96ff03646fc67392a3302b4a75eaa6f15bce9da6321b4ae19e383c45f626f7"
+      "sha256": "sha256:d4cb5ac026f6a7fee8761f1f803c7e52b3c470e5902cccd87b4cf94acf85d107"
     },
     {
       "file": "video-1500000.png",
       "timeUs": 1500000,
       "index": 45,
-      "sha256": "sha256:b4618536ce7452244a4a8cd6872ef45529b311ee8ce0450e41797c0092493f2d"
+      "sha256": "sha256:8e39c2a3e85de0fe9f8ea56e5c460757993b5b39e0196f52bea9c169f49fbab9"
     },
     {
       "file": "video-1966666.png",
       "timeUs": 1966666,
       "index": 59,
-      "sha256": "sha256:297d6a63023bb7936365785519c08331b9dfc92479b32618a6a9c75c1f644952"
+      "sha256": "sha256:0f6511f9297869d7b9ddf834c8e7e11fdd26ac1328ef76650fa475c1c9777b26"
     }
   ]
 }

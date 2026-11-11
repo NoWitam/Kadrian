@@ -1,10 +1,10 @@
 {
   "render": {
     "manifestVersion": 3,
-    "compositionHash": "sha256:8a2020627fbc124daf62a8ea913c005ea826503672468abfebc7281b12b48b6f",
-    "schemaVersion": "0.25",
+    "compositionHash": "sha256:1f2f3ab3570022af9cab92712a7351ae197866a58e608561b27b0ac4571d7f29",
+    "schemaVersion": "0.24",
     "runtime": {
-      "contentHash": "sha256:2d9240d75d0b3dd8b837101394dd91573ba1cf5f6db574d78a556b6916c3ea8c",
+      "contentHash": "sha256:fe72dd3630eb0d0413d282a5eb9cf31e310338162e5e6061938cf7c49d77221e",
       "bundler": "esbuild@0.28.2",
       "compiler": "typescript@6.0.3"
     },
@@ -131,12 +131,12 @@
       {
         "index": 0,
         "timeUs": 0,
-        "sha256": "sha256:1ee0bf0ffb4f696b0221c10e7aacf5c5dde5ec8affbaf4de62b148603b974d48"
+        "sha256": "sha256:40354f39809bfdedfb188ae7d8b59e31fda3bd90f85f08ed88be9e715f83fa30"
       },
       {
         "index": 15,
         "timeUs": 500000,
-        "sha256": "sha256:2295ff856157f1902c3fa527982536eba50e76251afb13a0167b80f300273a37"
+        "sha256": "sha256:59681c205f4c52fa420dbb80c5c80f710bbe2cda448f03fa5aaf7172b03b0fda"
       }
     ],
     "blockedRequests": [],
@@ -179,13 +179,13 @@
       "file": "focus-0.png",
       "timeUs": 0,
       "index": 0,
-      "sha256": "sha256:1ee0bf0ffb4f696b0221c10e7aacf5c5dde5ec8affbaf4de62b148603b974d48"
+      "sha256": "sha256:40354f39809bfdedfb188ae7d8b59e31fda3bd90f85f08ed88be9e715f83fa30"
     },
     {
       "file": "focus-500000.png",
       "timeUs": 500000,
       "index": 15,
-      "sha256": "sha256:2295ff856157f1902c3fa527982536eba50e76251afb13a0167b80f300273a37"
+      "sha256": "sha256:59681c205f4c52fa420dbb80c5c80f710bbe2cda448f03fa5aaf7172b03b0fda"
     }
   ]
 }

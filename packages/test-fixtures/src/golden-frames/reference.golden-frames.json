@@ -1,10 +1,10 @@
 {
   "render": {
     "manifestVersion": 3,
-    "compositionHash": "sha256:d9d0cd55c6b73e384623635d2b40703b5a9a890fe9e55346f0b175d7b3164d80",
-    "schemaVersion": "0.25",
+    "compositionHash": "sha256:f6ac298ad4fa05896f662e1af941ded77b53a0e331ad56057f7b90e1298a7b39",
+    "schemaVersion": "0.24",
     "runtime": {
-      "contentHash": "sha256:2d9240d75d0b3dd8b837101394dd91573ba1cf5f6db574d78a556b6916c3ea8c",
+      "contentHash": "sha256:fe72dd3630eb0d0413d282a5eb9cf31e310338162e5e6061938cf7c49d77221e",
       "bundler": "esbuild@0.28.2",
       "compiler": "typescript@6.0.3"
     },
@@ -88,27 +88,27 @@
       {
         "index": 0,
         "timeUs": 0,
-        "sha256": "sha256:e1e8527fdc71b12022f5f728a2fa3aba5b2fbad3c7a2acea0306b3f4fd1ee270"
+        "sha256": "sha256:b9f49e8a11904229c3a5692d2ed2cc86cb1b499b7c8af7bd1715621411fc4606"
       },
       {
         "index": 75,
         "timeUs": 2500000,
-        "sha256": "sha256:a2df0cbc18f232cb79c640fbd4e63fdf9ce95034e19fb48a454f01a4e29b7687"
+        "sha256": "sha256:2231fb68cb9adb625adcaa8ebe665557d60abf295f4ef6a4e7a4fc45edfe3a5d"
       },
       {
         "index": 150,
         "timeUs": 5000000,
-        "sha256": "sha256:6999b96f58671ac1bc11c4aeb59e1d919e3b0d00565d49994361e110bbeaa3b8"
+        "sha256": "sha256:727cbd77912ffa759f063f1e1a4102dbed0e7c0b280cc111969e0a92e2344606"
       },
       {
         "index": 225,
         "timeUs": 7500000,
-        "sha256": "sha256:eced72c8337a50896fe921d2a739861a4e344a4dd569db27a9c72275fb973a64"
+        "sha256": "sha256:f7b2d321e393b764cbea15f102086e5bbbd400395990fbff644c1d7f7c94f217"
       },
       {
         "index": 297,
         "timeUs": 9900000,
-        "sha256": "sha256:90c810a3295d698461e051b35b07a97154df2e70cfab074b1732de6112b8db7c"
+        "sha256": "sha256:18de61241636afede168cb5d9802aeef70db4b19032013f1d2ed34af9e0135d5"
       }
     ],
     "blockedRequests": [],
@@ -151,31 +151,31 @@
       "file": "reference-0.png",
       "timeUs": 0,
       "index": 0,
-      "sha256": "sha256:e1e8527fdc71b12022f5f728a2fa3aba5b2fbad3c7a2acea0306b3f4fd1ee270"
+      "sha256": "sha256:b9f49e8a11904229c3a5692d2ed2cc86cb1b499b7c8af7bd1715621411fc4606"
     },
     {
       "file": "reference-2500000.png",
       "timeUs": 2500000,
       "index": 75,
-      "sha256": "sha256:a2df0cbc18f232cb79c640fbd4e63fdf9ce95034e19fb48a454f01a4e29b7687"
+      "sha256": "sha256:2231fb68cb9adb625adcaa8ebe665557d60abf295f4ef6a4e7a4fc45edfe3a5d"
     },
     {
       "file": "reference-5000000.png",
       "timeUs": 5000000,
       "index": 150,
-      "sha256": "sha256:6999b96f58671ac1bc11c4aeb59e1d919e3b0d00565d49994361e110bbeaa3b8"
+      "sha256": "sha256:727cbd77912ffa759f063f1e1a4102dbed0e7c0b280cc111969e0a92e2344606"
     },
     {
       "file": "reference-7500000.png",
       "timeUs": 7500000,
       "index": 225,
-      "sha256": "sha256:eced72c8337a50896fe921d2a739861a4e344a4dd569db27a9c72275fb973a64"
+      "sha256": "sha256:f7b2d321e393b764cbea15f102086e5bbbd400395990fbff644c1d7f7c94f217"
     },
     {
       "file": "reference-9900000.png",
       "timeUs": 9900000,
       "index": 297,
-      "sha256": "sha256:90c810a3295d698461e051b35b07a97154df2e70cfab074b1732de6112b8db7c"
+      "sha256": "sha256:18de61241636afede168cb5d9802aeef70db4b19032013f1d2ed34af9e0135d5"
     }
   ]
 }
