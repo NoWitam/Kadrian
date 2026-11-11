@@ -4,7 +4,7 @@
     "compositionHash": "sha256:9183ea1e43143d8c1b9df87e663381e9a0f21a4da6854e438ba3fc8122e0bac1",
     "schemaVersion": "0.23",
     "runtime": {
-      "contentHash": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13",
+      "contentHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
       "bundler": "esbuild@0.28.2",
       "compiler": "typescript@6.0.3"
     },
@@ -93,6 +93,7 @@
         "error",
         "-threads",
         "1",
+        "-noautorotate",
         "-i",
         "<input>",
         "-map",
@@ -130,12 +131,12 @@
       {
         "index": 0,
         "timeUs": 0,
-        "sha256": "sha256:1ee0bf0ffb4f696b0221c10e7aacf5c5dde5ec8affbaf4de62b148603b974d48"
+        "sha256": "sha256:40354f39809bfdedfb188ae7d8b59e31fda3bd90f85f08ed88be9e715f83fa30"
       },
       {
         "index": 15,
         "timeUs": 500000,
-        "sha256": "sha256:2295ff856157f1902c3fa527982536eba50e76251afb13a0167b80f300273a37"
+        "sha256": "sha256:59681c205f4c52fa420dbb80c5c80f710bbe2cda448f03fa5aaf7172b03b0fda"
       }
     ],
     "blockedRequests": [],
@@ -178,13 +179,13 @@
       "file": "focus-0.png",
       "timeUs": 0,
       "index": 0,
-      "sha256": "sha256:1ee0bf0ffb4f696b0221c10e7aacf5c5dde5ec8affbaf4de62b148603b974d48"
+      "sha256": "sha256:40354f39809bfdedfb188ae7d8b59e31fda3bd90f85f08ed88be9e715f83fa30"
     },
     {
       "file": "focus-500000.png",
       "timeUs": 500000,
       "index": 15,
-      "sha256": "sha256:2295ff856157f1902c3fa527982536eba50e76251afb13a0167b80f300273a37"
+      "sha256": "sha256:59681c205f4c52fa420dbb80c5c80f710bbe2cda448f03fa5aaf7172b03b0fda"
     }
   ]
 }
