@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -90,6 +90,7 @@
           "text": "Intro",
           "fontAssetId": "asset-font",
           "fontSize": 120,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -100,7 +101,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -267,6 +270,7 @@
           "text": "Outro",
           "fontAssetId": "asset-font",
           "fontSize": 120,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -277,7 +281,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

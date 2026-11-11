@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -98,6 +98,7 @@
           "text": "{{name}} dd {{rank}}",
           "fontAssetId": "asset-font",
           "fontSize": 48,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -108,7 +109,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -139,6 +142,7 @@
           "text": "Made by Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#e4e7ec",
           "style": {
             "stroke": {
@@ -149,7 +153,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

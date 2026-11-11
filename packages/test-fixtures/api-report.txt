@@ -297,8 +297,17 @@ export declare const focusComposition: unknown;
 ---- focusGoldenTimestamps
 export declare const focusGoldenTimestamps: readonly GoldenTimestamp[];
 
+---- framedTextComposition
+export declare const framedTextComposition: unknown;
+
+---- framedTextGoldenTimestamps
+export declare const framedTextGoldenTimestamps: readonly GoldenTimestamp[];
+
 ---- generateProportionalFont
 export declare function generateProportionalFont(cmap?: FixtureFontCmap): Uint8Array;
+
+---- generateProportionalFontAsset
+export declare function generateProportionalFontAsset(): FixtureAsset;
 
 ---- generateReferenceAssets
 export declare function generateReferenceAssets(): readonly FixtureAsset[];
@@ -365,6 +374,9 @@ export declare const invalidCompositionCasesV022: readonly InvalidCompositionCas
 
 ---- invalidCompositionCasesV023
 export declare const invalidCompositionCasesV023: readonly InvalidCompositionCase[];
+
+---- invalidCompositionCasesV024
+export declare const invalidCompositionCasesV024: readonly InvalidCompositionCase[];
 
 ---- invalidCompositionCasesV03
 export declare const invalidCompositionCasesV03: readonly InvalidCompositionCase[];
@@ -437,6 +449,9 @@ export declare const migrationPair022To023: MigrationPair;
 
 ---- migrationPair023To024
 export declare const migrationPair023To024: MigrationPair;
+
+---- migrationPair024To025
+export declare const migrationPair024To025: MigrationPair;
 
 ---- migrationPair02To03
 export declare const migrationPair02To03: MigrationPair;
@@ -524,6 +539,9 @@ export declare const referenceCompositionV022: unknown;
 
 ---- referenceCompositionV023
 export declare const referenceCompositionV023: unknown;
+
+---- referenceCompositionV024
+export declare const referenceCompositionV024: unknown;
 
 ---- referenceCompositionV03
 export declare const referenceCompositionV03: unknown;

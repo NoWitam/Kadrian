@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -411,6 +411,7 @@
               "text": "Kadrion",
               "fontAssetId": "asset-font",
               "fontSize": 40,
+              "frame": { "kind": "none" },
               "color": "#ffd166",
               "style": {
                 "stroke": {
@@ -421,7 +422,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [
@@ -499,6 +502,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -509,7 +513,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -644,6 +650,7 @@
           "text": "Dream on",
           "fontAssetId": "asset-font",
           "fontSize": 48,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -654,7 +661,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -791,6 +800,7 @@
           "text": "Ka",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#1d4ed8",
           "style": {
             "stroke": {
@@ -801,7 +811,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -938,6 +950,7 @@
           "text": "Ka",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#1d4ed8",
           "style": {
             "stroke": {
@@ -948,7 +961,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1085,6 +1100,7 @@
           "text": "Ka",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#1d4ed8",
           "style": {
             "stroke": {
@@ -1095,7 +1111,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1232,6 +1250,7 @@
           "text": "Ka",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#1d4ed8",
           "style": {
             "stroke": {
@@ -1242,7 +1261,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1379,6 +1400,7 @@
           "text": "Ka",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#1d4ed8",
           "style": {
             "stroke": {
@@ -1389,7 +1411,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1526,6 +1550,7 @@
           "text": "Ka",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#1d4ed8",
           "style": {
             "stroke": {
@@ -1536,7 +1561,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1673,6 +1700,7 @@
           "text": "Ka",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#1d4ed8",
           "style": {
             "stroke": {
@@ -1683,7 +1711,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1820,6 +1850,7 @@
           "text": "Ka",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#1d4ed8",
           "style": {
             "stroke": {
@@ -1830,7 +1861,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1973,6 +2006,7 @@
           "text": "Ka",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#1d4ed8",
           "style": {
             "stroke": {
@@ -1983,7 +2017,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [

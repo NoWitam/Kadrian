@@ -92,7 +92,7 @@ export declare class RenderError extends Error {
 }
 
 ---- RenderErrorCode (type only)
-export type RenderErrorCode = 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'not-mounted' | 'custom-html-timeout' | 'custom-html-navigated' | 'invalid-options' | 'invalid-request' | 'asset-decode-failed' | 'readiness-unsupported' | 'font-load-failed' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'image-unsupported' | 'image-invalid' | 'svg-refused' | 'unsafe-script' | 'video-frames-invalid' | 'state-mismatch' | 'invalid-document';
+export type RenderErrorCode = 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'not-mounted' | 'custom-html-timeout' | 'custom-html-navigated' | 'invalid-options' | 'invalid-request' | 'asset-decode-failed' | 'readiness-unsupported' | 'font-load-failed' | 'font-unmeasurable' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'image-unsupported' | 'image-invalid' | 'svg-refused' | 'unsafe-script' | 'video-frames-invalid' | 'state-mismatch' | 'invalid-document';
 
 ---- ResolvedAsset (type only)
 export interface ResolvedAsset {

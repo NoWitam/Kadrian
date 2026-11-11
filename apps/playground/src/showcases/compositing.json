@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -152,6 +152,7 @@
           "text": "Kadrion merges",
           "fontAssetId": "asset-font",
           "fontSize": 96,
+          "frame": { "kind": "none" },
           "color": "#7a5af8",
           "style": {
             "stroke": {
@@ -162,7 +163,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

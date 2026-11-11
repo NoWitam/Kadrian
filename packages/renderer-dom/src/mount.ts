@@ -6,7 +6,16 @@
  * corner radius of an image or a video, and the box, path, fill, and stroke of
  * a shape (D73).
  */
-import { captionPages, captionsInPieces, textLayout } from '@kadrion/runtime';
+import {
+  captionPages,
+  captionsInPieces,
+  EvaluationError,
+  frameLayout,
+  textLayout,
+  textLines,
+  type FontMetrics,
+  type TextRun,
+} from '@kadrion/runtime';
 import {
   instanceDefinition,
   type CaptionsNode,
@@ -29,6 +38,7 @@ import {
   fontFamily,
 } from './css.js';
 import { unsupportedNode } from './errors.js';
+import { FONT_METRICS_ATTRIBUTE, keptFontMetrics, type FontMetricsMap } from './fonts.js';
 import {
   CUSTOM_HTML_ATTRIBUTE,
   CUSTOM_HTML_DISABLED,
@@ -84,8 +94,23 @@ export const CAPTION_UNDERLINE_ATTRIBUTE = 'data-kadrion-caption-underline';
 export const FRAGMENT_ATTRIBUTE = 'data-kadrion-fragment';
 /** The box behind a text (D69), the first child of the text's element. */
 export const TEXT_BOX_ATTRIBUTE = 'data-kadrion-text-box';
+/**
+ * A line measured from the font (D83.5): a line of a text with a frame, an
+ * element of its own placed in the frame where `frameLayout` puts it, or a
+ * line of captions broken by width; it holds the line's index in the lines of
+ * `frameLayout` (for captions, of every page in order).
+ */
+export const TEXT_LINE_ATTRIBUTE = 'data-kadrion-text-line';
 /** The custom property on a captions box that holds its highlight colour (D57). */
 export const HIGHLIGHT_PROPERTY = '--kadrion-caption-highlight';
+/**
+ * The custom properties on a captions box that hold the outline and the shadow
+ * of the highlight (D83.8), written only when the highlight has them;
+ * `renderState` writes them on the word being spoken.
+ */
+export const HIGHLIGHT_STROKE_WIDTH_PROPERTY = '--kadrion-caption-highlight-stroke-width';
+export const HIGHLIGHT_STROKE_COLOR_PROPERTY = '--kadrion-caption-highlight-stroke-color';
+export const HIGHLIGHT_SHADOW_PROPERTY = '--kadrion-caption-highlight-shadow';
 
 type Styles = Readonly<Record<string, string>>;
 
@@ -118,6 +143,36 @@ const JUSTIFY: Readonly<Record<CaptionsNode['style']['verticalAlign'], string>> 
 const PIECE: Styles = Object.freeze({ display: 'inline-block', position: 'relative' });
 
 /**
+ * A line measured from the font (D83.2): the browser wraps nothing, and draws
+ * it with neither kerning nor ligatures, so that the width it draws is the sum
+ * of the advances the runtime measured.
+ */
+const MEASURED: Styles = Object.freeze({
+  'white-space': 'pre',
+  'font-kerning': 'none',
+  'font-variant-ligatures': 'none',
+});
+
+/**
+ * The metrics of the font of a measured node (D83.7): a text with a frame, or
+ * captions broken by width. Without them the node cannot be drawn: the
+ * `EvaluationError` `font-metrics-missing`, as the evaluation throws it.
+ */
+function metricsOf(
+  fonts: FontMetricsMap,
+  node: { readonly id: string; readonly fontAssetId: string },
+): FontMetrics {
+  const metrics = fonts.get(node.fontAssetId);
+  if (metrics === undefined) {
+    throw new EvaluationError(
+      'font-metrics-missing',
+      `The node "${node.id}" is measured, and its font "${node.fontAssetId}" has no metrics (D83.7).`,
+    );
+  }
+  return metrics;
+}
+
+/**
  * The box of a captions node (D57): every page the runtime's `captionPages`
  * makes, each hidden until `renderState` shows it, with its lines and, in
  * them, one element per word, the words joined by one space. The lines are
@@ -133,10 +188,19 @@ const PIECE: Styles = Object.freeze({ display: 'inline-block', position: 'relati
  * highlight, hidden until the word is spoken. Their values are written by
  * `renderState`.
  */
-function captionsElement(document: Document, node: CaptionsNode, address: Styles): HTMLElement {
+function captionsElement(
+  document: Document,
+  node: CaptionsNode,
+  address: Styles,
+  fonts: FontMetricsMap,
+): HTMLElement {
   const { style } = node;
   const pieces = captionsInPieces(style);
   const { highlight } = style;
+  // Broken by width, every line is measured and placed where `frameLayout` puts it (D83.5, D83.6).
+  const metrics = style.lineBreak === 'width' ? metricsOf(fonts, node) : undefined;
+  const placed = metrics === undefined ? [] : frameLayout(node, metrics).lines;
+  let lineAt = 0;
   const box = create(document, 'div', address, {
     ...TRANSFORMED,
     width: cssPixels(node.width),
@@ -150,8 +214,9 @@ function captionsElement(document: Document, node: CaptionsNode, address: Styles
     'text-align': style.align,
     [HIGHLIGHT_PROPERTY]: cssColor(highlight.color),
     ...textStyle(style),
+    ...highlightStyle(highlight),
   });
-  captionPages(node.words, style).forEach((page, pageIndex) => {
+  captionPages(node.words, style, node.width, metrics).forEach((page, pageIndex) => {
     const pageElement = create(
       document,
       'div',
@@ -166,7 +231,17 @@ function captionsElement(document: Document, node: CaptionsNode, address: Styles
       },
     );
     for (const line of page.lines) {
-      const lineElement = create(document, 'div', {}, {});
+      const x = placed[lineAt]?.x ?? 0;
+      const lineAttributes = metrics === undefined ? {} : { [TEXT_LINE_ATTRIBUTE]: String(lineAt) };
+      lineAt += 1;
+      const lineElement = create(
+        document,
+        'div',
+        lineAttributes,
+        metrics === undefined
+          ? {}
+          : { ...MEASURED, 'text-align': 'left', 'margin-left': cssPixels(x) },
+      );
       let wordsParent = lineElement;
       if (pieces) {
         wordsParent = create(document, 'span', { [CAPTION_LINE_ATTRIBUTE]: '' }, PIECE);
@@ -258,6 +333,26 @@ function textStyle(style: Pick<TextNode['style'], 'stroke' | 'shadow'>): Styles 
 }
 
 /**
+ * The outline and the shadow of the highlight (D83.8) as custom properties of
+ * the captions box, which `renderState` writes on the word being spoken. A
+ * highlight of `none` writes nothing, so a captions node of 0.24 is the element
+ * it was.
+ */
+function highlightStyle(highlight: CaptionsNode['style']['highlight']): Styles {
+  const out: Record<string, string> = {};
+  const lit = textStyle(highlight);
+  const width = lit['-webkit-text-stroke-width'];
+  const color = lit['-webkit-text-stroke-color'];
+  const shadow = lit['text-shadow'];
+  if (width !== undefined && color !== undefined) {
+    out[HIGHLIGHT_STROKE_WIDTH_PROPERTY] = width;
+    out[HIGHLIGHT_STROKE_COLOR_PROPERTY] = color;
+  }
+  if (shadow !== undefined) out[HIGHLIGHT_SHADOW_PROPERTY] = shadow;
+  return out;
+}
+
+/**
  * The box behind a text (D69): an element of its own, the first child of the
  * text's element — and so the box behind a line of captions, and behind the
  * word being spoken (D70) — reaching `padding` beyond the box of the lines on every side
@@ -303,36 +398,142 @@ function fragmentContent(
   text: string,
   units: ReadonlySet<FragmentUnit>,
 ): void {
-  const fragment = (unit: FragmentUnit): HTMLElement =>
-    create(document, 'span', { [FRAGMENT_ATTRIBUTE]: unit }, { display: 'inline-block' });
   textLayout(text).lines.forEach((line, lineIndex) => {
     if (lineIndex > 0) parent.append(document.createTextNode('\n'));
-    let lineParent = parent;
-    if (units.has('line') && line.runs.some((run) => 'letters' in run)) {
-      lineParent = fragment('line');
-      parent.append(lineParent);
-    }
-    for (const run of line.runs) {
-      if ('space' in run) {
-        lineParent.append(document.createTextNode(run.space));
-        continue;
-      }
-      let wordParent = lineParent;
-      if (units.has('word')) {
-        wordParent = fragment('word');
-        lineParent.append(wordParent);
-      }
-      if (units.has('letter')) {
-        for (const letter of run.letters) {
-          const element = fragment('letter');
-          element.append(document.createTextNode(letter));
-          wordParent.append(element);
-        }
-      } else {
-        wordParent.append(document.createTextNode(run.letters.join('')));
-      }
-    }
+    lineFragments(document, parent, line.runs, units);
   });
+}
+
+/**
+ * The fragments of one line of a text (D69): the line's own fragment when a
+ * line animation needs one and the line has a word, then its runs, white
+ * space as text and every word in the fragments of its units.
+ */
+function lineFragments(
+  document: Document,
+  parent: HTMLElement,
+  runs: readonly TextRun[],
+  units: ReadonlySet<FragmentUnit>,
+): void {
+  const fragment = (unit: FragmentUnit): HTMLElement =>
+    create(document, 'span', { [FRAGMENT_ATTRIBUTE]: unit }, { display: 'inline-block' });
+  let lineParent = parent;
+  if (units.has('line') && runs.some((run) => 'letters' in run)) {
+    lineParent = fragment('line');
+    parent.append(lineParent);
+  }
+  for (const run of runs) {
+    if ('space' in run) {
+      lineParent.append(document.createTextNode(run.space));
+      continue;
+    }
+    let wordParent = lineParent;
+    if (units.has('word')) {
+      wordParent = fragment('word');
+      lineParent.append(wordParent);
+    }
+    if (units.has('letter')) {
+      for (const letter of run.letters) {
+        const element = fragment('letter');
+        element.append(document.createTextNode(letter));
+        wordParent.append(element);
+      }
+    } else {
+      wordParent.append(document.createTextNode(run.letters.join('')));
+    }
+  }
+}
+
+/** The declarations of the font of a text (D22.6): its family, size, and line height of 1.25. */
+function textFont(node: TextNode): Styles {
+  return {
+    'font-family': fontFamily(node.fontAssetId),
+    'font-size': cssPixels(node.fontSize),
+    'line-height': '1.25',
+    'font-weight': '400',
+    'font-style': 'normal',
+  };
+}
+
+/**
+ * A text without a frame (D22.6, D69): one element as large as its lines,
+ * which break at its line feeds only; `align` other than `left` places each
+ * line within the widest one (D83.4). Nothing is measured, so the element is
+ * the one of 0.24 for a text left-aligned.
+ */
+function textElement(document: Document, node: TextNode, address: Styles): HTMLElement {
+  const { style } = node;
+  const text = create(document, 'div', address, {
+    ...TRANSFORMED,
+    'white-space': 'pre',
+    ...textFont(node),
+    ...textStyle(style),
+    ...(style.align === 'left' ? {} : { 'text-align': style.align }),
+  });
+  if (style.box.kind === 'solid') text.append(textBox(document, style.box));
+  // Text nodes, never markup: the document's text is not parsed.
+  if (node.textAnimations.length === 0) text.append(document.createTextNode(node.text));
+  else {
+    const units = new Set(node.textAnimations.map((animation) => animation.unit));
+    fragmentContent(document, text, node.text, units);
+  }
+  return text;
+}
+
+/**
+ * A text with a frame (D83.3 to D83.6): an element as large as the frame, the
+ * box of the node, so that its origin is a fraction of the frame; in it the
+ * lines of the runtime's wrap, each an element of its own measured from the
+ * font (`MEASURED`) and placed where `frameLayout` puts it, so that a line or
+ * a block that overflows does so on the side its alignment leaves free and
+ * nothing is clipped. The text's box lies behind the block of lines, as wide
+ * as its widest line (D83.3).
+ */
+function framedTextElement(
+  document: Document,
+  node: TextNode,
+  frame: { readonly width: number; readonly height: number },
+  address: Styles,
+  fonts: FontMetricsMap,
+): HTMLElement {
+  const { style } = node;
+  const metrics = metricsOf(fonts, node);
+  const text = create(document, 'div', address, {
+    ...TRANSFORMED,
+    width: cssPixels(frame.width),
+    height: cssPixels(frame.height),
+    ...textFont(node),
+    ...textStyle(style),
+  });
+  const layout = frameLayout(node, metrics);
+  const lines = textLines(node.text, node.fontSize, frame.width, metrics);
+  if (style.box.kind === 'solid') {
+    const { padding } = style.box;
+    const left = Math.min(...layout.lines.map((line) => line.x));
+    const top = layout.lines[0]?.y ?? 0;
+    const widest = Math.max(0, ...layout.lines.map((line) => line.width));
+    const box = textBox(document, style.box);
+    for (const property of ['right', 'bottom']) box.style.removeProperty(property);
+    box.style.setProperty('left', cssPixels(left - padding));
+    box.style.setProperty('top', cssPixels(top - padding));
+    box.style.setProperty('width', cssPixels(widest + 2 * padding));
+    box.style.setProperty('height', cssPixels(layout.height + 2 * padding));
+    text.append(box);
+  }
+  const units = new Set(node.textAnimations.map((animation) => animation.unit));
+  layout.lines.forEach((placed, index) => {
+    const line = create(
+      document,
+      'div',
+      { [TEXT_LINE_ATTRIBUTE]: String(index) },
+      { ...PLACED, left: cssPixels(placed.x), top: cssPixels(placed.y), ...MEASURED },
+    );
+    // Text nodes, never markup: the document's text is not parsed.
+    if (node.textAnimations.length === 0) line.append(document.createTextNode(placed.text));
+    else lineFragments(document, line, lines[index]?.runs ?? [], units);
+    text.append(line);
+  });
+  return text;
 }
 
 /**
@@ -349,6 +550,7 @@ function placedNode(
   sides: ReadonlySet<string>,
   mattes: ReadonlySet<string>,
   composition: ValidatedComposition,
+  fonts: FontMetricsMap,
 ): HTMLElement {
   const element = nodeElement(
     document,
@@ -359,6 +561,7 @@ function placedNode(
     sides,
     mattes,
     composition,
+    fonts,
   );
   // A node's own mask lies on its element, after its effects (D65.6, D75).
   if ('mask' in node && node.mask.kind !== 'none') {
@@ -403,6 +606,7 @@ function nodeElement(
   sides: ReadonlySet<string>,
   mattes: ReadonlySet<string>,
   composition: ValidatedComposition,
+  fonts: FontMetricsMap,
 ): HTMLElement {
   const address = { [NODE_ATTRIBUTE]: node.id };
   switch (node.type) {
@@ -419,13 +623,32 @@ function nodeElement(
       });
       group.append(
         ...node.children.map((child) =>
-          placedNode(document, child, canvas, assetUrls, customHtml, sides, mattes, composition),
+          placedNode(
+            document,
+            child,
+            canvas,
+            assetUrls,
+            customHtml,
+            sides,
+            mattes,
+            composition,
+            fonts,
+          ),
         ),
       );
       return group;
     }
     case 'instance':
-      return instanceElement(document, node, address, assetUrls, customHtml, mattes, composition);
+      return instanceElement(
+        document,
+        node,
+        address,
+        assetUrls,
+        customHtml,
+        mattes,
+        composition,
+        fonts,
+      );
     case 'image':
       return create(
         document,
@@ -453,28 +676,12 @@ function nodeElement(
           'object-position': cssObjectPosition(node.focus),
         },
       );
-    case 'text': {
-      const text = create(document, 'div', address, {
-        ...TRANSFORMED,
-        'white-space': 'pre',
-        'font-family': fontFamily(node.fontAssetId),
-        'font-size': cssPixels(node.fontSize),
-        'line-height': '1.25',
-        'font-weight': '400',
-        'font-style': 'normal',
-        ...textStyle(node.style),
-      });
-      if (node.style.box.kind === 'solid') text.append(textBox(document, node.style.box));
-      // Text nodes, never markup: the document's text is not parsed.
-      if (node.textAnimations.length === 0) text.append(document.createTextNode(node.text));
-      else {
-        const units = new Set(node.textAnimations.map((animation) => animation.unit));
-        fragmentContent(document, text, node.text, units);
-      }
-      return text;
-    }
+    case 'text':
+      return node.frame.kind === 'none'
+        ? textElement(document, node, address)
+        : framedTextElement(document, node, node.frame, address, fonts);
     case 'captions':
-      return captionsElement(document, node, address);
+      return captionsElement(document, node, address, fonts);
     case 'shape': {
       // The box, sized by `renderState` (D73), holds the shape's own SVG.
       const box = create(document, 'div', address, TRANSFORMED);
@@ -550,6 +757,7 @@ function instanceElement(
   customHtml: CustomHtmlPolicy,
   mattes: ReadonlySet<string>,
   composition: ValidatedComposition,
+  fonts: FontMetricsMap,
 ): HTMLElement {
   const box = create(document, 'div', address, {
     ...TRANSFORMED,
@@ -578,7 +786,7 @@ function instanceElement(
   );
   content.append(
     ...definition.nodes.map((child) =>
-      placedNode(document, child, canvas, assetUrls, customHtml, sides, mattes, composition),
+      placedNode(document, child, canvas, assetUrls, customHtml, sides, mattes, composition, fonts),
     ),
   );
   box.append(content);
@@ -617,6 +825,24 @@ export function mountComposition(
   assetUrls: AssetUrls,
   options: MountOptions,
 ): void {
+  mountMeasured(root, composition, assetUrls, options, new Map());
+}
+
+/**
+ * `mountComposition` with the metrics of the fonts of the document's measured
+ * nodes (D83.7), which the load step read: a text with a frame and captions
+ * broken by width are drawn as the lines the runtime measured with them, and
+ * the stage keeps them for every evaluation of the page (`readFontMetrics`). A
+ * measured node whose font has no metrics is the `EvaluationError`
+ * `font-metrics-missing`, before the DOM is touched.
+ */
+export function mountMeasured(
+  root: Element,
+  composition: ValidatedComposition,
+  assetUrls: AssetUrls,
+  options: MountOptions,
+  fonts: FontMetricsMap,
+): void {
   const { customHtml } = mountOptions(options);
   const urls = checkAssetUrls(composition, assetUrls);
   const document = root.ownerDocument;
@@ -631,6 +857,8 @@ export function mountComposition(
       : { [STAGE_ATTRIBUTE]: '' },
     { position: 'relative', ...canvas, overflow: 'hidden' },
   );
+  const kept = keptFontMetrics(fonts);
+  if (kept !== null) stage.setAttribute(FONT_METRICS_ATTRIBUTE, kept);
   const mattes = matteIds(composition);
   for (const scene of composition.scenes) {
     // A scene with a node that blends is composited on its own (D75).
@@ -646,7 +874,7 @@ export function mountComposition(
     );
     sceneElement.append(
       ...scene.nodes.map((node) =>
-        placedNode(document, node, canvas, urls, customHtml, sides, mattes, composition),
+        placedNode(document, node, canvas, urls, customHtml, sides, mattes, composition, fonts),
       ),
     );
     stage.append(sceneElement);

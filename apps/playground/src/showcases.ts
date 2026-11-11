@@ -291,6 +291,8 @@ export const SHOWCASES: readonly Showcase[] = [
           tracks: [],
           underline: { kind: 'solid', color: '#f04438', thickness: 4, offset: 2 },
           box: { kind: 'none' },
+          stroke: { kind: 'outside', color: '#000000', width: 3 },
+          shadow: { kind: 'none' },
         },
       },
     },

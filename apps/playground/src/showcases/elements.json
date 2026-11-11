@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -405,6 +405,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 56,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -415,7 +416,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -475,6 +478,7 @@
           "text": "{{title}}",
           "fontAssetId": "asset-font",
           "fontSize": 56,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -485,7 +489,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [
             {

@@ -138,16 +138,20 @@ describe('the entry points of @kadrion/schema (D42.8)', () => {
   });
 });
 
-describe('the entries of @kadrion/runtime (D83, PR-65)', () => {
-  it('keeps the lines measured from the font behind their own entry until schema 0.25', () => {
-    expect(Object.keys(textFrameEntry)).toEqual(
-      expect.arrayContaining(['fontMetrics', 'textLines', 'captionPagesByWidth', 'frameLayout']),
-    );
-    expect(Object.keys(runtimeEntry)).not.toContain('fontMetrics');
+describe('the entries of @kadrion/runtime (D83, PR-65, PR-66)', () => {
+  it('reaches the lines measured from the font from the main entry since schema 0.25, the same functions as their own entry', () => {
+    const measured = ['fontMetrics', 'textLines', 'captionPagesByWidth', 'frameLayout'] as const;
+    expect(Object.keys(textFrameEntry)).toEqual(expect.arrayContaining([...measured]));
+    expect(Object.keys(runtimeEntry)).toEqual(expect.arrayContaining([...measured]));
+    for (const name of measured) {
+      expect(runtimeEntry[name as keyof typeof runtimeEntry], name).toBe(
+        textFrameEntry[name as keyof typeof textFrameEntry],
+      );
+    }
     const main = names(reached(join(RUNTIME_DIST, 'index.js')), RUNTIME_DIST);
-    // The premise: the walk reaches the captions, which the new entry imports too.
     expect(main).toContain('captions.js');
-    expect(main).not.toContain('text-frame.js');
+    expect(main).toContain('text-frame.js');
+    expect(main).toContain('caption-lines.js');
     expect(main).not.toContain('stretch.js');
   });
 });

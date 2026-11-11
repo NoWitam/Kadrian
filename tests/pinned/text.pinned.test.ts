@@ -128,7 +128,13 @@ function still(id: string, edit: (node: NodeDraft) => void = () => undefined): u
   const nodes = draft.scenes.flatMap((scene) => scene.nodes);
   for (const node of nodes) {
     if (node['type'] !== 'text') continue;
-    node['style'] = { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } };
+    node['style'] = {
+      stroke: { kind: 'none' },
+      shadow: { kind: 'none' },
+      box: { kind: 'none' },
+      align: 'left',
+      verticalAlign: 'top',
+    };
     node['textAnimations'] = [];
   }
   const node = nodes.find((item) => item.id === id);

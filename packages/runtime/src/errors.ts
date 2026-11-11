@@ -9,7 +9,13 @@ export type EvaluationErrorCode =
    * easing. `validateComposition` rejects all of them, so the brand of the
    * document was forged (D19). Nothing else about a document is checked again.
    */
-  | 'invalid-document';
+  | 'invalid-document'
+  /**
+   * The document holds a measured node — a text with a frame, or captions
+   * broken by width — whose font has no metrics among the `fonts` passed to
+   * `evaluateComposition` (D83.7).
+   */
+  | 'font-metrics-missing';
 
 /**
  * Thrown when `evaluateComposition` is called outside its domain (D18). That is

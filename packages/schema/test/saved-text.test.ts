@@ -184,6 +184,7 @@ describe('the supported versions (D43.5)', () => {
       '0.22',
       '0.23',
       '0.24',
+      '0.25',
     ]);
     expect(Object.isFrozen(SUPPORTED_SCHEMA_VERSIONS)).toBe(true);
     expect(SUPPORTED_SCHEMA_VERSIONS.at(-1)).toBe(SCHEMA_VERSION);
@@ -204,7 +205,8 @@ describe('the supported versions (D43.5)', () => {
   );
 
   it.each([
-    '0.25',
+    '0.26',
+    '0.250',
     '0.240',
     '0.230',
     '0.220',
@@ -355,7 +357,7 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
       ({ name, patch }) => [`0.1: ${name}`, applyPatch(referenceCompositionV01, patch)] as const,
     ),
     ...invalidCompositionCases.map(
-      ({ name, patch }) => [`0.24: ${name}`, applyPatch(referenceComposition, patch)] as const,
+      ({ name, patch }) => [`0.25: ${name}`, applyPatch(referenceComposition, patch)] as const,
     ),
   ];
 
@@ -391,15 +393,15 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
 
 describe('the rules of JSON, and no others (D43.2)', () => {
   it('lets the last of two equal keys win, as JSON.parse does', () => {
-    // A valid 0.24 body with two versions: the later one decides.
+    // A valid 0.25 body with two versions: the later one decides.
     const current = referenceText.replace(
-      '"schemaVersion":"0.24"',
-      '"schemaVersion":"0.1","schemaVersion":"0.24"',
+      '"schemaVersion":"0.25"',
+      '"schemaVersion":"0.1","schemaVersion":"0.25"',
     );
-    expect(loaded(parseComposition(current)).versions).toEqual(['0.24']);
+    expect(loaded(parseComposition(current)).versions).toEqual(['0.25']);
     const older = referenceText.replace(
-      '"schemaVersion":"0.24"',
-      '"schemaVersion":"0.24","schemaVersion":"0.1"',
+      '"schemaVersion":"0.25"',
+      '"schemaVersion":"0.25","schemaVersion":"0.1"',
     );
     const judged = refused(parseComposition(older));
     // Judged as the 0.1 document its last key says it is, which it is not.
@@ -539,6 +541,7 @@ describe('deeply nested JSON (D43.4)', () => {
       '0.22',
       '0.23',
       '0.24',
+      '0.25',
     ].includes(version)
       ? '"rotation":0,"origin":{"x":0,"y":0},'
       : '';
@@ -554,6 +557,7 @@ describe('deeply nested JSON (D43.4)', () => {
       '0.22',
       '0.23',
       '0.24',
+      '0.25',
     ].includes(version)
       ? '"safeArea":{"fromTop":0,"fromRight":0,"fromBottom":0,"fromLeft":0},'
       : '';
@@ -568,15 +572,16 @@ describe('deeply nested JSON (D43.4)', () => {
       '0.22',
       '0.23',
       '0.24',
+      '0.25',
     ].includes(version)
       ? ',"effects":[]'
       : '';
     // From 0.20 a group has a mask, a matte, and a blend mode after its effects (D75).
-    const compositing = ['0.20', '0.21', '0.22', '0.23', '0.24'].includes(version)
+    const compositing = ['0.20', '0.21', '0.22', '0.23', '0.24', '0.25'].includes(version)
       ? ',"mask":{"kind":"none"},"matte":{"kind":"none"},"blendMode":"normal"'
       : '';
     // From 0.21 the composition has definitions before its template (D76).
-    const definitions = ['0.21', '0.22', '0.23', '0.24'].includes(version)
+    const definitions = ['0.21', '0.22', '0.23', '0.24', '0.25'].includes(version)
       ? ',"definitions":[]'
       : '';
     // From 0.5 a scene has its own duration and clips (D54.1), from 0.6 its
@@ -672,6 +677,7 @@ describe('ownership and freezing (D43.4, D43.3)', () => {
         '0.21',
         '0.22',
         '0.23',
+        '0.24',
         SCHEMA_VERSION,
       ],
     ],

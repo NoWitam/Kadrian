@@ -413,7 +413,7 @@ interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> 
   readonly blendMode: ExpectedBlendMode;
 }
 
-/** The style of a text (D69). */
+/** The style of a text (D69) and the alignment of its lines (D83.4). */
 interface ExpectedTextStyle {
   readonly stroke:
     | { readonly kind: 'none' }
@@ -436,6 +436,8 @@ interface ExpectedTextStyle {
         readonly padding: number;
         readonly cornerRadius: number;
       };
+  readonly align: 'left' | 'center' | 'right';
+  readonly verticalAlign: 'top' | 'middle' | 'bottom';
 }
 
 /** A track of a text animation: an animation without an ID (D69). */
@@ -474,6 +476,9 @@ interface ExpectedTextNode extends ExpectedTransform<
   readonly text: string;
   readonly fontAssetId: string;
   readonly fontSize: number;
+  readonly frame:
+    | { readonly kind: 'none' }
+    | { readonly kind: 'fixed'; readonly width: number; readonly height: number };
   readonly color: string;
   readonly style: ExpectedTextStyle;
   readonly textAnimations: readonly ExpectedTextAnimation[];
@@ -554,6 +559,8 @@ interface ExpectedCaptionHighlight {
         readonly offset: number;
       };
   readonly box: ExpectedTextStyle['box'];
+  readonly stroke: ExpectedTextStyle['stroke'];
+  readonly shadow: ExpectedTextStyle['shadow'];
 }
 
 /** How every page enters or leaves (D70). */
@@ -576,6 +583,7 @@ interface ExpectedCaptionStyle {
   readonly verticalAlign: 'top' | 'middle' | 'bottom';
   readonly maxLineLength: number;
   readonly maxLines: number;
+  readonly lineBreak: 'characters' | 'width';
   readonly stroke: ExpectedTextStyle['stroke'];
   readonly shadow: ExpectedTextStyle['shadow'];
   readonly box: ExpectedTextStyle['box'];
@@ -864,7 +872,7 @@ interface ExpectedDefinition {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.24';
+  readonly schemaVersion: '0.25';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

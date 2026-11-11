@@ -1,10 +1,10 @@
 {
   "render": {
     "manifestVersion": 3,
-    "compositionHash": "sha256:cfdc3cd9226f2552c1d7cd9a758c7d168f7db37c200981ea4ed1a0191d13fcdb",
-    "schemaVersion": "0.24",
+    "compositionHash": "sha256:42129b6271bc7c7ea84ece372367fbdf917d18b9b53dc100feacdb5ef94d5d98",
+    "schemaVersion": "0.25",
     "runtime": {
-      "contentHash": "sha256:a37aae1ca7c49be1a80ed1d29eb5bebecc019dde36a61d36319380a637d45129",
+      "contentHash": "sha256:2d9240d75d0b3dd8b837101394dd91573ba1cf5f6db574d78a556b6916c3ea8c",
       "bundler": "esbuild@0.28.2",
       "compiler": "typescript@6.0.3"
     },

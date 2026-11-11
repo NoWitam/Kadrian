@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -63,6 +63,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 48,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -73,7 +74,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -182,6 +185,7 @@
           "text": "Dina Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -192,7 +196,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -301,6 +307,7 @@
           "text": "Kim Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -311,7 +318,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -386,6 +395,7 @@
           "text": "Dina",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -396,7 +406,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -454,6 +466,7 @@
           "text": "Kim",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -464,7 +477,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -495,6 +510,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#e4e7ec",
           "style": {
             "stroke": {
@@ -505,7 +521,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

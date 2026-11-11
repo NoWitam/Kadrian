@@ -5,7 +5,11 @@
  * knows no DOM, no layout, no assets, and no frame grid, and it reads no clock:
  * the host supplies `timeUs` (D20). Rendering the state is the job of
  * `@kadrion/renderer-dom`. Beside it, the audio plan: what is heard of a
- * composition, from the document alone (D52.4).
+ * composition, from the document alone (D52.4), and the lines measured from
+ * the font (D83): the metrics a host or the load step reads from a font's
+ * bytes, the lines of a text in its frame and of captions broken by width,
+ * and `frameLayout`, which places them for a host's overlay. They are also
+ * the entry `@kadrion/runtime/text-frame`.
  */
 export { AUDIO_SAMPLE_RATE, audioLayout, audioPlan, sampleAt } from './audio.js';
 export type { AudioLayout, AudioPlan, AudioPlanEntry, SampleFade, SoundLayout } from './audio.js';
@@ -19,6 +23,32 @@ export { evaluateComposition } from './evaluate.js';
 export { fragmentSteps, textFragments } from './fragments.js';
 export { UNICODE_VERSION } from './grapheme-table.js';
 export { graphemes, isWhiteSpace, textLayout } from './graphemes.js';
+export {
+  advanceOf,
+  captionPagesByWidth,
+  fitsWidth,
+  fontMetrics,
+  FontMetricsError,
+  frameLayout,
+  measuredFontIds,
+  measureText,
+  textLines,
+  textLinesFitHeight,
+  textLinesHeight,
+  unitsToPixels,
+} from './text-frame.js';
+export type {
+  CaptionFrameLine,
+  CaptionsFrameInput,
+  FontMetrics,
+  FontMetricsErrorCode,
+  FrameAlign,
+  FrameLayout,
+  FrameLine,
+  FrameVerticalAlign,
+  MeasuredLine,
+  TextFrameInput,
+} from './text-frame.js';
 export type { TextLayout, TextLine, TextRun, TextWord } from './graphemes.js';
 export type {
   AmountEffectState,

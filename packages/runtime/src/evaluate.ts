@@ -22,6 +22,7 @@ import { effectsAt } from './effects.js';
 import { EvaluationError, unsupported } from './errors.js';
 import { textFragments } from './fragments.js';
 import { shapeAt } from './shapes.js';
+import { measuredNodes, type FontMetrics } from './text-frame.js';
 import {
   cropState,
   sampleColor,
@@ -223,13 +224,21 @@ function evaluateImage(node: ImageNode, timeUs: number, factors: Factors): Image
   };
 }
 
-/** A text leaf with its colour (D68) and its fragments (D69). */
-function evaluateText(node: TextNode, timeUs: number, factors: Factors): TextNodeState {
+/** The metrics of the fonts of the document's measured nodes, by the ID of the font asset (D83.7). */
+type Fonts = ReadonlyMap<string, FontMetrics>;
+
+/** A text leaf with its colour (D68) and its fragments (D69), whose lines follow its frame (D83.5). */
+function evaluateText(
+  node: TextNode,
+  timeUs: number,
+  factors: Factors,
+  fonts: Fonts,
+): TextNodeState {
   const color = colorOf(node, timeUs);
   return {
     ...evaluateLeaf(node, timeUs, factors),
     color,
-    fragments: textFragments(node, color, timeUs),
+    fragments: textFragments(node, color, timeUs, fonts.get(node.fontAssetId)),
     effects: effectsAt(node.effects, timeUs),
     ...compositingAt(node, timeUs),
   };
@@ -249,14 +258,20 @@ function evaluateVideo(node: VideoNode, timeUs: number, factors: Factors): Video
 
 /**
  * A captions leaf with its colour, the page it shows, the word being spoken
- * while active, and the pieces of the page shown (D57, D68, D70).
+ * while active, and the pieces of the page shown (D57, D68, D70); its pages
+ * are broken by characters or by the width of its box (D83.5).
  */
-function evaluateCaptions(node: CaptionsNode, timeUs: number, factors: Factors): CaptionsNodeState {
+function evaluateCaptions(
+  node: CaptionsNode,
+  timeUs: number,
+  factors: Factors,
+  fonts: Fonts,
+): CaptionsNodeState {
   const leaf = {
     ...evaluateLeaf(node, timeUs, factors),
     color: colorOf({ color: node.style.color, animations: node.animations }, timeUs),
   };
-  const pages = captionPages(node.words, node.style);
+  const pages = captionPages(node.words, node.style, node.width, fonts.get(node.fontAssetId));
   const instant = leaf.active ? captionAt(node.words, pages, timeUs) : { page: null, word: null };
   return {
     ...leaf,
@@ -282,6 +297,7 @@ function evaluateChild(
   child: Extract<SceneNode, { readonly type: 'group' }>['children'][number],
   timeUs: number,
   factors: Factors,
+  fonts: Fonts,
 ): GroupNodeState['children'][number] {
   switch (child.type) {
     case 'video':
@@ -289,7 +305,7 @@ function evaluateChild(
     case 'image':
       return evaluateImage(child, timeUs, factors);
     case 'text':
-      return evaluateText(child, timeUs, factors);
+      return evaluateText(child, timeUs, factors, fonts);
     case 'shape':
       return evaluateShape(child, timeUs, factors);
     default:
@@ -309,9 +325,10 @@ function evaluateNodes(
   timeUs: number,
   canvas: { readonly width: number; readonly height: number },
   definitions: Definitions,
+  fonts: Fonts,
 ): NodeState[] {
   const factors = clipTransitionEffects(holder, timeUs, canvas);
-  return holder.nodes.map((node) => evaluateNode(node, timeUs, factors, definitions));
+  return holder.nodes.map((node) => evaluateNode(node, timeUs, factors, definitions, fonts));
 }
 
 /**
@@ -326,6 +343,7 @@ function evaluateInstance(
   timeUs: number,
   factors: Factors,
   definitions: Definitions,
+  fonts: Fonts,
 ): InstanceNodeState {
   const definition = instanceDefinition(definitions, node);
   if (definition === null) {
@@ -343,7 +361,7 @@ function evaluateInstance(
     ...transformOf(node, timeUs, factors),
     definitionId: node.definitionId,
     definitionTimeUs: definitionTime,
-    nodes: evaluateNodes(definition, definitionTime, definition, definitions),
+    nodes: evaluateNodes(definition, definitionTime, definition, definitions, fonts),
     effects: effectsAt(node.effects, timeUs),
     ...compositingAt(node, timeUs),
   };
@@ -359,6 +377,7 @@ function evaluateNode(
   timeUs: number,
   factors: Factors,
   definitions: Definitions,
+  fonts: Fonts,
 ): NodeState {
   switch (node.type) {
     case 'background':
@@ -378,24 +397,24 @@ function evaluateNode(
         type: node.type,
         active: isActive(node, timeUs),
         ...transformOf(node, timeUs, factors),
-        children: node.children.map((child) => evaluateChild(child, timeUs, factors)),
+        children: node.children.map((child) => evaluateChild(child, timeUs, factors, fonts)),
         effects: effectsAt(node.effects, timeUs),
         ...compositingAt(node, timeUs),
       };
     case 'image':
       return evaluateImage(node, timeUs, factors);
     case 'text':
-      return evaluateText(node, timeUs, factors);
+      return evaluateText(node, timeUs, factors, fonts);
     case 'custom-html':
       return evaluateLeaf(node, timeUs, factors);
     case 'video':
       return evaluateVideo(node, timeUs, factors);
     case 'captions':
-      return evaluateCaptions(node, timeUs, factors);
+      return evaluateCaptions(node, timeUs, factors, fonts);
     case 'shape':
       return evaluateShape(node, timeUs, factors);
     case 'instance':
-      return evaluateInstance(node, timeUs, factors, definitions);
+      return evaluateInstance(node, timeUs, factors, definitions, fonts);
     default:
       return unsupported(node, 'type');
   }
@@ -403,8 +422,17 @@ function evaluateNode(
 
 /**
  * The state of a composition at `timeUs`, derived from `(composition, timeUs)`
- * and nothing else: no clock, no timer, no playback history, no cache (D18,
- * D19). The document is never modified, and the state shares no object with it.
+ * and the bytes of the composition's fonts, which the composition pins by
+ * `contentHash` (D14, D83.7), and nothing else: no clock, no timer, no playback
+ * history, no cache (D18, D19). The document is never modified, and the state
+ * shares no object with it.
+ *
+ * `fonts` maps the ID of a font asset to its metrics, read from its bytes by
+ * `fontMetrics`. It is needed exactly when the document holds a measured node
+ * — a text with a frame, or captions broken by width — and only for the fonts
+ * those nodes use (`measuredFontIds`); a measured node whose font is not in it
+ * throws the `EvaluationError` `font-metrics-missing`, whatever the time. A
+ * document without a measured node evaluates the same with or without it.
  *
  * `scenes` lists the scenes evaluated at `timeUs` — one, or the two sides of a
  * scene transition — each at its local time, `timeUs` minus its start; every
@@ -421,6 +449,7 @@ function evaluateNode(
 export function evaluateComposition(
   composition: ValidatedComposition,
   timeUs: number,
+  fonts: ReadonlyMap<string, FontMetrics> = new Map(),
 ): CompositionState {
   if (!Number.isInteger(timeUs)) {
     const message = `timeUs must be an integer number of microseconds, got ${String(timeUs)}.`;
@@ -432,6 +461,15 @@ export function evaluateComposition(
       'time-out-of-range',
       `timeUs must be ${range}, got ${String(timeUs)}.`,
     );
+  }
+
+  for (const { nodeId, fontAssetId } of measuredNodes(composition)) {
+    if (!fonts.has(fontAssetId)) {
+      throw new EvaluationError(
+        'font-metrics-missing',
+        `The node "${nodeId}" is measured, and its font "${fontAssetId}" has no metrics among the fonts passed (D83.7).`,
+      );
+    }
   }
 
   // `-0` is an integer inside the domain; the state reports it as `0`.
@@ -450,7 +488,10 @@ export function evaluateComposition(
     return {
       id: placement.id,
       timeUs: sceneTimeUs,
-      nodes: scene === undefined ? [] : evaluateNodes(scene, sceneTimeUs, composition, composition),
+      nodes:
+        scene === undefined
+          ? []
+          : evaluateNodes(scene, sceneTimeUs, composition, composition, fonts),
       effects: effectsAt(scene?.effects ?? [], sceneTimeUs),
       ...(effect === null ? {} : { transition: effect }),
     };

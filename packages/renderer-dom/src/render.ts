@@ -44,6 +44,9 @@ import {
   CLIP_FRAME_ATTRIBUTE,
   FRAGMENT_ATTRIBUTE,
   HIGHLIGHT_PROPERTY,
+  HIGHLIGHT_SHADOW_PROPERTY,
+  HIGHLIGHT_STROKE_COLOR_PROPERTY,
+  HIGHLIGHT_STROKE_WIDTH_PROPERTY,
   INSTANCE_CONTENT_ATTRIBUTE,
   NODE_ATTRIBUTE,
   SCENE_ATTRIBUTE,
@@ -535,6 +538,34 @@ function piecesOf(element: HTMLElement, attribute: string): HTMLElement[] {
 /** The declarations `renderState` writes on a line or a word of captions in pieces (D70). */
 const PIECE_WRITTEN = ['opacity', 'transform', 'color'] as const;
 
+/** The declarations of the outline and the shadow of the highlight on the word being spoken (D83.8). */
+const LIT_WRITTEN = [
+  '-webkit-text-stroke-width',
+  '-webkit-text-stroke-color',
+  'paint-order',
+  'text-shadow',
+] as const;
+
+/**
+ * Writes the outline and the shadow of the highlight on the word being spoken
+ * (D83.8), from the custom properties the mount wrote on the captions box,
+ * and removes them from every other word; a highlight without them writes
+ * nothing, so the word keeps the outline and the shadow of the style. Neither
+ * takes layout space, so no word moves.
+ */
+function writeLit(box: HTMLElement, word: HTMLElement, spoken: boolean): void {
+  for (const property of LIT_WRITTEN) word.style.removeProperty(property);
+  if (!spoken) return;
+  if (box.style.getPropertyValue(HIGHLIGHT_STROKE_WIDTH_PROPERTY) !== '') {
+    word.style.setProperty('-webkit-text-stroke-width', `var(${HIGHLIGHT_STROKE_WIDTH_PROPERTY})`);
+    word.style.setProperty('-webkit-text-stroke-color', `var(${HIGHLIGHT_STROKE_COLOR_PROPERTY})`);
+    word.style.setProperty('paint-order', 'stroke');
+  }
+  if (box.style.getPropertyValue(HIGHLIGHT_SHADOW_PROPERTY) !== '') {
+    word.style.setProperty('text-shadow', `var(${HIGHLIGHT_SHADOW_PROPERTY})`);
+  }
+}
+
 /**
  * Shows the page of a captions node that its state names and hides every other
  * one (D57). A node drawn as D57 draws it gives the word being spoken the
@@ -545,7 +576,9 @@ const PIECE_WRITTEN = ['opacity', 'transform', 'color'] as const;
  * on the word being spoken alone; the lines and words of every other page lose
  * what an earlier call wrote. `null`, or a state without a page, is the tree as
  * mounted: every page hidden, no word highlighted. Every page and word is
- * written on every call, so nothing depends on what an earlier call left.
+ * written on every call, so nothing depends on what an earlier call left. In
+ * both ways of drawing, the word being spoken also takes the outline and the
+ * shadow of the highlight, when it has them (D83.8).
  */
 function writeCaptions(element: HTMLElement, state: CaptionsNodeState | null): void {
   for (const page of element.querySelectorAll<HTMLElement>(`[${CAPTION_PAGE_ATTRIBUTE}]`)) {
@@ -586,6 +619,7 @@ function writeCaptions(element: HTMLElement, state: CaptionsNodeState | null): v
         (piece as HTMLElement).style.setProperty('display', spoken ? 'block' : 'none');
       }
     }
+    writeLit(element, word, spoken);
     const value = written.get(word);
     if (value !== undefined) {
       word.style.setProperty('opacity', cssNumber(value.opacity));
