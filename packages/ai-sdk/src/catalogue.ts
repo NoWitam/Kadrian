@@ -4,14 +4,17 @@
  * for a model that cannot see the canvas — `describe_document`, which reads,
  * and `run_transaction`, which applies several command tools as one history
  * entry, since 0.11 `add_clip_transition_at_cut`, a transaction of its
- * own (D66), and since 0.23 `check_custom_html`, which reads (D78). The catalogue is data: deep-frozen, built once by a call, in a fixed
+ * own (D66), since 0.23 `check_custom_html`, which reads (D78), and since
+ * 0.24 `freeze_frame`, a transaction of its own (D82.9). The catalogue is data: deep-frozen, built once by a call, in a fixed
  * order with a fixed text, so the same build always offers the same tools.
  */
 import {
   clipTransitionAtCutArgumentsSchema,
   COMMAND_TOOL_METADATA,
+  freezeFrameArgumentsSchema,
   type AnyCommandToolMetadata,
   type ClipTransitionAtCutArgumentsSchema,
+  type FreezeFrameArgumentsSchema,
   type ClosedObjectSchema,
   type Command,
   type CommandArgumentsSchema,
@@ -52,7 +55,8 @@ export type ToolInputSchema =
   | ClosedObjectSchema<never>
   | ClosedObjectSchema<'nodeId'>
   | RunTransactionInputSchema
-  | ClipTransitionAtCutArgumentsSchema;
+  | ClipTransitionAtCutArgumentsSchema
+  | FreezeFrameArgumentsSchema;
 
 /** What a host hands to a model API; `inputSchema` is the name MCP uses (D31.1). */
 export interface ToolDefinition {
@@ -65,6 +69,7 @@ export const DESCRIBE_DOCUMENT = 'describe_document';
 export const RUN_TRANSACTION = 'run_transaction';
 export const ADD_CLIP_TRANSITION_AT_CUT = 'add_clip_transition_at_cut';
 export const CHECK_CUSTOM_HTML = 'check_custom_html';
+export const FREEZE_FRAME = 'freeze_frame';
 
 /**
  * The tool name of a command: its type in `snake_case`, so `SetNodePosition`
@@ -125,6 +130,20 @@ function clipTransitionAtCutTool(): ToolDefinition {
     description: `Adds a transition between two clips of one layer that meet end to end — the outgoing clip ends exactly where the incoming one starts — and makes their overlap in the same step. The transition is complete, as add_clip_transition takes it: its ID, fromNodeId, toNodeId, durationUs, effect, and easing. alignment start lets the outgoing clip last durationUs longer, end lets the incoming clip start durationUs earlier, and center does half of each (the incoming clip starts half of durationUs earlier, rounded down). A video or audio then shows more of its source; no keyframe moves. It is one step: all or nothing, and one undo reverts it. Refused with invalid-argument, unknown-node, not-a-cut when the clips do not meet in one scene, no-room-at-cut when the incoming clip would start before its scene, source-range-exceeded and media-facts-missing when a video lacks source at the cut, and whatever add_clip_transition, trim_clip_start, or trim_clip_end refuse; the error of a refused step names the index of its call. Returns the edited document and the IDs it created.\n\nExample arguments: {"transition":{"id":"transition-cut","fromNodeId":"node-title","toNodeId":"node-custom-html","durationUs":500000,"effect":{"kind":"push","direction":"left"},"easing":{"kind":"linear"}},"alignment":"center"}`,
     // The very object editor-sdk exports, frozen there (D31.2).
     inputSchema: clipTransitionAtCutArgumentsSchema,
+  });
+}
+
+/**
+ * The tool of a freeze frame (D82.9): not a command of its own, but the
+ * transaction `freezeFrame` of `@kadrion/editor-sdk` builds, so that a model
+ * holds a frame in one step and one undo, in either mode.
+ */
+function freezeFrameTool(): ToolDefinition {
+  return Object.freeze({
+    name: FREEZE_FRAME,
+    description: `Holds the frame a video node shows at atUs for holdUs, as a freeze frame: a video clip at speed "x0" that shows that one frame of its source, silent. mode overwrite puts the freeze frame in the place of the part of the clip from atUs to atUs + holdUs, cutting the clip at both times; nothing moves, and atUs + holdUs is at most the clip's end. mode insert cuts the clip at atUs, puts the freeze frame between the two halves, and moves the second half holdUs later, so the clip ends holdUs later; no other clip moves, and the second half may then overlap what follows it on its layer. newClipIds are two different IDs unused in the document: the first names the freeze frame, the second the part of the clip after it (not made when an overwrite reaches the clip's end). The freeze frame keeps the clip's position, size, fit, crop, effects, and animations, copied and renamed as split_clip copies them; set_clip_speed with a multiplier such as "x1" or "x0.5" plays it again. It is one step: all or nothing, and one undo reverts it. A video that is heard (volume above 0) is cut only at a multiple of 125 microseconds from its start. Times are integer microseconds of the time of the clip's scene (1 second is 1000000). Refused with invalid-argument, unknown-clip, unsupported-node for anything but a video node, time-outside-clip when atUs is not strictly inside the clip or an overwrite would reach past its end, split-not-exact, id-in-use, and whatever split_clip, move_clip, add_node, set_clip_reverse, set_clip_speed, and set_video_source refuse; the error of a refused step names the index of its call. Returns the edited document and the IDs it created.\n\nExample arguments: {"clipId":"node-video","atUs":3000000,"holdUs":2000000,"mode":"insert","newClipIds":["node-video-freeze","node-video-after"]}`,
+    // The very object editor-sdk exports, frozen there (D31.2).
+    inputSchema: freezeFrameArgumentsSchema,
   });
 }
 
@@ -193,7 +212,8 @@ function runTransactionTool(commandNames: readonly string[]): ToolDefinition {
 /**
  * Builds the catalogue: `describe_document`, then one tool per command in the
  * order of `COMMAND_TYPES`, then `add_clip_transition_at_cut` (D66), then
- * `check_custom_html` (D78), then `run_transaction` (D46.2).
+ * `freeze_frame` (D82.9), then `check_custom_html` (D78), then
+ * `run_transaction` (D46.2).
  */
 function catalogue(): readonly ToolDefinition[] {
   const commandTools = COMMAND_TOOL_METADATA.map(commandTool);
@@ -201,6 +221,7 @@ function catalogue(): readonly ToolDefinition[] {
     describeDocumentTool(),
     ...commandTools,
     clipTransitionAtCutTool(),
+    freezeFrameTool(),
     checkCustomHtmlTool(),
     runTransactionTool(commandTools.map(({ name }) => name)),
   ]);

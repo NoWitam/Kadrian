@@ -15,7 +15,7 @@ import { TOOL_CATALOGUE, toolNameOf, type ToolDefinition } from '../src/index.js
 
 import { isDeepFrozen } from './support.js';
 
-const COMMAND_TOOLS = TOOL_CATALOGUE.slice(1, -3);
+const COMMAND_TOOLS = TOOL_CATALOGUE.slice(1, -4);
 
 function ajv(): Ajv2020 {
   return new Ajv2020({ strict: true, strictNumbers: true });
@@ -30,15 +30,24 @@ function exampleOf(tool: ToolDefinition): unknown {
 }
 
 describe('the catalogue covers the command registry exactly (D46.2)', () => {
-  it('offers describe_document, one tool per command in registry order, the transition at a cut, the Custom HTML check, and run_transaction', () => {
+  it('offers describe_document, one tool per command in registry order, the transition at a cut, the freeze frame, the Custom HTML check, and run_transaction', () => {
     expect(TOOL_CATALOGUE.map(({ name }) => name)).toEqual([
       'describe_document',
       ...COMMAND_TYPES.map(toolNameOf),
       'add_clip_transition_at_cut',
+      'freeze_frame',
       'check_custom_html',
       'run_transaction',
     ]);
-    expect(COMMAND_TOOLS).toHaveLength(96);
+    expect(COMMAND_TOOLS).toHaveLength(98);
+    expect(TOOL_CATALOGUE).toHaveLength(103);
+  });
+
+  it('offers speed, reverse, and the freeze frame, so a model can do each edit of D82 (D82.9)', () => {
+    const names = TOOL_CATALOGUE.map(({ name }) => name);
+    for (const name of ['set_clip_speed', 'set_clip_reverse', 'freeze_frame']) {
+      expect(names).toContain(name);
+    }
   });
 
   it('names every tool in snake_case, each name once', () => {
@@ -61,7 +70,11 @@ describe('the catalogue covers the command registry exactly (D46.2)', () => {
   });
 
   it('gives the transition at a cut the very argument schema editor-sdk exports for it (D66)', () => {
-    expect(TOOL_CATALOGUE.at(-3)?.inputSchema).toBe(editorSdk.clipTransitionAtCutArgumentsSchema);
+    expect(TOOL_CATALOGUE.at(-4)?.inputSchema).toBe(editorSdk.clipTransitionAtCutArgumentsSchema);
+  });
+
+  it('gives the freeze frame the very argument schema editor-sdk exports for it (D82.9)', () => {
+    expect(TOOL_CATALOGUE.at(-3)?.inputSchema).toBe(editorSdk.freezeFrameArgumentsSchema);
   });
 
   it('offers the edit tools, and no other, inside run_transaction', () => {
@@ -93,7 +106,12 @@ describe('the catalogue is data a model API can take (D46.2)', () => {
       expect(tool.description.length, tool.name).toBeGreaterThan(80);
       expect(ajv().compile(tool.inputSchema)(exampleOf(tool)), tool.name).toBe(true);
     }
-    for (const tool of [...COMMAND_TOOLS, TOOL_CATALOGUE.at(-3), TOOL_CATALOGUE.at(-2)]) {
+    for (const tool of [
+      ...COMMAND_TOOLS,
+      TOOL_CATALOGUE.at(-4),
+      TOOL_CATALOGUE.at(-3),
+      TOOL_CATALOGUE.at(-2),
+    ]) {
       expect(tool?.description, tool?.name).toMatch(/Refused with /);
     }
   });
