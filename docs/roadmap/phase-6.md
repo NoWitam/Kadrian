@@ -107,7 +107,7 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 
 - Status: in review. The functions, the constants of `stretchSound`, and the
   quality check are recorded in the implementation notes of D82. Deviations
-  from this plan, for the owner to confirm: the shifts of `stretchSound` are
+  from this plan, confirmed by the owner on 2026-11-11: the shifts of `stretchSound` are
   chained within blocks of 32 grains and restart at each block's quietest
   grain, since a shift that follows only the nominal grain before it keeps no
   phase on a pitched sound (D82, question 11); the map's floor rule is

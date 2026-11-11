@@ -19,6 +19,8 @@
 - Amended by: PR-51a (D71) on 2026-11-09: the `filter` of a node, a group, or a scene, written by every render and removed where there is no effect (D71.4)
 - Amended by: PR-51b (D72) on 2026-11-09: a hidden `<svg data-kadrion-effects>`, the last child of the stage, holds the filters of SVG effects, written by every render (D72.4)
 - Amended by: PR-52 (D73) on 2026-11-09: the box of a shape holds an inline `<svg data-kadrion-shape>` with its gradient and one `<path>`, written by every render (D73.5)
+- Amended by: PR-64 (D83) on 2026-11-11, in force from PR-66: 22.6: a text with a frame, and captions broken by width, are drawn as the lines the runtime measured (D83.5)
+- Amended by: K3 (opacity history) on 2026-11-11 at the owner's request: 22.9: every node, and every scene, fragment, and caption piece whose opacity can fall below 1, carries `will-change: opacity` from the mount on, so that a frame does not depend on the frames rendered before it
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, and open
   question Q5
@@ -173,6 +175,92 @@ The static rules cannot see every form of state (an object or array literal at
 module level, a closure inside a module-level function call); the dynamic tests
 remain the stronger guard.
 
+**22.9 Elements whose opacity a render can set below 1.** Amended by: K3
+(opacity history) on 2026-11-11, at the owner's request, after the
+measurement of PR-66.
+
+_Cause._ In the pinned Chromium, an element that has a `transform` (and every
+transformed node, fragment, and caption piece has one, at rest too) is drawn
+differently at opacity 1 once its opacity was below 1, however it got back:
+written as `1`, or removed. The difference lies on anti-aliased edges, at most
+2 per channel on a stroked or shadowed text (390 of 40 000 pixels in the
+probe) and up to 24 on a rotated, scaled image; it does not show at an opacity
+below 1. A full repaint does not clear it, the layer tree is the same, and the
+element is then drawn exactly as a fresh one with `will-change: opacity` (0
+pixels apart). So the pixels of a frame depended on the frames rendered before
+it, in the Player (seek order) and in the Producer (the times of a range job,
+one page for many frames), against "runtime state for a frame is derived from
+`(composition, timeUs)`" (`AGENTS.md`). `isolation: isolate`, `contain:
+paint`, `backface-visibility: hidden`, removing the opacity at 1, and leaving
+the identity transform out did not help; never writing an opacity of exactly 1
+did, but it changes values the state holds, and was refused. An element
+without a transform, such as a scene outside a transition, showed nothing;
+another `transform`, `filter`, `clip-path`, or `visibility` before showed
+nothing either.
+
+_Rule._ The mount writes `will-change: opacity` on these elements, decided
+from the document alone, and nothing ever writes or removes it:
+
+- the element of **every node but a background**, animated or not;
+- a scene element that is a side of a scene transition whose effect fades
+  (D56): `crossfade`, `fade-through-color`, `zoom`, `blur-dissolve`, the
+  effects whose sides `effectAt` of the runtime changes the opacity of;
+  `slide`, `wipe`, `push`, and `iris` move or cut only (a scene that zoomed in
+  and is pushed out later was drawn apart);
+- the fragments of a text of every unit that an animation uses whose
+  `opacity` track has a keyframe other than 1 (D69);
+- the lines and words of captions in pieces whose entrance or exit, of their
+  unit, has such a track, and the words when the highlight's tracks have one
+  (D70).
+
+A track whose keyframes are all 1 keeps the opacity at 1 whatever its easing,
+so it marks nothing: a text or captions in pieces at rest still draws as in
+one piece (D69, D70.4). A background, the frame of a clip transition, the
+canvas of an instance, a page of captions, and the elements under a fragment
+carry none. The declaration is static, like the styles of 22.3, written after
+them; on a node after the styles of its row and before what `renderState`
+writes. It makes each such element a composited layer from the start, so it
+is drawn as it would be after a fade, in every frame.
+
+_Why every node, not only the animated ones._ A narrower rule — a node with an
+opacity animation or a side of a clip transition that fades — was clean for
+the history, but `tests/pinned/transitions.pinned.test.ts` then failed: a clip
+transition at its end no longer drew as the document without it (272 pixels,
+15 per channel), because removing the transition removed the declaration from
+its side (D49.4, D66). The same holds for any comparison of two documents that
+differ by an animation or a transition. Marking every node keeps those
+equalities, and costs one layer per node.
+
+_Evidence._ A grid in the pinned Chromium (`playwright-core` 1.63.0, outside
+the container): for a stroked and shadowed text, a fragment in it, a caption
+word, a group around a text, a rotated image, and a shape, the opacity history
+`0, 0.5, 1`, `1, 0.3, 1`, and `0.5` then removed against a fresh element were
+0 pixels apart with the declaration, and up to 390 pixels (2 per channel), 168
+(2), and 177 (24) apart without it. `tests/pinned/opacity-history.pinned.test.ts`
+renders two documents derived from the fixtures — a stroked and shadowed text
+faded as a node, a text faded in letters, words, and lines, and outlined and
+shadowed captions whose words enter and leave by their opacity — forward, in
+reverse, and frame by frame alone in the Producer, and seeks them in reverse
+and then forward in the Player: every frame byte for byte the same with the
+rule, and 940 pixels (9 per channel) apart without it.
+
+_Consequences._ The pixels of every node change once, also at rest: a
+composited layer is rastered and then transformed, so a rotated or scaled
+picture or shape has slightly softer edges (up to 79 per channel on the dashed
+outline of a rotated shape; text in one piece unrotated barely changes). The
+golden frames of every fixture with a transformed node change and are
+generated again in the pinned container; every golden manifest records the new
+runtime build, and the parity record is measured again there.
+
+_Not covered, open for the owner._ Three further dependences on earlier frames
+showed in the same measurements, none of them caused by an opacity of a node,
+fragment, or caption piece, and none cleared by this rule: the content of the
+mask of a matte (D75) whose opacity was below 1 (2 pixels, 9 per channel); a
+word of captions in pieces under the highlight's scale and underline (614
+pixels, 1 per channel, at one frame); and captions in pieces with a box, a
+highlight box, and a shadow (9 pixels at every frame, and up to 120 per channel
+while the lines enter by their scale).
+
 ## Alternatives considered
 
 - **Fixed decimals (`toFixed`) or rounding to a pixel grid** — a second rounding
@@ -209,6 +297,12 @@ remain the stronger guard.
   complete expected tree at the five golden timestamps, derived by hand from
   `reference.expected-state.json` and this ADR; guarded on its own by
   `tests/repo/expected-render.test.ts`.
+- 22.9: `packages/renderer-dom/test/opacity-varies.test.ts` (every element of
+  every fixture that renders write two different opacities on carries the
+  declaration from the mount on, in a shuffled order of every frame; every node
+  but a background carries it; scenes of transitions that only move or cut,
+  and fragments and pieces whose tracks keep the opacity at 1, carry none) and
+  `tests/pinned/opacity-history.pinned.test.ts`.
 - `packages/renderer-dom/test`: the fixture tree element by element, with every
   attribute, style, and child; the string of every transform and opacity at all
   300 grid frames; repeatability and order independence on one mounted tree;

@@ -595,7 +595,8 @@ uses them; nothing in this section is in force for a document before PR-61.
   `STRETCH_SEARCH_STEP`, `STRETCH_BLOCK`), and the SHA-256 of 24 fixed cases
   is pinned in `packages/runtime/test/stretch.sha256.json`, so a change of
   them is seen.
-- **How "anchored" is read, for the owner to confirm (question 11).** The
+- **How "anchored" is read (question 11; confirmed by the owner on
+  2026-11-11 at 13:30 Europe/Warsaw).** The
   strict reading of D82.6, a shift that depends on nothing but the source and
   `k` with each grain aligned to the continuation of the grain before it at
   its nominal position, keeps no phase between grains on a pitched sound: two

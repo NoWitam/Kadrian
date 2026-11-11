@@ -95,16 +95,21 @@ async function presentIn(session: CDPSession, waited: Set<string>): Promise<void
  * it waited for exactly as many distinct frames as the page has: a frame that no
  * session reached is never captured unpainted. Rejects with
  * `presentation-timeout` after `timeoutMs`.
+ *
+ * The timer starts only once the sessions are open, inside the `try` that
+ * clears it: a page closed meanwhile (a cancelled job closes it at once, D48.2)
+ * fails the call without leaving a timer behind, whose rejection nobody would
+ * handle and which would end the process with exit code 1 after the job ended.
  */
 export async function awaitPresented(page: Page, timeoutMs: number): Promise<number> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      reject(new ProducerError('presentation-timeout', 'The page did not present in time.'));
-    }, timeoutMs);
-  });
   const sessions = await presentationSessions(page);
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new ProducerError('presentation-timeout', 'The page did not present in time.'));
+      }, timeoutMs);
+    });
     const waited = new Set<string>();
     await Promise.race([
       Promise.all(sessions.all.map((session) => presentIn(session, waited))),
