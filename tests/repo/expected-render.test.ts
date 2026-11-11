@@ -220,6 +220,15 @@ function dynamic(state: StateNode): Record<string, string> {
   return { transform: parts.join(' '), opacity: String(opacity) };
 }
 
+/**
+ * D22.9: the element of every node but the background carries
+ * `will-change: opacity` from the mount on; the reference composition has no
+ * transitions and no text animations, so no other element does.
+ */
+function varying(node: DocumentNode): Record<string, string> {
+  return node.type === 'background' ? {} : { 'will-change': 'opacity' };
+}
+
 /** D68: the size, the crop, and the corner radius of an image as CSS text. */
 function picture(state: StateNode): Record<string, string> {
   const { size, crop, cornerRadius } = state;
@@ -255,7 +264,7 @@ function element(node: DocumentNode, state: StateNode): ExpectedElement {
       return {
         tag: 'div',
         attributes,
-        style: { ...ORIGIN, ...canvas, ...dynamic(state) },
+        style: { ...ORIGIN, ...canvas, ...varying(node), ...dynamic(state) },
         children: (node.children ?? []).map((child, index) =>
           element(child, state.children?.[index] ?? { id: '', type: '' }),
         ),
@@ -269,6 +278,7 @@ function element(node: DocumentNode, state: StateNode): ExpectedElement {
           display: 'block',
           'object-fit': 'fill',
           'object-position': '50% 50%',
+          ...varying(node),
           ...picture(state),
           ...dynamic(state),
         },
@@ -286,6 +296,7 @@ function element(node: DocumentNode, state: StateNode): ExpectedElement {
           'line-height': '1.25',
           'font-weight': '400',
           'font-style': 'normal',
+          ...varying(node),
           color: rgb(state.color ?? ''),
           ...dynamic(state),
         },
@@ -299,6 +310,7 @@ function element(node: DocumentNode, state: StateNode): ExpectedElement {
           ...ORIGIN,
           width: px(node.width ?? 0),
           height: px(node.height ?? 0),
+          ...varying(node),
           ...dynamic(state),
         },
         children: [sandbox(node)],
