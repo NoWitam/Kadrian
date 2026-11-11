@@ -1,16 +1,17 @@
 # Phase six: speed, freeze frames, and reverse playback of clips
 
-- Status: Proposed (PR-58), together with its design ADR
-  [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md). Nothing
-  of it is approved: the owner accepts the direction, answers the questions of
-  D82 and the questions at the end, and then approves each pull request below
-  on its own, before it starts and again before its commit and push, as in
-  phase five.
+- Status: Accepted as a direction by the project owner on 2026-11-11 (PR-58),
+  together with its design ADR
+  [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md), with
+  every recommendation of the questions of D82 and of the questions at the end;
+  speeds are written as multipliers (D82.11). Accepting this roadmap approves
+  no pull request: each one below is approved on its own, before it starts and
+  again before its commit and push, as in phase five.
 - Starting point: `main` at `685fbfc`. Phase five is complete (PR-45 to
   PR-57, D65 to D81), schema `0.23`, released as `v0.6.0`.
 - Authority: `AGENTS.md` and the ADRs in [`docs/adr`](../adr/README.md). This
   document plans; it decides nothing that needs an ADR. The decisions it relies
-  on are proposed in D82, which only the owner accepts.
+  on are those of D82, accepted by the owner on 2026-11-11.
 - Predecessor: [phase five](phase-5.md).
 
 ## Goal
@@ -88,6 +89,12 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 
 ### PR-58 — D82 and this roadmap (documents only)
 
+- Status: the owner answered the questions on 2026-11-11 and accepted D82 and
+  this roadmap; the `Amended by: PR-58 (D82)` lines of D49, D50, D51, D52,
+  D53, D55, and D79 are written, each naming the pull request from which it is
+  in force, and `AGENTS.md` names phase six as current (question 1). Open
+  until it is merged.
+
 - **Goal:** one model for speed, freeze, and reverse before any code.
 - **Scope:** D82 (Proposed), this document, and the row of D82 in the index of
   ADRs.
@@ -104,7 +111,8 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
   - `@kadrion/schema`: the exact map (`clipTimeMap`), advancing it by `d`, the
     floor rule, the sampled range forwards and reversed, and
     `sceneTimesOfSource`, as functions over explicit arguments; `sourceTimeUs`
-    and `sampledSourceRange` are not changed yet;
+    and `sampledSourceRange` are not changed yet; `parseSpeed` and
+    `formatSpeed`, the multiplier notation (D82.11);
   - `@kadrion/runtime`: `stretchSound`, anchored WSOLA in `+ − · /` only, with
     its constants (grain length, window, search radius) fixed by a quality
     check: speech and music fixtures at 1/4, 1/2, 3/4, 3/2, 2, and 4, compared
@@ -133,7 +141,8 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
   - both exercised by requests in descending order (still frames of D47.7 in
     any order already ask for them).
 - **Packages and documents:** player, producer, renderer-dom, tests; D50.5,
-  D51.4, and D79.5 amended on acceptance of D82.
+  D51.4, and D79.5, amended on acceptance of D82 (2026-11-11), are in force
+  from this pull request.
 - **Acceptance:** in the pinned container, every frame decoded after a seek
   equals the forward decode's frame byte for byte, for the fixture video in
   MP4, fragmented MP4, MOV, and MKV, and for the turned fixtures of D81.4; the
@@ -162,12 +171,14 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
   - editor-sdk: the existing commands through the map, so that no command
     breaks a mapped clip (`TrimClipStart`, `TrimClipEnd`, `SplitClip`,
     `JoinClips`, `SetVideoSource`, `SetClipSource`, the cut helper, and the
-    checks of source ranges); `describe_document` states speed and reverse;
+    checks of source ranges); `describe_document` states speed as a multiplier
+    (D82.11) and reverse;
   - fixtures: a composition with clips at 1/4×, 1/2×, 3/2×, 4×, reversed, and
     frozen, video and sound, with its golden frames and its pinned test.
 - **Packages and documents:** schema, runtime, player, producer, editor-sdk,
-  ai-sdk (the description of the document), test-fixtures; D49, D52, D53, D55
-  amended on acceptance of D82.
+  ai-sdk (the description of the document), test-fixtures; D49, D52, D53, and
+  D55, amended on acceptance of D82 (2026-11-11), are in force from this pull
+  request; D35 gets its line for the step from `0.23` to `0.24`.
 - **Acceptance:** every earlier golden PNG file byte for byte and the golden
   manifests changed in the three fields of D42 only; golden frames of the new
   composition; parity at zero for it; the Player's audio graph within 1e-4 of
@@ -181,18 +192,27 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 ### PR-62 — Commands and tools: speed, reverse, and a freeze frame
 
 - **Goal:** a host and a model change a clip's speed, reverse it, and freeze a
-  frame, each in one undoable step.
-- **Scope (D82.9):** `SetClipSpeed` and `SetClipReverse` with their tools
-  `set_clip_speed` and `set_clip_reverse`; the helper `freezeFrame` in modes
-  `overwrite` and `insert` and its tool `freeze_frame`; descriptions with the
-  common speeds as fractions; a fixture of model requests ("slow this clip to
-  half speed", "freeze the frame at 3 s for 2 s", "play the last clip
-  backwards"), each checked by `executeTool` against its expected document.
+  frame, each in one undoable step. The owner's rule (2026-11-11): the
+  assistant must be able to do everything the user can, so all three are AI
+  tools in this pull request, not later.
+- **Scope (D82.9, D82.11):** `SetClipSpeed` and `SetClipReverse` with their
+  tools `set_clip_speed` and `set_clip_reverse`; the helper `freezeFrame` in
+  modes `overwrite` and `insert` and its tool `freeze_frame`; the `speed` of
+  `SetClipSpeed` taken as a multiplier (`"x0.5"`, `2`, `"x1/3"`), a number, or
+  `{ num, den }`, converted by `parseSpeed` in the command, so the tool stays
+  derived (D46.2); descriptions with the common speeds as multipliers; a
+  fixture of model requests ("slow this clip to half speed", "play it at x2",
+  "freeze the frame at 3 s for 2 s", "play the last clip backwards"), each
+  checked by `executeTool` against its expected document.
 - **Packages and documents:** editor-sdk, ai-sdk, the catalogue snapshot, the
-  API reports (additive).
-- **Acceptance:** each command and the helper undone leaves the document byte
-  for byte; every refusal of D82.9 with its code; the fixture of requests gives
-  its expected documents.
+  API reports (additive); D46 gets its line for the three tools.
+- **Acceptance:** the catalogue holds `set_clip_speed`, `set_clip_reverse`,
+  and `freeze_frame`, and the fixture reaches speed, freeze frame (both
+  modes), and reverse through `executeTool` alone; each command and the helper
+  undone leaves the document byte for byte; every form of D82.11 gives its
+  stored speed, and `"x0.3333"` is refused with `speed-invalid` naming `x1/3`;
+  every refusal of D82.9 with its code; the fixture of requests gives its
+  expected documents.
 - **Impact:** none on Q14, the runtime build, parity, or golden frames.
 - **Not included:** ripple edits and retiming of captions (the host's, D82.7).
 
@@ -201,6 +221,7 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 - **Goal:** the host sees and pins the three features.
 - **Scope:** showcases of speed, freeze, and reverse in the playground, checked
   by the test of PR-42; the host guide of PR-43 and the README on mapped clips,
+  speeds written as multipliers with `formatSpeed` and `parseSpeed` (D82.11),
   the costs of reverse (D82.4, D82.5), and retiming words with
   `sceneTimesOfSource`; every package at version `0.7.0`.
 - **Acceptance:** every showcase loads without an error; the host flow on the
@@ -228,6 +249,13 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
   instances, and the items phase five deferred.
 
 ## Questions for the owner, with recommendations
+
+Answered by the owner on 2026-11-11 at 10:44 (Europe/Warsaw): every question
+of D82 and every question below as recommended. Question 1 of D82 is completed
+by the multiplier notation (D82.11) and question 12 of D82 is confirmed; the
+owner added that the assistant must be able to do everything the user can
+(PR-62). Question 1 below is carried out with the acceptance of this plan:
+`AGENTS.md` names phase six as current, and its excluded list does not change.
 
 The technical questions are those of D82 (1 to 15). Three more belong to the
 plan:

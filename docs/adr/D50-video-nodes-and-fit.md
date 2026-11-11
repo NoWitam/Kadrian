@@ -20,6 +20,7 @@
   runs with `-noautorotate` and each frame is turned after the conversion to RGB, a matrix that
   is no quarter turn is `video-undecodable`, and the manifest's source size is the size as shown
   (D81.3)
+- Amended by: PR-58 (D82) on 2026-11-11, in force from PR-60: 50.5: to go back, the decode seeks to the last IDR picture at or before the frame and keeps a window of 64 frames, instead of restarting from frame 0; a job that seeks records `seekArgs` in its manifest (D82.5)
 - Related: D04, D13, D18, D19, D30, D34, D38, D40, D42, D43, D48, D49,
   [roadmap of phase three](../roadmap/phase-3.md) PR-28
 

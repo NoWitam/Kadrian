@@ -10,6 +10,7 @@
 - Amended by: K2 (D81) on 2026-11-10: D51.4: the RGB of a decoded frame is turned by the display
   matrix of its container, by the Producer's function, and the media facts state the size as
   shown (D81.2)
+- Amended by: PR-58 (D82) on 2026-11-11, in force from PR-60: D51.4: the Player keeps the decoded planes of every sampled frame of a decode run in a cache of 256 MiB per Player, least recently used runs evicted first; the pixels do not change (D82.4)
 - Extends: D25 (the resolver may return a `Blob` for a video, the protocol
   version 2, `prepareVideo`), D28 (the page receives video frames with `seek`
   and `update`), D33 and D34 (the video rows of the parity measurement), D44

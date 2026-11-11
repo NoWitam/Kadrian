@@ -9,6 +9,7 @@
   the source ranges sounds hear), and D52 (52.4: the plan moves to the schema;
   52.6: the bus checks the ranges of clips and of the sound of videos), each
   with an `Amended by: PR-29b (D53)` line
+- Amended by: PR-58 (D82) on 2026-11-11, in force from PR-61: 53.2: the Player plays a sound at another speed or reversed from the samples `stretchSound` computes from its decoded buffer, as one `AudioBufferSourceNode` on the grid; the gate of 53.5 covers it (D82.6)
 - Related: D12, D14, D20, D29, D33, D50, D51,
   [roadmap of phase three](../roadmap/phase-3.md) PR-29
 

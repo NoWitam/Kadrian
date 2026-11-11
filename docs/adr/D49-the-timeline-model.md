@@ -18,6 +18,7 @@
 - Amended by: PR-34b (D59) on 2026-11-02: the step to `0.9` appends empty `conditions` and `repeats`, which no time value depends on (D59.5)
 - Amended by: PR-39a (D62) on 2026-11-03: 49.6: the size of an image is a media fact, read from its header by Kadrion's own parser, which `describe_document` reports and the bus checks nothing with (D62.1, D62.4)
 - Amended by: PR-55a (D76) on 2026-11-10: 49.5: an instance shows its definition at `sourceStartUs + (t − startUs)`, the rule of a video's source time; inside a definition clips are nodes, order is z-order, and lifetimes are in definition time (D76.2)
+- Amended by: PR-58 (D82) on 2026-11-11, in force from PR-61: 49.1 and 49.5: a video node and an audio clip map scene time to source time by an exact rational time map (a speed from 1/4 to 4, or 0 for a freeze frame of a video, a remainder of the source start, and `reverse`); the source time shown is the floor of the map and the frame follows 49.5 unchanged; trims and splits move the map exactly; 49.8: speed changes and reverse playback are decided (D82.1–D82.3)
 - Related: D04, D13, D14, D16, D18, D19, D23, D29, D30, D35, D38, D39, D41,
   D42, D47, [roadmap of phase three](../roadmap/phase-3.md) PR-27 to PR-34b
 

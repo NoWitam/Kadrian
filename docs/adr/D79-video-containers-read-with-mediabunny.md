@@ -12,6 +12,7 @@
   or not, is accepted and turned after the conversion to RGB; the reason `rotation` means a
   display matrix that is no quarter turn; `video.width` and `video.height` are the size as shown
   (D81.2)
+- Amended by: PR-58 (D82) on 2026-11-11, in force from PR-60: D79.5: the frames of a decode run are kept in the Player's run cache, and the IDR check `holdsIdr` moves to `@kadrion/renderer-dom`, where the Producer's seek uses it too (D82.4, D82.5)
 
 ## Context
 

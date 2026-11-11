@@ -1,16 +1,22 @@
 # D82 — Clip speed, freeze frames, and reverse playback: a rational time map, schema 0.24
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-11 (PR-58), before any
+  code, with the recommendations of all fifteen questions; question 1 is
+  completed by the multiplier notation of D82.11 and question 12 is confirmed
+  (see "Questions for the owner")
 - Date: 2026-11-11
 - Supersedes: —
-- Extends, on acceptance and in the pull request that implements each part,
-  with an `Amended by` line: D49 (49.1 trims and splits, 49.5 the source time,
-  49.8 "speed changes, reverse playback" leave the list of what is not
-  decided), D50.5 (the Producer's decode seeks to an IDR picture), D51.4 and
-  D79.5 (the Player keeps the frames of a decode run), D52.4 and D52.5 (the
-  plan and the mix of a sound at another speed or reversed), D53.2 (the
-  Player plays such a sound), and D55 (55.2 and 55.4: trims, splits, and joins
-  through the time map)
+- Extends: D49 (49.1 trims and splits, 49.5 the source time, 49.8 "speed
+  changes, reverse playback" leave the list of what is not decided), D50.5
+  (the Producer's decode seeks to an IDR picture), D51.4 and D79.5 (the
+  Player keeps the frames of a decode run), D52.4 and D52.5 (the plan and the
+  mix of a sound at another speed or reversed), D53.2 (the Player plays such
+  a sound), and D55 (55.2, 55.4, and 55.5: trims, splits, and joins through
+  the time map; two commands and a helper), each with an
+  `Amended by: PR-58 (D82)` line written on acceptance that names the pull
+  request from which it is in force. D35 (the step from `0.23` to `0.24`) and
+  D46 (three tools) get their lines from PR-61 and PR-62, as every schema step
+  and every tool before them
 - Related: D04, D12, D13, D18, D30, D34, D35, D38, D46, D47, D48, D56, D57,
   D65.4, D66, D67, D76, D77, D79, D80, D81,
   [roadmap of phase six](../roadmap/phase-6.md) PR-58 to PR-63
@@ -69,7 +75,7 @@ place in each host, and one schema step.
 
 ## Decision
 
-> D82: A video node and an audio clip map scene time to source time by an exact rational time map: a speed `{num, den}` from 1/4 to 4, or 0 for a freeze frame of a video, an exact source start (`sourceStartUs` and a remainder in units of `1/den` µs), and `reverse`, which plays the same source range backwards. The source time shown is the floor of the exact map, in integer microseconds, and the frame is chosen from it by D49.5 unchanged. Trims, splits, and joins move the map exactly. A sound at another speed or reversed keeps its pitch and is computed by one pure function of `@kadrion/runtime` that the Producer and the Player share; a sound at speed 1 forward stays byte for byte. The Player keeps the frames of each decode run, and the Producer seeks to an IDR picture to go back. Schema `0.24` adds the fields with a step that gives every clip speed 1, remainder 0, and `reverse: false`.
+> D82: A video node and an audio clip map scene time to source time by an exact rational time map: a speed `{num, den}` from 1/4 to 4, or 0 for a freeze frame of a video, an exact source start (`sourceStartUs` and a remainder in units of `1/den` µs), and `reverse`, which plays the same source range backwards. The source time shown is the floor of the exact map, in integer microseconds, and the frame is chosen from it by D49.5 unchanged. Trims, splits, and joins move the map exactly. A sound at another speed or reversed keeps its pitch and is computed by one pure function of `@kadrion/runtime` that the Producer and the Player share; a sound at speed 1 forward stays byte for byte. The Player keeps the frames of each decode run, and the Producer seeks to an IDR picture to go back. Schema `0.24` adds the fields with a step that gives every clip speed 1, remainder 0, and `reverse: false`. Hosts, the documents, and the AI tools show and accept a speed as a multiplier such as `x0.5` or `x2`, converted to the exact rational or refused, never rounded.
 
 ### D82.1 The time map (amends D49.1 and D49.5)
 
@@ -86,7 +92,8 @@ place in each host, and one schema step.
 
   Lowest terms make every speed one JSON text, so two documents that mean the
   same are the same bytes (D30.7). A violation is `speed-invalid`, a semantic
-  error of the schema.
+  error of the schema. A person or a model reads and writes a speed as a
+  multiplier (`x0.5`, `x2`); the document keeps the rational (D82.11).
 
 - **The forward map.** For elapsed time `e = u − startUs`, `0 ≤ e < durationUs`:
 
@@ -342,14 +349,26 @@ place in each host, and one schema step.
   set `sourceStartUs` and keep the remainder; the cut helper by D82.7; the
   checks of `checkSourceRanges` and `checkSounds` by the sampled range of
   D82.1 and the plan of D82.6.
+- **The `speed` argument** of `SetClipSpeed` is a multiplier, a number, or
+  `{ num, den }`, converted by `parseSpeed` when the bus parses the command
+  (D82.11); the document, the patch, the inverse, and the history hold the
+  exact `{ num, den }` only.
 - **Tools** (D46): `set_clip_speed` and `set_clip_reverse` are derived from the
   metadata, `freeze_frame` is a helper tool as `add_clip_transition_at_cut`
-  is, so the catalogue grows by three. A speed is a fraction in every tool,
-  and the descriptions list the common ones (`{ num: 1, den: 4 }` for 0.25×,
-  `{ num: 3, den: 2 }` for 1.5×, `{ num: 0, den: 1 }` for a freeze).
-  `describe_document` states each clip's speed, `reverse`, and sampled source
-  range. A model never sees `sourceStartRemainder` unless it reads the
-  document itself; the commands keep it.
+  is, so the catalogue grows by three. A speed is a multiplier in every tool
+  (D82.11), and the descriptions list the common ones (`x0.25`, `x0.5`,
+  `x1.5`, `x2`, `x1/3`, and `x0` for a freeze of a video).
+  `describe_document` states each clip's speed in the same notation, its
+  `reverse`, and its sampled source range. A model never sees
+  `sourceStartRemainder` unless it reads the document itself; the commands
+  keep it.
+- **The assistant can do what the user can** (owner, 2026-11-11). Each of the
+  three edits is a tool: a speed (and a freeze by `x0`) through
+  `set_clip_speed`, a reverse through `set_clip_reverse`, and a freeze frame of
+  either mode through `freeze_frame`; the existing timeline tools (trim,
+  split, join, move, and the transition at a cut) work on mapped clips through
+  the same commands. No edit of this ADR is reachable through the bus and not
+  through a tool.
 
 ### D82.10 Not included
 
@@ -364,6 +383,82 @@ place in each host, and one schema step.
 - Ripple edits, and computing the stretch in a worker of the Player.
 - Seeking at the first frame of a forward segment job (a speed-up of long
   sources that would change the manifests of today's renders).
+
+### D82.11 A speed written as a multiplier (owner, 2026-11-11)
+
+The owner's answer to question 1: "Zapis prędkości np: x0.5 lub x2" (write a
+speed as, for example, x0.5 or x2). The document keeps the exact rational of
+D82.1; every place a person or a model reads or writes a speed uses the
+multiplier.
+
+- **The notation.** `x` followed by the speed: its decimal when the decimal
+  ends, in the shortest form (`x0.25`, `x0.5`, `x1.5`, `x2`), and otherwise
+  its fraction in lowest terms (`x1/3`, `x2/3`, `x4/3`). A freeze frame is
+  `x0`. Reverse is never a sign: it is `reverse` (D82.1).
+- **Two functions of `@kadrion/schema`**, beside `clipTimeMap`:
+  `formatSpeed(speed)` gives the notation of a valid speed, and
+  `parseSpeed(value)` gives the exact `{ num, den }` or a refusal.
+  `parseSpeed(formatSpeed(s))` is `s` for every valid speed. A host uses them
+  for its controls and the host guide shows them; the commands and the tools
+  use them as below.
+- **What `parseSpeed` reads.**
+  - A string: white space around it is ignored, then an optional `x` (`x`,
+    `X`, or `×`), then either a decimal (digits with at most one `.`) or a
+    fraction `<integer>/<integer>`. No sign, exponent, or inner space.
+  - A JSON number, through its shortest round-trip decimal
+    (`Number::toString` of ECMA-262, so `0.5` reads as `"0.5"`, never as the
+    binary expansion of a double), then as that string. Every number from 1/4
+    to 4 prints without an exponent; one that prints with an exponent is out of
+    bounds.
+  - An object `{ num, den }` of integers, `den ≥ 1`.
+
+  A decimal with `n` digits after the point is exactly its digits over `10ⁿ`;
+  every value is reduced to lowest terms by the greatest common divisor in
+  `BigInt`. So `x0.5` is `1/2`, `1.25` is `5/4`, `x0.333` is `333/1000`, and
+  `{ num: 2, den: 4 }` is `1/2`.
+
+- **No exact small rational: refused, never snapped.** A value whose lowest
+  terms have `den` above 1 000 (`x0.3333` is `3333/10000`; `0.1 + 0.2` prints
+  as `0.30000000000000004`) is refused with `speed-invalid`, and the refusal's
+  message names the nearest speed with `den` up to 1 000 in the notation (the
+  best rational approximation by continued fractions, the smaller `den` on a
+  tie): "x0.3333 has no exact speed with a denominator up to 1000; the nearest
+  is x1/3". The reasons:
+  - a stored speed is exactly the one asked for, or nothing: a snapped speed
+    would change the clip's new duration (`⌈durationUs · old / new⌉`, D82.9)
+    and its source span without the caller knowing, and the document would
+    hold a value no one wrote;
+  - every multiplier with at most three decimals is exact, since its `den`
+    divides 1 000, which covers every speed a control offers (`x0.25`,
+    `x0.333`, `x1.75`); a longer decimal is nearly always a rounded fraction,
+    which the caller states exactly as `x1/3`;
+  - a model retries in one call with the speed the message names, and a host
+    can offer the same speed to its user.
+- **Other refusals**, each `speed-invalid`: a speed below `x0.25` other than
+  `x0`, above `x4`, negative, not finite, or not in the notation; `x0` for an
+  audio clip (D82.3). A value of another JSON type is refused by the tool's
+  schema with `invalid-argument` (D46.4).
+- **The command takes it.** `speed` of `SetClipSpeed` is one `anyOf` of a
+  number, a string, and an object, as `value` of `SetKeyframeValue` is (D68);
+  the bus converts it by `parseSpeed` when it parses the command. The
+  conversion therefore lives in the command, so `set_clip_speed` stays derived
+  from the metadata and adds nothing to the arguments (D46.2), and a host's
+  control and a model reach the same command (`AGENTS.md`: both use the same
+  command bus).
+- **What a model reads.** The descriptions of `set_clip_speed` and
+  `freeze_frame` state the notation with examples (`"x0.5"`, `2`, `"x1/3"`,
+  `"x0"`), and `describe_document` shows each clip's `speed` in the notation
+  (`"x1.5"`) in place of the stored object.
+
+| Input                                          | Stored                         | Shown    |
+| ---------------------------------------------- | ------------------------------ | -------- |
+| `"x0.5"`, `0.5`, `"0.5"`, `{ num: 1, den: 2 }` | `{ num: 1, den: 2 }`           | `x0.5`   |
+| `"x2"`, `2`, `"X2"`, `"×2"`                    | `{ num: 2, den: 1 }`           | `x2`     |
+| `"x1/3"`, `{ num: 1, den: 3 }`                 | `{ num: 1, den: 3 }`           | `x1/3`   |
+| `"x0.333"`                                     | `{ num: 333, den: 1000 }`      | `x0.333` |
+| `"x0"`, `0` (a video node)                     | `{ num: 0, den: 1 }`           | `x0`     |
+| `"x0.3333"`                                    | refused, the nearest is `x1/3` | —        |
+| `"x0.2"`, `"x5"`, `"x-2"`, `"fast"`            | refused, out of bounds or form | —        |
 
 ## Alternatives considered
 
@@ -411,8 +506,9 @@ place in each host, and one schema step.
 - A host shows slow motion, fast motion, freeze frames, and reversed clips,
   picture and sound, the same in its preview and its export, and edits them
   with the commands it already uses.
-- `@kadrion/schema`: version `0.24`, the step, the map functions, the semantic
-  rules, the plan's mapped entries. `@kadrion/runtime`: `stretchSound`. The
+- `@kadrion/schema`: version `0.24`, the step, the map functions,
+  `parseSpeed` and `formatSpeed`, the semantic rules, the plan's mapped
+  entries. `@kadrion/runtime`: `stretchSound`. The
   runtime build changes with the schema, so Q14 reopens and the parity records
   are measured again (D34).
 - `@kadrion/renderer-dom`: `holdsIdr` moves there from the Player (D82.5).
@@ -435,12 +531,17 @@ place in each host, and one schema step.
 - `packages/schema/test`: the map against an independent rational reference
   for every speed of a seeded set, forwards and reversed; advancing by any `d`
   equals the map at `e + d`; the sampled range; every refusal of
-  `speed-invalid`; the step's pair and the corpus.
+  `speed-invalid`; the step's pair and the corpus; `parseSpeed` on every row
+  of the table of D82.11, `parseSpeed(formatSpeed(s))` equal to `s` for every
+  valid speed with `den` up to 1 000, and the nearest speed a refusal names
+  against a brute-force search over every `den` up to 1 000.
 - `packages/editor-sdk/test`: for 2 000 seeded clips, speeds, and directions,
   a trim or a split shows the same source time at every scene time it still
   covers, and a split followed by its join is the identity byte for byte;
-  `SetClipSpeed`, `SetClipReverse`, and `freezeFrame` undone byte for byte; the
-  refusals; the catalogue snapshot with three more tools.
+  `SetClipSpeed` with every form of speed of D82.11, `SetClipReverse`, and
+  `freezeFrame` undone byte for byte; the refusals; the catalogue snapshot
+  with three more tools; `executeTool` reaching each of speed, freeze frame,
+  and reverse (D82.9).
 - `packages/runtime/test`: `stretchSound` on fixed signals (silence, a sine,
   speech of the fixtures): the length heard, the halves of a split equal to
   the whole, speed 1 reversed equal to the samples reversed, and the pitch of a
@@ -457,9 +558,20 @@ place in each host, and one schema step.
 
 ## Questions for the owner, with recommendations
 
+Answered by the owner on 2026-11-11 at 10:44 (Europe/Warsaw): every question
+as recommended, which accepts this ADR. Question 1 is completed: the
+representation stays the rational `{num, den}` and hosts, the documents, and
+the AI tools show and accept a speed as a multiplier such as `x0.5` or `x2`
+(D82.11; a multiplier with no exact speed of `den` up to 1 000 is refused with
+the nearest one named, not snapped). Question 12 is confirmed: audio clips get
+speed and reverse too. The owner added a rule for the tools: the assistant must
+be able to do everything the user can, so speed, freeze frame, and reverse are
+each an AI tool (D82.9; PR-62 of the roadmap of phase six).
+
 1. **The representation and bounds of a speed.** Recommendation: a rational
    `{num, den}` in lowest terms, `den` up to 1 000, from 1/4 to 4, and 0 for a
-   freeze frame; wider bounds later as a relaxation.
+   freeze frame; wider bounds later as a relaxation. Answered on 2026-11-11:
+   as recommended, written and read as a multiplier (`x0.5`, `x2`) by D82.11.
 2. **Exact trims and splits.** Recommendation: the field `sourceStartRemainder`
    (D82.1, D82.2), so that every edit keeps its frames at any speed, rather than
    refusing cuts off a grid of `den`.
@@ -488,6 +600,7 @@ place in each host, and one schema step.
     decides again with the recordings.
 12. **Audio clips.** Recommendation: speed and reverse on audio clips too, in
     the same step (no freeze for audio), so detached sound stays in sync.
+    Answered on 2026-11-11: confirmed.
 13. **Keyframes.** Recommendation: they stay in scene time; no command scales
     them.
 14. **Captions and instances.** Recommendation: no link from words to a source
