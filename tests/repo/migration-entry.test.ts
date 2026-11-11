@@ -20,6 +20,7 @@ import { join, relative } from 'node:path';
 import * as mainEntry from '@kadrion/schema';
 import * as migrateEntry from '@kadrion/schema/migrate';
 import * as templateEntry from '@kadrion/schema/template';
+import * as timeMapEntry from '@kadrion/schema/time-map';
 import { describe, expect, it } from 'vitest';
 
 import { reached, sourcesBelow, specifiers } from './module-graph.js';
@@ -102,6 +103,20 @@ describe('the entry points of @kadrion/schema (D42.8)', () => {
     expect(Object.keys(mainEntry)).not.toContain('instantiateTemplate');
     expect(names(reached(join(SCHEMA_DIST, 'index.js')))).not.toContain('template.js');
     expect(names(reached(join(SCHEMA_DIST, 'template.js')))).toContain('template.js');
+  });
+
+  it('keeps the time map of a clip behind its own entry until schema 0.24 (D82, PR-59)', () => {
+    expect(Object.keys(timeMapEntry)).toEqual(
+      expect.arrayContaining([
+        'clipTimeMap',
+        'sourceTimeOfScene',
+        'sceneTimesOfSource',
+        'parseSpeed',
+      ]),
+    );
+    expect(Object.keys(mainEntry)).not.toContain('clipTimeMap');
+    expect(names(reached(join(SCHEMA_DIST, 'index.js')))).not.toContain('time-map.js');
+    expect(names(reached(join(SCHEMA_DIST, 'time-map.js')))).toEqual(['time-map.js']);
   });
 
   it('reaches the historical schema and the step through the migration entry', () => {

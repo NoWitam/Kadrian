@@ -105,6 +105,22 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 
 ### PR-59 — The time map and the stretch of sound (library only)
 
+- Status: in review. The functions, the constants of `stretchSound`, and the
+  quality check are recorded in the implementation notes of D82. Deviations
+  from this plan, for the owner to confirm: the shifts of `stretchSound` are
+  chained within blocks of 32 grains and restart at each block's quietest
+  grain, since a shift that follows only the nominal grain before it keeps no
+  phase on a pitched sound (D82, question 11); the map's floor rule is
+  exported as `sourceTimeOfScene` and the sampled range as `clipSourceRange`
+  beside the unchanged `sourceTimeUs` and `sampledSourceRange`, and both
+  pieces are entries of their own (`@kadrion/schema/time-map`,
+  `@kadrion/runtime/stretch`) so that the runtime build and the Player's dist
+  tree keep their bytes; at the host's
+  request, `stretchSourceRange` of the runtime gives the source range a sound
+  reads, and the host guide lists the helpers. Open: the owner listens to the
+  recordings; the pinned comparison of Node and Chromium runs in the pinned
+  container (a pinned test file added while Q14 is open).
+
 - **Goal:** the two shared functions, proven on their own, before any document
   can use them.
 - **Scope (D82.1, D82.2, D82.6):**

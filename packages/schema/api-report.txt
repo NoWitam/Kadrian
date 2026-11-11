@@ -6390,3 +6390,78 @@ export declare function isTemplate(composition: {
 
 ---- templateDefaults
 export declare function templateDefaults(template: ValidatedComposition): TemplateValues;
+
+==== Entry "./time-map"
+
+---- AdvancedSource
+export interface AdvancedSource {
+    readonly sourceStartUs: number;
+    readonly sourceStartRemainder: number;
+}
+
+---- ClipTimeMap
+export interface ClipTimeMap {
+    readonly intercept: bigint;
+    readonly slope: number;
+    readonly den: number;
+}
+
+---- ClipTiming
+export interface ClipTiming {
+    readonly startUs: number;
+    readonly durationUs: number;
+    readonly sourceStartUs: number;
+    readonly sourceStartRemainder: number;
+    readonly speed: Speed;
+    readonly reverse: boolean;
+}
+
+---- MAX_SPEED_DEN
+export declare const MAX_SPEED_DEN = 1000;
+
+---- Speed
+export interface Speed {
+    readonly num: number;
+    readonly den: number;
+}
+
+---- SpeedReading
+export type SpeedReading = {
+    readonly ok: true;
+    readonly speed: Speed;
+} | {
+    readonly ok: false;
+    readonly code: 'speed-invalid';
+    readonly message: string;
+    readonly nearest: Speed | null;
+};
+
+---- TimeRange
+export interface TimeRange {
+    readonly startUs: number;
+    readonly durationUs: number;
+}
+
+---- advanceClipSource
+export declare function advanceClipSource(clip: ClipTiming, deltaUs: number): AdvancedSource;
+
+---- clipSourceRange
+export declare function clipSourceRange(clip: ClipTiming, sceneDurationUs: number): TimeRange | null;
+
+---- clipTimeMap
+export declare function clipTimeMap(clip: ClipTiming): ClipTimeMap;
+
+---- formatSpeed
+export declare function formatSpeed(speed: Speed): string;
+
+---- parseSpeed
+export declare function parseSpeed(value: unknown): SpeedReading;
+
+---- sceneTimesOfSource
+export declare function sceneTimesOfSource(clip: ClipTiming, sourceTimeUs: number): TimeRange | null;
+
+---- sourceTimeOfScene
+export declare function sourceTimeOfScene(clip: ClipTiming, timeUs: number): number;
+
+---- speedProblem
+export declare function speedProblem(speed: Speed): string | null;

@@ -495,6 +495,7 @@ export const ARTIFACT_FILES = Object.freeze([
   'producer-processes.json',
   'scenes/alone-vs-sequence.json',
   'shapes/golden-comparison.json',
+  'stretch/node-vs-chromium.json',
   'svg/golden-comparison.json',
   'svg/shapes-against-image.json',
   'text/golden-comparison.json',
