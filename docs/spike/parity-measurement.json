@@ -38,13 +38,13 @@
   },
   "reference": {
     "goldenManifest": "packages/test-fixtures/src/golden-frames/reference.golden-frames.json",
-    "goldenManifestSha256": "sha256:e6fbdb1e808194c74f32430784bd82dd784c8e61d3e0c9542a5dd807af5ecd53",
-    "runtimeHash": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13",
+    "goldenManifestSha256": "sha256:dd1cfe6c22ec06c4322a3c18c56fb62eb27ee7345e600a9cef83c8680a785bf8",
+    "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
     "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
     "width": 1080,
     "height": 1920
   },
-  "playerDistTreeSha256": "sha256:a7b583cc9d2a65085acf1c4b9a31230ef2ddd03d7269ec725ab78429a77a2452",
+  "playerDistTreeSha256": "sha256:9d9832365699ffffd13213ce8a44e1adc80ac94359c231734507961884564521",
   "playerDistManifest": [
     {
       "path": "packages/player/dist/agent.js",
@@ -148,8 +148,8 @@
     },
     {
       "path": "packages/renderer-dom/dist/mount.js",
-      "size": 23665,
-      "sha256": "sha256:0cd6d34b0b0e9e20aa5ef63c64776ed3a326707bced24c353c2bc31b7d43dff2"
+      "size": 27089,
+      "sha256": "sha256:0071a6fc33975a8cb98b37377d88cccebce6805300777167feaa8094142256a9"
     },
     {
       "path": "packages/renderer-dom/dist/nested.js",
@@ -183,13 +183,13 @@
     },
     {
       "path": "packages/renderer-dom/dist/runtime-build/kadrion-runtime.js",
-      "size": 332233,
-      "sha256": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13"
+      "size": 333779,
+      "sha256": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c"
     },
     {
       "path": "packages/renderer-dom/dist/runtime-build/kadrion-runtime.json",
       "size": 270,
-      "sha256": "sha256:47efa359ad15843e60a1604df250bd0500b25a3414c7bf0e03099aeaaaebd74f"
+      "sha256": "sha256:3a0f76b6ea2663872f3d4ed5f661d7802ca34117fe353d29dabb622724bdb6a4"
     },
     {
       "path": "packages/renderer-dom/dist/sandbox.js",
@@ -376,12 +376,12 @@
     {
       "timeUs": 0,
       "frameIndex": 0,
-      "runtimeHash": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13",
+      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
       "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
       "width": 1080,
       "height": 1920,
-      "playerPng": "sha256:e1e8527fdc71b12022f5f728a2fa3aba5b2fbad3c7a2acea0306b3f4fd1ee270",
-      "goldenPng": "sha256:e1e8527fdc71b12022f5f728a2fa3aba5b2fbad3c7a2acea0306b3f4fd1ee270",
+      "playerPng": "sha256:b9f49e8a11904229c3a5692d2ed2cc86cb1b499b7c8af7bd1715621411fc4606",
+      "goldenPng": "sha256:b9f49e8a11904229c3a5692d2ed2cc86cb1b499b7c8af7bd1715621411fc4606",
       "goldenFile": "reference-0.png",
       "differingPixels": 0,
       "totalPixels": 2073600,
@@ -402,12 +402,12 @@
     {
       "timeUs": 2500000,
       "frameIndex": 75,
-      "runtimeHash": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13",
+      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
       "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
       "width": 1080,
       "height": 1920,
-      "playerPng": "sha256:a2df0cbc18f232cb79c640fbd4e63fdf9ce95034e19fb48a454f01a4e29b7687",
-      "goldenPng": "sha256:a2df0cbc18f232cb79c640fbd4e63fdf9ce95034e19fb48a454f01a4e29b7687",
+      "playerPng": "sha256:2231fb68cb9adb625adcaa8ebe665557d60abf295f4ef6a4e7a4fc45edfe3a5d",
+      "goldenPng": "sha256:2231fb68cb9adb625adcaa8ebe665557d60abf295f4ef6a4e7a4fc45edfe3a5d",
       "goldenFile": "reference-2500000.png",
       "differingPixels": 0,
       "totalPixels": 2073600,
@@ -428,12 +428,12 @@
     {
       "timeUs": 5000000,
       "frameIndex": 150,
-      "runtimeHash": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13",
+      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
       "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
       "width": 1080,
       "height": 1920,
-      "playerPng": "sha256:6999b96f58671ac1bc11c4aeb59e1d919e3b0d00565d49994361e110bbeaa3b8",
-      "goldenPng": "sha256:6999b96f58671ac1bc11c4aeb59e1d919e3b0d00565d49994361e110bbeaa3b8",
+      "playerPng": "sha256:727cbd77912ffa759f063f1e1a4102dbed0e7c0b280cc111969e0a92e2344606",
+      "goldenPng": "sha256:727cbd77912ffa759f063f1e1a4102dbed0e7c0b280cc111969e0a92e2344606",
       "goldenFile": "reference-5000000.png",
       "differingPixels": 0,
       "totalPixels": 2073600,
@@ -454,12 +454,12 @@
     {
       "timeUs": 7500000,
       "frameIndex": 225,
-      "runtimeHash": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13",
+      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
       "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
       "width": 1080,
       "height": 1920,
-      "playerPng": "sha256:eced72c8337a50896fe921d2a739861a4e344a4dd569db27a9c72275fb973a64",
-      "goldenPng": "sha256:eced72c8337a50896fe921d2a739861a4e344a4dd569db27a9c72275fb973a64",
+      "playerPng": "sha256:f7b2d321e393b764cbea15f102086e5bbbd400395990fbff644c1d7f7c94f217",
+      "goldenPng": "sha256:f7b2d321e393b764cbea15f102086e5bbbd400395990fbff644c1d7f7c94f217",
       "goldenFile": "reference-7500000.png",
       "differingPixels": 0,
       "totalPixels": 2073600,
@@ -480,12 +480,12 @@
     {
       "timeUs": 9900000,
       "frameIndex": 297,
-      "runtimeHash": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13",
+      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
       "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
       "width": 1080,
       "height": 1920,
-      "playerPng": "sha256:90c810a3295d698461e051b35b07a97154df2e70cfab074b1732de6112b8db7c",
-      "goldenPng": "sha256:90c810a3295d698461e051b35b07a97154df2e70cfab074b1732de6112b8db7c",
+      "playerPng": "sha256:18de61241636afede168cb5d9802aeef70db4b19032013f1d2ed34af9e0135d5",
+      "goldenPng": "sha256:18de61241636afede168cb5d9802aeef70db4b19032013f1d2ed34af9e0135d5",
       "goldenFile": "reference-9900000.png",
       "differingPixels": 0,
       "totalPixels": 2073600,

@@ -4,7 +4,7 @@
     "compositionHash": "sha256:7e86c0543d8819889aac439ba07073cf024fe1c639b5c97a2fcbd16889680c5c",
     "schemaVersion": "0.23",
     "runtime": {
-      "contentHash": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13",
+      "contentHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
       "bundler": "esbuild@0.28.2",
       "compiler": "typescript@6.0.3"
     },
@@ -100,6 +100,7 @@
         "error",
         "-threads",
         "1",
+        "-noautorotate",
         "-i",
         "<input>",
         "-map",
@@ -137,22 +138,22 @@
       {
         "index": 6,
         "timeUs": 200000,
-        "sha256": "sha256:df936d488202f00c46be85760f4a4e9973c125a0ec05a2b3e6b116a5c360f441"
+        "sha256": "sha256:0bc1a967bfda13b2ac1acfeb5295fc5a472208e45cb623ef34b6a12089673b04"
       },
       {
         "index": 18,
         "timeUs": 600000,
-        "sha256": "sha256:f5a82142c0402c644ba96fae486a9e4318b803f1812ec36e34c5ba5d0665dad3"
+        "sha256": "sha256:44891eca74491b4e0da37005e344a02cc3b49ad9918baf53aa92e47a0598f2d8"
       },
       {
         "index": 30,
         "timeUs": 1000000,
-        "sha256": "sha256:2e3f00522e51474d88f1e71c1d6608ae1ed0bb939f134be4121b93ba44a739ff"
+        "sha256": "sha256:3d1aceb50afeb79c13cf0b7e132358311b083ed78060ccfb0051f1c2a447b4b3"
       },
       {
         "index": 39,
         "timeUs": 1300000,
-        "sha256": "sha256:1ebee7bc84604c1eb66288e6d495993f187d576e919778a7160fb74f832686a7"
+        "sha256": "sha256:1fb5553d6a6f1ddfc3f9db331fd4490ce79de4a96635d05c7cfed87207a5c257"
       },
       {
         "index": 48,
@@ -162,7 +163,7 @@
       {
         "index": 60,
         "timeUs": 2000000,
-        "sha256": "sha256:9c4c2853eb061932f489663658b5c61a17f9f548ab5e5b26f2c614002d833e22"
+        "sha256": "sha256:cc079063ec7c8234968f704243dd238f5d1b07844fbcf10b6b432c51ea775fb0"
       }
     ],
     "blockedRequests": [],
@@ -205,25 +206,25 @@
       "file": "effects-200000.png",
       "timeUs": 200000,
       "index": 6,
-      "sha256": "sha256:df936d488202f00c46be85760f4a4e9973c125a0ec05a2b3e6b116a5c360f441"
+      "sha256": "sha256:0bc1a967bfda13b2ac1acfeb5295fc5a472208e45cb623ef34b6a12089673b04"
     },
     {
       "file": "effects-600000.png",
       "timeUs": 600000,
       "index": 18,
-      "sha256": "sha256:f5a82142c0402c644ba96fae486a9e4318b803f1812ec36e34c5ba5d0665dad3"
+      "sha256": "sha256:44891eca74491b4e0da37005e344a02cc3b49ad9918baf53aa92e47a0598f2d8"
     },
     {
       "file": "effects-1000000.png",
       "timeUs": 1000000,
       "index": 30,
-      "sha256": "sha256:2e3f00522e51474d88f1e71c1d6608ae1ed0bb939f134be4121b93ba44a739ff"
+      "sha256": "sha256:3d1aceb50afeb79c13cf0b7e132358311b083ed78060ccfb0051f1c2a447b4b3"
     },
     {
       "file": "effects-1300000.png",
       "timeUs": 1300000,
       "index": 39,
-      "sha256": "sha256:1ebee7bc84604c1eb66288e6d495993f187d576e919778a7160fb74f832686a7"
+      "sha256": "sha256:1fb5553d6a6f1ddfc3f9db331fd4490ce79de4a96635d05c7cfed87207a5c257"
     },
     {
       "file": "effects-1600000.png",
@@ -235,7 +236,7 @@
       "file": "effects-2000000.png",
       "timeUs": 2000000,
       "index": 60,
-      "sha256": "sha256:9c4c2853eb061932f489663658b5c61a17f9f548ab5e5b26f2c614002d833e22"
+      "sha256": "sha256:cc079063ec7c8234968f704243dd238f5d1b07844fbcf10b6b432c51ea775fb0"
     }
   ]
 }
