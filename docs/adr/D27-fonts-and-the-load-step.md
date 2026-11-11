@@ -7,6 +7,7 @@
   header, and bytes that are not a whole file of its media type are `image-invalid` (D62.3)
 - Amended by: PR-53 (D74) on 2026-11-09: 27.3: an `svg` asset is resolved as `image/svg+xml` only and read by the
   sanitiser after its hash is verified; a refused file is `svg-refused` (D74.3)
+- Amended by: PR-64 (D83) on 2026-11-11, in force from PR-66: 27.1: the load step reads the metrics of the document's fonts (D83.7)
 - Date: 2026-09-22
 - Supersedes: —
 - Amends (accepted with this ADR): D22.5 ("The renderer never verifies a hash"), D22.6, and

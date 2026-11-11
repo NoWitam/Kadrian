@@ -122,7 +122,11 @@ describe('one mounted tree, many instants', () => {
   it('writes no transform and no opacity before the first render', () => {
     const root = mountedReference();
     const text = root.innerHTML;
-    expect(text).not.toContain('opacity');
+    // Every mention of the opacity is the static declaration of a node whose
+    // opacity renders write (D22.9); no value of an opacity is written.
+    expect(text).not.toMatch(/(?<![\w-])opacity:/);
+    expect(text.match(/opacity/g)).toHaveLength(5);
+    expect(text.match(/will-change: opacity;/g)).toHaveLength(5);
     expect(text).not.toMatch(/transform:|translate|scale\(/);
     renderState(root, evaluateComposition(reference, 0));
     expect(root.innerHTML).toContain('transform: translate(');

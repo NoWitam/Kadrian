@@ -12,20 +12,13 @@
  * Last, a fragment on a grid anchored on its first frame (D80).
  */
 import { execFile, spawn } from 'node:child_process';
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { networkInterfaces, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import process from 'node:process';
 import { createInterface } from 'node:readline';
 import { promisify } from 'node:util';
+import { Worker } from 'node:worker_threads';
 
 import { CANCEL_GRACE_MS, EXIT_CANCELLED, EXIT_LIMIT_EXCEEDED } from '@kadrion/cli';
 import {
@@ -198,28 +191,94 @@ function psnr(a: Pixels, b: Pixels): number {
   return mse === 0 ? Number.POSITIVE_INFINITY : 10 * Math.log10((255 * 255) / mse);
 }
 
-/** Files anywhere below `directory`, a few levels deep, that look like frames. */
-function frameLikeFiles(directory: string, depth = 3): string[] {
-  if (depth < 0 || !existsSync(directory)) return [];
-  const found: string[] = [];
-  let entries: string[];
+/**
+ * The watch for frame files during the export, in a worker thread of its own.
+ * Every 25 ms it lists the files below the watched directories, a few levels
+ * deep, that look like frames and were not there when it started, and every
+ * name in the export directory but the MP4 and its encoded parts (D47.6).
+ * A scan reads each directory once with the types of its entries. It runs off
+ * the thread that pipes the frames, so what other programs left in the
+ * temporary directory slows the scan, never the export: on the main thread a
+ * scan of a crowded directory took the whole interval on some runners and
+ * starved the export past its timeout (2026-11-11).
+ */
+const FRAME_WATCH = `
+const { readdirSync } = require('node:fs');
+const { join } = require('node:path');
+const { parentPort, workerData } = require('node:worker_threads');
+const { directories, exports } = workerData;
+const FRAME = /\\.(png|bmp|ppm|rgb|rgba|raw|yuv|y4m)$/i;
+const ENCODED = /^video-(1080p|720p)\\.mp4(\\.(segment-\\d{6}\\.mp4|audio\\.wav))?(\\.partial)?$/;
+function frameLikeFiles(directory, depth, found) {
+  if (depth < 0) return found;
+  let entries;
   try {
-    entries = readdirSync(directory);
+    entries = readdirSync(directory, { withFileTypes: true });
   } catch {
-    return [];
+    return found;
   }
-  for (const name of entries) {
-    const path = join(directory, name);
-    let isDirectory: boolean;
-    try {
-      isDirectory = statSync(path).isDirectory();
-    } catch {
-      continue;
-    }
-    if (isDirectory) found.push(...frameLikeFiles(path, depth - 1));
-    else if (/\.(png|bmp|ppm|rgb|rgba|raw|yuv|y4m)$/i.test(name)) found.push(path);
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) frameLikeFiles(path, depth - 1, found);
+    else if (FRAME.test(entry.name)) found.push(path);
   }
   return found;
+}
+const scan = () => directories.flatMap((directory) => frameLikeFiles(directory, 3, []));
+const before = new Set(scan());
+const outputs = new Set();
+const scans = { count: 0, totalMs: 0, maxMs: 0, entriesBefore: before.size };
+const timer = setInterval(() => {
+  const started = performance.now();
+  for (const file of scan()) if (!before.has(file)) outputs.add(file);
+  let names = [];
+  try {
+    names = readdirSync(exports);
+  } catch {}
+  for (const name of names) if (!ENCODED.test(name)) outputs.add(join(exports, name));
+  const took = performance.now() - started;
+  scans.count += 1;
+  scans.totalMs += took;
+  scans.maxMs = Math.max(scans.maxMs, took);
+}, 25);
+parentPort.on('message', () => {
+  clearInterval(timer);
+  parentPort.postMessage({ outputs: [...outputs], scans });
+});
+parentPort.postMessage('watching');
+`;
+
+interface FrameWatchResult {
+  readonly outputs: string[];
+  readonly scans: { count: number; totalMs: number; maxMs: number; entriesBefore: number };
+}
+
+/** Starts the watch and resolves once it has its first listing; `stop` ends it. */
+async function watchFrames(
+  directories: readonly string[],
+  exports: string,
+): Promise<{ stop: () => Promise<FrameWatchResult> }> {
+  const worker = new Worker(FRAME_WATCH, { eval: true, workerData: { directories, exports } });
+  await new Promise<void>((resolve, reject) => {
+    worker.once('message', () => {
+      resolve();
+    });
+    worker.once('error', reject);
+  });
+  return {
+    stop: async () => {
+      const result = new Promise<FrameWatchResult>((resolve, reject) => {
+        worker.once('message', (message: FrameWatchResult) => {
+          resolve(message);
+        });
+        worker.once('error', reject);
+      });
+      worker.postMessage('stop');
+      const found = await result;
+      await worker.terminate();
+      return found;
+    },
+  };
 }
 
 describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', () => {
@@ -234,22 +293,9 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
     chromium = await launchChromium();
     rmSync(EXPORTS, { recursive: true, force: true });
     mkdirSync(EXPORTS, { recursive: true });
-    const before = new Set(watchedDirectories.flatMap((directory) => frameLikeFiles(directory)));
-    const outputs = new Set<string>();
-    const watch = setInterval(() => {
-      for (const directory of watchedDirectories) {
-        for (const file of frameLikeFiles(directory)) if (!before.has(file)) outputs.add(file);
-      }
-      for (const name of existsSync(EXPORTS) ? readdirSync(EXPORTS) : []) {
-        // The MP4, and while it is made its encoded parts (D47.6): segments and the
-        // audio intermediate, never a frame.
-        if (
-          !/^video-(1080p|720p)\.mp4(\.(segment-\d{6}\.mp4|audio\.wav))?(\.partial)?$/.test(name)
-        ) {
-          outputs.add(join(EXPORTS, name));
-        }
-      }
-    }, 25);
+    const watch = await watchFrames(watchedDirectories, EXPORTS);
+    const started = performance.now();
+    let found: FrameWatchResult | undefined;
     try {
       full = await exportMp4({
         document: variant(() => undefined).document,
@@ -268,9 +314,12 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
         chromium,
       });
     } finally {
-      clearInterval(watch);
+      found = await watch.stop();
     }
-    watched.push(...outputs);
+    // What the watch cost beside the export, in the report.
+    report.watch = { ...found.scans, exportMs: performance.now() - started };
+    console.info(`Frame watch during the export: ${JSON.stringify(report.watch)}`);
+    watched.push(...found.outputs);
     // The reference: the frame loop of D28 over the full grid, in a page of its own.
     reference = await renderFrames({
       document: variant(() => undefined).document,
