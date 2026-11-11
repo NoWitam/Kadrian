@@ -1,7 +1,7 @@
 {
   "render": {
     "manifestVersion": 3,
-    "compositionHash": "sha256:c7310508151e5423f4a8a258743a994997e861a6e3fdcbba9ea4cd0efd27bcf9",
+    "compositionHash": "sha256:6b2eeceba891e303f345ef79f4d620946bf917c88014ef7511e687ebbf6394c6",
     "schemaVersion": "0.23",
     "runtime": {
       "contentHash": "sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13",
@@ -82,22 +82,22 @@
       {
         "index": 0,
         "timeUs": 0,
-        "sha256": "sha256:b2ce4e6ff69bd2c760c171c944bc4566eb7a9a4f41f44344bb714c81bf1834a5"
+        "sha256": "sha256:2dd850b4c6f2c2c5df56e260b20f6c79a7ff69007d360fc96eabe3a77d633d5e"
       },
       {
         "index": 15,
         "timeUs": 500000,
-        "sha256": "sha256:79f183fa18577a463be9609ca7d983e4ddc76d52e9f76589e24c9536d136cce8"
+        "sha256": "sha256:aa1e927ec40f84d76a34aa1eda0c42fc365509b587159f6e223e86515f79bba1"
       },
       {
         "index": 30,
         "timeUs": 1000000,
-        "sha256": "sha256:ace5176f525155c3a8f332c38fde6d557bc2d8c448aa82597581b5f76c6c7ef5"
+        "sha256": "sha256:8e82ab492f64c91530b06d39247c5607e5d268a1098728766265bf0414a52deb"
       },
       {
         "index": 45,
         "timeUs": 1500000,
-        "sha256": "sha256:cb82a70915a20cf2c6616746335ce0a783ba73b22eadf86df9570a2a633f24d8"
+        "sha256": "sha256:cd41155013cdc3c81926c3413f57cbc27c86d3509b25b49fee2de0fd9dc982c8"
       }
     ],
     "blockedRequests": [],
@@ -140,25 +140,25 @@
       "file": "compositing-0.png",
       "timeUs": 0,
       "index": 0,
-      "sha256": "sha256:b2ce4e6ff69bd2c760c171c944bc4566eb7a9a4f41f44344bb714c81bf1834a5"
+      "sha256": "sha256:2dd850b4c6f2c2c5df56e260b20f6c79a7ff69007d360fc96eabe3a77d633d5e"
     },
     {
       "file": "compositing-500000.png",
       "timeUs": 500000,
       "index": 15,
-      "sha256": "sha256:79f183fa18577a463be9609ca7d983e4ddc76d52e9f76589e24c9536d136cce8"
+      "sha256": "sha256:aa1e927ec40f84d76a34aa1eda0c42fc365509b587159f6e223e86515f79bba1"
     },
     {
       "file": "compositing-1000000.png",
       "timeUs": 1000000,
       "index": 30,
-      "sha256": "sha256:ace5176f525155c3a8f332c38fde6d557bc2d8c448aa82597581b5f76c6c7ef5"
+      "sha256": "sha256:8e82ab492f64c91530b06d39247c5607e5d268a1098728766265bf0414a52deb"
     },
     {
       "file": "compositing-1500000.png",
       "timeUs": 1500000,
       "index": 45,
-      "sha256": "sha256:cb82a70915a20cf2c6616746335ce0a783ba73b22eadf86df9570a2a633f24d8"
+      "sha256": "sha256:cd41155013cdc3c81926c3413f57cbc27c86d3509b25b49fee2de0fd9dc982c8"
     }
   ]
 }
