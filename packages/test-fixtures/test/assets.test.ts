@@ -14,7 +14,10 @@ import {
   AUDIO_SECONDS,
   FONT_GLYPHS,
   captionsComposition,
+  generateProportionalFont,
   generateReferenceAssets,
+  PROPORTIONAL_FONT_ADVANCES,
+  PROPORTIONAL_FONT_GLYPHS,
   IMAGE_SIZE,
   referenceComposition,
   transitionsComposition,
@@ -229,6 +232,63 @@ describe('asset-font', () => {
     });
     for (const character of texts.join(''))
       expect(FONT_GLYPHS, character).toHaveProperty([character]);
+  });
+});
+
+describe('the proportional font (D83, PR-65)', () => {
+  /** The tables of a font, by tag, and the sum of its words as the checksums of sfnt count. */
+  const tablesOf = (font: Uint8Array): Map<string, { offset: number; length: number }> => {
+    const data = view(font);
+    const tables = new Map<string, { offset: number; length: number }>();
+    for (let index = 0; index < data.getUint16(4); index += 1) {
+      const record = 12 + index * 16;
+      const offset = data.getUint32(record + 8);
+      const length = data.getUint32(record + 12);
+      const words = font.subarray(offset, offset + Math.ceil(length / 4) * 4);
+      let sum = 0;
+      for (let at = 0; at < words.length; at += 4)
+        sum = (sum + view(words).getUint32(at)) % 2 ** 32;
+      const tag = String.fromCharCode(...font.subarray(record, record + 4));
+      if (tag !== 'head') expect(sum, tag).toBe(data.getUint32(record + 4));
+      tables.set(tag, { offset, length });
+    }
+    return tables;
+  };
+
+  it.each(['both', 'format-4', 'format-12'] as const)(
+    'is a TrueType font with valid checksums, the same bytes on every call (%s)',
+    (cmap) => {
+      const font = generateProportionalFont(cmap);
+      expect(generateProportionalFont(cmap)).toEqual(font);
+      expect(view(font).getUint32(0)).toBe(0x00010000);
+      expect([...tablesOf(font).keys()]).toEqual([
+        'OS/2',
+        'cmap',
+        'glyf',
+        'head',
+        'hhea',
+        'hmtx',
+        'loca',
+        'maxp',
+        'name',
+        'post',
+      ]);
+    },
+  );
+
+  it('has an advance of its own for every glyph, and pins its bytes', () => {
+    expect(Object.keys(PROPORTIONAL_FONT_ADVANCES).sort()).toEqual(
+      Object.keys(PROPORTIONAL_FONT_GLYPHS).sort(),
+    );
+    expect(new Set(Object.values(PROPORTIONAL_FONT_ADVANCES)).size).toBeGreaterThan(4);
+    // The variants differ in cmap only: the same glyphs, advances, and outlines.
+    const both = tablesOf(generateProportionalFont('both'));
+    const bmp = tablesOf(generateProportionalFont('format-4'));
+    for (const tag of ['glyf', 'hmtx', 'loca'])
+      expect(bmp.get(tag)?.length).toBe(both.get(tag)?.length);
+    expect(sha256(generateProportionalFont())).toBe(
+      'sha256:47d9d04524cbaba241f318aab4a4ac2b16dc23748145c8c902cfb654e3c11048',
+    );
   });
 });
 

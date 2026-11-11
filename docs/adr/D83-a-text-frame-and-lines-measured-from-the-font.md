@@ -441,6 +441,16 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
   dist tree keep their bytes, as PR-59 did; the proportional fixture font; the
   pinned comparison of Node and Chromium (a pinned test file added while Q14
   is open). No field, no host change.
+
+  - Status: in review. The functions, the fixture font, and the readings
+    for the owner to confirm are recorded in the implementation notes below
+    (PR-65). The runtime build keeps its bytes
+    (`sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13`)
+    and so does the Player's dist tree
+    (`sha256:a7b583cc9d2a65085acf1c4b9a31230ef2ddd03d7269ec725ab78429a77a2452`).
+    Open: the pinned comparison of Node and Chromium runs in the pinned
+    container (a pinned test file added while Q14 is open).
+
 - **PR-66.** The step from `0.24`, the frozen `0.24`, the fields, the load
   step, the mount and `renderState`, `evaluateComposition(…, fonts)`, the
   descriptions and examples of the complete-object tools (so that a model
@@ -455,6 +465,64 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
 - **PR-68.** The host guide: frames, alignment, `frameLayout` for an overlay,
   sfnt fonts, and the costs; a showcase in the playground. It joins PR-63 when
   both are ready, so that one release carries `0.24` and `0.25`.
+
+## Implementation notes (PR-65)
+
+PR-65 adds the functions over explicit arguments, before any field uses them;
+nothing in this section is in force for a document before PR-66.
+
+- **One entry until PR-66.** `packages/runtime/src/text-frame.ts` is the entry
+  `@kadrion/runtime/text-frame`, which the main entry, the render page, and
+  the Player do not reach, so the runtime build and the Player's dist tree
+  keep their bytes (the hashes in the status of PR-65 above, the same before
+  and after the change). It exports `fontMetrics` and `FontMetricsError`
+  (code `font-unmeasurable`; the load step of PR-66 reports it as the
+  `RenderError` of D83.7), the measure (`advanceOf`, `measureText`,
+  `fitsWidth`, `unitsToPixels`, `textLinesHeight`, `textLinesFitHeight`),
+  `textLines`, `captionPagesByWidth`, and `frameLayout`.
+- **`fontMetrics`** reads one `cmap` subtable, the first of the best kind in
+  the order format 12 of platform 3 (encoding 10), format 12 of platform 0,
+  format 4 of platform 3 (encoding 1), format 4 of platform 0, as browsers
+  choose one; it does not merge subtables. A code point that maps to glyph 0
+  or to a glyph past `numGlyphs` has no glyph. `font-unmeasurable` also
+  covers a `unitsPerEm` outside 16 to 16 384, a `numberOfHMetrics` of 0 or
+  past `numGlyphs`, and segments or groups that do not ascend, which also
+  bounds the work of a hostile file to one pass over the code points.
+- **The fixture font.** `generateProportionalFont` of
+  `@kadrion/test-fixtures` builds the proportional font with the code of the
+  monospaced one (whose bytes do not change), so no font file enters the
+  repository and its licence is the repository's own (D10, D27.5). Its glyphs
+  advance from 200 to 800 units (`PROPORTIONAL_FONT_ADVANCES`), it writes
+  the advance of its last glyphs once (`numberOfHMetrics` below
+  `numGlyphs`), and it maps U+1F642 only through format 12; its variants
+  `format-4`, `format-12`, and `both` (the default) differ in `cmap` only.
+- **Readings for the owner to confirm.**
+  1. The `width` mode is `captionPagesByWidth` beside the unchanged
+     `captionPages`, because `captions.ts` is part of the runtime build;
+     PR-66 gives `captionPages` the mode and the metrics, reading
+     `captionPagesByWidth`, as PR-59 put `sourceTimeOfScene` beside
+     `sourceTimeUs`.
+  2. `frameLayout` reads the fields of `0.25` by their names
+     (`TextFrameInput`, `CaptionsFrameInput`), so the nodes of PR-66 pass as
+     they are. Beside what D83.6 lists, each line has `x` and `y`, its
+     corner in the node's box as the alignment places it, so that an overlay
+     does not copy the alignment either (W4); it also serves a text without a
+     frame, whose lines always fit.
+  3. White space at the end of a line of the text, which D83.5 does not
+     name, is kept and measured while the line still fits with it, and is
+     otherwise the run at which the line breaks. The first word of a line
+     joins it even after white space at its start, so no line holds white
+     space alone unless the text does.
+  4. `missing` leaves out the line feed, a break and not a glyph, and counts
+     U+0020 for captions of more than one word, since the space between two
+     words is measured.
+- **Node and Chromium.** `tests/pinned/text-frame.pinned.test.ts` compares
+  the SHA-256 of the metrics of the four fixture fonts and of 33 layouts
+  (framed texts in every alignment at two sizes, texts without a frame, and
+  captions in both modes in both fonts) between the pinned Chromium and
+  Node, and writes `text-frame/node-vs-chromium.json`; it is a pinned test
+  file added while Q14 is open. That Chromium draws a measured line as wide
+  as `frameLayout` says is checked by PR-66, with the mount (Verification).
 
 ## Questions for the owner, with recommendations
 
