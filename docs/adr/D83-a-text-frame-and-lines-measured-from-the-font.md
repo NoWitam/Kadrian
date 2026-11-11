@@ -1,6 +1,7 @@
 # D83 — A text frame, alignment, and lines measured from the font: schema 0.25
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-11 (13:37 Europe/Warsaw),
+  before any code, with the recommendations of all fourteen questions
 - Date: 2026-11-11
 - Supersedes: —
 - Extends, on acceptance, each with an `Amended by` line written then and in
