@@ -6,6 +6,12 @@
  * an alpha matte inside a group that blends, and a luminance-inverted matte,
  * meet their golden frames in the pinned environment (D26.5). The composition
  * has no video, so no FFmpeg is needed.
+ *
+ * The modes that divide (color-dodge, color-burn, hue, saturation, color, and
+ * luminosity) are drawn as solid squares on a solid underlay. Each of them
+ * yields one colour whose channels lie within 0.07 of a whole 8-bit value.
+ * Skia divides with a precision that depends on the CPU of the runner: under a
+ * gradient, its rounding moved 101 pixels by 1 on some GitHub runners only.
  */
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
