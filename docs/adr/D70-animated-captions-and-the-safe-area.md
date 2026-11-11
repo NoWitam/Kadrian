@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-11-09, after PR-50 was merged
   (PR #69)
 - Date: 2026-11-08
+- Amended by: PR-64 (D83) on 2026-11-11, in force from PR-66: the spoken word gets its own outline and shadow (D83.8)
 - Supersedes: —
 - Amends: D16 (captions have a highlight, a text style, and page animations;
   the composition has a `safeArea`), D22 (captions drawn in pieces in the

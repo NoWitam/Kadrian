@@ -17,6 +17,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
+import * as runtimeEntry from '@kadrion/runtime';
+import * as textFrameEntry from '@kadrion/runtime/text-frame';
 import * as mainEntry from '@kadrion/schema';
 import * as migrateEntry from '@kadrion/schema/migrate';
 import * as templateEntry from '@kadrion/schema/template';
@@ -27,9 +29,10 @@ import { reached, sourcesBelow, specifiers } from './module-graph.js';
 import { listDirs, repoPath } from './repo.js';
 
 const SCHEMA_DIST = repoPath('packages', 'schema', 'dist');
+const RUNTIME_DIST = repoPath('packages', 'runtime', 'dist');
 
-function names(modules: ReadonlySet<string>): string[] {
-  return [...modules].map((path) => relative(SCHEMA_DIST, path).replaceAll('\\', '/')).sort();
+function names(modules: ReadonlySet<string>, dist = SCHEMA_DIST): string[] {
+  return [...modules].map((path) => relative(dist, path).replaceAll('\\', '/')).sort();
 }
 
 const HISTORICAL = /migrat|v0-1/;
@@ -132,6 +135,20 @@ describe('the entry points of @kadrion/schema (D42.8)', () => {
         'v0-1/composition-schema.js',
       ]),
     );
+  });
+});
+
+describe('the entries of @kadrion/runtime (D83, PR-65)', () => {
+  it('keeps the lines measured from the font behind their own entry until schema 0.25', () => {
+    expect(Object.keys(textFrameEntry)).toEqual(
+      expect.arrayContaining(['fontMetrics', 'textLines', 'captionPagesByWidth', 'frameLayout']),
+    );
+    expect(Object.keys(runtimeEntry)).not.toContain('fontMetrics');
+    const main = names(reached(join(RUNTIME_DIST, 'index.js')), RUNTIME_DIST);
+    // The premise: the walk reaches the captions, which the new entry imports too.
+    expect(main).toContain('captions.js');
+    expect(main).not.toContain('text-frame.js');
+    expect(main).not.toContain('stretch.js');
   });
 });
 

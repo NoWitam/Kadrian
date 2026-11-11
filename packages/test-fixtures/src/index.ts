@@ -135,12 +135,17 @@ export {
   AUDIO_SECONDS,
   FONT_FAMILY_NAME,
   FONT_GLYPHS,
+  FONT_NOTDEF_ADVANCE,
   FONT_UNITS_PER_EM,
   fixtureSine,
+  generateProportionalFont,
   generateReferenceAssets,
   generateSoundFixture,
   generateSvgAsset,
   IMAGE_SIZE,
+  PROPORTIONAL_FONT_ADVANCES,
+  PROPORTIONAL_FONT_FAMILY_NAME,
+  PROPORTIONAL_FONT_GLYPHS,
   SOUND_FIXTURES,
   SOUND_SAMPLE_RATE,
   SVG_BADGE,
@@ -155,7 +160,12 @@ export {
   videoFixtureArguments,
   videoSoundFixtureArguments,
 } from './assets/index.js';
-export type { FixtureAsset, RotatedVideoFixture, SoundFixture } from './assets/index.js';
+export type {
+  FixtureAsset,
+  FixtureFontCmap,
+  RotatedVideoFixture,
+  SoundFixture,
+} from './assets/index.js';
 
 /** One step of an RFC 6902 JSON Patch, restricted to `add`, `replace`, and `remove`. */
 export interface FixturePatchOperation {

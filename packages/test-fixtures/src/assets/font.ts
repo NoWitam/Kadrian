@@ -5,6 +5,13 @@
  * pixels in a row is one rectangular contour. It covers exactly the characters
  * listed in `FONT_GLYPHS`, which are the characters of the reference texts; a
  * character outside it would make the browser fall back to another font.
+ *
+ * Beside it, the proportional font of D83 (PR-65), built by the same code:
+ * its glyphs have advances of their own (`PROPORTIONAL_FONT_ADVANCES`), so a
+ * line measured from the font breaks elsewhere than a line counted in
+ * characters. It maps its characters through a format 4 subtable, a format 12
+ * subtable, or both, and writes the advances of its last glyphs once, as font
+ * tools do, so that a reader of `hmtx` and `cmap` is tried on every path.
  */
 import { ByteWriter } from './bytes.js';
 
@@ -39,6 +46,85 @@ export const FONT_GLYPHS: Readonly<Record<string, readonly string[]>> = {
   y: ['.....', '.....', '#...#', '#...#', '#...#', '#...#', '.####', '....#', '.###.'],
 };
 
+/**
+ * The proportional font (D83, PR-65): the glyphs of `FONT_GLYPHS` with some
+ * drawn narrower or wider, a few more letters, the digits (whose advances
+ * also differ, for the width probe of PR-65), and one character outside the
+ * Basic Multilingual Plane, U+1F642, which only a format 12 subtable maps.
+ */
+export const PROPORTIONAL_FONT_FAMILY_NAME = 'Kadrion Fixture Proportional';
+
+export const PROPORTIONAL_FONT_GLYPHS: Readonly<Record<string, readonly string[]>> = {
+  ...FONT_GLYPHS,
+  '0': ['.###.', '#...#', '#..##', '#.#.#', '##..#', '#...#', '.###.'],
+  '1': ['.#.', '##.', '.#.', '.#.', '.#.', '.#.', '###'],
+  '2': ['.###.', '#...#', '....#', '...#.', '..#..', '.#...', '#####'],
+  '3': ['####.', '....#', '....#', '.###.', '....#', '....#', '####.'],
+  '4': ['...#.', '..##.', '.#.#.', '#..#.', '#####', '...#.', '...#.'],
+  '5': ['#####', '#....', '####.', '....#', '....#', '#...#', '.###.'],
+  '6': ['..##.', '.#...', '#....', '####.', '#...#', '#...#', '.###.'],
+  '7': ['####', '...#', '...#', '..#.', '..#.', '.#..', '.#..'],
+  '8': ['.###.', '#...#', '#...#', '.###.', '#...#', '#...#', '.###.'],
+  '9': ['.###.', '#...#', '#...#', '.####', '....#', '...#.', '.##..'],
+  h: ['#....', '#....', '####.', '#...#', '#...#', '#...#', '#...#'],
+  i: ['#', '.', '#', '#', '#', '#', '#'],
+  l: ['##', '.#', '.#', '.#', '.#', '.#', '.#'],
+  m: ['.......', '.......', '###.##.', '#..#..#', '#..#..#', '#..#..#', '#..#..#'],
+  r: ['....', '....', '#.##', '##..', '#...', '#...', '#...'],
+  t: ['.#.', '.#.', '###', '.#.', '.#.', '.#.', '..#'],
+  u: ['.....', '.....', '#...#', '#...#', '#...#', '#...#', '.####'],
+  w: ['.......', '.......', '#.....#', '#.....#', '#..#..#', '#.#.#.#', '.#...#.'],
+  x: ['.....', '.....', '#...#', '.#.#.', '..#..', '.#.#.', '#...#'],
+  '\u{1F642}': ['.###.', '#...#', '#.#.#', '#...#', '#.#.#', '#..##', '.###.'],
+};
+
+/**
+ * The advance of every glyph of the proportional font, in font units, as the
+ * generator writes it to `hmtx`: the width of its ink plus one cell, and 300
+ * for the space. `.notdef` advances `FONT_NOTDEF_ADVANCE`.
+ */
+export const PROPORTIONAL_FONT_ADVANCES: Readonly<Record<string, number>> = {
+  ' ': 300,
+  '0': 600,
+  '1': 400,
+  '2': 600,
+  '3': 600,
+  '4': 600,
+  '5': 600,
+  '6': 600,
+  '7': 500,
+  '8': 600,
+  '9': 600,
+  D: 600,
+  K: 600,
+  a: 600,
+  b: 600,
+  c: 600,
+  d: 600,
+  e: 600,
+  g: 600,
+  h: 600,
+  i: 200,
+  l: 300,
+  m: 800,
+  n: 600,
+  o: 600,
+  r: 500,
+  s: 600,
+  t: 400,
+  u: 600,
+  w: 800,
+  x: 600,
+  y: 600,
+  '\u{1F642}': 600,
+};
+
+/** The advance of `.notdef`, glyph 0, in both fonts. */
+export const FONT_NOTDEF_ADVANCE = ADVANCE;
+
+/** Which `cmap` subtables a generated font has: Windows Unicode BMP (format 4), full repertoire (format 12), or both. */
+export type FixtureFontCmap = 'format-4' | 'format-12' | 'both';
+
 interface Rect {
   readonly x0: number;
   readonly y0: number;
@@ -50,8 +136,11 @@ interface Glyph {
   readonly rects: readonly Rect[];
 }
 
-/** One rectangle per horizontal run of `#`; row 6 ends on the baseline. */
-function rectsOf(rows: readonly string[]): Rect[] {
+/**
+ * One rectangle per horizontal run of `#`; row 6 ends on the baseline. Column
+ * `shift` is drawn at the left side bearing of half a cell.
+ */
+function rectsOf(rows: readonly string[], shift = 0): Rect[] {
   const rects: Rect[] = [];
   rows.forEach((row, rowIndex) => {
     const top = (7 - rowIndex) * CELL;
@@ -61,9 +150,9 @@ function rectsOf(rows: readonly string[]): Rect[] {
       if (set && start < 0) start = column;
       if (!set && start >= 0) {
         rects.push({
-          x0: (start + 0.5) * CELL,
+          x0: (start - shift + 0.5) * CELL,
           y0: top - CELL,
-          x1: (column + 0.5) * CELL,
+          x1: (column - shift + 0.5) * CELL,
           y1: top,
         });
         start = -1;
@@ -135,12 +224,79 @@ function checksum(bytes: Uint8Array): number {
   return sum;
 }
 
+/** One glyph of a font to build: its outline, its advance, and the code point that maps to it, if any. */
+interface GlyphSpec extends Glyph {
+  readonly advance: number;
+  readonly codePoint: number | null;
+}
+
+/** What differs between the two fixture fonts. */
+interface FontSpec {
+  readonly familyName: string;
+  readonly postScriptName: string;
+  /** Glyph 0 is `.notdef`; the others follow in ascending order of code point. */
+  readonly glyphs: readonly GlyphSpec[];
+  readonly fixedPitch: boolean;
+  readonly cmap: FixtureFontCmap;
+  /** Whether `hmtx` writes the advance of a run of equal last glyphs once (`numberOfHMetrics` below `numGlyphs`). */
+  readonly compactMetrics: boolean;
+}
+
+/** The monospaced font of the reference composition: every advance 600, one format 4 subtable. */
 export function generateFont(): Uint8Array {
   const characters = Object.keys(FONT_GLYPHS).sort();
-  const glyphs: Glyph[] = [
-    NOTDEF,
-    ...characters.map((c) => ({ rects: rectsOf(FONT_GLYPHS[c] ?? []) })),
-  ];
+  return buildFont({
+    familyName: FONT_FAMILY_NAME,
+    postScriptName: 'KadrionFixture-Regular',
+    glyphs: [
+      { ...NOTDEF, advance: ADVANCE, codePoint: null },
+      ...characters.map((c) => ({
+        rects: rectsOf(FONT_GLYPHS[c] ?? []),
+        advance: ADVANCE,
+        codePoint: c.codePointAt(0) ?? 0,
+      })),
+    ],
+    fixedPitch: true,
+    cmap: 'format-4',
+    compactMetrics: false,
+  });
+}
+
+/**
+ * The proportional font of D83 (PR-65), with the subtables `cmap` names
+ * (both by default). Its glyphs, advances, and outlines are the same in every
+ * variant; a variant without format 12 does not map U+1F642.
+ */
+export function generateProportionalFont(cmap: FixtureFontCmap = 'both'): Uint8Array {
+  const characters = Object.keys(PROPORTIONAL_FONT_GLYPHS).sort(
+    (a, b) => (a.codePointAt(0) ?? 0) - (b.codePointAt(0) ?? 0),
+  );
+  return buildFont({
+    familyName: PROPORTIONAL_FONT_FAMILY_NAME,
+    postScriptName: 'KadrionFixtureProportional-Regular',
+    glyphs: [
+      { ...NOTDEF, advance: ADVANCE, codePoint: null },
+      ...characters.map((c) => {
+        const rows = PROPORTIONAL_FONT_GLYPHS[c] ?? [];
+        const advance = PROPORTIONAL_FONT_ADVANCES[c] ?? 0;
+        const columns = rows.flatMap((row) =>
+          Array.from(row).flatMap((cell, column) => (cell === '#' ? [column] : [])),
+        );
+        const shift = columns.length === 0 ? 0 : Math.min(...columns);
+        const ink = columns.length === 0 ? 0 : Math.max(...columns) - shift + 1;
+        if (advance < (ink + 1) * CELL)
+          throw new Error(`The advance of ${c} is narrower than its ink.`);
+        return { rects: rectsOf(rows, shift), advance, codePoint: c.codePointAt(0) ?? 0 };
+      }),
+    ],
+    fixedPitch: false,
+    cmap,
+    compactMetrics: true,
+  });
+}
+
+function buildFont(spec: FontSpec): Uint8Array {
+  const { glyphs } = spec;
   const numGlyphs = glyphs.length;
   const glyphData = glyphs.map(glyphBytes);
   const all = glyphs.flatMap((glyph) => glyph.rects);
@@ -150,7 +306,23 @@ export function generateFont(): Uint8Array {
   const yMax = Math.max(...all.map((rect) => rect.y1));
   const maxPoints = Math.max(...glyphs.map((glyph) => glyph.rects.length * 4));
   const maxContours = Math.max(...glyphs.map((glyph) => glyph.rects.length));
-  const codes = characters.map((c) => c.charCodeAt(0));
+  const mapped = glyphs.flatMap((glyph, index) =>
+    glyph.codePoint === null ? [] : [{ code: glyph.codePoint, glyph: index }],
+  );
+  const codes = mapped.map(({ code }) => code);
+  const bmp = mapped.filter(({ code }) => code <= 0xffff);
+  const advances = glyphs.map((glyph) => glyph.advance);
+  const advanceMax = Math.max(...advances);
+  const inked = advances.filter((advance) => advance > 0);
+  const averageAdvance = Math.floor(
+    inked.reduce((sum, advance) => sum + advance, 0) / inked.length,
+  );
+  let numberOfHMetrics = numGlyphs;
+  if (spec.compactMetrics) {
+    while (numberOfHMetrics > 1 && advances[numberOfHMetrics - 2] === advances[numGlyphs - 1]) {
+      numberOfHMetrics -= 1;
+    }
+  }
 
   const glyf = new ByteWriter();
   const loca = new ByteWriter();
@@ -186,7 +358,7 @@ export function generateFont(): Uint8Array {
     .u16be(ASCENDER)
     .u16be(DESCENDER & 0xffff)
     .u16be(0) // lineGap
-    .u16be(ADVANCE) // advanceWidthMax
+    .u16be(advanceMax) // advanceWidthMax
     .u16be(0) // minLeftSideBearing
     .u16be(0) // minRightSideBearing
     .u16be(xMax) // xMaxExtent
@@ -198,13 +370,14 @@ export function generateFont(): Uint8Array {
     .u16be(0)
     .u16be(0) // reserved
     .u16be(0) // metricDataFormat
-    .u16be(numGlyphs);
+    .u16be(numberOfHMetrics);
 
   const hmtx = new ByteWriter();
-  for (const glyph of glyphs) {
+  glyphs.forEach((glyph, index) => {
     const lsb = glyph.rects.length === 0 ? 0 : Math.min(...glyph.rects.map((rect) => rect.x0));
-    hmtx.u16be(ADVANCE).u16be(lsb);
-  }
+    if (index < numberOfHMetrics) hmtx.u16be(glyph.advance);
+    hmtx.u16be(lsb);
+  });
 
   const maxp = new ByteWriter()
     .u32be(0x00010000)
@@ -226,7 +399,7 @@ export function generateFont(): Uint8Array {
 
   const os2 = new ByteWriter()
     .u16be(4) // version
-    .u16be(ADVANCE) // xAvgCharWidth
+    .u16be(averageAdvance) // xAvgCharWidth
     .u16be(400) // usWeightClass
     .u16be(5) // usWidthClass
     .u16be(0) // fsType: installable
@@ -249,7 +422,7 @@ export function generateFont(): Uint8Array {
     .ascii('NONE') // achVendID
     .u16be(0x00c0) // fsSelection: REGULAR | USE_TYPO_METRICS
     .u16be(Math.min(...codes))
-    .u16be(Math.max(...codes))
+    .u16be(Math.min(Math.max(...codes), 0xffff))
     .u16be(ASCENDER)
     .u16be(DESCENDER & 0xffff)
     .u16be(0) // sTypoLineGap
@@ -263,10 +436,11 @@ export function generateFont(): Uint8Array {
     .u16be(32) // usBreakChar
     .u16be(1); // usMaxContext
 
-  // cmap: one format 4 subtable for Windows Unicode BMP, one segment per character.
-  const segCount = codes.length + 1;
+  // cmap: a format 4 subtable for Windows Unicode BMP, one segment per character,
+  // and a format 12 subtable for Windows Unicode full repertoire, one group per character.
+  const segCount = bmp.length + 1;
   const searchRange = 2 * 2 ** Math.floor(Math.log2(segCount));
-  const subtable = new ByteWriter()
+  const format4 = new ByteWriter()
     .u16be(4)
     .u16be(16 + segCount * 8)
     .u16be(0) // language
@@ -274,28 +448,38 @@ export function generateFont(): Uint8Array {
     .u16be(searchRange)
     .u16be(Math.log2(searchRange / 2))
     .u16be(segCount * 2 - searchRange);
-  for (const code of codes) subtable.u16be(code);
-  subtable.u16be(0xffff).u16be(0); // endCode[], reservedPad
-  for (const code of codes) subtable.u16be(code);
-  subtable.u16be(0xffff); // startCode[]
-  codes.forEach((code, index) => subtable.u16be((index + 1 - code) & 0xffff));
-  subtable.u16be(1); // idDelta[]
-  for (let index = 0; index < segCount; index += 1) subtable.u16be(0); // idRangeOffset[]
-  const cmap = new ByteWriter()
-    .u16be(0)
-    .u16be(1)
-    .u16be(3)
-    .u16be(1)
-    .u32be(12)
-    .append(subtable.toBytes());
+  for (const { code } of bmp) format4.u16be(code);
+  format4.u16be(0xffff).u16be(0); // endCode[], reservedPad
+  for (const { code } of bmp) format4.u16be(code);
+  format4.u16be(0xffff); // startCode[]
+  for (const { code, glyph } of bmp) format4.u16be((glyph - code) & 0xffff);
+  format4.u16be(1); // idDelta[]
+  for (let index = 0; index < segCount; index += 1) format4.u16be(0); // idRangeOffset[]
+  const format12 = new ByteWriter()
+    .u16be(12)
+    .u16be(0) // reserved
+    .u32be(16 + mapped.length * 12)
+    .u32be(0) // language
+    .u32be(mapped.length);
+  for (const { code, glyph } of mapped) format12.u32be(code).u32be(code).u32be(glyph);
+  const subtables: (readonly [number, Uint8Array])[] = [];
+  if (spec.cmap !== 'format-12') subtables.push([1, format4.toBytes()]);
+  if (spec.cmap !== 'format-4') subtables.push([10, format12.toBytes()]);
+  const cmap = new ByteWriter().u16be(0).u16be(subtables.length);
+  let subtableOffset = 4 + subtables.length * 8;
+  for (const [encoding, bytes] of subtables) {
+    cmap.u16be(3).u16be(encoding).u32be(subtableOffset);
+    subtableOffset += bytes.length;
+  }
+  for (const [, bytes] of subtables) cmap.append(bytes);
 
   const names: readonly (readonly [number, string])[] = [
-    [1, FONT_FAMILY_NAME],
+    [1, spec.familyName],
     [2, 'Regular'],
-    [3, `${FONT_FAMILY_NAME} Regular 1.000`],
-    [4, `${FONT_FAMILY_NAME} Regular`],
+    [3, `${spec.familyName} Regular 1.000`],
+    [4, `${spec.familyName} Regular`],
     [5, 'Version 1.000'],
-    [6, 'KadrionFixture-Regular'],
+    [6, spec.postScriptName],
   ];
   const strings = new ByteWriter();
   const name = new ByteWriter()
@@ -314,7 +498,7 @@ export function generateFont(): Uint8Array {
     .u32be(0) // italicAngle
     .u16be(-100 & 0xffff) // underlinePosition
     .u16be(50) // underlineThickness
-    .u32be(1) // isFixedPitch
+    .u32be(spec.fixedPitch ? 1 : 0) // isFixedPitch
     .u32be(0)
     .u32be(0)
     .u32be(0)

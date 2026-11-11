@@ -7,7 +7,7 @@
  * meet their golden frames in the pinned environment (D26.5). The composition
  * has no video, so no FFmpeg is needed.
  */
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { launchChromium, renderFrames, type LaunchedChromium } from '@kadrion/producer';
@@ -17,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   decodePng,
   difference,
+  differingPixels,
   GOLDEN_DIRECTORY,
   OUTPUT_DIRECTORY,
   pinnedRun,
@@ -95,17 +96,26 @@ describe('masks, mattes, and blend modes in pinned Chromium (D75)', () => {
           frames: { file: string; timeUs: number }[];
         })
       : null;
+    rmSync(join(OUTPUT_DIRECTORY, 'compositing'), { recursive: true, force: true });
     const report = frames.map(({ timeUs, png }) => {
       const file = goldens?.frames.find((frame) => frame.timeUs === timeUs)?.file;
+      if (file === undefined) return { timeUs, difference: null };
+      const golden = decodePng(readFileSync(join(GOLDEN_DIRECTORY, file)));
+      const frame = decodePng(png);
+      const found = difference(golden, frame);
+      if (found.differingPixels === 0) return { timeUs, difference: found };
+      // The evidence of a difference that only some runners show: the frame
+      // itself and where it differs from its golden, in the CI artifact.
+      const framePath = `compositing/frame-${String(timeUs)}.png`;
+      mkdirSync(join(OUTPUT_DIRECTORY, 'compositing'), { recursive: true });
+      writeFileSync(join(OUTPUT_DIRECTORY, framePath), png);
       return {
         timeUs,
-        difference:
-          file === undefined
-            ? null
-            : difference(decodePng(readFileSync(join(GOLDEN_DIRECTORY, file))), decodePng(png)),
+        difference: found,
+        frame: framePath,
+        pixels: differingPixels(golden, frame),
       };
     });
-    rmSync(join(OUTPUT_DIRECTORY, reportPath), { force: true });
     writeReport(reportPath, { environment, goldens: goldens !== null, report });
     if (!environment.pinned) {
       console.info(`Not the pinned environment: ${reportPath} is not asserted.`);

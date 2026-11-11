@@ -87,9 +87,10 @@ describe.each(packageDirs)('@kadrion/%s', (dir) => {
   // the runtime build artifact and its manifest (D21, D25.5), the schema its
   // migration entry, which the render page must not import (D42.8), the time
   // map of a clip, and the runtime the stretch of a sound, which neither the
-  // render page nor the Player reaches before schema 0.24 (D82, PR-59), and the
-  // fixtures their compatibility corpus, which the main entry must not load
-  // (D43.6); nothing else.
+  // render page nor the Player reaches before schema 0.24 (D82, PR-59), the
+  // runtime its lines measured from the font, which neither reaches before
+  // schema 0.25 (D83, PR-65), and the fixtures their compatibility corpus,
+  // which the main entry must not load (D43.6); nothing else.
   it('exports its built output', () => {
     const artifact =
       dir === 'renderer-dom'
@@ -106,7 +107,13 @@ describe.each(packageDirs)('@kadrion/%s', (dir) => {
             './time-map': { types: './dist/time-map.d.ts', default: './dist/time-map.js' },
           }
         : dir === 'runtime'
-          ? { './stretch': { types: './dist/stretch.d.ts', default: './dist/stretch.js' } }
+          ? {
+              './stretch': { types: './dist/stretch.d.ts', default: './dist/stretch.js' },
+              './text-frame': {
+                types: './dist/text-frame.d.ts',
+                default: './dist/text-frame.js',
+              },
+            }
           : {};
     const corpus =
       dir === 'test-fixtures'
