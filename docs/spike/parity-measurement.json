@@ -44,7 +44,7 @@
     "width": 1080,
     "height": 1920
   },
-  "playerDistTreeSha256": "sha256:a7b583cc9d2a65085acf1c4b9a31230ef2ddd03d7269ec725ab78429a77a2452",
+  "playerDistTreeSha256": "sha256:8cb02bc6febd7d8bfb29cd80926e3089caf254357e009c4a3c17aff7694613dc",
   "playerDistManifest": [
     {
       "path": "packages/player/dist/agent.js",
@@ -58,13 +58,13 @@
     },
     {
       "path": "packages/player/dist/avc.js",
-      "size": 8815,
-      "sha256": "sha256:ce22d7434d63a1fc201e18144f60642a86a162d7eeb170057d57872f434ffdb6"
+      "size": 7973,
+      "sha256": "sha256:6ba549c4751e243357a1b9de53562c9be318fc6b048d0471a82cbf752ddc561b"
     },
     {
       "path": "packages/player/dist/container.js",
-      "size": 16233,
-      "sha256": "sha256:1fe2d72b23b51cdab7af76f8b574b6246eeafa02fdbea16d63c2e8cc20fc2523"
+      "size": 16232,
+      "sha256": "sha256:e8555ba4d025c4b662bf8a746ba55d3f51f584bae520c66c5a69ced69539fa19"
     },
     {
       "path": "packages/player/dist/errors.js",
@@ -78,8 +78,8 @@
     },
     {
       "path": "packages/player/dist/player.js",
-      "size": 50197,
-      "sha256": "sha256:569ee10ce636caa5c3f3a54e10d1fbc758945d9cabcda0bb300a7229b7d95353"
+      "size": 50454,
+      "sha256": "sha256:33a08b3b6e9db5fed35c90e905b3dadd982b1c6a9e659b80b06c0e4b0c7ec7eb"
     },
     {
       "path": "packages/player/dist/protocol.js",
@@ -93,8 +93,8 @@
     },
     {
       "path": "packages/player/dist/video.js",
-      "size": 18009,
-      "sha256": "sha256:2a1c159768d73430d411ca3ad2ce93c3f81921682773c7002cfe1c017f92f9b6"
+      "size": 24626,
+      "sha256": "sha256:e8b00bfa0f1e114e950d2dbb7530f968b40b799f07d803699c77f89d3b5ade12"
     },
     {
       "path": "packages/player/dist/yuv.js",
@@ -128,8 +128,8 @@
     },
     {
       "path": "packages/renderer-dom/dist/index.js",
-      "size": 836,
-      "sha256": "sha256:665b6b8e867bfc7ea1fb392e06efa1e54e33ee6e0b9844942f6853647e778fd7"
+      "size": 879,
+      "sha256": "sha256:a0741d484bf8e5496f745dccac57634462de1e857d2900e7a3f2ab5432f78b18"
     },
     {
       "path": "packages/renderer-dom/dist/load.js",
@@ -210,6 +210,11 @@
       "path": "packages/renderer-dom/dist/synchronize.js",
       "size": 10687,
       "sha256": "sha256:7a5aa1d24c65e9d5e8497bb60a2868ad12f6814d2a067a2b869ba6b68336edd6"
+    },
+    {
+      "path": "packages/renderer-dom/dist/video-idr.js",
+      "size": 1353,
+      "sha256": "sha256:22d6145d7836cdaa9601f96cabfa29e509b73f61a607b2c32e9372b72aa35335"
     },
     {
       "path": "packages/renderer-dom/dist/video-orientation.js",
