@@ -6,7 +6,7 @@
  * reports the typed errors of `parseComposition` as JSON, and a failure leaves
  * no file (D48).
  */
-import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { ProducerError } from '@kadrion/producer';
 import { parseComposition, serializeComposition } from '@kadrion/schema/migrate';
 import { compatibilityCorpus } from '@kadrion/test-fixtures/compatibility';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 import {
   EXIT_CANCELLED,
@@ -45,8 +45,23 @@ function lines(out: readonly string[]): unknown[] {
   return out.map((line) => JSON.parse(line) as unknown);
 }
 
+/**
+ * A scratch directory under the system's temporary directory, removed after
+ * the file's tests: what a test leaves there slows every later scan of it,
+ * such as the frame watch of the pinned export test.
+ */
+const scratchDirectories: string[] = [];
+function scratchDirectory(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  scratchDirectories.push(dir);
+  return dir;
+}
+afterAll(() => {
+  for (const dir of scratchDirectories.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+
 function scratch(): string {
-  return mkdtempSync(join(tmpdir(), 'kadrion-migrate-'));
+  return scratchDirectory('kadrion-migrate-');
 }
 
 /** What a library caller gets from the same text: the bytes the command must write. */

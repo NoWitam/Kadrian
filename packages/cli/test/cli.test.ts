@@ -12,6 +12,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -34,7 +35,7 @@ import {
 } from '@kadrion/producer';
 import type { VideoInspection } from '@kadrion/player';
 import { generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 import {
   AUDIO_MANIFEST_NAME,
@@ -61,6 +62,21 @@ function lines(out: readonly string[]): unknown[] {
 const done = (manifest: string | null) => ({ event: 'done', manifest });
 const file = (name: string) => ({ event: 'file', file: name });
 
+/**
+ * A scratch directory under the system's temporary directory, removed after
+ * the file's tests: what a test leaves there slows every later scan of it,
+ * such as the frame watch of the pinned export test.
+ */
+const scratchDirectories: string[] = [];
+function scratchDirectory(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  scratchDirectories.push(dir);
+  return dir;
+}
+afterAll(() => {
+  for (const dir of scratchDirectories.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+
 function io() {
   const out: string[] = [];
   const err: string[] = [];
@@ -73,7 +89,7 @@ function io() {
 
 /** A directory with the reference composition, its generated assets, and an asset map. */
 function workspace(): { dir: string; args: string[] } {
-  const dir = mkdtempSync(join(tmpdir(), 'kadrion-cli-'));
+  const dir = scratchDirectory('kadrion-cli-');
   writeFileSync(join(dir, 'composition.json'), JSON.stringify(referenceComposition));
   const map: Record<string, { path: string; mediaType: string }> = {};
   for (const asset of generateReferenceAssets()) {
@@ -550,7 +566,7 @@ describe('kadrion render-audio (D47.4)', () => {
 
 describe('kadrion join (D47.5)', () => {
   function parts(): { dir: string; a: string; b: string; audio: string } {
-    const dir = mkdtempSync(join(tmpdir(), 'kadrion-join-'));
+    const dir = scratchDirectory('kadrion-join-');
     const [a, b, audio] = ['a', 'b', 'audio'].map((name) => join(dir, name));
     for (const directory of [a, b, audio]) mkdirSync(directory ?? '');
     const segments = (indices: number[]) => ({
@@ -1129,7 +1145,7 @@ describe('kadrion inspect (D79.6)', () => {
   };
 
   function videoFile(bytes: Uint8Array): string {
-    const dir = mkdtempSync(join(tmpdir(), 'kadrion-inspect-'));
+    const dir = scratchDirectory('kadrion-inspect-');
     writeFileSync(join(dir, 'video.mp4'), bytes);
     return join(dir, 'video.mp4');
   }
@@ -1188,7 +1204,7 @@ describe('kadrion inspect (D79.6)', () => {
 
   it('exits 1 for a file that cannot be opened', async () => {
     const { out, err, io: streams } = io();
-    const missing = join(mkdtempSync(join(tmpdir(), 'kadrion-inspect-')), 'missing.mp4');
+    const missing = join(scratchDirectory('kadrion-inspect-'), 'missing.mp4');
     await expect(runCli(['inspect', missing], streams, {})).resolves.toBe(EXIT_PRODUCER_ERROR);
     expect(out).toEqual([]);
     expect(err[0]).toMatch(/^error file-unreadable: /);
