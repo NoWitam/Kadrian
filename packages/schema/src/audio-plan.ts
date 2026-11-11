@@ -9,13 +9,23 @@
  * knows no sample rate, no media fact, and no clock.
  *
  * Every time of an entry is an integer: a composition time, a source time, or
- * an offset from the entry's start. Nothing is ever added past the end of the
+ * an offset from the entry's start. A sound at another speed or reversed
+ * carries the exact map of its clip as well (D82.6), and a frozen video is not
+ * heard (D82.3). Nothing is ever added past the end of the
  * composition, so every value stays a safe integer however far a lifetime
  * reaches (the repair of the debt of D29.6, where the end of a clip was
  * computed as a sum).
  */
 import { instanceDefinition } from './definitions.js';
 import { scenePlacements } from './scenes.js';
+import {
+  clipTimeMap,
+  shiftedTimeMap,
+  sourceTimeOfMap,
+  timeMapSourceRange,
+  type ClipTimeMap,
+  type TimeRange,
+} from './time-map.js';
 import type {
   AudioClip,
   Composition,
@@ -36,8 +46,19 @@ export interface AudioPlanEntry {
   readonly startUs: number;
   /** How long it is heard, at least 1; it ends at or before the end of its scene, or of the composition. */
   readonly durationUs: number;
-  /** The source time heard at `startUs`; speed is 1. */
+  /**
+   * The source time heard at `startUs`: at speed 1 forwards the source plays
+   * from it for `durationUs`; for a mapped sound it is the source time the map
+   * shows at `startUs` (D82.6).
+   */
   readonly sourceStartUs: number;
+  /**
+   * The time map of a sound at a speed other than 1 or reversed (D82.6), moved
+   * into composition time (`shiftedTimeMap`): the map of its clip, never cut,
+   * so a cut changes no sample heard. Absent at speed 1 forwards, whose entry is
+   * that of D52.4 byte for byte.
+   */
+  readonly map?: ClipTimeMap;
   /** The linear factor of the amplitude, above 0 and at most 1. */
   readonly volume: number;
   /**
@@ -96,18 +117,48 @@ function videosOf(
  */
 function clipEntry(clip: AudioClip, offsetUs: number, limitUs: number): AudioPlanEntry | null {
   if (clip.volume === 0 || clip.startUs >= limitUs) return null;
+  const map = composedMap(clip, offsetUs);
   return {
     kind: 'clip',
     id: clip.id,
     assetId: clip.assetId,
     startUs: offsetUs + clip.startUs,
     durationUs: cutEnd(clip.startUs, clip.durationUs, limitUs) - clip.startUs,
-    sourceStartUs: clip.sourceStartUs,
+    sourceStartUs:
+      map === null ? clip.sourceStartUs : sourceTimeOfMap(map, offsetUs + clip.startUs),
+    ...(map === null ? {} : { map }),
     volume: clip.volume,
     lifetimeUs: clip.durationUs,
     fadeInUs: clip.fadeInUs,
     fadeOutUs: clip.fadeOutUs,
   };
+}
+
+/** Whether a clip plays its source at speed 1 forwards, the map of D49.5 (D82.1). */
+function unmapped(clip: AudioClip | VideoNode): boolean {
+  return clip.speed.num === 1 && clip.speed.den === 1 && !clip.reverse;
+}
+
+/**
+ * The time map of a clip at another speed or reversed, moved into composition
+ * time by `offsetUs`, the composition time of its holder's time 0 (D82.6);
+ * `null` at speed 1 forwards.
+ */
+function composedMap(clip: AudioClip | VideoNode, offsetUs: number): ClipTimeMap | null {
+  return unmapped(clip) ? null : shiftedTimeMap(clipTimeMap(clip), offsetUs);
+}
+
+/**
+ * The source range an entry hears (D53.4, D82.6): `[sourceStartUs,
+ * sourceStartUs + durationUs)` at speed 1 forwards, and the range its map shows
+ * over `[startUs, startUs + durationUs)` otherwise. A host checks it against
+ * the facts of the source.
+ */
+export function heardSourceRange(entry: AudioPlanEntry): TimeRange {
+  if (entry.map === undefined) {
+    return { startUs: entry.sourceStartUs, durationUs: entry.durationUs };
+  }
+  return timeMapSourceRange(entry.map, { startUs: entry.startUs, durationUs: entry.durationUs });
 }
 
 /**
@@ -159,13 +210,19 @@ function definitionEntries(
       const endUs = cutEnd(clip.startUs, clip.durationUs, inner.toUs);
       if (startUs >= endUs) continue;
       const cutUs = startUs - clip.startUs;
+      // A mapped clip keeps its whole map, so the cut changes no sample heard (D82.6).
+      const map = composedMap(clip, inner.offsetUs);
       entries.push({
         kind: 'clip',
         id: clip.id,
         assetId: clip.assetId,
         startUs: inner.offsetUs + startUs,
         durationUs: endUs - startUs,
-        sourceStartUs: clip.sourceStartUs + cutUs,
+        sourceStartUs:
+          map === null
+            ? clip.sourceStartUs + cutUs
+            : sourceTimeOfMap(map, inner.offsetUs + startUs),
+        ...(map === null ? {} : { map }),
         volume: clip.volume,
         lifetimeUs: clip.durationUs - cutUs,
         fadeInUs: cutUs === 0 ? clip.fadeInUs : 0,
@@ -184,7 +241,8 @@ function definitionEntries(
  * sound of a scene's video are in scene time, cut to their scene, and placed at
  * the scene's start (D49.3). The sound of a video in a group is heard only while
  * the group is active too (D42.4), from the source time its node shows at that
- * instant (D49.5).
+ * instant (D49.5). A sound at another speed or reversed carries its clip's map
+ * in composition time (D82.6); a frozen video is not heard (D82.3).
  */
 export function audioPlan(composition: ValidatedComposition): AudioPlan {
   const end = composition.durationUs;
@@ -215,7 +273,8 @@ export function audioPlan(composition: ValidatedComposition): AudioPlan {
     const offset = placements[index]?.startUs ?? 0;
     const limit = scene.durationUs;
     for (const { node, group } of videosOf(scene.nodes)) {
-      if (node.volume === 0) continue;
+      // A freeze frame is not heard, whatever its volume (D82.3).
+      if (node.volume === 0 || node.speed.num === 0) continue;
       let startUs = node.startUs;
       let endUs = cutEnd(node.startUs, node.durationUs, limit);
       if (group !== null) {
@@ -224,14 +283,19 @@ export function audioPlan(composition: ValidatedComposition): AudioPlan {
       }
       if (startUs >= endUs) continue;
       const durationUs = endUs - startUs;
+      const map = composedMap(node, offset);
       entries.push({
         kind: 'video',
         id: node.id,
         assetId: node.assetId,
         startUs: offset + startUs,
         durationUs,
-        // Within the node's lifetime, so a source time the schema keeps safe (D50.2).
-        sourceStartUs: node.sourceStartUs + (startUs - node.startUs),
+        // Within the node's lifetime, so a source time the schema keeps safe (D50.2, D82.1).
+        sourceStartUs:
+          map === null
+            ? node.sourceStartUs + (startUs - node.startUs)
+            : sourceTimeOfMap(map, offset + startUs),
+        ...(map === null ? {} : { map }),
         volume: node.volume,
         lifetimeUs: durationUs,
         fadeInUs: 0,

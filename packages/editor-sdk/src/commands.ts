@@ -2405,7 +2405,8 @@ export const setVideoAssetArgumentsSchema: SetVideoAssetArgumentsSchema = deepFr
 /** The JSON Schema of the arguments of `SetVideoSource` (D50.6). */
 export const setVideoSourceArgumentsSchema: SetVideoSourceArgumentsSchema = deepFreeze({
   type: 'object',
-  description: 'Sets the source time a video shows at the start of its lifetime; speed is 1.',
+  description:
+    'Sets the source time a video shows at the start of its lifetime; its speed, its direction, and the remainder of its exact source start stay (D82.9).',
   properties: {
     nodeId: {
       type: 'string',
@@ -2471,7 +2472,7 @@ export const addAudioClipArgumentsSchema: AddAudioClipArgumentsSchema = deepFree
     clip: {
       type: 'object',
       description:
-        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; volume; fadeInUs and fadeOutUs.',
+        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs.',
     },
   },
   required: ['index', 'clip'],
@@ -2527,7 +2528,7 @@ export const setClipFadesArgumentsSchema: SetClipFadesArgumentsSchema = deepFree
 export const setClipSourceArgumentsSchema: SetClipSourceArgumentsSchema = deepFreeze({
   type: 'object',
   description:
-    'Points one audio clip at an audio asset and the source time it plays from; its lifetime stays.',
+    'Points one audio clip at an audio asset and the source time it plays from; its lifetime and its time map but for its source start stay (D82.9).',
   properties: {
     clipId: { type: 'string', description: CLIP_ID, minLength: 1 },
     assetId: {
@@ -2933,7 +2934,7 @@ export const addSceneAudioClipArgumentsSchema: AddSceneAudioClipArgumentsSchema 
     clip: {
       type: 'object',
       description:
-        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in scene time; sourceStartUs; volume; fadeInUs and fadeOutUs.',
+        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in scene time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs.',
     },
   },
   required: ['sceneId', 'index', 'clip'],
@@ -2970,7 +2971,7 @@ export const moveClipArgumentsSchema: MoveClipArgumentsSchema = deepFreeze({
 export const trimClipStartArgumentsSchema: TrimClipStartArgumentsSchema = deepFreeze({
   type: 'object',
   description:
-    "Moves the start of a clip and keeps its end; a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays where it did.",
+    "Moves the start of a clip and keeps its end; a video's or an audio clip's source moves by the same amount times its speed, and a reversed one's stays, so what remains plays where it did (D82.2).",
   properties: {
     clipId: { type: 'string', description: TIMELINE_CLIP_ID, minLength: 1 },
     startUs: timelineTime('The new start of the clip, before its end.'),

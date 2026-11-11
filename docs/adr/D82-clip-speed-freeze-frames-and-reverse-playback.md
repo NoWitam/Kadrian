@@ -698,6 +698,76 @@ already exercises it.
   `tests/pinned/video-fixture.ts` for both, so a pinned file changes and Q14
   reopens, as the roadmap plans.
 
+## Implementation notes (PR-61)
+
+PR-61 is the schema step: a document of `0.24` states a speed, a freeze frame,
+or a reverse on a video node or an audio clip, and both hosts render it.
+
+- **The step from `0.23`** (`step-0-23-to-0-24.ts`) adds
+  `sourceStartRemainder: 0`, `speed: { num: 1, den: 1 }`, and
+  `reverse: false` to every video node and audio clip, in scenes, in groups,
+  in definitions, and in the composition's clips, after `sourceStartUs`; an
+  instance has none. The frozen `0.23` schema is `src/v0-23/`. A definition of
+  a document of `0.22` or `0.23` is validated as one of `0.24` with the
+  defaults added (`withSpeedOne`), so it is judged as its own version judged it.
+- **`speed-invalid`** names a speed outside 1/4 to 4 that is not 0, a
+  denominator above 1 000, a fraction not in lowest terms, a remainder not below
+  its denominator, a frozen audio clip, a frozen clip reversed, and a reversed
+  clip that samples more than 600 000 000 µs of source.
+- **The main entry** of the schema re-exports `time-map.ts`;
+  `sourceTimeUs` and `sampledSourceRange` read the map, and a plan entry at
+  another speed or reversed carries `map`, the clip's map in composition time
+  (`shiftedTimeMap`). A sound at speed 1 forwards has no `map` key, so its plan
+  and the audio manifest keep their bytes.
+- **The Producer** (`packages/producer/src/stretch.ts`) decodes the source
+  range `stretchSourceRange` names to 32-bit floats with the pinned FFmpeg,
+  computes the sound with `stretchSound`, and writes it to a temporary 32-bit
+  float WAV that is the sound's input of the audio pass, read from sample 0;
+  the manifest records `stretch` (speed, direction, and the SHA-256 of the
+  samples). The module writes files, so `eslint.config.js` lists it beside
+  `video.ts` as a module allowed to.
+- **The source's length.** The Producer reads a mapped sound's source only up
+  to the length its first audio stream states (`duration_ts` at its rate,
+  `statedSourceSamples`), and the grains hear silence past it, as they do in the
+  Player, whose decode holds that length: the pinned FFmpeg decodes the AAC
+  sound of the video fixture to 144 384 samples where the stream states, and
+  Chromium decodes, 144 000, and the padding of the last frame would otherwise
+  reach the last millisecond of a sound read to the end of its source.
+- **The Player's subpath imports.** The Player's build imports
+  `@kadrion/runtime/stretch`, which imports `@kadrion/schema/time-map`; the
+  conformance host, the pinned pages that load the Player, and the playground
+  map both (`HOST_ENTRIES` in `tests/parity/parity.ts`), and the Player's dist
+  tree of D33.10 includes their files.
+- **The Player** computes the same samples from its decoded buffer and plays
+  them as one `AudioBufferSourceNode` from offset 0 at the sound's first
+  sample; a seek plays the same buffer from the seek's offset. The computed
+  buffers are kept per Player (`StretchCache`, not exported from the
+  package) by the sound's map, for its decoded buffer, over the samples they
+  hold, so a play that starts inside them computes nothing. `scheduleSounds` keeps its signature; the Player
+  calls `scheduleSoundsWith`, which is internal. `SoundContext` gains
+  `createBuffer`, the one change of the Player's public surface.
+- **editor-sdk.** `TrimClipStart`, `TrimClipEnd`, `SplitClip`, and `JoinClips`
+  move the map by `advanceClipSource` as the table of D82.2 states; a join of
+  reversed parts takes the source of the second and is checked by splitting it
+  again. The checks of source ranges read the range a sound hears.
+  `describe_document` states `speed` as a multiplier (`"x1.5"`), `reverse`, and
+  `sampledSourceRange` after it, without `sourceStartRemainder`.
+- **The corpus.** Each corpus document of `0.23` that only had an expectation
+  gets an entry `X-0-23` (as in PR-56), so every file of `v0-23/` is named.
+- **The speed composition** (`speed.json`) holds video nodes at 1/4, 1/2, 3/2,
+  and 4, one reversed, and one frozen, an audio clip at 1/2 and one reversed at
+  3/2. `tests/pinned/speed.pinned.test.ts` compares the Producer's frames with
+  the Player's forwards and backwards, with its golden frames, and the Player's
+  graph in an `OfflineAudioContext` with the Producer's intermediate within
+  1e-4; it is a pinned file added while Q14 is open. Its golden frames are
+  written by `node --run goldens:update` in the pinned container; PR-61 does
+  not commit them from another environment.
+- **The runtime build** changes
+  (`sha256:a37aae1ca7c49be1a80ed1d29eb5bebecc019dde36a61d36319380a637d45129`):
+  the golden manifests change in the three fields of D42 only, every golden PNG
+  file keeps its bytes, and the parity records are measured again in the pinned
+  container.
+
 ## Questions for the owner, with recommendations
 
 Answered by the owner on 2026-11-11 at 10:44 (Europe/Warsaw): every question

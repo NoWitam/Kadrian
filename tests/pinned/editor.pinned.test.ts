@@ -34,7 +34,7 @@ import { referenceComposition } from '@kadrion/test-fixtures';
 import type { BrowserContext, Page } from 'playwright-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { HOST_MODULES } from '../parity/parity.js';
+import { HOST_ENTRIES, HOST_MODULES } from '../parity/parity.js';
 
 import {
   HEIGHT,
@@ -106,6 +106,10 @@ html,body{margin:0;padding:0;overflow:hidden}
       ...Object.fromEntries(PACKAGES.map((name) => [`@kadrion/${name}`, `/pkg/${name}/index.js`])),
       // The session previews a template through this entry point (D58.4).
       '@kadrion/schema/template': '/pkg/schema/template.js',
+      // The entry points the packages import by name besides their indexes (D82.6).
+      ...Object.fromEntries(
+        Object.entries(HOST_ENTRIES).map(([name, file]) => [name, `/pkg/${file}`]),
+      ),
       // The Player's external dependencies, each its installed bundle (D79.7).
       ...Object.fromEntries(Object.keys(HOST_MODULES).map((name) => [name, `/vendor/${name}.mjs`])),
     },

@@ -17,7 +17,7 @@ export type ValidationErrorCode =
   | 'unresolved-asset-reference'
   | 'asset-type-mismatch'
   | 'keyframes-not-ascending'
-  /** The last source time of a video node or an audio clip, `sourceStartUs + durationUs − 1`, is not a safe integer (D50.2, D52.3). */
+  /** The last source time of a video node or an audio clip, `sourceStartUs + durationUs − 1` at speed 1 and the map's greatest source time otherwise, is not a safe integer (D50.2, D52.3, D82.1). */
   | 'source-time-out-of-range'
   /** An audio clip's `fadeInUs + fadeOutUs` exceeds its `durationUs` (D52.3). */
   | 'clip-fades-exceed-duration'
@@ -113,7 +113,14 @@ export type ValidationErrorCode =
   /** The parameters of a Custom HTML element are not sorted by key, or a key repeats (D78). */
   | 'parameters-not-sorted'
   /** A binding names a parameter that its Custom HTML element does not have (D78). */
-  | 'unresolved-parameter-reference';
+  | 'unresolved-parameter-reference'
+  /**
+   * A time map that is not one (D82.1, D82.3, D82.6): a speed outside 1/4 to 4
+   * other than a freeze frame, not in lowest terms, a remainder from `den`, a
+   * reversed or offset freeze frame, a freeze frame of an audio clip, or a
+   * reversed clip that samples more than 600 000 000 µs of source.
+   */
+  | 'speed-invalid';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

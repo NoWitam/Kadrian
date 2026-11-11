@@ -3,6 +3,12 @@ Generated from the built .d.ts by `node --run api:update` (D60). Do not edit by 
 
 ==== Entry "."
 
+---- AdvancedSource (type only)
+export interface AdvancedSource {
+    readonly sourceStartUs: number;
+    readonly sourceStartRemainder: number;
+}
+
 ---- AnimatedProperty (type only)
 export type AnimatedProperty = NodeAnimation['property'];
 
@@ -29,6 +35,7 @@ export interface AudioPlanEntry {
     readonly startUs: number;
     readonly durationUs: number;
     readonly sourceStartUs: number;
+    readonly map?: ClipTimeMap;
     readonly volume: number;
     readonly lifetimeUs: number;
     readonly fadeInUs: number;
@@ -75,6 +82,23 @@ export type CaptionWord = CaptionsNode['words'][number];
 
 ---- CaptionsNode (type only)
 export type CaptionsNode = Infer<typeof captionsNodeSchema>;
+
+---- ClipTimeMap (type only)
+export interface ClipTimeMap {
+    readonly intercept: bigint;
+    readonly slope: number;
+    readonly den: number;
+}
+
+---- ClipTiming (type only)
+export interface ClipTiming {
+    readonly startUs: number;
+    readonly durationUs: number;
+    readonly sourceStartUs: number;
+    readonly sourceStartRemainder: number;
+    readonly speed: Speed;
+    readonly reverse: boolean;
+}
 
 ---- ClipTransition (type only)
 export type ClipTransition = Infer<typeof clipTransitionSchema>;
@@ -142,6 +166,9 @@ export type InstanceNode = Infer<typeof instanceNodeSchema>;
 ---- MAX_INSTANCE_DEPTH
 export declare const MAX_INSTANCE_DEPTH = 8;
 
+---- MAX_SPEED_DEN
+export declare const MAX_SPEED_DEN = 1000;
+
 ---- Mask (type only)
 export type Mask = Infer<typeof maskSchema>;
 
@@ -169,7 +196,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.23";
+export declare const SCHEMA_VERSION = "0.24";
 
 ---- SVG_IDENTITY
 export declare const SVG_IDENTITY: SvgMatrix;
@@ -234,17 +261,30 @@ export type ShapeStroke = Infer<typeof shapeStrokeSchema>;
 export type ShapeTrim = Infer<typeof shapeTrimSchema>;
 
 ---- SourceMapping (type only)
-export interface SourceMapping {
-    readonly startUs: number;
-    readonly durationUs: number;
-    readonly sourceStartUs: number;
-}
+export type SourceMapping = ClipTiming;
 
 ---- SourceRange (type only)
 export interface SourceRange {
     readonly startUs: number;
     readonly durationUs: number;
 }
+
+---- Speed (type only)
+export interface Speed {
+    readonly num: number;
+    readonly den: number;
+}
+
+---- SpeedReading (type only)
+export type SpeedReading = {
+    readonly ok: true;
+    readonly speed: Speed;
+} | {
+    readonly ok: false;
+    readonly code: 'speed-invalid';
+    readonly message: string;
+    readonly nearest: Speed | null;
+};
 
 ---- SvgDrawing (type only)
 export interface SvgDrawing {
@@ -387,6 +427,12 @@ export interface TimeBase {
     readonly den: number;
 }
 
+---- TimeRange (type only)
+export interface TimeRange {
+    readonly startUs: number;
+    readonly durationUs: number;
+}
+
 ---- TransitionDirection (type only)
 export type TransitionDirection = Extract<SceneTransitionEffect, {
     kind: 'wipe';
@@ -422,7 +468,7 @@ export interface ValidationError {
 }
 
 ---- ValidationErrorCode (type only)
-export type ValidationErrorCode = 'unsupported-schema-version' | 'missing-field' | 'unknown-field' | 'invalid-type' | 'invalid-value' | 'out-of-range' | 'invalid-length' | 'duplicate-id' | 'unresolved-asset-reference' | 'asset-type-mismatch' | 'keyframes-not-ascending' | 'source-time-out-of-range' | 'clip-fades-exceed-duration' | 'composition-duration-mismatch' | 'unresolved-scene-reference' | 'unresolved-node-reference' | 'transition-not-adjacent' | 'transition-not-siblings' | 'transition-node-type' | 'transition-overlap-mismatch' | 'transition-too-long' | 'duplicate-transition' | 'caption-words-overlap' | 'duplicate-animation-target' | 'crop-empty' | 'safe-area-empty' | 'bound-property-animated' | 'template-input-invalid' | 'unresolved-input-reference' | 'binding-type-mismatch' | 'binding-value-mismatch' | 'duplicate-binding-target' | 'invalid-placeholder' | 'unresolved-target-reference' | 'unresolved-field-reference' | 'condition-type-mismatch' | 'repeat-type-mismatch' | 'nested-repeat' | 'repeat-in-transition' | 'repeat-of-matte' | 'repeat-id-reserved' | 'item-outside-repeat' | 'path-start-not-move' | 'gradient-stops-not-ascending' | 'stroke-dash-odd' | 'fill-not-solid' | 'geometry-mismatch' | 'matte-not-sibling' | 'matte-not-shape' | 'matte-not-plain' | 'matte-in-transition' | 'unresolved-definition-reference' | 'instance-exceeds-definition' | 'definition-cycle' | 'definition-too-deep' | 'element-asset-input' | 'instance-input-invalid' | 'duplicate-font-asset' | 'parameters-not-sorted' | 'unresolved-parameter-reference';
+export type ValidationErrorCode = 'unsupported-schema-version' | 'missing-field' | 'unknown-field' | 'invalid-type' | 'invalid-value' | 'out-of-range' | 'invalid-length' | 'duplicate-id' | 'unresolved-asset-reference' | 'asset-type-mismatch' | 'keyframes-not-ascending' | 'source-time-out-of-range' | 'clip-fades-exceed-duration' | 'composition-duration-mismatch' | 'unresolved-scene-reference' | 'unresolved-node-reference' | 'transition-not-adjacent' | 'transition-not-siblings' | 'transition-node-type' | 'transition-overlap-mismatch' | 'transition-too-long' | 'duplicate-transition' | 'caption-words-overlap' | 'duplicate-animation-target' | 'crop-empty' | 'safe-area-empty' | 'bound-property-animated' | 'template-input-invalid' | 'unresolved-input-reference' | 'binding-type-mismatch' | 'binding-value-mismatch' | 'duplicate-binding-target' | 'invalid-placeholder' | 'unresolved-target-reference' | 'unresolved-field-reference' | 'condition-type-mismatch' | 'repeat-type-mismatch' | 'nested-repeat' | 'repeat-in-transition' | 'repeat-of-matte' | 'repeat-id-reserved' | 'item-outside-repeat' | 'path-start-not-move' | 'gradient-stops-not-ascending' | 'stroke-dash-odd' | 'fill-not-solid' | 'geometry-mismatch' | 'matte-not-sibling' | 'matte-not-shape' | 'matte-not-plain' | 'matte-in-transition' | 'unresolved-definition-reference' | 'instance-exceeds-definition' | 'definition-cycle' | 'definition-too-deep' | 'element-asset-input' | 'instance-input-invalid' | 'duplicate-font-asset' | 'parameters-not-sorted' | 'unresolved-parameter-reference' | 'speed-invalid';
 
 ---- ValidationResult (type only)
 export type ValidationResult = {
@@ -436,8 +482,17 @@ export type ValidationResult = {
 ---- VideoNode (type only)
 export type VideoNode = Infer<typeof videoNodeSchema>;
 
+---- advanceClipSource
+export declare function advanceClipSource(clip: ClipTiming, deltaUs: number): AdvancedSource;
+
 ---- audioPlan
 export declare function audioPlan(composition: ValidatedComposition): AudioPlan;
+
+---- clipSourceRange
+export declare function clipSourceRange(clip: ClipTiming, sceneDurationUs: number): TimeRange | null;
+
+---- clipTimeMap
+export declare function clipTimeMap(clip: ClipTiming): ClipTimeMap;
 
 ---- compositionSchema
 export declare const compositionSchema: {
@@ -448,7 +503,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.23";
+            readonly const: "0.24";
         };
         readonly width: {
             readonly type: "integer";
@@ -2452,10 +2507,34 @@ export declare const compositionSchema: {
                                     readonly pattern: "^[A-Za-z0-9_-]+$";
                                 };
                                 readonly sourceStartUs: {
-                                    readonly description: "Source time, in integer microseconds from the presentation time of the first frame, shown at startUs; speed is 1 (D49.1, D49.5).";
+                                    readonly description: "Source time, in integer microseconds from the presentation time of the first frame, shown at startUs, rounded down: the exact time adds sourceStartRemainder / speed.den (D49.1, D49.5, D82.1).";
                                     readonly type: "integer";
                                     readonly minimum: 0;
                                     readonly maximum: 9007199254740991;
+                                };
+                                readonly sourceStartRemainder: {
+                                    readonly type: "integer";
+                                    readonly description: "The fraction of a microsecond of the exact source time at startUs: that time is sourceStartUs + sourceStartRemainder / speed.den microseconds. From 0 to speed.den - 1; 0 for a freeze frame (D82.1).";
+                                    readonly minimum: 0;
+                                    readonly maximum: 999;
+                                };
+                                readonly speed: import("./json-schema.js").ClosedObject<{
+                                    readonly num: {
+                                        readonly type: "integer";
+                                        readonly description: "The numerator, from 0 to 4000 (D82.1).";
+                                        readonly minimum: 0;
+                                        readonly maximum: 4000;
+                                    };
+                                    readonly den: {
+                                        readonly type: "integer";
+                                        readonly description: "The denominator, from 1 to 1000 (D82.1).";
+                                        readonly minimum: 1;
+                                        readonly maximum: 1000;
+                                    };
+                                }>;
+                                readonly reverse: {
+                                    readonly type: "boolean";
+                                    readonly description: "Plays the same source range backwards, from its last instant to its first, picture and sound; false for a freeze frame (D82.1).";
                                 };
                                 readonly width: {
                                     readonly type: "integer";
@@ -3620,10 +3699,34 @@ export declare const compositionSchema: {
                             readonly maximum: 9007199254740991;
                         };
                         readonly sourceStartUs: {
-                            readonly description: "Source time, in integer microseconds from the first sample, heard at startUs; speed is 1 (D49.1, D52).";
+                            readonly description: "Source time, in integer microseconds from the first sample, heard at startUs, rounded down: the exact time adds sourceStartRemainder / speed.den (D49.1, D52, D82.1).";
                             readonly type: "integer";
                             readonly minimum: 0;
                             readonly maximum: 9007199254740991;
+                        };
+                        readonly sourceStartRemainder: {
+                            readonly type: "integer";
+                            readonly description: "The fraction of a microsecond of the exact source time at startUs: that time is sourceStartUs + sourceStartRemainder / speed.den microseconds. From 0 to speed.den - 1; 0 for a freeze frame (D82.1).";
+                            readonly minimum: 0;
+                            readonly maximum: 999;
+                        };
+                        readonly speed: import("./json-schema.js").ClosedObject<{
+                            readonly num: {
+                                readonly type: "integer";
+                                readonly description: "The numerator, from 0 to 4000 (D82.1).";
+                                readonly minimum: 0;
+                                readonly maximum: 4000;
+                            };
+                            readonly den: {
+                                readonly type: "integer";
+                                readonly description: "The denominator, from 1 to 1000 (D82.1).";
+                                readonly minimum: 1;
+                                readonly maximum: 1000;
+                            };
+                        }>;
+                        readonly reverse: {
+                            readonly type: "boolean";
+                            readonly description: "Plays the same source range backwards, from its last instant to its first, picture and sound; false for a freeze frame (D82.1).";
                         };
                         readonly volume: {
                             readonly type: "number";
@@ -3909,10 +4012,34 @@ export declare const compositionSchema: {
                     readonly maximum: 9007199254740991;
                 };
                 readonly sourceStartUs: {
-                    readonly description: "Source time, in integer microseconds from the first sample, heard at startUs; speed is 1 (D49.1, D52).";
+                    readonly description: "Source time, in integer microseconds from the first sample, heard at startUs, rounded down: the exact time adds sourceStartRemainder / speed.den (D49.1, D52, D82.1).";
                     readonly type: "integer";
                     readonly minimum: 0;
                     readonly maximum: 9007199254740991;
+                };
+                readonly sourceStartRemainder: {
+                    readonly type: "integer";
+                    readonly description: "The fraction of a microsecond of the exact source time at startUs: that time is sourceStartUs + sourceStartRemainder / speed.den microseconds. From 0 to speed.den - 1; 0 for a freeze frame (D82.1).";
+                    readonly minimum: 0;
+                    readonly maximum: 999;
+                };
+                readonly speed: import("./json-schema.js").ClosedObject<{
+                    readonly num: {
+                        readonly type: "integer";
+                        readonly description: "The numerator, from 0 to 4000 (D82.1).";
+                        readonly minimum: 0;
+                        readonly maximum: 4000;
+                    };
+                    readonly den: {
+                        readonly type: "integer";
+                        readonly description: "The denominator, from 1 to 1000 (D82.1).";
+                        readonly minimum: 1;
+                        readonly maximum: 1000;
+                    };
+                }>;
+                readonly reverse: {
+                    readonly type: "boolean";
+                    readonly description: "Plays the same source range backwards, from its last instant to its first, picture and sound; false for a freeze frame (D82.1).";
                 };
                 readonly volume: {
                     readonly type: "number";
@@ -4386,10 +4513,34 @@ export declare const compositionSchema: {
                             readonly maximum: 9007199254740991;
                         };
                         readonly sourceStartUs: {
-                            readonly description: "Source time, in integer microseconds from the first sample, heard at startUs; speed is 1 (D49.1, D52).";
+                            readonly description: "Source time, in integer microseconds from the first sample, heard at startUs, rounded down: the exact time adds sourceStartRemainder / speed.den (D49.1, D52, D82.1).";
                             readonly type: "integer";
                             readonly minimum: 0;
                             readonly maximum: 9007199254740991;
+                        };
+                        readonly sourceStartRemainder: {
+                            readonly type: "integer";
+                            readonly description: "The fraction of a microsecond of the exact source time at startUs: that time is sourceStartUs + sourceStartRemainder / speed.den microseconds. From 0 to speed.den - 1; 0 for a freeze frame (D82.1).";
+                            readonly minimum: 0;
+                            readonly maximum: 999;
+                        };
+                        readonly speed: import("./json-schema.js").ClosedObject<{
+                            readonly num: {
+                                readonly type: "integer";
+                                readonly description: "The numerator, from 0 to 4000 (D82.1).";
+                                readonly minimum: 0;
+                                readonly maximum: 4000;
+                            };
+                            readonly den: {
+                                readonly type: "integer";
+                                readonly description: "The denominator, from 1 to 1000 (D82.1).";
+                                readonly minimum: 1;
+                                readonly maximum: 1000;
+                            };
+                        }>;
+                        readonly reverse: {
+                            readonly type: "boolean";
+                            readonly description: "Plays the same source range backwards, from its last instant to its first, picture and sound; false for a freeze frame (D82.1).";
                         };
                         readonly volume: {
                             readonly type: "number";
@@ -6227,11 +6378,17 @@ export declare const compositionSchema: {
 ---- definitionTimeUs
 export declare function definitionTimeUs(instance: Pick<InstanceNode, 'startUs' | 'durationUs' | 'sourceStartUs'>, timeUs: number): number;
 
+---- formatSpeed
+export declare function formatSpeed(speed: Speed): string;
+
 ---- frameCount
 export declare function frameCount(durationUs: number, fps: number): number;
 
 ---- frameToTimeUs
 export declare function frameToTimeUs(frame: number, fps: number): number;
+
+---- heardSourceRange
+export declare function heardSourceRange(entry: AudioPlanEntry): TimeRange;
 
 ---- instanceDefinition
 export declare function instanceDefinition(composition: Pick<Composition, 'definitions'>, instance: Pick<InstanceNode, 'id' | 'definitionId'> & Partial<Pick<InstanceNode, 'inputs'>>): Definition | null;
@@ -6246,6 +6403,9 @@ export declare function isTemplate(composition: {
     };
 }): boolean;
 
+---- parseSpeed
+export declare function parseSpeed(value: unknown): SpeedReading;
+
 ---- placedVideos
 export declare function placedVideos(composition: ValidatedComposition): PlacedVideo[];
 
@@ -6258,11 +6418,17 @@ export declare function sampledSourceRange(node: SourceMapping, sceneDurationUs:
 ---- scenePlacements
 export declare function scenePlacements(sequence: SceneSequence): ScenePlacement[];
 
+---- sceneTimesOfSource
+export declare function sceneTimesOfSource(clip: ClipTiming, sourceTimeUs: number): TimeRange | null;
+
 ---- sceneTransitionAt
 export declare function sceneTransitionAt(sequence: SceneSequence, timeUs: number): TransitionInstant | null;
 
 ---- scenesAt
 export declare function scenesAt(sequence: SceneSequence, timeUs: number): SceneInstant[];
+
+---- shiftedTimeMap
+export declare function shiftedTimeMap(map: ClipTimeMap, offsetUs: number): ClipTimeMap;
 
 ---- sourceDurationUs
 export declare function sourceDurationUs(timestamps: readonly number[], lastDuration: number, timeBase: TimeBase): number;
@@ -6273,8 +6439,17 @@ export declare function sourceFrameIndex(timestamps: readonly number[], timeBase
 ---- sourceRangeFits
 export declare function sourceRangeFits(range: SourceRange, sourceDurationUs: number): boolean;
 
+---- sourceTimeOfMap
+export declare function sourceTimeOfMap(map: ClipTimeMap, timeUs: number): number;
+
+---- sourceTimeOfScene
+export declare function sourceTimeOfScene(clip: ClipTiming, timeUs: number): number;
+
 ---- sourceTimeUs
 export declare function sourceTimeUs(node: SourceMapping, timeUs: number): number;
+
+---- speedProblem
+export declare function speedProblem(speed: Speed): string | null;
 
 ---- svgColor
 export declare function svgColor(value: string): string | null;
@@ -6293,6 +6468,9 @@ export declare function svgPathCommands(data: string): SvgPathCommand[] | null;
 
 ---- svgTransform
 export declare function svgTransform(value: string): SvgMatrix | null;
+
+---- timeMapSourceRange
+export declare function timeMapSourceRange(map: ClipTimeMap, range: TimeRange): TimeRange;
 
 ---- timeUsToFrame
 export declare function timeUsToFrame(timeUs: number, fps: number): number;
@@ -6321,7 +6499,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {
@@ -6460,8 +6638,17 @@ export declare function parseSpeed(value: unknown): SpeedReading;
 ---- sceneTimesOfSource
 export declare function sceneTimesOfSource(clip: ClipTiming, sourceTimeUs: number): TimeRange | null;
 
+---- shiftedTimeMap
+export declare function shiftedTimeMap(map: ClipTimeMap, offsetUs: number): ClipTimeMap;
+
+---- sourceTimeOfMap
+export declare function sourceTimeOfMap(map: ClipTimeMap, timeUs: number): number;
+
 ---- sourceTimeOfScene
 export declare function sourceTimeOfScene(clip: ClipTiming, timeUs: number): number;
 
 ---- speedProblem
 export declare function speedProblem(speed: Speed): string | null;
+
+---- timeMapSourceRange
+export declare function timeMapSourceRange(map: ClipTimeMap, range: TimeRange): TimeRange;

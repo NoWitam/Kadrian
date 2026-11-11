@@ -3,9 +3,20 @@
  * canvas (D46.3): every scene and node with its ID, type, lifetime, parent,
  * and layer, the node's stored fields, and the assets and clips as the
  * document stores them. It reads and never writes, and it is a pure function
- * of the document: the same document gives the same description.
+ * of the document: the same document gives the same description. A video node
+ * and an audio clip state their speed as a multiplier such as `"x1.5"` in place
+ * of the stored `{ num, den }`, their `reverse`, and the source range they
+ * sample, and leave out `sourceStartRemainder`, which the commands keep (D82.9,
+ * D82.11).
  */
-import { scenePlacements, type Composition, type ValidatedComposition } from '@kadrion/schema';
+import {
+  clipSourceRange,
+  formatSpeed,
+  scenePlacements,
+  type ClipTiming,
+  type Composition,
+  type ValidatedComposition,
+} from '@kadrion/schema';
 
 import { deepFreeze } from './commands.js';
 import type { MediaFacts } from './media.js';
@@ -24,7 +35,8 @@ export interface NodeDescription {
    * Every other field the document stores for the node, as it stores it —
    * `animations` and the `html` of a Custom HTML element included, since
    * `SetCustomHtml` edits it (D78) — except `children`, which `children` below
-   * describes.
+   * describes; a video node's speed is a multiplier, with its sampled source
+   * range and without its remainder (D82.9, D82.11).
    */
   readonly fields: Readonly<Record<string, unknown>>;
   /** A group's children, described the same way; present on groups only. */
@@ -42,7 +54,7 @@ export interface SceneDescription {
   readonly durationUs: number;
   /** The scene's nodes from the bottom layer to the top. */
   readonly nodes: readonly NodeDescription[];
-  /** The scene's audio clips, in scene time, as the document stores them (D54.1). */
+  /** The scene's audio clips, in scene time, as the document stores them but for their speed (D54.1, D82.11). */
   readonly clips: readonly unknown[];
   /** The transitions between clips of the scene, as the document stores them (D56.1). */
   readonly transitions: readonly unknown[];
@@ -61,7 +73,7 @@ export interface DefinitionDescription {
   readonly durationUs: number;
   /** The definition's nodes from the bottom layer to the top, in definition time. */
   readonly nodes: readonly NodeDescription[];
-  /** The definition's audio clips, in definition time, as the document stores them. */
+  /** The definition's audio clips, in definition time, as the document stores them but for their speed (D82.11). */
   readonly clips: readonly unknown[];
   /** The transitions between clips of the definition, as the document stores them. */
   readonly transitions: readonly unknown[];
@@ -110,7 +122,7 @@ export interface DocumentDescription {
    * lays it out (D62); an SVG asset also states its `viewBox` (D74.6).
    */
   readonly assets: readonly unknown[];
-  /** The composition's clips, in composition time, as the document stores them. */
+  /** The composition's clips, in composition time, as the document stores them but for their speed (D82.11). */
   readonly clips: readonly unknown[];
   /** The transitions between scenes, as the document stores them (D56.1). */
   readonly transitions: readonly unknown[];
@@ -132,15 +144,52 @@ type ChildNode = Extract<SceneNode, { type: 'group' }>['children'][number];
 /** The fields a description states on its own, or leaves out (D46.3). */
 const OWN_FIELDS = Object.freeze(['id', 'type', 'startUs', 'durationUs', 'children']);
 
+/**
+ * The fields of a video node or an audio clip as a model reads them (D82.9,
+ * D82.11): `speed` as a multiplier, `reverse`, and after it
+ * `sampledSourceRange`, the source range the clip samples within what holds it
+ * (`null` when nothing), without `sourceStartRemainder`. Any other object is
+ * returned as it is.
+ */
+function withSpeedShown(
+  fields: Readonly<Record<string, unknown>>,
+  clip: SceneNode | ChildNode | Composition['clips'][number],
+  holderDurationUs: number,
+): Record<string, unknown> {
+  if (clip.type !== 'video' && clip.type !== 'audio') return { ...fields };
+  const timing: ClipTiming = clip;
+  const shown: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    if (key === 'sourceStartRemainder') continue;
+    if (key === 'speed') {
+      shown[key] = formatSpeed(timing.speed);
+      continue;
+    }
+    shown[key] = value;
+    if (key === 'reverse') shown['sampledSourceRange'] = clipSourceRange(timing, holderDurationUs);
+  }
+  return shown;
+}
+
+/** An audio clip as `describeDocument` states it, in the time of what holds it (D82.9). */
+function describeClip(
+  clip: Composition['clips'][number],
+  holderDurationUs: number,
+): Record<string, unknown> {
+  return withSpeedShown(clip, clip, holderDurationUs);
+}
+
 function describeNode(
   node: SceneNode | ChildNode,
   parentId: string,
   layer: number,
+  holderDurationUs: number,
 ): NodeDescription {
-  const fields: Record<string, unknown> = {};
+  const own: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node)) {
-    if (!OWN_FIELDS.includes(key)) fields[key] = value;
+    if (!OWN_FIELDS.includes(key)) own[key] = value;
   }
+  const fields = withSpeedShown(own, node, holderDurationUs);
   const described = {
     id: node.id,
     type: node.type,
@@ -153,7 +202,7 @@ function describeNode(
   if (node.type !== 'group') return described;
   return {
     ...described,
-    children: node.children.map((child, at) => describeNode(child, node.id, at)),
+    children: node.children.map((child, at) => describeNode(child, node.id, at, holderDurationUs)),
   };
 }
 
@@ -182,8 +231,8 @@ export function describeDocument(
       id: scene.id,
       startUs: placements[index]?.startUs ?? 0,
       durationUs: scene.durationUs,
-      nodes: scene.nodes.map((node, at) => describeNode(node, scene.id, at)),
-      clips: scene.clips,
+      nodes: scene.nodes.map((node, at) => describeNode(node, scene.id, at, scene.durationUs)),
+      clips: scene.clips.map((clip) => describeClip(clip, scene.durationUs)),
       transitions: scene.transitions,
       effects: scene.effects,
     })),
@@ -204,7 +253,7 @@ export function describeDocument(
         soundDurationUs: facts.audioDurationUs,
       };
     }),
-    clips: copy.clips,
+    clips: copy.clips.map((clip) => describeClip(clip, copy.durationUs)),
     transitions: copy.transitions,
     definitions: copy.definitions.map((definition) => ({
       id: definition.id,
@@ -212,8 +261,10 @@ export function describeDocument(
       width: definition.width,
       height: definition.height,
       durationUs: definition.durationUs,
-      nodes: definition.nodes.map((node, at) => describeNode(node, definition.id, at)),
-      clips: definition.clips,
+      nodes: definition.nodes.map((node, at) =>
+        describeNode(node, definition.id, at, definition.durationUs),
+      ),
+      clips: definition.clips.map((clip) => describeClip(clip, definition.durationUs)),
       transitions: definition.transitions,
       instanceIds: [...copy.scenes, ...copy.definitions].flatMap((holder) =>
         holder.nodes.flatMap((node) =>

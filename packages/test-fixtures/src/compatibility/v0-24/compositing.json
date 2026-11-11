@@ -1,0 +1,1841 @@
+{
+  "schemaVersion": "0.24",
+  "width": 640,
+  "height": 360,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 2000000,
+  "assets": [
+    {
+      "id": "asset-image",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    },
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-compositing",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "node-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "blend-underlay",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 8,
+            "y": 8
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 264,
+          "height": 264,
+          "geometry": {
+            "kind": "rect",
+            "cornerRadius": 0
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 264,
+              "y": 0
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#7a5af8",
+                "opacity": 1
+              },
+              {
+                "offset": 500,
+                "color": "#ffffff",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#fdb022",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "blend-normal",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 16,
+            "y": 16
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "blend-multiply",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 80,
+            "y": 16
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "multiply"
+        },
+        {
+          "id": "blend-screen",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 144,
+            "y": 16
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "screen"
+        },
+        {
+          "id": "blend-overlay",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 208,
+            "y": 16
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "overlay"
+        },
+        {
+          "id": "blend-darken",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 16,
+            "y": 80
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "darken"
+        },
+        {
+          "id": "blend-lighten",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 80,
+            "y": 80
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "lighten"
+        },
+        {
+          "id": "blend-color-dodge",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 144,
+            "y": 80
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "color-dodge"
+        },
+        {
+          "id": "blend-color-burn",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 208,
+            "y": 80
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "color-burn"
+        },
+        {
+          "id": "blend-hard-light",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 16,
+            "y": 144
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "hard-light"
+        },
+        {
+          "id": "blend-soft-light",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 80,
+            "y": 144
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "soft-light"
+        },
+        {
+          "id": "blend-difference",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 144,
+            "y": 144
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "difference"
+        },
+        {
+          "id": "blend-exclusion",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 208,
+            "y": 144
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "exclusion"
+        },
+        {
+          "id": "blend-hue",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 16,
+            "y": 208
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "hue"
+        },
+        {
+          "id": "blend-saturation",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 80,
+            "y": 208
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "saturation"
+        },
+        {
+          "id": "blend-color",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 144,
+            "y": 208
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "color"
+        },
+        {
+          "id": "blend-luminosity",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 208,
+            "y": 208
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 56,
+          "height": 56,
+          "geometry": {
+            "kind": "ellipse"
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 0,
+              "y": 56
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#12b76a",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#f04438",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "luminosity"
+        },
+        {
+          "id": "mask-image-bar",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 8,
+            "y": 288
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 264,
+          "height": 64,
+          "geometry": {
+            "kind": "rect",
+            "cornerRadius": 8
+          },
+          "fill": {
+            "kind": "solid",
+            "color": "#fdb022"
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "image",
+            "assetId": "asset-image",
+            "x": 0,
+            "y": 0,
+            "width": 264,
+            "height": 64,
+            "mode": "luminance",
+            "inverted": false,
+            "feather": 0,
+            "animations": []
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "mask-shape-photo",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 300,
+            "y": 12
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 150,
+          "height": 150,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "effects": [],
+          "mask": {
+            "kind": "shape",
+            "x": 5,
+            "y": 5,
+            "width": 140,
+            "height": 140,
+            "geometry": {
+              "kind": "rect",
+              "cornerRadius": 0
+            },
+            "inverted": false,
+            "feather": 0,
+            "animations": [
+              {
+                "id": "mask-shape-photo-geometry",
+                "property": "geometry",
+                "keyframes": [
+                  {
+                    "timeUs": 0,
+                    "value": {
+                      "kind": "rect",
+                      "cornerRadius": 0
+                    },
+                    "easing": {
+                      "kind": "ease-in-out"
+                    }
+                  },
+                  {
+                    "timeUs": 1500000,
+                    "value": {
+                      "kind": "rect",
+                      "cornerRadius": 70
+                    },
+                    "easing": {
+                      "kind": "linear"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "mask-shape-photo-feather",
+                "property": "feather",
+                "keyframes": [
+                  {
+                    "timeUs": 0,
+                    "value": 0,
+                    "easing": {
+                      "kind": "linear"
+                    }
+                  },
+                  {
+                    "timeUs": 1000000,
+                    "value": 12,
+                    "easing": {
+                      "kind": "linear"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "mask-text",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 300,
+            "y": 190
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion",
+          "fontAssetId": "asset-font",
+          "fontSize": 40,
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            }
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "shape",
+            "x": 0,
+            "y": 0,
+            "width": 160,
+            "height": 60,
+            "geometry": {
+              "kind": "polygon",
+              "points": [
+                {
+                  "x": 40,
+                  "y": 0
+                },
+                {
+                  "x": 70,
+                  "y": 0
+                },
+                {
+                  "x": 50,
+                  "y": 60
+                },
+                {
+                  "x": 20,
+                  "y": 60
+                }
+              ]
+            },
+            "inverted": true,
+            "feather": 1.5,
+            "animations": [
+              {
+                "id": "mask-text-geometry",
+                "property": "geometry",
+                "keyframes": [
+                  {
+                    "timeUs": 0,
+                    "value": {
+                      "kind": "polygon",
+                      "points": [
+                        {
+                          "x": 0,
+                          "y": 0
+                        },
+                        {
+                          "x": 30,
+                          "y": 0
+                        },
+                        {
+                          "x": 10,
+                          "y": 60
+                        },
+                        {
+                          "x": -20,
+                          "y": 60
+                        }
+                      ]
+                    },
+                    "easing": {
+                      "kind": "ease-in-out"
+                    }
+                  },
+                  {
+                    "timeUs": 1900000,
+                    "value": {
+                      "kind": "polygon",
+                      "points": [
+                        {
+                          "x": 130,
+                          "y": 0
+                        },
+                        {
+                          "x": 160,
+                          "y": 0
+                        },
+                        {
+                          "x": 140,
+                          "y": 60
+                        },
+                        {
+                          "x": 110,
+                          "y": 60
+                        }
+                      ]
+                    },
+                    "easing": {
+                      "kind": "linear"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "matte-group",
+          "type": "group",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 470,
+            "y": 12
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "children": [
+            {
+              "id": "matte-star",
+              "type": "shape",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 500,
+                "y": 500
+              },
+              "opacity": 1,
+              "animations": [
+                {
+                  "id": "matte-star-rotation",
+                  "property": "rotation",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 0,
+                      "easing": {
+                        "kind": "ease-in-out"
+                      }
+                    },
+                    {
+                      "timeUs": 1500000,
+                      "value": 72,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              ],
+              "width": 150,
+              "height": 150,
+              "geometry": {
+                "kind": "polygon",
+                "points": [
+                  {
+                    "x": 75,
+                    "y": 0
+                  },
+                  {
+                    "x": 93,
+                    "y": 52
+                  },
+                  {
+                    "x": 150,
+                    "y": 55
+                  },
+                  {
+                    "x": 105,
+                    "y": 88
+                  },
+                  {
+                    "x": 121,
+                    "y": 145
+                  },
+                  {
+                    "x": 75,
+                    "y": 112
+                  },
+                  {
+                    "x": 29,
+                    "y": 145
+                  },
+                  {
+                    "x": 45,
+                    "y": 88
+                  },
+                  {
+                    "x": 0,
+                    "y": 55
+                  },
+                  {
+                    "x": 57,
+                    "y": 52
+                  }
+                ]
+              },
+              "fill": {
+                "kind": "solid",
+                "color": "#ffffff"
+              },
+              "stroke": {
+                "color": "#ffffff",
+                "width": 0,
+                "dash": [],
+                "cap": "round",
+                "join": "round"
+              },
+              "trim": {
+                "start": 0,
+                "end": 1000
+              },
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "none"
+              },
+              "blendMode": "normal"
+            },
+            {
+              "id": "matte-alpha-photo",
+              "type": "image",
+              "startUs": 0,
+              "durationUs": 2000000,
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "scale": {
+                "x": 1,
+                "y": 1
+              },
+              "rotation": 0,
+              "origin": {
+                "x": 0,
+                "y": 0
+              },
+              "opacity": 1,
+              "animations": [],
+              "assetId": "asset-image",
+              "width": 150,
+              "height": 150,
+              "fit": "cover",
+              "focus": {
+                "x": 500,
+                "y": 500
+              },
+              "crop": {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "cornerRadius": 0,
+              "effects": [],
+              "mask": {
+                "kind": "none"
+              },
+              "matte": {
+                "kind": "node",
+                "nodeId": "matte-star",
+                "mode": "alpha"
+              },
+              "blendMode": "normal"
+            }
+          ],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "lighten"
+        },
+        {
+          "id": "matte-gradient",
+          "type": "shape",
+          "startUs": 500000,
+          "durationUs": 1500000,
+          "position": {
+            "x": 470,
+            "y": 190
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "matte-gradient-position",
+              "property": "position",
+              "keyframes": [
+                {
+                  "timeUs": 500000,
+                  "value": {
+                    "x": -60,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "ease-out"
+                  }
+                },
+                {
+                  "timeUs": 1500000,
+                  "value": {
+                    "x": 40,
+                    "y": 0
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 150,
+          "height": 150,
+          "geometry": {
+            "kind": "rect",
+            "cornerRadius": 0
+          },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "end": {
+              "x": 150,
+              "y": 0
+            },
+            "stops": [
+              {
+                "offset": 0,
+                "color": "#ffffff",
+                "opacity": 1
+              },
+              {
+                "offset": 1000,
+                "color": "#000000",
+                "opacity": 1
+              }
+            ]
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "matte-luminance-photo",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 470,
+            "y": 190
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-image",
+          "width": 150,
+          "height": 150,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "node",
+            "nodeId": "matte-gradient",
+            "mode": "luminance-inverted"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

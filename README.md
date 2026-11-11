@@ -14,7 +14,7 @@ PR-34b; phase four, a host integrating the engine
 PR-43; phase five, motion graphics, effects, and reusable elements
 ([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)), delivered PR-45 to
 PR-57, released as `v0.6.0`; the current phase is speed, freeze frames, and
-reverse playback of clips ([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)). Schema `0.23` with its forward migrations from `0.1` to `0.22`, the evaluation core, the DOM
+reverse playback of clips ([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)). Schema `0.24` with its forward migrations from `0.1` to `0.23`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -189,13 +189,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.23`
+A composition is a JSON document of schema `0.24`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.24",
   "width": 1080,
   "height": 1920,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
@@ -356,8 +356,8 @@ Unknown fields are errors. This one shows a text that fades in:
   the parameters in one step, and the tool `check_custom_html` reports what
   in the html cannot run or cannot be deterministic (D78).
 - **Video:** a `video` node shows source time
-  `sourceStartUs + (t − startUs)` of its video asset; the frame is chosen from
-  the container's own timestamps (D49, D50). Every source time a node samples
+  `sourceStartUs + (t − startUs)` of its video asset at speed 1 forwards; the
+  frame is chosen from the container's own timestamps (D49, D50). Every source time a node samples
   must lie inside the video. The Producer decodes video with the pinned FFmpeg,
   so rendering a document with video nodes needs `--ffmpeg` and `--ffprobe`.
   The Player reads H.264 in MP4, fragmented MP4, QuickTime, or Matroska with
@@ -372,6 +372,19 @@ Unknown fields are errors. This one shows a text that fades in:
   way in the Player and in the Producer (which runs FFmpeg with
   `-noautorotate`), and its facts state the size as shown (D81).
   `inspectVideo` gives the same verdict before a load (section 4).
+- **Speed, freeze, and reverse:** a video node and an audio clip map scene
+  time to source time by `sourceStartUs`, `sourceStartRemainder`, `speed`, and
+  `reverse` (D82): at elapsed time `e = t − startUs` the source time is
+  `F(e) = sourceStartUs + ⌊(sourceStartRemainder + e · num) / den⌋`, or
+  `F(durationUs − 1 − e)` reversed. A `speed` `{ num, den }` is in lowest terms
+  from 1/4 to 4, `den` at most 1000, and the remainder below `den`; a video
+  may be frozen at `{ "num": 0, "den": 1 }`, which shows one frame, is never
+  reversed, and is silent. A reversed clip samples at most 10 minutes of
+  source. A violation is `speed-invalid`. Sound at another speed keeps its
+  pitch: `stretchSound` of `@kadrion/runtime/stretch` computes it the same way
+  in the Producer and the Player. Trims, splits, and joins keep every frame
+  and every sample of a mapped clip; a person or a model reads a speed as a
+  multiplier such as `x0.5` (`formatSpeed`, `parseSpeed`).
 - **Lifetimes:** every node has `startUs` and `durationUs`, in the time of its
   scene, and is shown at scene time `t` while `startUs <= t < startUs +
 durationUs`. A child of a group is shown only while its group is shown too. A
@@ -398,7 +411,7 @@ durationUs`. A child of a group is shown only while its group is shown too. A
 - **Clips:** any number of audio clips, in composition time in the
   composition's `clips` (sound that spans scenes, such as music) and in scene
   time in a scene's `clips` (sound that moves with its scene, cut at its end). A clip plays its
-  asset from `sourceStartUs` for its `durationUs`, at a linear `volume` from 0
+  asset from `sourceStartUs` for its `durationUs` (at speed 1 forwards), at a linear `volume` from 0
   to 1, with linear fades `fadeInUs` and `fadeOutUs`; clips and the sound of
   video nodes are summed (D52). A `video` node has a `volume` too: at 0 it is
   silent and its file needs no sound. The Producer mixes all of it with the
@@ -429,8 +442,8 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.23` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.23` document, and none of them
+`validateComposition` accepts schema `0.24` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.24` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
@@ -442,8 +455,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.23 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.22', '0.23'], or ['0.23'] for a document that was current
+  migrated.composition; // a new, validated 0.24 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.23', '0.24'], or ['0.24'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -499,6 +512,9 @@ if (migrated.ok) {
   (D77).
 - The step from `0.22` gives every Custom HTML node an empty list of
   `fontAssetIds` and of `parameters` after its `html` (D78).
+- The step from `0.23` gives every video node and audio clip the time map it
+  had, speed 1 forwards: `sourceStartRemainder: 0`, `speed: { "num": 1,
+"den": 1 }`, and `reverse: false` after its `sourceStartUs` (D82).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -523,8 +539,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.23 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.22', '0.23'] from 0.1, ['0.23'] when it was current
+  loaded.composition; // a new, validated 0.24 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.23', '0.24'] from 0.1, ['0.24'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -539,7 +555,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23', '0.24']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -552,7 +568,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.23"`, speaks of that.
+  supports `"0.24"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -1246,7 +1262,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23","0.24"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

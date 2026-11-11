@@ -10,7 +10,7 @@
  * D30.4 for every command alike — validating the result in full, and only then
  * returning it with its inverse.
  */
-import { compositionSchema } from '@kadrion/schema';
+import { advanceClipSource, compositionSchema, type ClipTiming } from '@kadrion/schema';
 
 import { keyframeMinimum } from './animations.js';
 import {
@@ -856,6 +856,45 @@ function hasSource(found: TimelineClip): boolean {
   return found.kind === 'audio' || found.clip['type'] === 'video';
 }
 
+/** The lifetime and the time map of a clip that plays a source (D82.1). */
+function timingOf(clip: DocumentObject, clipId: string): ClipTiming {
+  const speed = clip['speed'];
+  const reverse = clip['reverse'];
+  if (!isObject(speed) || typeof reverse !== 'boolean') {
+    throw new EditorError('unsupported-node', `The node \`${clipId}\` has no time map.`);
+  }
+  return {
+    startUs: numberField(clip, 'startUs', clipId),
+    durationUs: numberField(clip, 'durationUs', clipId),
+    sourceStartUs: numberField(clip, 'sourceStartUs', clipId),
+    sourceStartRemainder: numberField(clip, 'sourceStartRemainder', clipId),
+    speed: { num: numberField(speed, 'num', clipId), den: numberField(speed, 'den', clipId) },
+    reverse,
+  };
+}
+
+/**
+ * The source fields of a clip whose map is advanced by `deltaUs` of scene time
+ * (D82.2): its exact source start moved by `deltaUs · speed`, the remainder
+ * carrying what a microsecond cannot hold. A map advanced below 0 is
+ * `source-range-exceeded` (D55.6).
+ */
+function advancedSource(
+  clip: DocumentObject,
+  clipId: string,
+  deltaUs: number,
+): { readonly sourceStartUs: number; readonly sourceStartRemainder: number } {
+  const advanced = advanceClipSource(timingOf(clip, clipId), deltaUs);
+  if (advanced.sourceStartUs < 0) {
+    throw new EditorError(
+      'source-range-exceeded',
+      'The command would make a node or clip start before its source (D55.6).',
+      [`${clipId}: would start ${String(-advanced.sourceStartUs)} µs before its source`],
+    );
+  }
+  return advanced;
+}
+
 /** Refuses a group, whose children have lifetimes of their own (D55.4). */
 function refuseGroup(found: TimelineClip, clipId: string): void {
   if (found.kind === 'node' && found.clip['type'] === 'group') {
@@ -995,9 +1034,11 @@ function splitHalves(
     );
   }
   const restUs = durationUs - offsetUs;
-  const source = hasSource(found)
-    ? { sourceStartUs: numberField(clip, 'sourceStartUs', clipId) + offsetUs }
-    : {};
+  // Each half keeps the map of the whole (D82.2): forwards the second half reads on from
+  // the cut, reversed the first half reads on from the end of the second.
+  const reversed = hasSource(found) && clip['reverse'] === true;
+  const source = hasSource(found) && !reversed ? advancedSource(clip, clipId, offsetUs) : {};
+  const firstSource = reversed ? advancedSource(clip, clipId, restUs) : {};
   if (found.kind === 'audio') {
     const fadeInUs = numberField(clip, 'fadeInUs', clipId);
     const fadeOutUs = numberField(clip, 'fadeOutUs', clipId);
@@ -1008,7 +1049,7 @@ function splitHalves(
       );
     }
     return {
-      first: { ...clip, durationUs: offsetUs, fadeOutUs: 0 },
+      first: { ...clip, durationUs: offsetUs, ...firstSource, fadeOutUs: 0 },
       second: deepFreeze({
         ...copyNode(clip),
         id: newClipId,
@@ -1026,7 +1067,7 @@ function splitHalves(
     );
   }
   return {
-    first: { ...clip, durationUs: offsetUs },
+    first: { ...clip, durationUs: offsetUs, ...firstSource },
     second: deepFreeze(
       renamedAnimations(
         entrancesAt(
@@ -2082,18 +2123,10 @@ const DEFINITIONS = deepFreeze<Definitions>({
         startUs: command.startUs,
         durationUs: durationUs - deltaUs,
       };
-      if (hasSource(found)) {
-        const sourceStartUs = numberField(found.clip, 'sourceStartUs', command.clipId);
-        if (sourceStartUs + deltaUs < 0) {
-          throw new EditorError(
-            'source-range-exceeded',
-            'The command would make a node or clip start before its source (D55.6).',
-            [
-              `${command.clipId}: would start ${String(-(sourceStartUs + deltaUs))} µs before its source`,
-            ],
-          );
-        }
-        clip = { ...clip, sourceStartUs: sourceStartUs + deltaUs };
+      // Forwards the map advances by the trim; reversed it is unchanged, since the start
+      // of the lifetime shows the end of the range (D82.2).
+      if (hasSource(found) && found.clip['reverse'] !== true) {
+        clip = { ...clip, ...advancedSource(found.clip, command.clipId, deltaUs) };
       }
       return {
         document: withClip(document, found, clip),
@@ -2122,8 +2155,18 @@ const DEFINITIONS = deepFreeze<Definitions>({
         throw outsideClip(command.clipId, 'The end lies past the largest time and cannot be named');
       }
       const endUs = startUs + durationUs;
+      // Reversed, the end of the lifetime shows the start of the range: the map advances by
+      // the opposite of the change (D82.2).
+      const source =
+        hasSource(found) && found.clip['reverse'] === true
+          ? advancedSource(found.clip, command.clipId, durationUs - newDurationUs)
+          : {};
       return {
-        document: withClip(document, found, { ...found.clip, durationUs: newDurationUs }),
+        document: withClip(document, found, {
+          ...found.clip,
+          durationUs: newDurationUs,
+          ...source,
+        }),
         invert: () => parseTrimClipEnd({ ...command, endUs }),
         createdIds: [],
         removedIds: [],
@@ -2171,9 +2214,17 @@ const DEFINITIONS = deepFreeze<Definitions>({
       if (nextStartUs - startUs !== durationUs) {
         throw notJoinable(`does not start where \`${command.clipId}\` ends`);
       }
+      // A reversed clip's map is that of its second half, which a split leaves unchanged (D82.2).
+      const reversed = hasSource(found) && found.clip['reverse'] === true;
       const joined: DocumentObject = {
         ...found.clip,
         durationUs: durationUs + nextDurationUs,
+        ...(reversed
+          ? {
+              sourceStartUs: next.clip['sourceStartUs'],
+              sourceStartRemainder: next.clip['sourceStartRemainder'],
+            }
+          : {}),
         ...(found.kind === 'audio'
           ? { fadeOutUs: numberField(next.clip, 'fadeOutUs', command.nextClipId) }
           : {}),

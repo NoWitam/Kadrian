@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "0.24",
+  "width": 640,
+  "height": 360,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 10000000,
+  "assets": [
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-html",
+      "durationUs": 10000000,
+      "nodes": [
+        {
+          "id": "html-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "html-css",
+          "type": "custom-html",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 640,
+          "height": 220,
+          "html": "<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#1d2939}.ball{position:absolute;left:40px;top:30px;width:calc(var(--ball) * 1px);height:calc(var(--ball) * 1px);border-radius:50%;background:var(--accent);animation:slide 4s ease-in-out infinite alternate}@keyframes slide{to{transform:translateX(440px) rotate(180deg);border-radius:12px}}.label{position:absolute;left:40px;top:120px;font:48px \"asset-font\";color:#ffffff;animation:rise 2s ease-out both}@keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}.bar{position:absolute;left:40px;bottom:20px;width:560px;height:12px;background:#344054}.fill{width:100%;height:100%;background:var(--accent);transform-origin:0 0;animation:grow 10s linear both}@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}</style><div class=\"ball\"></div><div class=\"label\">Kadrion</div><div class=\"bar\"><div class=\"fill\"></div></div>",
+          "fontAssetIds": ["asset-font"],
+          "parameters": [
+            {
+              "key": "accent",
+              "type": "color",
+              "value": "#f79009"
+            },
+            {
+              "key": "ball",
+              "type": "number",
+              "value": 80
+            }
+          ]
+        },
+        {
+          "id": "html-script",
+          "type": "custom-html",
+          "startUs": 1000000,
+          "durationUs": 9000000,
+          "position": {
+            "x": 0,
+            "y": 220
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 640,
+          "height": 140,
+          "html": "<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0c111d}#label{position:absolute;left:20px;top:24px;font:40px \"asset-font\";color:var(--accent);white-space:pre}.dot{position:absolute;top:100px;width:12px;height:12px;border-radius:6px;background:#ffffff}</style><div id=\"label\"></div><div id=\"dots\"></div><script>(function(){var dots=document.getElementById(\"dots\");var label=document.getElementById(\"label\");for(var i=0;i<12;i+=1){var dot=document.createElement(\"div\");dot.className=\"dot\";dot.style.left=String(10+Math.floor(Math.random()*600))+\"px\";dots.appendChild(dot)}function draw(){var text=kadrion.parameters.label;label.textContent=text.slice(0,Math.min(text.length,Math.floor(Date.now()/250)));label.style.transform=\"translateX(\"+String(Math.round(performance.now()/40))+\"px)\";dots.style.opacity=String(0.4+Math.floor(Math.random()*6)/10);requestAnimationFrame(draw)}requestAnimationFrame(draw)})()</script>",
+          "fontAssetIds": ["asset-font"],
+          "parameters": [
+            {
+              "key": "accent",
+              "type": "color",
+              "value": "#12b76a"
+            },
+            {
+              "key": "label",
+              "type": "text",
+              "value": "Kadrion dance"
+            }
+          ]
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

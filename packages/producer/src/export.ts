@@ -21,7 +21,12 @@
 import { rename, rm } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 
-import { frameCount, frameToTimeUs, type ValidatedComposition } from '@kadrion/schema';
+import {
+  frameCount,
+  frameToTimeUs,
+  heardSourceRange,
+  type ValidatedComposition,
+} from '@kadrion/schema';
 
 import { audioPlan } from '@kadrion/runtime';
 
@@ -83,6 +88,7 @@ import {
   type ManifestFrame,
   type ManifestGrid,
   type ManifestSound,
+  type ManifestStretch,
   type ManifestMp4Preset,
   type ManifestSegment,
   type ManifestVideo,
@@ -102,6 +108,7 @@ import {
 } from './render.js';
 import type { ProducerAssetResolver } from './media-path.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
+import { stretchedAudio, type StretchedAudio } from './stretch.js';
 import { mediaFiles, prepareVideos, type MediaFiles } from './video.js';
 import {
   AUDIO_INTERMEDIATE_CODEC,
@@ -363,11 +370,13 @@ async function checkedAudio(
           );
         }
       }
-      const endUs = BigInt(entry.sourceStartUs) + BigInt(entry.durationUs);
+      // The range heard, from the map of a sound at another speed or reversed (D82.6).
+      const heard = heardSourceRange(entry);
+      const endUs = BigInt(heard.startUs) + BigInt(heard.durationUs);
       if (probe.samples * 1_000_000n < endUs * BigInt(probe.sampleRate)) {
         throw new ProducerError(
           'source-range-exceeded',
-          `${entry.id}: samples ${String(entry.sourceStartUs)} to ${String(endUs)} µs of "${entry.assetId}", which holds ${String(probe.samples)} samples at ${String(probe.sampleRate)} Hz (D49.6).`,
+          `${entry.id}: samples ${String(heard.startUs)} to ${String(endUs)} µs of "${entry.assetId}", which holds ${String(probe.samples)} samples at ${String(probe.sampleRate)} Hz (D49.6).`,
         );
       }
     }
@@ -384,9 +393,12 @@ async function checkedAudio(
   }
 }
 
-/** The sounds of the layout as the manifests record them (D52.5). */
-function manifestSounds(audio: CheckedAudio): ManifestSound[] {
-  return audio.layout.sounds.map((sound) => ({
+/** The sounds of the layout as the manifests record them (D52.5), with the stretch of a mapped one (D82.6). */
+function manifestSounds(
+  audio: CheckedAudio,
+  stretches: readonly (ManifestStretch | null)[],
+): ManifestSound[] {
+  return audio.layout.sounds.map((sound, index) => ({
     kind: sound.entry.kind,
     id: sound.entry.id,
     assetId: sound.entry.assetId,
@@ -397,6 +409,7 @@ function manifestSounds(audio: CheckedAudio): ManifestSound[] {
     sourceStartSample: sound.sourceStartSample,
     fadeIn: sound.fadeIn,
     fadeOut: sound.fadeOut,
+    ...(stretches[index] == null ? {} : { stretch: stretches[index] }),
   }));
 }
 
@@ -783,11 +796,15 @@ async function audioWith(options: {
   if (audio === null) {
     return { ...common, audio: null, ffmpeg: { ...ffmpegBuild(tools), audioArgs: null } };
   }
-  const graph = audioPassGraph(audio.layout, samples);
   const partial = `${path}${PARTIAL_SUFFIX}`;
-  const args = audioPassArgs({ graph, inputs: audio.inputs, output: partial });
+  let stretched: StretchedAudio | null = null;
   try {
     throwIfCancelled(signal);
+    // Every sound at another speed or reversed, computed into a WAV of its own (D82.6).
+    stretched = await stretchedAudio(audio.layout, audio.inputs, tools, timeoutMs, signal);
+    throwIfCancelled(signal);
+    const graph = audioPassGraph(stretched.graphLayout, samples);
+    const args = audioPassArgs({ graph, inputs: stretched.inputs, output: partial });
     const result = await tools.run(
       args,
       new Uint8Array(0),
@@ -821,7 +838,7 @@ async function audioWith(options: {
       audio: {
         sampleRate: SAMPLE_RATE,
         totalSamples: audio.layout.totalSamples,
-        sounds: manifestSounds(audio),
+        sounds: manifestSounds(audio, stretched.stretches),
         rangeStartSample: samples.startSample,
         rangeSampleCount: samples.sampleCount,
         channelLayout: AUDIO_CHANNEL_LAYOUT,
@@ -842,6 +859,8 @@ async function audioWith(options: {
   } catch (reason) {
     await dependencies.removeFile(partial).catch(() => undefined);
     throw asProducerError(failure(reason, signal));
+  } finally {
+    await stretched?.remove();
   }
 }
 

@@ -38,8 +38,9 @@ import { PAGE_AGENT_SCRIPT } from './agent.js';
 import {
   checkSoundRanges,
   decodeSound,
-  scheduleSounds,
+  scheduleSoundsWith,
   soundFacts,
+  StretchCache,
   type PlayerAudioFacts,
   type ScheduledSounds,
   type SoundContext,
@@ -787,6 +788,8 @@ export async function createPlayer(
   let ended = false;
   /** The sounds of a run that reached its last frame, left to end on their own (D53). */
   let lingering: ScheduledSounds | null = null;
+  /** The samples of sounds at another speed or reversed, kept for the Player's life (D82.6). */
+  const stretchCache = new StretchCache();
   /** Sounds decoded by `prepareAudio`, by content hash (D53). */
   const preparedSounds = new Map<string, AudioBuffer>();
   /** The context that decodes for `prepareAudio` without the option `audio`, made once. */
@@ -1233,7 +1236,15 @@ export async function createPlayer(
     const when = sound.when + before / AUDIO_SAMPLE_RATE;
     sound.passes.set(
       pass,
-      scheduleSounds(audioContext, audio.layout, audio.buffers, fromSample, when, rangeEnd),
+      scheduleSoundsWith(
+        stretchCache,
+        audioContext,
+        audio.layout,
+        audio.buffers,
+        fromSample,
+        when,
+        rangeEnd,
+      ),
     );
   };
 

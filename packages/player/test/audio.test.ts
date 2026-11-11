@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { audioLayout, audioPlan, type AudioLayout } from '@kadrion/runtime';
+import { stretchSound } from '@kadrion/runtime/stretch';
 import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
 import { referenceComposition } from '@kadrion/test-fixtures';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -17,6 +18,7 @@ import {
   decodeSound,
   scheduleSounds,
   soundFacts,
+  StretchCache,
   type SoundContext,
 } from '../src/audio.js';
 import {
@@ -135,6 +137,19 @@ function fakeContext(
       nodes.push(node);
       return node;
     },
+    createBuffer(numberOfChannels: number, length: number, sampleRate: number) {
+      const channels = Array.from({ length: numberOfChannels }, () => new Float32Array(length));
+      return {
+        length,
+        numberOfChannels,
+        sampleRate,
+        duration: length / sampleRate,
+        channels,
+        copyToChannel(source: Float32Array, channel: number) {
+          channels[channel]?.set(source);
+        },
+      };
+    },
   };
   const sources = () => nodes.filter(({ kind }) => kind === 'source');
   return { context, nodes, sources, destination };
@@ -171,6 +186,9 @@ const CLIP = {
   startUs: 1_000_000,
   durationUs: 2_000_000,
   sourceStartUs: 500_000,
+  sourceStartRemainder: 0,
+  speed: { num: 1, den: 1 },
+  reverse: false,
   volume: 0.5,
   fadeInUs: 500_000,
   fadeOutUs: 1_000_000,
@@ -293,6 +311,131 @@ describe('scheduleSounds (D53)', () => {
     scheduled.stop();
     expect(sources().every(({ stopped }) => stopped)).toBe(true);
     expect(nodes.every(({ disconnected }) => disconnected)).toBe(true);
+  });
+});
+
+/** A decoded buffer that holds `channels` from source sample 0. */
+function samplesBuffer(channels: readonly Float32Array[]): AudioBuffer {
+  const length = channels[0]?.length ?? 0;
+  return {
+    length,
+    numberOfChannels: channels.length,
+    sampleRate: R,
+    duration: length / R,
+    getChannelData: (channel: number) => channels[channel] as Float32Array,
+  } as unknown as AudioBuffer;
+}
+
+/** Two channels of a 440 Hz and a 660 Hz tone, `seconds` long, at 48 kHz. */
+function tones(seconds: number): Float32Array[] {
+  return [440, 660].map((hz) =>
+    Float32Array.from({ length: seconds * R }, (_, index) =>
+      Math.sin((2 * Math.PI * hz * index) / R),
+    ),
+  );
+}
+
+describe('sounds at another speed or reversed (D82.6)', () => {
+  const MAPPED = {
+    ...CLIP,
+    startUs: 1_000_000,
+    durationUs: 500_000,
+    sourceStartUs: 250_000,
+    speed: { num: 1, den: 2 },
+    fadeInUs: 0,
+    fadeOutUs: 0,
+  };
+  const source = tones(2);
+
+  function computedOf(node: FakeNode): Float32Array[] {
+    return (node.buffer as { channels: Float32Array[] }).channels;
+  }
+
+  it('plays the samples stretchSound computes, from offset 0 of a buffer of their own', () => {
+    const layout = layoutOf(withClips([MAPPED]));
+    const [sound] = layout.sounds;
+    const map = sound?.entry.map;
+    if (sound === undefined || map === undefined) throw new Error('The clip is mapped.');
+    const { context, sources } = fakeContext();
+    scheduleSounds(
+      asContext(context),
+      layout,
+      new Map([['asset-audio', samplesBuffer(source)]]),
+      0,
+      2,
+    );
+    const [node] = sources();
+    if (node === undefined) throw new Error('No source.');
+    expect(node.started).toEqual([3, 0, 0.5]);
+    const expected = stretchSound({
+      map,
+      source: { channels: source, startSample: 0 },
+      startSample: sound.startSample,
+      sampleCount: sound.sampleCount,
+    });
+    expect(computedOf(node)).toEqual(expected);
+  });
+
+  it('computes from the sample a play starts at, the same samples as the whole', () => {
+    const layout = layoutOf(withClips([{ ...MAPPED, speed: { num: 3, den: 2 }, reverse: true }]));
+    const whole = fakeContext();
+    scheduleSounds(
+      asContext(whole.context),
+      layout,
+      new Map([['asset-audio', samplesBuffer(source)]]),
+      0,
+      0,
+    );
+    const seek = fakeContext();
+    // From 1.25 s, a quarter of a second into the clip.
+    scheduleSounds(
+      asContext(seek.context),
+      layout,
+      new Map([['asset-audio', samplesBuffer(source)]]),
+      60_000,
+      0,
+    );
+    const [first] = whole.sources();
+    const [second] = seek.sources();
+    if (first === undefined || second === undefined) throw new Error('No source.');
+    expect(second.started).toEqual([0, 0, 0.25]);
+    expect(computedOf(second)).toEqual(
+      computedOf(first).map((channel) => channel.subarray(12_000)),
+    );
+  });
+
+  it('keeps what it computed, by source and map, and reads a later range from it', () => {
+    const layout = layoutOf(withClips([MAPPED]));
+    const map = layout.sounds[0]?.entry.map;
+    if (map === undefined) throw new Error('The clip is mapped.');
+    const decoded = samplesBuffer(source);
+    const cache = new StretchCache();
+    const all = cache.samples(decoded, map, 48_000, 24_000);
+    const later = cache.samples(decoded, map, 60_000, 6_000);
+    expect(later[0]?.buffer).toBe(all[0]?.buffer);
+    expect(later).toEqual(all.map((channel) => channel.subarray(12_000, 18_000)));
+    // Another buffer of the same asset is computed again.
+    const other = cache.samples(samplesBuffer(tones(2)), map, 60_000, 6_000);
+    expect(other[0]?.buffer).not.toBe(all[0]?.buffer);
+    expect(other).toEqual(later);
+  });
+
+  it('checks the range a mapped sound hears against the buffer, as the Producer does', () => {
+    // Reversed at 3/2 from 1 s for 0.5 s: it hears F(0) = 250 000 to F(499 999) = 999 998 µs.
+    const layout = layoutOf(withClips([{ ...MAPPED, speed: { num: 3, den: 2 }, reverse: true }]));
+    expect(() => {
+      checkSoundRanges(layout, new Map([['asset-audio', buffer(48_000)]]));
+    }).not.toThrow();
+    expect(() => {
+      checkSoundRanges(layout, new Map([['asset-audio', buffer(47_999)]]));
+    }).toThrow(
+      expect.objectContaining({
+        code: 'source-range-exceeded',
+        details: [
+          'clip-a: 250000 to 999999 µs of "asset-audio", which holds 47999 samples at 48 kHz',
+        ],
+      }),
+    );
   });
 });
 

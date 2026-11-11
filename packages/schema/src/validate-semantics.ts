@@ -26,6 +26,7 @@ import { compositionSchema, SCHEMA_VERSION } from './composition-schema.js';
 import { MAX_INSTANCE_DEPTH } from './definitions.js';
 import { pointer, type ValidationError } from './errors.js';
 import { instantiateDefinition, MAX_REPEAT_IDS, valuesOf } from './template-fill.js';
+import { speedProblem, type Speed } from './time-map.js';
 import { templateStructure } from './template-structure.js';
 import {
   constraintProblem,
@@ -80,6 +81,7 @@ import type { CompositionV019 } from './v0-19/composition-schema.js';
 import type { CompositionV020 } from './v0-20/composition-schema.js';
 import type { CompositionV021 } from './v0-21/composition-schema.js';
 import type { CompositionV022 } from './v0-22/composition-schema.js';
+import type { CompositionV023 } from './v0-23/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -103,6 +105,7 @@ type SceneNodeV019 = CompositionV019['scenes'][number]['nodes'][number];
 type SceneNodeV020 = CompositionV020['scenes'][number]['nodes'][number];
 type SceneNodeV021 = CompositionV021['scenes'][number]['nodes'][number];
 type SceneNodeV022 = CompositionV022['scenes'][number]['nodes'][number];
+type SceneNodeV023 = CompositionV023['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -369,6 +372,88 @@ interface Sibling {
   readonly blendMode?: string;
 }
 
+/** The longest source range a reversed clip may sample, in microseconds: 10 minutes (D82.6). */
+const MAX_REVERSED_SOURCE_US = 600_000_000n;
+
+/** The source fields of a video node or an audio clip; the map's fields are those of 0.24 (D82.1). */
+interface SourceFields {
+  readonly durationUs: number;
+  readonly sourceStartUs: number;
+  readonly sourceStartRemainder?: number;
+  readonly speed?: Speed;
+  readonly reverse?: boolean;
+}
+
+/**
+ * The time map of a video node or an audio clip (D82.1, D82.3, D82.6), then its
+ * last source time: `speed-invalid` for a speed that is not one, a remainder
+ * from its `den`, a freeze frame that is reversed or that an audio clip has,
+ * and a reversed clip that samples more than 10 minutes of source; then
+ * `source-time-out-of-range` when the greatest source time of the lifetime,
+ * `F(durationUs − 1)`, is not a safe integer (D50.2, D52.3). A clip of a
+ * version before 0.24 has no map and plays at speed 1.
+ */
+function checkSourceTimes(
+  clip: SourceFields,
+  path: string,
+  kind: 'video' | 'audio',
+  errors: ValidationError[],
+): void {
+  const { speed, sourceStartRemainder: remainder = 0, reverse = false } = clip;
+  let num = 1n;
+  let den = 1n;
+  if (speed !== undefined) {
+    const problem = speedProblem(speed);
+    const before = errors.length;
+    if (problem !== null) {
+      errors.push({ code: 'speed-invalid', path: pointer(path, 'speed'), message: problem });
+    } else if (speed.num === 0 && kind === 'audio') {
+      errors.push({
+        code: 'speed-invalid',
+        path: pointer(path, 'speed'),
+        message: 'An audio clip is never frozen: silence is a gap, not a clip (D82.3).',
+      });
+    } else if (remainder >= speed.den) {
+      errors.push({
+        code: 'speed-invalid',
+        path: pointer(path, 'sourceStartRemainder'),
+        message: `sourceStartRemainder must be below the den of the speed, ${String(speed.den)} (D82.1).`,
+      });
+    } else if (speed.num === 0 && reverse) {
+      errors.push({
+        code: 'speed-invalid',
+        path: pointer(path, 'reverse'),
+        message: 'A freeze frame is never reversed (D82.3).',
+      });
+    }
+    if (errors.length > before) return;
+    num = BigInt(speed.num);
+    den = BigInt(speed.den);
+  }
+  // F(e) = sourceStartUs + ⌊(remainder + e · num) / den⌋, all terms from 0 (D82.1).
+  const first = BigInt(clip.sourceStartUs) + BigInt(remainder) / den;
+  const last =
+    BigInt(clip.sourceStartUs) + (BigInt(remainder) + BigInt(clip.durationUs - 1) * num) / den;
+  if (reverse && last - first + 1n > MAX_REVERSED_SOURCE_US) {
+    errors.push({
+      code: 'speed-invalid',
+      path: pointer(path, 'reverse'),
+      message: `A reversed clip samples at most ${String(MAX_REVERSED_SOURCE_US)} µs of source, not ${String(last - first + 1n)} (D82.6).`,
+    });
+    return;
+  }
+  if (last > BigInt(Number.MAX_SAFE_INTEGER)) {
+    errors.push({
+      code: 'source-time-out-of-range',
+      path: pointer(path, 'sourceStartUs'),
+      message:
+        speed === undefined || (speed.num === 1 && speed.den === 1)
+          ? 'sourceStartUs + durationUs − 1 must be a safe integer.'
+          : 'The last source time of the clip, sourceStartUs + ⌊(sourceStartRemainder + (durationUs − 1) · num) / den⌋, must be a safe integer (D82.1).',
+    });
+  }
+}
+
 /**
  * The rules of mattes among the nodes of one parent, a scene or a group (D75):
  * a matte names another node of the same parent, a shape, that has no mask,
@@ -443,7 +528,8 @@ export function validateSemantics(
     | CompositionV019
     | CompositionV020
     | CompositionV021
-    | CompositionV022,
+    | CompositionV022
+    | CompositionV023,
   options: SemanticOptions = CHECK_EVERYTHING,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -475,7 +561,13 @@ export function validateSemantics(
   // checked as the nodes of a scene are.
   const holders: {
     readonly nodes: readonly (
-      SceneNode | SceneNodeV09 | SceneNodeV019 | SceneNodeV020 | SceneNodeV021 | SceneNodeV022
+      | SceneNode
+      | SceneNodeV09
+      | SceneNodeV019
+      | SceneNodeV020
+      | SceneNodeV021
+      | SceneNodeV022
+      | SceneNodeV023
     )[];
     readonly transitions?: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
     readonly effects?: Composition['scenes'][number]['effects'];
@@ -515,14 +607,8 @@ export function validateSemantics(
         } else if (member.node.type === 'video') {
           checkReference(member.node.assetId, 'video', pointer(member.path, 'assetId'));
           // Every source time of the lifetime stays a safe integer (D50.2), so the
-          // runtime never forms one that is not.
-          if (member.node.sourceStartUs > Number.MAX_SAFE_INTEGER - member.node.durationUs + 1) {
-            sourceErrors.push({
-              code: 'source-time-out-of-range',
-              path: pointer(member.path, 'sourceStartUs'),
-              message: 'sourceStartUs + durationUs − 1 must be a safe integer.',
-            });
-          }
+          // runtime never forms one that is not; the map of 0.24 is checked first (D82.1).
+          checkSourceTimes(member.node, member.path, 'video', sourceErrors);
         } else if (member.node.type === 'text') {
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
           // The tracks of a text animation of 0.14 follow the rules of animations (D69).
@@ -604,13 +690,7 @@ export function validateSemantics(
     checkReference(clip.assetId, 'audio', pointer(clipPath, 'assetId'));
     // The fields of 0.4 (D52.3); a clip of an earlier version has none of them.
     if ('sourceStartUs' in clip) {
-      if (clip.sourceStartUs > Number.MAX_SAFE_INTEGER - clip.durationUs + 1) {
-        sourceErrors.push({
-          code: 'source-time-out-of-range',
-          path: pointer(clipPath, 'sourceStartUs'),
-          message: 'sourceStartUs + durationUs − 1 must be a safe integer.',
-        });
-      }
+      checkSourceTimes(clip, clipPath, 'audio', sourceErrors);
       // Both fades are at most a safe integer each, so their sum is exact as a double
       // only up to 2^53; compared as a difference, it never rounds.
       if (clip.fadeInUs > clip.durationUs - clip.fadeOutUs) {
@@ -698,7 +778,11 @@ export function validateSemantics(
     'definitions' in composition ? checkDefinitions(composition) : [];
 
   // The elements of 0.22 (D77): the templates of definitions and the values of instances.
-  if (composition.schemaVersion === SCHEMA_VERSION || composition.schemaVersion === '0.22') {
+  if (
+    composition.schemaVersion === SCHEMA_VERSION ||
+    composition.schemaVersion === '0.23' ||
+    composition.schemaVersion === '0.22'
+  ) {
     definitionErrors.push(...checkElements(composition, options));
   }
 
@@ -728,7 +812,7 @@ export function validateSemantics(
  * instances, counted from a scene, is more than `MAX_INSTANCE_DEPTH` deep.
  */
 function checkDefinitions(
-  composition: Composition | CompositionV021 | CompositionV022,
+  composition: Composition | CompositionV021 | CompositionV022 | CompositionV023,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -843,6 +927,31 @@ export interface SemanticOptions {
 
 const CHECK_EVERYTHING: SemanticOptions = Object.freeze({ instanceValues: true });
 
+/**
+ * A definition of 0.22 or 0.23 with the time map of speed 1 on every audio clip
+ * that has none (D82.8): `sourceStartRemainder: 0`, `speed: 1/1`, and
+ * `reverse: false` after its `sourceStartUs`, as the step to 0.24 writes them.
+ * A definition holds no video node (D76.1).
+ */
+function withSpeedOne(definition: Definition): Definition {
+  const clips = definition.clips.map((clip): AudioClip => {
+    if ('speed' in clip) return clip;
+    return Object.fromEntries(
+      Object.entries(clip).flatMap(([key, value]): [string, unknown][] =>
+        key === 'sourceStartUs'
+          ? [
+              [key, value],
+              ['sourceStartRemainder', 0],
+              ['speed', { num: 1, den: 1 }],
+              ['reverse', false],
+            ]
+          : [[key, value]],
+      ),
+    ) as unknown as AudioClip;
+  });
+  return { ...definition, clips };
+}
+
 /** A definition seen as a composition of one scene: its nodes, clips, and transitions (D77). */
 function definitionHolder(
   composition: Pick<Composition, 'fps' | 'assets'>,
@@ -933,9 +1042,12 @@ const ASSET_TYPES: readonly string[] = ['image', 'video', 'audio'];
  * every instance count together toward `MAX_REPEAT_IDS`.
  */
 function checkElements(
-  composition: Composition | CompositionV022,
+  document: Composition | CompositionV022 | CompositionV023,
   options: SemanticOptions,
 ): ValidationError[] {
+  // The definitions of 0.22 and 0.23 are those of 0.24 without the time maps of their
+  // clips, which `withSpeedOne` adds where a definition is validated as one (D82.8).
+  const composition = document as Composition;
   const errors: ValidationError[] = [];
   const definitions = new Map(
     composition.definitions.map((definition) => [definition.id, definition]),
@@ -1027,10 +1139,13 @@ function checkElements(
           copiedIds: 0,
         };
       } else {
+        // A document of 0.22 or 0.23 has no time maps; its clips play at speed 1, which the
+        // map of 0.24 states as its defaults, so the current schema judges them as theirs did (D82.8).
+        const current = document.schemaVersion === SCHEMA_VERSION;
         const instantiated = definitionHolder(
           composition,
-          made.definition,
-          reached(definition.id),
+          current ? made.definition : withSpeedOne(made.definition),
+          current ? reached(definition.id) : reached(definition.id).map(withSpeedOne),
           { inputs: [], bindings: [], conditions: [], repeats: [] },
         );
         const found = [...validateStructure(compositionSchema, instantiated)];
@@ -1284,6 +1399,7 @@ function checkTemplate(
     | CompositionV020
     | CompositionV021
     | CompositionV022
+    | CompositionV023
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1801,6 +1917,7 @@ function subtreeOf(
     | CompositionV020
     | CompositionV021
     | CompositionV022
+    | CompositionV023
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1877,7 +1994,9 @@ interface Located {
     | SceneNodeV021
     | Extract<SceneNodeV021, { type: 'group' }>['children'][number]
     | SceneNodeV022
-    | Extract<SceneNodeV022, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV022, { type: 'group' }>['children'][number]
+    | SceneNodeV023
+    | Extract<SceneNodeV023, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -1908,7 +2027,8 @@ function checkTransitions(
     | CompositionV019
     | CompositionV020
     | CompositionV021
-    | CompositionV022,
+    | CompositionV022
+    | CompositionV023,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));
