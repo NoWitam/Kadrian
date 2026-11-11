@@ -13,12 +13,12 @@
  */
 import { execFile, spawn } from 'node:child_process';
 import {
+  type Dirent,
   existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from 'node:fs';
 import { networkInterfaces, tmpdir } from 'node:os';
@@ -198,26 +198,25 @@ function psnr(a: Pixels, b: Pixels): number {
   return mse === 0 ? Number.POSITIVE_INFINITY : 10 * Math.log10((255 * 255) / mse);
 }
 
-/** Files anywhere below `directory`, a few levels deep, that look like frames. */
-function frameLikeFiles(directory: string, depth = 3): string[] {
-  if (depth < 0 || !existsSync(directory)) return [];
-  const found: string[] = [];
-  let entries: string[];
+/**
+ * Files anywhere below `directory`, a few levels deep, that look like frames.
+ * The types come with the entries, so a scan reads each directory once and
+ * stats no file: the watch below runs it every 25 ms on the thread that pipes
+ * the frames, so its cost must not grow with what other programs left in the
+ * temporary directory.
+ */
+function frameLikeFiles(directory: string, depth = 3, found: string[] = []): string[] {
+  if (depth < 0) return found;
+  let entries: Dirent[];
   try {
-    entries = readdirSync(directory);
+    entries = readdirSync(directory, { withFileTypes: true });
   } catch {
-    return [];
+    return found;
   }
-  for (const name of entries) {
-    const path = join(directory, name);
-    let isDirectory: boolean;
-    try {
-      isDirectory = statSync(path).isDirectory();
-    } catch {
-      continue;
-    }
-    if (isDirectory) found.push(...frameLikeFiles(path, depth - 1));
-    else if (/\.(png|bmp|ppm|rgb|rgba|raw|yuv|y4m)$/i.test(name)) found.push(path);
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) frameLikeFiles(path, depth - 1, found);
+    else if (/\.(png|bmp|ppm|rgb|rgba|raw|yuv|y4m)$/i.test(entry.name)) found.push(path);
   }
   return found;
 }
@@ -236,7 +235,12 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
     mkdirSync(EXPORTS, { recursive: true });
     const before = new Set(watchedDirectories.flatMap((directory) => frameLikeFiles(directory)));
     const outputs = new Set<string>();
+    // What the watch cost, in the report: a scan longer than its interval
+    // starves the export it watches (the timeouts of 2026-11-11).
+    const scans = { count: 0, totalMs: 0, maxMs: 0 };
+    const started = performance.now();
     const watch = setInterval(() => {
+      const scanStarted = performance.now();
       for (const directory of watchedDirectories) {
         for (const file of frameLikeFiles(directory)) if (!before.has(file)) outputs.add(file);
       }
@@ -249,6 +253,10 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
           outputs.add(join(EXPORTS, name));
         }
       }
+      const scanMs = performance.now() - scanStarted;
+      scans.count += 1;
+      scans.totalMs += scanMs;
+      scans.maxMs = Math.max(scans.maxMs, scanMs);
     }, 25);
     try {
       full = await exportMp4({
@@ -270,6 +278,12 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
     } finally {
       clearInterval(watch);
     }
+    report.watch = {
+      ...scans,
+      exportMs: performance.now() - started,
+      entriesBefore: before.size,
+    };
+    console.info(`Frame watch during the export: ${JSON.stringify(report.watch)}`);
     watched.push(...outputs);
     // The reference: the frame loop of D28 over the full grid, in a page of its own.
     reference = await renderFrames({
