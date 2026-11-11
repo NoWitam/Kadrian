@@ -1,0 +1,169 @@
+{
+  "render": {
+    "manifestVersion": 3,
+    "compositionHash": "sha256:fb87ed8dac167b1d2090a586a3ee3cde11153994c7395e047b97d77e3478b78b",
+    "schemaVersion": "0.25",
+    "runtime": {
+      "contentHash": "sha256:2d9240d75d0b3dd8b837101394dd91573ba1cf5f6db574d78a556b6916c3ea8c",
+      "bundler": "esbuild@0.28.2",
+      "compiler": "typescript@6.0.3"
+    },
+    "chromium": {
+      "playwrightCore": "1.63.0",
+      "revision": "1243",
+      "expectedVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ]
+    },
+    "environment": {
+      "pinned": true,
+      "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+      "pinnedPlatform": "linux/amd64",
+      "os": "linux",
+      "arch": "x64",
+      "node": "v24.20.0",
+      "playwrightCore": "1.63.0",
+      "chromiumRevision": "1243",
+      "chromiumVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ],
+      "locale": "en-US",
+      "timezone": "UTC",
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "deviceScaleFactor": 1,
+      "network": {
+        "interfaces": [
+          "lo"
+        ],
+        "loopbackOnly": true
+      }
+    },
+    "assets": [
+      {
+        "id": "asset-font-proportional",
+        "type": "font",
+        "mediaType": "font/ttf",
+        "contentHash": "sha256:4a209658a3a8cde1b117a955ab340c3b57548d94b0c65dd25949fc9a54312de1",
+        "family": "kadrion-font-asset-font-proportional"
+      }
+    ],
+    "durationUs": 2000000,
+    "frameCount": 60,
+    "video": null,
+    "preset": {
+      "name": "frames-png",
+      "width": 640,
+      "height": 360,
+      "fps": 30,
+      "deviceScaleFactor": 1
+    },
+    "frames": [
+      {
+        "index": 15,
+        "timeUs": 500000,
+        "sha256": "sha256:17e83598487342f6dfef779742dcb06a537447c9e7f061d42e4089e8c2a4d354"
+      },
+      {
+        "index": 33,
+        "timeUs": 1100000,
+        "sha256": "sha256:5f3f24208504d28170efd7eb69c22c456e6182785a14617c012eb72c01687c2b"
+      },
+      {
+        "index": 36,
+        "timeUs": 1200000,
+        "sha256": "sha256:fed7309288ebdb8fce2d7da740759c4bc55024bc0264ed5686922287639240b0"
+      },
+      {
+        "index": 45,
+        "timeUs": 1500000,
+        "sha256": "sha256:b4484d16cb3234fe97115644e33f30644e60e478a0f9b8c27b88e9505ee79ce2"
+      },
+      {
+        "index": 59,
+        "timeUs": 1966666,
+        "sha256": "sha256:00a8e2f82f4b9c56c7a47774d7a0060a24ee02bdd7f7465ac3284fa8dccc6f99"
+      }
+    ],
+    "blockedRequests": [],
+    "ffmpeg": null
+  },
+  "environment": {
+    "pinned": true,
+    "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+    "pinnedPlatform": "linux/amd64",
+    "os": "linux",
+    "arch": "x64",
+    "node": "v24.20.0",
+    "playwrightCore": "1.63.0",
+    "chromiumRevision": "1243",
+    "chromiumVersion": "153.0.8010.12",
+    "reportedVersion": "153.0.8010.12",
+    "channel": "chromium",
+    "args": [
+      "--force-color-profile=srgb",
+      "--disable-lcd-text",
+      "--hide-scrollbars",
+      "--mute-audio"
+    ],
+    "locale": "en-US",
+    "timezone": "UTC",
+    "viewport": {
+      "width": 1080,
+      "height": 1920
+    },
+    "deviceScaleFactor": 1,
+    "network": {
+      "interfaces": [
+        "lo"
+      ],
+      "loopbackOnly": true
+    }
+  },
+  "frames": [
+    {
+      "file": "framed-text-500000.png",
+      "timeUs": 500000,
+      "index": 15,
+      "sha256": "sha256:17e83598487342f6dfef779742dcb06a537447c9e7f061d42e4089e8c2a4d354"
+    },
+    {
+      "file": "framed-text-1100000.png",
+      "timeUs": 1100000,
+      "index": 33,
+      "sha256": "sha256:5f3f24208504d28170efd7eb69c22c456e6182785a14617c012eb72c01687c2b"
+    },
+    {
+      "file": "framed-text-1200000.png",
+      "timeUs": 1200000,
+      "index": 36,
+      "sha256": "sha256:fed7309288ebdb8fce2d7da740759c4bc55024bc0264ed5686922287639240b0"
+    },
+    {
+      "file": "framed-text-1500000.png",
+      "timeUs": 1500000,
+      "index": 45,
+      "sha256": "sha256:b4484d16cb3234fe97115644e33f30644e60e478a0f9b8c27b88e9505ee79ce2"
+    },
+    {
+      "file": "framed-text-1966666.png",
+      "timeUs": 1966666,
+      "index": 59,
+      "sha256": "sha256:00a8e2f82f4b9c56c7a47774d7a0060a24ee02bdd7f7465ac3284fa8dccc6f99"
+    }
+  ]
+}

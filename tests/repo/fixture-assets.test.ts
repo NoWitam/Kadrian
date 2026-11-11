@@ -12,7 +12,7 @@ const PLACEHOLDER_HASH = /^sha256:0{56}/;
 const CONTENT_HASH = /^sha256:[0-9a-f]{64}$/;
 /** The only place where committed binaries may live: the golden frames of D26.5. */
 const GOLDEN_DIRECTORY = 'packages/test-fixtures/src/golden-frames/';
-/** The golden manifests: the reference composition, the video composition of D50.8, the transitions composition of D56, the captions composition of D57, the focus composition of D63, the clip transitions composition of D66, the easing composition of D67, the motion composition of D68, the text composition of D69, the animated captions composition of D70, the effects composition of D71, the SVG effects composition of D72, the composition of shapes of D73, the SVG composition of D74, the composition of compositing of D75, the nested composition of D76, the elements of D77, the Custom HTML of D78, and the clips at another speed, frozen, and reversed of D82. */
+/** The golden manifests: the reference composition, the video composition of D50.8, the transitions composition of D56, the captions composition of D57, the focus composition of D63, the clip transitions composition of D66, the easing composition of D67, the motion composition of D68, the text composition of D69, the animated captions composition of D70, the effects composition of D71, the SVG effects composition of D72, the composition of shapes of D73, the SVG composition of D74, the composition of compositing of D75, the nested composition of D76, the elements of D77, the Custom HTML of D78, the clips at another speed, frozen, and reversed of D82, and the texts in frames and captions broken by width of D83. */
 const GOLDEN_MANIFESTS = [
   'reference',
   'video',
@@ -33,6 +33,7 @@ const GOLDEN_MANIFESTS = [
   'elements',
   'custom-html',
   'speed',
+  'framed-text',
 ].map((name) => `${GOLDEN_DIRECTORY}${name}.golden-frames.json`);
 
 interface ReferenceComposition {
