@@ -35,9 +35,10 @@ and the host flow on released tarballs), PR-37 to PR-43, released as
 effects, and reusable elements (clip transitions, easing, rotation, text
 animated in fragments, animated captions, effects, vector shapes and SVG
 assets, compositing, nested compositions and elements, and Custom HTML for AI
-authors), PR-45 to PR-57, released as `v0.6.0`. No later phase is planned
-yet: the next one starts from a roadmap the owner accepts, and every pull
-request of it is approved as that roadmap states.
+authors), PR-45 to PR-57, released as `v0.6.0`. The current phase is phase
+six: speed, freeze frames, and reverse playback of clips (D82).
+`docs/roadmap/phase-6.md` holds the plan; every pull request of it is approved
+separately, before it starts and again before its commit and push.
 
 Do not turn Kadrion into an end-user editor, a media platform, a plugin
 ecosystem, a render service, or a Taskio integration inside this repository.

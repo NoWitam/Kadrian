@@ -89,6 +89,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D79](D79-video-containers-read-with-mediabunny.md)           | Video containers read with Mediabunny, and the verdict of `inspectVideo`                     | Proposed          |
 | [D80](D80-a-segment-grid-anchored-on-a-span.md)               | A segment grid anchored on a span, with a shortest last segment                              | Proposed          |
 | [D81](D81-video-turned-by-its-container.md)                   | Video turned by its container: the display matrix applied after the conversion to RGB        | Proposed          |
+| [D82](D82-clip-speed-freeze-frames-and-reverse-playback.md)   | Clip speed, freeze frames, and reverse playback: a rational time map, schema 0.24            | Accepted          |
 
 ## Provenance of D01–D10
 

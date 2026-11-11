@@ -4,7 +4,7 @@ Kadrion is a TypeScript engine for describing, previewing, editing, and
 deterministically rendering video compositions. It is an engine/SDK, not an
 end-user application, and it does not depend on any consumer product.
 
-**Status: phase five complete.** The vertical spike is complete
+**Status: phase six.** The vertical spike is complete
 ([`docs/spike/report.md`](docs/spike/report.md), section 10); phase two,
 authoring ([`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md)), delivered
 PR-18 to PR-22; phase three, the engine under a host's video editor
@@ -13,7 +13,8 @@ PR-34b; phase four, a host integrating the engine
 ([`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md)), delivered PR-37 to
 PR-43; phase five, motion graphics, effects, and reusable elements
 ([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)), delivered PR-45 to
-PR-57, released as `v0.6.0`. Schema `0.23` with its forward migrations from `0.1` to `0.22`, the evaluation core, the DOM
+PR-57, released as `v0.6.0`; the current phase is speed, freeze frames, and
+reverse playback of clips ([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)). Schema `0.23` with its forward migrations from `0.1` to `0.22`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -34,7 +35,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D81; all accepted except D10, superseded by
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D82; all accepted except D10, superseded by
   D37)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
@@ -48,6 +49,8 @@ are those of the spike and may still change.
   four: a host integrates the engine
 - [`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md) — the plan of phase
   five: motion graphics, effects, and reusable elements
+- [`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md) — the plan of phase
+  six: speed, freeze frames, and reverse playback of clips
 - [`docs/integration/host-guide.md`](docs/integration/host-guide.md) — for a
   host: per task, the call, its errors, its limits, and the ADR that rules it
 - [`docs/ci/first-run.md`](docs/ci/first-run.md) — the first CI run, and how

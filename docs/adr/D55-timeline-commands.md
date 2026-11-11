@@ -8,6 +8,7 @@
   their IDs), each with an `Amended by: PR-31 (D55)` line
 - Amended by: PR-33 (D57) on 2026-11-02: a move carries the words of captions, a trim moves none, and a split copies them to both halves (D57.5)
 - Amended by: PR-49 (D69) on 2026-11-08: a move carries an accent of a text animation; a split hands the second half its entrance as an accent, and refuses a text with an exit (D69.7)
+- Amended by: PR-58 (D82) on 2026-11-11, in force from PR-61 and PR-62: 55.2, 55.4, and 55.5: `TrimClipStart`, `TrimClipEnd`, `SplitClip`, and `JoinClips` move a clip's time map exactly, forwards and reversed, so the frames that remain stay where they were at any speed (D82.2); PR-62 adds `SetClipSpeed`, `SetClipReverse`, and the helper `freezeFrame` (D82.9)
 - Related: D30, D38, D39, D41, D42, D49, D52, D53, D54,
   [roadmap of phase three](../roadmap/phase-3.md) PR-31
 
