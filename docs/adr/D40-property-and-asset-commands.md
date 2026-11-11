@@ -2,6 +2,7 @@
 
 - Status: Accepted — by the project owner on 2026-09-29, before the implementation
 - Date: 2026-09-29
+- Amended by: PR-64 (D83) on 2026-11-11, in force from PR-67: 40.1: `SetNodeSize` sets the frame of a text, and `null` removes it (D83.10)
 - Supersedes: —
 - Amends: D30 (D30.8), D38 (D38.1), D39 (D39.4, D39.9), each with an
   `Amended by: PR-19b (D40)` line

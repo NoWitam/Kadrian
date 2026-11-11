@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-11-08, after PR-48 was merged
   (PR #64)
 - Date: 2026-11-07
+- Amended by: PR-64 (D83) on 2026-11-11, in force from PR-66: 68.10: the box of a text with a frame is its frame (D83.3)
 - Supersedes: —
 - Amends: D15 (a node turns and scales about its origin point; the corner
   radius and the crop of a picture), D16 (16.6: rotation and origin are

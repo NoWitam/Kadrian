@@ -7,6 +7,7 @@
     "Properties an animation can reach (D68): renderState writes them on every call, before the transform: the background-color of the background and the color of a text from their state; the width and height of an image from its size, its object-view-box inset(<fromTop/10>%, <fromRight/10>%, <fromBottom/10>%, <fromLeft/10>%) from its crop, written with spaces and no commas in the shortest form of CSS (a left equal to the right left out, then a bottom equal to the top, then a right equal to the top), and its border-radius from its corner radius in px. The reference image keeps 400 x 400, no crop, and square corners: width 400px, height 400px, object-view-box inset(0%), border-radius 0px.",
     "Colours: #rrggbb is written as rgb(r, g, b) with decimal channels: #0b1020 is rgb(11, 16, 32), #d0d5dd is rgb(208, 213, 221), #ffffff is rgb(255, 255, 255).",
     "Asset URLs: the host passes `assetUrls` below; src of the image is its entry, and the font URL is required but registers no font face (D22.6).",
+    "Opacity (D22.9): the element of every node but the background also gets will-change: opacity at mount, after the styles of its row and before what renderState writes; the reference composition has no transitions and no text animations, so no other element gets it.",
     "Static values from reference.json: canvas 1080 x 1920; node-image 400 x 400, asset-image; node-caption 56px, #d0d5dd, \"Deterministic by design\"; node-title 144px, #ffffff, \"Kadrion\"; both texts use asset-font; node-custom-html 900 x 40.",
     "Custom HTML element (D23.1, D23.2): iframe with the attributes sandbox=\"allow-scripts\" and srcdoc, in this order, and the styles display block, width and height of the node, and border-top-style, border-right-style, border-bottom-style, border-left-style none. srcdoc is the shell <!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'\"><meta name=\"kadrion-instance\" content=\"<nodeId>\"> followed by the managed clock of D78, one script element whose text begins (function(){\"use strict\";var INSTANCE=\"<nodeId>\",START=<startUs>,PARAMETERS={},FONTS=[]; for an element with no fonts and no parameters, which needs no style element, then </head> and the html of the node byte for byte. The text of the clock is the program of D78 and is stated by its ADR, not derived here; every tree carries the same one. renderState writes nothing to the iframe.",
     "Messages (D23.3): the host posts {type: \"kadrion:time\", version: 1, instanceId: <nodeId>, requestId, timeUs} directly to the contentWindow of that iframe and accepts exactly {type: \"kadrion:time-ack\", version: 1, instanceId, requestId, timeUs} with the same values, and only from that contentWindow. requestId is the frame index of the golden timestamp (0, 75, 150, 225, 297)."
@@ -78,6 +79,7 @@
                   "transform-origin": "0px 0px",
                   "width": "1080px",
                   "height": "1920px",
+                  "will-change": "opacity",
                   "transform": "translate(76px, 428px) scale(1, 1)",
                   "opacity": "1"
                 },
@@ -97,6 +99,7 @@
                       "display": "block",
                       "object-fit": "fill",
                       "object-position": "50% 50%",
+                      "will-change": "opacity",
                       "width": "400px",
                       "height": "400px",
                       "object-view-box": "inset(0%)",
@@ -122,6 +125,7 @@
                       "line-height": "1.25",
                       "font-weight": "400",
                       "font-style": "normal",
+                      "will-change": "opacity",
                       "color": "rgb(208, 213, 221)",
                       "transform": "translate(0px, 720px) scale(1, 1)",
                       "opacity": "1"
@@ -150,6 +154,7 @@
                   "line-height": "1.25",
                   "font-weight": "400",
                   "font-style": "normal",
+                  "will-change": "opacity",
                   "color": "rgb(255, 255, 255)",
                   "transform": "translate(90px, 160px) scale(1, 1)",
                   "opacity": "0.1875"
@@ -172,6 +177,7 @@
                   "transform-origin": "0px 0px",
                   "width": "900px",
                   "height": "40px",
+                  "will-change": "opacity",
                   "transform": "translate(90px, 1760px) scale(1, 1)",
                   "opacity": "1"
                 },
@@ -281,6 +287,7 @@
                   "transform-origin": "0px 0px",
                   "width": "1080px",
                   "height": "1920px",
+                  "will-change": "opacity",
                   "transform": "translate(96px, 528px) scale(1, 1)",
                   "opacity": "1"
                 },
@@ -300,6 +307,7 @@
                       "display": "block",
                       "object-fit": "fill",
                       "object-position": "50% 50%",
+                      "will-change": "opacity",
                       "width": "400px",
                       "height": "400px",
                       "object-view-box": "inset(0%)",
@@ -325,6 +333,7 @@
                       "line-height": "1.25",
                       "font-weight": "400",
                       "font-style": "normal",
+                      "will-change": "opacity",
                       "color": "rgb(208, 213, 221)",
                       "transform": "translate(0px, 720px) scale(1, 1)",
                       "opacity": "1"
@@ -353,6 +362,7 @@
                   "line-height": "1.25",
                   "font-weight": "400",
                   "font-style": "normal",
+                  "will-change": "opacity",
                   "color": "rgb(255, 255, 255)",
                   "transform": "translate(90px, 160px) scale(1, 1)",
                   "opacity": "0.375"
@@ -375,6 +385,7 @@
                   "transform-origin": "0px 0px",
                   "width": "900px",
                   "height": "40px",
+                  "will-change": "opacity",
                   "transform": "translate(90px, 1760px) scale(1, 1)",
                   "opacity": "1"
                 },
@@ -484,6 +495,7 @@
                   "transform-origin": "0px 0px",
                   "width": "1080px",
                   "height": "1920px",
+                  "will-change": "opacity",
                   "transform": "translate(116px, 628px) scale(1, 1)",
                   "opacity": "1"
                 },
@@ -503,6 +515,7 @@
                       "display": "block",
                       "object-fit": "fill",
                       "object-position": "50% 50%",
+                      "will-change": "opacity",
                       "width": "400px",
                       "height": "400px",
                       "object-view-box": "inset(0%)",
@@ -528,6 +541,7 @@
                       "line-height": "1.25",
                       "font-weight": "400",
                       "font-style": "normal",
+                      "will-change": "opacity",
                       "color": "rgb(208, 213, 221)",
                       "transform": "translate(0px, 720px) scale(1, 1)",
                       "opacity": "1"
@@ -556,6 +570,7 @@
                   "line-height": "1.25",
                   "font-weight": "400",
                   "font-style": "normal",
+                  "will-change": "opacity",
                   "color": "rgb(255, 255, 255)",
                   "transform": "translate(90px, 160px) scale(1, 1)",
                   "opacity": "0.5625"
@@ -578,6 +593,7 @@
                   "transform-origin": "0px 0px",
                   "width": "900px",
                   "height": "40px",
+                  "will-change": "opacity",
                   "transform": "translate(90px, 1760px) scale(1, 1)",
                   "opacity": "1"
                 },
@@ -687,6 +703,7 @@
                   "transform-origin": "0px 0px",
                   "width": "1080px",
                   "height": "1920px",
+                  "will-change": "opacity",
                   "transform": "translate(136px, 728px) scale(1, 1)",
                   "opacity": "1"
                 },
@@ -706,6 +723,7 @@
                       "display": "block",
                       "object-fit": "fill",
                       "object-position": "50% 50%",
+                      "will-change": "opacity",
                       "width": "400px",
                       "height": "400px",
                       "object-view-box": "inset(0%)",
@@ -731,6 +749,7 @@
                       "line-height": "1.25",
                       "font-weight": "400",
                       "font-style": "normal",
+                      "will-change": "opacity",
                       "color": "rgb(208, 213, 221)",
                       "transform": "translate(0px, 720px) scale(1, 1)",
                       "opacity": "1"
@@ -759,6 +778,7 @@
                   "line-height": "1.25",
                   "font-weight": "400",
                   "font-style": "normal",
+                  "will-change": "opacity",
                   "color": "rgb(255, 255, 255)",
                   "transform": "translate(90px, 160px) scale(1, 1)",
                   "opacity": "0.75"
@@ -781,6 +801,7 @@
                   "transform-origin": "0px 0px",
                   "width": "900px",
                   "height": "40px",
+                  "will-change": "opacity",
                   "transform": "translate(90px, 1760px) scale(1, 1)",
                   "opacity": "1"
                 },
@@ -890,6 +911,7 @@
                   "transform-origin": "0px 0px",
                   "width": "1080px",
                   "height": "1920px",
+                  "will-change": "opacity",
                   "transform": "translate(136px, 728px) scale(1, 1)",
                   "opacity": "1"
                 },
@@ -909,6 +931,7 @@
                       "display": "block",
                       "object-fit": "fill",
                       "object-position": "50% 50%",
+                      "will-change": "opacity",
                       "width": "400px",
                       "height": "400px",
                       "object-view-box": "inset(0%)",
@@ -934,6 +957,7 @@
                       "line-height": "1.25",
                       "font-weight": "400",
                       "font-style": "normal",
+                      "will-change": "opacity",
                       "color": "rgb(208, 213, 221)",
                       "transform": "translate(0px, 720px) scale(1, 1)",
                       "opacity": "1"
@@ -962,6 +986,7 @@
                   "line-height": "1.25",
                   "font-weight": "400",
                   "font-style": "normal",
+                  "will-change": "opacity",
                   "color": "rgb(255, 255, 255)",
                   "transform": "translate(90px, 160px) scale(1, 1)",
                   "opacity": "0.75"
@@ -984,6 +1009,7 @@
                   "transform-origin": "0px 0px",
                   "width": "900px",
                   "height": "40px",
+                  "will-change": "opacity",
                   "transform": "translate(90px, 1760px) scale(1, 1)",
                   "opacity": "1"
                 },

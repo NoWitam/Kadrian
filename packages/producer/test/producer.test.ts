@@ -18,7 +18,8 @@ import {
   goldenTimestamps,
   referenceComposition,
 } from '@kadrion/test-fixtures';
-import { describe, expect, it } from 'vitest';
+import type { Page } from 'playwright-core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   CHROMIUM_ARGS,
@@ -27,6 +28,7 @@ import {
   PINNED_IMAGE,
   PLAYWRIGHT_CORE_VERSION,
   PRODUCER_AGENT_SCRIPT,
+  awaitPresented,
   canonicalJson,
   contextOptions,
   environmentManifest,
@@ -431,5 +433,24 @@ describe('typed errors before the page opens (D28.6)', () => {
     }
     expect(producerCode('state-mismatch')).toBe('page-error');
     expect(producerCode(undefined)).toBe('page-error');
+  });
+});
+
+describe('the wait for presentation of a closed page (D28.5, D48.2)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('fails at once and leaves no timer when the page closes before its sessions open', async () => {
+    vi.useFakeTimers();
+    // A cancelled job closes its page while a frame waits (D48.2): CDP refuses the session.
+    const closed = new Error('Target page, context or browser has been closed');
+    const page = {
+      context: () => ({ newCDPSession: () => Promise.reject(closed) }),
+    } as unknown as Page;
+    await expect(awaitPresented(page, 5_000)).rejects.toBe(closed);
+    // A timer left behind would reject with nobody listening once it fires, and
+    // end the CLI with exit code 1 after its job had ended with another code.
+    expect(vi.getTimerCount()).toBe(0);
   });
 });
