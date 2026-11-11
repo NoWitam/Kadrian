@@ -286,6 +286,8 @@ describe('text style and fragments in pinned Chromium (D69)', () => {
             stroke: { kind: 'none' },
             shadow: { kind: 'none' },
             box: { kind: 'solid', color: '#344054', opacity: 0.8, padding: 8, cornerRadius: 0 },
+            align: 'left',
+            verticalAlign: 'top',
           };
         }),
       ),
