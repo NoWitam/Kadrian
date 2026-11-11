@@ -141,6 +141,32 @@ export function difference(a: Pixels, b: Pixels): Difference {
   return { differingPixels, totalPixels, share, maxChannelDifference };
 }
 
+export interface DifferingPixel {
+  readonly x: number;
+  readonly y: number;
+  /** RGBA of the first frame (the golden), then of the second. */
+  readonly expected: readonly number[];
+  readonly found: readonly number[];
+}
+
+/**
+ * Where two frames of the same size differ, pixel by pixel, at most `limit`
+ * of them in reading order: the evidence of a golden that fails on a runner
+ * only, which no local run reproduces.
+ */
+export function differingPixels(a: Pixels, b: Pixels, limit = 400): readonly DifferingPixel[] {
+  const found: DifferingPixel[] = [];
+  for (let at = 0; at < a.data.length && found.length < limit; at += 4) {
+    const expected = [...a.data.subarray(at, at + 4)];
+    const actual = [...b.data.subarray(at, at + 4)];
+    if (expected.some((channel, index) => channel !== actual[index])) {
+      const index = at / 4;
+      found.push({ x: index % a.width, y: Math.floor(index / a.width), expected, found: actual });
+    }
+  }
+  return found;
+}
+
 export function samePixels(a: Uint8Array, b: Uint8Array): boolean {
   return difference(decodePng(a), decodePng(b)).differingPixels === 0;
 }
