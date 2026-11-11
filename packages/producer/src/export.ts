@@ -85,6 +85,7 @@ import {
   type ManifestSound,
   type ManifestMp4Preset,
   type ManifestSegment,
+  type ManifestVideo,
   type RenderIdentity,
   type SegmentsManifest,
 } from './manifest.js';
@@ -910,6 +911,16 @@ const SHARED_FIELDS = [
   'identity',
 ] as const;
 
+/** The decode of a manifest without `seekArgs`, which a job records only when it went back (D82.5). */
+function withoutSeek(video: ManifestVideo | null): ManifestVideo | null {
+  if (video === null) return null;
+  return {
+    decoder: video.decoder,
+    decodeArgs: video.decodeArgs,
+    sources: video.sources,
+  };
+}
+
 const FFMPEG_BUILD_FIELDS = [
   'release',
   'asset',
@@ -930,6 +941,8 @@ export interface JoinSegment extends ManifestSegment {
 /** What a join joins, once the manifests were found to make one render. */
 export interface JoinPlan {
   readonly first: SegmentsManifest;
+  /** The decode of the parts, with `seekArgs` when any part went back by a seek (D82.5). */
+  readonly video: ManifestVideo | null;
   readonly range: AudioManifest['range'];
   readonly segments: readonly JoinSegment[];
   readonly frames: readonly ManifestFrame[];
@@ -962,9 +975,14 @@ export function joinPlan(
       );
     }
     for (const field of SHARED_FIELDS) {
-      // An absent grid is the grid of D47.1 (D80.2); every other field is required.
+      // An absent grid is the grid of D47.1 (D80.2); every other field is required. Whether a
+      // job went back by a seek is its own (D82.5): the decode is compared without it.
       const of = (given: SegmentsManifest): unknown =>
-        field === 'grid' ? (given.grid ?? null) : given[field];
+        field === 'grid'
+          ? (given.grid ?? null)
+          : field === 'video'
+            ? withoutSeek(given.video)
+            : given[field];
       if (canonicalJson(of(manifest)) !== canonicalJson(of(first))) {
         throw joinInvalid(
           `The segments manifests differ in ${field}; they are not parts of one render.`,
@@ -1071,8 +1089,12 @@ export function joinPlan(
       `The segments cover frames ${String(all[0]?.firstFrame ?? 0)}…${String(next - 1)}, not the range ${String(range.firstFrame)}…${String(end - 1)} of the audio pass.`,
     );
   }
+  const seekArgs = parts.find(({ manifest }) => manifest.video?.seekArgs !== undefined)?.manifest
+    .video?.seekArgs;
   return {
     first,
+    video:
+      first.video === null || seekArgs === undefined ? first.video : { ...first.video, seekArgs },
     range,
     segments: all,
     frames,
@@ -1213,7 +1235,7 @@ async function joinWith(
     preset: first.preset,
     segmentFrames: first.segmentFrames,
     ...(first.grid === undefined ? {} : { grid: first.grid }),
-    video: first.video,
+    video: plan.video,
     identity: first.identity,
     kind: 'export',
     range,

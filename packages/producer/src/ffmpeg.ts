@@ -12,7 +12,7 @@ import { isAbsolute } from 'node:path';
 import process from 'node:process';
 import type { Writable } from 'node:stream';
 
-import { videoOrientation, type VideoOrientation } from '@kadrion/renderer-dom';
+import { holdsIdr, videoOrientation, type VideoOrientation } from '@kadrion/renderer-dom';
 
 import { ProducerError } from './errors.js';
 
@@ -283,8 +283,19 @@ export interface FfmpegTools {
   sha256File(file: string): Promise<string>;
   /** The media facts of the first video stream of a file, or `video-undecodable` (D50.5). */
   probeVideo(file: string): Promise<VideoProbe>;
-  /** Starts decoding the first video stream of a file to packed RGB (D50.5). */
-  decodeVideo(file: string, width: number, height: number): VideoDecoder;
+  /**
+   * Starts decoding the first video stream of a file to packed RGB (D50.5):
+   * from its first frame, or, given `startUs`, from the frame shown at that
+   * time, which must be an IDR picture of `idrTimestamps` (D82.5).
+   */
+  decodeVideo(file: string, width: number, height: number, startUs?: number): VideoDecoder;
+  /**
+   * The presentation times, in ticks of the stream's time base and ascending,
+   * of the samples of the first video stream of a file that hold an IDR
+   * picture (D79.5, D82.5): empty for a stream that is not H.264 in
+   * length-prefixed samples, where a decode can only start at the first frame.
+   */
+  idrTimestamps(file: string): Promise<number[]>;
   /** The samples, sample rate, and channels of the first audio stream of a file (D47.4). */
   audioStream(file: string): Promise<{
     readonly codec: string;
@@ -631,15 +642,152 @@ async function probeVideoWith(ffprobePath: string, file: string): Promise<VideoP
   return { width, height, orientation, timeBase: { num, den }, timestamps, lastDuration };
 }
 
+/** What follows the input of a decode of D50.5: every frame, converted bit-exactly to RGB. */
+const DECODE_OUTPUT: readonly string[] = [
+  ...['-map', '0:v:0'],
+  ...['-fps_mode', 'passthrough', '-sws_flags', 'bitexact+accurate_rnd+full_chroma_int'],
+  ...['-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'],
+];
+
 /** The arguments of the decode of D50.5 for the file at `input`; manifests write `<input>`. */
 export function videoDecodeArgs(input: string): string[] {
   return [
     // The display matrix is applied after the conversion to RGB, as the Player does (D81).
     ...['-nostdin', '-v', 'error', '-threads', '1', '-noautorotate', '-i', input],
-    ...['-map', '0:v:0'],
-    ...['-fps_mode', 'passthrough', '-sws_flags', 'bitexact+accurate_rnd+full_chroma_int'],
-    ...['-pix_fmt', 'rgb24', '-f', 'rawvideo', 'pipe:1'],
+    ...DECODE_OUTPUT,
   ];
+}
+
+/**
+ * The arguments of a decode that starts at an IDR picture (D82.5): the decode
+ * of D50.5 with an input seek to `start`, seconds of the stream's own
+ * timestamps (`-seek_timestamp`, so not counted from the file's start), which
+ * FFmpeg seeks to and decodes from, passing on no frame shown before it.
+ * Manifests write `<input>` and `<start>`.
+ */
+export function videoSeekArgs(input: string, start: string): string[] {
+  return [
+    ...['-nostdin', '-v', 'error', '-threads', '1', '-noautorotate'],
+    ...['-seek_timestamp', '1', '-ss', start, '-i', input],
+    ...DECODE_OUTPUT,
+  ];
+}
+
+/** `startUs`, a whole number of microseconds from 0, as FFmpeg reads a time: `s.uuuuuu`. */
+export function seekStart(startUs: number): string {
+  if (!Number.isSafeInteger(startUs) || startUs < 0) {
+    throw new ProducerError('page-error', `A seek needs a time from 0 µs, got ${String(startUs)}.`);
+  }
+  return `${String(Math.floor(startUs / 1_000_000))}.${String(startUs % 1_000_000).padStart(6, '0')}`;
+}
+
+/**
+ * The bytes of ffprobe's dump of data, rows of `"00000000: 0164 000c ffe1  .d.."`:
+ * the hexadecimal groups of each row, before the two spaces of its text.
+ */
+export function parseDataDump(text: string): Uint8Array {
+  const hex = text
+    .split('\n')
+    .map((row) => {
+      const at = row.indexOf(': ');
+      if (at < 0) return '';
+      const groups = row.slice(at + 2);
+      const end = groups.indexOf('  ');
+      return (end < 0 ? groups : groups.slice(0, end)).replace(/ /g, '');
+    })
+    .join('');
+  if (!/^(?:[0-9a-f]{2})*$/i.test(hex)) return new Uint8Array(0);
+  return Uint8Array.from(hex.match(/../g) ?? [], (pair) => parseInt(pair, 16));
+}
+
+/**
+ * The presentation times of the samples that hold an IDR picture (D79.5,
+ * D82.5), read in three passes: the codec and its `avcC` record, the
+ * presentation time, key flag, and size of every packet in decode order, and
+ * the bytes of the key packets alone, which FFmpeg copies out unchanged
+ * (`noise=drop=not(key)`), split by those sizes and checked by `holdsIdr`. A
+ * stream that is not H.264 with an `avcC` record, a key packet without a
+ * time, or bytes that do not add up give no time: the decode then starts at
+ * the first frame, as before D82.5.
+ */
+async function idrTimestampsWith(paths: FfmpegPaths, file: string): Promise<number[]> {
+  let json = '';
+  await fileLines(
+    paths.ffprobePath,
+    [
+      ...['-v', 'error', '-select_streams', 'v:0'],
+      ...['-show_entries', 'stream=codec_name,extradata', '-show_data', '-of', 'json', file],
+    ],
+    (line) => {
+      json += `${line}\n`;
+    },
+  );
+  let stream: Partial<Record<string, unknown>> | undefined;
+  try {
+    stream = (JSON.parse(json) as { streams?: Partial<Record<string, unknown>>[] }).streams?.[0];
+  } catch {
+    stream = undefined;
+  }
+  const avcC = parseDataDump(typeof stream?.extradata === 'string' ? stream.extradata : '');
+  if (stream?.codec_name !== 'h264' || avcC[0] !== 1 || avcC.length < 7) return [];
+  const keys: { readonly pts: number | null; readonly size: number }[] = [];
+  await fileLines(
+    paths.ffprobePath,
+    [
+      ...['-v', 'error', '-select_streams', 'v:0'],
+      ...['-show_entries', 'packet=pts,flags,size', '-of', 'csv=p=0', file],
+    ],
+    (line) => {
+      const [pts, size, flags] = line.split(',').map((field) => field.trim());
+      if (flags === undefined || !flags.includes('K')) return;
+      const time = Number(pts);
+      keys.push({
+        pts: pts !== undefined && /^-?\d+$/.test(pts) && Number.isSafeInteger(time) ? time : null,
+        size: positiveInteger(size) ?? 0,
+      });
+    },
+  );
+  const found: number[] = [];
+  const consistent = await new Promise<boolean>((resolve) => {
+    const child = spawn(
+      paths.ffmpegPath,
+      [
+        ...['-nostdin', '-v', 'error', '-i', file, '-map', '0:v:0', '-c:v', 'copy'],
+        ...['-bsf:v', 'noise=drop=not(key)', '-f', 'data', 'pipe:1'],
+      ],
+      { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true },
+    );
+    const stderr = collect(child.stderr, STDERR_TAIL);
+    let pending: Buffer[] = [];
+    let held = 0;
+    let next = 0;
+    let overflow = false;
+    child.stdout.on('data', (chunk: Buffer) => {
+      pending.push(chunk);
+      held += chunk.length;
+      // Every whole key packet is checked at once, so memory stays one packet.
+      for (let key = keys[next]; key !== undefined && held >= key.size; key = keys[next]) {
+        const all = Buffer.concat(pending);
+        const sample = new Uint8Array(all.subarray(0, key.size));
+        if (key.pts !== null && holdsIdr(avcC, sample)) found.push(key.pts);
+        pending = [all.subarray(key.size)];
+        held -= key.size;
+        next += 1;
+      }
+      if (next >= keys.length && held > 0) overflow = true;
+    });
+    child.stdout.on('error', () => undefined);
+    child.on('error', () => {
+      resolve(false);
+    });
+    child.on('close', (code) => {
+      void stderr.then(() => {
+        resolve(code === 0 && !overflow && held === 0 && next === keys.length);
+      });
+    });
+  });
+  if (!consistent) return [];
+  return [...new Set(found)].sort((a, b) => a - b);
 }
 
 /**
@@ -654,9 +802,12 @@ function decodeVideoWith(
   file: string,
   width: number,
   height: number,
+  startUs: number | undefined,
 ): VideoDecoder {
   const frameBytes = width * height * 3;
-  const child = spawn(ffmpegPath, videoDecodeArgs(file), {
+  const args =
+    startUs === undefined ? videoDecodeArgs(file) : videoSeekArgs(file, seekStart(startUs));
+  const child = spawn(ffmpegPath, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
@@ -773,7 +924,9 @@ export async function pinnedFfmpeg(
       runBinary(paths.ffmpegPath, args, input, timeoutMs, signal),
     sha256File: (file) => host.sha256(file),
     probeVideo: (file) => probeVideoWith(paths.ffprobePath, file),
-    decodeVideo: (file, width, height) => decodeVideoWith(paths.ffmpegPath, file, width, height),
+    decodeVideo: (file, width, height, startUs) =>
+      decodeVideoWith(paths.ffmpegPath, file, width, height, startUs),
+    idrTimestamps: (file) => idrTimestampsWith(paths, file),
     async audioStream(file) {
       const result = await host.run(paths.ffprobePath, [
         ...['-v', 'error', '-select_streams', 'a:0'],

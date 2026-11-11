@@ -23,7 +23,14 @@ import { validateComposition, type ValidatedComposition } from '@kadrion/schema'
 import { VIDEO_FIXTURE, referenceComposition, videoComposition } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
-import { parseDisplayMatrix, type FfmpegTools, type VideoProbe } from '../src/ffmpeg.js';
+import {
+  parseDataDump,
+  parseDisplayMatrix,
+  seekStart,
+  videoSeekArgs,
+  type FfmpegTools,
+  type VideoProbe,
+} from '../src/ffmpeg.js';
 import { isPathAsset, resolveProducerAsset, type PathAsset } from '../src/media-path.js';
 import { encodePng, prepareVideos, videoNodes } from '../src/video.js';
 
@@ -69,7 +76,22 @@ interface FakeRun {
   readonly files: string[];
 }
 
-function fakeTools(probe: VideoProbe = PROBE, frames = probe.timestamps.length): FakeRun {
+/** The frame of `probe` shown at `startUs`, a time rounded down to whole microseconds. */
+function frameAtUs(probe: VideoProbe, startUs: number): number {
+  const { num, den } = probe.timeBase;
+  const index = probe.timestamps.findIndex(
+    (ticks) => Math.floor((ticks * num * 1_000_000) / den) === startUs,
+  );
+  if (index < 0) throw new Error(`No frame starts at ${String(startUs)} µs.`);
+  return index;
+}
+
+function fakeTools(
+  probe: VideoProbe = PROBE,
+  frames = probe.timestamps.length,
+  // An IDR picture every 25 frames, as the fixture video has (-g 25).
+  idrs: readonly number[] = probe.timestamps.filter((_, at) => at % 25 === 0),
+): FakeRun {
   const log: string[] = [];
   const files: string[] = [];
   const tools = {
@@ -85,10 +107,12 @@ function fakeTools(probe: VideoProbe = PROBE, frames = probe.timestamps.length):
       log.push(`probe ${String(readFileSync(file).length)}`);
       return Promise.resolve(probe);
     },
-    decodeVideo(file: string, width: number, height: number) {
+    decodeVideo(file: string, width: number, height: number, startUs?: number) {
       files.push(file);
-      log.push(`decode ${String(width)}x${String(height)}`);
-      let next = 0;
+      log.push(
+        `decode ${String(width)}x${String(height)}${startUs === undefined ? '' : ` from ${String(startUs)}`}`,
+      );
+      let next = startUs === undefined ? 0 : frameAtUs(probe, startUs);
       return {
         next() {
           if (next >= frames) return Promise.resolve(null);
@@ -100,6 +124,11 @@ function fakeTools(probe: VideoProbe = PROBE, frames = probe.timestamps.length):
           log.push('close decoder');
         },
       };
+    },
+    idrTimestamps(file: string) {
+      files.push(file);
+      log.push('idrs');
+      return Promise.resolve([...idrs]);
     },
   } as unknown as FfmpegTools;
   return { tools, log, files };
@@ -220,15 +249,114 @@ describe('the frames of a frame loop (D49.5, D50.4)', () => {
     run.log.length = 0;
     await source.framesAt(33_333);
     expect(run.log).toEqual(['read 13']);
-    // Back to 0: node-video-cover restarts its decoder and reads up to frame 12 again.
+    // Back to 0: node-video-cover goes back to frame 12, whose IDR picture is frame 0, so it
+    // starts again from frame 0 without a seek and reads up to frame 12 again.
     run.log.length = 0;
     await source.framesAt(0);
     expect(run.log).toEqual([
       'close decoder',
+      'idrs',
       'decode 4x2',
       ...Array.from({ length: 13 }, (_, at) => `read ${String(at)}`),
     ]);
+    expect(library?.manifest).not.toHaveProperty('seekArgs');
     await source.close();
+  });
+
+  /** The video composition with node-video-full alone, which shows source frame i at i · 40 ms. */
+  const fullOnly = composition(
+    (() => {
+      const draft = structuredClone(videoComposition) as {
+        scenes: { nodes: { id: string }[] }[];
+      };
+      for (const scene of draft.scenes) {
+        scene.nodes = scene.nodes.filter(
+          ({ id }) => id === 'node-background' || id === 'node-video-full',
+        );
+      }
+      return draft;
+    })(),
+  );
+
+  it('goes back by a seek to the IDR picture before the frame, and keeps a window from there (D82.5)', async () => {
+    const run = fakeTools();
+    const library = await prepareVideos(fullOnly, [VIDEO_ASSET], run.tools);
+    const source = await library?.open();
+    if (source === undefined || library === null) throw new Error('no source');
+    expect(library.manifest).not.toHaveProperty('seekArgs');
+    run.log.length = 0;
+    const shown: number[] = [];
+    // Frames 49 down to 0, as a reversed clip asks for them.
+    for (let frame = 49; frame >= 0; frame -= 1) {
+      const [full] = await source.framesAt(frame * 40_000);
+      shown.push(pixelOf(full?.bytes ?? new Uint8Array()));
+    }
+    expect(shown).toEqual(Array.from({ length: 50 }, (_, at) => 49 - at));
+    const reads = (from: number, to: number) =>
+      Array.from({ length: to - from + 1 }, (_, at) => `read ${String(from + at)}`);
+    expect(run.log).toEqual([
+      // A fresh decoder reads forward, as before.
+      'decode 4x2',
+      ...reads(0, 49),
+      // Frame 48 lies behind it: a seek to the IDR picture of frame 25 (1 s), read up to 48.
+      'close decoder',
+      'idrs',
+      'decode 4x2 from 1000000',
+      ...reads(25, 48),
+      // Frames 47 to 25 come from the window; frame 24 starts again at frame 0, without a seek.
+      'close decoder',
+      'decode 4x2',
+      ...reads(0, 24),
+    ]);
+    expect(library.manifest.seekArgs).toEqual(videoSeekArgs('<input>', '<start>'));
+    expect(library.manifest.seekArgs).toEqual([
+      ...['-nostdin', '-v', 'error', '-threads', '1', '-noautorotate'],
+      ...['-seek_timestamp', '1', '-ss', '<start>', '-i', '<input>'],
+      ...library.manifest.decodeArgs.slice(library.manifest.decodeArgs.indexOf('-map')),
+    ]);
+    await source.close();
+  });
+
+  it('keeps at most 64 frames in the window, so a long group of pictures is decoded again in parts (D82.5)', async () => {
+    // 200 frames at 100 fps, one IDR picture at frame 0: node-video-full shows frame i at i · 10 ms.
+    const probe: VideoProbe = {
+      ...PROBE,
+      timestamps: Array.from({ length: 200 }, (_, at) => at * 128),
+      lastDuration: 128,
+    };
+    const run = fakeTools(probe, 200, [0]);
+    const library = await prepareVideos(fullOnly, [VIDEO_ASSET], run.tools);
+    const source = await library?.open();
+    if (source === undefined || library === null) throw new Error('no source');
+    const at = async (frame: number) =>
+      pixelOf((await source.framesAt(frame * 10_000))[0]?.bytes ?? new Uint8Array());
+    expect(await at(196)).toBe(196);
+    run.log.length = 0;
+    // Back to 193: from frame 0 again, the window keeps frames 130 to 193.
+    expect(await at(193)).toBe(193);
+    expect(run.log.filter((line) => line.startsWith('read'))).toHaveLength(194);
+    run.log.length = 0;
+    expect(await at(130)).toBe(130);
+    expect(run.log).toEqual([]);
+    expect(await at(129)).toBe(129);
+    expect(run.log.filter((line) => line.startsWith('read'))).toHaveLength(130);
+    // No IDR picture but the first: no seek, and the manifest stays as it was.
+    expect(library.manifest).not.toHaveProperty('seekArgs');
+    await source.close();
+  });
+
+  it('reads the IDR pictures of a video once for every frame loop of a render', async () => {
+    const run = fakeTools();
+    const library = await prepareVideos(fullOnly, [VIDEO_ASSET], run.tools);
+    for (let loop = 0; loop < 2; loop += 1) {
+      const source = await library?.open();
+      if (source === undefined) throw new Error('no source');
+      await source.framesAt(1_960_000);
+      await source.framesAt(1_920_000);
+      await source.close();
+    }
+    expect(run.log.filter((line) => line === 'idrs')).toHaveLength(1);
+    expect(run.log.filter((line) => line === 'decode 4x2 from 1000000')).toHaveLength(2);
   });
 
   it('turns the frames of a rotated video after the conversion to RGB, and records the size as shown (D81)', async () => {
@@ -360,6 +488,38 @@ describe('the display matrix of ffprobe (D81)', () => {
     expect(parseDisplayMatrix('')).toBeNull();
     expect(parseDisplayMatrix('\n00000000: 0 1\n')).toBeNull();
     expect(parseDisplayMatrix('\n00000000: a b c\n00000001: 0 0 0\n00000002: 0 0 1\n')).toBeNull();
+  });
+});
+
+describe('the arguments of a seek (D82.5)', () => {
+  it('writes a time of whole microseconds as FFmpeg reads it', () => {
+    expect(seekStart(0)).toBe('0.000000');
+    expect(seekStart(1_000_000)).toBe('1.000000');
+    expect(seekStart(80_000)).toBe('0.080000');
+    expect(seekStart(3_600_000_001)).toBe('3600.000001');
+    expect(() => seekStart(-1)).toThrow();
+    expect(() => seekStart(0.5)).toThrow();
+  });
+
+  it("seeks by the stream's own timestamps before the input, and decodes as the forward decode does", () => {
+    const args = videoSeekArgs('/v.mp4', '1.000000');
+    expect(args.slice(0, args.indexOf('-i') + 2)).toEqual([
+      ...['-nostdin', '-v', 'error', '-threads', '1', '-noautorotate'],
+      ...['-seek_timestamp', '1', '-ss', '1.000000', '-i', '/v.mp4'],
+    ]);
+  });
+});
+
+describe('the data dump of ffprobe (D82.5)', () => {
+  it('reads the bytes of the hexadecimal groups before the text of each row', () => {
+    const dump =
+      '\n00000000: 0164 000c ffe1 001a 6764 000c acd9 4141  .d......gd....AA\n00000010: 9960 01                                  .`.\n';
+    expect([...parseDataDump(dump)]).toEqual([
+      0x01, 0x64, 0x00, 0x0c, 0xff, 0xe1, 0x00, 0x1a, 0x67, 0x64, 0x00, 0x0c, 0xac, 0xd9, 0x41,
+      0x41, 0x99, 0x60, 0x01,
+    ]);
+    expect(parseDataDump('')).toHaveLength(0);
+    expect(parseDataDump('00000000: zz')).toHaveLength(0);
   });
 });
 

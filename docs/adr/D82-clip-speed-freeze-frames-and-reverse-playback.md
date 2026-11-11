@@ -647,6 +647,56 @@ uses them; nothing in this section is in force for a document before PR-61.
   (`sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13`),
   and so does the Player's dist tree: neither reaches the two entries.
 
+## Implementation notes (PR-60)
+
+PR-60 changes how the two hosts decode a frame, not which frame they show;
+no field uses it before PR-61, and a request in descending order (D47.7)
+already exercises it.
+
+- **`holdsIdr`** moves from the Player to `@kadrion/renderer-dom`
+  (`video-idr.ts`, exported); the render page does not import it, so the
+  runtime build keeps its bytes
+  (`sha256:c4b856ed6f5abb5810c45559b105f63ca51d9709a59fa833b9990a37dd3d8c13`).
+- **The Player's run cache** (D82.4) is `RunCache` in
+  `packages/player/src/video.ts`, 256 MiB (`RUN_CACHE_BYTES`), one per Player
+  for its whole life: runs are kept by the content hash of the video, so they
+  outlive a load or an update of the document. A run keeps only the frames of the sampled source ranges of the
+  document's video nodes (D49.6), and the frame asked for always; within a run
+  the frames of the lowest index are let go first while the run holds more than
+  the budget, so a group of pictures longer than the budget is decoded again in
+  parts. A frame another run already holds is not kept twice. The PNG cache of
+  the last four frames of each video stays in front of it.
+- **The IDR pictures in the Producer** (D82.5, D79.5) are read by the pinned
+  FFmpeg once per video, when a frame loop first goes back: `ffprobe` gives the
+  `avcC` record and every packet's time, size, and key flag; `ffmpeg -c:v copy
+-bsf:v noise=drop=not(key) -f data` gives the bytes of the key packets, and
+  `holdsIdr` keeps those that hold an IDR slice. A source that is not H.264 in
+  `avcC` form (an Annex B stream in MPEG-TS), or whose passes disagree, has no
+  known IDR picture, and the Producer goes back by starting again from frame 0,
+  as before PR-60. An open group of pictures has an IDR picture only at its
+  first frame, so it goes back the same way.
+- **The seek** is `-seek_timestamp 1 -ss <start> -i <input>` before the
+  decode arguments of D50.5 (`videoSeekArgs`), `<start>` the presentation time
+  of the IDR picture in whole microseconds rounded down (`seekStart`); the
+  container's start time is not subtracted. Checked with the pinned FFmpeg on
+  the fixture in MP4, fragmented MP4 (its first time 1 024), MOV, and MKV:
+  every frame from the seek equals the forward decode's frame byte for byte.
+- **The window** of 64 frames (`DECODE_WINDOW_FRAMES`) exists for a node only
+  after it first went back, so a render that never goes back keeps no more
+  frames than before; it holds the RGB of the last 64 frames its decoder read.
+- **`seekArgs`** is written, with the placeholders `<input>` and `<start>`,
+  only when a frame loop of the render seeked; a seek to frame 0 is a plain
+  decode and does not count. A join compares the decode of its parts without
+  `seekArgs` (a range job that went back is a part of the same render) and
+  keeps it in the export manifest when any part has it.
+- **Tests.** The cache's bounds and eviction and the window's bound are unit
+  tests; `tests/pinned/video.pinned.test.ts` renders every frame of the fixture
+  backwards in each container and in the turned fixtures of D81.4 and compares
+  them with the forward render, and `tests/pinned/player-video.pinned.test.ts`
+  shows them backwards in the Player against the Producer. `REMUXES` moves to
+  `tests/pinned/video-fixture.ts` for both, so a pinned file changes and Q14
+  reopens, as the roadmap plans.
+
 ## Questions for the owner, with recommendations
 
 Answered by the owner on 2026-11-11 at 10:44 (Europe/Warsaw): every question

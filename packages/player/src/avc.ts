@@ -263,26 +263,3 @@ export function avcColour(avcC: Uint8Array, container: ContainerColour | null): 
     return { matrix: 'bt601', fullRange };
   throw new AvcUnsupported('colour', `The Player does not convert matrix ${String(matrixCode)}.`);
 }
-
-/**
- * Whether a sample holds an IDR slice (D79.5): the NAL units of its
- * length-prefixed data, the length size taken from the `avcC` record. A
- * container's key flag is not enough: decoding from a recovery point that is
- * not an IDR picture could give other pixels than the Producer's decode from
- * the start.
- */
-export function holdsIdr(avcC: Uint8Array, sample: Uint8Array): boolean {
-  const lengthSize = ((avcC[4] ?? 3) & 3) + 1;
-  let at = 0;
-  while (at + lengthSize <= sample.length) {
-    let length = 0;
-    for (let byte = 0; byte < lengthSize; byte += 1) {
-      length = length * 256 + (sample[at + byte] as number);
-    }
-    at += lengthSize;
-    if (length === 0 || at + length > sample.length) return false;
-    if (((sample[at] as number) & 0x1f) === 5) return true;
-    at += length;
-  }
-  return false;
-}

@@ -10,7 +10,10 @@
  * source frame of every active video node is chosen by the rule of
  * `@kadrion/schema` (D49.5), decoded by the pinned FFmpeg, turned as the
  * display matrix of its container asks after the conversion to RGB, by the
- * same function as the Player (D81), and handed to the page as a PNG (D50.4). The copies are removed when the frame loop ends.
+ * same function as the Player (D81), and handed to the page as a PNG (D50.4).
+ * A decoder reads forward; to go back it seeks to the IDR picture before the
+ * frame and keeps a window of the frames it read from there (D82.5). The
+ * copies are removed when the frame loop ends.
  *
  * The sound sources of the audio pass are given to FFmpeg by the same means
  * (`mediaFiles`, D52.5, D64): this module alone writes copies.
@@ -42,6 +45,7 @@ import {
   FFMPEG_RELEASE,
   FFMPEG_URL,
   videoDecodeArgs,
+  videoSeekArgs,
   type FfmpegTools,
   type VideoDecoder,
   type VideoProbe,
@@ -66,10 +70,21 @@ export interface VideoFrameSource {
 export interface VideoLibrary {
   /** The facts of each video asset a node uses, by asset ID, for the manifest and the tests. */
   readonly probes: ReadonlyMap<string, VideoProbe>;
-  /** What the render manifest records of the decode (D50.5). */
+  /**
+   * What the render manifest records of the decode (D50.5), read after the
+   * frames: `seekArgs` only once a frame loop of this library has gone back
+   * by a seek (D82.5).
+   */
   readonly manifest: ManifestVideo;
   open(): Promise<VideoFrameSource>;
 }
+
+/**
+ * How many decoded frames a node keeps after it has gone back (D82.5): the
+ * RGB of the frames from the IDR picture its decoder started at up to the
+ * frame needed, the 64 last ones.
+ */
+export const DECODE_WINDOW_FRAMES = 64;
 
 /** The video nodes of a composition, groups included, in document order. */
 export function videoNodes(composition: ValidatedComposition): VideoNode[] {
@@ -203,7 +218,7 @@ export async function prepareVideos(
     }
   }
   const { identity } = tools;
-  const manifest: ManifestVideo = {
+  const base: ManifestVideo = {
     decoder: {
       release: FFMPEG_RELEASE,
       asset: FFMPEG_ASSET,
@@ -234,19 +249,78 @@ export async function prepareVideos(
       };
     }),
   };
+  // The IDR pictures of each video, read once for every frame loop, when one first goes back.
+  const idrs = new Map<string, Promise<number[]>>();
+  let sought = false;
+  const seeking: Seeking = {
+    idrTimestamps(assetId, file) {
+      const known = idrs.get(assetId) ?? tools.idrTimestamps(file);
+      idrs.set(assetId, known);
+      return known;
+    },
+    sought() {
+      sought = true;
+    },
+  };
   return {
     probes,
-    manifest,
-    open: () => openFrameSource(placed, videos, probes, tools),
+    get manifest(): ManifestVideo {
+      // Additive, so that a render that never goes back keeps its bytes (D82.5).
+      return sought ? { ...base, seekArgs: videoSeekArgs('<input>', '<start>') } : base;
+    },
+    open: () => openFrameSource(placed, videos, probes, tools, seeking),
   };
 }
 
-/** A decoder of one node: where it is, and the last frame it read, as a PNG. */
+/** What the frame loops of one library share to go back (D82.5). */
+interface Seeking {
+  /** The presentation times of the IDR pictures of a video, read once (D79.5). */
+  idrTimestamps(assetId: string, file: string): Promise<number[]>;
+  /** Records that a decoder started at an IDR picture by a seek. */
+  sought(): void;
+}
+
+/** A decoder of one node: where it is, the last frame it read, as a PNG, and its window. */
 interface NodeDecoder {
   decoder: VideoDecoder | null;
   /** The index of the frame the next `next()` returns. */
   position: number;
   last: { readonly index: number; readonly png: Uint8Array } | null;
+  /**
+   * `null` until the node first goes back; then the RGB of the frames its
+   * decoder read since it started, at most `DECODE_WINDOW_FRAMES`, by index
+   * (D82.5). A render that never goes back keeps no more than before.
+   */
+  window: Map<number, Uint8Array> | null;
+}
+
+/**
+ * The presentation index of the last frame at or before frame `index` that
+ * is an IDR picture (D79.5), by its presentation time; 0 when none is known.
+ */
+function idrFrameBefore(timestamps: readonly number[], idrs: readonly number[], index: number) {
+  const time = timestamps[index] ?? 0;
+  let idr: number | null = null;
+  for (const at of idrs) if (at <= time) idr = at;
+  if (idr === null) return 0;
+  let low = 0;
+  let high = index;
+  while (low <= high) {
+    const middle = low + Math.floor((high - low) / 2);
+    const at = timestamps[middle] ?? 0;
+    if (at === idr) return middle;
+    if (at < idr) low = middle + 1;
+    else high = middle - 1;
+  }
+  return 0;
+}
+
+/** The presentation time of a frame in whole microseconds, rounded down, or `null` below 0. */
+function startUsOf(probe: VideoProbe, index: number): number | null {
+  const ticks = BigInt(probe.timestamps[index] ?? 0);
+  if (ticks < 0n) return null;
+  const { num, den } = probe.timeBase;
+  return Number((ticks * BigInt(num) * 1_000_000n) / BigInt(den));
 }
 
 async function openFrameSource(
@@ -254,35 +328,71 @@ async function openFrameSource(
   videos: readonly ProducerAsset[],
   probes: ReadonlyMap<string, VideoProbe>,
   tools: FfmpegTools,
+  seeking: Seeking,
 ): Promise<VideoFrameSource> {
   const decoders = new Map<string, NodeDecoder>();
   const media = await mediaFiles(videos, 'video');
   const { files } = media;
-  /** The PNG of source frame `index` of a node: read forward, restarted to go back. */
+  /**
+   * The PNG of source frame `index` of a node. It reads forward; to go back it
+   * seeks to the IDR picture before the frame (D82.5), or starts again from
+   * frame 0 when that picture is the first or none is known, and from then on
+   * keeps a window of the frames it read, so a clip shown backwards decodes
+   * each group of pictures once while the group is at most 64 frames.
+   */
   const frameOf = async (
     node: VideoNode,
     probe: VideoProbe,
     index: number,
   ): Promise<Uint8Array> => {
-    const state = decoders.get(node.id) ?? { decoder: null, position: 0, last: null };
+    const state = decoders.get(node.id) ?? {
+      decoder: null,
+      position: 0,
+      last: null,
+      window: null,
+    };
     decoders.set(node.id, state);
     if (state.last?.index === index) return state.last.png;
-    if (state.decoder === null || index < state.position) {
-      state.decoder?.close();
-      const file = files.get(node.assetId) ?? '';
-      state.decoder = tools.decodeVideo(file, probe.width, probe.height);
-      state.position = 0;
-    }
-    let rgb: Uint8Array | null = null;
-    while (state.position <= index) {
-      rgb = await state.decoder.next();
-      if (rgb === null) {
-        throw new ProducerError(
-          'video-undecodable',
-          `The video "${node.assetId}" decodes to ${String(state.position)} frames, not ${String(probe.timestamps.length)}.`,
-        );
+    const file = files.get(node.assetId) ?? '';
+    let rgb = state.window?.get(index) ?? null;
+    if (rgb === null) {
+      if (state.decoder === null) {
+        state.decoder = tools.decodeVideo(file, probe.width, probe.height);
+        state.position = 0;
+      } else if (index < state.position) {
+        state.decoder.close();
+        state.decoder = null;
+        state.window = new Map();
+        const idrs = await seeking.idrTimestamps(node.assetId, file);
+        const start = idrFrameBefore(probe.timestamps, idrs, index);
+        const startUs = start === 0 ? null : startUsOf(probe, start);
+        if (startUs === null) {
+          state.decoder = tools.decodeVideo(file, probe.width, probe.height);
+          state.position = 0;
+        } else {
+          state.decoder = tools.decodeVideo(file, probe.width, probe.height, startUs);
+          state.position = start;
+          seeking.sought();
+        }
       }
-      state.position += 1;
+      const { decoder, window } = state;
+      while (state.position <= index) {
+        const next = await decoder.next();
+        if (next === null) {
+          throw new ProducerError(
+            'video-undecodable',
+            `The video "${node.assetId}" decodes to ${String(state.position)} frames, not ${String(probe.timestamps.length)}.`,
+          );
+        }
+        if (window !== null) {
+          window.set(state.position, next);
+          if (window.size > DECODE_WINDOW_FRAMES) {
+            window.delete(window.keys().next().value as number);
+          }
+        }
+        rgb = next;
+        state.position += 1;
+      }
     }
     // After the conversion of colour, as the Player turns its frames (D81).
     const shown = orientedSize(probe.width, probe.height, probe.orientation);

@@ -50,6 +50,7 @@ export type {
 } from './resolve.js';
 export { synchronizeCustomHtml } from './synchronize.js';
 export { applyVideoFrames } from './video.js';
+export { holdsIdr } from './video-idr.js';
 export { orientedSize, orientRgb, UPRIGHT, videoOrientation } from './video-orientation.js';
 export type { VideoOrientation, VideoRotation } from './video-orientation.js';
 export type { VideoFrame } from './video.js';

@@ -123,6 +123,12 @@ export interface ManifestVideoSource {
 export interface ManifestVideo {
   readonly decoder: ManifestFfmpegBuild;
   readonly decodeArgs: readonly string[];
+  /**
+   * The arguments of a decode that starts at an IDR picture, with `<input>`
+   * and `<start>`, present only when the job went back by a seek (D82.5); a
+   * job that never did writes the bytes it wrote before.
+   */
+  readonly seekArgs?: readonly string[];
   readonly sources: readonly ManifestVideoSource[];
 }
 

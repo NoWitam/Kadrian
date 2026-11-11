@@ -1314,6 +1314,28 @@ describe('video in the host window (D51)', () => {
     expect(keys).toEqual([25, 50]);
   });
 
+  it('shows a clip backwards from the run cache, decoding each group of pictures once (D82.4)', async () => {
+    videoDocument = await withVideoDocument();
+    const harness = createHarness();
+    const log = installCodecs(harness.window);
+    const player = await started(harness);
+    await player.load(videoDocument, videoResolve);
+    log.decoded.length = 0;
+    // node-video-full shows frame i at i · 40 ms; from frame 49 back to frame 25, as a reversed
+    // clip asks; node-video-cover and node-video-contain show frame i + 12.
+    for (let frame = 49; frame >= 25; frame -= 1) {
+      await player.seek(frame * 40_000);
+      expect(sourceOf(harness, 'node-video-full')).toBe(await expectedPng(frame));
+      expect(sourceOf(harness, 'node-video-cover')).toBe(await expectedPng(frame + 12));
+    }
+    // One run from the IDR at 25 up to 49 and one from the IDR at 50 up to 61; every
+    // other frame came from the cache, with the pixels of a frame decoded afresh.
+    expect(log.decoded.filter(({ type }) => type === 'key').map(({ first }) => first - 16)).toEqual(
+      [25, 50],
+    );
+    expect(log.decoded).toHaveLength(25 + 12);
+  });
+
   it('passes over a sync sample that holds no IDR picture, for the IDR sample before it (D79.5)', async () => {
     // The sync sample at frame 25 is only a recovery point: a decode cannot start there.
     const recovery = testMp4({

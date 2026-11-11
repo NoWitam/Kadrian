@@ -33,7 +33,7 @@ import {
   type RenderResult,
 } from '@kadrion/producer';
 import { orientRgb, type AssetResolver, type VideoOrientation } from '@kadrion/renderer-dom';
-import { sourceFrameIndex, sourceTimeUs } from '@kadrion/schema';
+import { frameCount, frameToTimeUs, sourceFrameIndex, sourceTimeUs } from '@kadrion/schema';
 import {
   generateReferenceAssets,
   ROTATED_VIDEO_FIXTURES,
@@ -59,6 +59,8 @@ import {
   decodedFixtureFrames,
   makeRotatedVideoFixture,
   makeVideoFixture,
+  remuxed,
+  REMUXES,
 } from './video-fixture.ts';
 
 const ffmpegPath = process.env.KADRION_FFMPEG;
@@ -164,6 +166,8 @@ describe.skipIf(!available)('video nodes in the Producer (D49, D50)', () => {
       },
     });
     expect(baseline.manifest.video?.decodeArgs).toContain('<input>');
+    // A render that never goes back records no seek and keeps its bytes (D82.5).
+    expect(baseline.manifest.video).not.toHaveProperty('seekArgs');
     expect(baseline.manifest.frames.map(({ index }) => index)).toEqual(
       videoGoldenTimestamps.map(({ frame }) => frame),
     );
@@ -213,6 +217,69 @@ describe.skipIf(!available)('video nodes in the Producer (D49, D50)', () => {
       if (expected === undefined) throw new Error(`No frame at ${String(timeUs)}.`);
       expect(samePixels(png, expected), pixelReport(String(timeUs), png, expected)).toBe(true);
     }
+  });
+
+  describe('going back by a seek to the IDR picture before the frame (D82.5)', () => {
+    /** Every frame of the video composition: node-video-full shows 0 to 49, node-video-cover 12 to 61. */
+    const ALL = Array.from({ length: frameCount(2_000_000, 30) }, (_, frame) =>
+      frameToTimeUs(frame, 30),
+    );
+
+    /** Renders every frame forwards and backwards and requires the same pixels. */
+    const sameBothWays = async (document: unknown, bytes: Uint8Array): Promise<RenderResult> => {
+      const forward = await render(ALL, document, bytes);
+      const backward = await render([...ALL].reverse(), document, bytes);
+      for (const { timeUs, png } of backward.frames) {
+        const expected = forward.frames.find((frame) => frame.timeUs === timeUs)?.png;
+        if (expected === undefined) throw new Error(`No frame at ${String(timeUs)}.`);
+        expect(samePixels(png, expected), pixelReport(String(timeUs), png, expected)).toBe(true);
+      }
+      expect(forward.manifest.video).not.toHaveProperty('seekArgs');
+      return backward;
+    };
+
+    it('renders every frame of the video composition backwards as forwards, and records the seek', async () => {
+      const backward = await sameBothWays(videoComposition, video);
+      const decode = backward.manifest.video;
+      expect(decode?.seekArgs).toEqual([
+        ...['-nostdin', '-v', 'error', '-threads', '1', '-noautorotate'],
+        ...['-seek_timestamp', '1', '-ss', '<start>', '-i', '<input>'],
+        ...(decode?.decodeArgs.slice(decode.decodeArgs.indexOf('-map')) ?? []),
+      ]);
+      // The frames requested backwards meet the frames of the golden render (D26.5).
+      for (const { timeUs, png } of backward.frames) {
+        const expected = baseline.frames.find((frame) => frame.timeUs === timeUs)?.png;
+        if (expected !== undefined) expect(samePixels(png, expected), String(timeUs)).toBe(true);
+      }
+    });
+
+    it.each(REMUXES)(
+      'decodes every frame of the fixture in %s after a seek as the forward decode does',
+      async (_name, extension, options) => {
+        const bytes = await remuxed(FFMPEG.ffmpegPath, video, extension, options);
+        const document = edited((draft) => {
+          const asset = draft.assets.find(({ id }) => id === VIDEO_FIXTURE.id);
+          if (asset === undefined) throw new Error('No video asset.');
+          asset.contentHash = sha256(bytes);
+        });
+        const backward = await sameBothWays(document, bytes);
+        expect(backward.manifest.video).toHaveProperty('seekArgs');
+      },
+    );
+
+    it.each(ROTATED_VIDEO_FIXTURES)(
+      'decodes every frame of $name after a seek as the forward decode does (D81)',
+      async (fixture) => {
+        const bytes = await makeRotatedVideoFixture(FFMPEG.ffmpegPath, video, fixture);
+        const document = edited((draft) => {
+          const asset = draft.assets.find(({ id }) => id === VIDEO_FIXTURE.id);
+          if (asset === undefined) throw new Error('No video asset.');
+          asset.contentHash = fixture.contentHash;
+        });
+        const backward = await sameBothWays(document, bytes);
+        expect(backward.manifest.video).toHaveProperty('seekArgs');
+      },
+    );
   });
 
   it('meets the golden frames of the video composition in the pinned environment only (D26.5)', () => {

@@ -11,9 +11,17 @@
  * (`yuv.ts`), turned as its container's display matrix asks, by the same
  * function as the Producer (D81), and handed to the page as a PNG (D50.4). Decoding
  * starts at the last IDR sample before the frame every time (D79.5), so the
- * pixels of a frame do not depend on the frames shown before it.
+ * pixels of a frame do not depend on the frames shown before it; the planes of
+ * every sampled frame of that run are kept in a cache bounded by bytes, so
+ * frames shown backwards decode each group of pictures once (D82.4).
  */
-import { mediaTypeFits, orientedSize, orientRgb, type AssetRequest } from '@kadrion/renderer-dom';
+import {
+  holdsIdr,
+  mediaTypeFits,
+  orientedSize,
+  orientRgb,
+  type AssetRequest,
+} from '@kadrion/renderer-dom';
 import {
   placedVideos,
   sampledSourceRange,
@@ -27,7 +35,6 @@ import {
   type VideoNode,
 } from '@kadrion/schema';
 
-import { holdsIdr } from './avc.js';
 import { readVideoTrack, type VideoTrack } from './container.js';
 import { PlayerError, withAsset } from './errors.js';
 import { Sha256 } from './sha256.js';
@@ -381,23 +388,96 @@ async function idrBefore(
   throw undecodable(video, `no IDR picture precedes sample ${String(target)}.`);
 }
 
+/** The decoded planes of one frame (I420), as the decoder laid them out (D82.4). */
+export interface DecodedPlanes {
+  readonly data: Uint8Array;
+  readonly layout: readonly { readonly offset: number; readonly stride: number }[];
+}
+
+/** For decode index `d` of a track, the presentation index of its frame. */
+const presentationOf = new WeakMap<VideoTrack, readonly number[]>();
+
+function presentationIndices(track: VideoTrack): readonly number[] {
+  const known = presentationOf.get(track);
+  if (known !== undefined) return known;
+  const indices = new Array<number>(track.presentation.length).fill(-1);
+  track.presentation.forEach((decode, presentation) => {
+    indices[decode] = presentation;
+  });
+  presentationOf.set(track, indices);
+  return indices;
+}
+
 /**
- * Decodes presentation frame `index` of a video to packed RGB (D51.4): a new
- * decoder, every sample from the IDR sample before it in decode order up to
- * its own sample, then a flush. The output whose timestamp names its sample is
- * kept; every other output is closed at once. The RGB is of the coded size,
+ * Decodes the run of frame `index` (D51.4, D82.4): a new decoder, every
+ * sample from the IDR sample before it in decode order up to its own sample,
+ * then a flush. The planes of every frame of the run that `wanted` names, the
+ * frame `index` always, are copied as the decoder gives them, and every frame
+ * is closed at once; while they hold more than `budget` bytes, the frames of
+ * the lowest presentation index other than `index` are let go, so a run longer
+ * than the budget is decoded again in parts. The planes are of the coded size,
  * before the orientation of D81.
  */
-async function decodeRgb(codecs: Codecs, video: VerifiedVideo, index: number): Promise<Uint8Array> {
+async function decodeRun(
+  codecs: Codecs,
+  video: VerifiedVideo,
+  index: number,
+  wanted: (index: number) => boolean,
+  budget: number,
+): Promise<Map<number, DecodedPlanes>> {
   const { track } = video;
   const target = track.presentation[index];
   if (target === undefined) throw undecodable(video, `there is no frame ${String(index)}.`);
-  let kept: VideoFrame | null = null;
+  const presentation = presentationIndices(track);
+  const kept = new Map<number, DecodedPlanes>();
+  const copies: Promise<void>[] = [];
+  let bytes = 0;
   let failure: unknown = null;
+  const keep = async (frame: VideoFrame, at: number): Promise<void> => {
+    try {
+      const rect = frame.visibleRect;
+      if (rect === null || rect.width !== track.width || rect.height !== track.height) {
+        throw undecodable(
+          video,
+          `frame ${String(at)} is not ${String(track.width)}x${String(track.height)}.`,
+        );
+      }
+      if (frame.format !== 'I420') {
+        throw undecodable(video, `frame ${String(at)} is ${String(frame.format)}, not I420.`);
+      }
+      // The decoded planes, which are FFmpeg's to the bit (H.264 decoding is exact), kept
+      // for FFmpeg's own conversion of them (D51.4): never the browser's colour conversion.
+      const data = new Uint8Array(frame.allocationSize({ rect }));
+      const layout = await frame.copyTo(data, { rect });
+      if (layout.length < 3) throw undecodable(video, `frame ${String(at)} has no three planes.`);
+      kept.set(at, { data, layout: layout.map(({ offset, stride }) => ({ offset, stride })) });
+      bytes += data.length;
+      while (bytes > budget) {
+        let lowest: number | null = null;
+        for (const key of kept.keys()) {
+          if (key !== index && (lowest === null || key < lowest)) lowest = key;
+        }
+        if (lowest === null) break;
+        bytes -= kept.get(lowest)?.data.length ?? 0;
+        kept.delete(lowest);
+      }
+    } catch (reason) {
+      failure ??=
+        reason instanceof PlayerError
+          ? reason
+          : undecodable(video, `frame ${String(at)} cannot be read: ${messageOf(reason)}`);
+    } finally {
+      frame.close();
+    }
+  };
   const decoder = new codecs.VideoDecoder({
     output: (frame) => {
-      if (kept === null && frame.timestamp === target) kept = frame;
-      else frame.close();
+      const at = presentation[frame.timestamp] ?? -1;
+      if (at !== index && (at < 0 || !wanted(at))) {
+        frame.close();
+        return;
+      }
+      copies.push(keep(frame, at));
     },
     error: (error) => {
       failure = error;
@@ -420,54 +500,118 @@ async function decodeRgb(codecs: Codecs, video: VerifiedVideo, index: number): P
   } finally {
     if (decoder.state !== 'closed') decoder.close();
   }
-  const frame = kept as VideoFrame | null;
-  if (failure !== null || frame === null) {
-    frame?.close();
+  await Promise.all(copies);
+  if (failure !== null || !kept.has(index)) {
     if (failure instanceof PlayerError) throw failure;
     throw undecodable(
       video,
       failure === null ? `the decoder gave no frame ${String(index)}.` : messageOf(failure),
     );
   }
-  try {
-    const rect = frame.visibleRect;
-    if (rect === null || rect.width !== track.width || rect.height !== track.height) {
-      throw undecodable(
-        video,
-        `frame ${String(index)} is not ${String(track.width)}x${String(track.height)}.`,
-      );
+  return kept;
+}
+
+/** The packed RGB of decoded planes, by FFmpeg's own conversion (D51.4), before D81. */
+function rgbOf(video: VerifiedVideo, planes: DecodedPlanes): Uint8Array {
+  const { track } = video;
+  const [y, u, v] = planes.layout;
+  if (y === undefined || u === undefined || v === undefined) {
+    throw undecodable(video, 'a frame has no three planes.');
+  }
+  const { data } = planes;
+  const chromaHeight = (track.height + 1) >> 1;
+  return yuv420ToRgb(
+    {
+      width: track.width,
+      height: track.height,
+      y: data.subarray(y.offset, y.offset + y.stride * track.height),
+      yStride: y.stride,
+      u: data.subarray(u.offset, u.offset + u.stride * chromaHeight),
+      uStride: u.stride,
+      v: data.subarray(v.offset, v.offset + v.stride * chromaHeight),
+      vStride: v.stride,
+    },
+    track.colour.matrix,
+    track.colour.fullRange,
+  );
+}
+
+/** The bytes the run cache of a Player holds at most (D82.4): 256 MiB. */
+export const RUN_CACHE_BYTES = 256 * 1024 * 1024;
+
+/** The frames of one decode run, by presentation index, and their size. */
+interface Run {
+  readonly video: string;
+  readonly frames: ReadonlyMap<number, DecodedPlanes>;
+  readonly bytes: number;
+}
+
+/**
+ * The cache of decode runs (D82.4): the planes of the frames of each run, by
+ * video and presentation index, within a budget of bytes; the run used least
+ * recently is let go first. A frame found here is converted and encoded as a
+ * frame decoded afresh; decoding is exact, so its PNG is the same.
+ */
+export class RunCache {
+  readonly budget: number;
+  /** The runs, the one used least recently first. */
+  private readonly runs = new Map<number, Run>();
+  /** The run that holds each frame, by `${video} ${index}`. */
+  private readonly frames = new Map<string, number>();
+  private next = 0;
+  private held = 0;
+
+  constructor(budget: number = RUN_CACHE_BYTES) {
+    this.budget = budget;
+  }
+
+  /** The bytes of planes held now, never above the budget. */
+  get bytes(): number {
+    return this.held;
+  }
+
+  /** The planes of frame `index` of a video, or `undefined`; its run becomes the most recent. */
+  get(video: string, index: number): DecodedPlanes | undefined {
+    const id = this.frames.get(`${video} ${String(index)}`);
+    const run = id === undefined ? undefined : this.runs.get(id);
+    if (id === undefined || run === undefined) return undefined;
+    this.runs.delete(id);
+    this.runs.set(id, run);
+    return run.frames.get(index);
+  }
+
+  /**
+   * Keeps the frames of a run that no other run holds (decoding is exact, so a
+   * frame decoded twice is the same), letting go of the runs used least
+   * recently until they fit.
+   */
+  put(video: string, decoded: ReadonlyMap<number, DecodedPlanes>): void {
+    const frames = new Map<number, DecodedPlanes>();
+    let bytes = 0;
+    for (const [index, planes] of decoded) {
+      if (this.frames.has(`${video} ${String(index)}`)) continue;
+      frames.set(index, planes);
+      bytes += planes.data.length;
     }
-    if (frame.format !== 'I420') {
-      throw undecodable(video, `frame ${String(index)} is ${String(frame.format)}, not I420.`);
+    if (frames.size === 0 || bytes > this.budget) return;
+    for (const [id, run] of this.runs) {
+      if (this.held + bytes <= this.budget) break;
+      this.drop(id, run);
     }
-    // The decoded planes, which are FFmpeg's to the bit (H.264 decoding is exact), and
-    // FFmpeg's own conversion of them (D51.4): never the browser's colour conversion.
-    const planes = new Uint8Array(frame.allocationSize({ rect }));
-    const layout = await frame.copyTo(planes, { rect });
-    const [y, u, v] = layout;
-    if (y === undefined || u === undefined || v === undefined) {
-      throw undecodable(video, `frame ${String(index)} has no three planes.`);
+    const id = this.next;
+    this.next += 1;
+    for (const index of frames.keys()) this.frames.set(`${video} ${String(index)}`, id);
+    this.runs.set(id, { video, frames, bytes });
+    this.held += bytes;
+  }
+
+  private drop(id: number, run: Run): void {
+    this.runs.delete(id);
+    this.held -= run.bytes;
+    for (const index of run.frames.keys()) {
+      const key = `${run.video} ${String(index)}`;
+      if (this.frames.get(key) === id) this.frames.delete(key);
     }
-    const chromaHeight = (track.height + 1) >> 1;
-    return yuv420ToRgb(
-      {
-        width: track.width,
-        height: track.height,
-        y: planes.subarray(y.offset, y.offset + y.stride * track.height),
-        yStride: y.stride,
-        u: planes.subarray(u.offset, u.offset + u.stride * chromaHeight),
-        uStride: u.stride,
-        v: planes.subarray(v.offset, v.offset + v.stride * chromaHeight),
-        vStride: v.stride,
-      },
-      track.colour.matrix,
-      track.colour.fullRange,
-    );
-  } catch (reason) {
-    if (reason instanceof PlayerError) throw reason;
-    throw undecodable(video, `frame ${String(index)} cannot be read: ${messageOf(reason)}`);
-  } finally {
-    frame.close();
   }
 }
 
@@ -480,32 +624,67 @@ export interface VideoFrameSource {
 const KEPT_FRAMES = 4;
 
 /**
- * The decoders of the host window over the verified videos. It keeps the PNG
- * of the last few frames of each video by index; a frame decoded again gives
- * the same bytes, so the cache changes no pixel.
+ * The frames of each video that a composition samples, as ranges of
+ * presentation indices: the sampled source range of every node (D49.6), cut
+ * to its scene. A run keeps only these frames (D82.4).
+ */
+function sampledFrames(
+  composition: ValidatedComposition,
+  videos: ReadonlyMap<string, VerifiedVideo>,
+): Map<string, (readonly [number, number])[]> {
+  const hashes = new Map(composition.assets.map((asset) => [asset.id, asset.contentHash]));
+  const ranges = new Map<string, (readonly [number, number])[]>();
+  for (const { node, scene } of placedVideos(composition)) {
+    const contentHash = hashes.get(node.assetId) ?? '';
+    const video = videos.get(contentHash);
+    const range = sampledSourceRange(node, scene.durationUs);
+    if (video === undefined || range === null || range.durationUs <= 0) continue;
+    const { timestamps, timeBase } = video.track;
+    const first = sourceFrameIndex(timestamps, timeBase, range.startUs);
+    const last = sourceFrameIndex(timestamps, timeBase, range.startUs + range.durationUs - 1);
+    const list = ranges.get(contentHash) ?? [];
+    list.push([first, last]);
+    ranges.set(contentHash, list);
+  }
+  return ranges;
+}
+
+/**
+ * The decoders of the host window over the verified videos. It keeps the
+ * planes of the frames of each decode run in `runs`, the Player's cache
+ * bounded by bytes (D82.4), which outlives a load or an update, and the PNG of
+ * the last few frames of each video by index; a frame converted from the
+ * cache, or decoded again, gives the same bytes, so neither cache changes a
+ * pixel.
  */
 export function createVideoFrameSource(
   view: Window,
   videos: ReadonlyMap<string, VerifiedVideo>,
+  runs: RunCache,
 ): VideoFrameSource {
   const kept = new Map<string, Map<number, Uint8Array>>();
+  const sampled = new WeakMap<ValidatedComposition, Map<string, (readonly [number, number])[]>>();
   const pngOf = async (
     codecs: Codecs,
     video: VerifiedVideo,
     index: number,
+    wanted: (index: number) => boolean,
   ): Promise<Uint8Array> => {
     const frames = kept.get(video.contentHash) ?? new Map<number, Uint8Array>();
     kept.set(video.contentHash, frames);
     const found = frames.get(index);
     if (found !== undefined) return found;
+    let planes = runs.get(video.contentHash, index);
+    if (planes === undefined) {
+      const run = await decodeRun(codecs, video, index, wanted, runs.budget);
+      planes = run.get(index);
+      runs.put(video.contentHash, run);
+    }
+    if (planes === undefined)
+      throw undecodable(video, `the decoder gave no frame ${String(index)}.`);
     const { track } = video;
     // After the conversion of colour, as the Producer turns its frames (D81).
-    const rgb = orientRgb(
-      await decodeRgb(codecs, video, index),
-      track.width,
-      track.height,
-      track.orientation,
-    );
+    const rgb = orientRgb(rgbOf(video, planes), track.width, track.height, track.orientation);
     const shown = orientedSize(track.width, track.height, track.orientation);
     const png = await encodePng(codecs, shown.width, shown.height, rgb);
     frames.set(index, png);
@@ -522,10 +701,13 @@ export function createVideoFrameSource(
       if (nodes.length === 0) return [];
       const codecs = codecsOf(view);
       const hashes = new Map(composition.assets.map((asset) => [asset.id, asset.contentHash]));
+      const ranges = sampled.get(composition) ?? sampledFrames(composition, videos);
+      sampled.set(composition, ranges);
       const frames: VideoFrameMessage[] = [];
       for (const { node, sceneTimeUs } of nodes) {
-        const video = videos.get(hashes.get(node.assetId) ?? '');
-        const asset = { id: node.assetId, contentHash: hashes.get(node.assetId) ?? '' };
+        const contentHash = hashes.get(node.assetId) ?? '';
+        const video = videos.get(contentHash);
+        const asset = { id: node.assetId, contentHash };
         if (video === undefined) {
           throw new PlayerError(
             'asset-missing',
@@ -536,9 +718,12 @@ export function createVideoFrameSource(
         }
         const { timestamps, timeBase } = video.track;
         const index = sourceFrameIndex(timestamps, timeBase, sourceTimeUs(node, sceneTimeUs));
+        const own = ranges.get(contentHash) ?? [];
+        const wanted = (at: number): boolean =>
+          own.some(([first, last]) => at >= first && at <= last);
         let png: Uint8Array;
         try {
-          png = await pngOf(codecs, video, index);
+          png = await pngOf(codecs, video, index, wanted);
         } catch (reason) {
           throw reason instanceof PlayerError ? withAsset(reason, asset) : reason;
         }
