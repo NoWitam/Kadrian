@@ -95,7 +95,10 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   `video-unsupported`, `audio-unsupported`, `page-timeout`, `superseded` (a
   newer load replaced this one; expected after quick edits). An error about an
   asset names it in `asset: { id, contentHash }`. A template is shown as its
-  instantiation with the defaults; the Player itself refuses a template.
+  instantiation with the defaults; the Player itself refuses a template. A
+  font that a framed text or captions broken by width use and that cannot be
+  measured (section 5) fails the load as `page-error`, whose message names the
+  font and says it cannot be measured.
 - **Limits:** `ackTimeoutMs` (default 2000) and `requestTimeoutMs` (default 10000) of `createPlayer`. Without `customHtml: { mode: 'trusted' }`, no
   Custom HTML runs; trusted is not a security boundary. Sound plays only with
   `audio: { context }`, an `AudioContext` at 48 kHz made on a user gesture.
@@ -133,11 +136,13 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   Player's `dist` through an import map maps `mediabunny` to the package's
   `dist/bundles/mediabunny.mjs`. (Proposed in D79 and D81; this guide links
   them once the owner accepts them.)
-- **A clip at another speed, frozen, or reversed:** the time map of D82, ahead
-  of the fields of schema `0.24` (PR-61), so a host computes nothing of its
+- **A clip at another speed, frozen, or reversed:** the time map of D82, the
+  same functions both hosts and the bus use, so a host computes nothing of its
   own. Each takes a clip's timing explicitly: `startUs`, `durationUs`,
   `sourceStartUs`, `sourceStartRemainder`, `speed` (`{ num, den }`), and
-  `reverse`. From `@kadrion/schema/time-map`: `sourceTimeOfScene(clip, timeUs)` is the
+  `reverse`, the fields of a video node or an audio clip since schema `0.24`.
+  From `@kadrion/schema` (also the entry `@kadrion/schema/time-map`):
+  `sourceTimeOfScene(clip, timeUs)` is the
   source time shown at a scene time; `sceneTimesOfSource(clip, sourceTimeUs)`
   the scene times that show a source time (`{ startUs, durationUs }` or
   `null`), to retime words; `clipSourceRange(clip, sceneDurationUs)` the source
@@ -152,11 +157,43 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   sound of a clip reads for the composition samples heard, which is wider than
   the range heard; and `stretchSound` the samples, the pitch kept, the same in
   both hosts.
+- **Speeds in the host's controls:** a speed is shown and typed as a
+  multiplier. `formatSpeed({ num: 1, den: 2 })` is `"x0.5"`, `{ num: 1, den: 3 }`
+  is `"x1/3"`, and a freeze frame is `"x0"`; `parseSpeed` reads `"x0.5"`,
+  `"0.5"`, `0.5`, `"×2"`, `"x1/3"`, or `{ num, den }` and gives the exact
+  `{ num, den }` in lowest terms, or `speed-invalid` with a message that names
+  the nearest speed (`x0.3333` has no exact speed with a denominator up to
+  1000; the nearest is `x1/3`). A control offers speeds from `x0.25` to `x4`;
+  every multiplier with at most three decimals is exact. The command takes the
+  multiplier as it is (section 5), so the host need not convert it.
+- **Retiming words:** the words of captions are in scene time, and a speed or
+  a reverse moves none of them. To keep speech in step with a clip whose map
+  changed, a host takes each word's source times under the old map
+  (`sourceTimeOfScene`), finds the scene times that show them under the new
+  one with `sceneTimesOfSource(clip, sourceTimeUs)` (an interval, or `null`
+  where the clip no longer shows that source), and sets the words with
+  `SetCaptionWords` in the same transaction as the speed. Reversed speech has
+  no words to show; what to do then is the host's choice.
+- **The costs of reverse:** the frames shown do not change, only the work to
+  decode them. The Player keeps the decoded frames of each run from an IDR
+  picture, up to 256 MiB per Player, so a reversed clip decodes each group of
+  pictures once; a group larger than that budget is decoded again in parts.
+  The Producer seeks back to the IDR picture before a frame and keeps a window
+  of 64 frames: a reversed clip costs one decode of each group of pictures of
+  at most 64 frames, and about `G² / 128` decoded frames for a group of `G`
+  frames beyond that, so a source meant to be reversed is best encoded with
+  groups of at most 64 frames. A mapped sound costs the Player time when a
+  play starts and the Producer memory for the source range it reads (a
+  reversed clip samples at most 10 minutes of source, about 230 MB of stereo
+  samples). Real-time reverse playback in the preview is not promised: the
+  Player waits (`waiting`) for frames that are not ready, and the estimate of
+  section 12 does not see these costs.
 - **Authority:** [D49](../adr/D49-the-timeline-model.md) (facts outside the
   document), [D51](../adr/D51-video-in-the-player.md),
   [D53](../adr/D53-audio-in-the-player.md), [D62](../adr/D62-image-facts.md),
   [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md) (the time
-  map, the stretch of sound, and the multiplier).
+  map, the stretch of sound, the multiplier, and the decode backwards; D82.4,
+  D82.5, D82.7, D82.11).
 
 ## 5. Edit from the UI
 
@@ -176,6 +213,46 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   `input-in-use`, `binding-in-use`, `not-a-cut`, `no-room-at-cut`, and
   `busy` when a listener dispatches during a change. A listener's own error
   goes to `onListenerError`.
+- **Speed, freeze, and reverse:** `SetClipSpeed` (`clipId`, `speed` as a
+  multiplier, a number, or `{ num, den }`, optional `durationUs`; by default
+  the duration that covers the same source span), `SetClipReverse`, and
+  `freezeFrame(document, { clipId, atUs, holdUs, mode, newClipIds })`, which
+  returns the commands of one `dispatchTransaction` that hold a frame over the
+  clip (`overwrite`) or between its halves (`insert`); a ripple of the rest of
+  the timeline stays the host's. Trims, splits, joins, and the cut helper keep
+  every frame of a mapped clip. Refusals: `speed-invalid`, `unknown-clip`, `id-in-use`,
+  `unsupported-node`, `time-outside-clip`, `source-range-exceeded`,
+  `media-facts-missing`.
+- **Text frames and alignment:** `SetNodeSize` on a text sets its frame, a
+  box of fixed width and height its lines wrap to, and `null` for both sides
+  removes it; a corner of the frame is `SetNodeSize` with `SetNodePosition` in
+  one transaction, and `SetTextFontSize` changes the letters alone, which wrap
+  again. `SetTextStyle` sets `align` and `verticalAlign` with the rest of the
+  style, `SetCaptionStyle` sets `lineBreak` (`characters`, or `width`, which
+  also fits each line to the box), and `SetCaptionHighlight` the spoken word's
+  `stroke` and `shadow`.
+- **An overlay of the frame:** the lines are measured from the font's own
+  bytes, never by the browser. With `fontMetrics(bytes)` of `@kadrion/runtime`,
+  read once per font, `frameLayout(node, metrics)` returns each line (its text,
+  or for captions its words and page; its width; its `x` and `y` in the frame;
+  whether it fits), the height of the block, `fits`, and `missing`, the code
+  points the font has no glyph for. A host draws its overlay and its mark
+  "does not fit" from it, and calls `evaluateComposition(composition, timeUs,
+fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
+  a document with a measured node itself (`font-metrics-missing` without
+  them). Overflow is a look, not an error: nothing is clipped, the frame never
+  grows, and the bus refuses nothing for it.
+- **Fonts of measured nodes:** an sfnt file, TrueType or CFF (`font/ttf` or
+  `font/otf`). WOFF, WOFF2, and font collections cannot be measured, so the
+  host converts them before it stores them; a font only unmeasured texts use
+  is never read. Measured lines are drawn without kerning or ligatures, so a
+  text looks a little different in a frame than outside one, and a script that
+  needs shaping (Arabic, the Indic scripts) or runs right to left may be drawn
+  wider or narrower than measured. A character the font lacks is measured as
+  its `.notdef` and drawn by the browser in another font.
+- **The costs of a frame:** loading a document reads the tables of each font a
+  measured node uses (not its outlines), and every mount lays the lines out
+  once; an unmeasured text costs nothing new.
 - **Limits:** IDs are chosen by the host and never reused across the history;
   times are never rounded; positions and sizes are.
 - **Authority:** [D30](../adr/D30-command-bus-and-undo.md),
@@ -195,8 +272,11 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   (vector shapes and SVG assets), [D75](../adr/D75-blend-modes-masks-and-mattes.md)
   (blend modes, masks, and mattes), [D76](../adr/D76-nested-compositions.md) and
   [D77](../adr/D77-elements.md) (definitions, instances, and Elements), and
-  [D78](../adr/D78-custom-html-for-ai-authors.md) (Custom HTML for AI authors). The playground shows each of them in a showcase
-  of its own ([D32](../adr/D32-playground-showcases.md)).
+  [D78](../adr/D78-custom-html-for-ai-authors.md) (Custom HTML for AI authors),
+  and for phase six [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md)
+  (speed, freeze frames, and reverse) and [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md)
+  (text frames, alignment, and lines measured from the font). The playground
+  shows each of them in a showcase of its own ([D32](../adr/D32-playground-showcases.md)).
 
 ## 6. Edit from a model
 
@@ -213,7 +293,13 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   such as "animate this title letter by letter" or "put a push between these
   clips", names the calls for each and the document they must give; it is
   checked by `executeTool` on every run, and a host can use it to test its own
-  prompts.
+  prompts. The tests of `@kadrion/ai-sdk` do the same for speed ("slow this
+  clip to half speed", "freeze the frame at 3 s for 2 s", "play the last clip
+  backwards": `set_clip_speed`, `freeze_frame`, `set_clip_reverse`) and for
+  frames ("make the title box 800 by 300", "centre the text in its box",
+  "break the captions by width": `set_node_size`, `set_text_style`,
+  `set_caption_style`). A model writes a speed as a multiplier and reads it so
+  in `describe_document`; it sees no lines, because the bus does not measure.
 - **Errors:** the bus's `EditorError` codes; a refused call changes nothing.
 - **Limits:** a tool never undoes or redoes; that stays with the host. Kadrion
   does not choose, prompt, or evaluate a model.
@@ -221,7 +307,9 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   [D31](../adr/D31-ai-tool-contract.md), [D46](../adr/D46-tool-catalogue-from-the-command-registry.md),
   [D66](../adr/D66-clip-transitions-in-the-canvas-frame.md), [D67](../adr/D67-easing-curves.md),
   [D68](../adr/D68-rotation-origin-and-more-animated-properties.md),
-  [D78](../adr/D78-custom-html-for-ai-authors.md).
+  [D78](../adr/D78-custom-html-for-ai-authors.md),
+  [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md),
+  [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md).
 
 ## 7. Undo, redo, and the history
 
@@ -244,7 +332,9 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   of the range; `waiting` while the frame or the sound due is not ready.
 - **Errors:** `time-out-of-range`, `invalid-play-range` (not on the frame
   grid), `not-loaded`, `destroyed`.
-- **Limits:** playback rate 1 only; a seek is the only frame stepping.
+- **Limits:** playback rate 1 only, whatever the speed of a clip (a clip's
+  speed is a field of the document, D82.10); a seek is the only frame
+  stepping.
 - **Authority:** [D61](../adr/D61-player-playback-events.md),
   [D44](../adr/D44-host-facade-and-live-preview.md), [D13](../adr/D13-frame-grid-and-integer-frame-rate.md).
 

@@ -1,0 +1,553 @@
+{
+  "schemaVersion": "0.25",
+  "width": 1280,
+  "height": 720,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 4000000,
+  "assets": [
+    {
+      "id": "asset-video",
+      "type": "video",
+      "contentHash": "sha256:2defeadc24e956a808f058058c9ae10e4fad87d05b33be9b9d5ea6da2b45d1e0"
+    },
+    {
+      "id": "asset-font-proportional",
+      "type": "font",
+      "contentHash": "sha256:4a209658a3a8cde1b117a955ab340c3b57548d94b0c65dd25949fc9a54312de1"
+    },
+    {
+      "id": "asset-audio",
+      "type": "audio",
+      "contentHash": "sha256:a383506e57b39f51b8952cff8a82f2a058e4d07b8c970068b8af84f72d058f97"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-speed",
+      "durationUs": 4000000,
+      "nodes": [
+        {
+          "id": "speed-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "video-slow",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 72,
+            "y": 24
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 1,
+            "den": 2
+          },
+          "reverse": false,
+          "width": 496,
+          "height": 279,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "label-slow",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 72,
+            "y": 312
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "slow",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 32,
+          "frame": {
+            "kind": "none"
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "align": "left",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "video-slower",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 712,
+            "y": 24
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 1,
+            "den": 3
+          },
+          "reverse": false,
+          "width": 496,
+          "height": 279,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "label-slower",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 712,
+            "y": 312
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "slower",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 32,
+          "frame": {
+            "kind": "none"
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "align": "left",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "video-fast",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1500000,
+          "position": {
+            "x": 72,
+            "y": 372
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 2,
+            "den": 1
+          },
+          "reverse": false,
+          "width": 496,
+          "height": 279,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "video-still",
+          "type": "video",
+          "startUs": 1500000,
+          "durationUs": 2500000,
+          "position": {
+            "x": 72,
+            "y": 372
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 2960000,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 0,
+            "den": 1
+          },
+          "reverse": false,
+          "width": 496,
+          "height": 279,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "label-fast",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 72,
+            "y": 660
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "x2 then still",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 32,
+          "frame": {
+            "kind": "none"
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "align": "left",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "video-rewind",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 712,
+            "y": 372
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 3,
+            "den": 4
+          },
+          "reverse": true,
+          "width": 496,
+          "height": 279,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "label-rewind",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 712,
+            "y": 660
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "rewind",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 32,
+          "frame": {
+            "kind": "none"
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "align": "left",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [
+    {
+      "id": "clip-fast",
+      "type": "audio",
+      "assetId": "asset-audio",
+      "startUs": 0,
+      "durationUs": 2000000,
+      "sourceStartUs": 0,
+      "sourceStartRemainder": 0,
+      "speed": {
+        "num": 3,
+        "den": 2
+      },
+      "reverse": false,
+      "volume": 1,
+      "fadeInUs": 200000,
+      "fadeOutUs": 200000
+    },
+    {
+      "id": "clip-rewind",
+      "type": "audio",
+      "assetId": "asset-audio",
+      "startUs": 2000000,
+      "durationUs": 2000000,
+      "sourceStartUs": 3000000,
+      "sourceStartRemainder": 0,
+      "speed": {
+        "num": 1,
+        "den": 1
+      },
+      "reverse": true,
+      "volume": 1,
+      "fadeInUs": 200000,
+      "fadeOutUs": 200000
+    }
+  ],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

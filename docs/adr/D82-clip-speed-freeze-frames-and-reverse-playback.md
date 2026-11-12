@@ -819,6 +819,34 @@ runtime, renderer, Player, or Producer file changes.
   and so does the Player's dist tree: neither imports `@kadrion/editor-sdk` or
   `@kadrion/ai-sdk`.
 
+## Implementation notes (PR-63)
+
+PR-63 shows the three edits and documents them for a host; no package's code
+changes but one tool description (D83, PR-68), and every package is version
+`0.7.0`.
+
+- **The showcase** `speed` of the playground (D32.12): the fixture video at
+  `x0.5` and `x1/3`, at `x2` for 1.5 s and then a freeze frame of the last
+  frame it showed, and at `x0.75` reversed, which samples the whole source
+  backwards; a sound of the page at `x1.5` and a sound reversed. Its tool call
+  slows the first clip to `"x0.25"`, whose default duration covers the same
+  source span. `tests/repo/showcases.test.ts` now checks every video node and
+  clip against its source through its time map (`sampledSourceRange`), and
+  requires a speed below and above 1, a freeze frame, a reverse, a speed that
+  only a fraction states, and a mapped and a reversed sound.
+- **The host guide** (section 4: the map's functions, now in the main entry of
+  `@kadrion/schema`; speeds in a host's controls by `formatSpeed` and
+  `parseSpeed`; retiming words with `sceneTimesOfSource` and
+  `SetCaptionWords`; the costs of reverse of D82.4, D82.5, and D82.6; section
+  5: the commands and the helper; section 6: the requests of PR-62; section 8:
+  a clip's speed is not a playback rate) and the README (sections 1 and 5) say
+  what this ADR decides; they decide nothing.
+- **The runtime build**
+  (`sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef`)
+  and the Player's dist tree
+  (`sha256:36dccdc3c7bea7c33a34b9b7202d6bc168b82e393b1b88d15531ff2a89b58c44`,
+  71 files) keep the bytes of `main` at `7b96921`; no pinned file changes.
+
 ## Questions for the owner, with recommendations
 
 Answered by the owner on 2026-11-11 at 10:44 (Europe/Warsaw): every question

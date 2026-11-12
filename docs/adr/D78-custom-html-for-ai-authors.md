@@ -199,7 +199,8 @@ message; fonts of an element inside a definition, which holds no Custom HTML
 - `@kadrion/editor-sdk`: `SetCustomHtml`, 96 commands,
   `checkCustomHtmlSource`, `MAX_CUSTOM_HTML_LENGTH`; the description shows the
   html. `@kadrion/ai-sdk`: the command tool `set_custom_html` and the tool
-  `check_custom_html`, a catalogue of 99 entries, the result
+  `check_custom_html`, a catalogue of 100 entries (96 command tools and four
+  others; written as 99 until PR-63, as in D46), the result
   kind `check`, and the optional `checkCustomHtml` of a tool bus.
   `@kadrion/producer`: `checkCustomHtml` and its types.
 - The change of the API is additive (new exports, a command, codes, a tool)

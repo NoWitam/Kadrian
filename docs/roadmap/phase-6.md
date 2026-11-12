@@ -82,10 +82,23 @@ first, so that the schema step only wires what is already proven.
 |     3 | PR-60 | Decoding backwards in the Player and the Producer       | —      | —             | yes         | yes | M    |
 |     4 | PR-61 | Schema `0.24`: speed, freeze, and reverse in both hosts | `0.24` | yes           | yes         | yes | L    |
 |     5 | PR-62 | Commands and tools: speed, reverse, and a freeze frame  | —      | —             | —           | —   | M    |
-|     6 | PR-63 | Showcases, the host guide, and the release              | —      | —             | —           | —   | S    |
+|     6 | PR-64 | D83 (documents only)                                    | —      | —             | —           | —   | S    |
+|     7 | PR-65 | Font metrics and measured lines (library only)          | —      | no (checked)  | —           | —   | M    |
+|     8 | PR-66 | Schema `0.25`: the frame, alignment, the width mode, W5 | `0.25` | yes           | yes         | yes | L    |
+|     9 | PR-67 | `SetNodeSize` on a text, descriptions, the budget of W6 | —      | —             | —           | —   | S    |
+|    10 | PR-63 | Showcases, the host guide, and the release              | —      | —             | —           | —   | S    |
+|    11 | PR-68 | The host guide and a showcase of D83 (with PR-63)       | —      | —             | —           | —   | S    |
 
 Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 2 000 to 3 000 (most of it the step, the corpus, and fixtures).
+
+PR-64 to PR-68 are the pull requests of
+[D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md) (a text
+frame, alignment, and lines measured from the font), which the owner accepted
+on 2026-11-11 and ordered after PR-62 and before PR-63, so that the release
+`v0.7.0` carries schema `0.24` and `0.25` and the host pins once (question 13
+of D83). Their plan is the implementation plan of D83; their statuses are
+below, after PR-62, and in D83.
 
 ### PR-58 — D82 and this roadmap (documents only)
 
@@ -242,7 +255,34 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 - **Impact:** none on Q14, the runtime build, parity, or golden frames.
 - **Not included:** ripple edits and retiming of captions (the host's, D82.7).
 
+### PR-64 to PR-67 — D83: the frame of a text (in `main`)
+
+- **PR-64** (D83, documents only): done; the owner accepted D83 on 2026-11-11.
+- **PR-65** (font metrics and measured lines, library only): done; the runtime
+  build and the Player's dist tree kept their bytes.
+- **PR-66** (schema `0.25`): done; the runtime build is
+  `sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef`
+  and the Player's dist tree
+  `sha256:36dccdc3c7bea7c33a34b9b7202d6bc168b82e393b1b88d15531ff2a89b58c44`
+  (71 files) as `main` builds them at `7b96921`, after the merge of PR-61 and
+  PR-62.
+- **PR-67** (`SetNodeSize` on a text, the budget of W6): done; no runtime
+  build or Player dist tree change.
+
+Each is recorded in the implementation notes of D83.
+
 ### PR-63 — Showcases, the host guide, and the release
+
+- Status: in review, together with PR-68 of D83, with the amendment D32.12 of
+  D32 (no new ADR). Two showcases, `speed` (speed, freeze frames, and reverse,
+  picture and sound) and `framed-text` (D83), checked by the test of PR-42; the
+  host guide and the README on mapped clips, speeds as multipliers, the costs
+  of reverse, retiming words with `sceneTimesOfSource`, and text frames; every
+  package is version `0.7.0` for the release `v0.7.0`, whose tag the owner
+  pushes. The runtime build and the Player's dist tree keep the bytes of
+  PR-66, and no pinned file changes. Deviation from this plan: the page
+  resolves the proportional font of the fixtures, so that the showcases
+  measure lines of differing advances (D32.12).
 
 - **Goal:** the host sees and pins the three features.
 - **Scope:** showcases of speed, freeze, and reverse in the playground, checked
@@ -295,4 +335,7 @@ plan:
    (PR-61), the commands after it (PR-62), as phase three put the timeline
    commands after their schema.
 3. **The release.** Recommendation: `v0.7.0` after PR-63, pushed by the owner,
-   with an intermediate release after PR-61 if the host asks for it.
+   with an intermediate release after PR-61 if the host asks for it. No
+   intermediate release was asked for; D83 joined the phase (question 13 of
+   D83), so PR-63 and PR-68 set every package to `0.7.0`, and the owner pushes
+   the tag `v0.7.0` from `main` after them.

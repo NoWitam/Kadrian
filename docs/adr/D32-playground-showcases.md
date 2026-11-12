@@ -12,6 +12,8 @@
   template values, and the check in Chromium that replaces the manual one)
 - Amended by: PR-57 on 2026-11-10, D32.8 and the new D32.11 (showcases of
   phase five, the SVG drawing among the page's assets)
+- Amended by: PR-63 and PR-68 on 2026-11-12, D32.8 and the new D32.12
+  (showcases of phase six, the proportional font among the page's assets)
 - Related: D13, D14, D23, D25, D27, D30, D31, D36,
   [specification](../spike/vertical-spike.md) §5 P1, P3, P4
 
@@ -154,6 +156,11 @@ and a repeat.)
 (Amended by: PR-57. The test also fails when the showcases stop showing a
 feature of phase five, D32.11, or stop calling a tool of each of its steps.)
 
+(Amended by: PR-63 and PR-68. The test also fails when the showcases stop
+showing a feature of phase six, D32.12, or stop calling `set_clip_speed` and
+`set_node_size` on a text; a video node or a clip is checked against its
+source through its time map, and a text against the glyphs of its own font.)
+
 ### D32.9 The page's Custom HTML policy (amendment of PR-17, implementing D36)
 
 Recorded at the project owner's request on 2026-09-28, describing what PR-16
@@ -250,6 +257,27 @@ built.
   through `executeTool`, compares the document with the showcase changed by
   the operations, and undoes the calls back to the showcase. It checks the
   catalogue, not a model.
+
+### D32.12 Showcases of phase six (amendment of PR-63 and PR-68)
+
+- **The showcases.** `speed` (the fixture video at `x0.5` and `x1/3`, at `x2`
+  followed by a freeze frame of its last frame, and at `x0.75` reversed, with
+  a sound at `x1.5` and a sound reversed; D82) and `framed-text` (texts in
+  fixed frames aligned left and top, in the centre and the middle, and right
+  and bottom, a text whose lines enter one by one, a word wider than its
+  frame, and captions broken by width whose spoken word has an outline and a
+  shadow; D83). Their tool calls are `set_clip_speed` with the multiplier
+  `"x0.25"` and `set_node_size` on a text, whose lines wrap again.
+- **Their sources are generated once and committed,** 1280×720 at 30 fps and
+  4 seconds long, from the assets the page already generates and, new, the
+  proportional font of the fixtures (`generateProportionalFontAsset`, D83),
+  which the page resolves and lists with the hash `framedTextComposition`
+  declares, so that its frames measure lines of differing advances. Their
+  labels and texts use only the glyphs of that font.
+- **Their check** is the one of D32.10: `tests/pinned/showcases.pinned.test.ts`
+  opens, plays, and edits every entry of the manifest, so the new showcases
+  need no change of a pinned file and do not reopen Q14; neither the runtime
+  build nor the Player's dist tree changes.
 
 ## Alternatives considered
 

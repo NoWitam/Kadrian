@@ -327,7 +327,7 @@
   },
   {
     "name": "set_text_font_size",
-    "description": "Sets the font size of a text, from 1 to 1000000. Lengths and coordinates are composition pixels, rounded to integers. Refused with invalid-argument outside the range after rounding, unknown-node, and unsupported-node for a node that is not a text. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"fontSize\":96}",
+    "description": "Sets the font size of a text, from 1 to 1000000. Lengths and coordinates are composition pixels, rounded to integers. Refused with invalid-result outside the range after rounding, unknown-node, and unsupported-node for a node that is not a text. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"fontSize\":96}",
     "inputSchema": {
       "type": "object",
       "description": "Sets the font size of a text.",

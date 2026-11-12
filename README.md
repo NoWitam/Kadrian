@@ -14,7 +14,9 @@ PR-34b; phase four, a host integrating the engine
 PR-43; phase five, motion graphics, effects, and reusable elements
 ([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)), delivered PR-45 to
 PR-57, released as `v0.6.0`; the current phase is speed, freeze frames, and
-reverse playback of clips ([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)). Schema `0.25` with its forward migrations from `0.1` to `0.24`, the evaluation core, the DOM
+reverse playback of clips, with text frames
+([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)), whose last step,
+PR-63 with PR-68, adds its showcases and the release `v0.7.0`. Schema `0.25` with its forward migrations from `0.1` to `0.24`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -35,7 +37,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D82; all accepted except D10, superseded by
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D83; all accepted except D10, superseded by
   D37)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
@@ -124,8 +126,10 @@ It serves http://127.0.0.1:4520/ (set `PORT` to change it). The page offers:
   of every kind, easing, rotation and crop, text styles and text in fragments,
   animated captions in a safe area, effects of CSS and SVG filters, vector
   shapes with an SVG asset, blend modes with masks and a track matte, nested
-  compositions and Elements, and Custom HTML on the managed clock (D32.11).
-  Each shows the JSON it
+  compositions and Elements, and Custom HTML on the managed clock (D32.11);
+  and the features of phase six: clips at another speed, a freeze frame, and a
+  reverse, picture and sound, and texts in frames in every alignment, with
+  captions broken by width (D32.12). Each shows the JSON it
   loads and where that file lives; `http://127.0.0.1:4520/#<id>` opens one
   directly. The sources are `apps/playground/src/showcases/*.json`, listed in
   `apps/playground/src/showcases.ts`; `tests/repo/showcases.test.ts` keeps them
@@ -136,8 +140,8 @@ It serves http://127.0.0.1:4520/ (set `PORT` to change it). The page offers:
 - **Your own JSON** — edit the shown JSON, paste another, or load a file. It is
   validated in full; errors are listed as the bus and the Player report them. A
   document can use the assets listed on the page (one image, one font with the
-  glyphs ` DKabcdegimnorsty`, one audio track, one SVG drawing, and the fixture
-  video).
+  glyphs ` DKabcdegimnorsty`, a proportional font with those glyphs, the digits,
+  and `hilmrtuwx`, one audio track, one SVG drawing, and the fixture video).
 - **Editing** — drag a node on the canvas, run a call of any tool of the AI
   catalogue (D46), and undo or redo either on the one command bus. A template
   can be instantiated with values of your own; the result opens as a new
@@ -387,7 +391,12 @@ Unknown fields are errors. This one shows a text that fades in:
   pitch: `stretchSound` of `@kadrion/runtime/stretch` computes it the same way
   in the Producer and the Player. Trims, splits, and joins keep every frame
   and every sample of a mapped clip; a person or a model reads a speed as a
-  multiplier such as `x0.5` (`formatSpeed`, `parseSpeed`).
+  multiplier such as `x0.5` (`formatSpeed`, `parseSpeed`). Keyframes and the
+  words of captions stay in scene time, so a speed moves none of them; a host
+  retimes words with `sceneTimesOfSource` (section 5). A reversed clip costs
+  more to decode than a forward one, in both hosts (D82.4, D82.5; the
+  [host guide](docs/integration/host-guide.md#4-read-the-facts-of-a-media-asset)
+  states the costs).
 - **Text frames and alignment:** a text's `frame` is `{ "kind": "none" }`, its
   box as large as its lines, or `{ "kind": "fixed", "width", "height" }`, a box
   whose width its lines wrap to; its style's `align` (`left`, `center`,
@@ -397,7 +406,11 @@ Unknown fields are errors. This one shows a text that fades in:
   lines of a framed text and of captions broken by `width` are measured from
   the advances of the font's own bytes (`fontMetrics` of `@kadrion/runtime`),
   so a host passes the metrics of those fonts to `evaluateComposition`; the
-  Player and the Producer read them when they load the document. The spoken
+  Player and the Producer read them when they load the document. Such a font
+  must be TrueType or CFF (`font/ttf`, `font/otf`), not WOFF, WOFF2, or a
+  collection, and its measured lines are drawn without kerning or ligatures. A
+  line or a word wider than the frame overflows on the side the alignment
+  leaves free; nothing is clipped, and nothing is refused for it. The spoken
   word of captions may have its own `stroke` and `shadow` in the highlight
   (D83).
 - **Lifetimes:** every node has `startUs` and `durationUs`, in the time of its
@@ -713,6 +726,17 @@ const state = evaluateComposition(composition, 2_500_000);
 The evaluation is pure: no DOM, no clock, no assets. A time that is not an
 integer, or not in `[0, durationUs)`, throws an `EvaluationError`.
 
+A document with a measured node, a framed text or captions with
+`lineBreak: "width"` (D83), also needs the metrics of the fonts those nodes
+use: `evaluateComposition(composition, timeUs, fonts)`, where `fonts` maps the
+ID of each font of `measuredFontIds(composition)` to `fontMetrics(bytes)` of
+its bytes, read once per font; a missing one throws `font-metrics-missing`.
+`frameLayout(node, metrics)` gives a host the lines of such a node as both
+hosts draw them: each line's text (for captions, its words and page), its
+width, its corner in the frame, and whether it fits, with the height of the
+block, `fits`, and the code points the font has no glyph for, so that an
+overlay of the frame and a mark "does not fit" copy nothing of the layout.
+
 ### 4. Preview it in a browser
 
 The Player runs the runtime build of `@kadrion/renderer-dom` in a sandboxed
@@ -1005,6 +1029,20 @@ unsubscribe();
   (D52): a clip is added whole, like a node, and is addressed by its ID
   (`unknown-clip`); a volume is a factor from 0 to 1, and the two fades
   together fit in the clip's duration.
+- The speed commands (D82) address a video node or an audio clip by its ID.
+  `SetClipSpeed` takes `speed` as a multiplier (`"x0.5"`, `2`, `"x1/3"`, and
+  `"x0"`, a freeze frame of a video), a number, or `{ num, den }`, which
+  `parseSpeed` converts exactly or refuses as `speed-invalid`, naming the
+  nearest speed (`x0.3333` is refused, and `x1/3` named); by default the new
+  duration covers the same source span. `SetClipReverse` plays the same source
+  range backwards. `freezeFrame(document, { clipId, atUs, holdUs, mode,
+newClipIds })` returns the commands of one transaction that hold the frame
+  shown at `atUs` for `holdUs`, over the clip (`overwrite`) or between its
+  halves (`insert`). A host shows a stored speed with `formatSpeed`. Trims,
+  splits, joins, and `clipTransitionAtCut` move the map exactly. The words of
+  captions stay where they are: to keep them on a clip whose speed changed, a
+  host computes each word's new times with `sceneTimesOfSource` and sets them
+  with `SetCaptionWords` in the same transaction.
 - After `AddAsset`, the host must supply the new asset's bytes whenever the
   document is loaded, even while nothing uses it; after `RemoveAsset`, a host
   that passes asset URLs must stop passing the removed asset's URL.
@@ -1093,7 +1131,12 @@ const result = executeTool(bus, 'set_node_position', {
   push between these clips", …), the tool calls a model is expected to make
   for each, and the changes they must make to a showcase;
   `tests/app/model-requests.test.ts` runs them through `executeTool` and
-  compares the documents. It tests the tools, not a model.
+  compares the documents. It tests the tools, not a model. In the same way,
+  `packages/ai-sdk/test/speed-requests.test.ts` carries out "slow this clip to
+  half speed", "freeze the frame at 3 s for 2 s", and "play the last clip
+  backwards" with `set_clip_speed`, `freeze_frame`, and `set_clip_reverse`, and
+  `packages/ai-sdk/test/frame-requests.test.ts` "make the title box 800 by
+  300", "centre the text in its box", and "break the captions by width".
 
 ### 7. Render frames from Node.js
 
@@ -1342,12 +1385,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.6.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.6.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.7.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.7.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.6.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.6.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.7.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.7.0.tgz"
   }
 }
 ```

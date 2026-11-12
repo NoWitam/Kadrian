@@ -435,6 +435,10 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
 - **PR-64.** This document and its row in the index. Acceptance: the owner
   answers the questions below; `node --run format:check` and
   `tests/repo/adr.test.ts` pass.
+
+  - Status: done. The owner accepted this document on 2026-11-11 (13:37
+    Europe/Warsaw); it is in `main`.
+
 - **PR-65.** `fontMetrics`, the measure, `textLines`, the `width` mode, and
   `frameLayout` as functions over explicit arguments, in an entry of their own
   (`@kadrion/runtime/text-frame`) so that the runtime build and the Player's
@@ -443,7 +447,7 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
   2026-11-11, the width probe (a pinned test file added while Q14 is open).
   No field, no host change.
 
-  - Status: in review. The functions, the fixture font, the readings the
+  - Status: done, in `main`. The functions, the fixture font, the readings the
     owner accepted on 2026-11-11 (15:38 Europe/Warsaw), and the width probe
     are recorded in the implementation notes below (PR-65). The runtime
     build keeps its bytes
@@ -461,17 +465,22 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
   and its pinned tests; parity measured again. D19, D22, D27, D57, D65, D68,
   D69, and D70 get their lines; D35 its step.
 
-  - Status: in review. The step, the fields, the load step, the mount,
+  - Status: done, in `main`. The step, the fields, the load step, the mount,
     `renderState`, the evaluation with the metrics, the descriptions and
     examples of the four tools, the framed-text composition, and its pinned
-    test are recorded in the implementation notes below (PR-66). The runtime
-    build is now
+    test are recorded in the implementation notes below (PR-66). Before its
+    merge with PR-61 and PR-62 the branch built the runtime build
     `sha256:2d9240d75d0b3dd8b837101394dd91573ba1cf5f6db574d78a556b6916c3ea8c`
     and the Player's dist tree
-    `sha256:daa8a3081805559021629af6cac0c752f3a766895f505b3da245673c8f98b856`
-    (71 files). The golden manifests of the earlier compositions change in
-    the three fields of D42 alone. Open: the golden frames of the framed-text
-    composition and the parity records, written in the pinned container.
+    `sha256:daa8a3081805559021629af6cac0c752f3a766895f505b3da245673c8f98b856`;
+    `main` with all three builds the runtime build
+    `sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef`
+    and the Player's dist tree
+    `sha256:36dccdc3c7bea7c33a34b9b7202d6bc168b82e393b1b88d15531ff2a89b58c44`
+    (71 files), measured again by PR-63 at `7b96921` (`node --run build`, and
+    `distTreeSha256` of `tests/parity/parity.ts`). The golden manifests of the
+    earlier compositions change in the three fields of D42 alone. The golden
+    frames of the framed-text composition are committed.
 
 - **PR-67.** `SetNodeSize` on a text with `null`, its tool's description, the
   budget test, and a fixture of model requests ("make the title box 800 by
@@ -479,10 +488,11 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
   spoken word a black outline"), each checked by `executeTool`. D40 and D46 get
   their lines.
 
-  - Status: in review. `SetNodeSize` on a text, its argument schema, the
-    description of `set_node_size`, the budget test, and the fixture of
-    model requests are recorded in the implementation notes below (PR-67).
-    The catalogue grows by 797 characters over the snapshot of `0.24`. No
+  - Status: done, in `main` at `7b96921`. `SetNodeSize` on a text, its
+    argument schema, the description of `set_node_size`, the budget test, and
+    the fixture of model requests are recorded in the implementation notes
+    below (PR-67). The catalogue grows by 797 characters over the snapshot of
+    `0.24` (795 since PR-68, below). No
     schema change; the runtime build
     (`sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef`)
     and the Player's dist tree
@@ -494,6 +504,10 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
 - **PR-68.** The host guide: frames, alignment, `frameLayout` for an overlay,
   sfnt fonts, and the costs; a showcase in the playground. It joins PR-63 when
   both are ready, so that one release carries `0.24` and `0.25`.
+
+  - Status: in review, in one change with PR-63, recorded in the implementation
+    notes below (PR-68). The runtime build and the Player's dist tree keep the
+    bytes of PR-66 and PR-67, and no pinned file changes.
 
 ## Implementation notes (PR-65)
 
@@ -693,6 +707,33 @@ nothing in this section is in force for a document before PR-66.
 - **The model of the history.** The property test of D38 models
   `SetNodeSize` on a text as its frame and draws the title among the nodes
   that have a size.
+
+## Implementation notes (PR-68)
+
+- **The host guide** (section 3, the load error; section 5, the frame,
+  alignment, `frameLayout` for an overlay, the fonts of measured nodes, and
+  the costs; section 6, the requests of PR-67) and sections 1, 3, and 5 of the
+  README say what D83 decides; they decide nothing.
+- **The showcase** `framed-text` of the playground (D32.12): three framed texts
+  aligned left and top, in the centre and the middle, and right and bottom, a
+  text whose lines
+  enter one by one, a word wider than its frame, and captions broken by width
+  whose spoken word has an outline and a shadow, in the proportional font of
+  the fixtures, which the page now resolves; its tool call gives the first
+  text a wider frame. Its check is the one of D32.10, so no pinned file
+  changes.
+- **The load error.** A font that a measured node uses and that `fontMetrics`
+  cannot read is the `RenderError` `font-unmeasurable` of the runtime build,
+  and a measured node without metrics `font-metrics-missing`; neither code is
+  among the page codes of the Player or the Producer, which report both as
+  `page-error`, the message naming the font. The guide says so; giving the
+  hosts the two codes would change the Player's dist tree and the API reports,
+  so it is a question for the owner, not part of this pull request.
+- **A description corrected.** `set_text_font_size` named `invalid-argument`
+  for a size outside the range after rounding, while the bus has always
+  answered `invalid-result` (D40.1), as PR-67 found for `set_node_size`. The
+  description now says `invalid-result`; the catalogue grows by 795
+  characters over the snapshot of `0.24`, within the 800 of W6.
 
 ## Questions for the owner, with recommendations
 

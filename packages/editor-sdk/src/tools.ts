@@ -360,7 +360,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setNodeColorArgumentsSchema,
   },
   SetTextFontSize: {
-    description: `Sets the font size of a text, from 1 to 1000000. ${PIXELS} Refused with invalid-argument outside the range after rounding, unknown-node, and unsupported-node for a node that is not a text.`,
+    description: `Sets the font size of a text, from 1 to 1000000. ${PIXELS} Refused with invalid-result outside the range after rounding, unknown-node, and unsupported-node for a node that is not a text.`,
     example: { nodeId: 'node-title', fontSize: 96 },
     argumentsSchema: setTextFontSizeArgumentsSchema,
   },
