@@ -65,6 +65,7 @@ const ERROR_CODES = [
   'duplicate-font-asset',
   'parameters-not-sorted',
   'unresolved-parameter-reference',
+  'speed-invalid',
 ] as const;
 
 describe('negative fixtures', () => {

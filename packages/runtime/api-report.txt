@@ -33,6 +33,7 @@ export interface AudioPlanEntry {
     readonly startUs: number;
     readonly durationUs: number;
     readonly sourceStartUs: number;
+    readonly map?: ClipTimeMap;
     readonly volume: number;
     readonly lifetimeUs: number;
     readonly fadeInUs: number;

@@ -44,8 +44,11 @@
  * template section and the content hash a host gave it, an instance with the
  * values of its inputs, and the binding of the words of a captions node to a
  * list (D77); 0.23 is 0.22 plus the font assets and the typed parameters of a
- * Custom HTML element, and the binding of a parameter to an input (D78). The
- * schemas of 0.1 to 0.22 are kept as data in `v0-1` to `v0-22` (D35.4).
+ * Custom HTML element, and the binding of a parameter to an input (D78); 0.24
+ * is 0.23 plus the time map of every video node and audio clip: an exact
+ * source start, a speed from 1/4 to 4 or 0 for a freeze frame of a video, and
+ * reverse (D82). The schemas of 0.1 to 0.23 are kept as data in `v0-1` to
+ * `v0-23` (D35.4).
  */
 import {
   closedObject,
@@ -58,7 +61,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.23';
+export const SCHEMA_VERSION = '0.24';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -1332,6 +1335,41 @@ export const backgroundNodeSchema = closedObject('Solid fill that covers the who
   animations: animations([colorAnimationSchema] as const),
 });
 
+/** The remainder of the exact source start, in units of `1 / speed.den` µs (D82.1). */
+const sourceStartRemainder = {
+  type: 'integer',
+  description:
+    'The fraction of a microsecond of the exact source time at startUs: that time is sourceStartUs + sourceStartRemainder / speed.den microseconds. From 0 to speed.den - 1; 0 for a freeze frame (D82.1).',
+  minimum: 0,
+  maximum: 999,
+} as const satisfies NumberSchema;
+
+/** The speed of a clip, a rational in lowest terms (D82.1). */
+const speed = closedObject(
+  'The speed at which the source plays, num / den in lowest terms: from 1/4 to 4, or 0/1 for a freeze frame of a video, which shows the frame at sourceStartUs for the whole lifetime. A person or a model writes it as a multiplier such as x0.5 or x2 (D82.1, D82.3, D82.11).',
+  {
+    num: {
+      type: 'integer',
+      description: 'The numerator, from 0 to 4000 (D82.1).',
+      minimum: 0,
+      maximum: 4000,
+    },
+    den: {
+      type: 'integer',
+      description: 'The denominator, from 1 to 1000 (D82.1).',
+      minimum: 1,
+      maximum: 1000,
+    },
+  },
+);
+
+/** Whether a clip plays its source range backwards (D82.1). */
+const reverse = {
+  type: 'boolean',
+  description:
+    'Plays the same source range backwards, from its last instant to its first, picture and sound; false for a freeze frame (D82.1).',
+} as const satisfies BooleanSchema;
+
 const fadeUs = {
   type: 'integer',
   description:
@@ -1396,7 +1434,7 @@ type ImageNodeSchemaValue = typeof imageNodeSchemaValue;
 export const imageNodeSchema: ImageNodeSchema = imageNodeSchemaValue;
 
 export const videoNodeSchema = closedObject(
-  'A video asset: at each instant of its lifetime the source frame of D49.5, fitted to the box of the node, and, at a volume above 0, the sound of its source at the same source time (D50, D52).',
+  'A video asset: at each instant of its lifetime the source frame of D49.5 at the source time of its time map, fitted to the box of the node, and, at a volume above 0 and a speed above 0, the sound of its source at the same source time, its pitch kept (D50, D52, D82).',
   {
     id,
     type: { type: 'string', const: 'video' },
@@ -1406,8 +1444,11 @@ export const videoNodeSchema = closedObject(
     sourceStartUs: {
       ...timeUs,
       description:
-        'Source time, in integer microseconds from the presentation time of the first frame, shown at startUs; speed is 1 (D49.1, D49.5).',
+        'Source time, in integer microseconds from the presentation time of the first frame, shown at startUs, rounded down: the exact time adds sourceStartRemainder / speed.den (D49.1, D49.5, D82.1).',
     },
+    sourceStartRemainder,
+    speed,
+    reverse,
     width: length,
     height: length,
     fit,
@@ -2303,7 +2344,7 @@ export const definitionNodeSchema = {
  * composition's `clips`, scene time in a scene's `clips` (D49.3, D54).
  */
 export const audioClipSchema = closedObject(
-  'Plays an audio asset from sourceStartUs for durationUs, at its volume and with its fades; whatever lies past the end of what holds it — the composition, or its scene — is cut. Clips are mixed regardless of their order (D52, D54).',
+  'Plays an audio asset from sourceStartUs for durationUs, at its speed (its pitch kept) and in its direction, at its volume and with its fades; whatever lies past the end of what holds it — the composition, or its scene — is cut. Clips are mixed regardless of their order (D52, D54, D82).',
   {
     id,
     type: { type: 'string', const: 'audio' },
@@ -2313,8 +2354,11 @@ export const audioClipSchema = closedObject(
     sourceStartUs: {
       ...timeUs,
       description:
-        'Source time, in integer microseconds from the first sample, heard at startUs; speed is 1 (D49.1, D52).',
+        'Source time, in integer microseconds from the first sample, heard at startUs, rounded down: the exact time adds sourceStartRemainder / speed.den (D49.1, D52, D82.1).',
     },
+    sourceStartRemainder,
+    speed,
+    reverse,
     volume,
     fadeInUs: {
       ...fadeUs,

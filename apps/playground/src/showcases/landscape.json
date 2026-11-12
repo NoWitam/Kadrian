@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.24",
   "width": 1920,
   "height": 1080,
   "safeArea": {
@@ -251,6 +251,9 @@
       "startUs": 0,
       "durationUs": 5000000,
       "sourceStartUs": 0,
+      "sourceStartRemainder": 0,
+      "speed": { "num": 1, "den": 1 },
+      "reverse": false,
       "volume": 1,
       "fadeInUs": 0,
       "fadeOutUs": 0

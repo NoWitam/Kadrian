@@ -386,11 +386,20 @@ interface ExpectedImageNode extends ExpectedTransform<ExpectedPictureAnimation> 
   readonly blendMode: ExpectedBlendMode;
 }
 
+/** The speed of a clip's time map (D82.1). */
+interface ExpectedSpeed {
+  readonly num: number;
+  readonly den: number;
+}
+
 interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> {
   readonly id: string;
   readonly type: 'video';
   readonly assetId: string;
   readonly sourceStartUs: number;
+  readonly sourceStartRemainder: number;
+  readonly speed: ExpectedSpeed;
+  readonly reverse: boolean;
   readonly width: number;
   readonly height: number;
   readonly fit: 'fill' | 'contain' | 'cover';
@@ -634,6 +643,9 @@ interface ExpectedAudioClip {
   readonly startUs: number;
   readonly durationUs: number;
   readonly sourceStartUs: number;
+  readonly sourceStartRemainder: number;
+  readonly speed: ExpectedSpeed;
+  readonly reverse: boolean;
   readonly volume: number;
   readonly fadeInUs: number;
   readonly fadeOutUs: number;
@@ -852,7 +864,7 @@ interface ExpectedDefinition {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.23';
+  readonly schemaVersion: '0.24';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.24"
+        "value": "0.25"
       }
     ],
     "expectedErrors": [
@@ -810,6 +810,9 @@
           "startUs": 5000000,
           "durationUs": 1000000,
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "volume": 1,
           "fadeInUs": 0,
           "fadeOutUs": 0
@@ -1350,6 +1353,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 320,
           "height": 180,
           "fit": "contain",
@@ -1412,6 +1418,9 @@
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 320,
           "height": 180,
           "fit": "contain",
@@ -1479,6 +1488,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 320,
           "height": 180,
           "fit": "contain",
@@ -1538,6 +1550,9 @@
           "animations": [],
           "assetId": "asset-image",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 320,
           "height": 180,
           "fit": "contain",
@@ -1605,6 +1620,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 9007199254000000,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 320,
           "height": 180,
           "fit": "contain",
@@ -1672,6 +1690,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 320,
           "height": 180,
           "fit": "contain",
@@ -1739,6 +1760,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 320,
           "height": 180,
           "fit": "none",
@@ -1840,6 +1864,9 @@
           "startUs": 0,
           "durationUs": 1000000,
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "volume": 1,
           "fadeInUs": 0,
           "fadeOutUs": 0
@@ -1867,6 +1894,9 @@
           "startUs": 0,
           "durationUs": 1000000,
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "volume": 1,
           "fadeInUs": 600000,
           "fadeOutUs": 600000
@@ -1894,6 +1924,9 @@
           "startUs": 0,
           "durationUs": 1000000,
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "volume": 1,
           "fadeInUs": 0,
           "fadeOutUs": 0,
@@ -11368,5 +11401,242 @@
       }
     ],
     "expectedErrors": [{ "code": "duplicate-binding-target", "path": "/template/bindings/1" }]
+  },
+  {
+    "name": "speed-above-four",
+    "description": "A speed is from 1/4 to 4, or 0 for a freeze frame of a video (D82.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clips/0/speed",
+        "value": { "num": 5, "den": 1 }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "speed-invalid",
+        "path": "/clips/0/speed"
+      }
+    ]
+  },
+  {
+    "name": "speed-below-a-quarter",
+    "description": "A speed below 1/4 is refused, never raised to it (D82.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clips/0/speed",
+        "value": { "num": 1, "den": 5 }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "speed-invalid",
+        "path": "/clips/0/speed"
+      }
+    ]
+  },
+  {
+    "name": "speed-not-in-lowest-terms",
+    "description": "A speed is in lowest terms, so one speed is one JSON text (D82.1, D30.7).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clips/0/speed",
+        "value": { "num": 2, "den": 4 }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "speed-invalid",
+        "path": "/clips/0/speed"
+      }
+    ]
+  },
+  {
+    "name": "speed-remainder-not-below-den",
+    "description": "The remainder of the exact source start is below the den of the speed (D82.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clips/0/speed",
+        "value": { "num": 1, "den": 2 }
+      },
+      {
+        "op": "replace",
+        "path": "/clips/0/sourceStartRemainder",
+        "value": 2
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "speed-invalid",
+        "path": "/clips/0/sourceStartRemainder"
+      }
+    ]
+  },
+  {
+    "name": "speed-audio-frozen",
+    "description": "An audio clip is never frozen: silence is a gap, not a clip (D82.3).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clips/0/speed",
+        "value": { "num": 0, "den": 1 }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "speed-invalid",
+        "path": "/clips/0/speed"
+      }
+    ]
+  },
+  {
+    "name": "speed-frozen-reversed",
+    "description": "A freeze frame is never reversed (D82.3).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 0 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 0, "den": 1 },
+          "reverse": true,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "focus": { "x": 500, "y": 500 },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "speed-invalid",
+        "path": "/scenes/0/nodes/4/reverse"
+      }
+    ]
+  },
+  {
+    "name": "speed-reversed-too-long",
+    "description": "A reversed clip samples at most 600 000 000 µs of source (D82.6).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clips/0/durationUs",
+        "value": 600000001
+      },
+      {
+        "op": "replace",
+        "path": "/clips/0/reverse",
+        "value": true
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "speed-invalid",
+        "path": "/clips/0/reverse"
+      }
+    ]
+  },
+  {
+    "name": "speed-den-out-of-range",
+    "description": "The den of a speed is from 1 to 1000 (D82.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clips/0/speed",
+        "value": { "num": 1, "den": 1001 }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/clips/0/speed/den"
+      }
+    ]
+  },
+  {
+    "name": "speed-missing",
+    "description": "A clip states its speed; there is no default (D82.8).",
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/clips/0/speed"
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/clips/0/speed"
+      }
+    ]
+  },
+  {
+    "name": "speed-unknown-field",
+    "description": "A speed is its num and den, nothing else (D82.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/clips/0/speed/factor",
+        "value": 1
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "unknown-field",
+        "path": "/clips/0/speed/factor"
+      }
+    ]
+  },
+  {
+    "name": "reverse-not-boolean",
+    "description": "reverse is a boolean (D82.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clips/0/reverse",
+        "value": "yes"
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-type",
+        "path": "/clips/0/reverse"
+      }
+    ]
   }
 ]

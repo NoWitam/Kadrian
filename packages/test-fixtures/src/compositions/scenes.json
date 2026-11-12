@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.24",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -221,6 +221,9 @@
           "startUs": 250000,
           "durationUs": 1000000,
           "sourceStartUs": 1000000,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "volume": 0.8,
           "fadeInUs": 100000,
           "fadeOutUs": 200000
@@ -296,6 +299,9 @@
       "startUs": 0,
       "durationUs": 3200000,
       "sourceStartUs": 0,
+      "sourceStartRemainder": 0,
+      "speed": { "num": 1, "den": 1 },
+      "reverse": false,
       "volume": 0.5,
       "fadeInUs": 0,
       "fadeOutUs": 500000

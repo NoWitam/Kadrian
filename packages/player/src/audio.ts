@@ -5,9 +5,14 @@
  * rate; every sound is one buffer source, its volume, and its fades as gain
  * automation on the grid; the graph never decides what is heard, the plan
  * does. A mono source is heard at `√½` on both channels, as FFmpeg's upmix of
- * the Producer (D52.5) hears it.
+ * the Producer (D52.5) hears it. A sound at another speed or reversed plays the
+ * samples `stretchSound` of `@kadrion/runtime/stretch` computes from the
+ * decoded source, from the sample a play starts at, as one buffer source on
+ * the same grid (D82.6).
  */
+import { heardSourceRange, type ClipTimeMap } from '@kadrion/schema';
 import { AUDIO_SAMPLE_RATE, type AudioLayout, type SoundLayout } from '@kadrion/runtime';
+import { stretchSound } from '@kadrion/runtime/stretch';
 
 import { PlayerError, type PlayerErrorAsset } from './errors.js';
 
@@ -33,6 +38,8 @@ export interface SoundContext {
   decodeAudioData(data: ArrayBuffer): Promise<AudioBuffer>;
   createBufferSource(): AudioBufferSourceNode;
   createGain(): GainNode;
+  /** A buffer for the samples of a sound at another speed or reversed (D82.6). */
+  createBuffer(numberOfChannels: number, length: number, sampleRate: number): AudioBuffer;
 }
 
 /**
@@ -102,7 +109,17 @@ export function checkSoundRanges(
         assetOf(sound.entry.assetId),
       );
     }
-    if (sound.sourceStartSample + sound.sampleCount > buffer.length) {
+    if (sound.entry.map !== undefined) {
+      // The range its map hears, checked as the Producer checks it (D53.4, D82.6).
+      const range = heardSourceRange(sound.entry);
+      const endUs = BigInt(range.startUs) + BigInt(range.durationUs);
+      if (BigInt(buffer.length) * 1_000_000n < endUs * BigInt(AUDIO_SAMPLE_RATE)) {
+        first ??= assetOf(sound.entry.assetId);
+        exceeded.push(
+          `${sound.entry.id}: ${String(range.startUs)} to ${String(endUs)} µs of "${sound.entry.assetId}", which holds ${String(buffer.length)} samples at 48 kHz`,
+        );
+      }
+    } else if (sound.sourceStartSample + sound.sampleCount > buffer.length) {
       first ??= assetOf(sound.entry.assetId);
       exceeded.push(
         `${sound.entry.id}: samples ${String(sound.sourceStartSample)} to ${String(sound.sourceStartSample + sound.sampleCount)} of "${sound.entry.assetId}", which holds ${String(buffer.length)} at 48 kHz`,
@@ -116,6 +133,60 @@ export function checkSoundRanges(
       exceeded,
       first,
     );
+  }
+}
+
+/**
+ * The samples of sounds at another speed or reversed that the Player computed
+ * (D82.6), by source and map: each keeps the composition samples it holds, so
+ * a play that starts inside them reads them again instead of computing them.
+ * Grains are anchored on the map, so the samples of any range are those of the
+ * whole: a seek computes from its own sample only.
+ */
+export class StretchCache {
+  readonly #kept = new Map<
+    string,
+    {
+      readonly buffer: AudioBuffer;
+      readonly startSample: number;
+      readonly channels: readonly Float32Array[];
+    }
+  >();
+
+  /**
+   * The samples of `map` over composition samples `[startSample, startSample +
+   * sampleCount)`, computed by `stretchSound` from `buffer` unless kept.
+   */
+  samples(
+    buffer: AudioBuffer,
+    map: ClipTimeMap,
+    startSample: number,
+    sampleCount: number,
+  ): readonly Float32Array[] {
+    const key = `${String(map.intercept)}/${String(map.slope)}/${String(map.den)}`;
+    let known = this.#kept.get(key);
+    if (
+      known?.buffer !== buffer ||
+      known.startSample > startSample ||
+      known.startSample + (known.channels[0]?.length ?? 0) < startSample + sampleCount
+    ) {
+      const channels = Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
+        buffer.getChannelData(channel),
+      );
+      known = {
+        buffer,
+        startSample,
+        channels: stretchSound({
+          map,
+          source: { channels, startSample: 0 },
+          startSample,
+          sampleCount,
+        }),
+      };
+      this.#kept.set(key, known);
+    }
+    const from = startSample - known.startSample;
+    return known.channels.map((channel) => channel.subarray(from, from + sampleCount));
   }
 }
 
@@ -167,6 +238,31 @@ export function scheduleSounds(
   when: number,
   toSample: number = Number.POSITIVE_INFINITY,
 ): ScheduledSounds {
+  return scheduleSoundsWith(
+    new StretchCache(),
+    context,
+    layout,
+    buffers,
+    fromSample,
+    when,
+    toSample,
+  );
+}
+
+/**
+ * `scheduleSounds` with the samples of mapped sounds kept in `stretches`
+ * (D82.6): the Player keeps one cache across its plays, so a play that starts
+ * inside samples it computed reads them again.
+ */
+export function scheduleSoundsWith(
+  stretches: StretchCache,
+  context: SoundContext,
+  layout: AudioLayout,
+  buffers: ReadonlyMap<string, AudioBuffer>,
+  fromSample: number,
+  when: number,
+  toSample: number = Number.POSITIVE_INFINITY,
+): ScheduledSounds {
   const rate = AUDIO_SAMPLE_RATE;
   const playing: { source: AudioBufferSourceNode; nodes: AudioNode[] }[] = [];
   for (const sound of layout.sounds) {
@@ -178,7 +274,7 @@ export function scheduleSounds(
     const heard = Math.min(sound.sampleCount, toSample - sound.startSample);
     if (skip >= heard) continue;
     const at = (k: number): number => when + (sound.startSample + k - fromSample) / rate;
-    playing.push(schedule(context, sound, buffer, skip, heard, at));
+    playing.push(schedule(context, sound, buffer, skip, heard, at, stretches));
   }
   let stopped = false;
   return {
@@ -204,10 +300,25 @@ function schedule(
   skip: number,
   heard: number,
   at: (sample: number) => number,
+  stretches: StretchCache,
 ): { source: AudioBufferSourceNode; nodes: AudioNode[] } {
   const rate = AUDIO_SAMPLE_RATE;
   const source = context.createBufferSource();
-  source.buffer = buffer;
+  // A sound at another speed or reversed plays the samples its map computes,
+  // from the first sample heard, in the source's own channels (D82.6).
+  let offset = sound.sourceStartSample + skip;
+  const { map } = sound.entry;
+  if (map !== undefined) {
+    const samples = stretches.samples(buffer, map, sound.startSample + skip, heard - skip);
+    const computed = context.createBuffer(buffer.numberOfChannels, heard - skip, rate);
+    samples.forEach((channel, index) => {
+      computed.copyToChannel(channel as Float32Array<ArrayBuffer>, index);
+    });
+    source.buffer = computed;
+    offset = 0;
+  } else {
+    source.buffer = buffer;
+  }
   const nodes: AudioNode[] = [];
   // Volume and the upmix of a mono source in one factor (D52.5, D53).
   const factor = sound.entry.volume * (buffer.numberOfChannels === 1 ? Math.SQRT1_2 : 1);
@@ -229,6 +340,6 @@ function schedule(
     previous = node;
   }
   previous.connect(context.destination);
-  source.start(at(skip), (sound.sourceStartSample + skip) / rate, (heard - skip) / rate);
+  source.start(at(skip), offset / rate, (heard - skip) / rate);
   return { source, nodes };
 }

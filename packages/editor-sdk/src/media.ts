@@ -12,6 +12,7 @@
  */
 import {
   audioPlan,
+  heardSourceRange,
   type AudioPlanEntry,
   sampledSourceRange,
   sourceRangeFits,
@@ -169,10 +170,12 @@ function soundLength(entry: AudioPlanEntry, facts: MediaFacts | null): number | 
  * read already: a range that shrinks reads nothing new and needs no facts.
  */
 function readsNothingNew(a: AudioPlanEntry, b: AudioPlanEntry, hashes: [string, string]): boolean {
+  const old = heardSourceRange(a);
+  const range = heardSourceRange(b);
   return (
     hashes[0] === hashes[1] &&
-    b.sourceStartUs >= a.sourceStartUs &&
-    b.sourceStartUs - a.sourceStartUs <= a.durationUs - b.durationUs
+    range.startUs >= old.startUs &&
+    range.startUs - old.startUs <= old.durationUs - range.durationUs
   );
 }
 
@@ -234,8 +237,9 @@ export function checkSourceRanges(
  * sound of the same clip or node in `before` did not — a new sound, another
  * asset, or a range reaching outside the one before — checked
  * against the facts of their sources (D53): a clip reads `[sourceStartUs,
- * sourceStartUs + durationUs)` of a sound, and a video node above volume 0 the
- * same of its video's sound. A sound not heard — volume 0, or past the end —
+ * sourceStartUs + durationUs)` of a sound at speed 1 forwards and the range its
+ * map hears otherwise (D82.6), and a video node above volume 0 the same of its
+ * video's sound. A sound not heard — volume 0, or past the end —
  * needs no facts. Adds to `missing` and `exceeded`.
  */
 function checkSounds(
@@ -261,12 +265,14 @@ function checkSounds(
       continue;
     }
     const length = soundLength(entry, lookup === null ? null : factsOf(lookup, contentHash));
-    const end = `${String(entry.sourceStartUs)} to ${String(entry.sourceStartUs + entry.durationUs)} µs`;
+    // The range a sound hears, through its map at another speed or reversed (D82.6).
+    const range = heardSourceRange(entry);
+    const end = `${String(range.startUs)} to ${String(range.startUs + range.durationUs)} µs`;
     if (length === undefined) {
       if (!missing.includes(entry.id)) missing.push(entry.id);
     } else if (length === null) {
       exceeded.push(`${entry.id}: hears ${end} of a source with no sound`);
-    } else if (entry.sourceStartUs > length || entry.durationUs > length - entry.sourceStartUs) {
+    } else if (range.startUs > length || range.durationUs > length - range.startUs) {
       exceeded.push(`${entry.id}: hears ${end} of a sound of ${String(length)} µs`);
     }
   }

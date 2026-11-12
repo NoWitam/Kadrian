@@ -1,6 +1,8 @@
 /**
- * The source time and the source frame of a video (D49.5, D50.3), beside the
- * frame grid of D13: what the field `sourceStartUs` of a video node means. Both
+ * The source time and the source frame of a video (D49.5, D50.3, D82.1), beside
+ * the frame grid of D13: what the fields `sourceStartUs`,
+ * `sourceStartRemainder`, `speed`, and `reverse` of a video node mean, through
+ * the time map of `time-map.ts`. Both
  * hosts choose a frame by these functions from the container's own
  * timestamps, never from rounded microseconds, so the Player and the Producer
  * show the same frame index. They evaluate no composition state and read no
@@ -8,6 +10,8 @@
  *
  * `BigInt` keeps the arithmetic exact over the whole safe-integer range.
  */
+
+import { clipSourceRange, sourceTimeOfScene, type ClipTiming } from './time-map.js';
 
 const MICROSECONDS_PER_SECOND = 1_000_000n;
 
@@ -17,12 +21,11 @@ export interface TimeBase {
   readonly den: number;
 }
 
-/** The part of a video node that maps scene time to source time. */
-export interface SourceMapping {
-  readonly startUs: number;
-  readonly durationUs: number;
-  readonly sourceStartUs: number;
-}
+/**
+ * The part of a video node or an audio clip that maps scene time to source
+ * time: its lifetime and its time map (D49.5, D82.1).
+ */
+export type SourceMapping = ClipTiming;
 
 /** The source range a clip ever samples: from `startUs`, `durationUs` long (D49.6). */
 export interface SourceRange {
@@ -51,9 +54,12 @@ function checkedTimeBase(timeBase: TimeBase): { readonly num: bigint; readonly d
 }
 
 /**
- * The source time a video node shows at scene time `timeUs` (D49.5):
- * `sourceStartUs + (timeUs − startUs)`. The node must be active at `timeUs`
- * (D42.2); the sum must stay a safe integer.
+ * The source time a video node shows at scene time `timeUs` (D49.5, D82.1):
+ * the floor of its exact time map, `F(e)` forwards and `F(durationUs − 1 − e)`
+ * reversed, for `e = timeUs − startUs` and
+ * `F(e) = sourceStartUs + ⌊(sourceStartRemainder + e · num) / den⌋`. At speed
+ * 1, remainder 0, forwards it is `sourceStartUs + (timeUs − startUs)`. The node
+ * must be active at `timeUs` (D42.2); the result must stay a safe integer.
  */
 export function sourceTimeUs(node: SourceMapping, timeUs: number): number {
   const time = safe('timeUs', timeUs, 0);
@@ -62,30 +68,23 @@ export function sourceTimeUs(node: SourceMapping, timeUs: number): number {
   if (time < start || time - start >= duration) {
     throw new RangeError(`The node is not active at ${String(timeUs)}.`);
   }
-  return toSafeNumber(
-    'sourceTimeUs',
-    safe('sourceStartUs', node.sourceStartUs, 0) + (time - start),
-  );
+  return sourceTimeOfScene(node, timeUs);
 }
 
 /**
  * The source range a node ever samples: its lifetime cut to its scene,
- * `[0, sceneDurationUs)`, mapped into source time (D49.6, D54.3). `null` when
- * the lifetime starts at or after the end of the scene and nothing is sampled.
+ * `[0, sceneDurationUs)`, mapped into source time by its time map (D49.6,
+ * D54.3, D82.1): from `F(0)` forwards, and from `F(durationUs − c)` reversed,
+ * to the last source time it shows, plus 1. A freeze frame samples one
+ * microsecond. `null` when the lifetime starts at or after the end of the scene
+ * and nothing is sampled.
  */
 export function sampledSourceRange(
   node: SourceMapping,
   sceneDurationUs: number,
 ): SourceRange | null {
-  const start = safe('startUs', node.startUs, 0);
-  const duration = safe('durationUs', node.durationUs, 1);
-  const end = safe('sceneDurationUs', sceneDurationUs, 1);
-  if (start >= end) return null;
-  const sampled = duration < end - start ? duration : end - start;
-  return {
-    startUs: Number(safe('sourceStartUs', node.sourceStartUs, 0)),
-    durationUs: Number(sampled),
-  };
+  safe('sourceStartUs', node.sourceStartUs, 0);
+  return clipSourceRange(node, sceneDurationUs);
 }
 
 /**

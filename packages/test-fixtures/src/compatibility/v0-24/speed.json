@@ -1,0 +1,400 @@
+{
+  "schemaVersion": "0.24",
+  "width": 640,
+  "height": 360,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 2000000,
+  "assets": [
+    {
+      "id": "asset-video-sound",
+      "type": "video",
+      "contentHash": "sha256:95f5bd4d2f95207842f32a517f6289437d4e41688505c096d1297eca9e430239"
+    },
+    {
+      "id": "asset-audio",
+      "type": "audio",
+      "contentHash": "sha256:a383506e57b39f51b8952cff8a82f2a058e4d07b8c970068b8af84f72d058f97"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-speed",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "node-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#203040",
+          "animations": []
+        },
+        {
+          "id": "node-quarter",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 10,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video-sound",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 3,
+          "speed": {
+            "num": 1,
+            "den": 4
+          },
+          "reverse": false,
+          "width": 200,
+          "height": 112,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "node-half",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 220,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video-sound",
+          "sourceStartUs": 250000,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 1,
+            "den": 2
+          },
+          "reverse": false,
+          "width": 200,
+          "height": 112,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "node-three-halves",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 430,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video-sound",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 3,
+            "den": 2
+          },
+          "reverse": false,
+          "width": 200,
+          "height": 112,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0.5,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "node-quadruple",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 700000,
+          "position": {
+            "x": 10,
+            "y": 210
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video-sound",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 4,
+            "den": 1
+          },
+          "reverse": false,
+          "width": 200,
+          "height": 112,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "node-reversed",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 220,
+            "y": 210
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video-sound",
+          "sourceStartUs": 500000,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 1,
+            "den": 1
+          },
+          "reverse": true,
+          "width": 200,
+          "height": 112,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "node-frozen",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": {
+            "x": 430,
+            "y": 210
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video-sound",
+          "sourceStartUs": 1000000,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 0,
+            "den": 1
+          },
+          "reverse": false,
+          "width": 200,
+          "height": 112,
+          "fit": "fill",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 1,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [
+        {
+          "id": "clip-half",
+          "type": "audio",
+          "assetId": "asset-audio",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "sourceStartUs": 1000000,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 1,
+            "den": 2
+          },
+          "reverse": false,
+          "volume": 0.5,
+          "fadeInUs": 0,
+          "fadeOutUs": 200000
+        },
+        {
+          "id": "clip-reversed",
+          "type": "audio",
+          "assetId": "asset-audio",
+          "startUs": 500000,
+          "durationUs": 1000000,
+          "sourceStartUs": 2000000,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 3,
+            "den": 2
+          },
+          "reverse": true,
+          "volume": 0.5,
+          "fadeInUs": 0,
+          "fadeOutUs": 0
+        }
+      ],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

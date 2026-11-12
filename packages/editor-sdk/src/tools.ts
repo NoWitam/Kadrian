@@ -277,7 +277,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {"kind":"none"}, matte {"kind":"none"}, and blendMode "normal" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit "fill", "contain", or "cover" of the definition's canvas in its box. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {"kind":"none"}, matte {"kind":"none"}, and blendMode "normal" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit "fill", "contain", or "cover" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {"num":1,"den":1} (describe_document shows a speed as a multiplier such as "x0.5"; stored, it is the fraction {"num":1,"den":2}, from 1/4 to 4, or {"num":0,"den":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -491,7 +491,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setVideoAssetArgumentsSchema,
   },
   SetVideoSource: {
-    description: `Sets the source time a video node shows at the start of its lifetime; it then plays at speed 1. ${TIME_US} Source times count from the video's first frame. The node samples sourceStartUs up to sourceStartUs plus the part of its lifetime inside its scene, which must lie inside the video: describe_document reports its sourceDurationUs when the host knows it. To trim the start of a clip by d, add d to startUs and sourceStartUs and subtract it from durationUs in one transaction. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a video, media-facts-missing, and source-range-exceeded.`,
+    description: `Sets the source time a video node shows at the start of its lifetime; it keeps its speed and its direction. ${TIME_US} Source times count from the video's first frame. The node samples the source range describe_document states as its sampledSourceRange, from sourceStartUs at speed 1 forwards, which must lie inside the video: describe_document reports its sourceDurationUs when the host knows it. To trim the start of a clip, use trim_clip_start, which keeps every frame that remains at any speed. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a video, media-facts-missing, and source-range-exceeded.`,
     example: { nodeId: 'node-video', sourceStartUs: 2_000_000 },
     argumentsSchema: setVideoSourceArgumentsSchema,
   },
@@ -501,7 +501,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setVideoVolumeArgumentsSchema,
   },
   AddAudioClip: {
-    description: `Adds one complete audio clip at an index of the document's clips; every clip is heard, mixed by adding, whatever the order. The clip is given exactly as the document stores it: an ID unused in the document, type "audio", the ID of an audio asset the document declares (add one with add_asset first), startUs and durationUs (at least 1) in composition time, sourceStartUs (the source time heard at startUs; speed is 1), volume from 0 to 1, and fadeInUs and fadeOutUs, linear, which together take at most durationUs. ${TIME_US} The part after the end of the composition is cut; the source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with index-out-of-range, id-in-use, invalid-result, media-facts-missing when the host does not know the asset's duration, and source-range-exceeded when the clip would hear past its end.`,
+    description: `Adds one complete audio clip at an index of the document's clips; every clip is heard, mixed by adding, whatever the order. The clip is given exactly as the document stores it: an ID unused in the document, type "audio", the ID of an audio asset the document declares (add one with add_asset first), startUs and durationUs (at least 1) in composition time, sourceStartUs (the source time heard at startUs), sourceStartRemainder 0, speed {"num":1,"den":1} (the source's own speed; describe_document shows a speed as a multiplier such as "x1.5", stored as the fraction {"num":3,"den":2}, from 1/4 to 4, the pitch kept), reverse false (true plays the same source range backwards), volume from 0 to 1, and fadeInUs and fadeOutUs, linear, which together take at most durationUs. ${TIME_US} The part after the end of the composition is cut; the source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with index-out-of-range, id-in-use, invalid-result, media-facts-missing when the host does not know the asset's duration, and source-range-exceeded when the clip would hear past its end.`,
     example: {
       index: 1,
       clip: {
@@ -511,6 +511,9 @@ const METADATA = deepFreeze<MetadataTable>({
         startUs: 2_000_000,
         durationUs: 3_000_000,
         sourceStartUs: 500_000,
+        sourceStartRemainder: 0,
+        speed: { num: 1, den: 1 },
+        reverse: false,
         volume: 0.8,
         fadeInUs: 250_000,
         fadeOutUs: 1_000_000,
@@ -536,7 +539,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setClipFadesArgumentsSchema,
   },
   SetClipSource: {
-    description: `Points one audio clip at an audio asset the document declares, which may be the one it has, and sets the source time heard at the clip's start; it then plays at speed 1 and keeps its lifetime. ${TIME_US} Source times count from the first sample. To move a clip in time, run remove_audio_clip and add_audio_clip in one transaction. The part heard must lie inside the source: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with invalid-argument, unknown-clip, unknown-asset, asset-type-mismatch when the asset is not audio, media-facts-missing, and source-range-exceeded.`,
+    description: `Points one audio clip at an audio asset the document declares, which may be the one it has, and sets the source time heard at the clip's start; it keeps its lifetime, its speed, and its direction. ${TIME_US} Source times count from the first sample. To move a clip in time, run remove_audio_clip and add_audio_clip in one transaction. The part heard must lie inside the source: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with invalid-argument, unknown-clip, unknown-asset, asset-type-mismatch when the asset is not audio, media-facts-missing, and source-range-exceeded.`,
     example: { clipId: 'clip-audio', assetId: 'asset-audio', sourceStartUs: 1_000_000 },
     argumentsSchema: setClipSourceArgumentsSchema,
   },
@@ -590,7 +593,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: moveNodeToSceneArgumentsSchema,
   },
   AddSceneAudioClip: {
-    description: `Adds one complete audio clip at an index of a scene's clips, in the time of that scene: it moves with its scene, which cuts it at its end. The clip is given as add_audio_clip takes one: an ID unused in the document, type "audio", the ID of an audio asset, startUs and durationUs in scene time, sourceStartUs, volume from 0 to 1, fadeInUs and fadeOutUs. ${TIME_US} The source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with unknown-scene, index-out-of-range, id-in-use, invalid-result, media-facts-missing, and source-range-exceeded.`,
+    description: `Adds one complete audio clip at an index of a scene's clips, in the time of that scene: it moves with its scene, which cuts it at its end. The clip is given as add_audio_clip takes one: an ID unused in the document, type "audio", the ID of an audio asset, startUs and durationUs in scene time, sourceStartUs, sourceStartRemainder, speed, reverse, volume from 0 to 1, fadeInUs and fadeOutUs. ${TIME_US} The source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with unknown-scene, index-out-of-range, id-in-use, invalid-result, media-facts-missing, and source-range-exceeded.`,
     example: {
       sceneId: 'scene-main',
       index: 0,
@@ -601,6 +604,9 @@ const METADATA = deepFreeze<MetadataTable>({
         startUs: 1_000_000,
         durationUs: 2_000_000,
         sourceStartUs: 0,
+        sourceStartRemainder: 0,
+        speed: { num: 1, den: 1 },
+        reverse: false,
         volume: 1,
         fadeInUs: 0,
         fadeOutUs: 500_000,
@@ -614,7 +620,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: moveClipArgumentsSchema,
   },
   TrimClipStart: {
-    description: `Moves the start of one clip and keeps its end, as dragging the left edge on a timeline: startUs becomes the given time, durationUs changes by the opposite amount, and a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays exactly where it did. No keyframe moves, and an audio clip's fades stay at its edges. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, time-outside-clip when the start would reach the end, source-range-exceeded when the source would start before its first instant or run past its end, invalid-result when the fades no longer fit, and media-facts-missing.`,
+    description: `Moves the start of one clip and keeps its end, as dragging the left edge on a timeline: startUs becomes the given time, durationUs changes by the opposite amount, and a video's or an audio clip's source moves by the same amount times its speed (a reversed clip's source stays), so what remains plays exactly where it did. No keyframe moves, and an audio clip's fades stay at its edges. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, time-outside-clip when the start would reach the end, source-range-exceeded when the source would start before its first instant or run past its end, invalid-result when the fades no longer fit, and media-facts-missing.`,
     example: { clipId: 'clip-audio', startUs: 2_000_000 },
     argumentsSchema: trimClipStartArgumentsSchema,
   },
@@ -624,7 +630,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: trimClipEndArgumentsSchema,
   },
   SplitClip: {
-    description: `Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, every effect as <newClipId>-e<e> with its animations as <newClipId>-e<e>-a-<parameter>, and every text animation as <newClipId>-t<t>, one of phase in as an accent at the start of the whole, so both halves look exactly like the whole; a text with a text animation of phase out is refused with split-not-exact. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded.`,
+    description: `Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops, at its speed and in its direction, so each half shows exactly what the whole showed there. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, every effect as <newClipId>-e<e> with its animations as <newClipId>-e<e>-a-<parameter>, and every text animation as <newClipId>-t<t>, one of phase in as an accent at the start of the whole, so both halves look exactly like the whole; a text with a text animation of phase out is refused with split-not-exact. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. ${CLIPS} ${TIME_US} Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded.`,
     example: { clipId: 'node-title', atUs: 5_000_000, newClipId: 'node-title-tail' },
     argumentsSchema: splitClipArgumentsSchema,
   },

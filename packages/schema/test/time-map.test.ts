@@ -15,8 +15,11 @@ import {
   MAX_SPEED_DEN,
   parseSpeed,
   sceneTimesOfSource,
+  shiftedTimeMap,
+  sourceTimeOfMap,
   sourceTimeOfScene,
   speedProblem,
+  timeMapSourceRange,
   type ClipTiming,
   type Speed,
 } from '../src/time-map.js';
@@ -224,6 +227,50 @@ describe('the exact affine map (D82.1, D82.2)', () => {
         expect(sourceTimeOfScene(half, time)).toBe(sourceTimeOfScene(clip, time));
       }
     }
+  });
+});
+
+describe('the map in another time (D82.6)', () => {
+  it('shows by itself what the clip shows, at every instant of its lifetime', () => {
+    const next = random(7);
+    for (const clip of CLIPS) {
+      const map = clipTimeMap(clip);
+      for (const elapsed of elapsedTimes(clip, next)) {
+        expect(sourceTimeOfMap(map, clip.startUs + elapsed)).toBe(reference(clip, elapsed));
+      }
+    }
+  });
+
+  it('shifted by an offset, shows at u − offset what it showed at u', () => {
+    const next = random(8);
+    for (const clip of CLIPS.slice(0, 500)) {
+      const map = clipTimeMap(clip);
+      const offset = Math.floor((next() - 0.5) * 20_000_000);
+      const shifted = shiftedTimeMap(map, offset);
+      expect(shifted.slope).toBe(map.slope);
+      expect(shifted.den).toBe(map.den);
+      for (const elapsed of elapsedTimes(clip, next)) {
+        const time = clip.startUs + elapsed;
+        expect(sourceTimeOfMap(shifted, time + offset)).toBe(sourceTimeOfMap(map, time));
+      }
+    }
+  });
+
+  it('gives over a lifetime the sampled source range of the clip', () => {
+    for (const clip of CLIPS) {
+      const range = timeMapSourceRange(clipTimeMap(clip), {
+        startUs: clip.startUs,
+        durationUs: clip.durationUs,
+      });
+      expect(range).toEqual(clipSourceRange(clip, clip.startUs + clip.durationUs));
+    }
+  });
+
+  it('refuses an instant or an offset that is no safe integer, and an empty range', () => {
+    const map = clipTimeMap(CLIPS[0] as ClipTiming);
+    expect(() => sourceTimeOfMap(map, 0.5)).toThrow(RangeError);
+    expect(() => shiftedTimeMap(map, Number.NaN)).toThrow(RangeError);
+    expect(() => timeMapSourceRange(map, { startUs: 0, durationUs: 0 })).toThrow(RangeError);
   });
 });
 

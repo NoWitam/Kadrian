@@ -345,6 +345,9 @@ export declare const invalidCompositionCasesV021: readonly InvalidCompositionCas
 ---- invalidCompositionCasesV022
 export declare const invalidCompositionCasesV022: readonly InvalidCompositionCase[];
 
+---- invalidCompositionCasesV023
+export declare const invalidCompositionCasesV023: readonly InvalidCompositionCase[];
+
 ---- invalidCompositionCasesV03
 export declare const invalidCompositionCasesV03: readonly InvalidCompositionCase[];
 
@@ -413,6 +416,9 @@ export declare const migrationPair021To022: MigrationPair;
 
 ---- migrationPair022To023
 export declare const migrationPair022To023: MigrationPair;
+
+---- migrationPair023To024
+export declare const migrationPair023To024: MigrationPair;
 
 ---- migrationPair02To03
 export declare const migrationPair02To03: MigrationPair;
@@ -498,6 +504,9 @@ export declare const referenceCompositionV021: unknown;
 ---- referenceCompositionV022
 export declare const referenceCompositionV022: unknown;
 
+---- referenceCompositionV023
+export declare const referenceCompositionV023: unknown;
+
 ---- referenceCompositionV03
 export declare const referenceCompositionV03: unknown;
 
@@ -542,6 +551,12 @@ export declare const shapesComposition: unknown;
 
 ---- shapesGoldenTimestamps
 export declare const shapesGoldenTimestamps: readonly GoldenTimestamp[];
+
+---- speedComposition
+export declare const speedComposition: unknown;
+
+---- speedGoldenTimestamps
+export declare const speedGoldenTimestamps: readonly GoldenTimestamp[];
 
 ---- svgComposition
 export declare const svgComposition: unknown;

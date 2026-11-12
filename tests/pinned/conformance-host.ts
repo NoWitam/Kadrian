@@ -23,7 +23,7 @@ import {
 import { validateComposition } from '@kadrion/schema';
 import type { BrowserContext, Frame, Page } from 'playwright-core';
 
-import { HOST_MODULES, HOST_PACKAGES } from '../parity/parity.js';
+import { HOST_ENTRIES, HOST_MODULES, HOST_PACKAGES } from '../parity/parity.js';
 
 import { expectedTree, inSinglePrecision, repoRoot, shownTree } from './support.js';
 
@@ -102,6 +102,10 @@ export const HOST_PAGE = `<!doctype html><html><head><meta charset="utf-8">
   imports: {
     ...Object.fromEntries(
       HOST_PACKAGES.map((name) => [`@kadrion/${name}`, `/pkg/${name}/index.js`]),
+    ),
+    // The entry points the packages import by name besides their indexes (D82.6).
+    ...Object.fromEntries(
+      Object.entries(HOST_ENTRIES).map(([name, file]) => [name, `/pkg/${file}`]),
     ),
     // The Player's external dependencies, each its installed bundle (D79.7).
     ...Object.fromEntries(Object.keys(HOST_MODULES).map((name) => [name, `/vendor/${name}.mjs`])),

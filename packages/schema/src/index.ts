@@ -1,14 +1,16 @@
 /**
  * @kadrion/schema — JSON Schema, TypeScript types, validation, migrations.
  *
- * Schema 0.23, as decided by D13–D17, D42, D50, D52, D54, D56, D57, D58, D59, D63, D66, D67,
- * D68, D69, D70, D71, D72, D73, D74, D75, D76, D77, and D78: the one version this build validates (D35.1). The schemas of 0.1 to 0.22 and the forward migration live behind
+ * Schema 0.24, as decided by D13–D17, D42, D50, D52, D54, D56, D57, D58, D59, D63, D66, D67,
+ * D68, D69, D70, D71, D72, D73, D74, D75, D76, D77, D78, and D82: the one version this build validates (D35.1). The schemas of 0.1 to 0.23 and the forward migration live behind
  * the entry point `@kadrion/schema/migrate`, so that the render page, which imports this entry
  * only, carries none of them (D21, D42.8). The instantiation of a template is exported by
  * `@kadrion/schema/template`; its core lies in this entry since elements are instantiated
- * wherever an instance is evaluated (D58.4, D77).
+ * wherever an instance is evaluated (D58.4, D77). The time map of a clip and the
+ * multiplier notation of a speed (D82) are exported here, and by the entry
+ * `@kadrion/schema/time-map` as well.
  */
-export { audioPlan } from './audio-plan.js';
+export { audioPlan, heardSourceRange } from './audio-plan.js';
 export type { AudioPlan, AudioPlanEntry } from './audio-plan.js';
 export { BLEND_MODES, compositionSchema, SCHEMA_VERSION } from './composition-schema.js';
 export {
@@ -44,6 +46,28 @@ export {
   sourceTimeUs,
 } from './source-frame.js';
 export type { SourceMapping, SourceRange, TimeBase } from './source-frame.js';
+export {
+  advanceClipSource,
+  clipSourceRange,
+  clipTimeMap,
+  formatSpeed,
+  MAX_SPEED_DEN,
+  parseSpeed,
+  sceneTimesOfSource,
+  shiftedTimeMap,
+  sourceTimeOfMap,
+  sourceTimeOfScene,
+  speedProblem,
+  timeMapSourceRange,
+} from './time-map.js';
+export type {
+  AdvancedSource,
+  ClipTimeMap,
+  ClipTiming,
+  Speed,
+  SpeedReading,
+  TimeRange,
+} from './time-map.js';
 export type {
   AnimatedProperty,
   AnimationKeyframe,
