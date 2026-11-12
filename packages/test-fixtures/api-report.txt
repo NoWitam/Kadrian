@@ -89,6 +89,9 @@ export declare const FONT_FAMILY_NAME = "Kadrion Fixture";
 ---- FONT_GLYPHS
 export declare const FONT_GLYPHS: Readonly<Record<string, readonly string[]>>;
 
+---- FONT_NOTDEF_ADVANCE
+export declare const FONT_NOTDEF_ADVANCE = 600;
+
 ---- FONT_UNITS_PER_EM
 export declare const FONT_UNITS_PER_EM = 1000;
 
@@ -98,6 +101,9 @@ export interface FixtureAsset {
     readonly mediaType: string;
     readonly bytes: Uint8Array;
 }
+
+---- FixtureFontCmap (type only)
+export type FixtureFontCmap = 'format-4' | 'format-12' | 'both';
 
 ---- FixturePatchOperation
 export interface FixturePatchOperation {
@@ -142,6 +148,15 @@ export interface MigrationPair {
     readonly before: unknown;
     readonly after: unknown;
 }
+
+---- PROPORTIONAL_FONT_ADVANCES
+export declare const PROPORTIONAL_FONT_ADVANCES: Readonly<Record<string, number>>;
+
+---- PROPORTIONAL_FONT_FAMILY_NAME
+export declare const PROPORTIONAL_FONT_FAMILY_NAME = "Kadrion Fixture Proportional";
+
+---- PROPORTIONAL_FONT_GLYPHS
+export declare const PROPORTIONAL_FONT_GLYPHS: Readonly<Record<string, readonly string[]>>;
 
 ---- ROTATED_VIDEO_FIXTURES
 export declare const ROTATED_VIDEO_FIXTURES: readonly RotatedVideoFixture[];
@@ -281,6 +296,9 @@ export declare const focusComposition: unknown;
 
 ---- focusGoldenTimestamps
 export declare const focusGoldenTimestamps: readonly GoldenTimestamp[];
+
+---- generateProportionalFont
+export declare function generateProportionalFont(cmap?: FixtureFontCmap): Uint8Array;
 
 ---- generateReferenceAssets
 export declare function generateReferenceAssets(): readonly FixtureAsset[];

@@ -498,6 +498,7 @@ export const ARTIFACT_FILES = Object.freeze([
   'stretch/node-vs-chromium.json',
   'svg/golden-comparison.json',
   'svg/shapes-against-image.json',
+  'text-frame/node-vs-chromium.json',
   'text/golden-comparison.json',
   'text/node-vs-chromium.json',
   'transitions/clip-edges.json',

@@ -13,6 +13,10 @@
     "./stretch": {
       "types": "./dist/stretch.d.ts",
       "default": "./dist/stretch.js"
+    },
+    "./text-frame": {
+      "types": "./dist/text-frame.d.ts",
+      "default": "./dist/text-frame.js"
     }
   },
   "files": [
