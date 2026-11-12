@@ -349,7 +349,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setNodeScaleArgumentsSchema,
   },
   SetNodeSize: {
-    description: `Sets the width and height of an image, a video, a Custom HTML element, or an instance, from 1 to 1000000 each. ${PIXELS} A text has no size; change its font size instead. Refused with invalid-argument for a size outside the range after rounding, unknown-node, and unsupported-node for any other node.`,
+    description: `Sets the width and height of an image, a video, a Custom HTML element, or an instance, from 1 to 1000000. ${PIXELS} On a text it sets the frame its lines wrap to; null for both removes it. Refused with invalid-argument for one null or null on another node, invalid-result for a rounded size outside the range, unknown-node, and unsupported-node for any other node.`,
     example: { nodeId: 'node-image', width: 480, height: 270 },
     argumentsSchema: setNodeSizeArgumentsSchema,
   },

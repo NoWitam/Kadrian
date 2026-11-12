@@ -404,6 +404,12 @@ export type ArgumentSchema = {
     readonly type: 'number';
     readonly description: string;
 } | {
+    readonly type: readonly [
+        'number',
+        'null'
+    ];
+    readonly description: string;
+} | {
     readonly type: 'number';
     readonly description: string;
     readonly minimum: number;
@@ -1745,12 +1751,35 @@ export interface SetNodeScaleCommand extends SetNodeScaleArguments {
 ---- SetNodeSizeArguments (type only)
 export interface SetNodeSizeArguments {
     readonly nodeId: string;
-    readonly width: number;
-    readonly height: number;
+    readonly width: number | null;
+    readonly height: number | null;
 }
 
 ---- SetNodeSizeArgumentsSchema (type only)
-export type SetNodeSizeArgumentsSchema = ClosedObjectSchema<keyof SetNodeSizeArguments>;
+export interface SetNodeSizeArgumentsSchema extends ClosedObjectSchema<keyof SetNodeSizeArguments> {
+    readonly anyOf: readonly [
+        {
+            readonly properties: {
+                readonly width: {
+                    readonly type: 'number';
+                };
+                readonly height: {
+                    readonly type: 'number';
+                };
+            };
+        },
+        {
+            readonly properties: {
+                readonly width: {
+                    readonly const: null;
+                };
+                readonly height: {
+                    readonly const: null;
+                };
+            };
+        }
+    ];
+}
 
 ---- SetNodeSizeCommand (type only)
 export interface SetNodeSizeCommand extends SetNodeSizeArguments {

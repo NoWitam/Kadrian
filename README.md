@@ -974,7 +974,8 @@ unsubscribe();
 - The property and asset commands are `SetNodeScale`, `SetNodeSize`,
   `SetNodeColor`, `SetTextFontSize`, `SetTextFont`, `SetImageAsset`, `AddAsset`,
   and `RemoveAsset`. Sizes are rounded like positions, and a colour is stored
-  in lower case. An image or a text may point only at an asset of the
+  in lower case. On a text, `SetNodeSize` sets the frame its lines wrap to, and
+  `null` for both sides removes it (D83.10). An image or a text may point only at an asset of the
   document of the right type (`unknown-asset`, `asset-type-mismatch`), and an
   asset that is still used cannot be removed (`asset-in-use`, with its users).
 - The animation commands are `AddAnimation`, `RemoveAnimation`,

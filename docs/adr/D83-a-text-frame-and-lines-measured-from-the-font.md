@@ -478,6 +478,19 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
   300", "centre the text in its box", "break the captions by width", "give the
   spoken word a black outline"), each checked by `executeTool`. D40 and D46 get
   their lines.
+
+  - Status: in review. `SetNodeSize` on a text, its argument schema, the
+    description of `set_node_size`, the budget test, and the fixture of
+    model requests are recorded in the implementation notes below (PR-67).
+    The catalogue grows by 797 characters over the snapshot of `0.24`. No
+    schema change; the runtime build
+    (`sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef`)
+    and the Player's dist tree
+    (`sha256:36dccdc3c7bea7c33a34b9b7202d6bc168b82e393b1b88d15531ff2a89b58c44`,
+    71 files) keep their bytes, the same before and after the change. The
+    line of D40 was written by PR-64 and is in force from here; D46 has its
+    line.
+
 - **PR-68.** The host guide: frames, alignment, `frameLayout` for an overlay,
   sfnt fonts, and the costs; a showcase in the playground. It joins PR-63 when
   both are ready, so that one release carries `0.24` and `0.25`.
@@ -634,6 +647,52 @@ nothing in this section is in force for a document before PR-66.
   holds it to `frameLayout` within half a pixel, compares the Player with the
   Producer pixel for pixel, checks that the spoken word's outline and shadow
   change only the spoken word, and compares the golden frames.
+
+## Implementation notes (PR-67)
+
+- **`SetNodeSize` on a text.** The edit of a text reads its `frame` instead
+  of `width` and `height`: two numbers set `{ "kind": "fixed", width, height }`
+  in the place the frame already holds, after `fontSize`; `null` for both sets
+  `{ "kind": "none" }`; the frame the text already has, `none` included, is a
+  no-op; the inverse states the old frame, `null` for none. The sides are
+  rounded as any size, and their range is the document's, so a side that
+  rounds outside 1 to 1 000 000 is `invalid-result` (D40.1). `null` on one side
+  alone is `invalid-argument` at the parser, for every node; `null` for both on
+  a node that is not a text is `invalid-argument` at the edit, after
+  `unknown-node`. `SetNodeSizeArguments` takes `number | null` on each side.
+- **The argument schema.** `width` and `height` are each `["number", "null"]`,
+  and a root `anyOf` holds them both numbers or both `null`, so that the
+  schema and the parser give the same verdict on every row (D40.6, D31.9), the
+  rows of one `null` included. `ArgumentSchema` gains the nullable number,
+  and `SetNodeSizeArgumentsSchema` is an interface of its own, as
+  `SetClipSpeedArgumentsSchema` is. The schema names the nodes that have a
+  size no longer: the tool's description lists them once.
+- **The tool.** `set_node_size` says that on a text it sets the frame its
+  lines wrap to and that `null` for both removes it, in place of "A text has
+  no size; change its font size instead", and names its refusals: one `null`
+  or `null` on another node as `invalid-argument`, and a rounded size outside
+  the range as `invalid-result`, which the earlier text called
+  `invalid-argument` although the bus has always answered `invalid-result`.
+  Its example stays an image's.
+- **The budget of W6.** Measured as D83.10 says, the sum over all tools of the
+  length of `JSON.stringify` of each entry: the snapshot of `0.24` (PR-62) is
+  232 035 characters and the catalogue 232 832, a growth of 797
+  (`set_text_style` 189, `set_caption_style` 190, `set_caption_highlight`
+  190, `add_node` 75, `set_node_size` 153). Of the 153, the description takes 64
+  and the schema 89: the `anyOf` and the nullable sides cost 162, and the
+  schema's shorter descriptions give back 73.
+  `packages/ai-sdk/test/catalogue.test.ts` holds the length of `0.24` and fails
+  above it plus 800.
+- **The fixture of model requests.** `packages/ai-sdk/test/frame-requests.test.ts`
+  carries out "make the title box 800 by 300", "centre the text in its box"
+  (after `describe_document`, a complete style), "break the captions by
+  width", "give the spoken word a black outline", taking a title out of its
+  box, and a frame and its alignment in one transaction, each through
+  `executeTool` alone, against a document written out by hand and undone in
+  one step; one `null` and `null` on an image are refused.
+- **The model of the history.** The property test of D38 models
+  `SetNodeSize` on a text as its frame and draws the title among the nodes
+  that have a size.
 
 ## Questions for the owner, with recommendations
 

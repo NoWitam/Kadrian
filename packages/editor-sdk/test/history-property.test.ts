@@ -103,7 +103,7 @@ const ASSET_IDS = [
 /** Nodes that carry the fields of the commands of D40 (D40.1, D40.2). */
 const CARRIERS = {
   scale: ['node-title', 'node-image', 'node-group', 'node-custom-html'],
-  size: ['node-image', 'node-custom-html'],
+  size: ['node-image', 'node-custom-html', 'node-title'],
   color: ['node-title', 'node-caption', 'node-background'],
   fontSize: ['node-title', 'node-caption'],
   font: ['node-title', 'node-caption'],
@@ -924,6 +924,18 @@ function apply(document: Json, command: Json): Effect | Refused {
     case 'SetTextFontSize': {
       const target = place(document, nodeId)?.node;
       if (target === undefined) return new Refused('unknown-node');
+      // The size of a text is its frame (D83.10).
+      if (command['type'] === 'SetNodeSize' && target['type'] === 'text') {
+        const frame = target['frame'] as Json;
+        const width = stored(Math.round(command['width'] as number));
+        const height = stored(Math.round(command['height'] as number));
+        if (frame['kind'] === 'fixed' && frame['width'] === width && frame['height'] === height)
+          return none;
+        if ([width, height].some((value) => value < 1 || value > 1_000_000))
+          return new Refused('invalid-result');
+        target['frame'] = { kind: 'fixed', width, height };
+        return changed;
+      }
       const fields = command['type'] === 'SetNodeSize' ? ['width', 'height'] : ['fontSize'];
       if (fields.some((field) => typeof target[field] !== 'number'))
         return new Refused('unsupported-node');

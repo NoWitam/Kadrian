@@ -245,22 +245,28 @@
   },
   {
     "name": "set_node_size",
-    "description": "Sets the width and height of an image, a video, a Custom HTML element, or an instance, from 1 to 1000000 each. Lengths and coordinates are composition pixels, rounded to integers. A text has no size; change its font size instead. Refused with invalid-argument for a size outside the range after rounding, unknown-node, and unsupported-node for any other node. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"width\":480,\"height\":270}",
+    "description": "Sets the width and height of an image, a video, a Custom HTML element, or an instance, from 1 to 1000000. Lengths and coordinates are composition pixels, rounded to integers. On a text it sets the frame its lines wrap to; null for both removes it. Refused with invalid-argument for one null or null on another node, invalid-result for a rounded size outside the range, unknown-node, and unsupported-node for any other node. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"width\":480,\"height\":270}",
     "inputSchema": {
       "type": "object",
-      "description": "Sets the size of an image, a video, or a Custom HTML element.",
+      "description": "Sets the size of a node or the frame of a text.",
       "properties": {
         "nodeId": {
           "type": "string",
-          "description": "The stable ID of the node. Only images, videos, and Custom HTML elements have a size.",
+          "description": "The stable ID of the node.",
           "minLength": 1
         },
         "width": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "description": "The width, in composition pixels. A fraction is rounded to an integer, halves towards +Infinity, and -0 becomes 0; the document takes 1 to 1 000 000, and a rounded value outside that range is refused."
         },
         "height": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "description": "The height, in composition pixels. A fraction is rounded to an integer, halves towards +Infinity, and -0 becomes 0; the document takes 1 to 1 000 000, and a rounded value outside that range is refused."
         }
       },
@@ -269,7 +275,29 @@
         "width",
         "height"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "width": {
+              "type": "number"
+            },
+            "height": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "properties": {
+            "width": {
+              "const": null
+            },
+            "height": {
+              "const": null
+            }
+          }
+        }
+      ]
     }
   },
   {

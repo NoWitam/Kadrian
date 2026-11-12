@@ -156,11 +156,127 @@ describe('SetNodeSize (D40.1)', () => {
   });
 
   it.each([
-    ['a text', TITLE],
     ['a group', 'node-group'],
     ['the background', 'node-background'],
   ])('refuses %s, which has no size', (_, nodeId) => {
     expect(codeOf(() => applyCommand(reference(), size(nodeId, 10, 10)))).toBe('unsupported-node');
+  });
+});
+
+describe('SetNodeSize on a text: its frame (D83.10)', () => {
+  const CAPTION = 'node-caption';
+
+  it('gives a text without a frame a fixed frame, and undoes it byte for byte', () => {
+    expect(fieldOf(reference(), TITLE, 'frame')).toEqual({ kind: 'none' });
+    const edited = roundTrip(size(TITLE, 800, 300));
+    expect(fieldOf(edited, TITLE, 'frame')).toEqual({ kind: 'fixed', width: 800, height: 300 });
+    // Only the frame changes: the font size, the text, and the position stay.
+    const withoutFrame = (document: unknown): string =>
+      json({ ...(nodeOf(document, TITLE) as unknown as Record<string, unknown>), frame: null });
+    expect(withoutFrame(edited)).toBe(withoutFrame(reference()));
+    // The inverse states the old frame: `null` for none.
+    expect(applyCommand(reference(), size(TITLE, 800, 300)).inverse).toEqual(
+      size(TITLE, null, null),
+    );
+    // A text inside a group too.
+    expect(fieldOf(roundTrip(size(CAPTION, 120, 40)), CAPTION, 'frame')).toEqual({
+      kind: 'fixed',
+      width: 120,
+      height: 40,
+    });
+  });
+
+  it('keeps the frame where the schema puts it, after fontSize', () => {
+    const edited = applyCommand(reference(), size(TITLE, 800, 300)).document;
+    const keys = Object.keys(nodeOf(edited, TITLE));
+    expect(keys).toEqual(Object.keys(nodeOf(reference(), TITLE)));
+    expect(keys.indexOf('frame')).toBe(keys.indexOf('fontSize') + 1);
+  });
+
+  it('changes a fixed frame, rounding its sides, and its inverse states the old one', () => {
+    const framed = applyCommand(reference(), size(TITLE, 800, 300)).document;
+    const changed = applyCommand(framed, size(TITLE, 640.5, 299.4));
+    expect(fieldOf(changed.document, TITLE, 'frame')).toEqual({
+      kind: 'fixed',
+      width: 641,
+      height: 299,
+    });
+    expect(changed.inverse).toEqual(size(TITLE, 800, 300));
+    if (changed.inverse === null) throw new Error('The command changed nothing.');
+    expect(json(applyCommand(changed.document, changed.inverse).document)).toBe(json(framed));
+  });
+
+  it('removes a frame with null on both sides, and puts it back on undo', () => {
+    const framed = applyCommand(reference(), size(TITLE, 800, 300)).document;
+    const removed = applyCommand(framed, size(TITLE, null, null));
+    expect(fieldOf(removed.document, TITLE, 'frame')).toEqual({ kind: 'none' });
+    expect(json(removed.document)).toBe(json(reference()));
+    expect(removed.inverse).toEqual(size(TITLE, 800, 300));
+  });
+
+  it('is a no-op for the frame the text already has, none included', () => {
+    const document = reference();
+    const none = applyCommand(document, size(TITLE, null, null));
+    expect(none.document).toBe(document);
+    expect(none.inverse).toBeNull();
+    const framed = applyCommand(document, size(TITLE, 800, 300)).document;
+    const same = applyCommand(framed, size(TITLE, 799.6, 300.4));
+    expect(same.document).toBe(framed);
+    expect(same.inverse).toBeNull();
+  });
+
+  it('leaves the range of a frame to the document, as for any size (D15)', () => {
+    expect(codeOf(() => applyCommand(reference(), size(TITLE, 0.4, 10)))).toBe('invalid-result');
+    expect(codeOf(() => applyCommand(reference(), size(TITLE, 10, 1_000_000.5)))).toBe(
+      'invalid-result',
+    );
+  });
+
+  it('refuses null on one side alone, on a text and on any other node', () => {
+    for (const nodeId of [TITLE, IMAGE]) {
+      expect(codeOf(() => applyCommand(reference(), size(nodeId, null, 300)))).toBe(
+        'invalid-argument',
+      );
+      expect(codeOf(() => applyCommand(reference(), size(nodeId, 800, null)))).toBe(
+        'invalid-argument',
+      );
+    }
+  });
+
+  it.each([
+    ['an image', IMAGE],
+    ['a Custom HTML element', HTML],
+    ['a group', 'node-group'],
+    ['the background', 'node-background'],
+  ])('refuses null for %s, which has no frame (invalid-argument)', (_, nodeId) => {
+    const error = errorOf(() => applyCommand(reference(), size(nodeId, null, null)));
+    expect(error.code).toBe('invalid-argument');
+    expect(error.message).toMatch(/Only a text takes a size of `null`/);
+  });
+
+  it('refuses a node that is not there before it reads null', () => {
+    expect(codeOf(() => applyCommand(reference(), size('node-missing', null, null)))).toBe(
+      'unknown-node',
+    );
+  });
+
+  it('undoes and redoes a frame through the bus, one step each', () => {
+    const bus = createCommandBus(reference());
+    const before = json(bus.getDocument());
+    bus.dispatch(size(TITLE, 800, 300));
+    const framed = json(bus.getDocument());
+    bus.dispatch(size(TITLE, null, null));
+    expect(json(bus.getDocument())).toBe(before);
+    bus.undo();
+    expect(json(bus.getDocument())).toBe(framed);
+    bus.undo();
+    expect(json(bus.getDocument())).toBe(before);
+    expect(bus.canUndo()).toBe(false);
+    bus.redo();
+    bus.redo();
+    expect(json(bus.getDocument())).toBe(before);
+    bus.undo();
+    expect(json(bus.getDocument())).toBe(framed);
   });
 });
 
