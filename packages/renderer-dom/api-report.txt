@@ -143,6 +143,9 @@ export declare function base64(bytes: Uint8Array): string;
 ---- fontFamily
 export declare function fontFamily(fontAssetId: string): string;
 
+---- holdsIdr
+export declare function holdsIdr(avcC: Uint8Array, sample: Uint8Array): boolean;
+
 ---- imageSizeKnown
 export declare function imageSizeKnown(mediaType: string): boolean;
 

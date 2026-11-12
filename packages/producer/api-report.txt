@@ -262,6 +262,7 @@ export interface JoinPart<M> {
 ---- JoinPlan (type only)
 export interface JoinPlan {
     readonly first: SegmentsManifest;
+    readonly video: ManifestVideo | null;
     readonly range: AudioManifest['range'];
     readonly segments: readonly JoinSegment[];
     readonly frames: readonly ManifestFrame[];
@@ -413,6 +414,7 @@ export interface ManifestSegment {
 export interface ManifestVideo {
     readonly decoder: ManifestFfmpegBuild;
     readonly decodeArgs: readonly string[];
+    readonly seekArgs?: readonly string[];
     readonly sources: readonly ManifestVideoSource[];
 }
 

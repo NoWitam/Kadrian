@@ -29,12 +29,9 @@ import {
   videoComposition,
   videoGoldenTimestamps,
 } from '@kadrion/test-fixtures';
-import { timeUsToFrame, validateComposition } from '@kadrion/schema';
-import { execFile } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { frameCount, frameToTimeUs, timeUsToFrame, validateComposition } from '@kadrion/schema';
+import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -67,7 +64,7 @@ import {
   writeReport,
   type Draft,
 } from './support.js';
-import { makeRotatedVideoFixture, makeVideoFixture } from './video-fixture.ts';
+import { makeRotatedVideoFixture, makeVideoFixture, remuxed, REMUXES } from './video-fixture.ts';
 
 const ffmpegPath = process.env.KADRION_FFMPEG;
 const ffprobePath = process.env.KADRION_FFPROBE;
@@ -81,39 +78,6 @@ const VIDEO_MANIFEST = join(repoRoot, goldenManifestPath('video'));
 const validatedVideo = validateComposition(videoComposition);
 if (!validatedVideo.ok) throw new Error('The video composition is not valid.');
 const { width: WIDTH, height: HEIGHT, fps: FPS } = validatedVideo.composition;
-const run = promisify(execFile);
-
-/**
- * The containers the Player reads besides MP4 (D79.2): the fixture's own
- * stream, copied without decoding into each by the pinned FFmpeg.
- */
-const REMUXES: readonly (readonly [string, string, readonly string[]])[] = [
-  ['fragmented MP4', 'mp4', ['-movflags', 'frag_keyframe+empty_moov+default_base_moof']],
-  ['MOV', 'mov', []],
-  ['MKV', 'mkv', []],
-];
-
-/** The fixture's stream in another container, copied by the pinned FFmpeg. */
-async function remuxed(
-  ffmpeg: string,
-  bytes: Uint8Array,
-  extension: string,
-  options: readonly string[],
-): Promise<Uint8Array> {
-  const directory = mkdtempSync(join(tmpdir(), 'kadrion-remux-'));
-  try {
-    const input = join(directory, 'input.mp4');
-    const output = join(directory, `output.${extension}`);
-    writeFileSync(input, bytes);
-    await run(ffmpeg, [
-      ...['-nostdin', '-v', 'error', '-y', '-i', input, '-map', '0:v:0', '-c', 'copy'],
-      ...['-map_metadata', '-1', '-fflags', '+bitexact', ...options, output],
-    ]);
-    return new Uint8Array(readFileSync(output));
-  } finally {
-    rmSync(directory, { recursive: true, force: true });
-  }
-}
 
 interface HostWindow {
   readonly conformance: {
@@ -243,6 +207,32 @@ describe.skipIf(!available)('video in the Player (D51)', () => {
       ).toBe(0);
     } finally {
       await closeConformanceHost(other);
+    }
+  });
+
+  it('shows every frame backwards as the Producer renders it forwards, from its run cache (D82.4)', async () => {
+    const all = Array.from(
+      { length: frameCount(validatedVideo.composition.durationUs, FPS) },
+      (_, frame) => frameToTimeUs(frame, FPS),
+    );
+    const forward = await renderFrames({
+      document: videoComposition,
+      resolveAsset: ({ id }) => assets.find((asset) => asset.id === id) ?? null,
+      timesUs: all,
+      chromium,
+      ffmpeg: { ffmpegPath: ffmpegPath ?? '', ffprobePath: ffprobePath ?? '' },
+    });
+    const backward = await openConformanceHost(chromium, TEXT, assets);
+    try {
+      for (const timeUs of [...all].reverse()) {
+        const shown = await seekAndCapture(backward, timeUs, null);
+        const frame = forward.frames.find((candidate) => candidate.timeUs === timeUs)?.png;
+        if (frame === undefined) throw new Error(`No Producer frame of ${String(timeUs)}.`);
+        const metric = measure(decodePng(shown.png), decodePng(frame));
+        expect(metric.differingPixels, String(timeUs)).toBe(0);
+      }
+    } finally {
+      await closeConformanceHost(backward);
     }
   });
 

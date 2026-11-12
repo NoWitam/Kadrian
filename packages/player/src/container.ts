@@ -31,6 +31,7 @@ import {
   type InputVideoTrack,
 } from 'mediabunny';
 import {
+  holdsIdr,
   orientedSize,
   UPRIGHT,
   videoOrientation,
@@ -38,13 +39,7 @@ import {
 } from '@kadrion/renderer-dom';
 import { sourceDurationUs, type TimeBase } from '@kadrion/schema';
 
-import {
-  avcColour,
-  AvcUnsupported,
-  holdsIdr,
-  type AvcColour,
-  type ContainerColour,
-} from './avc.js';
+import { avcColour, AvcUnsupported, type AvcColour, type ContainerColour } from './avc.js';
 import { PlayerError } from './errors.js';
 
 /** Why the Player does not show a file as it is (D79.4). */

@@ -26,13 +26,14 @@ import {
   type Rotation,
   type TransformationMatrix,
 } from 'mediabunny';
+import { holdsIdr } from '@kadrion/renderer-dom';
 import { describe, expect, it } from 'vitest';
 
 import { inspectVideo } from '../src/index.js';
-import { avcColour, holdsIdr } from '../src/avc.js';
+import { avcColour } from '../src/avc.js';
 import { readVideoTrack } from '../src/container.js';
 import { Sha256 } from '../src/sha256.js';
-import { blobSha256 } from '../src/video.js';
+import { blobSha256, RUN_CACHE_BYTES, RunCache, type DecodedPlanes } from '../src/video.js';
 import { yuv420ToRgb } from '../src/yuv.js';
 import { nalSample, payloadOf, testMp4, testSps, type TestSample } from './media.js';
 
@@ -595,5 +596,59 @@ describe('YUV to RGB as the Producer converts it (D51.4)', () => {
     expect([...yuv420ToRgb(flat(16), 'bt601', false).subarray(0, 3)]).toEqual([0, 0, 0]);
     expect([...yuv420ToRgb(flat(235), 'bt601', false).subarray(0, 3)]).toEqual([255, 255, 255]);
     expect(new Set(yuv420ToRgb(flat(126), 'bt709', false))).toEqual(new Set([128]));
+  });
+});
+
+describe('the cache of decode runs (D82.4)', () => {
+  const planes = (size: number, value: number): DecodedPlanes => ({
+    data: new Uint8Array(size).fill(value),
+    layout: [
+      { offset: 0, stride: 1 },
+      { offset: 0, stride: 1 },
+      { offset: 0, stride: 1 },
+    ],
+  });
+  const run = (first: number, count: number, size = 10): Map<number, DecodedPlanes> =>
+    new Map(Array.from({ length: count }, (_, at) => [first + at, planes(size, first + at)]));
+
+  it('holds 256 MiB by default', () => {
+    expect(new RunCache().budget).toBe(RUN_CACHE_BYTES);
+    expect(RUN_CACHE_BYTES).toBe(256 * 1024 * 1024);
+  });
+
+  it('finds the frames of a run by video and index', () => {
+    const cache = new RunCache(100);
+    cache.put('a', run(0, 3));
+    expect(cache.get('a', 2)?.data[0]).toBe(2);
+    expect(cache.get('a', 3)).toBeUndefined();
+    expect(cache.get('b', 2)).toBeUndefined();
+    expect(cache.bytes).toBe(30);
+  });
+
+  it('lets go of the run used least recently first, and never holds more than its budget', () => {
+    const cache = new RunCache(100);
+    cache.put('a', run(0, 4));
+    cache.put('a', run(25, 4));
+    cache.get('a', 0);
+    // 40 + 40 + 40 > 100: the run of 25, used least recently, goes; the run of 0 stays.
+    cache.put('b', run(50, 4));
+    expect(cache.get('a', 25)).toBeUndefined();
+    expect(cache.get('a', 0)).toBeDefined();
+    expect(cache.get('b', 53)).toBeDefined();
+    expect(cache.bytes).toBe(80);
+    for (let at = 0; at < 50; at += 1) {
+      cache.put('c', run(at * 10, 1 + (at % 7)));
+      expect(cache.bytes).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('keeps no run larger than its budget, and a frame once', () => {
+    const cache = new RunCache(100);
+    cache.put('a', run(0, 11));
+    expect(cache.bytes).toBe(0);
+    cache.put('a', run(0, 5));
+    cache.put('a', run(3, 5));
+    expect(cache.bytes).toBe(80);
+    expect(cache.get('a', 4)?.data[0]).toBe(4);
   });
 });

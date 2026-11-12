@@ -118,3 +118,36 @@ export async function decodedFixtureFrames(
     rmSync(directory, { recursive: true, force: true });
   }
 }
+
+/**
+ * The containers the Player reads besides MP4 (D79.2), as a name, an
+ * extension, and FFmpeg's options: the fixture's own stream, copied without
+ * decoding into each by the pinned FFmpeg.
+ */
+export const REMUXES: readonly (readonly [string, string, readonly string[]])[] = [
+  ['fragmented MP4', 'mp4', ['-movflags', 'frag_keyframe+empty_moov+default_base_moof']],
+  ['MOV', 'mov', []],
+  ['MKV', 'mkv', []],
+];
+
+/** The fixture's stream in another container, copied by the pinned FFmpeg. */
+export async function remuxed(
+  ffmpeg: string,
+  bytes: Uint8Array,
+  extension: string,
+  options: readonly string[],
+): Promise<Uint8Array> {
+  const directory = mkdtempSync(join(tmpdir(), 'kadrion-remux-'));
+  try {
+    const input = join(directory, 'input.mp4');
+    const output = join(directory, `output.${extension}`);
+    writeFileSync(input, bytes);
+    await run(ffmpeg, [
+      ...['-nostdin', '-v', 'error', '-y', '-i', input, '-map', '0:v:0', '-c', 'copy'],
+      ...['-map_metadata', '-1', '-fflags', '+bitexact', ...options, output],
+    ]);
+    return new Uint8Array(readFileSync(output));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}

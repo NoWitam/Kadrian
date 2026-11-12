@@ -63,6 +63,7 @@ import {
   sha256,
   type AudioManifest,
   type ExportManifest,
+  type ManifestVideo,
   type RenderManifest,
   type SegmentsManifest,
 } from '../src/manifest.js';
@@ -900,6 +901,7 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
     decodeVideo: () => {
       throw new Error('no video in these documents');
     },
+    idrTimestamps: () => Promise.reject(new Error('no video in these documents')),
     audioStream(path) {
       const { samples } = file(path);
       return Promise.resolve({
@@ -1736,6 +1738,29 @@ describe('the checks of a join (D47.5)', () => {
         run.dependencies,
       ),
     ).rejects.toMatchObject({ code: 'join-invalid' });
+  });
+
+  it('compares the decode of the parts without the seek of one of them, and keeps the seek (D82.5)', async () => {
+    const { a, b, audio } = await parts();
+    const decode = {
+      decoder: { release: 'r', asset: 'a', url: 'u', archiveSha256: 's' },
+      decodeArgs: ['-i', '<input>'],
+      sources: [],
+    } as unknown as ManifestVideo;
+    const withVideo = (
+      part: JoinPart<SegmentsManifest>,
+      video: ManifestVideo,
+    ): JoinPart<SegmentsManifest> => ({ ...part, manifest: { ...part.manifest, video } });
+    const seekArgs = ['-ss', '<start>', '-i', '<input>'];
+    const plan = joinPlan([withVideo(a, decode), withVideo(b, { ...decode, seekArgs })], audio);
+    expect(plan.video).toEqual({ ...decode, seekArgs });
+    expect(joinPlan([withVideo(a, decode), withVideo(b, decode)], audio).video).toEqual(decode);
+    expect(() =>
+      joinPlan(
+        [withVideo(a, decode), withVideo(b, { ...decode, decodeArgs: ['-i', 'other'], seekArgs })],
+        audio,
+      ),
+    ).toThrow(/differ in video/);
   });
 
   it('is a pure function of the manifests, and orders the segments by index', async () => {

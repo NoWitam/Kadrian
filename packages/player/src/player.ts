@@ -50,6 +50,7 @@ import {
   checkSourceRanges,
   createVideoFrameSource,
   readVideo,
+  RunCache,
   verifyVideo,
   videoNodes,
   type PlayerVideoBlob,
@@ -801,6 +802,9 @@ export async function createPlayer(
   const preparedImages = new Map<string, PlayerAsset>();
   /** The decoders of the document shown now, or `null` without video nodes (D51.4). */
   let videoSource: VideoFrameSource | null = null;
+  // One cache of decode runs for the Player's life, across loads and updates (D82.4): a
+  // run is kept by the content hash of its video, so a frame is the same in every document.
+  const runs = new RunCache();
   /** Updates run one after another, each after the one before has settled. */
   let updates: Promise<void> = Promise.resolve();
   const { onListenerError } = options;
@@ -1120,7 +1124,8 @@ export async function createPlayer(
         knownAssets(true),
         audioContext,
       );
-      const source = assets.videos.size === 0 ? null : createVideoFrameSource(view, assets.videos);
+      const source =
+        assets.videos.size === 0 ? null : createVideoFrameSource(view, assets.videos, runs);
       staged = { assets, source };
       const videoFrames = await framesOf(source, loaded, target);
       frame.style.setProperty('width', `${String(loaded.width)}px`);
@@ -1415,7 +1420,8 @@ export async function createPlayer(
       }
       composition = loaded;
       shownAssets = assets;
-      videoSource = assets.videos.size === 0 ? null : createVideoFrameSource(view, assets.videos);
+      videoSource =
+        assets.videos.size === 0 ? null : createVideoFrameSource(view, assets.videos, runs);
       await seek(0);
     },
     update(document, resolveAsset) {
