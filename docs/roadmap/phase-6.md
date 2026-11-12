@@ -212,6 +212,11 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 
 ### PR-62 — Commands and tools: speed, reverse, and a freeze frame
 
+- Status: in review. The commands, the helper, and the tools are recorded in
+  the implementation notes of D82; the catalogue grows from 100 to 103
+  entries, and D46 has its line. No runtime build, Player dist tree, or pinned
+  file changes.
+
 - **Goal:** a host and a model change a clip's speed, reverse it, and freeze a
   frame, each in one undoable step. The owner's rule (2026-11-11): the
   assistant must be able to do everything the user can, so all three are AI

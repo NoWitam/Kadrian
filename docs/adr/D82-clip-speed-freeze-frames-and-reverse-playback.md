@@ -768,6 +768,57 @@ or a reverse on a video node or an audio clip, and both hosts render it.
   file keeps its bytes, and the parity records are measured again in the pinned
   container.
 
+## Implementation notes (PR-62)
+
+PR-62 adds the two commands, the helper, and their three tools; no schema,
+runtime, renderer, Player, or Producer file changes.
+
+- **`SetClipSpeed`** (`registry.ts`) takes `clipId`, `speed`, and optional
+  `durationUs` and `sourceStartRemainder`, the first command whose arguments
+  have optional fields. `parseSetClipSpeed` converts `speed` with `parseSpeed`
+  when the bus parses the command, so the command, its inverse, and the
+  history hold the exact `{ num, den }`; a number, a string, or an object it
+  refuses is `speed-invalid` with the message of `parseSpeed` (which names the
+  nearest speed), and a value of another JSON type is `invalid-argument`, as
+  the tool's schema refuses it. `speed-invalid` joins the codes of
+  `EditorError`. `CommandArguments<'SetClipSpeed'>` is the arguments as a
+  caller writes them (`SetClipSpeedArguments`, its speed a `SpeedValue`), so the
+  tool's example reads `"x0.5"`. The default duration is
+  `⌈durationUs · old / new⌉` in `BigInt`; the default remainder is
+  `⌊remainder · new den / old den⌋`. Refused besides with `speed-invalid` for
+  `x0` on an audio clip or a reversed clip and a remainder not below the new
+  `den`; the inverse always states the old speed, duration, and remainder.
+- **`SetClipReverse`** flips `reverse` alone, since the same fields sample the
+  same range in either direction (D82.1); `speed-invalid` for a freeze frame.
+- **`freezeFrame`** (`freeze.ts`, exported with `freezeFrameArgumentsSchema`)
+  takes `{ clipId, atUs, holdUs, mode, newClipIds }`, `newClipIds` two
+  different IDs: the first names the freeze frame, the second the part of the
+  clip after it, which an overwrite that reaches the clip's end does not make.
+  `atUs` lies strictly inside the clip (`time-outside-clip`), as a split's
+  time does. `overwrite` is `SplitClip`, `SplitClip` (unless the hold reaches
+  the end), `SetClipReverse` false, `SetClipSpeed` x0, and `SetVideoSource` at
+  the source time shown at `atUs`, in that order, so that the picture of no
+  intermediate document samples source outside the range the clip sampled. `insert` is `SplitClip`,
+  `MoveClip` of the second half, and `AddNode` of the freeze frame between the
+  halves: the node is the second half `SplitClip` would make under the freeze
+  frame's ID (`splitSecondHalf`, internal to the package, with the same rules
+  and refusals), at speed x0, remainder 0, forwards, lasting `holdUs`.
+- **Tools.** `set_clip_speed` and `set_clip_reverse` come after `join_clips`
+  in the order of the registry, and `freeze_frame` after
+  `add_clip_transition_at_cut`; the catalogue grows from 100 to 103 entries.
+  The descriptions of `set_clip_speed` and of the `speed` argument list the
+  common speeds as multipliers (`SPEEDS` in `commands.ts`).
+- **Tests.** `packages/editor-sdk/test/speed-commands.test.ts`: every row of
+  the table of D82.11, the defaults of the duration and the remainder, every
+  refusal, and each command and both modes of the helper undone byte for byte,
+  forwards, reversed, and at other speeds. `packages/ai-sdk/test/speed-requests.test.ts`:
+  the fixture of model requests, each carried out by `executeTool` alone and
+  compared with a document written by hand.
+- **The runtime build** keeps its bytes
+  (`sha256:a37aae1ca7c49be1a80ed1d29eb5bebecc019dde36a61d36319380a637d45129`),
+  and so does the Player's dist tree: neither imports `@kadrion/editor-sdk` or
+  `@kadrion/ai-sdk`.
+
 ## Questions for the owner, with recommendations
 
 Answered by the owner on 2026-11-11 at 10:44 (Europe/Warsaw): every question

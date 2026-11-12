@@ -520,6 +520,8 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   JoinClips: [
     { type: 'SplitClip', clipId: 'node-title', atUs: 5_000_000, newClipId: 'node-title-tail' },
   ],
+  SetClipSpeed: [],
+  SetClipReverse: [],
   AddSceneTransition: OUTRO_SETUP,
   AddClipTransition: [
     { type: 'TrimClipEnd', clipId: 'node-title', endUs: 5_000_000 },
@@ -878,7 +880,7 @@ describe('each tool accepts exactly what its inputSchema accepts (D31.9, D46.4)'
   );
 
   it('covers every command type', () => {
-    expect(TOOL_CATALOGUE.slice(1, -3).map(({ name }) => name)).toEqual(
+    expect(TOOL_CATALOGUE.slice(1, -4).map(({ name }) => name)).toEqual(
       COMMAND_TYPES.map(toolNameOf),
     );
   });

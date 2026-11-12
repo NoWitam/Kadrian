@@ -10,7 +10,7 @@
  * D30.4 for every command alike — validating the result in full, and only then
  * returning it with its inverse.
  */
-import { advanceClipSource, compositionSchema, type ClipTiming } from '@kadrion/schema';
+import { advanceClipSource, compositionSchema, type ClipTiming, type Speed } from '@kadrion/schema';
 
 import { keyframeMinimum } from './animations.js';
 import {
@@ -69,6 +69,8 @@ import {
   parseSetTemplateInput,
   parseAddSceneAudioClip,
   parseJoinClips,
+  parseSetClipReverse,
+  parseSetClipSpeed,
   parseMoveClip,
   parseSplitClip,
   parseTrimClipEnd,
@@ -895,6 +897,42 @@ function advancedSource(
   return advanced;
 }
 
+/** The clip of `SetClipSpeed` or `SetClipReverse`: a video node or an audio clip, or `unsupported-node` (D82.9). */
+function mappedClip(document: DocumentObject, clipId: string): TimelineClip {
+  const found = locatedClip(document, clipId);
+  if (!hasSource(found)) {
+    throw new EditorError(
+      'unsupported-node',
+      `The node \`${clipId}\` is neither a video nor an audio clip; only those have a speed and a direction (D82.9).`,
+    );
+  }
+  return found;
+}
+
+function speedInvalid(clipId: string, message: string): EditorError {
+  return new EditorError('speed-invalid', message, [clipId]);
+}
+
+/**
+ * The duration that plays the same source span at speed `next` as `timing`
+ * does at its own: `⌈durationUs · old / new⌉`, kept when either speed is 0
+ * (D82.9). One past the safe integers is `invalid-result`.
+ */
+function coveringDuration(timing: ClipTiming, next: Speed, clipId: string): number {
+  const { speed: old, durationUs } = timing;
+  if (old.num === 0 || next.num === 0) return durationUs;
+  const numerator = BigInt(durationUs) * BigInt(old.num) * BigInt(next.den);
+  const denominator = BigInt(old.den) * BigInt(next.num);
+  const covering = (numerator + denominator - 1n) / denominator;
+  if (covering > BigInt(Number.MAX_SAFE_INTEGER)) {
+    throw new EditorError(
+      'invalid-result',
+      `The clip \`${clipId}\` would last past the largest time at that speed (D82.9).`,
+    );
+  }
+  return Number(covering);
+}
+
 /** Refuses a group, whose children have lifetimes of their own (D55.4). */
 function refuseGroup(found: TimelineClip, clipId: string): void {
   if (found.kind === 'node' && found.clip['type'] === 'group') {
@@ -1078,6 +1116,23 @@ function splitHalves(
       ),
     ),
   };
+}
+
+/**
+ * The second half a `SplitClip` of `clipId` at `atUs` would make under
+ * `newClipId` (D55.4, D82.2), by the same rules and with the same refusals:
+ * `freezeFrame` adds it as the freeze frame it inserts, with the animations a
+ * split copies (D82.9). Internal to the package.
+ */
+export function splitSecondHalf(
+  document: DocumentObject,
+  clipId: string,
+  atUs: number,
+  newClipId: string,
+): DocumentObject {
+  const found = locatedClip(document, clipId);
+  refuseGroup(found, clipId);
+  return splitHalves(found, atUs, newClipId, clipId).second;
 }
 
 /** The phase kinds of a node's text animations, in their order (D69). */
@@ -2264,6 +2319,87 @@ const DEFINITIONS = deepFreeze<Definitions>({
           }),
         createdIds: [],
         removedIds: clipIds(next, next.clip),
+      };
+    },
+  },
+  SetClipSpeed: {
+    parse: parseSetClipSpeed,
+    edit(document, command) {
+      const found = mappedClip(document, command.clipId);
+      const timing = timingOf(found.clip, command.clipId);
+      const speed = command.speed;
+      if (speed.num === 0 && found.kind === 'audio') {
+        throw speedInvalid(
+          command.clipId,
+          `The audio clip \`${command.clipId}\` cannot be frozen: x0 is a freeze frame of a video, and silence is a gap, not a clip (D82.3).`,
+        );
+      }
+      if (speed.num === 0 && timing.reverse) {
+        throw speedInvalid(
+          command.clipId,
+          `The clip \`${command.clipId}\` is reversed, and a freeze frame has no direction: set reverse to false first (D82.3).`,
+        );
+      }
+      const durationUs = command.durationUs ?? coveringDuration(timing, speed, command.clipId);
+      // The remainder keeps its fraction of a microsecond in units of the new den, rounded down.
+      const sourceStartRemainder =
+        command.sourceStartRemainder ??
+        Number(
+          (BigInt(timing.sourceStartRemainder) * BigInt(speed.den)) / BigInt(timing.speed.den),
+        );
+      if (sourceStartRemainder >= speed.den) {
+        throw speedInvalid(
+          command.clipId,
+          `The remainder ${String(sourceStartRemainder)} is not below the denominator ${String(speed.den)} of the speed (D82.1).`,
+        );
+      }
+      if (
+        speed.num === timing.speed.num &&
+        speed.den === timing.speed.den &&
+        durationUs === timing.durationUs &&
+        sourceStartRemainder === timing.sourceStartRemainder
+      ) {
+        return null;
+      }
+      return {
+        // Every key keeps its place; the start, the source start, and the direction stay (D82.9).
+        document: withClip(document, found, {
+          ...found.clip,
+          durationUs,
+          sourceStartRemainder,
+          speed: { num: speed.num, den: speed.den },
+        }),
+        invert: () =>
+          parseSetClipSpeed({
+            type: 'SetClipSpeed',
+            clipId: command.clipId,
+            speed: timing.speed,
+            durationUs: timing.durationUs,
+            sourceStartRemainder: timing.sourceStartRemainder,
+          }),
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  SetClipReverse: {
+    parse: parseSetClipReverse,
+    edit(document, command) {
+      const found = mappedClip(document, command.clipId);
+      const timing = timingOf(found.clip, command.clipId);
+      if (timing.reverse === command.reverse) return null;
+      if (timing.speed.num === 0) {
+        throw speedInvalid(
+          command.clipId,
+          `The clip \`${command.clipId}\` is a freeze frame, which has no direction; give it a speed first (D82.3).`,
+        );
+      }
+      return {
+        // The same fields show the same source range in either direction (D82.1).
+        document: withClip(document, found, { ...found.clip, reverse: command.reverse }),
+        invert: () => parseSetClipReverse({ ...command, reverse: timing.reverse }),
+        createdIds: [],
+        removedIds: [],
       };
     },
   },

@@ -4,7 +4,8 @@
  * nothing else (D31.3); `run_transaction` is one `dispatchTransaction` of the
  * commands its calls name; `describe_document` reads the current document and
  * writes nothing; `add_clip_transition_at_cut` is one `dispatchTransaction` of
- * the commands `clipTransitionAtCut` builds (D66). Failures are the bus's own `EditorError` (D31.6), and a
+ * the commands `clipTransitionAtCut` builds (D66), and `freeze_frame` of those
+ * `freezeFrame` builds (D82.9). Failures are the bus's own `EditorError` (D31.6), and a
  * refused call leaves the document and the history as they were.
  */
 import {
@@ -12,6 +13,7 @@ import {
   clipTransitionAtCut,
   describeDocument,
   EditorError,
+  freezeFrame,
   type CommandBus,
   type CommandResult,
   type CustomHtmlFinding,
@@ -24,6 +26,7 @@ import {
   CHECK_CUSTOM_HTML,
   commandTypeOf,
   DESCRIBE_DOCUMENT,
+  FREEZE_FRAME,
   RUN_TRANSACTION,
 } from './catalogue.js';
 
@@ -210,8 +213,8 @@ function checkCustomHtml(bus: ToolBus, args: unknown): Promise<CustomHtmlCheckRe
 
 /**
  * Runs the tool `name` with `args` on the host's bus (D46.4): a command tool is
- * exactly one `dispatch`, `run_transaction` and `add_clip_transition_at_cut`
- * exactly one `dispatchTransaction`,
+ * exactly one `dispatch`, `run_transaction`, `add_clip_transition_at_cut`, and
+ * `freeze_frame` exactly one `dispatchTransaction`,
  * `describe_document` one `getDocument`, and `check_custom_html` one
  * `getDocument` and the host's render check, if it lends one (D78). An unknown name is refused with
  * `unknown-command`; arguments the tool's schema refuses with
@@ -237,6 +240,12 @@ export function executeTool(bus: ToolBus, name: unknown, args: unknown): ToolRes
     return Object.freeze({
       kind: 'transaction',
       result: bus.dispatchTransaction(clipTransitionAtCut(bus.getDocument(), args)),
+    });
+  }
+  if (name === FREEZE_FRAME) {
+    return Object.freeze({
+      kind: 'transaction',
+      result: bus.dispatchTransaction(freezeFrame(bus.getDocument(), args)),
     });
   }
   if (name === CHECK_CUSTOM_HTML) {

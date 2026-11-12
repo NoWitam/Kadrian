@@ -68,6 +68,9 @@ import {
   setTemplateInputArgumentsSchema,
   deepFreeze,
   joinClipsArgumentsSchema,
+  setClipReverseArgumentsSchema,
+  setClipSpeedArgumentsSchema,
+  SPEEDS,
   moveClipArgumentsSchema,
   splitClipArgumentsSchema,
   trimClipEndArgumentsSchema,
@@ -150,16 +153,22 @@ import {
   type AddTemplateRepeatArgumentsSchema,
   type AddTemplateInputArgumentsSchema,
   type SetTemplateInputArgumentsSchema,
+  type SetClipReverseArgumentsSchema,
+  type SetClipSpeedArguments,
+  type SetClipSpeedArgumentsSchema,
   type ClosedObjectSchema,
   type Command,
 } from './commands.js';
 import { COMMAND_TYPES } from './registry.js';
 
-/** The arguments of one command type: the command without its discriminator (D31.3). */
-export type CommandArguments<T extends Command['type']> = Omit<
-  Extract<Command, { type: T }>,
-  'type'
->;
+/**
+ * The arguments of one command type: the command without its discriminator
+ * (D31.3). `SetClipSpeed` takes its speed as a caller writes it, which the
+ * command holds exactly (D82.11).
+ */
+export type CommandArguments<T extends Command['type']> = T extends 'SetClipSpeed'
+  ? SetClipSpeedArguments
+  : Omit<Extract<Command, { type: T }>, 'type'>;
 
 /** The JSON Schema of the arguments of any command, as `editor-sdk` exports it (D31.2). */
 export type CommandArgumentsSchema =
@@ -202,7 +211,9 @@ export type CommandArgumentsSchema =
   | AddDefinitionArgumentsSchema
   | SetInstanceInputArgumentsSchema
   | ReplaceDefinitionArgumentsSchema
-  | SetCustomHtmlArgumentsSchema;
+  | SetCustomHtmlArgumentsSchema
+  | SetClipSpeedArgumentsSchema
+  | SetClipReverseArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -638,6 +649,16 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Joins two halves of a split back into one clip: nextClipId must be directly after clipId in the same list, start where it ends, and be exactly what split_clip would make of the joined clip (same fields, its source continuing, its animations those of the first under its own ID). The joined clip keeps clipId and the second is removed. ${CLIPS} Refused with unknown-clip, unsupported-node for a group, clips-not-joinable, invalid-result, media-facts-missing, and source-range-exceeded.`,
     example: { clipId: 'node-title', nextClipId: 'node-title-tail' },
     argumentsSchema: joinClipsArgumentsSchema,
+  },
+  SetClipSpeed: {
+    description: `Sets the speed of a video node or an audio clip: how fast it plays its source, picture and sound, the pitch kept. ${SPEEDS} "x0" is for a video only; freeze_frame holds the frame shown at a given time instead. The clip keeps its startUs, its sourceStartUs, and its direction, and plays the same part of its source by default: durationUs becomes the one given or, left out, the duration of that part at the new speed, rounded up (twice as long at "x0.5", half as long at "x2"; kept when either speed is "x0"). Nothing else moves: no keyframe, and no clip after it. ${CLIPS} ${TIME_US} Refused with invalid-argument, speed-invalid for a speed outside x0.25 to x4 other than x0, not in the notation, or with no exact fraction (the message names the nearest one), x0 for an audio clip or a reversed clip, or a sourceStartRemainder not below the new denominator, unknown-clip, unsupported-node for a node that is neither a video nor an audio clip, invalid-result when an audio clip's fades no longer fit, transition-in-use, and, when the clip would then read more of its source, media-facts-missing and source-range-exceeded.`,
+    example: { clipId: 'clip-audio', speed: 'x0.5' },
+    argumentsSchema: setClipSpeedArgumentsSchema,
+  },
+  SetClipReverse: {
+    description: `Plays a video node or an audio clip backwards (reverse true) or forwards again (false), picture and sound: it plays the same part of its source over the same lifetime, from the last instant of that part to the first, at its speed. Its lifetime, speed, and sourceStartUs stay, and no keyframe moves; describe_document states each clip's reverse and its sampledSourceRange. A freeze frame (speed x0) has no direction. ${CLIPS} Refused with invalid-argument, unknown-clip, unsupported-node for a node that is neither a video nor an audio clip, speed-invalid for a freeze frame, invalid-result for a reversed clip that would read more than 600000000 microseconds (10 minutes) of its source, and, when its sound would then read other source, media-facts-missing and source-range-exceeded.`,
+    example: { clipId: 'clip-audio', reverse: true },
+    argumentsSchema: setClipReverseArgumentsSchema,
   },
   AddSceneTransition: {
     description: `Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide, wipe, or push with a direction (left, right, up, down), zoom with a fromScale, iris with a center, or blur-dissolve with a radius. Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. ${TRANSITIONS} ${TIME_US} Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes.`,

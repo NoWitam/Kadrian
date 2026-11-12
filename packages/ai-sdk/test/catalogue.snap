@@ -1576,6 +1576,76 @@
     }
   },
   {
+    "name": "set_clip_speed",
+    "description": "Sets the speed of a video node or an audio clip: how fast it plays its source, picture and sound, the pitch kept. A speed is a multiplier: \"x0.25\", \"x0.5\" (half speed), \"x0.75\", \"x1\" (the source's own speed), \"x1.5\", \"x2\" (twice as fast), \"x4\", or a fraction such as \"x1/3\" or \"x2/3\"; a number such as 0.5 or 2, or {\"num\":1,\"den\":2}, means the same. Speeds go from x0.25 to x4, the pitch of the sound kept, and \"x0\" freezes a video on one frame. The document stores the exact fraction {\"num\":…,\"den\":…} and describe_document shows it as a multiplier. A multiplier that is no fraction with a denominator up to 1000, such as \"x0.3333\", is refused with speed-invalid, and the refusal names the nearest speed (\"x1/3\"): call again with it. \"x0\" is for a video only; freeze_frame holds the frame shown at a given time instead. The clip keeps its startUs, its sourceStartUs, and its direction, and plays the same part of its source by default: durationUs becomes the one given or, left out, the duration of that part at the new speed, rounded up (twice as long at \"x0.5\", half as long at \"x2\"; kept when either speed is \"x0\"). Nothing else moves: no keyframe, and no clip after it. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, speed-invalid for a speed outside x0.25 to x4 other than x0, not in the notation, or with no exact fraction (the message names the nearest one), x0 for an audio clip or a reversed clip, or a sourceStartRemainder not below the new denominator, unknown-clip, unsupported-node for a node that is neither a video nor an audio clip, invalid-result when an audio clip's fades no longer fit, transition-in-use, and, when the clip would then read more of its source, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"speed\":\"x0.5\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the speed of a video node or an audio clip; its start, its source start, and its direction stay (D82.9).",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The stable ID of a video node or an audio clip of the document.",
+          "minLength": 1
+        },
+        "speed": {
+          "description": "The new speed. A speed is a multiplier: \"x0.25\", \"x0.5\" (half speed), \"x0.75\", \"x1\" (the source's own speed), \"x1.5\", \"x2\" (twice as fast), \"x4\", or a fraction such as \"x1/3\" or \"x2/3\"; a number such as 0.5 or 2, or {\"num\":1,\"den\":2}, means the same. Speeds go from x0.25 to x4, the pitch of the sound kept, and \"x0\" freezes a video on one frame. The document stores the exact fraction {\"num\":…,\"den\":…} and describe_document shows it as a multiplier. A multiplier that is no fraction with a denominator up to 1000, such as \"x0.3333\", is refused with speed-invalid, and the refusal names the nearest speed (\"x1/3\"): call again with it.",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "durationUs": {
+          "type": "integer",
+          "description": "Optional: the new duration of the clip, in integer microseconds, at least 1. Left out, it is the duration that plays the same part of the source, rounded up (twice as long at half the speed), and kept when either speed is x0.",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sourceStartRemainder": {
+          "type": "integer",
+          "description": "Optional, and rarely needed: the fraction of a microsecond of the exact source time at the clip's start, in units of 1/den of the new speed, below den. Left out, the clip's remainder is scaled to the new den, rounded down.",
+          "minimum": 0,
+          "maximum": 999
+        }
+      },
+      "required": [
+        "clipId",
+        "speed"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_clip_reverse",
+    "description": "Plays a video node or an audio clip backwards (reverse true) or forwards again (false), picture and sound: it plays the same part of its source over the same lifetime, from the last instant of that part to the first, at its speed. Its lifetime, speed, and sourceStartUs stay, and no keyframe moves; describe_document states each clip's reverse and its sampledSourceRange. A freeze frame (speed x0) has no direction. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Refused with invalid-argument, unknown-clip, unsupported-node for a node that is neither a video nor an audio clip, speed-invalid for a freeze frame, invalid-result for a reversed clip that would read more than 600000000 microseconds (10 minutes) of its source, and, when its sound would then read other source, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"reverse\":true}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Plays a video node or an audio clip backwards or forwards; its lifetime and the part of its source it plays stay (D82.9).",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The stable ID of a video node or an audio clip of the document.",
+          "minLength": 1
+        },
+        "reverse": {
+          "type": "boolean",
+          "description": "true plays the clip backwards, from the last instant of its part of the source to the first; false plays it forwards."
+        }
+      },
+      "required": [
+        "clipId",
+        "reverse"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "add_scene_transition",
     "description": "Adds a transition on the boundary between a scene and the scene directly after it: during durationUs both play, the outgoing one in its last durationUs and the incoming one in its first, combined by the effect — crossfade, fade-through-color with a colour, slide, wipe, or push with a direction (left, right, up, down), zoom with a fromScale, iris with a center, or blur-dissolve with a radius. Every later scene starts durationUs earlier and the composition's durationUs shrinks by as much; no time inside a scene moves. A boundary takes at most one transition. A scene transition overlaps two adjacent scenes: the incoming scene starts durationUs before the outgoing one ends, so the composition is that much shorter, and at most two scenes play at once. A clip transition overlaps two clips of one layer, two children of one parent, whose lifetimes overlap by exactly its durationUs; it moves nothing. A transition is at most as long as either side, and the two transitions of one side together at most as long as it. describe_document lists the transitions. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with index-out-of-range, id-in-use, and invalid-result when the scenes are not adjacent, the boundary has a transition already, or the transition does not fit its scenes. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"transition\":{\"id\":\"transition-outro\",\"fromSceneId\":\"scene-main\",\"toSceneId\":\"scene-outro\",\"durationUs\":500000,\"effect\":{\"kind\":\"crossfade\"},\"easing\":{\"kind\":\"linear\"}}}",
     "inputSchema": {
@@ -2748,6 +2818,60 @@
     }
   },
   {
+    "name": "freeze_frame",
+    "description": "Holds the frame a video node shows at atUs for holdUs, as a freeze frame: a video clip at speed \"x0\" that shows that one frame of its source, silent. mode overwrite puts the freeze frame in the place of the part of the clip from atUs to atUs + holdUs, cutting the clip at both times; nothing moves, and atUs + holdUs is at most the clip's end. mode insert cuts the clip at atUs, puts the freeze frame between the two halves, and moves the second half holdUs later, so the clip ends holdUs later; no other clip moves, and the second half may then overlap what follows it on its layer. newClipIds are two different IDs unused in the document: the first names the freeze frame, the second the part of the clip after it (not made when an overwrite reaches the clip's end). The freeze frame keeps the clip's position, size, fit, crop, effects, and animations, copied and renamed as split_clip copies them; set_clip_speed with a multiplier such as \"x1\" or \"x0.5\" plays it again. It is one step: all or nothing, and one undo reverts it. A video that is heard (volume above 0) is cut only at a multiple of 125 microseconds from its start. Times are integer microseconds of the time of the clip's scene (1 second is 1000000). Refused with invalid-argument, unknown-clip, unsupported-node for anything but a video node, time-outside-clip when atUs is not strictly inside the clip or an overwrite would reach past its end, split-not-exact, id-in-use, and whatever split_clip, move_clip, add_node, set_clip_reverse, set_clip_speed, and set_video_source refuse; the error of a refused step names the index of its call. Returns the edited document and the IDs it created.\n\nExample arguments: {\"clipId\":\"node-video\",\"atUs\":3000000,\"holdUs\":2000000,\"mode\":\"insert\",\"newClipIds\":[\"node-video-freeze\",\"node-video-after\"]}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Holds the frame a video node shows at atUs for holdUs, as a freeze frame, in one step (D82.9).",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The stable ID of a video node, a child of a group included.",
+          "minLength": 1
+        },
+        "atUs": {
+          "type": "integer",
+          "description": "The time of the frame held, strictly between the start and the end of the clip, in integer microseconds of the time of the clip's scene; never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "holdUs": {
+          "type": "integer",
+          "description": "How long the frame is held, in integer microseconds, at least 1.",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "mode": {
+          "type": "string",
+          "description": "overwrite: the freeze frame takes the place of the part of the clip from atUs to atUs + holdUs, which must end at the latest where the clip ends, and nothing moves; insert: the clip is cut at atUs, the freeze frame goes between the halves, and the second half moves holdUs later.",
+          "enum": [
+            "overwrite",
+            "insert"
+          ]
+        },
+        "newClipIds": {
+          "type": "array",
+          "description": "Two different IDs unused in the document: the first names the freeze frame, the second the part of the clip after it (not made when an overwrite reaches the clip's end). The animations and effects of each are renamed after it, as split_clip does.",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "clipId",
+        "atUs",
+        "holdUs",
+        "mode",
+        "newClipIds"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "check_custom_html",
     "description": "Checks one Custom HTML element of the current document and changes nothing. It reads its html for what the sandbox refuses or the managed clock does not drive — network requests and loaded resources (network), setTimeout and setInterval (timer), the document timeline and event time stamps (wall-clock), storage and cookies (storage), and navigation, links, and forms (navigation) — each with the offset and the text it matched; and where the host can render, it renders the element alone at sampled times of its lifetime twice, the second time in the reverse order, and reports a time it did not answer (no-acknowledgement), a document it navigated to (navigated), a frame that differs between the two renders (frames-differ, the mark of state kept from frame to frame or read from a clock it does not drive), and any other failure (render-failed). Returns the findings, and the render report or null when the host renders nothing. Call it after set_custom_html, and fix every finding before relying on the element. Refused with unknown-node when the document has no node of that ID, and with unsupported-node when the node is no Custom HTML.\n\nExample arguments: {\"nodeId\":\"node-custom-html\"}",
     "inputSchema": {
@@ -2837,6 +2961,8 @@
                   "trim_clip_end",
                   "split_clip",
                   "join_clips",
+                  "set_clip_speed",
+                  "set_clip_reverse",
                   "add_scene_transition",
                   "add_clip_transition",
                   "remove_transition",
