@@ -1,0 +1,573 @@
+{
+  "schemaVersion": "0.25",
+  "width": 1280,
+  "height": 720,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 4000000,
+  "assets": [
+    {
+      "id": "asset-font-proportional",
+      "type": "font",
+      "contentHash": "sha256:4a209658a3a8cde1b117a955ab340c3b57548d94b0c65dd25949fc9a54312de1"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-framed-text",
+      "durationUs": 4000000,
+      "nodes": [
+        {
+          "id": "framed-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "color": "#0c111d",
+          "animations": []
+        },
+        {
+          "id": "text-left",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 40,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "the lines are measured as the text is drawn",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 36,
+          "frame": {
+            "kind": "fixed",
+            "width": 360,
+            "height": 220
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 6,
+              "cornerRadius": 4
+            },
+            "align": "left",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-center",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 460,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "the lines are measured as the text is drawn",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 36,
+          "frame": {
+            "kind": "fixed",
+            "width": 360,
+            "height": 220
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 6,
+              "cornerRadius": 4
+            },
+            "align": "center",
+            "verticalAlign": "middle"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-right",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 880,
+            "y": 40
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "the lines are measured as the text is drawn",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 36,
+          "frame": {
+            "kind": "fixed",
+            "width": 360,
+            "height": 220
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 6,
+              "cornerRadius": 4
+            },
+            "align": "right",
+            "verticalAlign": "bottom"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-lines",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 40,
+            "y": 300
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "each line enters\non its own at the width",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 30,
+          "frame": {
+            "kind": "fixed",
+            "width": 300,
+            "height": 200
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 6,
+              "cornerRadius": 4
+            },
+            "align": "center",
+            "verticalAlign": "middle"
+          },
+          "textAnimations": [
+            {
+              "id": "text-lines-in",
+              "unit": "line",
+              "phase": {
+                "kind": "in"
+              },
+              "staggerUs": 150000,
+              "order": {
+                "kind": "forward"
+              },
+              "tracks": [
+                {
+                  "property": "opacity",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 0,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    },
+                    {
+                      "timeUs": 300000,
+                      "value": 1,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "property": "offset",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": {
+                        "x": 40,
+                        "y": 0
+                      },
+                      "easing": {
+                        "kind": "ease-out"
+                      }
+                    },
+                    {
+                      "timeUs": 300000,
+                      "value": {
+                        "x": 0,
+                        "y": 0
+                      },
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-too-wide",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 680,
+            "y": 300
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "a word mmmmmmmmmmmmmmmmmm stands alone",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 30,
+          "frame": {
+            "kind": "fixed",
+            "width": 360,
+            "height": 200
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 6,
+              "cornerRadius": 4
+            },
+            "align": "center",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "captions-width",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 140,
+            "y": 560
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font-proportional",
+          "width": 1000,
+          "height": 130,
+          "style": {
+            "fontSize": 44,
+            "lineHeight": 56,
+            "color": "#ffffff",
+            "highlight": {
+              "color": "#ffd400",
+              "scale": 1,
+              "tracks": [],
+              "underline": {
+                "kind": "none"
+              },
+              "box": {
+                "kind": "none"
+              },
+              "stroke": {
+                "kind": "outside",
+                "color": "#000000",
+                "width": 3
+              },
+              "shadow": {
+                "kind": "drop",
+                "color": "#f04438",
+                "opacity": 0.8,
+                "offset": {
+                  "x": 0,
+                  "y": 3
+                },
+                "blur": 2
+              }
+            },
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 1000,
+            "maxLines": 2,
+            "lineBreak": "width",
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "drop",
+              "color": "#000000",
+              "opacity": 0.5,
+              "offset": {
+                "x": 0,
+                "y": 2
+              },
+              "blur": 1
+            },
+            "box": {
+              "kind": "none"
+            },
+            "pageIn": {
+              "kind": "none"
+            },
+            "pageOut": {
+              "kind": "none"
+            }
+          },
+          "words": [
+            {
+              "text": "Kadrion",
+              "startUs": 0,
+              "durationUs": 200000
+            },
+            {
+              "text": "lines",
+              "startUs": 200000,
+              "durationUs": 200000
+            },
+            {
+              "text": "these",
+              "startUs": 400000,
+              "durationUs": 200000
+            },
+            {
+              "text": "words",
+              "startUs": 600000,
+              "durationUs": 200000
+            },
+            {
+              "text": "by",
+              "startUs": 800000,
+              "durationUs": 200000
+            },
+            {
+              "text": "the",
+              "startUs": 1000000,
+              "durationUs": 200000
+            },
+            {
+              "text": "width",
+              "startUs": 1200000,
+              "durationUs": 200000
+            },
+            {
+              "text": "the",
+              "startUs": 1400000,
+              "durationUs": 200000
+            },
+            {
+              "text": "box",
+              "startUs": 1600000,
+              "durationUs": 200000
+            },
+            {
+              "text": "has",
+              "startUs": 1800000,
+              "durationUs": 200000
+            },
+            {
+              "text": "and",
+              "startUs": 2000000,
+              "durationUs": 200000
+            },
+            {
+              "text": "the",
+              "startUs": 2200000,
+              "durationUs": 200000
+            },
+            {
+              "text": "word",
+              "startUs": 2400000,
+              "durationUs": 200000
+            },
+            {
+              "text": "heard",
+              "startUs": 2600000,
+              "durationUs": 200000
+            },
+            {
+              "text": "is",
+              "startUs": 2800000,
+              "durationUs": 200000
+            },
+            {
+              "text": "drawn",
+              "startUs": 3000000,
+              "durationUs": 200000
+            },
+            {
+              "text": "with",
+              "startUs": 3200000,
+              "durationUs": 200000
+            },
+            {
+              "text": "an",
+              "startUs": 3400000,
+              "durationUs": 200000
+            },
+            {
+              "text": "outline",
+              "startUs": 3600000,
+              "durationUs": 200000
+            }
+          ],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

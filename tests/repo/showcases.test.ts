@@ -11,11 +11,17 @@
  */
 import { executeTool, TOOL_CATALOGUE } from '@kadrion/ai-sdk';
 import { createCommandBus, type MediaFacts } from '@kadrion/editor-sdk';
-import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
+import {
+  sampledSourceRange,
+  validateComposition,
+  type ValidatedComposition,
+} from '@kadrion/schema';
 import { instantiateTemplate, isTemplate, templateDefaults } from '@kadrion/schema/template';
 import {
   AUDIO_SECONDS,
   FONT_GLYPHS,
+  framedTextComposition,
+  PROPORTIONAL_FONT_GLYPHS,
   referenceComposition,
   svgComposition,
   VIDEO_FIXTURE,
@@ -32,8 +38,13 @@ interface Node {
   readonly type: string;
   readonly text?: string;
   readonly words?: readonly { text: string }[];
+  readonly fontAssetId?: string;
   readonly assetId?: string;
+  readonly startUs: number;
   readonly sourceStartUs?: number;
+  readonly sourceStartRemainder?: number;
+  readonly speed?: { num: number; den: number };
+  readonly reverse?: boolean;
   readonly durationUs: number;
   readonly children?: readonly Node[];
 }
@@ -41,27 +52,39 @@ interface Node {
 interface Clip {
   readonly id: string;
   readonly assetId: string;
+  readonly startUs: number;
   readonly sourceStartUs: number;
+  readonly sourceStartRemainder: number;
+  readonly speed: { num: number; den: number };
+  readonly reverse: boolean;
   readonly durationUs: number;
 }
 
 interface Document {
+  readonly durationUs: number;
   readonly assets: readonly { id: string; type: string; contentHash: string }[];
-  readonly scenes: readonly { nodes: readonly Node[]; clips: readonly Clip[] }[];
+  readonly scenes: readonly {
+    durationUs: number;
+    nodes: readonly Node[];
+    clips: readonly Clip[];
+  }[];
   readonly clips: readonly Clip[];
 }
 
 const sourceOf = (file: string): unknown => JSON.parse(readText(...file.split('/'))) as unknown;
 
 /**
- * The assets the page generates, as the reference composition and, since
- * PR-57, the SVG composition declare them (D32.2, D74), and the video it
- * serves from the recipe of the fixtures (D32.10).
+ * The assets the page generates, as the reference composition, since PR-57 the
+ * SVG composition, and since PR-68 the framed-text composition declare them
+ * (D32.2, D74, D83), and the video it serves from the recipe of the fixtures
+ * (D32.10).
  */
 const PROVIDED = new Map([
-  ...[...(referenceComposition as Document).assets, ...(svgComposition as Document).assets].map(
-    (asset) => [asset.id, asset] as const,
-  ),
+  ...[
+    ...(referenceComposition as Document).assets,
+    ...(svgComposition as Document).assets,
+    ...(framedTextComposition as Document).assets,
+  ].map((asset) => [asset.id, asset] as const),
   [
     VIDEO_FIXTURE.id,
     { id: VIDEO_FIXTURE.id, type: 'video', contentHash: VIDEO_FIXTURE.contentHash },
@@ -84,15 +107,20 @@ const nodesOf = (document: Document): Node[] =>
     scene.nodes.flatMap((node) => [node, ...(node.children ?? [])]),
   );
 
-/** What the generated font must draw: the texts and the words of captions. */
-function textsOf(document: Document): string[] {
-  return nodesOf(document).flatMap((node) =>
-    node.type === 'text'
-      ? [node.text ?? '']
-      : node.type === 'captions'
-        ? (node.words ?? []).map((word) => word.text)
-        : [],
-  );
+/** The glyphs of each font the page generates, by asset ID (D27.5, D83). */
+const GLYPHS: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {
+  'asset-font': FONT_GLYPHS,
+  'asset-font-proportional': PROPORTIONAL_FONT_GLYPHS,
+};
+
+/** What a generated font must draw: the texts and the words of captions, with their font. */
+function textsOf(document: Document): { text: string; font: string }[] {
+  return nodesOf(document).flatMap((node) => {
+    const font = node.fontAssetId ?? '';
+    if (node.type === 'text') return [{ text: node.text ?? '', font }];
+    if (node.type === 'captions') return (node.words ?? []).map(({ text }) => ({ text, font }));
+    return [];
+  });
 }
 
 function validated(source: unknown): ValidatedComposition {
@@ -392,6 +420,91 @@ describe('the features of phase five the showcases show (D32.11)', () => {
   });
 });
 
+describe('the features of phase six the showcases show (D32.12)', () => {
+  const documents = SHOWCASES.map(
+    (showcase) => validated(sourceOf(showcase.sourceFile)) as unknown as Document,
+  );
+  const videos = documents.flatMap((document) =>
+    nodesOf(document).filter((node) => node.type === 'video'),
+  );
+  const sounds = documents.flatMap((document) => [
+    ...document.clips,
+    ...document.scenes.flatMap((scene) => scene.clips),
+  ]);
+  const texts = documents.flatMap((document) =>
+    nodesOf(document).filter((node) => node.type === 'text'),
+  ) as unknown as {
+    frame: { kind: string };
+    style: { align: string; verticalAlign: string };
+    textAnimations: { unit: string }[];
+  }[];
+
+  it('include a video slower and faster than recorded, a freeze frame, and a reverse (D82)', () => {
+    const speeds = videos.map((node) => (node.speed?.num ?? 1) / (node.speed?.den ?? 1));
+    expect(speeds.some((speed) => speed > 0 && speed < 1)).toBe(true);
+    expect(speeds.some((speed) => speed > 1)).toBe(true);
+    expect(speeds).toContain(0);
+    expect(videos.some((node) => node.reverse === true)).toBe(true);
+    // A speed that only a fraction states, as the multiplier x1/3 (D82.11): a
+    // denominator with a prime factor other than 2 and 5, whose decimal never ends.
+    const endless = (den: number): boolean => {
+      let rest = den;
+      for (const prime of [2, 5]) while (rest % prime === 0) rest /= prime;
+      return rest > 1;
+    };
+    expect(videos.some((node) => endless(node.speed?.den ?? 1))).toBe(true);
+  });
+
+  it('include a sound at another speed and a sound reversed (D82.6)', () => {
+    expect(sounds.some((clip) => clip.speed.num !== clip.speed.den && !clip.reverse)).toBe(true);
+    expect(sounds.some((clip) => clip.reverse)).toBe(true);
+  });
+
+  it('include framed texts in every alignment, lines by line, and captions broken by width (D83)', () => {
+    const framed = texts.filter((node) => node.frame.kind === 'fixed');
+    for (const align of ['left', 'center', 'right']) {
+      expect(
+        framed.some((node) => node.style.align === align),
+        align,
+      ).toBe(true);
+    }
+    for (const verticalAlign of ['top', 'middle', 'bottom']) {
+      expect(
+        framed.some((node) => node.style.verticalAlign === verticalAlign),
+        verticalAlign,
+      ).toBe(true);
+    }
+    expect(
+      framed.some((node) => node.textAnimations.some((animation) => animation.unit === 'line')),
+    ).toBe(true);
+    const captions = documents
+      .flatMap((document) => nodesOf(document))
+      .filter((node) => node.type === 'captions') as unknown as {
+      style: {
+        lineBreak: string;
+        highlight: { stroke: { kind: string }; shadow: { kind: string } };
+      };
+    }[];
+    expect(
+      captions.some(
+        (node) =>
+          node.style.lineBreak === 'width' &&
+          node.style.highlight.stroke.kind !== 'none' &&
+          node.style.highlight.shadow.kind !== 'none',
+      ),
+    ).toBe(true);
+  });
+
+  it('call the tool of a speed and the tool of a text frame', () => {
+    const names = new Set(SHOWCASES.map((showcase) => showcase.toolCall.name));
+    for (const name of ['set_clip_speed', 'set_node_size']) expect(names, name).toContain(name);
+    const sized = SHOWCASES.find((showcase) => showcase.toolCall.name === 'set_node_size');
+    const nodeId = (sized?.toolCall.arguments as { nodeId?: string } | undefined)?.nodeId;
+    const document = sourceOf(sized?.sourceFile ?? '') as Document;
+    expect(nodesOf(document).find((node) => node.id === nodeId)?.type).toBe('text');
+  });
+});
+
 describe.each(SHOWCASES)('the showcase $id (D32.8)', (showcase) => {
   const source = sourceOf(showcase.sourceFile);
 
@@ -406,17 +519,25 @@ describe.each(SHOWCASES)('the showcase $id (D32.8)', (showcase) => {
     }
   });
 
-  it('reads its media only inside their sources (D49.6, D53)', () => {
-    const document = source as Document;
+  it('reads its media only inside their sources, through the time map (D49.6, D53, D82.1)', () => {
+    const document = validated(source) as unknown as Document;
     const reads = [
-      ...nodesOf(document).filter((node) => node.type === 'video'),
-      ...document.clips,
-      ...document.scenes.flatMap((scene) => scene.clips),
+      ...document.clips.map((clip) => [clip, document.durationUs] as const),
+      ...document.scenes.flatMap((scene) => [
+        ...scene.nodes
+          .flatMap((node) => [node, ...(node.children ?? [])])
+          .filter((node) => node.type === 'video')
+          .map((node) => [node as Node & Clip, scene.durationUs] as const),
+        ...scene.clips.map((clip) => [clip, scene.durationUs] as const),
+      ]),
     ];
-    for (const read of reads) {
-      const length = SOURCE_US[read.assetId ?? ''];
+    for (const [read, holderUs] of reads) {
+      const length = SOURCE_US[read.assetId];
       expect(length, read.id).toBeDefined();
-      expect((read.sourceStartUs ?? 0) + read.durationUs, read.id).toBeLessThanOrEqual(length ?? 0);
+      const range = sampledSourceRange(read, holderUs);
+      if (range !== null) {
+        expect(range.startUs + range.durationUs, read.id).toBeLessThanOrEqual(length ?? 0);
+      }
     }
   });
 
@@ -426,10 +547,13 @@ describe.each(SHOWCASES)('the showcase $id (D32.8)', (showcase) => {
       const made = instantiateTemplate(validated(source), showcase.templateValues);
       if (made.ok) shown.push(made.composition);
     }
-    for (const text of shown.flatMap((document) => textsOf(document as Document))) {
+    for (const { text, font } of shown.flatMap((document) => textsOf(document as Document))) {
+      const glyphs = GLYPHS[font];
+      expect(glyphs, `${text} in ${font}`).toBeDefined();
       const missing: string[] = [];
-      // Code points, one per glyph of the generated font.
-      for (const glyph of text) if (!(glyph in FONT_GLYPHS)) missing.push(glyph);
+      // Code points, one per glyph of the generated font; a line feed is a break (D22.6).
+      for (const glyph of text)
+        if (glyph !== '\n' && !(glyph in (glyphs ?? {}))) missing.push(glyph);
       expect(missing, text).toEqual([]);
     }
   });

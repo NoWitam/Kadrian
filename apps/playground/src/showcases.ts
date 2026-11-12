@@ -385,4 +385,34 @@ export const SHOWCASES: readonly Showcase[] = [
     },
     templateValues: null,
   },
+  {
+    id: 'speed',
+    title: 'Speed, freeze frames, and reverse',
+    description:
+      'The fixture video four times: at x0.5 and at x1/3, slower than it was recorded; at x2 for 1.5 s and then held on its last frame, a freeze frame of x0; and at x0.75 backwards. The sound plays at x1.5 with its pitch kept and then backwards. The tool call slows the first clip to x0.25 (D82).',
+    features: ['D49', 'D82'],
+    url: '/app/showcases/speed.json',
+    sourceFile: 'apps/playground/src/showcases/speed.json',
+    dragNodeId: 'video-slow',
+    toolCall: {
+      name: 'set_clip_speed',
+      arguments: { clipId: 'video-slow', speed: 'x0.25' },
+    },
+    templateValues: null,
+  },
+  {
+    id: 'framed-text',
+    title: 'Text frames and alignment',
+    description:
+      'Texts in frames of a fixed size, their lines measured from the proportional font and wrapped to its width: aligned left and top, in the centre and the middle, and right and bottom; lines that enter one by one; a word wider than its frame that stands alone and overflows; and captions broken by width whose spoken word has an outline and a shadow. The tool call gives the first text a wider frame, and its lines wrap again (D83).',
+    features: ['D69', 'D70', 'D83'],
+    url: '/app/showcases/framed-text.json',
+    sourceFile: 'apps/playground/src/showcases/framed-text.json',
+    dragNodeId: 'text-left',
+    toolCall: {
+      name: 'set_node_size',
+      arguments: { nodeId: 'text-left', width: 400, height: 260 },
+    },
+    templateValues: null,
+  },
 ];
