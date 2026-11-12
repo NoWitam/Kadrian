@@ -139,6 +139,28 @@ describe('the catalogue is data a model API can take (D46.2)', () => {
   });
 });
 
+/**
+ * The catalogue of schema `0.24` (the committed snapshot of PR-62), measured as
+ * D83.10 says: the sum, over every tool, of the length of the JSON of its entry.
+ */
+const CATALOGUE_LENGTH_OF_0_24 = 232_035;
+
+/** What the frame, alignment, the width mode, and W5 may add to it (D83.10, question 14). */
+const BUDGET_OF_W6 = 800;
+
+/** The length of the JSON of every tool's entry, all tools together (D83.10). */
+function catalogueLength(catalogue: readonly ToolDefinition[]): number {
+  return catalogue.reduce((sum, tool) => sum + JSON.stringify(tool).length, 0);
+}
+
+describe('the budget of W6 (D83.10)', () => {
+  it('grows the catalogue by at most 800 characters over the snapshot of 0.24', () => {
+    const growth = catalogueLength(TOOL_CATALOGUE) - CATALOGUE_LENGTH_OF_0_24;
+    expect(growth).toBeGreaterThan(0);
+    expect(growth).toBeLessThanOrEqual(BUDGET_OF_W6);
+  });
+});
+
 describe('the export surface (D46.4)', () => {
   it('exports the catalogue, its executor, and the D31 entry of set_node_position', () => {
     expect(Object.keys(aiSdk).sort()).toEqual([

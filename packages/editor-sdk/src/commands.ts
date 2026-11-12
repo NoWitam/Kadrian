@@ -129,14 +129,20 @@ export interface SetNodeScaleCommand extends SetNodeScaleArguments {
   readonly type: 'SetNodeScale';
 }
 
-/** What a caller states for `SetNodeSize` (D40.1). */
+/**
+ * What a caller states for `SetNodeSize` (D40.1): `width` and `height` are both
+ * numbers, or both `null`, which removes the frame of a text (D83.10).
+ */
 export interface SetNodeSizeArguments {
   readonly nodeId: string;
-  readonly width: number;
-  readonly height: number;
+  readonly width: number | null;
+  readonly height: number | null;
 }
 
-/** Replaces the size of an image or a Custom HTML element, in composition pixels (D40.1). */
+/**
+ * Replaces the size of an image, a video, or a Custom HTML element, or sets the
+ * frame of a text, in composition pixels; `null` removes a text's frame (D40.1, D83.10).
+ */
 export interface SetNodeSizeCommand extends SetNodeSizeArguments {
   readonly type: 'SetNodeSize';
 }
@@ -1400,6 +1406,7 @@ export type ArgumentSchema =
   | { readonly type: 'string'; readonly description: string; readonly enum: readonly string[] }
   | { readonly type: 'string'; readonly description: string }
   | { readonly type: 'number'; readonly description: string }
+  | { readonly type: readonly ['number', 'null']; readonly description: string }
   | {
       readonly type: 'number';
       readonly description: string;
@@ -1464,7 +1471,26 @@ export type RemoveNodeArgumentsSchema = ClosedObjectSchema<keyof RemoveNodeArgum
 export type DuplicateNodeArgumentsSchema = ClosedObjectSchema<keyof DuplicateNodeArguments>;
 export type ReorderNodeArgumentsSchema = ClosedObjectSchema<keyof ReorderNodeArguments>;
 export type SetNodeScaleArgumentsSchema = ClosedObjectSchema<keyof SetNodeScaleArguments>;
-export type SetNodeSizeArgumentsSchema = ClosedObjectSchema<keyof SetNodeSizeArguments>;
+/**
+ * The argument schema of `SetNodeSize`: closed, `width` and `height` each a number
+ * or `null`, and `anyOf` holding them both numbers or both `null` (D83.10).
+ */
+export interface SetNodeSizeArgumentsSchema extends ClosedObjectSchema<keyof SetNodeSizeArguments> {
+  readonly anyOf: readonly [
+    {
+      readonly properties: {
+        readonly width: { readonly type: 'number' };
+        readonly height: { readonly type: 'number' };
+      };
+    },
+    {
+      readonly properties: {
+        readonly width: { readonly const: null };
+        readonly height: { readonly const: null };
+      };
+    },
+  ];
+}
 export type SetNodeColorArgumentsSchema = ClosedObjectSchema<keyof SetNodeColorArguments>;
 export type SetTextFontSizeArgumentsSchema = ClosedObjectSchema<keyof SetTextFontSizeArguments>;
 export type SetTextFontArgumentsSchema = ClosedObjectSchema<keyof SetTextFontArguments>;
@@ -4122,21 +4148,25 @@ export const setNodeScaleArgumentsSchema: SetNodeScaleArgumentsSchema = deepFree
   additionalProperties: false,
 });
 
-/** The JSON Schema of the arguments of `SetNodeSize` (D40.1): numbers, since the parser rounds. */
+/**
+ * The JSON Schema of the arguments of `SetNodeSize` (D40.1): numbers, since the
+ * parser rounds, or both `null`, which removes the frame of a text (D83.10). The
+ * nodes that have a size are listed once, in the tool's description (D46).
+ */
 export const setNodeSizeArgumentsSchema: SetNodeSizeArgumentsSchema = deepFreeze({
   type: 'object',
-  description: 'Sets the size of an image, a video, or a Custom HTML element.',
+  description: 'Sets the size of a node or the frame of a text.',
   properties: {
-    nodeId: {
-      type: 'string',
-      description: `${NODE_ID} Only images, videos, and Custom HTML elements have a size.`,
-      minLength: 1,
-    },
-    width: { type: 'number', description: `The width, ${PIXELS}` },
-    height: { type: 'number', description: `The height, ${PIXELS}` },
+    nodeId: { type: 'string', description: NODE_ID, minLength: 1 },
+    width: { type: ['number', 'null'], description: `The width, ${PIXELS}` },
+    height: { type: ['number', 'null'], description: `The height, ${PIXELS}` },
   },
   required: ['nodeId', 'width', 'height'],
   additionalProperties: false,
+  anyOf: [
+    { properties: { width: { type: 'number' }, height: { type: 'number' } } },
+    { properties: { width: { const: null }, height: { const: null } } },
+  ],
 });
 
 /** The JSON Schema of the arguments of `SetNodeColor` (D40.1): either case, since the parser lowercases. */
@@ -4513,7 +4543,10 @@ export function parseSetNodeScale(value: unknown): SetNodeScaleCommand {
   });
 }
 
-/** The fields of a `SetNodeSize` (D40.1): rounded like a position (D15), not clamped. */
+/**
+ * The fields of a `SetNodeSize` (D40.1): rounded like a position (D15), not
+ * clamped; `width` and `height` both `null` or neither (D83.10).
+ */
 export function parseSetNodeSize(value: unknown): SetNodeSizeCommand {
   const fields = fieldsOf(
     value,
@@ -4521,11 +4554,22 @@ export function parseSetNodeSize(value: unknown): SetNodeSizeCommand {
     'The command `SetNodeSize`',
   );
   const nodeId = nodeIdOf(fields);
+  const width: unknown = fields['width'];
+  const height: unknown = fields['height'];
+  if (width === null || height === null) {
+    if (width !== height) {
+      throw new EditorError(
+        'invalid-argument',
+        '`width` and `height` are `null` together, which removes the frame of a text, or neither is.',
+      );
+    }
+    return Object.freeze({ type: 'SetNodeSize', nodeId, width: null, height: null });
+  }
   return Object.freeze({
     type: 'SetNodeSize',
     nodeId,
-    width: integerPixels(fields['width'], '`width`'),
-    height: integerPixels(fields['height'], '`height`'),
+    width: integerPixels(width, '`width`'),
+    height: integerPixels(height, '`height`'),
   });
 }
 

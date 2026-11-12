@@ -120,6 +120,7 @@ import {
   type Command,
   type KeyframeValueData,
   type CommandPosition,
+  type SetNodeSizeCommand,
 } from './commands.js';
 import {
   assetUsers,
@@ -397,6 +398,39 @@ function numberField(node: DocumentObject, field: string, nodeId: string): numbe
     throw new EditorError('unsupported-node', `The node \`${nodeId}\` has no ${field}.`);
   }
   return value;
+}
+
+/**
+ * The edit of `SetNodeSize` on a text (D83.10): numbers set a `fixed` frame,
+ * `null` sets `{ kind: "none" }`, and the inverse states the old frame, `null`
+ * for none. The range of the sides is the document's (D15), as for any size.
+ */
+function textFrameEdit(
+  node: DocumentObject,
+  command: SetNodeSizeCommand,
+): { readonly node: DocumentObject; readonly inverse: Command } | null {
+  const frame = node['frame'];
+  if (!isObject(frame)) {
+    throw new EditorError('unsupported-node', `The node \`${command.nodeId}\` has no frame.`);
+  }
+  const previous =
+    frame['kind'] === 'fixed'
+      ? {
+          width: numberField(frame, 'width', command.nodeId),
+          height: numberField(frame, 'height', command.nodeId),
+        }
+      : { width: null, height: null };
+  if (previous.width === command.width && previous.height === command.height) return null;
+  return {
+    node: {
+      ...node,
+      frame:
+        command.width === null || command.height === null
+          ? { kind: 'none' }
+          : { kind: 'fixed', width: command.width, height: command.height },
+    },
+    inverse: parseSetNodeSize({ ...command, ...previous }),
+  };
 }
 
 /** The point `{x, y}` a node holds in `field`, or `unsupported-node` (D63.4). */
@@ -1361,6 +1395,14 @@ const DEFINITIONS = deepFreeze<Definitions>({
     parse: parseSetNodeSize,
     edit: (document, command) =>
       onNode(document, command.nodeId, (node) => {
+        // The size of a text is its frame; `null` removes it (D83.10).
+        if (node['type'] === 'text') return textFrameEdit(node, command);
+        if (command.width === null || command.height === null) {
+          throw new EditorError(
+            'invalid-argument',
+            `Only a text takes a size of \`null\`, which removes its frame; \`${command.nodeId}\` is not a text.`,
+          );
+        }
         const width = numberField(node, 'width', command.nodeId);
         const height = numberField(node, 'height', command.nodeId);
         if (width === command.width && height === command.height) return null;

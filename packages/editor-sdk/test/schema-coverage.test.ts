@@ -290,6 +290,15 @@ describe('the node types the commands of D40 accept (D30.8)', () => {
           expect(fieldOf(document, nodeId, field)).not.toEqual(expected);
           const edited = applyCommand(document, command(nodeId)).document;
           expect(fieldOf(edited, nodeId, field)).toEqual(expected);
+        } else if (field === 'width' && type === 'text') {
+          // A text has no width: its size is its frame, which the command sets (D83.10).
+          const edited = applyCommand(document, command(nodeId)).document;
+          expect(fieldOf(edited, nodeId, 'width')).toBeUndefined();
+          expect(fieldOf(edited, nodeId, 'frame')).toEqual({
+            kind: 'fixed',
+            width: 33,
+            height: 44,
+          });
         } else {
           expect(codeOf(() => applyCommand(document, command(nodeId)))).toBe('unsupported-node');
         }

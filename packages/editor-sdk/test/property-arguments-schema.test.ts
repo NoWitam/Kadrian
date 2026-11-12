@@ -111,8 +111,15 @@ const CASES: readonly Case[] = [
       { json: '{"nodeId":"n","width":-0.4,"height":1}', read: widthOf, value: 0 },
       // Accepted by both: the range is the document's (D40.1).
       { json: '{"nodeId":"n","width":1e21,"height":0}', read: widthOf, value: 1e21 },
+      // Both null: the frame of a text is removed (D83.10); the node is the bus's to judge.
+      { json: '{"nodeId":"n","width":null,"height":null}', read: widthOf, value: null },
     ],
-    refused: ['{"nodeId":"n","width":"10","height":1}'],
+    refused: [
+      '{"nodeId":"n","width":"10","height":1}',
+      // One side null alone: the schema's anyOf and the parser agree (D83.10).
+      '{"nodeId":"n","width":null,"height":1}',
+      '{"nodeId":"n","width":1,"height":null}',
+    ],
   },
   {
     type: 'SetNodeColor',
