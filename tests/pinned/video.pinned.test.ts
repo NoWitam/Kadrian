@@ -147,7 +147,7 @@ describe.skipIf(!available)('video nodes in the Producer (D49, D50)', () => {
   it('records the media facts and the decode in the render manifest (D50.5)', () => {
     expect(baseline.manifest).toMatchObject({
       manifestVersion: 3,
-      schemaVersion: '0.24',
+      schemaVersion: '0.25',
       preset: { name: 'frames-png', width: 640, height: 360, fps: 30 },
       ffmpeg: null,
       video: {

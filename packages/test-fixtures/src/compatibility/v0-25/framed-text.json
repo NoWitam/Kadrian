@@ -1,0 +1,1017 @@
+{
+  "schemaVersion": "0.25",
+  "width": 640,
+  "height": 360,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "fps": 30,
+  "durationUs": 2000000,
+  "assets": [
+    {
+      "id": "asset-font-proportional",
+      "type": "font",
+      "contentHash": "sha256:4a209658a3a8cde1b117a955ab340c3b57548d94b0c65dd25949fc9a54312de1"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-aligned",
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "background-aligned",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "text-top-left",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 12,
+            "y": 12
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws lines with time",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 190,
+            "height": 104
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "left",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-top-center",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 225,
+            "y": 12
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws lines with time",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 190,
+            "height": 104
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "center",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-top-right",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 438,
+            "y": 12
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws lines with time",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 190,
+            "height": 104
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "right",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-middle-left",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 12,
+            "y": 128
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws lines with time",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 190,
+            "height": 104
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "left",
+            "verticalAlign": "middle"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-middle-center",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 225,
+            "y": 128
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws lines with time",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 190,
+            "height": 104
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "center",
+            "verticalAlign": "middle"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-middle-right",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 438,
+            "y": 128
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws lines with time",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 190,
+            "height": 104
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "right",
+            "verticalAlign": "middle"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-bottom-left",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 12,
+            "y": 244
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws lines with time",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 190,
+            "height": 104
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "left",
+            "verticalAlign": "bottom"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-bottom-center",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 225,
+            "y": 244
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws lines with time",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 190,
+            "height": 104
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "center",
+            "verticalAlign": "bottom"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-bottom-right",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 438,
+            "y": 244
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws lines with time",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 190,
+            "height": 104
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "right",
+            "verticalAlign": "bottom"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    },
+    {
+      "id": "scene-measured",
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "background-second",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "color": "#0b1220",
+          "animations": []
+        },
+        {
+          "id": "text-long-word",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 20,
+            "y": 20
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "mmmmmmmmmmmmmmmmmmmm draws",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 24,
+          "frame": {
+            "kind": "fixed",
+            "width": 200,
+            "height": 64
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "center",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-too-many-lines",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 20,
+            "y": 120
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion draws time and lines in the width",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "fixed",
+            "width": 150,
+            "height": 40
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "align": "left",
+            "verticalAlign": "bottom"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-outlined-lines",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 340,
+            "y": 20
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion\ndraws  lines with the width",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 26,
+          "frame": {
+            "kind": "fixed",
+            "width": 280,
+            "height": 120
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "outside",
+              "color": "#f04438",
+              "width": 2
+            },
+            "shadow": {
+              "kind": "drop",
+              "color": "#000000",
+              "opacity": 0.6,
+              "offset": {
+                "x": 3,
+                "y": 3
+              },
+              "blur": 2
+            },
+            "box": {
+              "kind": "none"
+            },
+            "align": "right",
+            "verticalAlign": "middle"
+          },
+          "textAnimations": [
+            {
+              "id": "text-lines-in",
+              "unit": "line",
+              "phase": {
+                "kind": "in"
+              },
+              "staggerUs": 150000,
+              "order": {
+                "kind": "forward"
+              },
+              "tracks": [
+                {
+                  "property": "opacity",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": 0,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    },
+                    {
+                      "timeUs": 300000,
+                      "value": 1,
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "property": "offset",
+                  "keyframes": [
+                    {
+                      "timeUs": 0,
+                      "value": {
+                        "x": 40,
+                        "y": 0
+                      },
+                      "easing": {
+                        "kind": "ease-out"
+                      }
+                    },
+                    {
+                      "timeUs": 300000,
+                      "value": {
+                        "x": 0,
+                        "y": 0
+                      },
+                      "easing": {
+                        "kind": "linear"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "text-no-frame",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 400,
+            "y": 150
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "Kadrion\ndraws\nmmm lines",
+          "fontAssetId": "asset-font-proportional",
+          "fontSize": 20,
+          "frame": {
+            "kind": "none"
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 4,
+              "cornerRadius": 0
+            },
+            "align": "center",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "captions-width",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 20,
+            "y": 236
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font-proportional",
+          "width": 600,
+          "height": 110,
+          "style": {
+            "fontSize": 28,
+            "lineHeight": 36,
+            "color": "#ffffff",
+            "highlight": {
+              "color": "#ffd400",
+              "scale": 1,
+              "tracks": [],
+              "underline": {
+                "kind": "none"
+              },
+              "box": {
+                "kind": "none"
+              },
+              "stroke": {
+                "kind": "outside",
+                "color": "#000000",
+                "width": 3
+              },
+              "shadow": {
+                "kind": "drop",
+                "color": "#f04438",
+                "opacity": 0.8,
+                "offset": {
+                  "x": 0,
+                  "y": 3
+                },
+                "blur": 2
+              }
+            },
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 40,
+            "maxLines": 2,
+            "lineBreak": "width",
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "drop",
+              "color": "#000000",
+              "opacity": 0.5,
+              "offset": {
+                "x": 0,
+                "y": 2
+              },
+              "blur": 1
+            },
+            "box": {
+              "kind": "none"
+            },
+            "pageIn": {
+              "kind": "none"
+            },
+            "pageOut": {
+              "kind": "none"
+            }
+          },
+          "words": [
+            {
+              "text": "Kadrion",
+              "startUs": 0,
+              "durationUs": 60000
+            },
+            {
+              "text": "draws",
+              "startUs": 60000,
+              "durationUs": 60000
+            },
+            {
+              "text": "the",
+              "startUs": 120000,
+              "durationUs": 60000
+            },
+            {
+              "text": "words",
+              "startUs": 180000,
+              "durationUs": 60000
+            },
+            {
+              "text": "in",
+              "startUs": 240000,
+              "durationUs": 60000
+            },
+            {
+              "text": "a",
+              "startUs": 300000,
+              "durationUs": 60000
+            },
+            {
+              "text": "wide",
+              "startUs": 360000,
+              "durationUs": 60000
+            },
+            {
+              "text": "line",
+              "startUs": 420000,
+              "durationUs": 60000
+            },
+            {
+              "text": "mmmmmmmmmm",
+              "startUs": 480000,
+              "durationUs": 60000
+            },
+            {
+              "text": "and",
+              "startUs": 540000,
+              "durationUs": 60000
+            },
+            {
+              "text": "cuts",
+              "startUs": 600000,
+              "durationUs": 60000
+            },
+            {
+              "text": "them",
+              "startUs": 660000,
+              "durationUs": 60000
+            },
+            {
+              "text": "by",
+              "startUs": 720000,
+              "durationUs": 60000
+            },
+            {
+              "text": "the",
+              "startUs": 780000,
+              "durationUs": 60000
+            },
+            {
+              "text": "width",
+              "startUs": 840000,
+              "durationUs": 60000
+            }
+          ],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

@@ -2,27 +2,22 @@
  * The layout and the timing of captions (D57): which words make a line, which
  * lines make a page, which page is shown, and which word is spoken. All of it
  * is a pure function of the document — the words and the style of a captions
- * node — and of the scene time. Nothing is measured: a line holds as many
- * words as `maxLineLength` characters allow, counted as Unicode code points
- * with one space between two words, so the runtime stays free of fonts and of
- * the browser's layout.
+ * node — of the scene time, and, for captions broken by width, of the advance
+ * widths of the node's font (D83.5). Broken by characters, nothing is
+ * measured: a line holds as many words as `maxLineLength` characters allow,
+ * counted as Unicode code points with one space between two words. Broken by
+ * width, the line also fits the width of the node's box, measured from the
+ * font's bytes by Kadrion itself, never by the browser's layout.
  */
 import type { CaptionsNode, CaptionStyle, CaptionWord } from '@kadrion/schema';
 
+import { captionPagesByCharacters, type CaptionPage } from './caption-lines.js';
+import { EvaluationError } from './errors.js';
 import { applied, fragmentSteps, rest, tracksLength } from './fragments.js';
 import type { CaptionFragmentsState, FragmentState } from './state.js';
+import { captionPagesByWidth, type FontMetrics } from './text-frame.js';
 
-/** One line of a page: the indices of its words in the node's `words`, in order. */
-export interface CaptionLine {
-  readonly words: readonly number[];
-}
-
-/** One page of captions: up to `maxLines` lines, shown from the start of its first word. */
-export interface CaptionPage {
-  readonly lines: readonly CaptionLine[];
-  /** The index of the page's first word in the node's `words`. */
-  readonly firstWord: number;
-}
+export type { CaptionLine, CaptionPage } from './caption-lines.js';
 
 /** What a captions node shows at one instant (D57). */
 export interface CaptionInstant {
@@ -32,47 +27,35 @@ export interface CaptionInstant {
   readonly word: number | null;
 }
 
-/** The length of a word in Unicode code points (D57). */
-function codePoints(text: string): number {
-  return Array.from(text).length;
-}
-
 /**
- * The pages of a captions node (D57): the words fill a line greedily, in
- * order, while the line with one space before the next word stays within
- * `maxLineLength`; a word longer than that stands alone on its line. Every
+ * The pages of a captions node (D57, D83.5). With `lineBreak` `characters`, or
+ * without one, the words fill a line greedily, in order, while the line with
+ * one space before the next word stays within `maxLineLength`; a word longer
+ * than that stands alone on its line (D57.3). With `width`, a word joins the
+ * line while it also fits `width`, the width of the node's box, measured with
+ * `metrics`, the metrics of the node's font (`captionPagesByWidth`). Every
  * `maxLines` lines make a page, and the last page may hold fewer. No words, no
- * pages.
+ * pages. `width` and `metrics` are needed only for `width`; without them it is
+ * the `EvaluationError` `font-metrics-missing` (D83.7).
  */
 export function captionPages(
   words: readonly CaptionWord[],
-  style: Pick<CaptionStyle, 'maxLineLength' | 'maxLines'>,
+  style:
+    | Pick<CaptionStyle, 'maxLineLength' | 'maxLines'>
+    | Pick<CaptionStyle, 'fontSize' | 'maxLineLength' | 'maxLines' | 'lineBreak'>,
+  width?: number,
+  metrics?: FontMetrics,
 ): CaptionPage[] {
-  const lines: number[][] = [];
-  let line: number[] = [];
-  let length = 0;
-  words.forEach((word, index) => {
-    const wordLength = codePoints(word.text);
-    if (line.length > 0 && length + 1 + wordLength <= style.maxLineLength) {
-      line.push(index);
-      length += 1 + wordLength;
-      return;
-    }
-    if (line.length > 0) lines.push(line);
-    line = [index];
-    length = wordLength;
-  });
-  if (line.length > 0) lines.push(line);
-
-  const pages: CaptionPage[] = [];
-  for (let at = 0; at < lines.length; at += style.maxLines) {
-    const pageLines = lines.slice(at, at + style.maxLines);
-    pages.push({
-      lines: pageLines.map((words) => ({ words })),
-      firstWord: pageLines[0]?.[0] ?? 0,
-    });
+  if (!('lineBreak' in style) || style.lineBreak === 'characters') {
+    return captionPagesByCharacters(words, style);
   }
-  return pages;
+  if (width === undefined || metrics === undefined) {
+    throw new EvaluationError(
+      'font-metrics-missing',
+      'Captions broken by width need the width of their box and the metrics of their font (D83.7).',
+    );
+  }
+  return captionPagesByWidth(words, style, width, metrics);
 }
 
 /**

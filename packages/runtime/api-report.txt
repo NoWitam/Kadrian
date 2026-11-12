@@ -60,6 +60,12 @@ export interface CaptionFragmentsState {
     readonly words: readonly FragmentState[];
 }
 
+---- CaptionFrameLine (type only)
+export interface CaptionFrameLine extends FrameLine {
+    readonly words: readonly number[];
+    readonly page: number;
+}
+
 ---- CaptionInstant (type only)
 export interface CaptionInstant {
     readonly page: number | null;
@@ -75,6 +81,17 @@ export interface CaptionLine {
 export interface CaptionPage {
     readonly lines: readonly CaptionLine[];
     readonly firstWord: number;
+}
+
+---- CaptionsFrameInput (type only)
+export interface CaptionsFrameInput {
+    readonly type: 'captions';
+    readonly width: number;
+    readonly height: number;
+    readonly words: readonly CaptionWord[];
+    readonly style: Pick<CaptionStyle, 'fontSize' | 'lineHeight' | 'align' | 'verticalAlign' | 'maxLineLength' | 'maxLines'> & {
+        readonly lineBreak: 'characters' | 'width';
+    };
 }
 
 ---- CaptionsNodeState (type only)
@@ -187,7 +204,23 @@ export declare class EvaluationError extends RangeError {
 }
 
 ---- EvaluationErrorCode (type only)
-export type EvaluationErrorCode = 'time-not-integer' | 'time-out-of-range' | 'invalid-document';
+export type EvaluationErrorCode = 'time-not-integer' | 'time-out-of-range' | 'invalid-document' | 'font-metrics-missing';
+
+---- FontMetrics (type only)
+export interface FontMetrics {
+    readonly unitsPerEm: number;
+    readonly notdefAdvance: number;
+    readonly advances: ReadonlyMap<number, number>;
+}
+
+---- FontMetricsError
+export declare class FontMetricsError extends RangeError {
+    readonly code: FontMetricsErrorCode;
+    constructor(code: FontMetricsErrorCode, message: string);
+}
+
+---- FontMetricsErrorCode (type only)
+export type FontMetricsErrorCode = 'font-unmeasurable';
 
 ---- FragmentState (type only)
 export interface FragmentState {
@@ -197,6 +230,30 @@ export interface FragmentState {
     readonly rotation: number;
     readonly color: string;
 }
+
+---- FrameAlign (type only)
+export type FrameAlign = 'left' | 'center' | 'right';
+
+---- FrameLayout (type only)
+export interface FrameLayout<Line extends FrameLine = FrameLine> {
+    readonly lines: readonly Line[];
+    readonly height: number;
+    readonly fits: boolean;
+    readonly missing: readonly number[];
+}
+
+---- FrameLine (type only)
+export interface FrameLine {
+    readonly text: string;
+    readonly units: number;
+    readonly width: number;
+    readonly fits: boolean;
+    readonly x: number;
+    readonly y: number;
+}
+
+---- FrameVerticalAlign (type only)
+export type FrameVerticalAlign = 'top' | 'middle' | 'bottom';
 
 ---- GlowEffectState (type only)
 export interface GlowEffectState {
@@ -294,6 +351,13 @@ export type MatteState = {
     readonly nodeId: string;
     readonly mode: 'alpha' | 'alpha-inverted' | 'luminance' | 'luminance-inverted';
 };
+
+---- MeasuredLine (type only)
+export interface MeasuredLine {
+    readonly runs: readonly TextRun[];
+    readonly text: string;
+    readonly units: number;
+}
 
 ---- NodeState (type only)
 export type NodeState = InstanceNodeState | BackgroundNodeState | GroupNodeState | ImageNodeState | TextNodeState | LeafNodeState<'custom-html'> | VideoNodeState | CaptionsNodeState | ShapeNodeState;
@@ -417,6 +481,24 @@ export interface TextFragmentsState {
     readonly letters: readonly FragmentState[];
 }
 
+---- TextFrameInput (type only)
+export interface TextFrameInput {
+    readonly type: 'text';
+    readonly text: string;
+    readonly fontSize: number;
+    readonly frame: {
+        readonly kind: 'none';
+    } | {
+        readonly kind: 'fixed';
+        readonly width: number;
+        readonly height: number;
+    };
+    readonly style: {
+        readonly align: FrameAlign;
+        readonly verticalAlign: FrameVerticalAlign;
+    };
+}
+
 ---- TextLayout (type only)
 export interface TextLayout {
     readonly lines: readonly TextLine[];
@@ -489,6 +571,9 @@ export interface Zoom {
     readonly center: Vec2;
 }
 
+---- advanceOf
+export declare function advanceOf(metrics: FontMetrics, codePoint: number): number;
+
 ---- audioLayout
 export declare function audioLayout(plan: AudioPlan): AudioLayout;
 
@@ -502,7 +587,10 @@ export declare function captionAt(words: CaptionsNode['words'], pages: readonly 
 export declare function captionFragments(node: CaptionsNode, pages: readonly CaptionPage[], instant: CaptionInstant, color: string, timeUs: number): CaptionFragmentsState | null;
 
 ---- captionPages
-export declare function captionPages(words: readonly CaptionWord[], style: Pick<CaptionStyle, 'maxLineLength' | 'maxLines'>): CaptionPage[];
+export declare function captionPages(words: readonly CaptionWord[], style: Pick<CaptionStyle, 'maxLineLength' | 'maxLines'> | Pick<CaptionStyle, 'fontSize' | 'maxLineLength' | 'maxLines' | 'lineBreak'>, width?: number, metrics?: FontMetrics): CaptionPage[];
+
+---- captionPagesByWidth
+export declare function captionPagesByWidth(words: readonly CaptionWord[], style: Pick<CaptionStyle, 'fontSize' | 'maxLineLength' | 'maxLines'>, width: number, metrics: FontMetrics): CaptionPage[];
 
 ---- captionsInPieces
 export declare function captionsInPieces(style: CaptionStyle): boolean;
@@ -518,10 +606,20 @@ export declare function compositingAt(node: {
 export declare function effectsAt(effects: readonly Effect[], timeUs: number): EffectState[];
 
 ---- evaluateComposition
-export declare function evaluateComposition(composition: ValidatedComposition, timeUs: number): CompositionState;
+export declare function evaluateComposition(composition: ValidatedComposition, timeUs: number, fonts?: ReadonlyMap<string, FontMetrics>): CompositionState;
+
+---- fitsWidth
+export declare function fitsWidth(units: number, fontSize: number, width: number, metrics: FontMetrics): boolean;
+
+---- fontMetrics
+export declare function fontMetrics(bytes: Uint8Array): FontMetrics;
 
 ---- fragmentSteps
 export declare function fragmentSteps(order: TextAnimation['order'], count: number): number[];
+
+---- frameLayout
+export declare function frameLayout(node: CaptionsFrameInput, metrics: FontMetrics): FrameLayout<CaptionFrameLine>;
+export declare function frameLayout(node: TextFrameInput, metrics: FontMetrics): FrameLayout;
 
 ---- graphemes
 export declare function graphemes(text: string): string[];
@@ -532,14 +630,32 @@ export declare function isWhiteSpace(codePoint: number): boolean;
 ---- maskAt
 export declare function maskAt(mask: Mask, timeUs: number): MaskState;
 
+---- measureText
+export declare function measureText(text: string, metrics: FontMetrics): number;
+
+---- measuredFontIds
+export declare function measuredFontIds(composition: Pick<Composition, 'scenes' | 'definitions'>): string[];
+
 ---- sampleAt
 export declare function sampleAt(timeUs: bigint): bigint;
 
 ---- textFragments
-export declare function textFragments(node: TextNode, color: string, timeUs: number): TextFragmentsState | null;
+export declare function textFragments(node: TextNode, color: string, timeUs: number, metrics?: FontMetrics): TextFragmentsState | null;
 
 ---- textLayout
 export declare function textLayout(text: string): TextLayout;
+
+---- textLines
+export declare function textLines(text: string, fontSize: number, width: number | null, metrics: FontMetrics): MeasuredLine[];
+
+---- textLinesFitHeight
+export declare function textLinesFitHeight(lineCount: number, fontSize: number, height: number): boolean;
+
+---- textLinesHeight
+export declare function textLinesHeight(lineCount: number, fontSize: number): number;
+
+---- unitsToPixels
+export declare function unitsToPixels(units: number, fontSize: number, metrics: FontMetrics): number;
 
 ==== Entry "./stretch"
 
@@ -585,3 +701,130 @@ export declare function stretchSound(request: StretchRequest): Float32Array[];
 
 ---- stretchSourceRange
 export declare function stretchSourceRange(map: ClipTimeMap, startSample: number, sampleCount: number): StretchSourceRange;
+
+==== Entry "./text-frame"
+
+---- CaptionFrameLine
+export interface CaptionFrameLine extends FrameLine {
+    readonly words: readonly number[];
+    readonly page: number;
+}
+
+---- CaptionsFrameInput
+export interface CaptionsFrameInput {
+    readonly type: 'captions';
+    readonly width: number;
+    readonly height: number;
+    readonly words: readonly CaptionWord[];
+    readonly style: Pick<CaptionStyle, 'fontSize' | 'lineHeight' | 'align' | 'verticalAlign' | 'maxLineLength' | 'maxLines'> & {
+        readonly lineBreak: 'characters' | 'width';
+    };
+}
+
+---- FontMetrics
+export interface FontMetrics {
+    readonly unitsPerEm: number;
+    readonly notdefAdvance: number;
+    readonly advances: ReadonlyMap<number, number>;
+}
+
+---- FontMetricsError
+export declare class FontMetricsError extends RangeError {
+    readonly code: FontMetricsErrorCode;
+    constructor(code: FontMetricsErrorCode, message: string);
+}
+
+---- FontMetricsErrorCode
+export type FontMetricsErrorCode = 'font-unmeasurable';
+
+---- FrameAlign
+export type FrameAlign = 'left' | 'center' | 'right';
+
+---- FrameLayout
+export interface FrameLayout<Line extends FrameLine = FrameLine> {
+    readonly lines: readonly Line[];
+    readonly height: number;
+    readonly fits: boolean;
+    readonly missing: readonly number[];
+}
+
+---- FrameLine
+export interface FrameLine {
+    readonly text: string;
+    readonly units: number;
+    readonly width: number;
+    readonly fits: boolean;
+    readonly x: number;
+    readonly y: number;
+}
+
+---- FrameVerticalAlign
+export type FrameVerticalAlign = 'top' | 'middle' | 'bottom';
+
+---- MeasuredLine
+export interface MeasuredLine {
+    readonly runs: readonly TextRun[];
+    readonly text: string;
+    readonly units: number;
+}
+
+---- MeasuredNode
+export interface MeasuredNode {
+    readonly nodeId: string;
+    readonly fontAssetId: string;
+}
+
+---- TextFrameInput
+export interface TextFrameInput {
+    readonly type: 'text';
+    readonly text: string;
+    readonly fontSize: number;
+    readonly frame: {
+        readonly kind: 'none';
+    } | {
+        readonly kind: 'fixed';
+        readonly width: number;
+        readonly height: number;
+    };
+    readonly style: {
+        readonly align: FrameAlign;
+        readonly verticalAlign: FrameVerticalAlign;
+    };
+}
+
+---- advanceOf
+export declare function advanceOf(metrics: FontMetrics, codePoint: number): number;
+
+---- captionPagesByWidth
+export declare function captionPagesByWidth(words: readonly CaptionWord[], style: Pick<CaptionStyle, 'fontSize' | 'maxLineLength' | 'maxLines'>, width: number, metrics: FontMetrics): CaptionPage[];
+
+---- fitsWidth
+export declare function fitsWidth(units: number, fontSize: number, width: number, metrics: FontMetrics): boolean;
+
+---- fontMetrics
+export declare function fontMetrics(bytes: Uint8Array): FontMetrics;
+
+---- frameLayout
+export declare function frameLayout(node: CaptionsFrameInput, metrics: FontMetrics): FrameLayout<CaptionFrameLine>;
+export declare function frameLayout(node: TextFrameInput, metrics: FontMetrics): FrameLayout;
+
+---- measureText
+export declare function measureText(text: string, metrics: FontMetrics): number;
+
+---- measuredFontIds
+export declare function measuredFontIds(composition: Pick<Composition, 'scenes' | 'definitions'>): string[];
+
+---- measuredNodes
+export declare function measuredNodes(composition: Pick<Composition, 'scenes' | 'definitions'>): MeasuredNode[];
+
+---- textLines
+export declare function textLines(text: string, fontSize: number, width: number | null, metrics: FontMetrics): MeasuredLine[];
+
+---- textLinesFitHeight
+export declare function textLinesFitHeight(lineCount: number, fontSize: number, height: number): boolean;
+
+---- textLinesHeight
+export declare function textLinesHeight(lineCount: number, fontSize: number): number;
+
+---- unitsToPixels
+export declare function unitsToPixels(units: number, fontSize: number, metrics: FontMetrics): number;

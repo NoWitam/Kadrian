@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -111,12 +111,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },

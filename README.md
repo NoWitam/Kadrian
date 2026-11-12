@@ -14,7 +14,7 @@ PR-34b; phase four, a host integrating the engine
 PR-43; phase five, motion graphics, effects, and reusable elements
 ([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)), delivered PR-45 to
 PR-57, released as `v0.6.0`; the current phase is speed, freeze frames, and
-reverse playback of clips ([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)). Schema `0.24` with its forward migrations from `0.1` to `0.23`, the evaluation core, the DOM
+reverse playback of clips ([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)). Schema `0.25` with its forward migrations from `0.1` to `0.24`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -189,13 +189,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.24`
+A composition is a JSON document of schema `0.25`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 1080,
   "height": 1920,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
@@ -244,11 +244,14 @@ Unknown fields are errors. This one shows a text that fades in:
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 144,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": { "kind": "none" },
             "shadow": { "kind": "none" },
-            "box": { "kind": "none" }
+            "box": { "kind": "none" },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -385,6 +388,18 @@ Unknown fields are errors. This one shows a text that fades in:
   in the Producer and the Player. Trims, splits, and joins keep every frame
   and every sample of a mapped clip; a person or a model reads a speed as a
   multiplier such as `x0.5` (`formatSpeed`, `parseSpeed`).
+- **Text frames and alignment:** a text's `frame` is `{ "kind": "none" }`, its
+  box as large as its lines, or `{ "kind": "fixed", "width", "height" }`, a box
+  whose width its lines wrap to; its style's `align` (`left`, `center`,
+  `right`) and `verticalAlign` (`top`, `middle`, `bottom`) place the lines in
+  it. Captions break into lines by `lineBreak`: `characters` counts
+  `maxLineLength` alone, `width` also fits every line to the box's width. The
+  lines of a framed text and of captions broken by `width` are measured from
+  the advances of the font's own bytes (`fontMetrics` of `@kadrion/runtime`),
+  so a host passes the metrics of those fonts to `evaluateComposition`; the
+  Player and the Producer read them when they load the document. The spoken
+  word of captions may have its own `stroke` and `shadow` in the highlight
+  (D83).
 - **Lifetimes:** every node has `startUs` and `durationUs`, in the time of its
   scene, and is shown at scene time `t` while `startUs <= t < startUs +
 durationUs`. A child of a group is shown only while its group is shown too. A
@@ -442,8 +457,8 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.24` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.24` document, and none of them
+`validateComposition` accepts schema `0.25` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.25` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
@@ -455,8 +470,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.24 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.23', '0.24'], or ['0.24'] for a document that was current
+  migrated.composition; // a new, validated 0.25 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.24', '0.25'], or ['0.25'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -515,6 +530,11 @@ if (migrated.ok) {
 - The step from `0.23` gives every video node and audio clip the time map it
   had, speed 1 forwards: `sourceStartRemainder: 0`, `speed: { "num": 1,
 "den": 1 }`, and `reverse: false` after its `sourceStartUs` (D82).
+- The step from `0.24` gives every text `frame: { "kind": "none" }` after its
+  `fontSize` and `align: "left"` and `verticalAlign: "top"` after the `box` of
+  its style, and every captions node `lineBreak: "characters"` after its
+  `maxLines` and, in its highlight, `stroke` and `shadow` `{ "kind": "none" }`
+  after its `box`: the looks it had (D83).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -539,8 +559,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.24 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.23', '0.24'] from 0.1, ['0.24'] when it was current
+  loaded.composition; // a new, validated 0.25 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.24', '0.25'] from 0.1, ['0.25'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -555,7 +575,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23', '0.24']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23', '0.24', '0.25']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -568,7 +588,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.24"`, speaks of that.
+  supports `"0.25"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -1262,7 +1282,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23","0.24"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23","0.24","0.25"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

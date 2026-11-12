@@ -6,12 +6,22 @@
  * fails when a generator and a hash drift apart.
  */
 import { generateAudio } from './audio.js';
-import { generateFont } from './font.js';
+import { generateFont, generateProportionalFont } from './font.js';
 import { generateImage } from './image.js';
 import { generateSvg } from './svg.js';
 
 export { AUDIO_SAMPLE_RATE, AUDIO_SECONDS } from './audio.js';
-export { FONT_FAMILY_NAME, FONT_GLYPHS, FONT_UNITS_PER_EM } from './font.js';
+export {
+  FONT_FAMILY_NAME,
+  FONT_GLYPHS,
+  FONT_NOTDEF_ADVANCE,
+  FONT_UNITS_PER_EM,
+  generateProportionalFont,
+  PROPORTIONAL_FONT_ADVANCES,
+  PROPORTIONAL_FONT_FAMILY_NAME,
+  PROPORTIONAL_FONT_GLYPHS,
+} from './font.js';
+export type { FixtureFontCmap } from './font.js';
 export { IMAGE_SIZE } from './image.js';
 export { fixtureSine, generateSoundFixture, SOUND_FIXTURES, SOUND_SAMPLE_RATE } from './sounds.js';
 export type { SoundFixture } from './sounds.js';
@@ -51,4 +61,17 @@ export function generateReferenceAssets(): readonly FixtureAsset[] {
  */
 export function generateSvgAsset(): FixtureAsset {
   return { id: 'asset-svg', mediaType: 'image/svg+xml', bytes: generateSvg() };
+}
+
+/**
+ * The proportional font of the framed-text composition (D83), apart from the
+ * reference assets: the bytes of `generateProportionalFont`, fresh on every
+ * call.
+ */
+export function generateProportionalFontAsset(): FixtureAsset {
+  return {
+    id: 'asset-font-proportional',
+    mediaType: 'font/ttf',
+    bytes: generateProportionalFont(),
+  };
 }

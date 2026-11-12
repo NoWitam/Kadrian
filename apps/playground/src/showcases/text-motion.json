@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -53,6 +53,7 @@
           "text": "Kadrion animates",
           "fontAssetId": "asset-font",
           "fontSize": 96,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -65,7 +66,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [
             {
@@ -162,6 +165,7 @@
           "text": "scenes and stories made in time",
           "fontAssetId": "asset-font",
           "fontSize": 56,
+          "frame": { "kind": "none" },
           "color": "#101828",
           "style": {
             "stroke": {
@@ -183,7 +187,9 @@
               "opacity": 1,
               "padding": 16,
               "cornerRadius": 12
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [
             {
@@ -276,6 +282,7 @@
           "text": "Dina and Kim design",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -293,7 +300,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [
             {
@@ -396,6 +405,7 @@
           "text": "Kadrion is easy",
           "fontAssetId": "asset-font",
           "fontSize": 56,
+          "frame": { "kind": "none" },
           "color": "#98a2b3",
           "style": {
             "stroke": {
@@ -406,7 +416,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

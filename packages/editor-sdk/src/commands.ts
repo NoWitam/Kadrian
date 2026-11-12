@@ -856,7 +856,7 @@ export interface SetTextStyleArguments {
   readonly style: DocumentObject;
 }
 
-/** Replaces the outline, the shadow, and the box of a text node (D69). */
+/** Replaces the outline, the shadow, the box, and the alignment of a text node (D69, D83.4). */
 export interface SetTextStyleCommand extends SetTextStyleArguments {
   readonly type: 'SetTextStyle';
 }
@@ -3338,7 +3338,7 @@ export const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema = de
     style: {
       type: 'object',
       description:
-        'The complete new style: {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, stroke, shadow, box, pageIn, pageOut}. fontSize and lineHeight are integer composition pixels; color lowercase #rrggbb; highlight what the word being spoken shows (see set_caption_highlight); align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100; stroke, shadow, and box as the style of a text, the box lying behind every line; pageIn and pageOut how a page enters and leaves (see set_caption_page_animation).',
+        'The complete new style: {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, lineBreak, stroke, shadow, box, pageIn, pageOut}. fontSize and lineHeight are integer composition pixels; color lowercase #rrggbb; highlight what the word being spoken shows (see set_caption_highlight); align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100; stroke, shadow, and box as the style of a text, the box lying behind every line; pageIn and pageOut how a page enters and leaves (see set_caption_page_animation).',
     },
   },
   required: ['nodeId', 'style'],
@@ -3348,7 +3348,7 @@ export const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema = de
 const TEXT_ID = 'The stable ID of a text node.';
 
 const TEXT_STYLE =
-  'The complete style: {stroke, shadow, box}, each {kind: "none"} or: stroke {kind: "outside", color, width} for an outline of width pixels (1 to 1000) outside every glyph; shadow {kind: "drop", color, opacity, offset: {x, y}, blur} for a shadow moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {kind: "solid", color, opacity, padding, cornerRadius} for a filled box behind the text, padding pixels beyond its lines on every side, with rounded corners. Colours are lowercase #rrggbb, opacities 0 to 1, and lengths integers.';
+  'The complete style: {stroke, shadow, box, align, verticalAlign}, the first three each {kind: "none"} or: stroke {kind: "outside", color, width} for an outline of width pixels (1 to 1000) outside every glyph; shadow {kind: "drop", color, opacity, offset: {x, y}, blur} for a shadow moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {kind: "solid", color, opacity, padding, cornerRadius} for a filled box behind the text, padding pixels beyond its lines on every side, with rounded corners. Colours are lowercase #rrggbb, opacities 0 to 1, and lengths integers.';
 
 const TEXT_ANIMATION =
   'A text animation is {id, unit, phase, staggerUs, order, tracks}: unit "letter", "word", or "line"; phase {kind: "in"} (the first fragment starts at the node\'s start), {kind: "out"} (the last fragment ends at the node\'s end), or {kind: "accent", startUs} (the first fragment starts at that scene time); staggerUs the integer microseconds between two fragments that follow each other; order {kind: "forward"}, {kind: "backward"}, {kind: "center"}, {kind: "edges"}, or {kind: "random", seed} with an unsigned 32-bit integer seed; tracks at least one, at most one per property, each {property, keyframes} with property "opacity" (a factor 0 to 1), "offset" ({x, y} integer pixels added), "scale" ({x, y} factors about the fragment\'s centre), "rotation" (degrees added, about its centre), or "color" (#rrggbb that replaces the text\'s colour), and at least two keyframes {timeUs, value, easing} in ascending time, timeUs in the fragment\'s own time from 0.';
@@ -3356,7 +3356,7 @@ const TEXT_ANIMATION =
 /** The JSON Schema of the arguments of `SetTextStyle` (D69): the style is the document's to judge. */
 export const setTextStyleArgumentsSchema: SetTextStyleArgumentsSchema = deepFreeze({
   type: 'object',
-  description: 'Replaces the outline, the shadow, and the box of a text node.',
+  description: 'Replaces the style of a text node.',
   properties: {
     nodeId: { type: 'string', description: TEXT_ID, minLength: 1 },
     style: { type: 'object', description: TEXT_STYLE },
@@ -3547,7 +3547,7 @@ export const setTextAnimationArgumentsSchema: SetTextAnimationArgumentsSchema = 
 });
 
 const CAPTION_HIGHLIGHT =
-  'The complete highlight: {color, scale, tracks, underline, box}, shown on the word being spoken from its startUs for its durationUs and at no other time. color is lowercase #rrggbb; scale a factor of its size about its centre on both axes, 1 for none; tracks a list, at most one per property, of {property, keyframes} as the tracks of a text animation, in the word\'s own time from 0 at its startUs (a bounce, a pop), [] for none; underline {kind: "none"} or {kind: "solid", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word\'s line; box {kind: "none"} or {kind: "solid", color, opacity, padding, cornerRadius} behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are.';
+  'The complete highlight: {color, scale, tracks, underline, box, stroke, shadow}, shown on the word being spoken from its startUs for its durationUs and at no other time. color is lowercase #rrggbb; scale a factor of its size about its centre on both axes, 1 for none; tracks a list, at most one per property, of {property, keyframes} as the tracks of a text animation, in the word\'s own time from 0 at its startUs (a bounce, a pop), [] for none; underline {kind: "none"} or {kind: "solid", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word\'s line; box {kind: "none"} or {kind: "solid", color, opacity, padding, cornerRadius} behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are.';
 
 const PAGE_ANIMATION =
   'The complete page animation: {kind: "none"}, or {kind: "animate", unit, staggerUs, order, tracks} with unit "word" or "line" of the page, staggerUs the integer microseconds between two fragments that follow each other, order as for a text animation, and tracks as for a text animation, in each fragment\'s own time. An entrance starts the first fragment at the start of the page\'s first word; an exit ends the last fragment\'s last keyframe at the start of the next page, or on the last page at the end of the last word.';

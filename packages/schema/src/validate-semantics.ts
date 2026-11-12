@@ -82,6 +82,7 @@ import type { CompositionV020 } from './v0-20/composition-schema.js';
 import type { CompositionV021 } from './v0-21/composition-schema.js';
 import type { CompositionV022 } from './v0-22/composition-schema.js';
 import type { CompositionV023 } from './v0-23/composition-schema.js';
+import type { CompositionV024 } from './v0-24/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -106,6 +107,7 @@ type SceneNodeV020 = CompositionV020['scenes'][number]['nodes'][number];
 type SceneNodeV021 = CompositionV021['scenes'][number]['nodes'][number];
 type SceneNodeV022 = CompositionV022['scenes'][number]['nodes'][number];
 type SceneNodeV023 = CompositionV023['scenes'][number]['nodes'][number];
+type SceneNodeV024 = CompositionV024['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -529,7 +531,8 @@ export function validateSemantics(
     | CompositionV020
     | CompositionV021
     | CompositionV022
-    | CompositionV023,
+    | CompositionV023
+    | CompositionV024,
   options: SemanticOptions = CHECK_EVERYTHING,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -568,6 +571,7 @@ export function validateSemantics(
       | SceneNodeV021
       | SceneNodeV022
       | SceneNodeV023
+      | SceneNodeV024
     )[];
     readonly transitions?: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
     readonly effects?: Composition['scenes'][number]['effects'];
@@ -780,6 +784,7 @@ export function validateSemantics(
   // The elements of 0.22 (D77): the templates of definitions and the values of instances.
   if (
     composition.schemaVersion === SCHEMA_VERSION ||
+    composition.schemaVersion === '0.24' ||
     composition.schemaVersion === '0.23' ||
     composition.schemaVersion === '0.22'
   ) {
@@ -812,7 +817,7 @@ export function validateSemantics(
  * instances, counted from a scene, is more than `MAX_INSTANCE_DEPTH` deep.
  */
 function checkDefinitions(
-  composition: Composition | CompositionV021 | CompositionV022 | CompositionV023,
+  composition: Composition | CompositionV021 | CompositionV022 | CompositionV023 | CompositionV024,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -952,6 +957,54 @@ function withSpeedOne(definition: Definition): Definition {
   return { ...definition, clips };
 }
 
+/** A record with `added` after its key `key`; one that has the first added key already is kept. */
+function withAfter(value: object, key: string, added: readonly [string, unknown][]): object {
+  const first = added[0]?.[0] ?? '';
+  if (first in value) return value;
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([name, child]): [string, unknown][] =>
+      name === key ? [[name, child], ...added] : [[name, child]],
+    ),
+  );
+}
+
+/**
+ * A definition of 0.22 to 0.24 with the fields of 0.25 that its texts and
+ * captions lack (D83.9), as the step to 0.25 writes them: `frame` of kind
+ * `none` after a text's `fontSize`, `align: left` and `verticalAlign: top`
+ * after the `box` of its style, `lineBreak: characters` after the `maxLines`
+ * of a captions style, and an outline and a shadow of kind `none` after the
+ * `box` of its highlight. A group of a definition holds texts too.
+ */
+function withFrames(definition: Definition): Definition {
+  const node = (value: object): object => {
+    const record = value as Readonly<Record<string, unknown>>;
+    if (record['type'] === 'group') {
+      const children = record['children'] as readonly object[];
+      return { ...record, children: children.map(node) };
+    }
+    if (record['type'] === 'text') {
+      const text = withAfter(value, 'fontSize', [['frame', { kind: 'none' }]]);
+      const style = withAfter(record['style'] as object, 'box', [
+        ['align', 'left'],
+        ['verticalAlign', 'top'],
+      ]);
+      return { ...text, style };
+    }
+    if (record['type'] === 'captions') {
+      const old = record['style'] as Readonly<Record<string, unknown>>;
+      const style = withAfter(old, 'maxLines', [['lineBreak', 'characters']]);
+      const highlight = withAfter(old['highlight'] as object, 'box', [
+        ['stroke', { kind: 'none' }],
+        ['shadow', { kind: 'none' }],
+      ]);
+      return { ...record, style: { ...style, highlight } };
+    }
+    return value;
+  };
+  return { ...definition, nodes: definition.nodes.map((child) => node(child) as typeof child) };
+}
+
 /** A definition seen as a composition of one scene: its nodes, clips, and transitions (D77). */
 function definitionHolder(
   composition: Pick<Composition, 'fps' | 'assets'>,
@@ -1042,11 +1095,13 @@ const ASSET_TYPES: readonly string[] = ['image', 'video', 'audio'];
  * every instance count together toward `MAX_REPEAT_IDS`.
  */
 function checkElements(
-  document: Composition | CompositionV022 | CompositionV023,
+  document: Composition | CompositionV022 | CompositionV023 | CompositionV024,
   options: SemanticOptions,
 ): ValidationError[] {
-  // The definitions of 0.22 and 0.23 are those of 0.24 without the time maps of their
-  // clips, which `withSpeedOne` adds where a definition is validated as one (D82.8).
+  // The definitions of 0.22 to 0.24 are those of 0.25 without the time maps of their
+  // clips (before 0.24) and the frames and alignments of their texts and the line
+  // breaks and highlight outlines of their captions, which `withSpeedOne` and
+  // `withFrames` add where a definition is validated as one (D82.8, D83.9).
   const composition = document as Composition;
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -1140,12 +1195,15 @@ function checkElements(
         };
       } else {
         // A document of 0.22 or 0.23 has no time maps; its clips play at speed 1, which the
-        // map of 0.24 states as its defaults, so the current schema judges them as theirs did (D82.8).
+        // map of 0.24 states as its defaults, and a document before 0.25 has no frames; its
+        // texts and captions look as the defaults of 0.25 draw them, so the current schema
+        // judges them as theirs did (D82.8, D83.9).
         const current = document.schemaVersion === SCHEMA_VERSION;
+        const upgraded = (from: Definition): Definition => withFrames(withSpeedOne(from));
         const instantiated = definitionHolder(
           composition,
-          current ? made.definition : withSpeedOne(made.definition),
-          current ? reached(definition.id) : reached(definition.id).map(withSpeedOne),
+          current ? made.definition : upgraded(made.definition),
+          current ? reached(definition.id) : reached(definition.id).map(upgraded),
           { inputs: [], bindings: [], conditions: [], repeats: [] },
         );
         const found = [...validateStructure(compositionSchema, instantiated)];
@@ -1400,6 +1458,7 @@ function checkTemplate(
     | CompositionV021
     | CompositionV022
     | CompositionV023
+    | CompositionV024
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1918,6 +1977,7 @@ function subtreeOf(
     | CompositionV021
     | CompositionV022
     | CompositionV023
+    | CompositionV024
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1996,7 +2056,9 @@ interface Located {
     | SceneNodeV022
     | Extract<SceneNodeV022, { type: 'group' }>['children'][number]
     | SceneNodeV023
-    | Extract<SceneNodeV023, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV023, { type: 'group' }>['children'][number]
+    | SceneNodeV024
+    | Extract<SceneNodeV024, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -2028,7 +2090,8 @@ function checkTransitions(
     | CompositionV020
     | CompositionV021
     | CompositionV022
-    | CompositionV023,
+    | CompositionV023
+    | CompositionV024,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

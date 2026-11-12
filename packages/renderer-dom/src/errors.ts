@@ -24,6 +24,12 @@ export type RenderErrorCode =
   | 'readiness-unsupported'
   /** The bytes of a font asset are not a font the browser can load (D27.1). */
   | 'font-load-failed'
+  /**
+   * The bytes of a font that a measured node uses — a text with a frame, or
+   * captions broken by width — are not an sfnt font `fontMetrics` can read:
+   * WOFF, WOFF2, a collection, or a missing or truncated table (D83.1, D83.7).
+   */
+  | 'font-unmeasurable'
   /** The host's resolver has no bytes for an asset of the document, or failed (D14, D27.3). */
   | 'asset-missing'
   /** The bytes of an asset do not have its content hash (D14, D27.3). */

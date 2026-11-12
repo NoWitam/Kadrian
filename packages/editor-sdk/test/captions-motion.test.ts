@@ -55,6 +55,8 @@ describe('SetCaptionHighlight (D70)', () => {
       tracks: BOUNCE,
       underline: { kind: 'none' },
       box: { kind: 'solid', color: '#000000', opacity: 1, padding: 2, cornerRadius: 4 },
+      stroke: { kind: 'outside', color: '#000000', width: 6 },
+      shadow: { kind: 'drop', color: '#101828', opacity: 0.5, offset: { x: 0, y: 4 }, blur: 6 },
     };
     const edited = roundTrip(document, {
       type: 'SetCaptionHighlight',
@@ -84,6 +86,8 @@ describe('SetCaptionHighlight (D70)', () => {
       { ...highlight, scale: -1 },
       { ...highlight, tracks: [...BOUNCE, ...BOUNCE] },
       { ...highlight, underline: { kind: 'solid', color: '#ffffff', thickness: 0, offset: 0 } },
+      { ...highlight, stroke: { kind: 'outside', color: '#000000', width: 0 } },
+      { ...highlight, shadow: { kind: 'glow' } },
       { color: '#ffffff' },
     ]) {
       expect(

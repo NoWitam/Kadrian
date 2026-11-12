@@ -128,7 +128,13 @@ function still(id: string, edit: (node: NodeDraft) => void = () => undefined): u
   const nodes = draft.scenes.flatMap((scene) => scene.nodes);
   for (const node of nodes) {
     if (node['type'] !== 'text') continue;
-    node['style'] = { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } };
+    node['style'] = {
+      stroke: { kind: 'none' },
+      shadow: { kind: 'none' },
+      box: { kind: 'none' },
+      align: 'left',
+      verticalAlign: 'top',
+    };
     node['textAnimations'] = [];
   }
   const node = nodes.find((item) => item.id === id);
@@ -280,6 +286,8 @@ describe('text style and fragments in pinned Chromium (D69)', () => {
             stroke: { kind: 'none' },
             shadow: { kind: 'none' },
             box: { kind: 'solid', color: '#344054', opacity: 0.8, padding: 8, cornerRadius: 0 },
+            align: 'left',
+            verticalAlign: 'top',
           };
         }),
       ),

@@ -306,8 +306,15 @@ const METADATA = deepFreeze<MetadataTable>({
         text: 'Made with Kadrion',
         fontAssetId: 'asset-font',
         fontSize: 64,
+        frame: { kind: 'none' },
         color: '#ffffff',
-        style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
+        style: {
+          stroke: { kind: 'none' },
+          shadow: { kind: 'none' },
+          box: { kind: 'none' },
+          align: 'left',
+          verticalAlign: 'top',
+        },
         textAnimations: [],
         effects: [],
         mask: { kind: 'none' },
@@ -733,7 +740,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setCaptionWordArgumentsSchema,
   },
   SetCaptionStyle: {
-    description: `Replaces the style of a captions node with a complete style {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, stroke, shadow, box, pageIn, pageOut}: its size and colours, what the word being spoken shows (as set_caption_highlight describes it), where its lines lie in its box, how many characters fit on a line and lines on a page, which changes how the words are grouped, the outline, shadow, and box of its lines (as set_text_style describes them, the box lying behind every line of the page shown), and how a page enters and leaves (as set_caption_page_animation describes it). No word and no time changes. ${CAPTIONS} ${PIXELS} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result.`,
+    description: `Replaces the style of a captions node with a complete style {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, lineBreak, stroke, shadow, box, pageIn, pageOut}: its size and colours, what the word being spoken shows (as set_caption_highlight describes it), where its lines lie in its box, how many characters fit on a line and lines on a page, which changes how the words are grouped (lineBreak "characters", or "width" to also fit each line to the box's width), the outline, shadow, and box of its lines (as set_text_style describes them, the box lying behind every line of the page shown), and how a page enters and leaves (as set_caption_page_animation describes it). No word and no time changes. ${CAPTIONS} ${PIXELS} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result.`,
     example: {
       nodeId: 'node-captions',
       style: {
@@ -746,11 +753,14 @@ const METADATA = deepFreeze<MetadataTable>({
           tracks: [],
           underline: { kind: 'none' },
           box: { kind: 'none' },
+          stroke: { kind: 'none' },
+          shadow: { kind: 'none' },
         },
         align: 'center',
         verticalAlign: 'bottom',
         maxLineLength: 24,
         maxLines: 2,
+        lineBreak: 'width',
         stroke: { kind: 'outside', color: '#000000', width: 3 },
         shadow: { kind: 'none' },
         box: { kind: 'none' },
@@ -762,13 +772,15 @@ const METADATA = deepFreeze<MetadataTable>({
   },
   SetTextStyle: {
     description:
-      'Replaces how a text node is drawn besides its font, size, and colour, with a complete style {stroke, shadow, box}; each part is {"kind":"none"} or: stroke {"kind":"outside", color, width}, an outline of width pixels (1 to 1000) drawn outside every glyph and under its fill; shadow {"kind":"drop", color, opacity, offset: {x, y}, blur}, a shadow of the glyphs and their outline moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {"kind":"solid", color, opacity, padding, cornerRadius}, a filled box behind the text that reaches padding pixels beyond its lines on every side, with rounded corners, without moving the text. Colours are lowercase #rrggbb, opacities 0 to 1, lengths integers. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a text, and invalid-result.',
+      'Replaces how a text node is drawn besides its font, size, and colour, with a complete style {stroke, shadow, box, align, verticalAlign}; the first three each {"kind":"none"} or: stroke {"kind":"outside", color, width}, an outline of width pixels (1 to 1000) drawn outside every glyph and under its fill; shadow {"kind":"drop", color, opacity, offset: {x, y}, blur}, a shadow of the glyphs and their outline moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {"kind":"solid", color, opacity, padding, cornerRadius}, a filled box behind the text that reaches padding pixels beyond its lines on every side, with rounded corners, without moving the text. align (left, center, right) and verticalAlign (top, middle, bottom) place the lines in the frame. Colours are lowercase #rrggbb, opacities 0 to 1, lengths integers. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a text, and invalid-result.',
     example: {
       nodeId: 'node-title',
       style: {
         stroke: { kind: 'outside', color: '#000000', width: 4 },
         shadow: { kind: 'drop', color: '#000000', opacity: 0.6, offset: { x: 4, y: 4 }, blur: 8 },
         box: { kind: 'none' },
+        align: 'center',
+        verticalAlign: 'middle',
       },
     },
     argumentsSchema: setTextStyleArgumentsSchema,
@@ -917,7 +929,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextAnimationArgumentsSchema,
   },
   SetCaptionHighlight: {
-    description: `Replaces what the word being spoken shows in a captions node, from its startUs for its durationUs and at no other time, with a complete highlight {color, scale, tracks, underline, box}: color its colour (lowercase #rrggbb); scale a factor of its size about its centre on both axes (1 for none, 1.2 to make it grow); tracks, at most one per property, {property, keyframes} as the tracks of add_text_animation (opacity, offset, scale, rotation, color) in the word's own time from 0 at its startUs, for a bounce or a pop, [] for none; underline {"kind":"none"} or {"kind":"solid", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word's line; box {"kind":"none"} or {"kind":"solid", color, opacity, padding, cornerRadius}, a filled box behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are. Any scale, track, underline, or box draws the node in pieces (an element per line and per word) for its whole lifetime. ${CAPTIONS} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result.`,
+    description: `Replaces what the word being spoken shows in a captions node, from its startUs for its durationUs and at no other time, with a complete highlight {color, scale, tracks, underline, box, stroke, shadow}: color its colour (lowercase #rrggbb); scale a factor of its size about its centre on both axes (1 for none, 1.2 to make it grow); tracks, at most one per property, {property, keyframes} as the tracks of add_text_animation (opacity, offset, scale, rotation, color) in the word's own time from 0 at its startUs, for a bounce or a pop, [] for none; underline {"kind":"none"} or {"kind":"solid", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word's line; box {"kind":"none"} or {"kind":"solid", color, opacity, padding, cornerRadius}, a filled box behind the word; stroke and shadow as set_text_style's, on the spoken word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are. Any scale, track, underline, or box draws the node in pieces (an element per line and per word) for its whole lifetime. ${CAPTIONS} Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result.`,
     example: {
       nodeId: 'node-captions',
       highlight: {
@@ -935,6 +947,8 @@ const METADATA = deepFreeze<MetadataTable>({
         ],
         underline: { kind: 'solid', color: '#ffd400', thickness: 4, offset: 2 },
         box: { kind: 'none' },
+        stroke: { kind: 'outside', color: '#000000', width: 3 },
+        shadow: { kind: 'none' },
       },
     },
     argumentsSchema: setCaptionHighlightArgumentsSchema,

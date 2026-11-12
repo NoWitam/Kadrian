@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -204,12 +204,15 @@
                 "opacity": 1,
                 "padding": 8,
                 "cornerRadius": 10
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 22,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "outside",
               "color": "#000000",

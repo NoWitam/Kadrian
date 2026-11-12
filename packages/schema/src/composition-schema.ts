@@ -47,8 +47,10 @@
  * Custom HTML element, and the binding of a parameter to an input (D78); 0.24
  * is 0.23 plus the time map of every video node and audio clip: an exact
  * source start, a speed from 1/4 to 4 or 0 for a freeze frame of a video, and
- * reverse (D82). The schemas of 0.1 to 0.23 are kept as data in `v0-1` to
- * `v0-23` (D35.4).
+ * reverse (D82); 0.25 is 0.24 plus the frame of a text, which its lines wrap
+ * to, the alignment of a text's lines in the text style, the line break of
+ * captions by width, and the outline and the shadow of the spoken word (D83).
+ * The schemas of 0.1 to 0.24 are kept as data in `v0-1` to `v0-24` (D35.4).
  */
 import {
   closedObject,
@@ -61,7 +63,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.24';
+export const SCHEMA_VERSION = '0.25';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -1550,13 +1552,25 @@ export const solidBoxSchema = closedObject(
   },
 );
 
-/** How a text node is drawn besides its font, size, and colour (D69). */
+/** How a text node is drawn besides its font, size, and colour (D69, D83.4). */
 export const textStyleSchema = closedObject(
-  'The outline, the shadow, and the box of a text, each of them or none (D69).',
+  'The outline, the shadow, and the box of a text, each of them or none, and where its lines lie (D69, D83.4).',
   {
     stroke: { oneOf: [noStrokeSchema, outsideStrokeSchema] },
     shadow: { oneOf: [noShadowSchema, dropShadowSchema] },
     box: { oneOf: [noBoxSchema, solidBoxSchema] },
+    align: {
+      type: 'string',
+      description:
+        'Where each line lies across the width of the frame, or within the widest line of a text without a frame (D83.4).',
+      enum: ['left', 'center', 'right'],
+    },
+    verticalAlign: {
+      type: 'string',
+      description:
+        'Where the block of lines lies along the height of the frame; a text without a frame has nothing to move (D83.4).',
+      enum: ['top', 'middle', 'bottom'],
+    },
   },
 );
 
@@ -1721,25 +1735,45 @@ export const textAnimationSchema = closedObject(
   },
 );
 
-const textNodeSchemaValue = closedObject('One run of text; line breaks are preserved.', {
-  id,
-  type: { type: 'string', const: 'text' },
-  ...lifetime,
-  ...coloredTransform,
-  text: { type: 'string' },
-  fontAssetId: assetReference,
-  fontSize: length,
-  color,
-  style: textStyleSchema,
-  textAnimations: {
-    type: 'array',
-    description:
-      'Animations of the letters, words, or lines of the text, combined in their order: opacities and scales multiply, offsets and rotations add, and the last colour wins (D69).',
-    items: textAnimationSchema,
+/** No frame: the box of a text is as large as its lines, which break at its line feeds only (D83.3). */
+export const noFrameSchema = closedObject(
+  'No frame: the box of the text is as large as its lines, which break at its line feeds only (D83.3).',
+  { kind: { type: 'string', const: 'none' } },
+);
+
+/** A frame of a text: its box, which its lines wrap to (D83.3, D83.5, D83.6). */
+export const fixedFrameSchema = closedObject(
+  "A frame of width x height composition pixels, the box of the text: its position is the frame's top-left corner and its origin a fraction of the frame. The lines wrap to its width, measured from the advance widths of the font, and lie in it as the style's align and verticalAlign say; a word wider than the frame stands alone on its line, and nothing is clipped (D83.3, D83.5, D83.6).",
+  {
+    kind: { type: 'string', const: 'fixed' },
+    width: { ...length, description: 'Width of the frame, in composition pixels (D83.3).' },
+    height: { ...length, description: 'Height of the frame, in composition pixels (D83.3).' },
   },
-  effects,
-  ...compositing,
-});
+);
+
+const textNodeSchemaValue = closedObject(
+  'A run of text; line breaks are preserved, and a frame wraps its lines to its width (D83).',
+  {
+    id,
+    type: { type: 'string', const: 'text' },
+    ...lifetime,
+    ...coloredTransform,
+    text: { type: 'string' },
+    fontAssetId: assetReference,
+    fontSize: length,
+    frame: { oneOf: [noFrameSchema, fixedFrameSchema] },
+    color,
+    style: textStyleSchema,
+    textAnimations: {
+      type: 'array',
+      description:
+        'Animations of the letters, words, or lines of the text, combined in their order: opacities and scales multiply, offsets and rotations add, and the last colour wins; the lines of a framed text are the lines of its wrap (D69, D83.5).',
+      items: textAnimationSchema,
+    },
+    effects,
+    ...compositing,
+  },
+);
 
 /**
  * The type of `textNodeSchema`, named so that the declarations of the schemas that
@@ -1798,7 +1832,7 @@ export const solidUnderlineSchema = closedObject(
 
 /** What the word being spoken shows besides the other words (D57, D70). */
 export const captionHighlightSchema = closedObject(
-  "What the word being spoken shows, from its startUs for its durationUs and at no other time: its colour, a scale about its centre, tracks in the word's own time (a bounce, a pop), an underline, and a box behind it. A scaled or moving word never pushes its neighbours: lines and pages stay those of D57.3 (D70).",
+  "What the word being spoken shows, from its startUs for its durationUs and at no other time: its colour, a scale about its centre, tracks in the word's own time (a bounce, a pop), an underline, a box behind it, and an outline and a shadow of its own. A scaled or moving word never pushes its neighbours: lines and pages stay those of D57.3 and D83.5 (D70, D83.8).",
   {
     color: {
       ...color,
@@ -1817,6 +1851,16 @@ export const captionHighlightSchema = closedObject(
     },
     underline: { oneOf: [noUnderlineSchema, solidUnderlineSchema] },
     box: { oneOf: [noBoxSchema, solidBoxSchema] },
+    stroke: {
+      description:
+        "The outline of the word being spoken, which replaces the style's outline on that word while it is spoken; none keeps the style's own. It takes no layout space and moves no word (D83.8).",
+      oneOf: [noStrokeSchema, outsideStrokeSchema],
+    },
+    shadow: {
+      description:
+        "The shadow of the word being spoken, which replaces the style's shadow on that word while it is spoken; none keeps the style's own. It takes no layout space and moves no word (D83.8).",
+      oneOf: [noShadowSchema, dropShadowSchema],
+    },
   },
 );
 
@@ -1861,7 +1905,7 @@ export const pageAnimationSchema = closedObject(
 
 /** How a captions node shows its words (D57, D70). */
 export const captionStyleSchema = closedObject(
-  'How the words are shown: their font size, line height, colours, the highlight of the word being spoken, alignment in the box, how many fit on a line and on a page, the outline, shadow, and box of every line, and how a page enters and leaves (D57, D70).',
+  'How the words are shown: their font size, line height, colours, the highlight of the word being spoken, alignment in the box, how many fit on a line and on a page and how lines break, the outline, shadow, and box of every line, and how a page enters and leaves (D57, D70, D83.5).',
   {
     fontSize: length,
     lineHeight: {
@@ -1892,6 +1936,12 @@ export const captionStyleSchema = closedObject(
       description: 'The most lines of one page (D57).',
       minimum: 1,
       maximum: 100,
+    },
+    lineBreak: {
+      type: 'string',
+      description:
+        'How the words are broken into lines: characters, by maxLineLength alone (D57.3); or width, by maxLineLength and the width of the box together, the words measured from the advance widths of the font and the space between two words as the advance of U+0020. A word longer or wider than a line stands alone on it (D83.5).',
+      enum: ['characters', 'width'],
     },
     stroke: { oneOf: [noStrokeSchema, outsideStrokeSchema] },
     shadow: { oneOf: [noShadowSchema, dropShadowSchema] },
@@ -2974,7 +3024,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.23',
+  title: 'Kadrion composition 0.25',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

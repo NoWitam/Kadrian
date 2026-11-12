@@ -196,7 +196,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.24";
+export declare const SCHEMA_VERSION = "0.25";
 
 ---- SVG_IDENTITY
 export declare const SVG_IDENTITY: SvgMatrix;
@@ -415,6 +415,9 @@ export type TemplateRepeat = Infer<typeof templateRepeatSchema>;
 ---- TextAnimation (type only)
 export type TextAnimation = Infer<typeof textAnimationSchema>;
 
+---- TextFrame (type only)
+export type TextFrame = TextNode['frame'];
+
 ---- TextNode (type only)
 export type TextNode = Infer<typeof textNodeSchema>;
 
@@ -503,7 +506,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.24";
+            readonly const: "0.25";
         };
         readonly width: {
             readonly type: "integer";
@@ -6372,7 +6375,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.23";
+    readonly title: "Kadrion composition 0.25";
 };
 
 ---- definitionTimeUs
@@ -6499,7 +6502,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24' | '0.25';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

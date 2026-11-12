@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -216,6 +216,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 48,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -226,7 +227,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -418,6 +421,7 @@
               "text": "magic",
               "fontAssetId": "asset-font",
               "fontSize": 40,
+              "frame": { "kind": "none" },
               "color": "#ffd166",
               "style": {
                 "stroke": {
@@ -428,7 +432,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -707,6 +713,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -717,7 +724,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -864,6 +873,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -874,7 +884,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1021,6 +1033,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -1031,7 +1044,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1173,6 +1188,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -1183,7 +1199,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1325,6 +1343,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -1335,7 +1354,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [

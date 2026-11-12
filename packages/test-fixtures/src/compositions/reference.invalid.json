@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.25"
+        "value": "0.26"
       }
     ],
     "expectedErrors": [
@@ -2860,12 +2860,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -2951,12 +2954,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -3042,12 +3048,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -3128,12 +3137,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -3214,12 +3226,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -3300,12 +3315,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 0,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -5919,6 +5937,388 @@
     ]
   },
   {
+    "name": "text-frame-missing",
+    "description": "D83.3: every text has a frame, none or fixed.",
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/scenes/0/nodes/2/frame"
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/scenes/0/nodes/2/frame"
+      }
+    ]
+  },
+  {
+    "name": "text-frame-kind-unknown",
+    "description": "D83.3: a frame is none or fixed.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/frame",
+        "value": {
+          "kind": "auto"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/frame/kind"
+      }
+    ]
+  },
+  {
+    "name": "text-frame-width-zero",
+    "description": "D83.3: a fixed frame is at least one pixel wide.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/frame",
+        "value": {
+          "kind": "fixed",
+          "width": 0,
+          "height": 300
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/frame/width"
+      }
+    ]
+  },
+  {
+    "name": "text-frame-height-too-large",
+    "description": "D83.3: a fixed frame is at most 1 000 000 pixels high.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/frame",
+        "value": {
+          "kind": "fixed",
+          "width": 800,
+          "height": 1000001
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/frame/height"
+      }
+    ]
+  },
+  {
+    "name": "text-align-unknown",
+    "description": "D83.4: a text is aligned left, center, or right.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/style/align",
+        "value": "justify"
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/style/align"
+      }
+    ]
+  },
+  {
+    "name": "text-vertical-align-missing",
+    "description": "D83.4: every text style states its vertical alignment.",
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/scenes/0/nodes/2/style/verticalAlign"
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/scenes/0/nodes/2/style/verticalAlign"
+      }
+    ]
+  },
+  {
+    "name": "caption-line-break-unknown",
+    "description": "D83.5: captions break by characters or by width.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": {
+            "x": 40,
+            "y": 1500
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 1000,
+          "height": 300,
+          "style": {
+            "fontSize": 64,
+            "lineHeight": 80,
+            "color": "#ffffff",
+            "highlight": {
+              "color": "#ffd400",
+              "scale": 1,
+              "tracks": [],
+              "underline": {
+                "kind": "none"
+              },
+              "box": {
+                "kind": "none"
+              },
+              "stroke": {
+                "kind": "none"
+              },
+              "shadow": {
+                "kind": "none"
+              }
+            },
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 20,
+            "maxLines": 2,
+            "lineBreak": "words",
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "pageIn": {
+              "kind": "none"
+            },
+            "pageOut": {
+              "kind": "none"
+            }
+          },
+          "words": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/4/style/lineBreak"
+      }
+    ]
+  },
+  {
+    "name": "caption-highlight-stroke-width-zero",
+    "description": "D83.8: the outline of the spoken word is at least one pixel wide; no outline is kind none.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": {
+            "x": 40,
+            "y": 1500
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 1000,
+          "height": 300,
+          "style": {
+            "fontSize": 64,
+            "lineHeight": 80,
+            "color": "#ffffff",
+            "highlight": {
+              "color": "#ffd400",
+              "scale": 1,
+              "tracks": [],
+              "underline": {
+                "kind": "none"
+              },
+              "box": {
+                "kind": "none"
+              },
+              "stroke": {
+                "kind": "outside",
+                "color": "#000000",
+                "width": 0
+              },
+              "shadow": {
+                "kind": "none"
+              }
+            },
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 20,
+            "maxLines": 2,
+            "lineBreak": "characters",
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "pageIn": {
+              "kind": "none"
+            },
+            "pageOut": {
+              "kind": "none"
+            }
+          },
+          "words": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/4/style/highlight/stroke/width"
+      }
+    ]
+  },
+  {
+    "name": "caption-highlight-shadow-missing",
+    "description": "D83.8: every highlight states its shadow, none or drop.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-captions",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 10000000,
+          "position": {
+            "x": 40,
+            "y": 1500
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 1000,
+          "height": 300,
+          "style": {
+            "fontSize": 64,
+            "lineHeight": 80,
+            "color": "#ffffff",
+            "highlight": {
+              "color": "#ffd400",
+              "scale": 1,
+              "tracks": [],
+              "underline": {
+                "kind": "none"
+              },
+              "box": {
+                "kind": "none"
+              },
+              "stroke": {
+                "kind": "none"
+              }
+            },
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 20,
+            "maxLines": 2,
+            "lineBreak": "characters",
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "pageIn": {
+              "kind": "none"
+            },
+            "pageOut": {
+              "kind": "none"
+            }
+          },
+          "words": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/scenes/0/nodes/4/style/highlight/shadow"
+      }
+    ]
+  },
+  {
     "name": "bound-color-of-color-track",
     "description": "D69: a colour that a colour track replaces for every fragment cannot be bound.",
     "patch": [
@@ -6101,12 +6501,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -6182,12 +6585,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -6265,12 +6671,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -6396,12 +6805,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -6476,12 +6888,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -6582,12 +6997,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -6688,12 +7106,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },
@@ -6774,12 +7195,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 20,
             "maxLines": 2,
+            "lineBreak": "characters",
             "shadow": {
               "kind": "none"
             },
@@ -9542,12 +9966,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -9587,12 +10014,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -9731,12 +10161,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -9776,12 +10209,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -9935,12 +10371,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -9980,12 +10419,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10149,12 +10591,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10194,12 +10639,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10366,12 +10814,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10411,12 +10862,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10570,12 +11024,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10615,12 +11072,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10748,12 +11208,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10793,12 +11256,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10918,12 +11384,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },
@@ -10963,12 +11432,15 @@
                   "scale": 1,
                   "tracks": [],
                   "underline": { "kind": "none" },
-                  "box": { "kind": "none" }
+                  "box": { "kind": "none" },
+                  "stroke": { "kind": "none" },
+                  "shadow": { "kind": "none" }
                 },
                 "align": "center",
                 "verticalAlign": "bottom",
                 "maxLineLength": 16,
                 "maxLines": 2,
+                "lineBreak": "characters",
                 "stroke": { "kind": "none" },
                 "shadow": { "kind": "none" },
                 "box": { "kind": "none" },

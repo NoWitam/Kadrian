@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.24",
+  "schemaVersion": "0.25",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -58,6 +58,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 120,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -68,7 +69,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -196,6 +199,7 @@
           "text": "scenes",
           "fontAssetId": "asset-font",
           "fontSize": 120,
+          "frame": { "kind": "none" },
           "color": "#101828",
           "style": {
             "stroke": {
@@ -206,7 +210,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -254,6 +260,7 @@
           "text": "stories",
           "fontAssetId": "asset-font",
           "fontSize": 120,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -264,7 +271,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -352,6 +361,7 @@
           "text": "end",
           "fontAssetId": "asset-font",
           "fontSize": 120,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -362,7 +372,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
