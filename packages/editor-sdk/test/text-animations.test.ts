@@ -14,11 +14,19 @@ import { applyCommand, type Command } from '../src/index.js';
 import { codeOf, json, nodeOf, reference } from './support.js';
 
 const TITLE = 'node-title';
-const PLAIN = { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } };
+const PLAIN = {
+  stroke: { kind: 'none' },
+  shadow: { kind: 'none' },
+  box: { kind: 'none' },
+  align: 'left',
+  verticalAlign: 'top',
+};
 const STYLE = {
   stroke: { kind: 'outside', color: '#000000', width: 3 },
   shadow: { kind: 'drop', color: '#101828', opacity: 0.5, offset: { x: 2, y: 4 }, blur: 6 },
   box: { kind: 'solid', color: '#344054', opacity: 0.8, padding: 12, cornerRadius: 8 },
+  align: 'center',
+  verticalAlign: 'middle',
 };
 
 function fieldOf(document: unknown, nodeId: string, field: string): unknown {
@@ -70,7 +78,7 @@ function animated(...animations: unknown[]): ValidatedComposition {
 }
 
 describe('SetTextStyle (D69)', () => {
-  it('replaces the stroke, the shadow, and the box of a text, and is undone exactly', () => {
+  it('replaces the stroke, the shadow, the box, and the alignment of a text, and is undone exactly', () => {
     for (const nodeId of [TITLE, 'node-caption']) {
       const edited = roundTrip({ type: 'SetTextStyle', nodeId, style: STYLE });
       expect(fieldOf(edited, nodeId, 'style')).toEqual(STYLE);
@@ -104,6 +112,9 @@ describe('SetTextStyle (D69)', () => {
       { ...STYLE, stroke: { kind: 'outside', color: '#000000', width: 0 } },
       { ...STYLE, shadow: { ...STYLE.shadow, opacity: 1.5 } },
       { ...STYLE, box: { kind: 'gradient' } },
+      { ...STYLE, align: 'justify' },
+      { ...STYLE, verticalAlign: 'baseline' },
+      { stroke: PLAIN.stroke, shadow: PLAIN.shadow, box: PLAIN.box },
       { stroke: PLAIN.stroke, shadow: PLAIN.shadow },
     ]) {
       expect(codeOf(() => apply({ type: 'SetTextStyle', nodeId: TITLE, style }))).toBe(

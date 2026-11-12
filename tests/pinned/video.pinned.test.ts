@@ -147,7 +147,7 @@ describe.skipIf(!available)('video nodes in the Producer (D49, D50)', () => {
   it('records the media facts and the decode in the render manifest (D50.5)', () => {
     expect(baseline.manifest).toMatchObject({
       manifestVersion: 3,
-      schemaVersion: '0.23',
+      schemaVersion: '0.25',
       preset: { name: 'frames-png', width: 640, height: 360, fps: 30 },
       ffmpeg: null,
       video: {
@@ -178,7 +178,14 @@ describe.skipIf(!available)('video nodes in the Producer (D49, D50)', () => {
       { length: VIDEO_FIXTURE.frames },
       (_, at) => at * VIDEO_FIXTURE.frameTicks,
     );
-    const node = { startUs: 0, durationUs: 2_000_000, sourceStartUs: 0 };
+    const node = {
+      startUs: 0,
+      durationUs: 2_000_000,
+      sourceStartUs: 0,
+      sourceStartRemainder: 0,
+      speed: { num: 1, den: 1 },
+      reverse: false,
+    };
     const rows: { timeUs: number; sourceFrame: number; differingPixels: number }[] = [];
     for (const { timeUs, png } of baseline.frames) {
       const sourceFrame = sourceFrameIndex(

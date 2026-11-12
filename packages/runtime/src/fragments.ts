@@ -8,10 +8,11 @@
 import type { FragmentTrack, FragmentUnit, TextAnimation, TextNode } from '@kadrion/schema';
 
 import type { Bounds } from './easing.js';
-import { unsupported } from './errors.js';
+import { EvaluationError, unsupported } from './errors.js';
 import { textLayout } from './graphemes.js';
 import { sampleColorKeyframes, sampleNumberKeyframes, sampleVec2Keyframes } from './keyframes.js';
 import type { FragmentState, TextFragmentsState, Vec2 } from './state.js';
+import { textLines, type FontMetrics } from './text-frame.js';
 
 /**
  * The bounds of a keyframe value of each track in the schema, within which an
@@ -170,25 +171,51 @@ export function applied(
 }
 
 /**
+ * How many line fragments a text has (D69.2, D83.5): its lines with a word,
+ * which for a text with a frame are the lines of its wrap, measured with
+ * `metrics`, the metrics of its font. A framed text without them is the
+ * `EvaluationError` `font-metrics-missing` (D83.7).
+ */
+function lineFragments(
+  node: TextNode,
+  layout: { readonly fragmentLines: number },
+  metrics: FontMetrics | undefined,
+): number {
+  if (node.frame.kind === 'none') return layout.fragmentLines;
+  if (metrics === undefined) {
+    throw new EvaluationError(
+      'font-metrics-missing',
+      `The text "${node.id}" has a frame, and its font "${node.fontAssetId}" has no metrics (D83.7).`,
+    );
+  }
+  return textLines(node.text, node.fontSize, node.frame.width, metrics).filter((line) =>
+    line.runs.some((run) => 'letters' in run),
+  ).length;
+}
+
+/**
  * The fragments of a text node at the scene time `timeUs` (D69), or `null`
  * for a node without text animations, which is drawn in one piece. Each unit
  * its animations use lists one state per fragment, in the order of the text;
  * a unit no animation uses lists none. `color` is the colour of the text at
- * that instant, which a fragment shows until a colour track replaces it.
+ * that instant, which a fragment shows until a colour track replaces it. The
+ * lines of a text with a frame are those of its wrap (D83.5), for which
+ * `metrics`, the metrics of its font, are needed.
  */
 export function textFragments(
   node: TextNode,
   color: string,
   timeUs: number,
+  metrics?: FontMetrics,
 ): TextFragmentsState | null {
   if (node.textAnimations.length === 0) return null;
   const layout = textLayout(node.text);
+  const used = new Set(node.textAnimations.map((animation) => animation.unit));
   const counts: Readonly<Record<FragmentUnit, number>> = {
     letter: layout.letters,
     word: layout.words,
-    line: layout.fragmentLines,
+    line: used.has('line') ? lineFragments(node, layout, metrics) : 0,
   };
-  const used = new Set(node.textAnimations.map((animation) => animation.unit));
   const fragments: Record<FragmentUnit, FragmentState[]> = {
     letter: [],
     word: [],

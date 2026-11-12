@@ -58,6 +58,10 @@ import migration22After from './compositions/migration-0-21-to-0-22.after.json' 
 import migration22Before from './compositions/migration-0-21-to-0-22.before.json' with { type: 'json' };
 import migration23After from './compositions/migration-0-22-to-0-23.after.json' with { type: 'json' };
 import migration23Before from './compositions/migration-0-22-to-0-23.before.json' with { type: 'json' };
+import migration24After from './compositions/migration-0-23-to-0-24.after.json' with { type: 'json' };
+import migration24Before from './compositions/migration-0-23-to-0-24.before.json' with { type: 'json' };
+import migration25After from './compositions/migration-0-24-to-0-25.after.json' with { type: 'json' };
+import migration25Before from './compositions/migration-0-24-to-0-25.before.json' with { type: 'json' };
 import nested from './compositions/nested.json' with { type: 'json' };
 import customHtml from './compositions/custom-html.json' with { type: 'json' };
 import elements from './compositions/elements.json' with { type: 'json' };
@@ -80,6 +84,8 @@ import transitions from './compositions/transitions.json' with { type: 'json' };
 import clipTransitions from './compositions/clip-transitions.json' with { type: 'json' };
 import easing from './compositions/easing.json' with { type: 'json' };
 import video from './compositions/video.json' with { type: 'json' };
+import speed from './compositions/speed.json' with { type: 'json' };
+import framedText from './compositions/framed-text.json' with { type: 'json' };
 import invalidCasesV01 from './compositions/reference.v0-1.invalid.json' with { type: 'json' };
 import referenceV01 from './compositions/reference.v0-1.json' with { type: 'json' };
 import invalidCasesV02 from './compositions/reference.v0-2.invalid.json' with { type: 'json' };
@@ -124,6 +130,10 @@ import invalidCasesV021 from './compositions/reference.v0-21.invalid.json' with 
 import referenceV021 from './compositions/reference.v0-21.json' with { type: 'json' };
 import invalidCasesV022 from './compositions/reference.v0-22.invalid.json' with { type: 'json' };
 import referenceV022 from './compositions/reference.v0-22.json' with { type: 'json' };
+import invalidCasesV023 from './compositions/reference.v0-23.invalid.json' with { type: 'json' };
+import referenceV023 from './compositions/reference.v0-23.json' with { type: 'json' };
+import invalidCasesV024 from './compositions/reference.v0-24.invalid.json' with { type: 'json' };
+import referenceV024 from './compositions/reference.v0-24.json' with { type: 'json' };
 
 export {
   AUDIO_SAMPLE_RATE,
@@ -134,6 +144,7 @@ export {
   FONT_UNITS_PER_EM,
   fixtureSine,
   generateProportionalFont,
+  generateProportionalFontAsset,
   generateReferenceAssets,
   generateSoundFixture,
   generateSvgAsset,
@@ -264,7 +275,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.23. */
+/** The 10 s, 1080x1920, 30 fps reference composition (specification §3), in schema 0.25. */
 export const referenceComposition: unknown = deepFreeze(reference);
 
 /** Patches over `referenceComposition`; the consumer applies them to a copy. */
@@ -485,8 +496,24 @@ export const invalidCompositionCasesV022 = deepFreeze(
   invalidCasesV022,
 ) as readonly InvalidCompositionCase[];
 
+/** The reference composition as the last build of schema 0.23 had it, frozen (D35.4, D82.8). */
+export const referenceCompositionV023: unknown = deepFreeze(referenceV023);
+
+/** The negative corpus of schema 0.23, frozen with it: patches over `referenceCompositionV023`. */
+export const invalidCompositionCasesV023 = deepFreeze(
+  invalidCasesV023,
+) as readonly InvalidCompositionCase[];
+
+/** The reference composition as the last build of schema 0.24 had it, frozen (D35.4, D83.9). */
+export const referenceCompositionV024: unknown = deepFreeze(referenceV024);
+
+/** The negative corpus of schema 0.24, frozen with it: patches over `referenceCompositionV024`. */
+export const invalidCompositionCasesV024 = deepFreeze(
+  invalidCasesV024,
+) as readonly InvalidCompositionCase[];
+
 /**
- * A template of schema 0.23 (D58): a 2 s card, 640x360, 30 fps, with seven
+ * A template of schema 0.25 (D58): a 2 s card, 640x360, 30 fps, with seven
  * inputs — a text `name` and a number `rank` filling the placeholders of the
  * title, a colour `brand` bound to the background, a text `tagline` bound to
  * the tagline, an image `photo` bound to the photo's asset, a boolean
@@ -496,7 +523,7 @@ export const invalidCompositionCasesV022 = deepFreeze(
 export const templateComposition: unknown = deepFreeze(template);
 
 /**
- * A template of schema 0.23 with conditions and repeats (D59): 640x360, 30 fps;
+ * A template of schema 0.25 with conditions and repeats (D59): 640x360, 30 fps;
  * an intro scene kept while the boolean `show-intro` holds, then a scene
  * repeated for each person of the list `people` for the duration its item
  * names, with the colour, the name, and the portrait of the item, and a
@@ -514,7 +541,7 @@ export const repeatsComposition: unknown = deepFreeze(repeats);
 export const repeatsInstantiated: unknown = deepFreeze(repeatsExpected);
 
 /**
- * A composition of schema 0.23 with captions (D57): 3 s, 640x360, 30 fps, one
+ * A composition of schema 0.25 with captions (D57): 3 s, 640x360, 30 fps, one
  * scene with a background and a captions node of ten words, centred at the
  * bottom of its box, at most 16 characters a line and two lines a page, so
  * that the words make four lines and two pages. The first word starts at
@@ -540,7 +567,7 @@ export const captionsGoldenTimestamps: readonly GoldenTimestamp[] = Object.freez
 );
 
 /**
- * A composition of schema 0.23 with five scenes and a transition of each kind
+ * A composition of schema 0.25 with five scenes and a transition of each kind
  * between them (D56): a crossfade, a fade through white, a slide to the left,
  * and a wipe upwards, each 400 ms, and in the last scene a crossfade of 400 ms
  * between an image and a text of one layer. Every scene and every transition
@@ -565,7 +592,7 @@ export const transitionsGoldenTimestamps: readonly GoldenTimestamp[] = Object.fr
 );
 
 /**
- * A composition of schema 0.23 with clip transitions of every kind (D66):
+ * A composition of schema 0.25 with clip transitions of every kind (D66):
  * 11 s, 640x360, 30 fps, four scenes. In `scene-up` eight clips of one layer
  * follow each other, images and texts of 800 ms every 600 ms, each later one
  * above the one before it, joined by transitions of 200 ms of the seven kinds
@@ -609,7 +636,7 @@ export const clipTransitionsGoldenTimestamps: readonly GoldenTimestamp[] = Objec
 );
 
 /**
- * A composition of schema 0.23 with eased motion (D67): 2.6 s, 640x360, 30 fps,
+ * A composition of schema 0.25 with eased motion (D67): 2.6 s, 640x360, 30 fps,
  * two scenes. In `scene-motion` seven images of 40x40 move from x 40 to x 480
  * over the first 1.6 s, one row each, with the easings linear, hold, ease-in,
  * ease-out, ease-in-out, a cubic Bézier that overshoots (0.34, 1.56, 0.64,
@@ -636,7 +663,7 @@ export const easingGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
 );
 
 /**
- * A composition of schema 0.23 with every property of D68 (2 s, 640x360, 30
+ * A composition of schema 0.25 with every property of D68 (2 s, 640x360, 30
  * fps, one scene): a background whose colour moves from #1d2939 to #f79009;
  * an image rotated by 10 degrees about its centre that turns 300 degrees more,
  * eased in and out; an image under cover whose crop grows to 200, 300, 200,
@@ -662,7 +689,7 @@ export const motionGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
 );
 
 /**
- * A composition of schema 0.23 with text styles and text animated in fragments
+ * A composition of schema 0.25 with text styles and text animated in fragments
  * (D69): 2 s, 640x360, 30 fps, one scene with four texts of 40 px on a dark
  * background. `Kadrion danced` has an outline outside its glyphs and enters
  * letter by letter, forward, 60 ms apart, each letter rising 30 px while it
@@ -692,7 +719,7 @@ export const textGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
 );
 
 /**
- * A composition of schema 0.23 with animated captions (D70): 2 s, 640x360, 30
+ * A composition of schema 0.25 with animated captions (D70): 2 s, 640x360, 30
  * fps, one scene with a background, a safe area, and two captions nodes of 32
  * px, two lines a page. `captions-pop` has an outline outside its glyphs; its
  * spoken word turns amber, grows by 1.25, and is underlined; each page enters
@@ -722,7 +749,7 @@ export const captionsMotionGoldenTimestamps: readonly GoldenTimestamp[] = Object
 );
 
 /**
- * A composition of schema 0.23 with effects (D71): 2.2 s, 640x360, 30 fps,
+ * A composition of schema 0.25 with effects (D71): 2.2 s, 640x360, 30 fps,
  * three scenes, the first two joined by a blur dissolve of 400 ms and radius
  * 12. `scene-effects`,
  * saturated by 1.2 as a whole, holds an image whose blur falls from 8 to 0 over
@@ -756,7 +783,7 @@ export const effectsGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze
 );
 
 /**
- * A composition of schema 0.23 with the effects of SVG filters (D72): 1.6 s,
+ * A composition of schema 0.25 with the effects of SVG filters (D72): 1.6 s,
  * 640x360, 30 fps, two scenes. `scene-svg`, whose vignette deepens from 0 to
  * 0.5 over 1 s, holds an image whose curves mix in from 0 to 1, eased in and
  * out; a video graded from cool to warm; a text whose orange glow spreads from
@@ -786,7 +813,7 @@ export const effectsSvgGoldenTimestamps: readonly GoldenTimestamp[] = Object.fre
 );
 
 /**
- * A composition of schema 0.23 with vector shapes (D73): 1.6 s, 640x360, 30
+ * A composition of schema 0.25 with vector shapes (D73): 1.6 s, 640x360, 30
  * fps, one scene on a dark background. A rectangle filled with a linear
  * gradient, its stroke dashed, grows and rounds its corners, eased in and out;
  * an ellipse filled with a radial gradient thickens its stroke and turns it
@@ -814,7 +841,7 @@ export const shapesGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
 );
 
 /**
- * A composition of schema 0.23 with an SVG asset (D74): 1.6 s, 640x360, 30
+ * A composition of schema 0.25 with an SVG asset (D74): 1.6 s, 640x360, 30
  * fps, one scene on a dark background. The badge of `generateSvgAsset` is
  * shown by an image node on the left; on the right stand the shape nodes that
  * `svgToShapes` gave for the same drawing, in a box of the same size — the
@@ -839,7 +866,7 @@ export const svgGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
 );
 
 /**
- * A composition of schema 0.23 with blend modes, masks, and mattes (D75): 2 s,
+ * A composition of schema 0.25 with blend modes, masks, and mattes (D75): 2 s,
  * 640x360, 30 fps, one scene on a dark background. On the left, sixteen
  * ellipses with a vertical gradient from green to red, one per blend mode in
  * the order of the schema, lie over a horizontal gradient from violet through
@@ -871,7 +898,7 @@ export const compositingGoldenTimestamps: readonly GoldenTimestamp[] = Object.fr
 );
 
 /**
- * A composition of schema 0.23 with nested compositions (D76): 2 s, 640x360,
+ * A composition of schema 0.25 with nested compositions (D76): 2 s, 640x360,
  * 30 fps, one scene on a dark background, and two definitions. `card`, 320x180
  * and 1.5 s, holds a background, a photo masked by a feathered ellipse that
  * slides 24 pixels to the right, the text `Kadrion` with an amber glow that
@@ -901,7 +928,7 @@ export const nestedGoldenTimestamps: readonly GoldenTimestamp[] = Object.freeze(
 );
 
 /**
- * A composition of schema 0.23 with elements (D77): 2 s, 640x360, 30 fps, one
+ * A composition of schema 0.25 with elements (D77): 2 s, 640x360, 30 fps, one
  * scene on a dark background, and two definitions with templates. `lower-third`,
  * 360x80, holds a background bound to the colour input `accent`, the text
  * `{{title}}` filled from the text input `title`, and a white disc kept while
@@ -929,7 +956,7 @@ export const elementsGoldenTimestamps: readonly GoldenTimestamp[] = Object.freez
 );
 
 /**
- * A composition of schema 0.23 with two Custom HTML elements for AI authors
+ * A composition of schema 0.25 with two Custom HTML elements for AI authors
  * (D78): 10 s, 640x360, 30 fps, on a dark background. `html-css`, 640x220 at
  * the top for the whole 10 s, is CSS alone: a ball sized by the number
  * parameter `ball` and coloured by the colour parameter `accent` slides,
@@ -1203,6 +1230,29 @@ export const migrationPair022To023: MigrationPair = deepFreeze({
   after: migration23After,
 });
 
+/**
+ * The hand-written pair of the step 0.23 → 0.24 (D35.5, D82.8): the document
+ * the pair of 0.22 → 0.23 ends with, whose `schemaVersion` changes and whose
+ * video nodes and audio clips each gain the time map of speed 1 forwards —
+ * `sourceStartRemainder: 0`, `speed: { num: 1, den: 1 }`, and `reverse: false`
+ * — after `sourceStartUs`.
+ */
+export const migrationPair023To024: MigrationPair = deepFreeze({
+  before: migration24Before,
+  after: migration24After,
+});
+
+/**
+ * The hand-written pair of the step 0.24 → 0.25 (D35.5, D83.9): the document
+ * the pair of 0.23 → 0.24 ends with, whose `schemaVersion` changes and whose
+ * text nodes each gain `frame: { kind: 'none' }` after `fontSize` and
+ * `align: 'left'` and `verticalAlign: 'top'` after the `box` of their style.
+ */
+export const migrationPair024To025: MigrationPair = deepFreeze({
+  before: migration25Before,
+  after: migration25After,
+});
+
 /** Which nodes of `lifetimeComposition` are active and which are shown at one time. */
 export interface ExpectedLifetime {
   readonly timeUs: number;
@@ -1221,7 +1271,7 @@ export interface ExpectedLifetimes {
   readonly times: readonly ExpectedLifetime[];
 }
 
-/** A small composition of schema 0.23 whose nodes begin and end inside it (D42.2). */
+/** A small composition of schema 0.25 whose nodes begin and end inside it (D42.2). */
 export const lifetimeComposition: unknown = deepFreeze(lifetime);
 
 /**
@@ -1254,7 +1304,7 @@ export const referenceExpectedRender: ExpectedRender = deepFreeze(expectedRender
 export const videoComposition: unknown = deepFreeze(video);
 
 /**
- * A composition of schema 0.23 whose pictures are placed off their centre
+ * A composition of schema 0.25 whose pictures are placed off their centre
  * (D63): 1 s, 640x360, 30 fps, one scene with a background and the reference
  * image and the video of `VIDEO_FIXTURE` twice each — the image with `cover` in
  * a tall box, focused on its left edge, and with `contain` in a wide box,
@@ -1268,6 +1318,50 @@ export const focusComposition: unknown = deepFreeze(focus);
 export const focusGoldenTimestamps: readonly GoldenTimestamp[] = deepFreeze([
   { timeUs: 0, frame: 0 },
   { timeUs: 500_000, frame: 15 },
+]);
+
+/**
+ * A composition of schema 0.25 whose clips play at another speed, frozen, or
+ * reversed (D82): 2 s, 640x360, 30 fps, one scene with a background and the
+ * video with sound of `VIDEO_SOUND_FIXTURE` in six nodes — at a quarter of
+ * its speed with a remainder, at half, at three halves, at four times,
+ * reversed, and frozen (silent) — and two audio clips of the reference sound,
+ * one at half speed and one reversed at three halves. Its assets are the video
+ * that `videoSoundFixtureArguments` makes and the sound of
+ * `generateReferenceAssets`.
+ */
+export const speedComposition: unknown = deepFreeze(speed);
+
+/** The golden timestamps of `speedComposition`, with their frame index at 30 fps. */
+export const speedGoldenTimestamps: readonly GoldenTimestamp[] = deepFreeze([
+  { timeUs: 0, frame: 0 },
+  { timeUs: 500_000, frame: 15 },
+  { timeUs: 1_000_000, frame: 30 },
+  { timeUs: 1_500_000, frame: 45 },
+  { timeUs: 1_966_666, frame: 59 },
+]);
+
+/**
+ * A composition of schema 0.25 whose texts lie in frames and whose captions
+ * break by width (D83): 2 s, 640x360, 30 fps, two scenes of 1 s. The first
+ * holds nine texts in frames of 190x104, one in each alignment, each with a
+ * box behind its block of lines; the second a word wider than its frame,
+ * more lines than a frame holds, a framed text with line feeds, a run of two
+ * spaces, an outline, a shadow, and an entrance by line, a text without a
+ * frame aligned to the centre of its widest line, and captions broken by
+ * width whose spoken word has an outline and a shadow of its own (W5). Every
+ * text is in the proportional font of `generateProportionalFontAsset`, and
+ * every character has a glyph in it.
+ */
+export const framedTextComposition: unknown = deepFreeze(framedText);
+
+/** The golden timestamps of `framedTextComposition`, with their frame index at 30 fps. */
+export const framedTextGoldenTimestamps: readonly GoldenTimestamp[] = deepFreeze([
+  { timeUs: 500_000, frame: 15 },
+  { timeUs: 1_100_000, frame: 33 },
+  { timeUs: 1_200_000, frame: 36 },
+  { timeUs: 1_500_000, frame: 45 },
+  { timeUs: 1_966_666, frame: 59 },
 ]);
 
 /** The golden timestamps of `videoComposition`, with their frame index at 30 fps. */

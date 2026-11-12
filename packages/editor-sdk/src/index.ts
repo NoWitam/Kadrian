@@ -24,6 +24,12 @@ export type {
   ClipTransitionAtCutArgumentsSchema,
   CutAlignment,
 } from './cut.js';
+export { freezeFrame, freezeFrameArgumentsSchema } from './freeze.js';
+export type {
+  FreezeFrameArguments,
+  FreezeFrameArgumentsSchema,
+  FreezeFrameMode,
+} from './freeze.js';
 export type {
   BusChange,
   BusListener,
@@ -74,6 +80,8 @@ export {
   setVideoVolumeArgumentsSchema,
   addSceneArgumentsSchema,
   joinClipsArgumentsSchema,
+  setClipReverseArgumentsSchema,
+  setClipSpeedArgumentsSchema,
   addClipTransitionArgumentsSchema,
   addSceneTransitionArgumentsSchema,
   removeTransitionArgumentsSchema,
@@ -133,6 +141,14 @@ export {
 } from './commands.js';
 export type {
   JoinClipsArguments,
+  SetClipReverseArguments,
+  SetClipReverseArgumentsSchema,
+  SetClipReverseCommand,
+  SetClipSpeedArguments,
+  SetClipSpeedArgumentsSchema,
+  SetClipSpeedCommand,
+  SpeedSchema,
+  SpeedValue,
   AddClipTransitionArguments,
   AddClipTransitionArgumentsSchema,
   AddClipTransitionCommand,

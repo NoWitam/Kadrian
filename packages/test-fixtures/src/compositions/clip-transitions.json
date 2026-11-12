@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -98,6 +98,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -108,7 +109,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -179,6 +182,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#12b76a",
           "style": {
             "stroke": {
@@ -189,7 +193,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -260,6 +266,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#f04438",
           "style": {
             "stroke": {
@@ -270,7 +277,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -341,6 +350,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#7a5af8",
           "style": {
             "stroke": {
@@ -351,7 +361,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -493,6 +505,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#7a5af8",
           "style": {
             "stroke": {
@@ -503,7 +516,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -574,6 +589,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#f04438",
           "style": {
             "stroke": {
@@ -584,7 +600,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -655,6 +673,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#12b76a",
           "style": {
             "stroke": {
@@ -665,7 +684,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -736,6 +757,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -746,7 +768,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -989,6 +1013,7 @@
               "text": "Kadrion",
               "fontAssetId": "asset-font",
               "fontSize": 96,
+              "frame": { "kind": "none" },
               "color": "#ffffff",
               "style": {
                 "stroke": {
@@ -999,7 +1024,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -1067,6 +1094,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 64,
+          "frame": { "kind": "none" },
           "color": "#101828",
           "style": {
             "stroke": {
@@ -1077,7 +1105,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -58,6 +58,7 @@
           "text": "a",
           "fontAssetId": "asset-font",
           "fontSize": 72,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -68,7 +69,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -196,6 +199,7 @@
           "text": "b",
           "fontAssetId": "asset-font",
           "fontSize": 72,
+          "frame": { "kind": "none" },
           "color": "#101828",
           "style": {
             "stroke": {
@@ -206,7 +210,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -254,6 +260,7 @@
           "text": "c",
           "fontAssetId": "asset-font",
           "fontSize": 72,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -264,7 +271,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -352,6 +361,7 @@
           "text": "d",
           "fontAssetId": "asset-font",
           "fontSize": 72,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -362,7 +372,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -450,6 +462,7 @@
           "text": "e",
           "fontAssetId": "asset-font",
           "fontSize": 72,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -460,7 +473,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

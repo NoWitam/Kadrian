@@ -698,6 +698,127 @@ already exercises it.
   `tests/pinned/video-fixture.ts` for both, so a pinned file changes and Q14
   reopens, as the roadmap plans.
 
+## Implementation notes (PR-61)
+
+PR-61 is the schema step: a document of `0.24` states a speed, a freeze frame,
+or a reverse on a video node or an audio clip, and both hosts render it.
+
+- **The step from `0.23`** (`step-0-23-to-0-24.ts`) adds
+  `sourceStartRemainder: 0`, `speed: { num: 1, den: 1 }`, and
+  `reverse: false` to every video node and audio clip, in scenes, in groups,
+  in definitions, and in the composition's clips, after `sourceStartUs`; an
+  instance has none. The frozen `0.23` schema is `src/v0-23/`. A definition of
+  a document of `0.22` or `0.23` is validated as one of `0.24` with the
+  defaults added (`withSpeedOne`), so it is judged as its own version judged it.
+- **`speed-invalid`** names a speed outside 1/4 to 4 that is not 0, a
+  denominator above 1 000, a fraction not in lowest terms, a remainder not below
+  its denominator, a frozen audio clip, a frozen clip reversed, and a reversed
+  clip that samples more than 600 000 000 µs of source.
+- **The main entry** of the schema re-exports `time-map.ts`;
+  `sourceTimeUs` and `sampledSourceRange` read the map, and a plan entry at
+  another speed or reversed carries `map`, the clip's map in composition time
+  (`shiftedTimeMap`). A sound at speed 1 forwards has no `map` key, so its plan
+  and the audio manifest keep their bytes.
+- **The Producer** (`packages/producer/src/stretch.ts`) decodes the source
+  range `stretchSourceRange` names to 32-bit floats with the pinned FFmpeg,
+  computes the sound with `stretchSound`, and writes it to a temporary 32-bit
+  float WAV that is the sound's input of the audio pass, read from sample 0;
+  the manifest records `stretch` (speed, direction, and the SHA-256 of the
+  samples). The module writes files, so `eslint.config.js` lists it beside
+  `video.ts` as a module allowed to.
+- **The source's length.** The Producer reads a mapped sound's source only up
+  to the length its first audio stream states (`duration_ts` at its rate,
+  `statedSourceSamples`), and the grains hear silence past it, as they do in the
+  Player, whose decode holds that length: the pinned FFmpeg decodes the AAC
+  sound of the video fixture to 144 384 samples where the stream states, and
+  Chromium decodes, 144 000, and the padding of the last frame would otherwise
+  reach the last millisecond of a sound read to the end of its source.
+- **The Player's subpath imports.** The Player's build imports
+  `@kadrion/runtime/stretch`, which imports `@kadrion/schema/time-map`; the
+  conformance host, the pinned pages that load the Player, and the playground
+  map both (`HOST_ENTRIES` in `tests/parity/parity.ts`), and the Player's dist
+  tree of D33.10 includes their files.
+- **The Player** computes the same samples from its decoded buffer and plays
+  them as one `AudioBufferSourceNode` from offset 0 at the sound's first
+  sample; a seek plays the same buffer from the seek's offset. The computed
+  buffers are kept per Player (`StretchCache`, not exported from the
+  package) by the sound's map, for its decoded buffer, over the samples they
+  hold, so a play that starts inside them computes nothing. `scheduleSounds` keeps its signature; the Player
+  calls `scheduleSoundsWith`, which is internal. `SoundContext` gains
+  `createBuffer`, the one change of the Player's public surface.
+- **editor-sdk.** `TrimClipStart`, `TrimClipEnd`, `SplitClip`, and `JoinClips`
+  move the map by `advanceClipSource` as the table of D82.2 states; a join of
+  reversed parts takes the source of the second and is checked by splitting it
+  again. The checks of source ranges read the range a sound hears.
+  `describe_document` states `speed` as a multiplier (`"x1.5"`), `reverse`, and
+  `sampledSourceRange` after it, without `sourceStartRemainder`.
+- **The corpus.** Each corpus document of `0.23` that only had an expectation
+  gets an entry `X-0-23` (as in PR-56), so every file of `v0-23/` is named.
+- **The speed composition** (`speed.json`) holds video nodes at 1/4, 1/2, 3/2,
+  and 4, one reversed, and one frozen, an audio clip at 1/2 and one reversed at
+  3/2. `tests/pinned/speed.pinned.test.ts` compares the Producer's frames with
+  the Player's forwards and backwards, with its golden frames, and the Player's
+  graph in an `OfflineAudioContext` with the Producer's intermediate within
+  1e-4; it is a pinned file added while Q14 is open. Its golden frames are
+  written by `node --run goldens:update` in the pinned container; PR-61 does
+  not commit them from another environment.
+- **The runtime build** changes
+  (`sha256:a37aae1ca7c49be1a80ed1d29eb5bebecc019dde36a61d36319380a637d45129`):
+  the golden manifests change in the three fields of D42 only, every golden PNG
+  file keeps its bytes, and the parity records are measured again in the pinned
+  container.
+
+## Implementation notes (PR-62)
+
+PR-62 adds the two commands, the helper, and their three tools; no schema,
+runtime, renderer, Player, or Producer file changes.
+
+- **`SetClipSpeed`** (`registry.ts`) takes `clipId`, `speed`, and optional
+  `durationUs` and `sourceStartRemainder`, the first command whose arguments
+  have optional fields. `parseSetClipSpeed` converts `speed` with `parseSpeed`
+  when the bus parses the command, so the command, its inverse, and the
+  history hold the exact `{ num, den }`; a number, a string, or an object it
+  refuses is `speed-invalid` with the message of `parseSpeed` (which names the
+  nearest speed), and a value of another JSON type is `invalid-argument`, as
+  the tool's schema refuses it. `speed-invalid` joins the codes of
+  `EditorError`. `CommandArguments<'SetClipSpeed'>` is the arguments as a
+  caller writes them (`SetClipSpeedArguments`, its speed a `SpeedValue`), so the
+  tool's example reads `"x0.5"`. The default duration is
+  `⌈durationUs · old / new⌉` in `BigInt`; the default remainder is
+  `⌊remainder · new den / old den⌋`. Refused besides with `speed-invalid` for
+  `x0` on an audio clip or a reversed clip and a remainder not below the new
+  `den`; the inverse always states the old speed, duration, and remainder.
+- **`SetClipReverse`** flips `reverse` alone, since the same fields sample the
+  same range in either direction (D82.1); `speed-invalid` for a freeze frame.
+- **`freezeFrame`** (`freeze.ts`, exported with `freezeFrameArgumentsSchema`)
+  takes `{ clipId, atUs, holdUs, mode, newClipIds }`, `newClipIds` two
+  different IDs: the first names the freeze frame, the second the part of the
+  clip after it, which an overwrite that reaches the clip's end does not make.
+  `atUs` lies strictly inside the clip (`time-outside-clip`), as a split's
+  time does. `overwrite` is `SplitClip`, `SplitClip` (unless the hold reaches
+  the end), `SetClipReverse` false, `SetClipSpeed` x0, and `SetVideoSource` at
+  the source time shown at `atUs`, in that order, so that the picture of no
+  intermediate document samples source outside the range the clip sampled. `insert` is `SplitClip`,
+  `MoveClip` of the second half, and `AddNode` of the freeze frame between the
+  halves: the node is the second half `SplitClip` would make under the freeze
+  frame's ID (`splitSecondHalf`, internal to the package, with the same rules
+  and refusals), at speed x0, remainder 0, forwards, lasting `holdUs`.
+- **Tools.** `set_clip_speed` and `set_clip_reverse` come after `join_clips`
+  in the order of the registry, and `freeze_frame` after
+  `add_clip_transition_at_cut`; the catalogue grows from 100 to 103 entries.
+  The descriptions of `set_clip_speed` and of the `speed` argument list the
+  common speeds as multipliers (`SPEEDS` in `commands.ts`).
+- **Tests.** `packages/editor-sdk/test/speed-commands.test.ts`: every row of
+  the table of D82.11, the defaults of the duration and the remainder, every
+  refusal, and each command and both modes of the helper undone byte for byte,
+  forwards, reversed, and at other speeds. `packages/ai-sdk/test/speed-requests.test.ts`:
+  the fixture of model requests, each carried out by `executeTool` alone and
+  compared with a document written by hand.
+- **The runtime build** keeps its bytes
+  (`sha256:a37aae1ca7c49be1a80ed1d29eb5bebecc019dde36a61d36319380a637d45129`),
+  and so does the Player's dist tree: neither imports `@kadrion/editor-sdk` or
+  `@kadrion/ai-sdk`.
+
 ## Questions for the owner, with recommendations
 
 Answered by the owner on 2026-11-11 at 10:44 (Europe/Warsaw): every question

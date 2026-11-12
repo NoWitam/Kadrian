@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -138,6 +138,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 140,
           "height": 140,
           "fit": "cover",
@@ -213,6 +216,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 48,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -223,7 +227,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -415,6 +421,7 @@
               "text": "magic",
               "fontAssetId": "asset-font",
               "fontSize": 40,
+              "frame": { "kind": "none" },
               "color": "#ffd166",
               "style": {
                 "stroke": {
@@ -425,7 +432,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -531,6 +540,9 @@
           "animations": [],
           "assetId": "asset-video-green",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 288,
           "height": 162,
           "fit": "fill",
@@ -701,6 +713,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -711,7 +724,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -751,6 +766,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 110,
           "height": 100,
           "fit": "cover",
@@ -855,6 +873,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -865,7 +884,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -906,6 +927,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 110,
           "height": 100,
           "fit": "cover",
@@ -1009,6 +1033,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -1019,7 +1044,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1058,6 +1085,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 110,
           "height": 100,
           "fit": "cover",
@@ -1158,6 +1188,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -1168,7 +1199,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1206,6 +1239,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 110,
           "height": 100,
           "fit": "cover",
@@ -1307,6 +1343,7 @@
           "text": "stars",
           "fontAssetId": "asset-font",
           "fontSize": 32,
+          "frame": { "kind": "none" },
           "color": "#40e060",
           "style": {
             "stroke": {
@@ -1317,7 +1354,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [
@@ -1357,6 +1396,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 110,
           "height": 100,
           "fit": "cover",
@@ -1409,6 +1451,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 110,
           "height": 10,
           "fit": "cover",

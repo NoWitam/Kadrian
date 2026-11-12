@@ -444,6 +444,16 @@ export function parityRecord(
 
 /** The host's import map (D33.2): `@kadrion/<name>` → `packages/<name>/dist/index.js`. */
 export const HOST_PACKAGES = ['player', 'renderer-dom', 'runtime', 'schema'] as const;
+/**
+ * The entry points other than an index that the built host packages import by
+ * name, each mapped to its file in the package's dist: the Player computes a
+ * sound at another speed with `@kadrion/runtime/stretch`, which reads the map
+ * from `@kadrion/schema/time-map` (D82.6).
+ */
+export const HOST_ENTRIES: Readonly<Record<string, string>> = {
+  '@kadrion/runtime/stretch': 'runtime/stretch.js',
+  '@kadrion/schema/time-map': 'schema/time-map.js',
+};
 /** The two runtime files the host fetches besides the modules it imports. */
 export const RUNTIME_FILES = [
   'packages/renderer-dom/dist/runtime-build/kadrion-runtime.js',
@@ -499,6 +509,11 @@ function resolveSpecifier(from: string, specifier: string): string {
       throw new Error(`${from} imports ${specifier}, which the host does not map.`);
     }
     return `packages/${bare[1]}/dist/index.js`;
+  }
+  const entry = HOST_ENTRIES[specifier];
+  if (entry !== undefined) {
+    const [name = '', ...file] = entry.split('/');
+    return `packages/${name}/dist/${file.join('/')}`;
   }
   const external = HOST_MODULES[specifier];
   if (external !== undefined) return external;

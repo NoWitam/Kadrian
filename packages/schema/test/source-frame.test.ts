@@ -1,5 +1,5 @@
 /**
- * The source time and the source frame of a video (D49.5, D50.3). The
+ * The source time and the source frame of a video (D49.5, D50.3, D82.1). The
  * expectations are derived by hand from the rule, never from the code.
  */
 import { VIDEO_FIXTURE } from '@kadrion/test-fixtures';
@@ -17,8 +17,11 @@ import {
 const TICKS = Array.from({ length: 75 }, (_, index) => index * 512);
 const TIME_BASE = { num: 1, den: 12_800 };
 
+/** The time map of speed 1 forwards, which every clip of schema 0.23 and earlier had. */
+const FORWARD = { sourceStartRemainder: 0, speed: { num: 1, den: 1 }, reverse: false } as const;
+
 describe('the source time of a video node (D49.5)', () => {
-  const node = { startUs: 500_000, durationUs: 1_000_000, sourceStartUs: 1_000_000 };
+  const node = { startUs: 500_000, durationUs: 1_000_000, sourceStartUs: 1_000_000, ...FORWARD };
 
   it('is sourceStartUs at startUs and grows with scene time at speed 1', () => {
     expect(sourceTimeUs(node, 500_000)).toBe(1_000_000);
@@ -32,9 +35,69 @@ describe('the source time of a video node (D49.5)', () => {
   });
 
   it('refuses a sum that leaves the safe integers instead of rounding it', () => {
-    const far = { startUs: 0, durationUs: 10, sourceStartUs: Number.MAX_SAFE_INTEGER - 5 };
+    const far = {
+      startUs: 0,
+      durationUs: 10,
+      sourceStartUs: Number.MAX_SAFE_INTEGER - 5,
+      ...FORWARD,
+    };
     expect(sourceTimeUs(far, 5)).toBe(Number.MAX_SAFE_INTEGER);
     expect(() => sourceTimeUs(far, 6)).toThrow(RangeError);
+  });
+});
+
+describe('the source time of a mapped video node (D82.1)', () => {
+  const at = (map: {
+    readonly sourceStartRemainder?: number;
+    readonly speed?: { readonly num: number; readonly den: number };
+    readonly reverse?: boolean;
+  }) => ({
+    startUs: 500_000,
+    durationUs: 1_000_000,
+    sourceStartUs: 1_000_000,
+    ...FORWARD,
+    ...map,
+  });
+
+  it('adds its remainder before it divides', () => {
+    // F(e) = 1 000 000 + ⌊(1 + e) / 2⌋; without the remainder, e = 1 would show 1 000 000.
+    const half = at({ sourceStartRemainder: 1, speed: { num: 1, den: 2 } });
+    expect(sourceTimeUs(half, 500_000)).toBe(1_000_000);
+    expect(sourceTimeUs(half, 500_001)).toBe(1_000_001);
+    expect(sourceTimeUs(half, 500_002)).toBe(1_000_001);
+    expect(sourceTimeUs(half, 500_003)).toBe(1_000_002);
+    expect(sourceTimeUs(half, 1_499_999)).toBe(1_500_000);
+  });
+
+  it('shows F(durationUs − 1 − e) reversed', () => {
+    const reversed = at({ reverse: true });
+    expect(sourceTimeUs(reversed, 500_000)).toBe(1_999_999);
+    expect(sourceTimeUs(reversed, 1_499_999)).toBe(1_000_000);
+    const quadruple = at({ speed: { num: 4, den: 1 }, reverse: true });
+    expect(sourceTimeUs(quadruple, 500_000)).toBe(4_999_996);
+    expect(sourceTimeUs(quadruple, 1_499_999)).toBe(1_000_000);
+  });
+
+  it('holds one source time frozen', () => {
+    const frozen = at({ speed: { num: 0, den: 1 } });
+    expect(sourceTimeUs(frozen, 500_000)).toBe(1_000_000);
+    expect(sourceTimeUs(frozen, 1_499_999)).toBe(1_000_000);
+  });
+
+  it('samples the range its map shows, cut to the scene', () => {
+    expect(sampledSourceRange(at({ speed: { num: 1, den: 2 } }), 2_000_000)).toEqual({
+      startUs: 1_000_000,
+      durationUs: 500_000,
+    });
+    // Scene times 500 000 … 999 999 show F(999 999) down to F(500 000).
+    expect(sampledSourceRange(at({ reverse: true }), 1_000_000)).toEqual({
+      startUs: 1_500_000,
+      durationUs: 500_000,
+    });
+    expect(sampledSourceRange(at({ speed: { num: 0, den: 1 } }), 2_000_000)).toEqual({
+      startUs: 1_000_000,
+      durationUs: 1,
+    });
   });
 });
 
@@ -89,7 +152,7 @@ describe('the source duration and the sampled range (D49.6, D50.3)', () => {
   });
 
   it('is the lifetime cut to the composition, in source time', () => {
-    const node = { startUs: 500_000, durationUs: 1_000_000, sourceStartUs: 1_000_000 };
+    const node = { startUs: 500_000, durationUs: 1_000_000, sourceStartUs: 1_000_000, ...FORWARD };
     expect(sampledSourceRange(node, 2_000_000)).toEqual({
       startUs: 1_000_000,
       durationUs: 1_000_000,

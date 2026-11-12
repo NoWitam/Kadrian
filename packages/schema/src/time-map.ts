@@ -6,14 +6,15 @@
  * map; the source time shown is the floor of it, in integer microseconds, and
  * the frame follows `sourceFrameIndex` unchanged.
  *
- * These functions take their arguments explicitly: no document field carries a
- * speed yet (the fields enter with schema `0.24`, PR-61), and `sourceTimeUs`
- * and `sampledSourceRange` keep the rule of speed 1 until then. They are the
- * entry `@kadrion/schema/time-map`, which the main entry does not reach yet,
- * so neither the runtime build nor the Player's dist tree changes before PR-61. A host uses them
- * to show a clip's source at a speed, to retime words (`sceneTimesOfSource`,
- * D82.7), and to read and write a speed as a multiplier (`formatSpeed`,
- * `parseSpeed`).
+ * The fields of the map are those of a video node and an audio clip of schema
+ * `0.24` (D82.8); `sourceTimeUs` and `sampledSourceRange` of the frame grid read
+ * them through `sourceTimeOfScene` and `clipSourceRange`, and the audio plan
+ * carries the map of a mapped sound, moved into composition time with
+ * `shiftedTimeMap` (D82.6). The main entry of `@kadrion/schema` re-exports this
+ * module, and the entry `@kadrion/schema/time-map` stays for a host that needs
+ * nothing else. A host uses these functions to show a clip's source at a
+ * speed, to retime words (`sceneTimesOfSource`, D82.7), and to read and write
+ * a speed as a multiplier (`formatSpeed`, `parseSpeed`).
  *
  * `BigInt` keeps the arithmetic exact over the whole safe-integer range.
  */
@@ -199,6 +200,55 @@ export function sourceTimeOfScene(clip: ClipTiming, timeUs: number): number {
     throw new RangeError(`The clip is not active at ${String(timeUs)}.`);
   }
   return toSafeNumber('sourceTimeUs', shown(timing, time - timing.start));
+}
+
+/**
+ * The map of a clip read in the time of what holds its holder (D82.6, D76): a
+ * clip whose time 0 lies at `offsetUs` there, which may be negative, shows at
+ * time `t` what its own map shows at `t − offsetUs`. The audio plan moves the map
+ * of a sound into composition time with it, by the start of its scene and the
+ * maps of the instances it is heard through, which play at speed 1.
+ */
+export function shiftedTimeMap(map: ClipTimeMap, offsetUs: number): ClipTimeMap {
+  if (!Number.isSafeInteger(offsetUs)) {
+    throw new RangeError(`offsetUs must be a safe integer, got ${String(offsetUs)}.`);
+  }
+  return {
+    intercept: map.intercept - BigInt(map.slope) * BigInt(offsetUs),
+    slope: map.slope,
+    den: map.den,
+  };
+}
+
+/**
+ * The source time a map shows at the instant `timeUs` (D82.1): the floor of the
+ * lower end of the image of `[timeUs, timeUs + 1)`, `⌊(intercept + slope · u) /
+ * den⌋` forwards and at speed 0, `⌊(intercept + slope · (u + 1)) / den⌋`
+ * reversed. For the map of a clip and an instant of its lifetime it is
+ * `sourceTimeOfScene`.
+ */
+export function sourceTimeOfMap(map: ClipTimeMap, timeUs: number): number {
+  if (!Number.isSafeInteger(timeUs)) {
+    throw new RangeError(`timeUs must be a safe integer, got ${String(timeUs)}.`);
+  }
+  const at = BigInt(timeUs) + (map.slope < 0 ? 1n : 0n);
+  return toSafeNumber(
+    'sourceTimeUs',
+    floorDiv(map.intercept + BigInt(map.slope) * at, BigInt(map.den)),
+  );
+}
+
+/**
+ * The source range a map shows over the instants `[startUs, startUs +
+ * durationUs)` (D82.1, D82.6): from the least source time shown to the greatest,
+ * plus 1. The audio plan checks the range a mapped sound hears with it.
+ */
+export function timeMapSourceRange(map: ClipTimeMap, range: TimeRange): TimeRange {
+  safe('durationUs', range.durationUs, 1);
+  const first = sourceTimeOfMap(map, range.startUs);
+  const last = sourceTimeOfMap(map, range.startUs + range.durationUs - 1);
+  const low = Math.min(first, last);
+  return { startUs: low, durationUs: Math.max(first, last) - low + 1 };
 }
 
 /**

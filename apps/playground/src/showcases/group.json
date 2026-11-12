@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -203,6 +203,7 @@
               "text": "Deterministic by design",
               "fontAssetId": "asset-font",
               "fontSize": 56,
+              "frame": { "kind": "none" },
               "color": "#d0d5dd",
               "style": {
                 "stroke": {
@@ -213,7 +214,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -250,6 +253,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 144,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -260,7 +264,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

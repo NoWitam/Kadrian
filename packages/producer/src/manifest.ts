@@ -178,6 +178,20 @@ export interface ManifestSound {
   readonly sourceStartSample: number;
   readonly fadeIn: ManifestFade | null;
   readonly fadeOut: ManifestFade | null;
+  /**
+   * A sound at another speed or reversed (D82.6): its speed, its direction, and
+   * the SHA-256 of the samples `stretchSound` computed, interleaved 32-bit
+   * little-endian floats. Absent at speed 1 forwards, so the manifest of a
+   * render without a mapped sound keeps its bytes and its version.
+   */
+  readonly stretch?: ManifestStretch;
+}
+
+/** What the manifest records of a mapped sound (D82.6). */
+export interface ManifestStretch {
+  readonly speed: { readonly num: number; readonly den: number };
+  readonly reverse: boolean;
+  readonly sha256: string;
 }
 
 /** The audio mix of D52.5, in samples at 48 kHz, and the intermediate it was encoded from (D47.4). */

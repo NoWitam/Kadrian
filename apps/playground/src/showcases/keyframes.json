@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -53,6 +53,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 144,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -63,7 +64,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -122,6 +125,7 @@
           "text": "dim",
           "fontAssetId": "asset-font",
           "fontSize": 120,
+          "frame": { "kind": "none" },
           "color": "#f79009",
           "style": {
             "stroke": {
@@ -132,7 +136,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -200,6 +206,7 @@
           "text": "go east",
           "fontAssetId": "asset-font",
           "fontSize": 120,
+          "frame": { "kind": "none" },
           "color": "#32d583",
           "style": {
             "stroke": {
@@ -210,7 +217,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -268,6 +277,7 @@
           "text": "big",
           "fontAssetId": "asset-font",
           "fontSize": 120,
+          "frame": { "kind": "none" },
           "color": "#53b1fd",
           "style": {
             "stroke": {
@@ -278,7 +288,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

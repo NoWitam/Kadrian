@@ -6,7 +6,7 @@
  * fails when a generator and a hash drift apart.
  */
 import { generateAudio } from './audio.js';
-import { generateFont } from './font.js';
+import { generateFont, generateProportionalFont } from './font.js';
 import { generateImage } from './image.js';
 import { generateSvg } from './svg.js';
 
@@ -61,4 +61,17 @@ export function generateReferenceAssets(): readonly FixtureAsset[] {
  */
 export function generateSvgAsset(): FixtureAsset {
   return { id: 'asset-svg', mediaType: 'image/svg+xml', bytes: generateSvg() };
+}
+
+/**
+ * The proportional font of the framed-text composition (D83), apart from the
+ * reference assets: the bytes of `generateProportionalFont`, fresh on every
+ * call.
+ */
+export function generateProportionalFontAsset(): FixtureAsset {
+  return {
+    id: 'asset-font-proportional',
+    mediaType: 'font/ttf',
+    bytes: generateProportionalFont(),
+  };
 }

@@ -140,8 +140,10 @@ export type Crop = ImageNode['crop'];
 export type Origin = ImageNode['origin'];
 /** The property an animation targets: a row of the table of D65.1 (D68). */
 export type AnimatedProperty = NodeAnimation['property'];
-/** The outline, the shadow, and the box of a text node (D69). */
+/** The outline, the shadow, and the box of a text node (D69), and the alignment of its lines (D83.4). */
 export type TextStyle = Infer<typeof textStyleSchema>;
+/** The frame of a text node: none, or the box its lines wrap to (D83.3). */
+export type TextFrame = TextNode['frame'];
 /** An animation of the letters, words, or lines of a text node, one after another (D69). */
 export type TextAnimation = Infer<typeof textAnimationSchema>;
 /** One track of a text animation: one property of every fragment, in its own time (D69). */

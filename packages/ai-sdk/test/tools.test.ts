@@ -61,6 +61,9 @@ const VIDEO_SETUP: readonly Command[] = [
       animations: [],
       assetId: 'asset-video',
       sourceStartUs: 0,
+      sourceStartRemainder: 0,
+      speed: { num: 1, den: 1 },
+      reverse: false,
       width: 320,
       height: 180,
       fit: 'contain',
@@ -198,8 +201,15 @@ const ELEMENT_SETUP: readonly Command[] = [
           text: 'Name',
           fontAssetId: 'asset-font',
           fontSize: 48,
+          frame: { kind: 'none' },
           color: '#ffffff',
-          style: { stroke: { kind: 'none' }, shadow: { kind: 'none' }, box: { kind: 'none' } },
+          style: {
+            stroke: { kind: 'none' },
+            shadow: { kind: 'none' },
+            box: { kind: 'none' },
+            align: 'left',
+            verticalAlign: 'top',
+          },
           textAnimations: [],
           effects: [],
           mask: { kind: 'none' },
@@ -348,11 +358,14 @@ const CAPTIONS_SETUP: readonly Command[] = [
           tracks: [],
           underline: { kind: 'none' },
           box: { kind: 'none' },
+          stroke: { kind: 'none' },
+          shadow: { kind: 'none' },
         },
         align: 'center',
         verticalAlign: 'bottom',
         maxLineLength: 16,
         maxLines: 2,
+        lineBreak: 'characters',
         stroke: { kind: 'none' },
         shadow: { kind: 'none' },
         box: { kind: 'none' },
@@ -517,6 +530,8 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   JoinClips: [
     { type: 'SplitClip', clipId: 'node-title', atUs: 5_000_000, newClipId: 'node-title-tail' },
   ],
+  SetClipSpeed: [],
+  SetClipReverse: [],
   AddSceneTransition: OUTRO_SETUP,
   AddClipTransition: [
     { type: 'TrimClipEnd', clipId: 'node-title', endUs: 5_000_000 },
@@ -875,7 +890,7 @@ describe('each tool accepts exactly what its inputSchema accepts (D31.9, D46.4)'
   );
 
   it('covers every command type', () => {
-    expect(TOOL_CATALOGUE.slice(1, -3).map(({ name }) => name)).toEqual(
+    expect(TOOL_CATALOGUE.slice(1, -4).map(({ name }) => name)).toEqual(
       COMMAND_TYPES.map(toolNameOf),
     );
   });

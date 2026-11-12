@@ -10,13 +10,26 @@
  * API (D24), so the same bytes give the same metrics and the same lines in
  * Node and in any browser. No kerning, no ligatures, no shaping (D83.2).
  *
- * It is the entry `@kadrion/runtime/text-frame`, which neither the render
- * page nor the Player imports before schema `0.25` (PR-66), so the runtime
- * build and the Player's dist tree do not change (D21, D33.10).
+ * From schema `0.25` (PR-66) the evaluation, the render page, and the Player
+ * use them: the main entry of `@kadrion/runtime` exports them, and so does the
+ * entry `@kadrion/runtime/text-frame`, which reaches nothing of the
+ * evaluation.
+ *
+ * A tab is white space (D69.2) and a run of white space like any other: it is
+ * measured as the advance of its glyph, or of `.notdef` when the font maps
+ * none, and `frameLayout` then lists U+0009 in `missing`. The browser draws a
+ * tab as a tab stop, not as a glyph, so the drawn width of a line with a tab
+ * may differ from the measured one, as for a shaped script (D83.2); a host
+ * keeps tabs out of measured texts, as it keeps their texts within their fonts.
  */
-import type { CaptionStyle, CaptionWord } from '@kadrion/schema';
+import type { CaptionStyle, CaptionWord, Composition } from '@kadrion/schema';
 
-import { captionPages, type CaptionPage } from './captions.js';
+import {
+  captionPagesByCharacters,
+  codePoints,
+  pagesOfLines,
+  type CaptionPage,
+} from './caption-lines.js';
 import { textLayout, type TextRun } from './graphemes.js';
 
 // --- errors -----------------------------------------------------------------
@@ -370,11 +383,6 @@ export function textLines(
 
 // --- captions broken by width (D83.5) ---------------------------------------
 
-/** The length of a word in Unicode code points, as D57 counts it. */
-function codePoints(text: string): number {
-  return Array.from(text).length;
-}
-
 /**
  * The pages of a captions node broken by width (D83.5, `lineBreak: "width"`):
  * a word joins the line while both bounds hold, the count of D57.3
@@ -414,16 +422,7 @@ export function captionPagesByWidth(
     units = wordUnits;
   });
   if (line.length > 0) lines.push(line);
-
-  const pages: CaptionPage[] = [];
-  for (let at = 0; at < lines.length; at += style.maxLines) {
-    const pageLines = lines.slice(at, at + style.maxLines);
-    pages.push({
-      lines: pageLines.map((indices) => ({ words: indices })),
-      firstWord: pageLines[0]?.[0] ?? 0,
-    });
-  }
-  return pages;
+  return pagesOfLines(lines, style.maxLines);
 }
 
 // --- frameLayout (D83.6) ----------------------------------------------------
@@ -566,7 +565,7 @@ function captionsFrameLayout(
   const pages =
     style.lineBreak === 'width'
       ? captionPagesByWidth(words, style, node.width, metrics)
-      : captionPages(words, style);
+      : captionPagesByCharacters(words, style);
   const space = advanceOf(metrics, 0x20);
   const lines: CaptionFrameLine[] = [];
   // The tallest page: a page of captions never holds more than `maxLines` lines.
@@ -600,4 +599,53 @@ function captionsFrameLayout(
     fits: height <= node.height && lines.every((line) => line.fits),
     missing: missingCodePoints(used, metrics),
   };
+}
+
+// --- measured nodes (D83.7) -------------------------------------------------
+
+/** A node whose lines Kadrion measures, and the font it uses (D83.7). */
+export interface MeasuredNode {
+  readonly nodeId: string;
+  readonly fontAssetId: string;
+}
+
+type AnyNode =
+  | Composition['scenes'][number]['nodes'][number]
+  | Composition['definitions'][number]['nodes'][number];
+
+/**
+ * The measured nodes of a document, in document order: every text with a
+ * frame and every captions node broken by width, in its scenes, their groups,
+ * and its definitions (D83.7).
+ */
+export function measuredNodes(
+  composition: Pick<Composition, 'scenes' | 'definitions'>,
+): MeasuredNode[] {
+  const found: MeasuredNode[] = [];
+  const visit = (node: AnyNode): void => {
+    if (node.type === 'group') {
+      for (const child of node.children) visit(child);
+    } else if (node.type === 'text' && node.frame.kind === 'fixed') {
+      found.push({ nodeId: node.id, fontAssetId: node.fontAssetId });
+    } else if (node.type === 'captions' && node.style.lineBreak === 'width') {
+      found.push({ nodeId: node.id, fontAssetId: node.fontAssetId });
+    }
+  };
+  for (const scene of composition.scenes) for (const node of scene.nodes) visit(node);
+  for (const definition of composition.definitions) {
+    for (const node of definition.nodes) visit(node);
+  }
+  return found;
+}
+
+/**
+ * The IDs of the font assets the measured nodes of a document use, each once,
+ * in the order of their first use (D83.7): the fonts whose metrics
+ * `evaluateComposition` needs, and that the load step reads with
+ * `fontMetrics`. A document without a measured node needs none.
+ */
+export function measuredFontIds(
+  composition: Pick<Composition, 'scenes' | 'definitions'>,
+): string[] {
+  return [...new Set(measuredNodes(composition).map(({ fontAssetId }) => fontAssetId))];
 }

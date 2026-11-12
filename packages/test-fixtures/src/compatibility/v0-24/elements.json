@@ -1,0 +1,392 @@
+{
+  "schemaVersion": "0.24",
+  "width": 640,
+  "height": 360,
+  "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
+  "fps": 30,
+  "durationUs": 2000000,
+  "assets": [
+    {
+      "id": "asset-font",
+      "type": "font",
+      "contentHash": "sha256:8b9741fd276dd775769286861ad4ff14d651a01aee1fb927cb5a784d3872a4a4"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-elements",
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "elements-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "third-a",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": { "x": 20, "y": 20 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "lower-third",
+          "inputs": [
+            { "inputId": "accent", "type": "color", "value": "#12b76a" },
+            { "inputId": "title", "type": "text", "value": "Dance" }
+          ],
+          "sourceStartUs": 0,
+          "width": 360,
+          "height": 80,
+          "fit": "fill",
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        },
+        {
+          "id": "third-b",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": { "x": 20, "y": 120 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "lower-third",
+          "inputs": [
+            { "inputId": "show-badge", "type": "boolean", "value": false },
+            { "inputId": "title", "type": "text", "value": "Kadrion design" }
+          ],
+          "sourceStartUs": 0,
+          "width": 360,
+          "height": 80,
+          "fit": "fill",
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        },
+        {
+          "id": "speech-a",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": { "x": 0, "y": 230 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "speech",
+          "inputs": [
+            { "inputId": "style", "type": "text", "value": "bold" },
+            {
+              "inputId": "words",
+              "type": "list",
+              "value": [
+                [
+                  { "key": "text", "type": "text", "value": "Dance" },
+                  { "key": "startUs", "type": "number", "value": 0 },
+                  { "key": "durationUs", "type": "number", "value": 400000 }
+                ],
+                [
+                  { "key": "text", "type": "text", "value": "on" },
+                  { "key": "startUs", "type": "number", "value": 400000 },
+                  { "key": "durationUs", "type": "number", "value": 300000 }
+                ],
+                [
+                  { "key": "text", "type": "text", "value": "time" },
+                  { "key": "startUs", "type": "number", "value": 700000 },
+                  { "key": "durationUs", "type": "number", "value": 500000 }
+                ],
+                [
+                  { "key": "text", "type": "text", "value": "and" },
+                  { "key": "startUs", "type": "number", "value": 1200000 },
+                  { "key": "durationUs", "type": "number", "value": 300000 }
+                ],
+                [
+                  { "key": "text", "type": "text", "value": "design" },
+                  { "key": "startUs", "type": "number", "value": 1500000 },
+                  { "key": "durationUs", "type": "number", "value": 500000 }
+                ]
+              ]
+            }
+          ],
+          "sourceStartUs": 0,
+          "width": 640,
+          "height": 120,
+          "fit": "fill",
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [
+    {
+      "id": "lower-third",
+      "sourceHash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "width": 360,
+      "height": 80,
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "lt-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "color": "#f79009",
+          "animations": []
+        },
+        {
+          "id": "lt-title",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": { "x": 16, "y": 20 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "text": "{{title}}",
+          "fontAssetId": "asset-font",
+          "fontSize": 36,
+          "color": "#ffffff",
+          "style": {
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" }
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        },
+        {
+          "id": "lt-badge",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": { "x": 312, "y": 24 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "width": 32,
+          "height": 32,
+          "geometry": { "kind": "ellipse" },
+          "fill": { "kind": "solid", "color": "#ffffff" },
+          "stroke": { "color": "#ffffff", "width": 0, "dash": [], "cap": "round", "join": "round" },
+          "trim": { "start": 0, "end": 1000 },
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "template": {
+        "inputs": [
+          { "id": "title", "type": "text", "minLength": 1, "maxLength": 40, "default": "Kadrion" },
+          { "id": "accent", "type": "color", "default": "#f79009" },
+          { "id": "show-badge", "type": "boolean", "default": true }
+        ],
+        "bindings": [
+          {
+            "id": "lt-accent",
+            "kind": "property",
+            "nodeId": "lt-background",
+            "property": "color",
+            "inputId": "accent"
+          },
+          { "id": "lt-title-text", "kind": "placeholders", "nodeId": "lt-title" }
+        ],
+        "conditions": [
+          {
+            "id": "lt-badge-shown",
+            "test": "true",
+            "targetId": "lt-badge",
+            "inputId": "show-badge"
+          }
+        ],
+        "repeats": []
+      }
+    },
+    {
+      "id": "speech",
+      "sourceHash": "",
+      "width": 640,
+      "height": 120,
+      "durationUs": 2000000,
+      "nodes": [
+        {
+          "id": "sp-plain",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": { "x": 20, "y": 10 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 600,
+          "height": 100,
+          "style": {
+            "fontSize": 32,
+            "lineHeight": 44,
+            "color": "#ffffff",
+            "highlight": {
+              "color": "#ffd400",
+              "scale": 1,
+              "tracks": [],
+              "underline": { "kind": "none" },
+              "box": { "kind": "none" }
+            },
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 16,
+            "maxLines": 2,
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" },
+            "pageIn": { "kind": "none" },
+            "pageOut": { "kind": "none" }
+          },
+          "words": [
+            { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+            { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+            { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+          ],
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        },
+        {
+          "id": "sp-bold",
+          "type": "captions",
+          "startUs": 0,
+          "durationUs": 2000000,
+          "position": { "x": 20, "y": 10 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "opacity": 1,
+          "animations": [],
+          "fontAssetId": "asset-font",
+          "width": 600,
+          "height": 100,
+          "style": {
+            "fontSize": 32,
+            "lineHeight": 44,
+            "color": "#fef0c7",
+            "highlight": {
+              "color": "#f04438",
+              "scale": 1,
+              "tracks": [],
+              "underline": { "kind": "none" },
+              "box": { "kind": "none" }
+            },
+            "align": "center",
+            "verticalAlign": "bottom",
+            "maxLineLength": 16,
+            "maxLines": 2,
+            "stroke": { "kind": "none" },
+            "shadow": { "kind": "none" },
+            "box": { "kind": "none" },
+            "pageIn": { "kind": "none" },
+            "pageOut": { "kind": "none" }
+          },
+          "words": [
+            { "text": "Kadrion", "startUs": 0, "durationUs": 500000 },
+            { "text": "renders", "startUs": 500000, "durationUs": 500000 },
+            { "text": "scenes", "startUs": 1000000, "durationUs": 1000000 }
+          ],
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "template": {
+        "inputs": [
+          {
+            "id": "words",
+            "type": "list",
+            "minItems": 1,
+            "maxItems": 50,
+            "fields": [
+              { "key": "text", "type": "text", "minLength": 1, "maxLength": 20 },
+              { "key": "startUs", "type": "number", "minimum": 0, "maximum": 2000000 },
+              { "key": "durationUs", "type": "number", "minimum": 1, "maximum": 2000000 }
+            ],
+            "default": [
+              [
+                { "key": "text", "type": "text", "value": "Kadrion" },
+                { "key": "startUs", "type": "number", "value": 0 },
+                { "key": "durationUs", "type": "number", "value": 500000 }
+              ],
+              [
+                { "key": "text", "type": "text", "value": "renders" },
+                { "key": "startUs", "type": "number", "value": 500000 },
+                { "key": "durationUs", "type": "number", "value": 500000 }
+              ],
+              [
+                { "key": "text", "type": "text", "value": "scenes" },
+                { "key": "startUs", "type": "number", "value": 1000000 },
+                { "key": "durationUs", "type": "number", "value": 1000000 }
+              ]
+            ]
+          },
+          { "id": "style", "type": "text", "minLength": 0, "maxLength": 10, "default": "plain" }
+        ],
+        "bindings": [
+          { "id": "sp-plain-words", "kind": "words", "nodeId": "sp-plain", "inputId": "words" },
+          { "id": "sp-bold-words", "kind": "words", "nodeId": "sp-bold", "inputId": "words" }
+        ],
+        "conditions": [
+          {
+            "id": "sp-plain-shown",
+            "test": "equal-text",
+            "targetId": "sp-plain",
+            "inputId": "style",
+            "value": "plain"
+          },
+          {
+            "id": "sp-bold-shown",
+            "test": "equal-text",
+            "targetId": "sp-bold",
+            "inputId": "style",
+            "value": "bold"
+          }
+        ],
+        "repeats": []
+      }
+    }
+  ],
+  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+}

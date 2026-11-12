@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 1920,
   "height": 1080,
   "safeArea": {
@@ -151,6 +151,7 @@
           "text": "Kadrion",
           "fontAssetId": "asset-font",
           "fontSize": 200,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -161,7 +162,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -219,6 +222,7 @@
           "text": "a stage",
           "fontAssetId": "asset-font",
           "fontSize": 72,
+          "frame": { "kind": "none" },
           "color": "#98a2b3",
           "style": {
             "stroke": {
@@ -229,7 +233,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -251,6 +257,9 @@
       "startUs": 0,
       "durationUs": 5000000,
       "sourceStartUs": 0,
+      "sourceStartRemainder": 0,
+      "speed": { "num": 1, "den": 1 },
+      "reverse": false,
       "volume": 1,
       "fadeInUs": 0,
       "fadeOutUs": 0

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -69,12 +69,15 @@
               },
               "box": {
                 "kind": "none"
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "top",
             "maxLineLength": 14,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "outside",
               "color": "#000000",
@@ -312,12 +315,15 @@
                 "opacity": 0.85,
                 "padding": 4,
                 "cornerRadius": 6
-              }
+              },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "middle",
             "maxLineLength": 14,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": {
               "kind": "none"
             },

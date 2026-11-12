@@ -21,6 +21,7 @@
 - Amended by: PR-50 (D70) on 2026-11-08: three tools of captions and the safe area, and the safe area in `describe_document` (D70.8)
 - Amended by: PR-51a (D71) on 2026-11-09: four tools of effects; the catalogue has 84 entries (D71.6)
 - Amended by: PR-56 (D78) on 2026-11-10: `check_custom_html` and `set_custom_html`; the catalogue has 99 entries, and `describe_document` shows the html (D78.5, D78.6)
+- Amended by: PR-62 (D82) on 2026-11-11: `set_clip_speed` and `set_clip_reverse`, derived from their commands, and `freeze_frame`, a tool that is no command, after `add_clip_transition_at_cut`; a speed is a multiplier in every tool, converted by the command (D82.11); the catalogue grows from 100 to 103 entries (D82.9)
 - Related: D09, D12, D30, D31, D38, D39, D40, D41, D42,
   [roadmap of phase three](../roadmap/phase-3.md) PR-24
 

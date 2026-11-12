@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -129,6 +129,7 @@
               "text": "Kadrion",
               "fontAssetId": "asset-font",
               "fontSize": 72,
+              "frame": { "kind": "none" },
               "color": "#ffffff",
               "style": {
                 "stroke": {
@@ -139,7 +140,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -299,6 +302,7 @@
               "text": "scenes",
               "fontAssetId": "asset-font",
               "fontSize": 72,
+              "frame": { "kind": "none" },
               "color": "#ffffff",
               "style": {
                 "stroke": {
@@ -309,7 +313,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -425,6 +431,7 @@
               "text": "motion",
               "fontAssetId": "asset-font",
               "fontSize": 72,
+              "frame": { "kind": "none" },
               "color": "#ffffff",
               "style": {
                 "stroke": {
@@ -435,7 +442,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -595,6 +604,7 @@
               "text": "stories",
               "fontAssetId": "asset-font",
               "fontSize": 72,
+              "frame": { "kind": "none" },
               "color": "#ffffff",
               "style": {
                 "stroke": {
@@ -605,7 +615,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -721,6 +733,7 @@
               "text": "design",
               "fontAssetId": "asset-font",
               "fontSize": 72,
+              "frame": { "kind": "none" },
               "color": "#ffffff",
               "style": {
                 "stroke": {
@@ -731,7 +744,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],

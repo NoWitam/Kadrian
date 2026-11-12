@@ -23,7 +23,7 @@ import { goldenTimestamps, referenceComposition } from '@kadrion/test-fixtures';
 import type { BrowserContext, Frame, Page } from 'playwright-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { HOST_MODULES } from '../parity/parity.js';
+import { HOST_ENTRIES, HOST_MODULES } from '../parity/parity.js';
 
 import { ISOLATION_PROBE } from './probes.js';
 import {
@@ -68,6 +68,10 @@ const HARNESS = `<!doctype html><html><head><meta charset="utf-8">
 <script type="importmap">${JSON.stringify({
   imports: {
     ...Object.fromEntries(PACKAGES.map((name) => [`@kadrion/${name}`, `/pkg/${name}/index.js`])),
+    // The entry points the packages import by name besides their indexes (D82.6).
+    ...Object.fromEntries(
+      Object.entries(HOST_ENTRIES).map(([name, file]) => [name, `/pkg/${file}`]),
+    ),
     // The Player's external dependencies, each its installed bundle (D79.7).
     ...Object.fromEntries(Object.keys(HOST_MODULES).map((name) => [name, `/vendor/${name}.mjs`])),
   },

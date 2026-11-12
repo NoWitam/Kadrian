@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -53,6 +53,7 @@
           "text": "Kadrion danced",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -65,7 +66,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [
             {
@@ -154,6 +157,7 @@
           "text": "big dancing stars",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -171,7 +175,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [
             {
@@ -260,6 +266,7 @@
           "text": "Kadrion\nis steady",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -274,7 +281,9 @@
               "opacity": 0.8,
               "padding": 8,
               "cornerRadius": 10
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [
             {
@@ -363,6 +372,7 @@
           "text": "radiant comets",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -373,7 +383,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [
             {

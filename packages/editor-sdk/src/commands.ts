@@ -10,12 +10,14 @@
 import {
   BLEND_MODES,
   compositionSchema,
+  parseSpeed,
   type Asset,
   type BlendMode,
   type Crop,
   type Fit,
   type Focus,
   type Origin,
+  type Speed,
 } from '@kadrion/schema';
 
 import { keyframeTimeBounds } from './animations.js';
@@ -685,6 +687,49 @@ export interface JoinClipsCommand extends JoinClipsArguments {
   readonly type: 'JoinClips';
 }
 
+/**
+ * A speed as a person or a model writes it (D82.11): a multiplier such as
+ * `"x0.5"`, `"x2"`, or `"x1/3"`, a number such as `0.5`, or `{ num, den }`.
+ * `parseSpeed` of `@kadrion/schema` reads it; the command holds the exact speed.
+ */
+export type SpeedValue = number | string | { readonly num: number; readonly den: number };
+
+/** What a caller states for `SetClipSpeed` (D82.9, D82.11). */
+export interface SetClipSpeedArguments {
+  readonly clipId: string;
+  /** The new speed, read by `parseSpeed` when the command is parsed. */
+  readonly speed: SpeedValue;
+  /** The new duration; by default `⌈durationUs · old / new⌉`, the same source span (kept when either speed is 0). */
+  readonly durationUs?: number;
+  /** The new remainder of the exact source start; by default the old one scaled to the new `den`, rounded down. */
+  readonly sourceStartRemainder?: number;
+}
+
+/**
+ * Sets the speed of a video node or an audio clip (D82.9): its `startUs`,
+ * `sourceStartUs`, and `reverse` stay. The command holds the exact speed in
+ * lowest terms, whatever form the caller wrote it in (D82.11).
+ */
+export interface SetClipSpeedCommand extends Omit<SetClipSpeedArguments, 'speed'> {
+  readonly type: 'SetClipSpeed';
+  readonly speed: Speed;
+}
+
+/** What a caller states for `SetClipReverse` (D82.9). */
+export interface SetClipReverseArguments {
+  readonly clipId: string;
+  readonly reverse: boolean;
+}
+
+/**
+ * Plays a video node or an audio clip backwards or forwards (D82.1, D82.9):
+ * its lifetime and its sampled source range stay. A freeze frame has no
+ * direction.
+ */
+export interface SetClipReverseCommand extends SetClipReverseArguments {
+  readonly type: 'SetClipReverse';
+}
+
 /** What a caller states for `AddSceneTransition` (D56.6). */
 export interface AddSceneTransitionArguments {
   /** The transition's index in the composition's transitions after the insertion; their order has no meaning. */
@@ -811,7 +856,7 @@ export interface SetTextStyleArguments {
   readonly style: DocumentObject;
 }
 
-/** Replaces the outline, the shadow, and the box of a text node (D69). */
+/** Replaces the outline, the shadow, the box, and the alignment of a text node (D69, D83.4). */
 export interface SetTextStyleCommand extends SetTextStyleArguments {
   readonly type: 'SetTextStyle';
 }
@@ -1301,6 +1346,8 @@ export type Command =
   | TrimClipEndCommand
   | SplitClipCommand
   | JoinClipsCommand
+  | SetClipSpeedCommand
+  | SetClipReverseCommand
   | AddSceneTransitionCommand
   | AddClipTransitionCommand
   | RemoveTransitionCommand
@@ -1552,6 +1599,45 @@ export type TrimClipStartArgumentsSchema = ClosedObjectSchema<keyof TrimClipStar
 export type TrimClipEndArgumentsSchema = ClosedObjectSchema<keyof TrimClipEndArguments>;
 export type SplitClipArgumentsSchema = ClosedObjectSchema<keyof SplitClipArguments>;
 export type JoinClipsArgumentsSchema = ClosedObjectSchema<keyof JoinClipsArguments>;
+
+/** A speed as a multiplier, a number, or an object, read by `parseSpeed` (D82.11), as `value` of `SetKeyframeValue` is (D68). */
+export interface SpeedSchema {
+  readonly description: string;
+  readonly anyOf: readonly [
+    { readonly type: 'number' },
+    { readonly type: 'string' },
+    { readonly type: 'object' },
+  ];
+}
+
+/**
+ * The argument schema of `SetClipSpeed` (D82.9): closed, with `speed` a number,
+ * a string, or an object, and `durationUs` and `sourceStartRemainder` optional.
+ */
+export interface SetClipSpeedArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly clipId: ArgumentSchema;
+    readonly speed: SpeedSchema;
+    readonly durationUs: ArgumentSchema;
+    readonly sourceStartRemainder: ArgumentSchema;
+  };
+  readonly required: readonly ['clipId', 'speed'];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetClipReverse` (D82.9): closed, with `reverse` a boolean. */
+export interface SetClipReverseArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly clipId: ArgumentSchema;
+    readonly reverse: { readonly type: 'boolean'; readonly description: string };
+  };
+  readonly required: readonly (keyof SetClipReverseArguments)[];
+  readonly additionalProperties: false;
+}
 export type RemoveTransitionArgumentsSchema = ClosedObjectSchema<keyof RemoveTransitionArguments>;
 export type SetTransitionDurationArgumentsSchema = ClosedObjectSchema<
   keyof SetTransitionDurationArguments
@@ -2405,7 +2491,8 @@ export const setVideoAssetArgumentsSchema: SetVideoAssetArgumentsSchema = deepFr
 /** The JSON Schema of the arguments of `SetVideoSource` (D50.6). */
 export const setVideoSourceArgumentsSchema: SetVideoSourceArgumentsSchema = deepFreeze({
   type: 'object',
-  description: 'Sets the source time a video shows at the start of its lifetime; speed is 1.',
+  description:
+    'Sets the source time a video shows at the start of its lifetime; its speed, its direction, and the remainder of its exact source start stay (D82.9).',
   properties: {
     nodeId: {
       type: 'string',
@@ -2471,7 +2558,7 @@ export const addAudioClipArgumentsSchema: AddAudioClipArgumentsSchema = deepFree
     clip: {
       type: 'object',
       description:
-        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; volume; fadeInUs and fadeOutUs.',
+        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs.',
     },
   },
   required: ['index', 'clip'],
@@ -2527,7 +2614,7 @@ export const setClipFadesArgumentsSchema: SetClipFadesArgumentsSchema = deepFree
 export const setClipSourceArgumentsSchema: SetClipSourceArgumentsSchema = deepFreeze({
   type: 'object',
   description:
-    'Points one audio clip at an audio asset and the source time it plays from; its lifetime stays.',
+    'Points one audio clip at an audio asset and the source time it plays from; its lifetime and its time map but for its source start stay (D82.9).',
   properties: {
     clipId: { type: 'string', description: CLIP_ID, minLength: 1 },
     assetId: {
@@ -2933,7 +3020,7 @@ export const addSceneAudioClipArgumentsSchema: AddSceneAudioClipArgumentsSchema 
     clip: {
       type: 'object',
       description:
-        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in scene time; sourceStartUs; volume; fadeInUs and fadeOutUs.',
+        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in scene time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs.',
     },
   },
   required: ['sceneId', 'index', 'clip'],
@@ -2970,7 +3057,7 @@ export const moveClipArgumentsSchema: MoveClipArgumentsSchema = deepFreeze({
 export const trimClipStartArgumentsSchema: TrimClipStartArgumentsSchema = deepFreeze({
   type: 'object',
   description:
-    "Moves the start of a clip and keeps its end; a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays where it did.",
+    "Moves the start of a clip and keeps its end; a video's or an audio clip's source moves by the same amount times its speed, and a reversed one's stays, so what remains plays where it did (D82.2).",
   properties: {
     clipId: { type: 'string', description: TIMELINE_CLIP_ID, minLength: 1 },
     startUs: timelineTime('The new start of the clip, before its end.'),
@@ -3024,6 +3111,74 @@ export const joinClipsArgumentsSchema: JoinClipsArgumentsSchema = deepFreeze({
     },
   },
   required: ['clipId', 'nextClipId'],
+  additionalProperties: false,
+});
+
+/** The bounds of `sourceStartRemainder`, read from the schema (D82.1); below the speed's `den` besides. */
+const REMAINDER: Bounds = {
+  minimum: VIDEO_SHAPE.properties.sourceStartRemainder.minimum,
+  maximum: VIDEO_SHAPE.properties.sourceStartRemainder.maximum,
+};
+
+/**
+ * How a speed is written for a model (D82.11): every place a speed is read or
+ * written uses the multiplier, and the document keeps the exact fraction.
+ */
+export const SPEEDS =
+  'A speed is a multiplier: "x0.25", "x0.5" (half speed), "x0.75", "x1" (the source\'s own speed), "x1.5", "x2" (twice as fast), "x4", or a fraction such as "x1/3" or "x2/3"; a number such as 0.5 or 2, or {"num":1,"den":2}, means the same. Speeds go from x0.25 to x4, the pitch of the sound kept, and "x0" freezes a video on one frame. The document stores the exact fraction {"num":…,"den":…} and describe_document shows it as a multiplier. A multiplier that is no fraction with a denominator up to 1000, such as "x0.3333", is refused with speed-invalid, and the refusal names the nearest speed ("x1/3"): call again with it.';
+
+/** The JSON Schema of the arguments of `SetClipSpeed` (D82.9, D82.11). */
+export const setClipSpeedArgumentsSchema: SetClipSpeedArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Sets the speed of a video node or an audio clip; its start, its source start, and its direction stay (D82.9).',
+  properties: {
+    clipId: {
+      type: 'string',
+      description: 'The stable ID of a video node or an audio clip of the document.',
+      minLength: 1,
+    },
+    speed: {
+      description: `The new speed. ${SPEEDS}`,
+      anyOf: [{ type: 'number' }, { type: 'string' }, { type: 'object' }],
+    },
+    durationUs: {
+      type: 'integer',
+      description:
+        'Optional: the new duration of the clip, in integer microseconds, at least 1. Left out, it is the duration that plays the same part of the source, rounded up (twice as long at half the speed), and kept when either speed is x0.',
+      minimum: LIFETIME.durationUs.minimum,
+      maximum: LIFETIME.durationUs.maximum,
+    },
+    sourceStartRemainder: {
+      type: 'integer',
+      description:
+        "Optional, and rarely needed: the fraction of a microsecond of the exact source time at the clip's start, in units of 1/den of the new speed, below den. Left out, the clip's remainder is scaled to the new den, rounded down.",
+      minimum: REMAINDER.minimum,
+      maximum: REMAINDER.maximum,
+    },
+  },
+  required: ['clipId', 'speed'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetClipReverse` (D82.9). */
+export const setClipReverseArgumentsSchema: SetClipReverseArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    'Plays a video node or an audio clip backwards or forwards; its lifetime and the part of its source it plays stay (D82.9).',
+  properties: {
+    clipId: {
+      type: 'string',
+      description: 'The stable ID of a video node or an audio clip of the document.',
+      minLength: 1,
+    },
+    reverse: {
+      type: 'boolean',
+      description:
+        'true plays the clip backwards, from the last instant of its part of the source to the first; false plays it forwards.',
+    },
+  },
+  required: ['clipId', 'reverse'],
   additionalProperties: false,
 });
 
@@ -3183,7 +3338,7 @@ export const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema = de
     style: {
       type: 'object',
       description:
-        'The complete new style: {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, stroke, shadow, box, pageIn, pageOut}. fontSize and lineHeight are integer composition pixels; color lowercase #rrggbb; highlight what the word being spoken shows (see set_caption_highlight); align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100; stroke, shadow, and box as the style of a text, the box lying behind every line; pageIn and pageOut how a page enters and leaves (see set_caption_page_animation).',
+        'The complete new style: {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, lineBreak, stroke, shadow, box, pageIn, pageOut}. fontSize and lineHeight are integer composition pixels; color lowercase #rrggbb; highlight what the word being spoken shows (see set_caption_highlight); align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100; stroke, shadow, and box as the style of a text, the box lying behind every line; pageIn and pageOut how a page enters and leaves (see set_caption_page_animation).',
     },
   },
   required: ['nodeId', 'style'],
@@ -3193,7 +3348,7 @@ export const setCaptionStyleArgumentsSchema: SetCaptionStyleArgumentsSchema = de
 const TEXT_ID = 'The stable ID of a text node.';
 
 const TEXT_STYLE =
-  'The complete style: {stroke, shadow, box}, each {kind: "none"} or: stroke {kind: "outside", color, width} for an outline of width pixels (1 to 1000) outside every glyph; shadow {kind: "drop", color, opacity, offset: {x, y}, blur} for a shadow moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {kind: "solid", color, opacity, padding, cornerRadius} for a filled box behind the text, padding pixels beyond its lines on every side, with rounded corners. Colours are lowercase #rrggbb, opacities 0 to 1, and lengths integers.';
+  'The complete style: {stroke, shadow, box, align, verticalAlign}, the first three each {kind: "none"} or: stroke {kind: "outside", color, width} for an outline of width pixels (1 to 1000) outside every glyph; shadow {kind: "drop", color, opacity, offset: {x, y}, blur} for a shadow moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {kind: "solid", color, opacity, padding, cornerRadius} for a filled box behind the text, padding pixels beyond its lines on every side, with rounded corners. Colours are lowercase #rrggbb, opacities 0 to 1, and lengths integers.';
 
 const TEXT_ANIMATION =
   'A text animation is {id, unit, phase, staggerUs, order, tracks}: unit "letter", "word", or "line"; phase {kind: "in"} (the first fragment starts at the node\'s start), {kind: "out"} (the last fragment ends at the node\'s end), or {kind: "accent", startUs} (the first fragment starts at that scene time); staggerUs the integer microseconds between two fragments that follow each other; order {kind: "forward"}, {kind: "backward"}, {kind: "center"}, {kind: "edges"}, or {kind: "random", seed} with an unsigned 32-bit integer seed; tracks at least one, at most one per property, each {property, keyframes} with property "opacity" (a factor 0 to 1), "offset" ({x, y} integer pixels added), "scale" ({x, y} factors about the fragment\'s centre), "rotation" (degrees added, about its centre), or "color" (#rrggbb that replaces the text\'s colour), and at least two keyframes {timeUs, value, easing} in ascending time, timeUs in the fragment\'s own time from 0.';
@@ -3201,7 +3356,7 @@ const TEXT_ANIMATION =
 /** The JSON Schema of the arguments of `SetTextStyle` (D69): the style is the document's to judge. */
 export const setTextStyleArgumentsSchema: SetTextStyleArgumentsSchema = deepFreeze({
   type: 'object',
-  description: 'Replaces the outline, the shadow, and the box of a text node.',
+  description: 'Replaces the style of a text node.',
   properties: {
     nodeId: { type: 'string', description: TEXT_ID, minLength: 1 },
     style: { type: 'object', description: TEXT_STYLE },
@@ -3392,7 +3547,7 @@ export const setTextAnimationArgumentsSchema: SetTextAnimationArgumentsSchema = 
 });
 
 const CAPTION_HIGHLIGHT =
-  'The complete highlight: {color, scale, tracks, underline, box}, shown on the word being spoken from its startUs for its durationUs and at no other time. color is lowercase #rrggbb; scale a factor of its size about its centre on both axes, 1 for none; tracks a list, at most one per property, of {property, keyframes} as the tracks of a text animation, in the word\'s own time from 0 at its startUs (a bounce, a pop), [] for none; underline {kind: "none"} or {kind: "solid", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word\'s line; box {kind: "none"} or {kind: "solid", color, opacity, padding, cornerRadius} behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are.';
+  'The complete highlight: {color, scale, tracks, underline, box, stroke, shadow}, shown on the word being spoken from its startUs for its durationUs and at no other time. color is lowercase #rrggbb; scale a factor of its size about its centre on both axes, 1 for none; tracks a list, at most one per property, of {property, keyframes} as the tracks of a text animation, in the word\'s own time from 0 at its startUs (a bounce, a pop), [] for none; underline {kind: "none"} or {kind: "solid", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word\'s line; box {kind: "none"} or {kind: "solid", color, opacity, padding, cornerRadius} behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are.';
 
 const PAGE_ANIMATION =
   'The complete page animation: {kind: "none"}, or {kind: "animate", unit, staggerUs, order, tracks} with unit "word" or "line" of the page, staggerUs the integer microseconds between two fragments that follow each other, order as for a text animation, and tracks as for a text animation, in each fragment\'s own time. An entrance starts the first fragment at the start of the page\'s first word; an exit ends the last fragment\'s last keyframe at the start of the next page, or on the last page at the end of the last word.';
@@ -5182,6 +5337,80 @@ export function parseJoinClips(value: unknown): JoinClipsCommand {
     clipId: nodeIdOf(fields, 'clipId'),
     nextClipId: nodeIdOf(fields, 'nextClipId'),
   });
+}
+
+/**
+ * The speed of a `SetClipSpeed` (D82.11): a number, a string, or an object read
+ * by `parseSpeed`, exact or refused with `speed-invalid`, never snapped; a
+ * value of another JSON type is `invalid-argument`, as the schema refuses it.
+ */
+function speedOf(value: unknown): Speed {
+  if (typeof value !== 'number' && typeof value !== 'string' && !isPlainObject(value)) {
+    throw new EditorError(
+      'invalid-argument',
+      '`speed` must be a multiplier such as "x0.5", a number, or { num, den }.',
+    );
+  }
+  const reading = parseSpeed(value);
+  if (!reading.ok) throw new EditorError(reading.code, reading.message);
+  return Object.freeze({ num: reading.speed.num, den: reading.speed.den });
+}
+
+/** The optional fields of a `SetClipSpeed` (D82.9). */
+const SET_CLIP_SPEED_OPTIONAL = ['durationUs', 'sourceStartRemainder'] as const;
+
+/**
+ * The fields of a `SetClipSpeed` (D82.9): the speed converted by `parseSpeed`
+ * (D82.11), so the command, its inverse, and the history hold the exact
+ * `{ num, den }`; the optional duration and remainder only when given. Whether
+ * the remainder lies below the new `den` is decided when the command applies.
+ */
+export function parseSetClipSpeed(value: unknown): SetClipSpeedCommand {
+  const optional = isPlainObject(value)
+    ? SET_CLIP_SPEED_OPTIONAL.filter((key) => Object.hasOwn(value, key))
+    : [];
+  const fields = fieldsOf(
+    value,
+    ['type', 'clipId', 'speed', ...optional],
+    'The command `SetClipSpeed`',
+  );
+  const clipId = nodeIdOf(fields, 'clipId');
+  const speed = speedOf(fields['speed']);
+  const remainder: unknown = fields['sourceStartRemainder'];
+  if (
+    optional.includes('sourceStartRemainder') &&
+    (typeof remainder !== 'number' ||
+      !Number.isSafeInteger(remainder) ||
+      remainder < REMAINDER.minimum ||
+      remainder > REMAINDER.maximum)
+  ) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`sourceStartRemainder\` must be an integer from ${String(REMAINDER.minimum)} to ${String(REMAINDER.maximum)}.`,
+    );
+  }
+  return Object.freeze({
+    type: 'SetClipSpeed',
+    clipId,
+    speed,
+    ...(optional.includes('durationUs')
+      ? { durationUs: integerWithin(fields['durationUs'], LIFETIME.durationUs, '`durationUs`') }
+      : {}),
+    ...(typeof remainder === 'number'
+      ? { sourceStartRemainder: remainder === 0 ? 0 : remainder }
+      : {}),
+  });
+}
+
+/** The fields of a `SetClipReverse` (D82.9). */
+export function parseSetClipReverse(value: unknown): SetClipReverseCommand {
+  const fields = fieldsOf(value, ['type', 'clipId', 'reverse'], 'The command `SetClipReverse`');
+  const clipId = nodeIdOf(fields, 'clipId');
+  const reverse: unknown = fields['reverse'];
+  if (typeof reverse !== 'boolean') {
+    throw new EditorError('invalid-argument', '`reverse` must be true or false.');
+  }
+  return Object.freeze({ type: 'SetClipReverse', clipId, reverse });
 }
 
 /** The fields of an `AddSceneTransition` (D56.6); the document's validation judges the transition. */

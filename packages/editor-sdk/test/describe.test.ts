@@ -19,7 +19,7 @@ describe('describeDocument (D46.3)', () => {
   it('lists the scene, its nodes bottom to top with parent and layer, and the group children', () => {
     const description = describeDocument(reference());
     expect(description).toMatchObject({
-      schemaVersion: '0.23',
+      schemaVersion: '0.25',
       width: 1080,
       height: 1920,
       fps: 30,
@@ -64,6 +64,7 @@ describe('describeDocument (D46.3)', () => {
       'text',
       'fontAssetId',
       'fontSize',
+      'frame',
       'color',
       'style',
       'textAnimations',
@@ -93,11 +94,41 @@ describe('describeDocument (D46.3)', () => {
     expect(typeof html?.fields['html']).toBe('string');
   });
 
-  it('lists the assets and clips as the document stores them', () => {
+  it('lists the assets as the document stores them, and each clip with its speed shown (D82.9)', () => {
     const document = reference();
     const description = describeDocument(document);
     expect(description.assets).toEqual(document.assets);
-    expect(description.clips).toEqual(document.clips);
+    expect(description.clips).toEqual([
+      {
+        id: 'clip-audio',
+        type: 'audio',
+        assetId: 'asset-audio',
+        startUs: 0,
+        durationUs: 10_000_000,
+        sourceStartUs: 0,
+        speed: 'x1',
+        reverse: false,
+        sampledSourceRange: { startUs: 0, durationUs: 10_000_000 },
+        volume: 1,
+        fadeInUs: 0,
+        fadeOutUs: 0,
+      },
+    ]);
+    // The keys keep the document's order; the remainder is the commands' (D82.9).
+    expect(Object.keys(description.clips[0] ?? {})).toEqual([
+      'id',
+      'type',
+      'assetId',
+      'startUs',
+      'durationUs',
+      'sourceStartUs',
+      'speed',
+      'reverse',
+      'sampledSourceRange',
+      'volume',
+      'fadeInUs',
+      'fadeOutUs',
+    ]);
   });
 
   it('is deep-frozen, shares no object with the document, and is the same every time', () => {

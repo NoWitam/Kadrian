@@ -52,6 +52,7 @@ const MAIN_ENTRY_MODULES = [
   'template-fill.js',
   'template-structure.js',
   'template-values.js',
+  'time-map.js',
   'validate-semantics.js',
   'validate-structure.js',
   'validate.js',
@@ -108,17 +109,18 @@ describe('the entry points of @kadrion/schema (D42.8)', () => {
     expect(names(reached(join(SCHEMA_DIST, 'template.js')))).toContain('template.js');
   });
 
-  it('keeps the time map of a clip behind its own entry until schema 0.24 (D82, PR-59)', () => {
-    expect(Object.keys(timeMapEntry)).toEqual(
-      expect.arrayContaining([
-        'clipTimeMap',
-        'sourceTimeOfScene',
-        'sceneTimesOfSource',
-        'parseSpeed',
-      ]),
-    );
-    expect(Object.keys(mainEntry)).not.toContain('clipTimeMap');
-    expect(names(reached(join(SCHEMA_DIST, 'index.js')))).not.toContain('time-map.js');
+  it('exports the time map of a clip from the main entry from schema 0.24, and still from its own (D82)', () => {
+    const exported = [
+      'clipTimeMap',
+      'sourceTimeOfScene',
+      'sceneTimesOfSource',
+      'parseSpeed',
+      'formatSpeed',
+    ];
+    expect(Object.keys(timeMapEntry)).toEqual(expect.arrayContaining(exported));
+    expect(Object.keys(mainEntry)).toEqual(expect.arrayContaining(exported));
+    expect(names(reached(join(SCHEMA_DIST, 'index.js')))).toContain('time-map.js');
+    // The entry of its own still reaches nothing but the map.
     expect(names(reached(join(SCHEMA_DIST, 'time-map.js')))).toEqual(['time-map.js']);
   });
 
@@ -136,16 +138,20 @@ describe('the entry points of @kadrion/schema (D42.8)', () => {
   });
 });
 
-describe('the entries of @kadrion/runtime (D83, PR-65)', () => {
-  it('keeps the lines measured from the font behind their own entry until schema 0.25', () => {
-    expect(Object.keys(textFrameEntry)).toEqual(
-      expect.arrayContaining(['fontMetrics', 'textLines', 'captionPagesByWidth', 'frameLayout']),
-    );
-    expect(Object.keys(runtimeEntry)).not.toContain('fontMetrics');
+describe('the entries of @kadrion/runtime (D83, PR-65, PR-66)', () => {
+  it('reaches the lines measured from the font from the main entry since schema 0.25, the same functions as their own entry', () => {
+    const measured = ['fontMetrics', 'textLines', 'captionPagesByWidth', 'frameLayout'] as const;
+    expect(Object.keys(textFrameEntry)).toEqual(expect.arrayContaining([...measured]));
+    expect(Object.keys(runtimeEntry)).toEqual(expect.arrayContaining([...measured]));
+    for (const name of measured) {
+      expect(runtimeEntry[name as keyof typeof runtimeEntry], name).toBe(
+        textFrameEntry[name as keyof typeof textFrameEntry],
+      );
+    }
     const main = names(reached(join(RUNTIME_DIST, 'index.js')), RUNTIME_DIST);
-    // The premise: the walk reaches the captions, which the new entry imports too.
     expect(main).toContain('captions.js');
-    expect(main).not.toContain('text-frame.js');
+    expect(main).toContain('text-frame.js');
+    expect(main).toContain('caption-lines.js');
     expect(main).not.toContain('stretch.js');
   });
 });

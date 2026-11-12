@@ -172,6 +172,11 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 
 ### PR-61 — Schema `0.24`: speed, freeze, and reverse in both hosts
 
+- Status: in review. The step, the hosts, and the commands through the map are
+  recorded in the implementation notes of D82. Open: the golden frames of the
+  speed composition and the parity records are written in the pinned
+  container, and Q14 closes by the evidence of that run.
+
 - **Goal:** a document states a speed, a freeze frame, or a reverse on a video
   node or an audio clip, and both hosts render it, picture and sound.
 - **Scope (D82.1 to D82.3, D82.6 to D82.8):**
@@ -206,6 +211,11 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 - **Not included:** the new commands (PR-62), speed on instances.
 
 ### PR-62 — Commands and tools: speed, reverse, and a freeze frame
+
+- Status: in review. The commands, the helper, and the tools are recorded in
+  the implementation notes of D82; the catalogue grows from 100 to 103
+  entries, and D46 has its line. No runtime build, Player dist tree, or pinned
+  file changes.
 
 - **Goal:** a host and a model change a clip's speed, reverse it, and freeze a
   frame, each in one undoable step. The owner's rule (2026-11-11): the

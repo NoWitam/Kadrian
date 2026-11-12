@@ -446,6 +446,12 @@
             },
             "box": {
               "kind": "none"
+            },
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
             }
           }
         }
@@ -740,7 +746,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           }
         }
       }

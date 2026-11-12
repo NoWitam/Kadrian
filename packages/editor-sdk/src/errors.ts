@@ -108,6 +108,14 @@ export type EditorErrorCode =
   /** A video node would sample past the end of its source; `details` name the nodes and ranges (D49.6). */
   | 'source-range-exceeded'
   /**
+   * A speed is not one a clip can have (D82.1, D82.11): outside x0.25 to x4 and
+   * not x0, not in the notation, with no exact fraction of a denominator up to
+   * 1 000 (the message names the nearest speed), x0 for an audio clip or a
+   * reversed clip, a remainder not below the speed's denominator, or a reverse
+   * of a freeze frame; `details` name the clip when there is one.
+   */
+  | 'speed-invalid'
+  /**
    * The two clips of a transition at a cut do not meet: the outgoing one does not
    * end exactly where the incoming one starts in the same scene; `details` name
    * both (D66).

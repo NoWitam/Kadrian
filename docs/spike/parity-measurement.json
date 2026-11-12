@@ -38,13 +38,13 @@
   },
   "reference": {
     "goldenManifest": "packages/test-fixtures/src/golden-frames/reference.golden-frames.json",
-    "goldenManifestSha256": "sha256:dd1cfe6c22ec06c4322a3c18c56fb62eb27ee7345e600a9cef83c8680a785bf8",
-    "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
-    "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
+    "goldenManifestSha256": "sha256:6d2e89e5c0b202670292cb8cbe16962557d5f48486a5ad705196c5f739d6ce34",
+    "runtimeHash": "sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef",
+    "compositionHash": "sha256:d9d0cd55c6b73e384623635d2b40703b5a9a890fe9e55346f0b175d7b3164d80",
     "width": 1080,
     "height": 1920
   },
-  "playerDistTreeSha256": "sha256:75fa9b6b9c39ebbfcc65d5cf8108a639992de73af818e0fce3017c8d9728f187",
+  "playerDistTreeSha256": "sha256:36dccdc3c7bea7c33a34b9b7202d6bc168b82e393b1b88d15531ff2a89b58c44",
   "playerDistManifest": [
     {
       "path": "packages/player/dist/agent.js",
@@ -53,8 +53,8 @@
     },
     {
       "path": "packages/player/dist/audio.js",
-      "size": 7495,
-      "sha256": "sha256:43dc5cb793af6f665e3755337550acbf68b3a6bea62c8ce92405917434483ea9"
+      "size": 11136,
+      "sha256": "sha256:4dc47ca5cefe75dafaf973a930a129e361248609f323f06dd63f8edc6e9349f4"
     },
     {
       "path": "packages/player/dist/avc.js",
@@ -78,8 +78,8 @@
     },
     {
       "path": "packages/player/dist/player.js",
-      "size": 50454,
-      "sha256": "sha256:33a08b3b6e9db5fed35c90e905b3dadd982b1c6a9e659b80b06c0e4b0c7ec7eb"
+      "size": 50634,
+      "sha256": "sha256:510ac41c2bddb5c03db3206c6c23bfa530b677819819cd26c3ff1dbf8bd4d14d"
     },
     {
       "path": "packages/player/dist/protocol.js",
@@ -122,6 +122,11 @@
       "sha256": "sha256:6eb2821f8ecf07b2489ef2818d8be10976e609314fa13b7f3d7d370d0304f338"
     },
     {
+      "path": "packages/renderer-dom/dist/fonts.js",
+      "size": 2968,
+      "sha256": "sha256:50188740a1098fe4973ceeffcc1f354ea6c01ae6ead46ab41ed7d0af1308a838"
+    },
+    {
       "path": "packages/renderer-dom/dist/image-size.js",
       "size": 11241,
       "sha256": "sha256:c2d3c081cf2918a102dd7d3f86abc48fe719d068a3bb910eddaffd3c67e2ab5f"
@@ -148,8 +153,8 @@
     },
     {
       "path": "packages/renderer-dom/dist/mount.js",
-      "size": 27089,
-      "sha256": "sha256:0071a6fc33975a8cb98b37377d88cccebce6805300777167feaa8094142256a9"
+      "size": 34439,
+      "sha256": "sha256:dc71f24d41f76c93081a19f1f77c8ff50031a85701fd4fe33aaf688fd012b28f"
     },
     {
       "path": "packages/renderer-dom/dist/nested.js",
@@ -173,8 +178,8 @@
     },
     {
       "path": "packages/renderer-dom/dist/render.js",
-      "size": 26150,
-      "sha256": "sha256:26fa085524ab57fc3c266d842e9d7bdd66c47db079e274e9a0e27f73de21b9c0"
+      "size": 27681,
+      "sha256": "sha256:c2f91184e0ce70ece9958cd5d5e3376d450d6aee250034b8e79a0a8420786417"
     },
     {
       "path": "packages/renderer-dom/dist/resolve.js",
@@ -183,13 +188,13 @@
     },
     {
       "path": "packages/renderer-dom/dist/runtime-build/kadrion-runtime.js",
-      "size": 333779,
-      "sha256": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c"
+      "size": 367421,
+      "sha256": "sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef"
     },
     {
       "path": "packages/renderer-dom/dist/runtime-build/kadrion-runtime.json",
       "size": 270,
-      "sha256": "sha256:3a0f76b6ea2663872f3d4ed5f661d7802ca34117fe353d29dabb622724bdb6a4"
+      "sha256": "sha256:16359a46c0c5b17eb0147bf5240ea84990178b01fc16b5312ae2cb7d10d3dd33"
     },
     {
       "path": "packages/renderer-dom/dist/sandbox.js",
@@ -232,9 +237,14 @@
       "sha256": "sha256:e1354c81b94f95c376fe661cf59a83c3711e1b39c3b5007a5803bca597b6920a"
     },
     {
+      "path": "packages/runtime/dist/caption-lines.js",
+      "size": 1513,
+      "sha256": "sha256:5a155a60d9b02bc02756b2d390631f5faf8fefa498f4bab50942af13afcb1f0c"
+    },
+    {
       "path": "packages/runtime/dist/captions.js",
-      "size": 7557,
-      "sha256": "sha256:48536238d3bb98998cdc673a5d8361970c42d707acb006532f71dd3adfbaa4e1"
+      "size": 7586,
+      "sha256": "sha256:0d1d6c1b2188ef8613db806e968ab08839de8ab773c289853e332360f80c4755"
     },
     {
       "path": "packages/runtime/dist/compositing.js",
@@ -258,13 +268,13 @@
     },
     {
       "path": "packages/runtime/dist/evaluate.js",
-      "size": 14517,
-      "sha256": "sha256:4f8968f6dc137e360c574ba23d35cbe5f048b81a235f36c164949fa5c2ad00ec"
+      "size": 15782,
+      "sha256": "sha256:af87f7e26cca3164602568ed9c40138eeb66ce7bc1324d0bb3f10b4e7b62d9cc"
     },
     {
       "path": "packages/runtime/dist/fragments.js",
-      "size": 7571,
-      "sha256": "sha256:79b066baf024b42f9cfd88dc63f046c8701f00ce66b7de9897dbad886f39b2da"
+      "size": 8554,
+      "sha256": "sha256:8fc4612e7e3675b13752e777388463f914e8e56ff90ca3dc1ff45d1e5bb0fdeb"
     },
     {
       "path": "packages/runtime/dist/grapheme-table.js",
@@ -278,8 +288,8 @@
     },
     {
       "path": "packages/runtime/dist/index.js",
-      "size": 1039,
-      "sha256": "sha256:57f6479df3719ae49c0dc559c45b28787c7098111159f494fb964a4c10bb7fa6"
+      "size": 1553,
+      "sha256": "sha256:35cfc479b2ccef1e275df13554570e2c4b138d04210320db28b5e9be8fce766c"
     },
     {
       "path": "packages/runtime/dist/keyframes.js",
@@ -292,19 +302,29 @@
       "sha256": "sha256:3dfe1cf7edb4a63ca0707131ec0c3f175d9c9e314f90fa7c7ffbe507f5f8e8af"
     },
     {
+      "path": "packages/runtime/dist/stretch.js",
+      "size": 12618,
+      "sha256": "sha256:f220ff1537633b630824a7e3cbd647221fa1033c82a6d6f7bfb9322f5615c135"
+    },
+    {
+      "path": "packages/runtime/dist/text-frame.js",
+      "size": 20039,
+      "sha256": "sha256:95e1161ddac9d7cdd57bf6f601179844f4cd04bff62ce8f5867b3c445223bb54"
+    },
+    {
       "path": "packages/runtime/dist/transitions.js",
       "size": 12898,
       "sha256": "sha256:3ec0082b1a8194d8e05535740d2fba8a2c608de678a9ddde7a80de6ed5a2e71d"
     },
     {
       "path": "packages/schema/dist/audio-plan.js",
-      "size": 7959,
-      "sha256": "sha256:767fae9704197f1836916f1a660ab898615b45e5f180cb9fddb128d14ca7fb72"
+      "size": 10110,
+      "sha256": "sha256:4accb37f845b814796c52fc3a994be3c1ddde738a5b874c4cb61713341907227"
     },
     {
       "path": "packages/schema/dist/composition-schema.js",
-      "size": 103033,
-      "sha256": "sha256:58f347e7dcd86d6668e4491d23bd47bcd5342f68b0fb9cdb756e074d860c5ed9"
+      "size": 107886,
+      "sha256": "sha256:c05a0eb637d47cbbb6eb55506d5bde70ec8714c5c40d7f4332b98aa1fff9e8e4"
     },
     {
       "path": "packages/schema/dist/definitions.js",
@@ -323,8 +343,8 @@
     },
     {
       "path": "packages/schema/dist/index.js",
-      "size": 1528,
-      "sha256": "sha256:36e39f2ff9171dbfe5f6138458cb37869b97681405c2802530b7b0b3c8bd9320"
+      "size": 1930,
+      "sha256": "sha256:ff63922fceccb7c744b48ec8a003ebb1449cf25eebf63c1e9df205b289d28a91"
     },
     {
       "path": "packages/schema/dist/json-schema.js",
@@ -338,8 +358,8 @@
     },
     {
       "path": "packages/schema/dist/source-frame.js",
-      "size": 4816,
-      "sha256": "sha256:3b75f27282ac9b953fd7fcc02bc5e2230fe66d56ba81c2576173bb1091126f65"
+      "size": 5043,
+      "sha256": "sha256:b4f9fbada154f111ed903ccb265da7dbbab14876b5ed7f6a37b106382fd8cf19"
     },
     {
       "path": "packages/schema/dist/svg.js",
@@ -362,9 +382,14 @@
       "sha256": "sha256:af9815b08d7a539531f44dad966bec04d535c6fe425dca6a30579127bf766a8b"
     },
     {
+      "path": "packages/schema/dist/time-map.js",
+      "size": 17077,
+      "sha256": "sha256:3b58e3ff4d000ab1b70b92127468f18d1ce63e895feafe3b992662af2013decd"
+    },
+    {
       "path": "packages/schema/dist/validate-semantics.js",
-      "size": 73878,
-      "sha256": "sha256:e370388f1c0ba86a9d1977a28f3c5de37ec43a45fb78ce7f2db7acd0cfca6f1b"
+      "size": 80356,
+      "sha256": "sha256:a40136694c49694aad379e4f6e009cd46688caa721f43ad4a3775a76a1d21fe4"
     },
     {
       "path": "packages/schema/dist/validate-structure.js",
@@ -381,8 +406,8 @@
     {
       "timeUs": 0,
       "frameIndex": 0,
-      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
-      "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
+      "runtimeHash": "sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef",
+      "compositionHash": "sha256:d9d0cd55c6b73e384623635d2b40703b5a9a890fe9e55346f0b175d7b3164d80",
       "width": 1080,
       "height": 1920,
       "playerPng": "sha256:b9f49e8a11904229c3a5692d2ed2cc86cb1b499b7c8af7bd1715621411fc4606",
@@ -407,8 +432,8 @@
     {
       "timeUs": 2500000,
       "frameIndex": 75,
-      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
-      "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
+      "runtimeHash": "sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef",
+      "compositionHash": "sha256:d9d0cd55c6b73e384623635d2b40703b5a9a890fe9e55346f0b175d7b3164d80",
       "width": 1080,
       "height": 1920,
       "playerPng": "sha256:2231fb68cb9adb625adcaa8ebe665557d60abf295f4ef6a4e7a4fc45edfe3a5d",
@@ -433,8 +458,8 @@
     {
       "timeUs": 5000000,
       "frameIndex": 150,
-      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
-      "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
+      "runtimeHash": "sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef",
+      "compositionHash": "sha256:d9d0cd55c6b73e384623635d2b40703b5a9a890fe9e55346f0b175d7b3164d80",
       "width": 1080,
       "height": 1920,
       "playerPng": "sha256:727cbd77912ffa759f063f1e1a4102dbed0e7c0b280cc111969e0a92e2344606",
@@ -459,8 +484,8 @@
     {
       "timeUs": 7500000,
       "frameIndex": 225,
-      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
-      "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
+      "runtimeHash": "sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef",
+      "compositionHash": "sha256:d9d0cd55c6b73e384623635d2b40703b5a9a890fe9e55346f0b175d7b3164d80",
       "width": 1080,
       "height": 1920,
       "playerPng": "sha256:f7b2d321e393b764cbea15f102086e5bbbd400395990fbff644c1d7f7c94f217",
@@ -485,8 +510,8 @@
     {
       "timeUs": 9900000,
       "frameIndex": 297,
-      "runtimeHash": "sha256:b405db1939f2cab2a09615d35d725f1543c668080b8c76cc4e2e5c53592f5f5c",
-      "compositionHash": "sha256:4840028bbc02b991ab8255dc18c41fe847d134ecad05e61bdbcf8a12e58476ba",
+      "runtimeHash": "sha256:cc74d99ce99b8010eacd6a39b28f89e8ff0e81615e43dcd5319ddb58c0d73aef",
+      "compositionHash": "sha256:d9d0cd55c6b73e384623635d2b40703b5a9a890fe9e55346f0b175d7b3164d80",
       "width": 1080,
       "height": 1920,
       "playerPng": "sha256:18de61241636afede168cb5d9802aeef70db4b19032013f1d2ed34af9e0135d5",

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 640,
   "height": 360,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
@@ -168,11 +168,14 @@
           "text": "{{title}}",
           "fontAssetId": "asset-font",
           "fontSize": 36,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": { "kind": "none" },
             "shadow": { "kind": "none" },
-            "box": { "kind": "none" }
+            "box": { "kind": "none" },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -262,12 +265,15 @@
               "scale": 1,
               "tracks": [],
               "underline": { "kind": "none" },
-              "box": { "kind": "none" }
+              "box": { "kind": "none" },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 16,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": { "kind": "none" },
             "shadow": { "kind": "none" },
             "box": { "kind": "none" },
@@ -307,12 +313,15 @@
               "scale": 1,
               "tracks": [],
               "underline": { "kind": "none" },
-              "box": { "kind": "none" }
+              "box": { "kind": "none" },
+              "stroke": { "kind": "none" },
+              "shadow": { "kind": "none" }
             },
             "align": "center",
             "verticalAlign": "bottom",
             "maxLineLength": 16,
             "maxLines": 2,
+            "lineBreak": "characters",
             "stroke": { "kind": "none" },
             "shadow": { "kind": "none" },
             "box": { "kind": "none" },

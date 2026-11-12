@@ -171,6 +171,7 @@ export interface SoundContext {
     decodeAudioData(data: ArrayBuffer): Promise<AudioBuffer>;
     createBufferSource(): AudioBufferSourceNode;
     createGain(): GainNode;
+    createBuffer(numberOfChannels: number, length: number, sampleRate: number): AudioBuffer;
 }
 
 ---- VideoContainer (type only)

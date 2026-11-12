@@ -282,6 +282,9 @@ describe('samples at 48 kHz (D29.6)', () => {
           startUs: 5_000_000,
           durationUs: 1_000_000,
           sourceStartUs: 0,
+          sourceStartRemainder: 0,
+          speed: { num: 1, den: 1 },
+          reverse: false,
           volume: 0.125,
           fadeInUs: 0,
           fadeOutUs: 0,
@@ -1076,7 +1079,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
       'tools',
       `probe sound-0 ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.23',
+      'load 0.25',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,

@@ -7,7 +7,9 @@
  * so every call takes it as `unknown` and
  * validates it (D19). `load` and `mount` also take the host's Custom HTML
  * policy, which the artifact never assumes (D36). Nothing is kept between calls except the DOM under
- * `root` and the font set that `load` registers. Both hosts consume this
+ * `root` and the font set that `load` registers; the metrics of the fonts of
+ * measured nodes, which `load` reads (D83.7), are kept on the stage of that DOM,
+ * and every evaluation reads them back from there. Both hosts consume this
  * contract through `load` and `frame` (D25, D28); `mount` stays for the tests of
  * D21.
  */
@@ -15,8 +17,9 @@ import { evaluateComposition } from '@kadrion/runtime';
 import { validateComposition, type ValidationError } from '@kadrion/schema';
 
 import { checkAssetUrls, type AssetUrls } from './assets.js';
+import { measureFonts, readFontMetrics } from './fonts.js';
 import { pageAssets, registerFonts, type FontHost } from './load.js';
-import { mountComposition } from './mount.js';
+import { mountComposition, mountMeasured } from './mount.js';
 import { mountOptions } from './policy.js';
 import { awaitMediaReady } from './ready.js';
 import { renderState } from './render.js';
@@ -31,7 +34,10 @@ export type PageResult =
  * policy, which is required: no policy, or anything but exactly one of its
  * forms, throws the `RenderError` code `invalid-options` first (D36). An
  * invalid document is expected input and yields its errors; a problem with the
- * asset URLs throws a `RenderError` before the DOM is touched (D22.5).
+ * asset URLs throws a `RenderError` before the DOM is touched (D22.5). It
+ * reads no font, so a document with a measured node, a text with a frame or
+ * captions broken by width, throws the `EvaluationError` `font-metrics-missing`
+ * here: such a document is mounted by `load` (D83.7).
  */
 export function mount(
   root: Element,
@@ -52,9 +58,12 @@ export function mount(
  * HTML policy, which is required and has no default here (D36); validate `document`;
  * turn the asset bytes into `data:` URLs and check them against it (D22.5);
  * clear the font set; register every font a text node uses from its bytes,
- * through the constructor the host lends, and wait for the font set; then
- * mount. A problem with the assets or a font rejects with a `RenderError`, and
- * nothing is mounted; an invalid document yields its errors.
+ * through the constructor the host lends, and wait for the font set; read the
+ * metrics of every font a measured node uses from the same bytes, with the
+ * runtime's `fontMetrics` (D83.7); then mount, with those metrics. A problem
+ * with the assets or a font rejects with a `RenderError` — a font a measured
+ * node cannot be measured with is `font-unmeasurable` — and nothing is
+ * mounted; an invalid document yields its errors.
  */
 export async function load(
   root: Element,
@@ -69,7 +78,8 @@ export async function load(
   const { urls, bytes } = pageAssets(assets);
   checkAssetUrls(result.composition, urls);
   await registerFonts(root, result.composition, bytes, host);
-  mountComposition(root, result.composition, urls, checked);
+  const fonts = measureFonts(result.composition, bytes);
+  mountMeasured(root, result.composition, urls, checked, fonts);
   return { ok: true };
 }
 
@@ -82,7 +92,7 @@ export async function load(
 export function render(root: Element, document: unknown, timeUs: number): PageResult {
   const result = validateComposition(document);
   if (!result.ok) return { ok: false, errors: result.errors };
-  renderState(root, evaluateComposition(result.composition, timeUs));
+  renderState(root, evaluateComposition(result.composition, timeUs, readFontMetrics(root)));
   return { ok: true };
 }
 
@@ -102,7 +112,7 @@ export function synchronize(
 ): Promise<PageResult> {
   const result = validateComposition(document);
   if (!result.ok) return Promise.resolve({ ok: false, errors: result.errors });
-  const state = evaluateComposition(result.composition, timeUs);
+  const state = evaluateComposition(result.composition, timeUs, readFontMetrics(root));
   return synchronizeCustomHtml(root, state, host).then(() => ({ ok: true }) as const);
 }
 
@@ -128,7 +138,7 @@ export function frame(
       resolve({ ok: false, errors: result.errors });
       return;
     }
-    const state = evaluateComposition(result.composition, timeUs);
+    const state = evaluateComposition(result.composition, timeUs, readFontMetrics(root));
     applyVideoFrames(root, state, videoFrames);
     renderState(root, state);
     Promise.all([synchronizeCustomHtml(root, state, host), awaitMediaReady(root)]).then(() => {

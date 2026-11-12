@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 400,
   "height": 300,
   "safeArea": {
@@ -74,6 +74,7 @@
               "text": "A",
               "fontAssetId": "asset-font",
               "fontSize": 40,
+              "frame": { "kind": "none" },
               "color": "#ffffff",
               "style": {
                 "stroke": {
@@ -84,7 +85,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -115,6 +118,7 @@
               "text": "B",
               "fontAssetId": "asset-font",
               "fontSize": 40,
+              "frame": { "kind": "none" },
               "color": "#ffffff",
               "style": {
                 "stroke": {
@@ -125,7 +129,9 @@
                 },
                 "box": {
                   "kind": "none"
-                }
+                },
+                "align": "left",
+                "verticalAlign": "top"
               },
               "textAnimations": [],
               "effects": [],
@@ -189,6 +195,7 @@
           "text": "C",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -199,7 +206,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],
@@ -230,6 +239,7 @@
           "text": "D",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#ffffff",
           "style": {
             "stroke": {
@@ -240,7 +250,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

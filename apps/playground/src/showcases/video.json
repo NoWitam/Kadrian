@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.23",
+  "schemaVersion": "0.25",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -57,6 +57,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 560,
           "height": 315,
           "fit": "fill",
@@ -99,6 +102,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 560,
           "height": 560,
           "fit": "contain",
@@ -141,6 +147,9 @@
           "animations": [],
           "assetId": "asset-video",
           "sourceStartUs": 500000,
+          "sourceStartRemainder": 0,
+          "speed": { "num": 1, "den": 1 },
+          "reverse": false,
           "width": 560,
           "height": 240,
           "fit": "cover",
@@ -184,6 +193,7 @@
           "text": "Kadrion contain",
           "fontAssetId": "asset-font",
           "fontSize": 40,
+          "frame": { "kind": "none" },
           "color": "#e4e7ec",
           "style": {
             "stroke": {
@@ -194,7 +204,9 @@
             },
             "box": {
               "kind": "none"
-            }
+            },
+            "align": "left",
+            "verticalAlign": "top"
           },
           "textAnimations": [],
           "effects": [],

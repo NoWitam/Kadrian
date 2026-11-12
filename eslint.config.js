@@ -488,8 +488,10 @@ export default defineConfig(
     // the verified bytes of a video get a private copy in a directory of the
     // Producer's own, which the frame loop removes when it ends. This module
     // alone may create that directory and write those copies, and those of the
-    // sound sources of the audio pass (D52.5).
-    files: ['packages/producer/src/video.ts'],
+    // sound sources of the audio pass (D52.5). The stretch module writes the
+    // computed samples of a sound at another speed or reversed to a temporary
+    // 32-bit float WAV, the input of the audio pass, and removes it (D82.6).
+    files: ['packages/producer/src/video.ts', 'packages/producer/src/stretch.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

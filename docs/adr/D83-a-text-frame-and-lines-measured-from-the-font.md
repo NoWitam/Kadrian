@@ -460,6 +460,19 @@ the phase six roadmap: S under 500 changed lines, M 800 to 1 500, L 2 000 to
   sends complete objects of `0.25`), the new composition, its golden frames,
   and its pinned tests; parity measured again. D19, D22, D27, D57, D65, D68,
   D69, and D70 get their lines; D35 its step.
+
+  - Status: in review. The step, the fields, the load step, the mount,
+    `renderState`, the evaluation with the metrics, the descriptions and
+    examples of the four tools, the framed-text composition, and its pinned
+    test are recorded in the implementation notes below (PR-66). The runtime
+    build is now
+    `sha256:2d9240d75d0b3dd8b837101394dd91573ba1cf5f6db574d78a556b6916c3ea8c`
+    and the Player's dist tree
+    `sha256:daa8a3081805559021629af6cac0c752f3a766895f505b3da245673c8f98b856`
+    (71 files). The golden manifests of the earlier compositions change in
+    the three fields of D42 alone. Open: the golden frames of the framed-text
+    composition and the parity records, written in the pinned container.
+
 - **PR-67.** `SetNodeSize` on a text with `null`, its tool's description, the
   budget test, and a fixture of model requests ("make the title box 800 by
   300", "centre the text in its box", "break the captions by width", "give the
@@ -547,6 +560,80 @@ nothing in this section is in force for a document before PR-66.
   at every fractional size, which the test asserts too, so the tolerance
   cannot hide that rounding. PR-66 still checks every measured line of the
   new composition with the mount.
+
+## Implementation notes (PR-66)
+
+- **The metrics live in the DOM between calls.** The load step reads the
+  metrics of the fonts of measured nodes (`measuredFontIds`) from the bytes it
+  already holds, after it registers the fonts and before it mounts
+  (`measureFonts`; bytes `fontMetrics` cannot read are the `RenderError`
+  `font-unmeasurable`). The render page keeps no module state (D20, D24), so
+  the mount writes them as JSON on the stage (`data-kadrion-font-metrics`, only
+  when a measured node exists), and `render`, `synchronize`, and `frame` read
+  them back for `evaluateComposition`. The signature of `mountComposition`
+  and of the page's `mount` and `load` stay as `tests/repo/adr-signatures.test.ts`
+  pins them; the mount with metrics is the internal `mountMeasured`, and
+  `mountComposition` of a document with a measured node throws
+  `font-metrics-missing`, as the evaluation does.
+- **One runtime entry.** The main entry of `@kadrion/runtime` now exports the
+  functions of PR-65 and `measuredFontIds`; `@kadrion/runtime/text-frame`
+  stays as the same functions under their own entry. The lines of captions
+  that both `captions.ts` and `text-frame.ts` need (`codePoints`, the pages of
+  lines, the breaking by characters) moved to `caption-lines.ts`, so that
+  neither imports the other.
+- **`captionPages(words, style, width?, metrics?)`** dispatches on
+  `style.lineBreak`: `characters`, or a style without the field, breaks as
+  D57.3 always did; `width` needs the width of the box and the metrics, and
+  without them is the `EvaluationError` `font-metrics-missing`.
+- **`evaluateComposition(composition, timeUs, fonts?)`** checks the time
+  first, then that every measured node's font has metrics, whatever the time,
+  so that a host that forgets them fails at once and not at the first frame a
+  measured node shows. Fonts of nodes that are not measured are ignored.
+- **The mount.** A framed text is a `div` as large as its frame holding one
+  `div` per line of `frameLayout`, absolutely placed at its `x` and `y`, with
+  `white-space: pre` and kerning and ligatures off (D83.2); a text animated
+  by line puts the fragments of each line in its line's element, and the
+  runtime counts the lines of the frame that hold a word. The box of a framed
+  text lies behind the block of lines, from the leftmost line and as wide as
+  the widest (D83.3). A text without a frame writes `text-align` only for
+  `center` and `right`, and captions broken by characters write nothing new,
+  so a document migrated from `0.24` mounts as before (D83.9). A line of
+  captions broken by width keeps the box's flex column for the vertical
+  placement and takes its `x` from `frameLayout` as a left margin. Every
+  measured line carries `data-kadrion-text-line` with its index in the lines
+  of `frameLayout`, which the pinned test reads.
+- **The spoken word (W5).** The mount writes the highlight's outline and
+  shadow as custom properties on the captions box, only when they are not
+  `none`; `renderState` sets `-webkit-text-stroke`, `paint-order: stroke`,
+  and `text-shadow` from them on the spoken word and removes them from every
+  other word on every call, so nothing depends on an earlier call (D20) and
+  `captionsInPieces` does not change.
+- **Tabs.** A tab in a measured text is measured as the advance of its glyph,
+  or of `.notdef` when the font maps none, which `frameLayout` lists in
+  `missing`, while the browser draws a tab stop: a host keeps tabs out of
+  measured texts, and `frameLayout` tells it when one is there. A refusal of
+  tabs was not added, because it would be a schema rule D83 does not state.
+- **The title of the schema.** The JSON Schema of `0.24` carried the title
+  `Kadrion composition 0.23` (left so by PR-61), which the frozen `0.24` keeps
+  as data; the current schema is titled `Kadrion composition 0.25`.
+- **The tools.** The catalogue grows by 644 characters against the snapshot
+  of `0.24` (`set_text_style` 189, `set_caption_style` 190,
+  `set_caption_highlight` 190, `add_node` 75), measured as D83.10 says; the
+  arguments' descriptions of the three commands list the new keys, and the
+  tools' descriptions say what they do. PR-67 adds `set_node_size` and the
+  test of the budget.
+- **The framed-text composition** (`framedTextComposition`, 640x360, two
+  scenes) uses the proportional font (`generateProportionalFontAsset`) and
+  only characters it maps: nine framed texts in every alignment with a box,
+  a word wider than its frame, a block taller than its frame, a framed text
+  with a line feed, two spaces, an outline, a shadow, and an entrance by line,
+  a text without a frame aligned to the centre, and captions broken by width
+  whose spoken word has an outline and a shadow. It is also a document of
+  `0.25` in the compatibility corpus. `tests/pinned/framed-text.pinned.test.ts`
+  reads every measured line from the Player's render page with a `Range` and
+  holds it to `frameLayout` within half a pixel, compares the Player with the
+  Producer pixel for pixel, checks that the spoken word's outline and shadow
+  change only the spoken word, and compares the golden frames.
 
 ## Questions for the owner, with recommendations
 

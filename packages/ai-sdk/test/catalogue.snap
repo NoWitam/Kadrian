@@ -101,7 +101,7 @@
   },
   {
     "name": "add_node",
-    "description": "Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {\"kind\":\"none\"}, matte {\"kind\":\"none\"}, and blendMode \"normal\" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit \"fill\", \"contain\", or \"cover\" of the definition's canvas in its box. A group takes text, image, video, and shape nodes only. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"rotation\":0,\"origin\":{\"x\":0,\"y\":0},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"color\":\"#ffffff\",\"style\":{\"stroke\":{\"kind\":\"none\"},\"shadow\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"}},\"textAnimations\":[],\"effects\":[],\"mask\":{\"kind\":\"none\"},\"matte\":{\"kind\":\"none\"},\"blendMode\":\"normal\"}}",
+    "description": "Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {\"kind\":\"none\"}, matte {\"kind\":\"none\"}, and blendMode \"normal\" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit \"fill\", \"contain\", or \"cover\" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {\"num\":1,\"den\":1} (describe_document shows a speed as a multiplier such as \"x0.5\"; stored, it is the fraction {\"num\":1,\"den\":2}, from 1/4 to 4, or {\"num\":0,\"den\":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"rotation\":0,\"origin\":{\"x\":0,\"y\":0},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"frame\":{\"kind\":\"none\"},\"color\":\"#ffffff\",\"style\":{\"stroke\":{\"kind\":\"none\"},\"shadow\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"},\"align\":\"left\",\"verticalAlign\":\"top\"},\"textAnimations\":[],\"effects\":[],\"mask\":{\"kind\":\"none\"},\"matte\":{\"kind\":\"none\"},\"blendMode\":\"normal\"}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete node, with its animations and children, into a list.",
@@ -1071,10 +1071,10 @@
   },
   {
     "name": "set_video_source",
-    "description": "Sets the source time a video node shows at the start of its lifetime; it then plays at speed 1. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Source times count from the video's first frame. The node samples sourceStartUs up to sourceStartUs plus the part of its lifetime inside its scene, which must lie inside the video: describe_document reports its sourceDurationUs when the host knows it. To trim the start of a clip by d, add d to startUs and sourceStartUs and subtract it from durationUs in one transaction. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a video, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-video\",\"sourceStartUs\":2000000}",
+    "description": "Sets the source time a video node shows at the start of its lifetime; it keeps its speed and its direction. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Source times count from the video's first frame. The node samples the source range describe_document states as its sampledSourceRange, from sourceStartUs at speed 1 forwards, which must lie inside the video: describe_document reports its sourceDurationUs when the host knows it. To trim the start of a clip, use trim_clip_start, which keeps every frame that remains at any speed. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a video, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-video\",\"sourceStartUs\":2000000}",
     "inputSchema": {
       "type": "object",
-      "description": "Sets the source time a video shows at the start of its lifetime; speed is 1.",
+      "description": "Sets the source time a video shows at the start of its lifetime; its speed, its direction, and the remainder of its exact source start stay (D82.9).",
       "properties": {
         "nodeId": {
           "type": "string",
@@ -1123,7 +1123,7 @@
   },
   {
     "name": "add_audio_clip",
-    "description": "Adds one complete audio clip at an index of the document's clips; every clip is heard, mixed by adding, whatever the order. The clip is given exactly as the document stores it: an ID unused in the document, type \"audio\", the ID of an audio asset the document declares (add one with add_asset first), startUs and durationUs (at least 1) in composition time, sourceStartUs (the source time heard at startUs; speed is 1), volume from 0 to 1, and fadeInUs and fadeOutUs, linear, which together take at most durationUs. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. The part after the end of the composition is cut; the source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with index-out-of-range, id-in-use, invalid-result, media-facts-missing when the host does not know the asset's duration, and source-range-exceeded when the clip would hear past its end. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":1,\"clip\":{\"id\":\"clip-voice\",\"type\":\"audio\",\"assetId\":\"asset-audio\",\"startUs\":2000000,\"durationUs\":3000000,\"sourceStartUs\":500000,\"volume\":0.8,\"fadeInUs\":250000,\"fadeOutUs\":1000000}}",
+    "description": "Adds one complete audio clip at an index of the document's clips; every clip is heard, mixed by adding, whatever the order. The clip is given exactly as the document stores it: an ID unused in the document, type \"audio\", the ID of an audio asset the document declares (add one with add_asset first), startUs and durationUs (at least 1) in composition time, sourceStartUs (the source time heard at startUs), sourceStartRemainder 0, speed {\"num\":1,\"den\":1} (the source's own speed; describe_document shows a speed as a multiplier such as \"x1.5\", stored as the fraction {\"num\":3,\"den\":2}, from 1/4 to 4, the pitch kept), reverse false (true plays the same source range backwards), volume from 0 to 1, and fadeInUs and fadeOutUs, linear, which together take at most durationUs. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. The part after the end of the composition is cut; the source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with index-out-of-range, id-in-use, invalid-result, media-facts-missing when the host does not know the asset's duration, and source-range-exceeded when the clip would hear past its end. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":1,\"clip\":{\"id\":\"clip-voice\",\"type\":\"audio\",\"assetId\":\"asset-audio\",\"startUs\":2000000,\"durationUs\":3000000,\"sourceStartUs\":500000,\"sourceStartRemainder\":0,\"speed\":{\"num\":1,\"den\":1},\"reverse\":false,\"volume\":0.8,\"fadeInUs\":250000,\"fadeOutUs\":1000000}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete audio clip into the document's clips.",
@@ -1136,7 +1136,7 @@
         },
         "clip": {
           "type": "object",
-          "description": "The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; volume; fadeInUs and fadeOutUs."
+          "description": "The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs."
         }
       },
       "required": [
@@ -1226,10 +1226,10 @@
   },
   {
     "name": "set_clip_source",
-    "description": "Points one audio clip at an audio asset the document declares, which may be the one it has, and sets the source time heard at the clip's start; it then plays at speed 1 and keeps its lifetime. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Source times count from the first sample. To move a clip in time, run remove_audio_clip and add_audio_clip in one transaction. The part heard must lie inside the source: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with invalid-argument, unknown-clip, unknown-asset, asset-type-mismatch when the asset is not audio, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"assetId\":\"asset-audio\",\"sourceStartUs\":1000000}",
+    "description": "Points one audio clip at an audio asset the document declares, which may be the one it has, and sets the source time heard at the clip's start; it keeps its lifetime, its speed, and its direction. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Source times count from the first sample. To move a clip in time, run remove_audio_clip and add_audio_clip in one transaction. The part heard must lie inside the source: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with invalid-argument, unknown-clip, unknown-asset, asset-type-mismatch when the asset is not audio, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"assetId\":\"asset-audio\",\"sourceStartUs\":1000000}",
     "inputSchema": {
       "type": "object",
-      "description": "Points one audio clip at an audio asset and the source time it plays from; its lifetime stays.",
+      "description": "Points one audio clip at an audio asset and the source time it plays from; its lifetime and its time map but for its source start stay (D82.9).",
       "properties": {
         "clipId": {
           "type": "string",
@@ -1411,7 +1411,7 @@
   },
   {
     "name": "add_scene_audio_clip",
-    "description": "Adds one complete audio clip at an index of a scene's clips, in the time of that scene: it moves with its scene, which cuts it at its end. The clip is given as add_audio_clip takes one: an ID unused in the document, type \"audio\", the ID of an audio asset, startUs and durationUs in scene time, sourceStartUs, volume from 0 to 1, fadeInUs and fadeOutUs. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. The source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with unknown-scene, index-out-of-range, id-in-use, invalid-result, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-main\",\"index\":0,\"clip\":{\"id\":\"clip-scene-voice\",\"type\":\"audio\",\"assetId\":\"asset-audio\",\"startUs\":1000000,\"durationUs\":2000000,\"sourceStartUs\":0,\"volume\":1,\"fadeInUs\":0,\"fadeOutUs\":500000}}",
+    "description": "Adds one complete audio clip at an index of a scene's clips, in the time of that scene: it moves with its scene, which cuts it at its end. The clip is given as add_audio_clip takes one: an ID unused in the document, type \"audio\", the ID of an audio asset, startUs and durationUs in scene time, sourceStartUs, sourceStartRemainder, speed, reverse, volume from 0 to 1, fadeInUs and fadeOutUs. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. The source must be long enough for the part that is heard: describe_document reports an audio asset's sourceDurationUs when the host knows it. Refused with unknown-scene, index-out-of-range, id-in-use, invalid-result, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"sceneId\":\"scene-main\",\"index\":0,\"clip\":{\"id\":\"clip-scene-voice\",\"type\":\"audio\",\"assetId\":\"asset-audio\",\"startUs\":1000000,\"durationUs\":2000000,\"sourceStartUs\":0,\"sourceStartRemainder\":0,\"speed\":{\"num\":1,\"den\":1},\"reverse\":false,\"volume\":1,\"fadeInUs\":0,\"fadeOutUs\":500000}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete audio clip into a scene's clips, in scene time.",
@@ -1429,7 +1429,7 @@
         },
         "clip": {
           "type": "object",
-          "description": "The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in scene time; sourceStartUs; volume; fadeInUs and fadeOutUs."
+          "description": "The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in scene time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs."
         }
       },
       "required": [
@@ -1468,10 +1468,10 @@
   },
   {
     "name": "trim_clip_start",
-    "description": "Moves the start of one clip and keeps its end, as dragging the left edge on a timeline: startUs becomes the given time, durationUs changes by the opposite amount, and a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays exactly where it did. No keyframe moves, and an audio clip's fades stay at its edges. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, time-outside-clip when the start would reach the end, source-range-exceeded when the source would start before its first instant or run past its end, invalid-result when the fades no longer fit, and media-facts-missing. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"startUs\":2000000}",
+    "description": "Moves the start of one clip and keeps its end, as dragging the left edge on a timeline: startUs becomes the given time, durationUs changes by the opposite amount, and a video's or an audio clip's source moves by the same amount times its speed (a reversed clip's source stays), so what remains plays exactly where it did. No keyframe moves, and an audio clip's fades stay at its edges. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, time-outside-clip when the start would reach the end, source-range-exceeded when the source would start before its first instant or run past its end, invalid-result when the fades no longer fit, and media-facts-missing. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"startUs\":2000000}",
     "inputSchema": {
       "type": "object",
-      "description": "Moves the start of a clip and keeps its end; a video's or an audio clip's sourceStartUs moves by the same amount, so what remains plays where it did.",
+      "description": "Moves the start of a clip and keeps its end; a video's or an audio clip's source moves by the same amount times its speed, and a reversed one's stays, so what remains plays where it did (D82.2).",
       "properties": {
         "clipId": {
           "type": "string",
@@ -1520,7 +1520,7 @@
   },
   {
     "name": "split_clip",
-    "description": "Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, every effect as <newClipId>-e<e> with its animations as <newClipId>-e<e>-a-<parameter>, and every text animation as <newClipId>-t<t>, one of phase in as an accent at the start of the whole, so both halves look exactly like the whole; a text with a text animation of phase out is refused with split-not-exact. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"atUs\":5000000,\"newClipId\":\"node-title-tail\"}",
+    "description": "Cuts one clip at atUs into two that meet there, as a razor on a timeline: the first keeps its ID and ends at atUs, the second gets newClipId, starts at atUs, and is placed directly after the first (for a node, the layer right above it). A video or audio clip's second half continues its source where the first stops, at its speed and in its direction, so each half shows exactly what the whole showed there. Every animation is copied to the second half unchanged, as <newClipId>-a-<property>, every effect as <newClipId>-e<e> with its animations as <newClipId>-e<e>-a-<parameter>, and every text animation as <newClipId>-t<t>, one of phase in as an accent at the start of the whole, so both halves look exactly like the whole; a text with a text animation of phase out is refused with split-not-exact. A group is not split. A clip that is heard (an audio clip, or a video above volume 0) is split only at a multiple of 125 microseconds from its start and outside its fades, so the halves sound exactly like the whole; the first half then has no fade-out and the second no fade-in. join_clips undoes it. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, unknown-clip, unsupported-node for a group, time-outside-clip when atUs is not strictly inside the clip, split-not-exact, id-in-use with the IDs already taken, media-facts-missing, and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"node-title\",\"atUs\":5000000,\"newClipId\":\"node-title-tail\"}",
     "inputSchema": {
       "type": "object",
       "description": "Cuts a clip into two that meet at atUs; the second half is placed directly after the first.",
@@ -1571,6 +1571,76 @@
       "required": [
         "clipId",
         "nextClipId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_clip_speed",
+    "description": "Sets the speed of a video node or an audio clip: how fast it plays its source, picture and sound, the pitch kept. A speed is a multiplier: \"x0.25\", \"x0.5\" (half speed), \"x0.75\", \"x1\" (the source's own speed), \"x1.5\", \"x2\" (twice as fast), \"x4\", or a fraction such as \"x1/3\" or \"x2/3\"; a number such as 0.5 or 2, or {\"num\":1,\"den\":2}, means the same. Speeds go from x0.25 to x4, the pitch of the sound kept, and \"x0\" freezes a video on one frame. The document stores the exact fraction {\"num\":…,\"den\":…} and describe_document shows it as a multiplier. A multiplier that is no fraction with a denominator up to 1000, such as \"x0.3333\", is refused with speed-invalid, and the refusal names the nearest speed (\"x1/3\"): call again with it. \"x0\" is for a video only; freeze_frame holds the frame shown at a given time instead. The clip keeps its startUs, its sourceStartUs, and its direction, and plays the same part of its source by default: durationUs becomes the one given or, left out, the duration of that part at the new speed, rounded up (twice as long at \"x0.5\", half as long at \"x2\"; kept when either speed is \"x0\"). Nothing else moves: no keyframe, and no clip after it. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. Refused with invalid-argument, speed-invalid for a speed outside x0.25 to x4 other than x0, not in the notation, or with no exact fraction (the message names the nearest one), x0 for an audio clip or a reversed clip, or a sourceStartRemainder not below the new denominator, unknown-clip, unsupported-node for a node that is neither a video nor an audio clip, invalid-result when an audio clip's fades no longer fit, transition-in-use, and, when the clip would then read more of its source, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"speed\":\"x0.5\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets the speed of a video node or an audio clip; its start, its source start, and its direction stay (D82.9).",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The stable ID of a video node or an audio clip of the document.",
+          "minLength": 1
+        },
+        "speed": {
+          "description": "The new speed. A speed is a multiplier: \"x0.25\", \"x0.5\" (half speed), \"x0.75\", \"x1\" (the source's own speed), \"x1.5\", \"x2\" (twice as fast), \"x4\", or a fraction such as \"x1/3\" or \"x2/3\"; a number such as 0.5 or 2, or {\"num\":1,\"den\":2}, means the same. Speeds go from x0.25 to x4, the pitch of the sound kept, and \"x0\" freezes a video on one frame. The document stores the exact fraction {\"num\":…,\"den\":…} and describe_document shows it as a multiplier. A multiplier that is no fraction with a denominator up to 1000, such as \"x0.3333\", is refused with speed-invalid, and the refusal names the nearest speed (\"x1/3\"): call again with it.",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "durationUs": {
+          "type": "integer",
+          "description": "Optional: the new duration of the clip, in integer microseconds, at least 1. Left out, it is the duration that plays the same part of the source, rounded up (twice as long at half the speed), and kept when either speed is x0.",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sourceStartRemainder": {
+          "type": "integer",
+          "description": "Optional, and rarely needed: the fraction of a microsecond of the exact source time at the clip's start, in units of 1/den of the new speed, below den. Left out, the clip's remainder is scaled to the new den, rounded down.",
+          "minimum": 0,
+          "maximum": 999
+        }
+      },
+      "required": [
+        "clipId",
+        "speed"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_clip_reverse",
+    "description": "Plays a video node or an audio clip backwards (reverse true) or forwards again (false), picture and sound: it plays the same part of its source over the same lifetime, from the last instant of that part to the first, at its speed. Its lifetime, speed, and sourceStartUs stay, and no keyframe moves; describe_document states each clip's reverse and its sampledSourceRange. A freeze frame (speed x0) has no direction. A clip is named by its ID: a node (a child of a group included) or an audio clip of the composition or of a scene; to move a clip to another layer use reorder_node, to another scene move_node_to_scene. A change that would break a clip transition is refused with transition-in-use and its ID. Refused with invalid-argument, unknown-clip, unsupported-node for a node that is neither a video nor an audio clip, speed-invalid for a freeze frame, invalid-result for a reversed clip that would read more than 600000000 microseconds (10 minutes) of its source, and, when its sound would then read other source, media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clipId\":\"clip-audio\",\"reverse\":true}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Plays a video node or an audio clip backwards or forwards; its lifetime and the part of its source it plays stay (D82.9).",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The stable ID of a video node or an audio clip of the document.",
+          "minLength": 1
+        },
+        "reverse": {
+          "type": "boolean",
+          "description": "true plays the clip backwards, from the last instant of its part of the source to the first; false plays it forwards."
+        }
+      },
+      "required": [
+        "clipId",
+        "reverse"
       ],
       "additionalProperties": false
     }
@@ -1785,7 +1855,7 @@
   },
   {
     "name": "set_caption_style",
-    "description": "Replaces the style of a captions node with a complete style {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, stroke, shadow, box, pageIn, pageOut}: its size and colours, what the word being spoken shows (as set_caption_highlight describes it), where its lines lie in its box, how many characters fit on a line and lines on a page, which changes how the words are grouped, the outline, shadow, and box of its lines (as set_text_style describes them, the box lying behind every line of the page shown), and how a page enters and leaves (as set_caption_page_animation describes it). No word and no time changes. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Lengths and coordinates are composition pixels, rounded to integers. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"style\":{\"fontSize\":64,\"lineHeight\":80,\"color\":\"#ffffff\",\"highlight\":{\"color\":\"#ffd400\",\"scale\":1,\"tracks\":[],\"underline\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"}},\"align\":\"center\",\"verticalAlign\":\"bottom\",\"maxLineLength\":24,\"maxLines\":2,\"stroke\":{\"kind\":\"outside\",\"color\":\"#000000\",\"width\":3},\"shadow\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"},\"pageIn\":{\"kind\":\"none\"},\"pageOut\":{\"kind\":\"none\"}}}",
+    "description": "Replaces the style of a captions node with a complete style {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, lineBreak, stroke, shadow, box, pageIn, pageOut}: its size and colours, what the word being spoken shows (as set_caption_highlight describes it), where its lines lie in its box, how many characters fit on a line and lines on a page, which changes how the words are grouped (lineBreak \"characters\", or \"width\" to also fit each line to the box's width), the outline, shadow, and box of its lines (as set_text_style describes them, the box lying behind every line of the page shown), and how a page enters and leaves (as set_caption_page_animation describes it). No word and no time changes. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Lengths and coordinates are composition pixels, rounded to integers. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"style\":{\"fontSize\":64,\"lineHeight\":80,\"color\":\"#ffffff\",\"highlight\":{\"color\":\"#ffd400\",\"scale\":1,\"tracks\":[],\"underline\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"},\"stroke\":{\"kind\":\"none\"},\"shadow\":{\"kind\":\"none\"}},\"align\":\"center\",\"verticalAlign\":\"bottom\",\"maxLineLength\":24,\"maxLines\":2,\"lineBreak\":\"width\",\"stroke\":{\"kind\":\"outside\",\"color\":\"#000000\",\"width\":3},\"shadow\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"},\"pageIn\":{\"kind\":\"none\"},\"pageOut\":{\"kind\":\"none\"}}}",
     "inputSchema": {
       "type": "object",
       "description": "Replaces how a captions node shows its words; no word and no time changes.",
@@ -1797,7 +1867,7 @@
         },
         "style": {
           "type": "object",
-          "description": "The complete new style: {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, stroke, shadow, box, pageIn, pageOut}. fontSize and lineHeight are integer composition pixels; color lowercase #rrggbb; highlight what the word being spoken shows (see set_caption_highlight); align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100; stroke, shadow, and box as the style of a text, the box lying behind every line; pageIn and pageOut how a page enters and leaves (see set_caption_page_animation)."
+          "description": "The complete new style: {fontSize, lineHeight, color, highlight, align, verticalAlign, maxLineLength, maxLines, lineBreak, stroke, shadow, box, pageIn, pageOut}. fontSize and lineHeight are integer composition pixels; color lowercase #rrggbb; highlight what the word being spoken shows (see set_caption_highlight); align is left, center, or right; verticalAlign top, middle, or bottom; maxLineLength the most characters of a line, 1 to 1000, a space between two words counting as one; maxLines the most lines of a page, 1 to 100; stroke, shadow, and box as the style of a text, the box lying behind every line; pageIn and pageOut how a page enters and leaves (see set_caption_page_animation)."
         }
       },
       "required": [
@@ -1809,10 +1879,10 @@
   },
   {
     "name": "set_text_style",
-    "description": "Replaces how a text node is drawn besides its font, size, and colour, with a complete style {stroke, shadow, box}; each part is {\"kind\":\"none\"} or: stroke {\"kind\":\"outside\", color, width}, an outline of width pixels (1 to 1000) drawn outside every glyph and under its fill; shadow {\"kind\":\"drop\", color, opacity, offset: {x, y}, blur}, a shadow of the glyphs and their outline moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {\"kind\":\"solid\", color, opacity, padding, cornerRadius}, a filled box behind the text that reaches padding pixels beyond its lines on every side, with rounded corners, without moving the text. Colours are lowercase #rrggbb, opacities 0 to 1, lengths integers. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a text, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"style\":{\"stroke\":{\"kind\":\"outside\",\"color\":\"#000000\",\"width\":4},\"shadow\":{\"kind\":\"drop\",\"color\":\"#000000\",\"opacity\":0.6,\"offset\":{\"x\":4,\"y\":4},\"blur\":8},\"box\":{\"kind\":\"none\"}}}",
+    "description": "Replaces how a text node is drawn besides its font, size, and colour, with a complete style {stroke, shadow, box, align, verticalAlign}; the first three each {\"kind\":\"none\"} or: stroke {\"kind\":\"outside\", color, width}, an outline of width pixels (1 to 1000) drawn outside every glyph and under its fill; shadow {\"kind\":\"drop\", color, opacity, offset: {x, y}, blur}, a shadow of the glyphs and their outline moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {\"kind\":\"solid\", color, opacity, padding, cornerRadius}, a filled box behind the text that reaches padding pixels beyond its lines on every side, with rounded corners, without moving the text. align (left, center, right) and verticalAlign (top, middle, bottom) place the lines in the frame. Colours are lowercase #rrggbb, opacities 0 to 1, lengths integers. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a text, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-title\",\"style\":{\"stroke\":{\"kind\":\"outside\",\"color\":\"#000000\",\"width\":4},\"shadow\":{\"kind\":\"drop\",\"color\":\"#000000\",\"opacity\":0.6,\"offset\":{\"x\":4,\"y\":4},\"blur\":8},\"box\":{\"kind\":\"none\"},\"align\":\"center\",\"verticalAlign\":\"middle\"}}",
     "inputSchema": {
       "type": "object",
-      "description": "Replaces the outline, the shadow, and the box of a text node.",
+      "description": "Replaces the style of a text node.",
       "properties": {
         "nodeId": {
           "type": "string",
@@ -1821,7 +1891,7 @@
         },
         "style": {
           "type": "object",
-          "description": "The complete style: {stroke, shadow, box}, each {kind: \"none\"} or: stroke {kind: \"outside\", color, width} for an outline of width pixels (1 to 1000) outside every glyph; shadow {kind: \"drop\", color, opacity, offset: {x, y}, blur} for a shadow moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {kind: \"solid\", color, opacity, padding, cornerRadius} for a filled box behind the text, padding pixels beyond its lines on every side, with rounded corners. Colours are lowercase #rrggbb, opacities 0 to 1, and lengths integers."
+          "description": "The complete style: {stroke, shadow, box, align, verticalAlign}, the first three each {kind: \"none\"} or: stroke {kind: \"outside\", color, width} for an outline of width pixels (1 to 1000) outside every glyph; shadow {kind: \"drop\", color, opacity, offset: {x, y}, blur} for a shadow moved by offset pixels (-1000 to 1000) and blurred by blur pixels (0 to 1000); box {kind: \"solid\", color, opacity, padding, cornerRadius} for a filled box behind the text, padding pixels beyond its lines on every side, with rounded corners. Colours are lowercase #rrggbb, opacities 0 to 1, and lengths integers."
         }
       },
       "required": [
@@ -2106,7 +2176,7 @@
   },
   {
     "name": "set_caption_highlight",
-    "description": "Replaces what the word being spoken shows in a captions node, from its startUs for its durationUs and at no other time, with a complete highlight {color, scale, tracks, underline, box}: color its colour (lowercase #rrggbb); scale a factor of its size about its centre on both axes (1 for none, 1.2 to make it grow); tracks, at most one per property, {property, keyframes} as the tracks of add_text_animation (opacity, offset, scale, rotation, color) in the word's own time from 0 at its startUs, for a bounce or a pop, [] for none; underline {\"kind\":\"none\"} or {\"kind\":\"solid\", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word's line; box {\"kind\":\"none\"} or {\"kind\":\"solid\", color, opacity, padding, cornerRadius}, a filled box behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are. Any scale, track, underline, or box draws the node in pieces (an element per line and per word) for its whole lifetime. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"highlight\":{\"color\":\"#ffd400\",\"scale\":1.15,\"tracks\":[{\"property\":\"offset\",\"keyframes\":[{\"timeUs\":0,\"value\":{\"x\":0,\"y\":0},\"easing\":{\"kind\":\"ease-out\"}},{\"timeUs\":100000,\"value\":{\"x\":0,\"y\":-12},\"easing\":{\"kind\":\"ease-in\"}},{\"timeUs\":200000,\"value\":{\"x\":0,\"y\":0},\"easing\":{\"kind\":\"linear\"}}]}],\"underline\":{\"kind\":\"solid\",\"color\":\"#ffd400\",\"thickness\":4,\"offset\":2},\"box\":{\"kind\":\"none\"}}}",
+    "description": "Replaces what the word being spoken shows in a captions node, from its startUs for its durationUs and at no other time, with a complete highlight {color, scale, tracks, underline, box, stroke, shadow}: color its colour (lowercase #rrggbb); scale a factor of its size about its centre on both axes (1 for none, 1.2 to make it grow); tracks, at most one per property, {property, keyframes} as the tracks of add_text_animation (opacity, offset, scale, rotation, color) in the word's own time from 0 at its startUs, for a bounce or a pop, [] for none; underline {\"kind\":\"none\"} or {\"kind\":\"solid\", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word's line; box {\"kind\":\"none\"} or {\"kind\":\"solid\", color, opacity, padding, cornerRadius}, a filled box behind the word; stroke and shadow as set_text_style's, on the spoken word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are. Any scale, track, underline, or box draws the node in pieces (an element per line and per word) for its whole lifetime. A captions node shows timed words in a style: the runtime breaks them into lines of at most maxLineLength characters and every maxLines lines into a page, from the document alone; a page is shown from its first word until the next page starts, and the word being spoken shows the highlight of the style. Words are in scene time, like keyframes. describe_document shows the words and the style; a word is addressed by its index in words, from 0. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not captions, and invalid-result. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-captions\",\"highlight\":{\"color\":\"#ffd400\",\"scale\":1.15,\"tracks\":[{\"property\":\"offset\",\"keyframes\":[{\"timeUs\":0,\"value\":{\"x\":0,\"y\":0},\"easing\":{\"kind\":\"ease-out\"}},{\"timeUs\":100000,\"value\":{\"x\":0,\"y\":-12},\"easing\":{\"kind\":\"ease-in\"}},{\"timeUs\":200000,\"value\":{\"x\":0,\"y\":0},\"easing\":{\"kind\":\"linear\"}}]}],\"underline\":{\"kind\":\"solid\",\"color\":\"#ffd400\",\"thickness\":4,\"offset\":2},\"box\":{\"kind\":\"none\"},\"stroke\":{\"kind\":\"outside\",\"color\":\"#000000\",\"width\":3},\"shadow\":{\"kind\":\"none\"}}}",
     "inputSchema": {
       "type": "object",
       "description": "Replaces what the word being spoken shows in a captions node.",
@@ -2118,7 +2188,7 @@
         },
         "highlight": {
           "type": "object",
-          "description": "The complete highlight: {color, scale, tracks, underline, box}, shown on the word being spoken from its startUs for its durationUs and at no other time. color is lowercase #rrggbb; scale a factor of its size about its centre on both axes, 1 for none; tracks a list, at most one per property, of {property, keyframes} as the tracks of a text animation, in the word's own time from 0 at its startUs (a bounce, a pop), [] for none; underline {kind: \"none\"} or {kind: \"solid\", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word's line; box {kind: \"none\"} or {kind: \"solid\", color, opacity, padding, cornerRadius} behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are."
+          "description": "The complete highlight: {color, scale, tracks, underline, box, stroke, shadow}, shown on the word being spoken from its startUs for its durationUs and at no other time. color is lowercase #rrggbb; scale a factor of its size about its centre on both axes, 1 for none; tracks a list, at most one per property, of {property, keyframes} as the tracks of a text animation, in the word's own time from 0 at its startUs (a bounce, a pop), [] for none; underline {kind: \"none\"} or {kind: \"solid\", color, thickness, offset}, a bar as wide as the word, thickness pixels (1 to 1000) tall, its bottom edge offset pixels (-1000 to 1000) below the bottom of the word's line; box {kind: \"none\"} or {kind: \"solid\", color, opacity, padding, cornerRadius} behind the word. A scaled or moving word never pushes its neighbours: lines and pages stay as they are."
         }
       },
       "required": [
@@ -2748,6 +2818,60 @@
     }
   },
   {
+    "name": "freeze_frame",
+    "description": "Holds the frame a video node shows at atUs for holdUs, as a freeze frame: a video clip at speed \"x0\" that shows that one frame of its source, silent. mode overwrite puts the freeze frame in the place of the part of the clip from atUs to atUs + holdUs, cutting the clip at both times; nothing moves, and atUs + holdUs is at most the clip's end. mode insert cuts the clip at atUs, puts the freeze frame between the two halves, and moves the second half holdUs later, so the clip ends holdUs later; no other clip moves, and the second half may then overlap what follows it on its layer. newClipIds are two different IDs unused in the document: the first names the freeze frame, the second the part of the clip after it (not made when an overwrite reaches the clip's end). The freeze frame keeps the clip's position, size, fit, crop, effects, and animations, copied and renamed as split_clip copies them; set_clip_speed with a multiplier such as \"x1\" or \"x0.5\" plays it again. It is one step: all or nothing, and one undo reverts it. A video that is heard (volume above 0) is cut only at a multiple of 125 microseconds from its start. Times are integer microseconds of the time of the clip's scene (1 second is 1000000). Refused with invalid-argument, unknown-clip, unsupported-node for anything but a video node, time-outside-clip when atUs is not strictly inside the clip or an overwrite would reach past its end, split-not-exact, id-in-use, and whatever split_clip, move_clip, add_node, set_clip_reverse, set_clip_speed, and set_video_source refuse; the error of a refused step names the index of its call. Returns the edited document and the IDs it created.\n\nExample arguments: {\"clipId\":\"node-video\",\"atUs\":3000000,\"holdUs\":2000000,\"mode\":\"insert\",\"newClipIds\":[\"node-video-freeze\",\"node-video-after\"]}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Holds the frame a video node shows at atUs for holdUs, as a freeze frame, in one step (D82.9).",
+      "properties": {
+        "clipId": {
+          "type": "string",
+          "description": "The stable ID of a video node, a child of a group included.",
+          "minLength": 1
+        },
+        "atUs": {
+          "type": "integer",
+          "description": "The time of the frame held, strictly between the start and the end of the clip, in integer microseconds of the time of the clip's scene; never rounded. -0 becomes 0.",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "holdUs": {
+          "type": "integer",
+          "description": "How long the frame is held, in integer microseconds, at least 1.",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "mode": {
+          "type": "string",
+          "description": "overwrite: the freeze frame takes the place of the part of the clip from atUs to atUs + holdUs, which must end at the latest where the clip ends, and nothing moves; insert: the clip is cut at atUs, the freeze frame goes between the halves, and the second half moves holdUs later.",
+          "enum": [
+            "overwrite",
+            "insert"
+          ]
+        },
+        "newClipIds": {
+          "type": "array",
+          "description": "Two different IDs unused in the document: the first names the freeze frame, the second the part of the clip after it (not made when an overwrite reaches the clip's end). The animations and effects of each are renamed after it, as split_clip does.",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "clipId",
+        "atUs",
+        "holdUs",
+        "mode",
+        "newClipIds"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "check_custom_html",
     "description": "Checks one Custom HTML element of the current document and changes nothing. It reads its html for what the sandbox refuses or the managed clock does not drive — network requests and loaded resources (network), setTimeout and setInterval (timer), the document timeline and event time stamps (wall-clock), storage and cookies (storage), and navigation, links, and forms (navigation) — each with the offset and the text it matched; and where the host can render, it renders the element alone at sampled times of its lifetime twice, the second time in the reverse order, and reports a time it did not answer (no-acknowledgement), a document it navigated to (navigated), a frame that differs between the two renders (frames-differ, the mark of state kept from frame to frame or read from a clock it does not drive), and any other failure (render-failed). Returns the findings, and the render report or null when the host renders nothing. Call it after set_custom_html, and fix every finding before relying on the element. Refused with unknown-node when the document has no node of that ID, and with unsupported-node when the node is no Custom HTML.\n\nExample arguments: {\"nodeId\":\"node-custom-html\"}",
     "inputSchema": {
@@ -2837,6 +2961,8 @@
                   "trim_clip_end",
                   "split_clip",
                   "join_clips",
+                  "set_clip_speed",
+                  "set_clip_reverse",
                   "add_scene_transition",
                   "add_clip_transition",
                   "remove_transition",
