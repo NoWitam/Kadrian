@@ -150,8 +150,9 @@ What the repository fixes (read on 2026-11-13, `main` at `fe491e1`):
   version in the top two bits), `origLength` as a `UIntBase128`, and
   `transformLength` for a transformed table. A `UIntBase128` with a leading
   zero byte, more than five bytes, or a value past 2³² − 1 is `font-invalid`,
-  as the specification requires. `length` equals the file's length and
-  `reserved` is 0; the flavor is one of the three sfnt signatures, or
+  as the specification requires. `length` equals the file's length;
+  `reserved` is ignored, since the specification forbids a decoder to reject
+  a file for it (amendment of 2026-11-13, below); the flavor is one of the three sfnt signatures, or
   `ttcf` (D84.5).
 - **One stream for all tables.** WOFF2 compresses the concatenation of every
   table's data, in the order of the directory and without padding, as one
@@ -296,6 +297,13 @@ What the repository fixes (read on 2026-11-13, `main` at `fe491e1`):
 - A check of `origChecksum`, of the metadata block, or of the private block.
 - An asynchronous `fontMetrics`, a `DecompressionStream`, or WebAssembly.
 - Brotli's large window and shared dictionaries (not RFC 7932).
+
+### Amendment of 2026-11-13 (PR-71)
+
+The first text of D84.4 required `reserved` of the WOFF2 header to be 0. The
+WOFF2 specification says a decoder must not reject a file whose `reserved` is
+not 0, so the owner decided on 2026-11-13 (14:19 Europe/Warsaw), before the
+push of PR-71, that the decoder ignores it. WOFF 1.0 is unchanged.
 
 ## Alternatives considered
 

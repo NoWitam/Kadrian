@@ -5,6 +5,6 @@
     "types": ["node"],
     "tsBuildInfoFile": "../../../node_modules/.cache/tsbuildinfo/runtime-test.tsbuildinfo"
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../scripts/**/*.ts"],
   "references": [{ "path": ".." }, { "path": "../../schema" }, { "path": "../../test-fixtures" }]
 }
