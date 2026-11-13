@@ -852,8 +852,14 @@ export interface FontTables {
     readonly cmap: Uint8Array;
 }
 
+---- brotliDecode
+export declare function brotliDecode(stream: Uint8Array, length: number): Uint8Array;
+
 ---- inflate
 export declare function inflate(stream: Uint8Array, length: number): Uint8Array;
+
+---- woff2Tables
+export declare function woff2Tables(bytes: Uint8Array): FontTables;
 
 ---- woffTables
 export declare function woffTables(bytes: Uint8Array): FontTables;

@@ -13,8 +13,8 @@
 export type FontDecodeErrorCode = 'font-invalid' | 'font-unmeasurable';
 
 /**
- * Thrown by `inflate` and `woffTables`. Check `code` instead of `instanceof`,
- * which fails across realms.
+ * Thrown by `inflate`, `woffTables`, `brotliDecode`, and `woff2Tables`. Check
+ * `code` instead of `instanceof`, which fails across realms.
  */
 export class FontDecodeError extends RangeError {
   readonly code: FontDecodeErrorCode;

@@ -1,8 +1,10 @@
 /**
- * Fonts in WOFF measured by Kadrion (D84, PR-70): `inflate` (RFC 1950, RFC
- * 1951) and the reader of the WOFF 1.0 container (W3C), which yields the
- * bytes of the five tables `fontMetrics` reads (D83.1) and decompresses
- * nothing else (D84.2).
+ * Fonts in WOFF and WOFF2 measured by Kadrion (D84): `inflate` (RFC 1950, RFC
+ * 1951) and the reader of the WOFF 1.0 container (W3C, PR-70), which yields
+ * the bytes of the five tables `fontMetrics` reads (D83.1) and decompresses
+ * nothing else (D84.2); `brotliDecode` (RFC 7932) and the reader of the WOFF
+ * 2.0 container (W3C, PR-71), which decodes its stream only up to the last of
+ * the five tables and never reconstructs `glyf` or `loca` (D84.3).
  *
  * This entry, `@kadrion/runtime/woff`, is a library only until PR-72: the
  * main entry, the render page, and the Player do not reach it, so the runtime
@@ -18,11 +20,15 @@ export {
   type FontDecodeErrorCode,
 } from './font-decode.js';
 export { inflate } from './inflate.js';
+export { brotliDecode } from './brotli.js';
+export { woff2Tables } from './woff2.js';
 
 /**
  * The bytes of the five tables `fontMetrics` reads (D83.1), each exactly as
- * long as the sfnt table it was compressed from. A stored table is a view of
- * the bytes it was read from; a compressed one is a buffer of its own.
+ * long as the sfnt table it was compressed from. A table stored as it is in
+ * a WOFF file is a view of the bytes it was read from; any other is a view of
+ * a buffer of its own. From a transformed `hmtx` of a WOFF2 file, every
+ * bearing the transform omitted is 0 (D84.3); its advances are the font's.
  */
 export interface FontTables {
   readonly head: Uint8Array;
