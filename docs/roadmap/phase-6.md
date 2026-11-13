@@ -310,7 +310,7 @@ in captions broken by width. They follow PR-63 and PR-68 and the release
 
 ### PR-69 to PR-73 — D84: fonts in WOFF and WOFF2
 
-- **PR-69** (D84, documents only): in review. D84 (Proposed), its row in the
+- **PR-69** (D84, documents only): in review. The owner accepted D84 on 2026-11-13 (11:56 Europe/Warsaw) with the recommendations of all five questions. D84, its row in the
   index of ADRs, and these entries. Acceptance: the owner answers the
   questions of D84; `node --run format:check` and `tests/repo/adr.test.ts`
   pass. No code; no impact on Q14, the runtime build, parity, or golden

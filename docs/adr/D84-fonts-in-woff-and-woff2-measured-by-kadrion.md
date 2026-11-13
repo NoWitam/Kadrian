@@ -1,6 +1,7 @@
 # D84 — Fonts in WOFF and WOFF2 measured by Kadrion: its own inflate and Brotli in the runtime
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-13 (11:56 Europe/Warsaw),
+  before any code, with the recommendations of all five questions
 - Date: 2026-11-13
 - Supersedes: in part, on acceptance, the paragraph **Formats** of D83.1 for
   WOFF and WOFF2 (collections stay refused), the item "WOFF, WOFF2, and
