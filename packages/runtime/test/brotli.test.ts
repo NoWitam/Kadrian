@@ -153,19 +153,19 @@ const WINDOWS = Array.from({ length: 15 }, (_, index) => 10 + index);
 const QUALITIES = Array.from({ length: 12 }, (_, index) => index);
 
 describe('brotliDecode against zlib.brotliDecompressSync (D84.1)', () => {
-  it.each(QUALITIES)(
-    'decodes every input at quality %i, every window from 10 to 24, and every mode',
-    (quality) => {
+  // One test per quality and window, so that no single test carries the slow
+  // compressions of quality 11 for all fifteen windows at once.
+  const QUALITY_WINDOWS = QUALITIES.flatMap((quality) =>
+    WINDOWS.map((window) => [quality, window] as const),
+  );
+  it.each(QUALITY_WINDOWS)(
+    'decodes every input at quality %i with a window of %i, in one of the modes',
+    (quality, window) => {
+      const mode = MODES[(window + quality) % MODES.length] ?? constants.BROTLI_MODE_GENERIC;
       for (const { name, bytes } of INPUTS) {
-        for (const window of WINDOWS) {
-          const mode = MODES[(window + quality) % MODES.length] ?? constants.BROTLI_MODE_GENERIC;
-          const stream = compress(bytes, quality, window, mode);
-          const ours = brotliDecode(stream, bytes.length);
-          expect(
-            Buffer.from(ours).equals(Buffer.from(bytes)),
-            `${name}, window ${String(window)}`,
-          ).toBe(true);
-        }
+        const stream = compress(bytes, quality, window, mode);
+        const ours = brotliDecode(stream, bytes.length);
+        expect(Buffer.from(ours).equals(Buffer.from(bytes)), name).toBe(true);
       }
     },
   );
