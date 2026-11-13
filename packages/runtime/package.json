@@ -17,6 +17,10 @@
     "./text-frame": {
       "types": "./dist/text-frame.d.ts",
       "default": "./dist/text-frame.js"
+    },
+    "./woff": {
+      "types": "./dist/woff.d.ts",
+      "default": "./dist/woff.js"
     }
   },
   "files": [

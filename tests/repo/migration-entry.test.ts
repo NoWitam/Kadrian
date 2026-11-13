@@ -154,6 +154,18 @@ describe('the entries of @kadrion/runtime (D83, PR-65, PR-66)', () => {
     expect(main).toContain('caption-lines.js');
     expect(main).not.toContain('stretch.js');
   });
+
+  it('keeps the reader of WOFF fonts in its own entry, which the main entry does not reach before PR-72 (D84, PR-70)', () => {
+    const main = names(reached(join(RUNTIME_DIST, 'index.js')), RUNTIME_DIST);
+    for (const module of ['woff.js', 'inflate.js', 'font-decode.js']) {
+      expect(main).not.toContain(module);
+    }
+    expect(names(reached(join(RUNTIME_DIST, 'woff.js')), RUNTIME_DIST)).toEqual([
+      'font-decode.js',
+      'inflate.js',
+      'woff.js',
+    ]);
+  });
 });
 
 describe('who migrates (D35.3, D42.9)', () => {

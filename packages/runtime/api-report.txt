@@ -828,3 +828,32 @@ export declare function textLinesHeight(lineCount: number, fontSize: number): nu
 
 ---- unitsToPixels
 export declare function unitsToPixels(units: number, fontSize: number, metrics: FontMetrics): number;
+
+==== Entry "./woff"
+
+---- DECOMPRESSED_FONT_LIMIT
+export declare const DECOMPRESSED_FONT_LIMIT = 67108864;
+
+---- FontDecodeError
+export declare class FontDecodeError extends RangeError {
+    readonly code: FontDecodeErrorCode;
+    constructor(code: FontDecodeErrorCode, message: string);
+}
+
+---- FontDecodeErrorCode (type only)
+export type FontDecodeErrorCode = 'font-invalid' | 'font-unmeasurable';
+
+---- FontTables
+export interface FontTables {
+    readonly head: Uint8Array;
+    readonly hhea: Uint8Array;
+    readonly maxp: Uint8Array;
+    readonly hmtx: Uint8Array;
+    readonly cmap: Uint8Array;
+}
+
+---- inflate
+export declare function inflate(stream: Uint8Array, length: number): Uint8Array;
+
+---- woffTables
+export declare function woffTables(bytes: Uint8Array): FontTables;
