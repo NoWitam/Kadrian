@@ -89,7 +89,8 @@ describe.each(packageDirs)('@kadrion/%s', (dir) => {
   // map of a clip, and the runtime the stretch of a sound, which neither the
   // render page nor the Player reaches before schema 0.24 (D82, PR-59), the
   // runtime its lines measured from the font, which neither reaches before
-  // schema 0.25 (D83, PR-65), and the fixtures their compatibility corpus,
+  // schema 0.25 (D83, PR-65), and its reader of WOFF fonts, which neither
+  // reaches before PR-72 (D84, PR-70), and the fixtures their compatibility corpus,
   // which the main entry must not load (D43.6); nothing else.
   it('exports its built output', () => {
     const artifact =
@@ -113,6 +114,7 @@ describe.each(packageDirs)('@kadrion/%s', (dir) => {
                 types: './dist/text-frame.d.ts',
                 default: './dist/text-frame.js',
               },
+              './woff': { types: './dist/woff.d.ts', default: './dist/woff.js' },
             }
           : {};
     const corpus =

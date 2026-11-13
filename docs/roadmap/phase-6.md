@@ -320,7 +320,15 @@ in captions broken by width. They follow PR-63 and PR-68 and the release
   of D83.1, in the entry `@kadrion/runtime/woff`, which the runtime build does
   not reach; the test encoder over `node:zlib`; differential tests against
   `zlib.inflateSync`. The runtime build and the Player's dist tree keep their
-  bytes (checked by their hashes, as PR-59 and PR-65 did).
+  bytes (checked by their hashes, as PR-59 and PR-65 did). Status: in review.
+  `inflate`, `woffTables` (the five tables as `FontTables`), and
+  `FontDecodeError` with the codes `font-invalid` and `font-unmeasurable` in
+  `@kadrion/runtime/woff`; the runtime build stays
+  `sha256:cc74d99c…0c73aef` (367 421 bytes) and the Player's dist tree
+  `sha256:36dccdc3…a89b58c44`; the API report gains only the new entry.
+  Deviation from D84, for PR-72 to settle: the entry throws its own
+  `FontDecodeError`, since `FontMetricsErrorCode` widens to `font-invalid`
+  only in PR-72; PR-72 joins the two.
 - **PR-71** (Brotli, the dictionary, and the WOFF2 container, library only):
   `brotliDecode` of RFC 7932, the dictionary derived from Node's Brotli by a
   script and stored deflated with its licence record (D84.8), and the reader
