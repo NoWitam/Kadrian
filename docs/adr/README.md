@@ -91,6 +91,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D81](D81-video-turned-by-its-container.md)                   | Video turned by its container: the display matrix applied after the conversion to RGB        | Proposed          |
 | [D82](D82-clip-speed-freeze-frames-and-reverse-playback.md)   | Clip speed, freeze frames, and reverse playback: a rational time map, schema 0.24            | Accepted          |
 | [D83](D83-a-text-frame-and-lines-measured-from-the-font.md)   | A text frame, alignment, and lines measured from the font: schema 0.25                       | Accepted          |
+| [D84](D84-fonts-in-woff-and-woff2-measured-by-kadrion.md)     | Fonts in WOFF and WOFF2 measured by Kadrion: its own inflate and Brotli in the runtime       | Proposed          |
 
 ## Provenance of D01–D10
 

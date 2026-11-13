@@ -88,6 +88,11 @@ first, so that the schema step only wires what is already proven.
 |     9 | PR-67 | `SetNodeSize` on a text, descriptions, the budget of W6 | —      | —             | —           | —   | S    |
 |    10 | PR-63 | Showcases, the host guide, and the release              | —      | —             | —           | —   | S    |
 |    11 | PR-68 | The host guide and a showcase of D83 (with PR-63)       | —      | —             | —           | —   | S    |
+|    12 | PR-69 | D84 (documents only)                                    | —      | —             | —           | —   | S    |
+|    13 | PR-70 | Inflate and the WOFF container (library only)           | —      | no (checked)  | —           | —   | M    |
+|    14 | PR-71 | Brotli, the dictionary, and the WOFF2 container         | —      | no (checked)  | —           | —   | L    |
+|    15 | PR-72 | `fontMetrics` reads WOFF and WOFF2 in both hosts        | —      | yes           | yes         | yes | M    |
+|    16 | PR-73 | The host guide, the README, and the release             | —      | —             | —           | —   | S    |
 
 Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 2 000 to 3 000 (most of it the step, the corpus, and fixtures).
@@ -271,6 +276,14 @@ below, after PR-62, and in D83.
 
 Each is recorded in the implementation notes of D83.
 
+PR-69 to PR-73 are the pull requests of
+[D84](../adr/D84-fonts-in-woff-and-woff2-measured-by-kadrion.md) (fonts in
+WOFF and WOFF2 measured by Kadrion), proposed on 2026-11-13 after the owner
+agreed that day that Kadrion measures WOFF and WOFF2 fonts as well, so that a
+host need not convert its users' fonts before it uses them in a framed text or
+in captions broken by width. They follow PR-63 and PR-68 and the release
+`v0.7.0`; their plan is the implementation plan of D84.
+
 ### PR-63 — Showcases, the host guide, and the release
 
 - Status: in review, together with PR-68 of D83, with the amendment D32.12 of
@@ -295,11 +308,46 @@ Each is recorded in the implementation notes of D83.
 - **Impact:** none on Q14 unless a pinned file changes.
 - **Not included:** an evaluation of a real model.
 
+### PR-69 to PR-73 — D84: fonts in WOFF and WOFF2
+
+- **PR-69** (D84, documents only): in review. D84 (Proposed), its row in the
+  index of ADRs, and these entries. Acceptance: the owner answers the
+  questions of D84; `node --run format:check` and `tests/repo/adr.test.ts`
+  pass. No code; no impact on Q14, the runtime build, parity, or golden
+  frames.
+- **PR-70** (inflate and the WOFF container, library only): `inflate` of RFC
+  1950 and 1951 and the reader of the WOFF container yielding the five tables
+  of D83.1, in the entry `@kadrion/runtime/woff`, which the runtime build does
+  not reach; the test encoder over `node:zlib`; differential tests against
+  `zlib.inflateSync`. The runtime build and the Player's dist tree keep their
+  bytes (checked by their hashes, as PR-59 and PR-65 did).
+- **PR-71** (Brotli, the dictionary, and the WOFF2 container, library only):
+  `brotliDecode` of RFC 7932, the dictionary derived from Node's Brotli by a
+  script and stored deflated with its licence record (D84.8), and the reader
+  of the WOFF2 container with the transformed `hmtx`, in the same entry; the
+  test encoder with the `glyf` transform; differential tests against
+  `zlib.brotliDecompressSync`. The runtime build keeps its bytes (checked).
+- **PR-72** (`fontMetrics` reads WOFF and WOFF2 in both hosts): one reader of
+  tables for sfnt, WOFF, and WOFF2; the code `font-invalid`; `measureFonts`
+  passing the code on; the pinned comparison of Node and Chromium and the
+  framed-text composition with its font as WOFF and WOFF2 against its golden
+  frames. The runtime build and the Player's dist tree change, so Q14 reopens
+  and parity is measured again; every golden PNG file stays byte for byte.
+- **PR-73** (the host guide, the README, and the release): sections 3 and 5 of
+  the host guide and the README on WOFF and WOFF2 in measured nodes,
+  `font-invalid`, the limit, and the costs; every package at the version of
+  question 5 of D84; the host flow on the released tarballs.
+
 ## Impact on Q14, parity, and golden frames
 
 - PR-60 and PR-61 change the Player's dist tree, so parity is measured again in
   each; PR-61 changes the runtime build and reopens Q14; PR-59 is expected not
   to, and says so with the hash.
+- PR-72 (D84) changes the runtime build and the Player's dist tree, so Q14
+  reopens and parity is measured again; PR-70 and PR-71 are expected not to,
+  and say so with the hashes. No golden PNG file changes: the browser draws
+  WOFF and WOFF2 from their own bytes as it does today, and only the measure is
+  new.
 - The golden PNG files of every earlier composition stay byte for byte; one new
   composition with its golden frames enters in PR-61, so
   `REQUIRED_PINNED_FILES` and the Q14 artifact list grow in the same diff.
