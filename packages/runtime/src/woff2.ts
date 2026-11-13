@@ -111,7 +111,7 @@ interface Woff2Entry {
  * never read (D84.3, D84.11).
  *
  * Throws `FontDecodeError` `font-invalid` for a damaged container: a header
- * whose `length` is not the file's, a `reserved` other than 0, no table, a
+ * whose `length` is not the file's, no table, a
  * directory or compressed data past the end of the file, a bad `UIntBase128`,
  * two entries for one tag, a transform version the specification does not
  * define for the table, a transformed `loca` whose `transformLength` is not 0,
@@ -136,7 +136,8 @@ export function woff2Tables(bytes: Uint8Array): FontTables {
     );
   }
   const numTables = view.getUint16(12);
-  if (view.getUint16(14) !== 0) invalid('the reserved field of its WOFF2 header is not 0');
+  // `reserved` (offset 14) is ignored: the WOFF2 specification forbids a decoder to
+  // reject a file for it (amendment of D84.4, 2026-11-13).
   if (numTables === 0) invalid('its WOFF2 header lists no table');
   const flavor = view.getUint32(4);
   if (flavor === COLLECTION) {

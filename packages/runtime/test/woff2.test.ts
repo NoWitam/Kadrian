@@ -207,6 +207,13 @@ describe('the tables of a WOFF2 file (D84.3)', () => {
     expectTablesOf(PROPORTIONAL, woff2Tables(woff2), { hmtx: 3 });
   });
 
+  it('ignores a reserved field other than 0, as the specification requires (amendment of D84.4)', () => {
+    const woff2 = edited((bytes) => {
+      setU16(bytes, 14, 0xffff);
+    });
+    expectTablesOf(PROPORTIONAL, woff2Tables(woff2));
+  });
+
   it('accepts the largest UIntBase128 for a table it does not read', () => {
     const woff2 = withTables(
       (tables) => [
@@ -370,14 +377,6 @@ describe('refusals (D84.3, D84.4, D84.5, D84.6)', () => {
       }),
       'font-invalid',
       'its WOFF2 header gives a length',
-    ],
-    [
-      'a reserved field other than 0',
-      edited((bytes) => {
-        setU16(bytes, 14, 1);
-      }),
-      'font-invalid',
-      'reserved',
     ],
     [
       'no table',
