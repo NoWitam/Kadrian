@@ -29,7 +29,7 @@ type Refuse = (offence: string) => never;
 /**
  * Decompresses a Brotli stream (RFC 7932) that must produce exactly `length`
  * bytes, and returns them in a new buffer of that length. Throws
- * `FontDecodeError` `font-invalid` for a malformed stream, the large window,
+ * `FontMetricsError` `font-invalid` for a malformed stream, the large window,
  * a stream that produces fewer or more bytes than `length`, or bytes after
  * its end; and `font-unmeasurable` for a `length` past 64 MiB (D84.4), before
  * anything is allocated.

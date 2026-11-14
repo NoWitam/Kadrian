@@ -1,27 +1,23 @@
 /**
- * The refusals and the limit shared by the decoders and the containers of
- * fonts measured by Kadrion (D84.4, D84.6). Nothing here holds state: the
- * limit is a number and every refusal is thrown at once.
+ * The error, the refusals, and the limit shared by `fontMetrics`, the
+ * decoders, and the containers of fonts measured by Kadrion (D83.1, D84.4,
+ * D84.6). Nothing here holds state: the limit is a number and every refusal is
+ * thrown at once.
  */
+import type { FontMetricsErrorCode } from './text-frame.js';
 
 /**
- * Why a compressed font cannot be read (D84.6): `font-invalid` for a WOFF or
- * WOFF2 file whose container or compressed stream is damaged, and
- * `font-unmeasurable` for a well-formed file Kadrion does not measure (an
- * unknown flavor, a missing table, or a font past the limit of D84.4).
+ * Thrown by `fontMetrics`, and by `inflate`, `woffTables`, `brotliDecode`,
+ * and `woff2Tables` of `@kadrion/runtime/woff`, for bytes they cannot read
+ * (D83.1, D84.6). Check `code` instead of `instanceof`, which fails across
+ * realms.
  */
-export type FontDecodeErrorCode = 'font-invalid' | 'font-unmeasurable';
+export class FontMetricsError extends RangeError {
+  readonly code: FontMetricsErrorCode;
 
-/**
- * Thrown by `inflate`, `woffTables`, `brotliDecode`, and `woff2Tables`. Check
- * `code` instead of `instanceof`, which fails across realms.
- */
-export class FontDecodeError extends RangeError {
-  readonly code: FontDecodeErrorCode;
-
-  constructor(code: FontDecodeErrorCode, message: string) {
+  constructor(code: FontMetricsErrorCode, message: string) {
     super(message);
-    this.name = 'FontDecodeError';
+    this.name = 'FontMetricsError';
     this.code = code;
   }
 }
@@ -34,12 +30,12 @@ export const DECOMPRESSED_FONT_LIMIT = 67_108_864;
 
 /** Refuses a damaged container or stream (D84.6). */
 export function invalid(reason: string): never {
-  throw new FontDecodeError('font-invalid', `The font is invalid: ${reason} (D84).`);
+  throw new FontMetricsError('font-invalid', `The font is invalid: ${reason} (D84).`);
 }
 
 /** Refuses a well-formed file Kadrion does not measure (D84.6). */
 export function unmeasurable(reason: string): never {
-  throw new FontDecodeError(
+  throw new FontMetricsError(
     'font-unmeasurable',
     `The font cannot be measured: ${reason}. A measured text needs an sfnt, WOFF, or WOFF2 font with TrueType or CFF outlines (D83.1, D84).`,
   );

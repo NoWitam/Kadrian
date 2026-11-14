@@ -62,8 +62,9 @@ export function mount(
  * metrics of every font a measured node uses from the same bytes, with the
  * runtime's `fontMetrics` (D83.7); then mount, with those metrics. A problem
  * with the assets or a font rejects with a `RenderError` — a font a measured
- * node cannot be measured with is `font-unmeasurable` — and nothing is
- * mounted; an invalid document yields its errors.
+ * node cannot be measured with is `font-unmeasurable`, or `font-invalid` for
+ * a damaged WOFF or WOFF2 file (D84.6) — and nothing is mounted; an invalid
+ * document yields its errors.
  */
 export async function load(
   root: Element,

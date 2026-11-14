@@ -261,10 +261,8 @@ describe('fontMetrics (D83.1)', () => {
   });
 
   it.each([
-    ['WOFF', 0x774f4646, /WOFF, which would need a zlib/],
-    ['WOFF2', 0x774f4632, /WOFF2, which would need a Brotli/],
     ['a collection', 0x74746366, /font collection/],
-    ['an unknown format', 0x4f54544e, /not an sfnt font/],
+    ['an unknown format', 0x4f54544e, /not an sfnt, WOFF, or WOFF2 font/],
   ])('refuses %s as font-unmeasurable', (_, signature, message) => {
     const bytes = patched(generateProportionalFont(), (_, view) => {
       view.setUint32(0, signature);
@@ -274,6 +272,21 @@ describe('fontMetrics (D83.1)', () => {
     expect(text).toMatch(message);
     expect(text).toContain('sfnt');
   });
+
+  it.each([
+    ['WOFF', 0x774f4646],
+    ['WOFF2', 0x774f4632],
+  ])(
+    'reads an sfnt file signed %s as that container, which refuses it as font-invalid (D84)',
+    (format, signature) => {
+      const bytes = patched(generateProportionalFont(), (_, view) => {
+        view.setUint32(0, signature);
+      });
+      const { code, message } = refusal(bytes);
+      expect(code).toBe('font-invalid');
+      expect(message).toContain(`its ${format} header gives a length`);
+    },
+  );
 
   it.each(['head', 'hhea', 'maxp', 'hmtx', 'cmap'])('refuses a font without %s', (tag) => {
     const font = generateProportionalFont();

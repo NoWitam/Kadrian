@@ -220,7 +220,7 @@ export declare class FontMetricsError extends RangeError {
 }
 
 ---- FontMetricsErrorCode (type only)
-export type FontMetricsErrorCode = 'font-unmeasurable';
+export type FontMetricsErrorCode = 'font-unmeasurable' | 'font-invalid';
 
 ---- FragmentState (type only)
 export interface FragmentState {
@@ -735,7 +735,7 @@ export declare class FontMetricsError extends RangeError {
 }
 
 ---- FontMetricsErrorCode
-export type FontMetricsErrorCode = 'font-unmeasurable';
+export type FontMetricsErrorCode = 'font-unmeasurable' | 'font-invalid';
 
 ---- FrameAlign
 export type FrameAlign = 'left' | 'center' | 'right';
@@ -834,14 +834,14 @@ export declare function unitsToPixels(units: number, fontSize: number, metrics: 
 ---- DECOMPRESSED_FONT_LIMIT
 export declare const DECOMPRESSED_FONT_LIMIT = 67108864;
 
----- FontDecodeError
-export declare class FontDecodeError extends RangeError {
-    readonly code: FontDecodeErrorCode;
-    constructor(code: FontDecodeErrorCode, message: string);
+---- FontMetricsError
+export declare class FontMetricsError extends RangeError {
+    readonly code: FontMetricsErrorCode;
+    constructor(code: FontMetricsErrorCode, message: string);
 }
 
----- FontDecodeErrorCode (type only)
-export type FontDecodeErrorCode = 'font-invalid' | 'font-unmeasurable';
+---- FontMetricsErrorCode (type only)
+export type FontMetricsErrorCode = 'font-unmeasurable' | 'font-invalid';
 
 ---- FontTables
 export interface FontTables {

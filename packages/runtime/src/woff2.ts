@@ -110,7 +110,7 @@ interface Woff2Entry {
  * it omitted as 0, since those would be reconstructed from `glyf`, which is
  * never read (D84.3, D84.11).
  *
- * Throws `FontDecodeError` `font-invalid` for a damaged container: a header
+ * Throws `FontMetricsError` `font-invalid` for a damaged container: a header
  * whose `length` is not the file's, no table, a
  * directory or compressed data past the end of the file, a bad `UIntBase128`,
  * two entries for one tag, a transform version the specification does not

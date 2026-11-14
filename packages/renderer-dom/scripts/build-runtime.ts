@@ -20,6 +20,42 @@ export const ARTIFACT_FILE = 'kadrion-runtime.js';
 export const MANIFEST_FILE = 'kadrion-runtime.json';
 
 /**
+ * The licence record that travels with the build (D37, D84.8). The bundle
+ * keeps no comment of its sources (`legalComments: 'none'`), so the MIT notice
+ * of the Brotli static dictionary, which the build holds deflated in the
+ * module of `packages/runtime/dist/brotli-dictionary.js`, is written as a
+ * banner, the first bytes of the artifact. A banner, and not kept legal
+ * comments, so that the build carries this one record and no legal comment of
+ * a source or a future dependency enters it unseen; `runtime-build.test.ts`
+ * holds its notice to the header of the generated module, word for word.
+ */
+export const LICENCE_BANNER = `/*
+ * The Kadrion runtime build (D21). It holds the static dictionary of Brotli
+ * (RFC 7932, appendix A), from the Brotli project of Google,
+ * https://github.com/google/brotli, under this notice (D84.8):
+ *
+ * Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */`;
+
+/**
  * Every option that influences the bytes. Paths in the output are relative to
  * the repository root, so the artifact does not depend on where the repository
  * is checked out.
@@ -35,6 +71,7 @@ export const BUNDLE_OPTIONS = {
   minify: false,
   sourcemap: false,
   legalComments: 'none',
+  banner: { js: LICENCE_BANNER },
   charset: 'utf8',
   write: false,
   logLevel: 'silent',

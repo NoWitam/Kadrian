@@ -11,6 +11,8 @@
     "./**/*.ts",
     "../parity/parity.ts",
     "../ci/diagnostic.ts",
+    "../../packages/runtime/test/woff-support.ts",
+    "../../packages/runtime/test/woff2-support.ts",
     "../../vitest.pinned.config.ts",
     "../../apps/playground/scripts/media.ts",
     "../../apps/playground/scripts/serve.ts"

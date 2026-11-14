@@ -31,17 +31,17 @@ import {
 import { brotliStream } from '../src/brotli.js';
 import { DICTIONARY_LENGTH, DICTIONARY_SHA256 } from '../src/brotli-dictionary.js';
 import { inflate } from '../src/inflate.js';
-import { DECOMPRESSED_FONT_LIMIT, FontDecodeError, brotliDecode } from '../src/woff.js';
+import { DECOMPRESSED_FONT_LIMIT, FontMetricsError, brotliDecode } from '../src/woff.js';
 
 import { seededRandom } from './support.js';
 import { monospacedFont, mutate } from './woff-support.js';
 
-/** The code of the `FontDecodeError` a call throws; anything else thrown fails the test. */
+/** The code of the `FontMetricsError` a call throws; anything else thrown fails the test. */
 function refusal(run: () => unknown): string {
   try {
     run();
   } catch (error) {
-    if (error instanceof FontDecodeError) return error.code;
+    if (error instanceof FontMetricsError) return error.code;
     throw error;
   }
   return 'accepted';
@@ -661,8 +661,8 @@ describe('seeded mutations (D84.4, D84.11)', () => {
           try {
             ours = brotliDecode(mutated, input.length);
           } catch (error) {
-            expect(error).toBeInstanceOf(FontDecodeError);
-            expect((error as FontDecodeError).code).toBe('font-invalid');
+            expect(error).toBeInstanceOf(FontMetricsError);
+            expect((error as FontMetricsError).code).toBe('font-invalid');
           }
           if (ours === null) {
             outcomes.refused += 1;

@@ -49,7 +49,7 @@ const CODE_LENGTH_ORDER = [
 /**
  * Decompresses a zlib stream (RFC 1950, RFC 1951) that must produce exactly
  * `length` bytes, and returns them in a new buffer of that length. Throws
- * `FontDecodeError` `font-invalid` for a malformed stream, a preset
+ * `FontMetricsError` `font-invalid` for a malformed stream, a preset
  * dictionary, a bad Adler-32, a stream that produces fewer or more bytes than
  * `length`, or bytes after its end; and `font-unmeasurable` for a `length`
  * past 64 MiB (D84.4), before anything is allocated.

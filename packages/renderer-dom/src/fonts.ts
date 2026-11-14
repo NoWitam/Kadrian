@@ -20,8 +20,10 @@ export type FontMetricsMap = ReadonlyMap<string, FontMetrics>;
 /**
  * Reads the metrics of every font a measured node of `composition` uses from
  * its bytes (D83.1, D83.7), in the order of first use. Bytes `fontMetrics`
- * cannot read are the `RenderError` `font-unmeasurable`. A document without a
- * measured node reads nothing.
+ * cannot read are the `RenderError` of the code it refused them with
+ * (D84.6): `font-invalid` for a damaged WOFF or WOFF2 file, and
+ * `font-unmeasurable` for anything else. A document without a measured node
+ * reads nothing.
  */
 export function measureFonts(
   composition: ValidatedComposition,
@@ -38,7 +40,12 @@ export function measureFonts(
       fonts.set(id, fontMetrics(new Uint8Array(data)));
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : String(reason);
-      throw new RenderError('font-unmeasurable', `The font "${id}" cannot be measured: ${message}`);
+      // The code of the runtime's refusal, read by value: `instanceof` fails across realms.
+      const code =
+        reason instanceof Error && (reason as { code?: unknown }).code === 'font-invalid'
+          ? 'font-invalid'
+          : 'font-unmeasurable';
+      throw new RenderError(code, `The font "${id}" cannot be measured: ${message}`);
     }
   }
   return fonts;

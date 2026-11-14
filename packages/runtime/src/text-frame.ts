@@ -9,6 +9,8 @@
  * arithmetic on a `DataView`, no `FontFace`, no canvas, no `Intl`, no platform
  * API (D24), so the same bytes give the same metrics and the same lines in
  * Node and in any browser. No kerning, no ligatures, no shaping (D83.2).
+ * From PR-72 `fontMetrics` reads WOFF and WOFF2 files as well as sfnt files,
+ * with the runtime's own inflate and Brotli decoder (D84).
  *
  * From schema `0.25` (PR-66) the evaluation, the render page, and the Player
  * use them: the main entry of `@kadrion/runtime` exports them, and so does the
@@ -30,37 +32,25 @@ import {
   pagesOfLines,
   type CaptionPage,
 } from './caption-lines.js';
+import { unmeasurable } from './font-decode.js';
 import { textLayout, type TextRun } from './graphemes.js';
+import { woffTables, type FontTables } from './woff.js';
+import { woff2Tables } from './woff2.js';
 
 // --- errors -----------------------------------------------------------------
 
-/** Why a font cannot be measured (D83.1). */
-export type FontMetricsErrorCode = 'font-unmeasurable';
+export { FontMetricsError } from './font-decode.js';
 
 /**
- * Thrown by `fontMetrics` for bytes it cannot measure: WOFF, WOFF2, a font
- * collection, anything that is not an sfnt font, or an sfnt font that lacks a
- * table of D83.1 or whose table is truncated or malformed. Check `code`
- * instead of `instanceof`, which fails across realms.
+ * Why a font cannot be measured (D83.1, D84.6): `font-unmeasurable` for a
+ * well-formed file Kadrion does not measure (a collection, an unknown format
+ * or flavor, a missing or short table, a `cmap` without a subtable it reads,
+ * or a font past the limit of D84.4), and `font-invalid` for a WOFF or WOFF2
+ * file whose container or compressed stream is damaged.
  */
-export class FontMetricsError extends RangeError {
-  readonly code: FontMetricsErrorCode;
+export type FontMetricsErrorCode = 'font-unmeasurable' | 'font-invalid';
 
-  constructor(code: FontMetricsErrorCode, message: string) {
-    super(message);
-    this.name = 'FontMetricsError';
-    this.code = code;
-  }
-}
-
-function unmeasurable(reason: string): never {
-  throw new FontMetricsError(
-    'font-unmeasurable',
-    `The font cannot be measured: ${reason}. A measured text needs an sfnt font with TrueType or CFF outlines (D83.1).`,
-  );
-}
-
-// --- fontMetrics (D83.1) ----------------------------------------------------
+// --- fontMetrics (D83.1, D84) -----------------------------------------------
 
 /** The advance widths of a font, in font units, read from its bytes (D83.1). */
 export interface FontMetrics {
@@ -82,40 +72,54 @@ const WOFF = 0x774f4646;
 const WOFF2 = 0x774f4632;
 const COLLECTION = 0x74746366;
 
-/** One table of the directory: where it lies in the file. */
-interface TableRecord {
-  readonly offset: number;
-  readonly length: number;
-}
-
 /**
- * Reads a font file and returns its `unitsPerEm` and the advance width of the
- * glyph of every code point it maps (D83.1). It reads the tables `head`,
- * `hhea`, `maxp`, `hmtx`, and `cmap`, and nothing else.
+ * Reads a font file — sfnt, WOFF 1.0, or WOFF 2.0 — and returns its
+ * `unitsPerEm` and the advance width of the glyph of every code point it maps
+ * (D83.1, D84). It reads the tables `head`, `hhea`, `maxp`, `hmtx`, and
+ * `cmap`, and nothing else: of a WOFF file it inflates only those five tables
+ * (D84.2), and of a WOFF2 file it decodes the Brotli stream only up to the end
+ * of the last of them, never reconstructing `glyf` or `loca` (D84.3). The
+ * three formats yield the bytes of the five tables, and one reader reads the
+ * metrics from them, so every check below holds for each.
  *
  * Of `cmap` it reads one subtable, the first of the best kind in the order
  * format 12 of platform 3, format 12 of platform 0, format 4 of platform 3,
  * format 4 of platform 0 (platform 3 with encoding 10 for format 12 and 1 for
  * format 4). A code point that maps to glyph 0 or to a glyph past `numGlyphs`
- * has no glyph. Throws `FontMetricsError` `font-unmeasurable` for WOFF, WOFF2,
- * a collection, any other format, a missing or truncated table, or a subtable
- * whose ranges are not in ascending order.
+ * has no glyph.
+ *
+ * Throws `FontMetricsError` `font-unmeasurable` for a collection (sfnt, or
+ * WOFF2 of flavor `ttcf`), any other format or flavor, a missing or truncated
+ * table, a subtable whose ranges are not in ascending order, or a WOFF or
+ * WOFF2 font whose five tables would decompress past 64 MiB, checked before
+ * anything is allocated (D84.4); and `font-invalid` for a WOFF or WOFF2 file
+ * whose container or compressed stream is damaged (D84.6).
  */
 export function fontMetrics(bytes: Uint8Array): FontMetrics {
+  if (bytes.byteLength < 4) unmeasurable('it is too short to be a font');
+  const signature = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0);
+  if (signature === WOFF) return metricsOfTables(woffTables(bytes));
+  if (signature === WOFF2) return metricsOfTables(woff2Tables(bytes));
+  return metricsOfTables(sfntTables(bytes));
+}
+
+/**
+ * The five tables of an sfnt file, as views of its bytes, by the offsets of
+ * its table directory (D83.1). A table that lies past the end of the file is
+ * truncated; how long each must be is the reader's to check.
+ */
+function sfntTables(bytes: Uint8Array): FontTables {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const size = bytes.byteLength;
-  if (size < 4) unmeasurable('it is too short to be a font');
   const signature = view.getUint32(0);
-  if (signature === WOFF) unmeasurable('it is WOFF, which would need a zlib decompressor');
-  if (signature === WOFF2) unmeasurable('it is WOFF2, which would need a Brotli decompressor');
   if (signature === COLLECTION) unmeasurable('it is a font collection, which holds several fonts');
   if (signature !== SFNT_TRUETYPE && signature !== SFNT_APPLE && signature !== SFNT_CFF) {
-    unmeasurable('it is not an sfnt font');
+    unmeasurable('it is not an sfnt, WOFF, or WOFF2 font');
   }
   if (size < 12) unmeasurable('its table directory is truncated');
   const numTables = view.getUint16(4);
   if (12 + numTables * 16 > size) unmeasurable('its table directory is truncated');
-  const tables = new Map<string, TableRecord>();
+  const tables = new Map<string, { readonly offset: number; readonly length: number }>();
   for (let index = 0; index < numTables; index += 1) {
     const record = 12 + index * 16;
     const tag = String.fromCharCode(
@@ -129,43 +133,58 @@ export function fontMetrics(bytes: Uint8Array): FontMetrics {
     if (tables.has(tag)) unmeasurable(`its table directory lists ${tag} twice`);
     tables.set(tag, { offset, length });
   }
-  const table = (tag: string, minimum: number): TableRecord => {
+  const table = (tag: keyof FontTables): Uint8Array => {
     const found = tables.get(tag);
     if (found === undefined) unmeasurable(`it has no ${tag} table`);
-    if (found.offset + found.length > size || found.length < minimum) {
-      unmeasurable(`its ${tag} table is truncated`);
-    }
-    return found;
+    if (found.offset + found.length > size) unmeasurable(`its ${tag} table is truncated`);
+    return bytes.subarray(found.offset, found.offset + found.length);
   };
+  return {
+    head: table('head'),
+    hhea: table('hhea'),
+    maxp: table('maxp'),
+    hmtx: table('hmtx'),
+    cmap: table('cmap'),
+  };
+}
 
-  const head = table('head', 54);
-  const unitsPerEm = view.getUint16(head.offset + 18);
+/** A view of one table, which must hold at least `minimum` bytes (D83.1). */
+function tableView(tables: FontTables, tag: keyof FontTables, minimum: number): DataView {
+  const table = tables[tag];
+  if (table.byteLength < minimum) unmeasurable(`its ${tag} table is truncated`);
+  return new DataView(table.buffer, table.byteOffset, table.byteLength);
+}
+
+/** The one reader of the metrics, from the bytes of the five tables, whatever file they came from (D84.3). */
+function metricsOfTables(tables: FontTables): FontMetrics {
+  const head = tableView(tables, 'head', 54);
+  const unitsPerEm = head.getUint16(18);
   if (unitsPerEm < 16 || unitsPerEm > 16_384) {
     unmeasurable(`its unitsPerEm, ${String(unitsPerEm)}, is not from 16 to 16384`);
   }
-  const numberOfHMetrics = view.getUint16(table('hhea', 36).offset + 34);
-  const numGlyphs = view.getUint16(table('maxp', 6).offset + 4);
+  const numberOfHMetrics = tableView(tables, 'hhea', 36).getUint16(34);
+  const numGlyphs = tableView(tables, 'maxp', 6).getUint16(4);
   if (numGlyphs === 0) unmeasurable('it has no glyph');
   if (numberOfHMetrics === 0 || numberOfHMetrics > numGlyphs) {
     unmeasurable(`its numberOfHMetrics, ${String(numberOfHMetrics)}, is not from 1 to numGlyphs`);
   }
-  const hmtx = table('hmtx', numberOfHMetrics * 4 + (numGlyphs - numberOfHMetrics) * 2);
+  const hmtx = tableView(tables, 'hmtx', numberOfHMetrics * 4 + (numGlyphs - numberOfHMetrics) * 2);
   // A glyph past the last long metric advances as the last one.
   const advanceOfGlyph = (glyph: number): number =>
-    view.getUint16(hmtx.offset + Math.min(glyph, numberOfHMetrics - 1) * 4);
+    hmtx.getUint16(Math.min(glyph, numberOfHMetrics - 1) * 4);
 
-  const cmap = table('cmap', 4);
-  const end = cmap.offset + cmap.length;
-  const subtableCount = view.getUint16(cmap.offset + 2);
-  if (4 + subtableCount * 8 > cmap.length) unmeasurable('its cmap table is truncated');
+  const cmap = tableView(tables, 'cmap', 4);
+  const end = cmap.byteLength;
+  const subtableCount = cmap.getUint16(2);
+  if (4 + subtableCount * 8 > end) unmeasurable('its cmap table is truncated');
   let best: { readonly rank: number; readonly offset: number } | null = null;
   for (let index = 0; index < subtableCount; index += 1) {
-    const record = cmap.offset + 4 + index * 8;
-    const platform = view.getUint16(record);
-    const encoding = view.getUint16(record + 2);
-    const offset = cmap.offset + view.getUint32(record + 4);
+    const record = 4 + index * 8;
+    const platform = cmap.getUint16(record);
+    const encoding = cmap.getUint16(record + 2);
+    const offset = cmap.getUint32(record + 4);
     if (offset + 2 > end) unmeasurable('a cmap subtable lies outside its table');
-    const rank = subtableRank(platform, encoding, view.getUint16(offset));
+    const rank = subtableRank(platform, encoding, cmap.getUint16(offset));
     if (rank !== null && (best === null || rank < best.rank)) best = { rank, offset };
   }
   if (best === null) unmeasurable('its cmap has no Unicode subtable of format 4 or 12');
@@ -174,8 +193,8 @@ export function fontMetrics(bytes: Uint8Array): FontMetrics {
   const map = (codePoint: number, glyph: number): void => {
     if (glyph !== 0 && glyph < numGlyphs) advances.set(codePoint, advanceOfGlyph(glyph));
   };
-  if (view.getUint16(best.offset) === 4) readFormat4(view, best.offset, end, map);
-  else readFormat12(view, best.offset, end, map);
+  if (cmap.getUint16(best.offset) === 4) readFormat4(cmap, best.offset, end, map);
+  else readFormat12(cmap, best.offset, end, map);
   return { unitsPerEm, notdefAdvance: advanceOfGlyph(0), advances };
 }
 

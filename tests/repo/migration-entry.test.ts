@@ -19,6 +19,7 @@ import { join, relative } from 'node:path';
 
 import * as runtimeEntry from '@kadrion/runtime';
 import * as textFrameEntry from '@kadrion/runtime/text-frame';
+import * as woffEntry from '@kadrion/runtime/woff';
 import * as mainEntry from '@kadrion/schema';
 import * as migrateEntry from '@kadrion/schema/migrate';
 import * as templateEntry from '@kadrion/schema/template';
@@ -155,7 +156,7 @@ describe('the entries of @kadrion/runtime (D83, PR-65, PR-66)', () => {
     expect(main).not.toContain('stretch.js');
   });
 
-  it('keeps the readers of WOFF and WOFF2 fonts in their own entry, which the main entry does not reach before PR-72 (D84, PR-70, PR-71)', () => {
+  it('reaches the readers of WOFF and WOFF2 fonts from the main entry since PR-72, and still offers them in their own entry (D84)', () => {
     const main = names(reached(join(RUNTIME_DIST, 'index.js')), RUNTIME_DIST);
     const woff = [
       'brotli-dictionary.js',
@@ -165,8 +166,13 @@ describe('the entries of @kadrion/runtime (D83, PR-65, PR-66)', () => {
       'woff.js',
       'woff2.js',
     ];
-    for (const module of woff) expect(main).not.toContain(module);
+    for (const module of woff) expect(main).toContain(module);
     expect(names(reached(join(RUNTIME_DIST, 'woff.js')), RUNTIME_DIST)).toEqual(woff);
+    // One error for every refusal of a font: the main entry, the lines' entry, and the
+    // readers' entry export the same class (D84.6).
+    expect(woffEntry.FontMetricsError).toBe(runtimeEntry.FontMetricsError);
+    expect(textFrameEntry.FontMetricsError).toBe(runtimeEntry.FontMetricsError);
+    expect(Object.keys(woffEntry)).not.toContain('FontDecodeError');
   });
 });
 

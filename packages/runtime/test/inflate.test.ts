@@ -11,17 +11,17 @@ import { constants, deflateSync, inflateSync } from 'node:zlib';
 import { generateProportionalFont } from '@kadrion/test-fixtures';
 import { describe, expect, it } from 'vitest';
 
-import { DECOMPRESSED_FONT_LIMIT, FontDecodeError, inflate } from '../src/woff.js';
+import { DECOMPRESSED_FONT_LIMIT, FontMetricsError, inflate } from '../src/woff.js';
 
 import { seededRandom } from './support.js';
 import { monospacedFont, mutate, sfntTables } from './woff-support.js';
 
-/** The code of the `FontDecodeError` a call throws; anything else thrown fails the test. */
+/** The code of the `FontMetricsError` a call throws; anything else thrown fails the test. */
 function refusal(run: () => unknown): string {
   try {
     run();
   } catch (error) {
-    if (error instanceof FontDecodeError) return error.code;
+    if (error instanceof FontMetricsError) return error.code;
     throw error;
   }
   return 'accepted';
@@ -623,7 +623,7 @@ describe('the limit of D84.4', () => {
   it('refuses a length that is not a whole number of bytes as a programming error', () => {
     for (const length of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(() => inflate(new Uint8Array(0), length)).toThrow(RangeError);
-      expect(() => inflate(new Uint8Array(0), length)).not.toThrow(FontDecodeError);
+      expect(() => inflate(new Uint8Array(0), length)).not.toThrow(FontMetricsError);
     }
   });
 });
@@ -650,8 +650,8 @@ describe('seeded mutations (D84.4, D84.11)', () => {
           try {
             ours = inflate(mutated, length);
           } catch (error) {
-            expect(error).toBeInstanceOf(FontDecodeError);
-            expect((error as FontDecodeError).code).toBe('font-invalid');
+            expect(error).toBeInstanceOf(FontMetricsError);
+            expect((error as FontMetricsError).code).toBe('font-invalid');
           }
           if (ours === null) {
             outcomes.refused += 1;
