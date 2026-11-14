@@ -121,13 +121,19 @@ describe('the metrics of the fonts of measured nodes (D83.7)', () => {
     expect(readFontMetrics(root).size).toBe(0);
   });
 
-  it('measures the bytes of every font a measured node uses, and refuses bytes it cannot read', () => {
+  it('measures the bytes of every font a measured node uses, and refuses bytes it cannot read with the code of the refusal (D84.6)', () => {
     const font = generateProportionalFont();
     const bytes = new Map([[FONT_ID, font.slice().buffer]]);
     expect([...measureFonts(composition, bytes).keys()]).toEqual([FONT_ID]);
+    // An sfnt file signed as WOFF is read as a WOFF container, whose header is damaged.
     const woff = font.slice();
     woff.set([0x77, 0x4f, 0x46, 0x46], 0);
     expect(codeOf(() => measureFonts(composition, new Map([[FONT_ID, woff.buffer]])))).toBe(
+      'font-invalid',
+    );
+    const collection = font.slice();
+    collection.set([0x74, 0x74, 0x63, 0x66], 0);
+    expect(codeOf(() => measureFonts(composition, new Map([[FONT_ID, collection.buffer]])))).toBe(
       'font-unmeasurable',
     );
   });

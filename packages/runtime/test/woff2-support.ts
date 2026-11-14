@@ -412,12 +412,14 @@ export function assembleWoff2(
     privateData.length > 0
       ? pad(metaOffset > 0 ? metaOffset + metadata.length : dataStart + stream.length)
       : 0;
+  // Without a block after it, the stream is padded to four bytes too: the decoder of
+  // browsers refuses a file that ends before the stream's four-byte boundary.
   const length =
     privOffset > 0
       ? privOffset + privateData.length
       : metaOffset > 0
         ? metaOffset + metadata.length
-        : dataStart + stream.length;
+        : pad(dataStart + stream.length);
   const out = new Uint8Array(length);
   setU32(out, 0, 0x774f4632);
   setU32(out, 4, assembly.flavor ?? 0x00010000);

@@ -357,6 +357,50 @@ in captions broken by width. They follow PR-63 and PR-68 and the release
   framed-text composition with its font as WOFF and WOFF2 against its golden
   frames. The runtime build and the Player's dist tree change, so Q14 reopens
   and parity is measured again; every golden PNG file stays byte for byte.
+  Status: in review. `fontMetrics` keeps its signature and reads the sfnt,
+  WOFF, and WOFF2 containers into the five tables of D83.1, from which one
+  reader reads the metrics, so every refusal of D83.1 reads the same in each
+  format. `FontDecodeError` of PR-70 is merged into `FontMetricsError`, whose
+  code is `'font-unmeasurable' | 'font-invalid'`; the decoders and the readers
+  throw it, and `@kadrion/runtime`, `@kadrion/runtime/text-frame`, and
+  `@kadrion/runtime/woff` export the same class. `RenderErrorCode` gains
+  `font-invalid`, which `measureFonts` raises from the code of the refusal,
+  read by value. The API reports change by the two widened unions and by the
+  rename in the entry `woff`. The MIT notice of the Brotli dictionary reaches
+  the build as an esbuild banner, the first bytes of the artifact, since the
+  bundle keeps no legal comment (`legalComments: 'none'`); a banner keeps that
+  option, so no comment of a source or of a later dependency enters the build
+  unseen, and `runtime-build.test.ts` holds the banner's notice to the header
+  of the generated dictionary module, word for word. The runtime build is
+  `sha256:573cbca11d74841d1c3d07b759a8ad2711ece6cdde76f175ca729b9d4dca120f`
+  (500 073 bytes, 132 652 more than 367 421, above the estimate of D84.10: the
+  base64 of the dictionary's deflate stream is about 78 KB of it), and the
+  Player's dist tree
+  `sha256:db846bfec498728a4d64c75b2e3529825e8cedf5bf7f6ce9beac6918d17daac3`
+  (77 files: `brotli.js`, `brotli-dictionary.js`, `font-decode.js`,
+  `inflate.js`, `woff.js`, and `woff2.js` of the runtime join it). In the
+  pinned container with `--network none`, two isolated `goldens:update`
+  passes wrote all 124 golden files byte for byte the same: every PNG file as
+  committed, and the twenty manifests changed in `render.runtime.contentHash`
+  only; the `test:pinned` pass that followed passed 333 of 333 tests in 32
+  files and wrote both parity records, every row 0/0 with the same PNG
+  hashes. In that pass the twelve WOFF and WOFF2 forms of the four fixture
+  fonts give the SHA-256 of the sfnt metrics in Node and in the pinned
+  Chromium and load as faces through Chromium's decoder
+  (`text-frame.pinned.test.ts`), and the framed-text composition with its
+  font as WOFF and as WOFF2 renders its golden frames in the Producer with 0
+  differing pixels (`framed-text.pinned.test.ts`). No pinned test file is
+  added, so `REQUIRED_PINNED_FILES` does not change; the Q14 artifact list
+  gains the two reports of that test (`framed-text/golden-comparison-woff.json`
+  and `…-woff2.json`) and the three of the framed-text file that PR-66 left
+  out of it.
+  Q14 reopens with this change and closes by the evidence of the CI run of
+  its commit. The test encoders of PR-70 and PR-71 stay in
+  `packages/runtime/test` and the pinned tests import them; Chromium's
+  decoder found that the WOFF2 encoder did not pad the end of a file to four
+  bytes, which the encoder now does (D84 checks nothing there). The
+  deviations of PR-70 and PR-71 are settled: the two errors are one, the
+  amendment of D84.4 holds `reserved`, and the notice is in the build.
 - **PR-73** (the host guide, the README, and the release): sections 3 and 5 of
   the host guide and the README on WOFF and WOFF2 in measured nodes,
   `font-invalid`, the limit, and the costs; every package at the version of

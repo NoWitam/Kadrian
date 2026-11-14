@@ -15,6 +15,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import {
   ARTIFACT_FILE,
   BUNDLE_OPTIONS,
+  LICENCE_BANNER,
   MANIFEST_FILE,
   OUTPUT_DIRECTORY,
   bundleRuntime,
@@ -87,6 +88,7 @@ describe('runtime build artifact (D21)', () => {
       minify: false,
       sourcemap: false,
       legalComments: 'none',
+      banner: { js: LICENCE_BANNER },
       charset: 'utf8',
       write: false,
     });
@@ -101,13 +103,36 @@ describe('runtime build artifact (D21)', () => {
     }
     expect(text).not.toMatch(/sourceMappingURL|\brequire\(|\bprocess\.|\bnode:[a-z]/);
     expect(text).not.toContain('\r');
-    expect(text.startsWith('"use strict";\nvar KadrionRuntime = (() => {\n')).toBe(true);
+    expect(
+      text.startsWith(`${LICENCE_BANNER}\n"use strict";\nvar KadrionRuntime = (() => {\n`),
+    ).toBe(true);
     // Every bundled module is one of the three packages of the runtime build (D20).
     const modules = [...text.matchAll(/^ {2}\/\/ (\S+)$/gm)].map((match) => match[1] ?? '');
     expect(modules.length).toBeGreaterThan(5);
     for (const path of modules) {
-      expect(path).toMatch(/^packages\/(renderer-dom|runtime|schema)\/dist\/[a-z-]+\.js$/);
+      expect(path).toMatch(/^packages\/(renderer-dom|runtime|schema)\/dist\/[a-z0-9-]+\.js$/);
     }
+  });
+
+  it('carries the MIT notice of the Brotli dictionary it holds, word for word as the generated module records it (D84.8)', () => {
+    const text = artifactOnDisk.toString('utf8');
+    // The premise: the dictionary is in the build, and the banner is its only notice.
+    expect(text).toContain('  // packages/runtime/dist/brotli-dictionary.js\n');
+    expect(text.split('Copyright (c)')).toHaveLength(2);
+    /** The notice of a header comment: from the copyright line to the end of the permission text. */
+    const notice = (comment: string): string => {
+      const start = comment.indexOf(' * Copyright (c)');
+      const end = comment.indexOf(' * THE SOFTWARE.\n');
+      expect(start, 'a copyright line').toBeGreaterThan(0);
+      expect(end, 'the end of the permission text').toBeGreaterThan(start);
+      return comment.slice(start, end);
+    };
+    const generated = readFileSync(
+      join(repoRoot, 'packages', 'runtime', 'src', 'brotli-dictionary.ts'),
+      'utf8',
+    );
+    expect(notice(`${LICENCE_BANNER}\n`)).toBe(notice(generated));
+    expect(notice(text)).toBe(notice(generated));
   });
 
   it('holds the current schema and neither a historical schema nor a migration (D42.8)', () => {

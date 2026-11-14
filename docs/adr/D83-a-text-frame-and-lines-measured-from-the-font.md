@@ -15,8 +15,9 @@
   D83.8). D35 (the step from `0.24` to `0.25`) and D46 (the descriptions of
   four tools) get their lines from the pull requests of D83.9 and D83.10, as
   every schema step and tool change before them
+- Amended by: PR-69 (D84) on 2026-11-13, in force from PR-72: D83.1 and D83.11: `fontMetrics` reads fonts in WOFF and WOFF2 as well as sfnt fonts, and a measured node may use them; collections stay refused, and a damaged WOFF or WOFF2 file is `font-invalid` (D84.1 to D84.6)
 - Related: D04, D12, D13, D14, D15, D16, D21, D26, D30, D33, D34, D38, D57,
-  D69, D70, D82, [roadmap of phase six](../roadmap/phase-6.md)
+  D69, D70, D82, D84, [roadmap of phase six](../roadmap/phase-6.md)
 
 ## Context
 

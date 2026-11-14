@@ -18,7 +18,7 @@ import { BitWriter } from '../scripts/brotli-dictionary.js';
 import { fontMetrics } from '../src/text-frame.js';
 import {
   DECOMPRESSED_FONT_LIMIT,
-  FontDecodeError,
+  FontMetricsError,
   woff2Tables,
   type FontTables,
 } from '../src/woff.js';
@@ -51,12 +51,12 @@ const FONTS = [
 const PROPORTIONAL = generateProportionalFont('both');
 const WOFF2 = encodeWoff2(PROPORTIONAL);
 
-/** The code of the `FontDecodeError` a call throws; anything else thrown fails the test. */
+/** The code of the `FontMetricsError` a call throws; anything else thrown fails the test. */
 function refusal(run: () => unknown): string {
   try {
     run();
   } catch (error) {
-    if (error instanceof FontDecodeError) return error.code;
+    if (error instanceof FontMetricsError) return error.code;
     throw error;
   }
   return 'accepted';
@@ -668,8 +668,8 @@ describe('seeded mutations (D84.4, D84.11)', () => {
           try {
             tables = woff2Tables(mutated);
           } catch (error) {
-            expect(error).toBeInstanceOf(FontDecodeError);
-            const { code } = error as FontDecodeError;
+            expect(error).toBeInstanceOf(FontMetricsError);
+            const { code } = error as FontMetricsError;
             expect(['font-invalid', 'font-unmeasurable']).toContain(code);
             codes[code] += 1;
           }

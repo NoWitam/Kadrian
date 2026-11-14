@@ -26,10 +26,17 @@ export type RenderErrorCode =
   | 'font-load-failed'
   /**
    * The bytes of a font that a measured node uses — a text with a frame, or
-   * captions broken by width — are not an sfnt font `fontMetrics` can read:
-   * WOFF, WOFF2, a collection, or a missing or truncated table (D83.1, D83.7).
+   * captions broken by width — are a well-formed file `fontMetrics` does not
+   * measure: a collection, an unknown format or flavor, a missing or
+   * truncated table, or a font that would decompress past 64 MiB (D83.1,
+   * D83.7, D84.4, D84.6).
    */
   | 'font-unmeasurable'
+  /**
+   * The bytes of a font that a measured node uses are a WOFF or WOFF2 file
+   * whose container or compressed stream is damaged (D84.6).
+   */
+  | 'font-invalid'
   /** The host's resolver has no bytes for an asset of the document, or failed (D14, D27.3). */
   | 'asset-missing'
   /** The bytes of an asset do not have its content hash (D14, D27.3). */

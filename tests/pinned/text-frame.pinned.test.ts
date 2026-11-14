@@ -12,6 +12,11 @@
  * and `unitsToPixels` say, read from the DOM at sub-pixel precision, at
  * fractional font sizes too. Headless Chromium on Linux may round glyph
  * advances to whole pixels, which would break the premise of D83.2.
+ *
+ * Since PR-72 (D84), every fixture font as WOFF and as WOFF2, written by the
+ * test encoders of `packages/runtime/test`, gives the same SHA-256 of its
+ * metrics in the pinned Chromium and in Node as the sfnt font, and loads as a
+ * face through Chromium's own decoder, which is the check of the encoders.
  */
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -32,6 +37,9 @@ import {
 import { generateProportionalFont, generateReferenceAssets } from '@kadrion/test-fixtures';
 import type { BrowserContext, Page } from 'playwright-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { encodeWoff } from '../../packages/runtime/test/woff-support.js';
+import { encodeWoff2 } from '../../packages/runtime/test/woff2-support.js';
 
 import { pinnedRun, repoRoot, writeReport } from './support.js';
 
@@ -263,6 +271,36 @@ window.drawn = async (fonts, cases) => {
   }
   return out;
 };
+// The fonts as WOFF and WOFF2 (D84, PR-72): each one measured by the runtime,
+// and loaded as a face by Chromium's own decoder, which checks the test encoders.
+window.formats = async (fonts) => {
+  const out = {};
+  let index = 0;
+  for (const [name, bytes] of Object.entries(fonts)) {
+    const data = Uint8Array.from(bytes);
+    const result = { metrics: null, refusal: null, loaded: false, loadError: null };
+    try {
+      const font = fontMetrics(data);
+      result.metrics = JSON.stringify({
+        unitsPerEm: font.unitsPerEm,
+        notdefAdvance: font.notdefAdvance,
+        advances: [...font.advances].sort(([a], [b]) => a - b),
+      });
+    } catch (error) {
+      result.refusal = String(error && error.code) + ': ' + String(error && error.message);
+    }
+    try {
+      const face = new FontFace('kadrion-format-' + index, data.slice().buffer);
+      await face.load();
+      result.loaded = face.status === 'loaded';
+    } catch (error) {
+      result.loadError = String(error);
+    }
+    index += 1;
+    out[name] = result;
+  }
+  return out;
+};
 window.ready = true;
 </script></head><body></body></html>`;
 
@@ -275,6 +313,37 @@ interface LayoutWindow {
     fonts: Readonly<Record<string, readonly number[]>>,
     cases: readonly ProbeCase[],
   ): Promise<Record<string, { width: number; lines: number; loaded: boolean }>>;
+  formats(
+    fonts: Readonly<Record<string, readonly number[]>>,
+  ): Promise<
+    Record<
+      string,
+      { metrics: string | null; refusal: string | null; loaded: boolean; loadError: string | null }
+    >
+  >;
+}
+
+// --- WOFF and WOFF2 (D84, PR-72) --------------------------------------------
+
+/**
+ * Each fixture font as the test encoders write it: WOFF, WOFF2 with `glyf`
+ * and `loca` left as they are, and WOFF2 with `glyf` and `loca` transformed
+ * and every bearing of `hmtx` omitted, the most the readers must undo.
+ */
+function formats(): { name: string; font: FontName; bytes: Uint8Array }[] {
+  return Object.entries(fonts()).flatMap(([font, sfnt]) => [
+    { name: `${font} as WOFF`, font: font as FontName, bytes: encodeWoff(sfnt) },
+    {
+      name: `${font} as WOFF2, glyf not transformed`,
+      font: font as FontName,
+      bytes: encodeWoff2(sfnt, { glyf: 'null' }),
+    },
+    {
+      name: `${font} as WOFF2, glyf and hmtx transformed`,
+      font: font as FontName,
+      bytes: encodeWoff2(sfnt, { glyf: 'transformed', hmtx: 3 }),
+    },
+  ]);
 }
 
 function sha256(text: string): string {
@@ -466,6 +535,48 @@ describe('lines measured from the font in pinned Chromium (D83, PR-65)', () => {
         beyond,
         'the pinned Chromium draws these measured lines wider or narrower than measureText says (D83.2)',
       ).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+  it('measures every fixture font as WOFF and WOFF2 as it does as sfnt, in Chromium and in Node, and Chromium loads each (D84)', async () => {
+    const sfnt = fonts();
+    const expected = Object.fromEntries(
+      Object.entries(sfnt).map(([name, font]) => [
+        name,
+        sha256(described({ name, font: name as FontName, kind: 'metrics' }, fontMetrics(font))),
+      ]),
+    ) as Record<FontName, string>;
+    const all = formats();
+    const { context, page, unexpected } = await openPage();
+    try {
+      const results = await page.evaluate(
+        (fontBytes) => (window as unknown as LayoutWindow).formats(fontBytes),
+        Object.fromEntries(all.map(({ name, bytes }) => [name, [...bytes]])),
+      );
+      const rows = all.map(({ name, font, bytes }) => {
+        const inBrowser = results[name];
+        const metrics = inBrowser?.metrics ?? null;
+        return {
+          name,
+          bytes: bytes.length,
+          sfnt: expected[font],
+          node: sha256(described({ name, font, kind: 'metrics' }, fontMetrics(bytes))),
+          chromium: metrics === null ? null : sha256(metrics),
+          refusal: inBrowser === undefined ? 'not computed' : inBrowser.refusal,
+          loaded: inBrowser?.loaded ?? false,
+          loadError: inBrowser?.loadError ?? null,
+        };
+      });
+      Object.assign(report, { formats: { environment: pinnedRun(chromium), rows } });
+      writeReport(REPORT, report);
+      expect(unexpected).toEqual([]);
+      // The premise: three forms of each of the four fonts, the forms of one font differing in bytes.
+      expect(rows).toHaveLength(4 * 3);
+      expect(new Set(all.map(({ bytes }) => sha256(bytes.join(',')))).size).toBe(rows.length);
+      expect(rows.filter(({ node, sfnt: of }) => node !== of)).toEqual([]);
+      expect(rows.filter(({ chromium: of, sfnt: want }) => of !== want)).toEqual([]);
+      expect(rows.filter(({ loaded }) => !loaded)).toEqual([]);
     } finally {
       await context.close();
     }

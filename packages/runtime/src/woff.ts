@@ -6,29 +6,28 @@
  * 2.0 container (W3C, PR-71), which decodes its stream only up to the last of
  * the five tables and never reconstructs `glyf` or `loca` (D84.3).
  *
- * This entry, `@kadrion/runtime/woff`, is a library only until PR-72: the
- * main entry, the render page, and the Player do not reach it, so the runtime
- * build keeps its bytes. Pure and synchronous, under the determinism
+ * Since PR-72 `fontMetrics` reads WOFF and WOFF2 files through these readers,
+ * so the main entry, the render page, and the runtime build reach them; this
+ * entry, `@kadrion/runtime/woff`, still offers the decoders and the readers
+ * of the containers on their own. Pure and synchronous, under the determinism
  * guardrail like every source of the runtime (D20, D24, D84.7).
  */
 import { checkLimit, invalid, unmeasurable } from './font-decode.js';
 import { inflateStream } from './inflate.js';
 
-export {
-  DECOMPRESSED_FONT_LIMIT,
-  FontDecodeError,
-  type FontDecodeErrorCode,
-} from './font-decode.js';
+export { DECOMPRESSED_FONT_LIMIT, FontMetricsError } from './font-decode.js';
+export type { FontMetricsErrorCode } from './text-frame.js';
 export { inflate } from './inflate.js';
 export { brotliDecode } from './brotli.js';
 export { woff2Tables } from './woff2.js';
 
 /**
  * The bytes of the five tables `fontMetrics` reads (D83.1), each exactly as
- * long as the sfnt table it was compressed from. A table stored as it is in
- * a WOFF file is a view of the bytes it was read from; any other is a view of
- * a buffer of its own. From a transformed `hmtx` of a WOFF2 file, every
- * bearing the transform omitted is 0 (D84.3); its advances are the font's.
+ * long as the sfnt table it is or was compressed from. A table of an sfnt
+ * file, or one stored as it is in a WOFF file, is a view of the bytes it was
+ * read from; any other is a view of a buffer of its own. From a transformed
+ * `hmtx` of a WOFF2 file, every bearing the transform omitted is 0 (D84.3);
+ * its advances are the font's.
  */
 export interface FontTables {
   readonly head: Uint8Array;
@@ -62,7 +61,7 @@ interface WoffEntry {
  * other table are never read; `origChecksum`, the order of the entries, and
  * the padding are not checked, since they change no byte that is read.
  *
- * Throws `FontDecodeError` `font-invalid` for a damaged container: a header
+ * Throws `FontMetricsError` `font-invalid` for a damaged container: a header
  * whose `length` is not the file's, a `reserved` other than 0, no table, a
  * directory or a table outside the file, two entries for one tag, table data
  * overlapping the header, the directory, or another table, a `compLength`
