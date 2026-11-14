@@ -15,8 +15,9 @@ PR-43; phase five, motion graphics, effects, and reusable elements
 ([`docs/roadmap/phase-5.md`](docs/roadmap/phase-5.md)), delivered PR-45 to
 PR-57, released as `v0.6.0`; the current phase is speed, freeze frames, and
 reverse playback of clips, with text frames
-([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)), whose last step,
-PR-63 with PR-68, adds its showcases and the release `v0.7.0`. Schema `0.25` with its forward migrations from `0.1` to `0.24`, the evaluation core, the DOM
+([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)), whose step PR-63 with
+PR-68 added its showcases and the release `v0.7.0`, and whose last step, PR-73,
+adds fonts in WOFF and WOFF2 in measured nodes (D84) and the release `v0.8.0`. Schema `0.25` with its forward migrations from `0.1` to `0.24`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -37,7 +38,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D83; all accepted except D10, superseded by
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D84; all accepted except D10, superseded by
   D37)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
@@ -407,8 +408,11 @@ Unknown fields are errors. This one shows a text that fades in:
   the advances of the font's own bytes (`fontMetrics` of `@kadrion/runtime`),
   so a host passes the metrics of those fonts to `evaluateComposition`; the
   Player and the Producer read them when they load the document. Such a font
-  must be TrueType or CFF (`font/ttf`, `font/otf`), not WOFF, WOFF2, or a
-  collection, and its measured lines are drawn without kerning or ligatures. A
+  is TrueType or CFF (`font/ttf`, `font/otf`), or the same in WOFF or WOFF2
+  (`font/woff`, `font/woff2`), which Kadrion decodes itself (D84); a
+  collection, or a font whose measured tables would decompress past 64 MiB, is
+  `font-unmeasurable`, and a damaged WOFF or WOFF2 file is `font-invalid`. Its
+  measured lines are drawn without kerning or ligatures. A
   line or a word wider than the frame overflows on the side the alignment
   leaves free; nothing is clipped, and nothing is refused for it. The spoken
   word of captions may have its own `stroke` and `shadow` in the highlight
@@ -736,6 +740,22 @@ hosts draw them: each line's text (for captions, its words and page), its
 width, its corner in the frame, and whether it fits, with the height of the
 block, `fits`, and the code points the font has no glyph for, so that an
 overlay of the frame and a mark "does not fit" copy nothing of the layout.
+
+`fontMetrics` reads sfnt, WOFF, and WOFF2 bytes alike (D84), so a host stores
+its users' fonts as they are. It throws a `FontMetricsError`, checked by
+`code`: `font-unmeasurable` for a collection, a missing or short table, or a
+font whose five tables would decompress past 64 MiB (checked on the declared
+lengths before anything is allocated), and `font-invalid` for a WOFF or WOFF2
+file whose container or compressed stream is damaged. It decodes a WOFF or
+WOFF2 file synchronously on every call and caches nothing: a WOFF font inflates
+only its five small tables, a WOFF2 font decodes its stream up to the last of
+them, about the decoding of its outlines (milliseconds for a Latin font, up to
+a few hundred milliseconds for a large CJK font in a browser), so read the
+metrics once per font and keep them. The Player and the Producer report both
+codes as `page-error` with the page's message (D84.6; host guide, section 3).
+The decoders and the Brotli dictionary make the runtime build 500 073 bytes,
+132 652 more than in `v0.7.0` (about 78 KB of it the base64 of the
+dictionary), and the Player's dist tree 77 files.
 
 ### 4. Preview it in a browser
 
@@ -1385,12 +1405,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.7.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.7.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.8.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.8.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.7.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.7.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.8.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.8.0.tgz"
   }
 }
 ```
