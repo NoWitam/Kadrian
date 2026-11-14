@@ -1,6 +1,7 @@
 # D85 — Fades of a video's sound and volume keyframes in decibels: schema 0.26
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-15 (00:20 Europe/Warsaw),
+  before any code, with the recommendations of all fourteen questions
 - Date: 2026-11-14
 - Supersedes: —
 - Extends, on acceptance, each with an `Amended by` line written then and in
