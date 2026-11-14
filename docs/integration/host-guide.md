@@ -98,7 +98,11 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   instantiation with the defaults; the Player itself refuses a template. A
   font that a framed text or captions broken by width use and that cannot be
   measured (section 5) fails the load as `page-error`, whose message names the
-  font and says it cannot be measured.
+  font, says it cannot be measured, and gives why: the render page raises
+  `font-unmeasurable` or `font-invalid` (a `RenderErrorCode`, D84.6), and the
+  Player and the Producer do not have these codes yet, so both report them as
+  `page-error` with the page's message (the open question of PR-68). The
+  browser refuses most damaged files first, as `font-load-failed`.
 - **Limits:** `ackTimeoutMs` (default 2000) and `requestTimeoutMs` (default 10000) of `createPlayer`. Without `customHtml: { mode: 'trusted' }`, no
   Custom HTML runs; trusted is not a security boundary. Sound plays only with
   `audio: { context }`, an `AudioContext` at 48 kHz made on a user gesture.
@@ -108,7 +112,9 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   session), [D25](../adr/D25-player-host-and-render-page.md) (the Player and
   its render page), [D21](../adr/D21-runtime-build-artifact.md) (the runtime
   build), [D27](../adr/D27-fonts-and-the-load-step.md) (fonts only from font
-  assets), [D36](../adr/D36-webrtc-in-the-player.md) (Custom HTML policy),
+  assets), [D84](../adr/D84-fonts-in-woff-and-woff2-measured-by-kadrion.md)
+  (measured fonts in WOFF and WOFF2, `font-invalid`),
+  [D36](../adr/D36-webrtc-in-the-player.md) (Custom HTML policy),
   [D51](../adr/D51-video-in-the-player.md) and [D53](../adr/D53-audio-in-the-player.md)
   (video and sound in the Player), [D58](../adr/D58-templates-inputs-bindings-and-instantiation.md)
   (preview of a template).
@@ -243,16 +249,32 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   them). Overflow is a look, not an error: nothing is clipped, the frame never
   grows, and the bus refuses nothing for it.
 - **Fonts of measured nodes:** an sfnt file, TrueType or CFF (`font/ttf` or
-  `font/otf`). WOFF, WOFF2, and font collections cannot be measured, so the
-  host converts them before it stores them; a font only unmeasured texts use
-  is never read. Measured lines are drawn without kerning or ligatures, so a
+  `font/otf`), or the same in WOFF or WOFF2 (`font/woff`, `font/woff2`), which
+  the host stores as they are; `fontMetrics` reads the three containers into
+  the same metrics, with Kadrion's own inflate and Brotli and no platform API.
+  Font collections (an sfnt or WOFF2 `ttcf`) are refused as
+  `font-unmeasurable`, as is a font whose five measured tables (`head`,
+  `hhea`, `maxp`, `hmtx`, `cmap`) would decompress past 64 MiB, refused on the
+  declared lengths before anything is allocated. A WOFF or WOFF2 file whose
+  container or compressed stream is damaged throws `FontMetricsError` with
+  the code `font-invalid`, and its message names the table and the offence; a
+  host that calls `fontMetrics` itself meets it first. A font only unmeasured
+  texts use is never read. Measured lines are drawn without kerning or ligatures, so a
   text looks a little different in a frame than outside one, and a script that
   needs shaping (Arabic, the Indic scripts) or runs right to left may be drawn
   wider or narrower than measured. A character the font lacks is measured as
   its `.notdef` and drawn by the browser in another font.
 - **The costs of a frame:** loading a document reads the tables of each font a
   measured node uses (not its outlines), and every mount lays the lines out
-  once; an unmeasured text costs nothing new.
+  once; an unmeasured text costs nothing new. A WOFF or WOFF2 font is decoded
+  synchronously on every call of `fontMetrics`, in each load and in each call
+  of the host, since the runtime caches nothing: a WOFF font inflates only
+  its five small tables, while a WOFF2 font decodes its one Brotli stream up
+  to the last of them, usually past its outlines, so roughly its whole
+  decoded size (milliseconds for a Latin font, up to a few hundred for a CJK
+  font in a browser). The runtime build carries the decoders and the Brotli
+  dictionary: it is 500 073 bytes, 132 652 more than in `v0.7.0`, about 78 KB
+  of it the base64 of the dictionary, and the Player's dist tree has 77 files.
 - **Limits:** IDs are chosen by the host and never reused across the history;
   times are never rounded; positions and sizes are.
 - **Authority:** [D30](../adr/D30-command-bus-and-undo.md),
@@ -274,8 +296,10 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   [D77](../adr/D77-elements.md) (definitions, instances, and Elements), and
   [D78](../adr/D78-custom-html-for-ai-authors.md) (Custom HTML for AI authors),
   and for phase six [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md)
-  (speed, freeze frames, and reverse) and [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md)
-  (text frames, alignment, and lines measured from the font). The playground
+  (speed, freeze frames, and reverse), [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md)
+  (text frames, alignment, and lines measured from the font), and
+  [D84](../adr/D84-fonts-in-woff-and-woff2-measured-by-kadrion.md) (fonts in
+  WOFF and WOFF2, `font-invalid`, the limit, and the costs). The playground
   shows each of them in a showcase of its own ([D32](../adr/D32-playground-showcases.md)).
 
 ## 6. Edit from a model
