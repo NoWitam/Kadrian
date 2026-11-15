@@ -75,24 +75,29 @@ Added for this phase:
 The order puts the two pieces that can be measured without a schema change
 first, so that the schema step only wires what is already proven.
 
-| Order | PR    | Subject                                                 | Schema | Runtime build | Player dist | Q14 | Size |
-| ----: | ----- | ------------------------------------------------------- | ------ | ------------- | ----------- | --- | ---- |
-|     1 | PR-58 | D82 and this roadmap (documents only)                   | —      | —             | —           | —   | S    |
-|     2 | PR-59 | The time map and the stretch of sound (library only)    | —      | no (checked)  | —           | —   | M    |
-|     3 | PR-60 | Decoding backwards in the Player and the Producer       | —      | —             | yes         | yes | M    |
-|     4 | PR-61 | Schema `0.24`: speed, freeze, and reverse in both hosts | `0.24` | yes           | yes         | yes | L    |
-|     5 | PR-62 | Commands and tools: speed, reverse, and a freeze frame  | —      | —             | —           | —   | M    |
-|     6 | PR-64 | D83 (documents only)                                    | —      | —             | —           | —   | S    |
-|     7 | PR-65 | Font metrics and measured lines (library only)          | —      | no (checked)  | —           | —   | M    |
-|     8 | PR-66 | Schema `0.25`: the frame, alignment, the width mode, W5 | `0.25` | yes           | yes         | yes | L    |
-|     9 | PR-67 | `SetNodeSize` on a text, descriptions, the budget of W6 | —      | —             | —           | —   | S    |
-|    10 | PR-63 | Showcases, the host guide, and the release              | —      | —             | —           | —   | S    |
-|    11 | PR-68 | The host guide and a showcase of D83 (with PR-63)       | —      | —             | —           | —   | S    |
-|    12 | PR-69 | D84 (documents only)                                    | —      | —             | —           | —   | S    |
-|    13 | PR-70 | Inflate and the WOFF container (library only)           | —      | no (checked)  | —           | —   | M    |
-|    14 | PR-71 | Brotli, the dictionary, and the WOFF2 container         | —      | no (checked)  | —           | —   | L    |
-|    15 | PR-72 | `fontMetrics` reads WOFF and WOFF2 in both hosts        | —      | yes           | yes         | yes | M    |
-|    16 | PR-73 | The host guide, the README, and the release             | —      | —             | —           | —   | S    |
+| Order | PR    | Subject                                                   | Schema | Runtime build | Player dist | Q14 | Size |
+| ----: | ----- | --------------------------------------------------------- | ------ | ------------- | ----------- | --- | ---- |
+|     1 | PR-58 | D82 and this roadmap (documents only)                     | —      | —             | —           | —   | S    |
+|     2 | PR-59 | The time map and the stretch of sound (library only)      | —      | no (checked)  | —           | —   | M    |
+|     3 | PR-60 | Decoding backwards in the Player and the Producer         | —      | —             | yes         | yes | M    |
+|     4 | PR-61 | Schema `0.24`: speed, freeze, and reverse in both hosts   | `0.24` | yes           | yes         | yes | L    |
+|     5 | PR-62 | Commands and tools: speed, reverse, and a freeze frame    | —      | —             | —           | —   | M    |
+|     6 | PR-64 | D83 (documents only)                                      | —      | —             | —           | —   | S    |
+|     7 | PR-65 | Font metrics and measured lines (library only)            | —      | no (checked)  | —           | —   | M    |
+|     8 | PR-66 | Schema `0.25`: the frame, alignment, the width mode, W5   | `0.25` | yes           | yes         | yes | L    |
+|     9 | PR-67 | `SetNodeSize` on a text, descriptions, the budget of W6   | —      | —             | —           | —   | S    |
+|    10 | PR-63 | Showcases, the host guide, and the release                | —      | —             | —           | —   | S    |
+|    11 | PR-68 | The host guide and a showcase of D83 (with PR-63)         | —      | —             | —           | —   | S    |
+|    12 | PR-69 | D84 (documents only)                                      | —      | —             | —           | —   | S    |
+|    13 | PR-70 | Inflate and the WOFF container (library only)             | —      | no (checked)  | —           | —   | M    |
+|    14 | PR-71 | Brotli, the dictionary, and the WOFF2 container           | —      | no (checked)  | —           | —   | L    |
+|    15 | PR-72 | `fontMetrics` reads WOFF and WOFF2 in both hosts          | —      | yes           | yes         | yes | M    |
+|    16 | PR-73 | The host guide, the README, and the release               | —      | —             | —           | —   | S    |
+|    17 | PR-74 | D85 (documents only)                                      | —      | —             | —           | —   | S    |
+|    18 | PR-75 | The volume curve on the grid and the envelope (library)   | —      | no (checked)  | —           | —   | M    |
+|    19 | PR-76 | Schema `0.26`: a video's fades and volume curves, mixed   | `0.26` | yes           | yes         | yes | L    |
+|    20 | PR-77 | Commands and tools: fades of a video, a clip's animations | —      | —             | —           | —   | S    |
+|    21 | PR-78 | The host guide, ducking as keyframes, and the release     | —      | —             | —           | —   | S    |
 
 Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 2 000 to 3 000 (most of it the step, the corpus, and fixtures).
@@ -424,6 +429,52 @@ in captions broken by width. They follow PR-63 and PR-68 and the release
   names no workspace version, so it does not change. The runtime build and
   the Player's dist tree keep the bytes of PR-72, and no pinned file changes.
 
+### PR-74 to PR-78 — D85: fades of a video's sound and volume keyframes
+
+PR-74 to PR-78 are the pull requests of
+[D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md) (fades of a
+video's sound and volume keyframes in decibels, schema `0.26`), proposed on
+2026-11-14 at the request of a host's video editor (its requirements R1 to
+R4), so that a video clip's sound fades in and out, a clip's volume follows a
+curve, and the host lowers music under speech by writing volume keyframes it
+computes itself (D85.9). They follow PR-73 and the release `v0.8.0`; their
+plan is the implementation plan of D85, and its questions are the owner's to
+answer before PR-75 starts.
+
+- **PR-74** (D85, documents only): D85, its row in the index of ADRs, and
+  these entries. Acceptance: the owner answers the questions of D85;
+  `node --run format:check` and `tests/repo/adr.test.ts` pass. No code; no
+  impact on Q14, the runtime build, parity, or golden frames. Status: in
+  review.
+- **PR-75** (the volume curve on the grid and the envelope, library only): the
+  placement of volume keyframes on the 48 kHz grid and `volumeEnvelope`, with
+  an exponent and a logarithm of Kadrion's own (`+ − · /` only), in the entry
+  `@kadrion/runtime/volume`, which the runtime build does not reach; a pinned
+  check of `amultiply` with an envelope on a pipe and of Chromium's
+  exponential ramp against the envelope. The runtime build and the Player's
+  dist tree keep their bytes (checked by their hashes, as PR-59, PR-65, and
+  PR-70 did).
+- **PR-76** (schema `0.26`): the step from `0.25` (`fadeInUs: 0` and
+  `fadeOutUs: 0` on every video node, `animations: []` on every audio clip),
+  the frozen `0.25`, the row `volume`, the plan with `volumeKeys`, the
+  Producer's `amultiply` step and additive manifest fields
+  (`EXPORT_MANIFEST_VERSION` stays 5), the Player's gain node, and the
+  existing timeline commands carrying the new fields; the mix test and the
+  parity of D53.5 extended. The runtime build and the Player's dist tree
+  change, so Q14 reopens and parity is measured again; no golden PNG file
+  changes, and the golden manifests change in the three fields of D42 alone.
+- **PR-77** (commands and tools): `SetClipFades` on a video node, the
+  animation commands on an audio clip, `volume` in `SetKeyframeValue`, six
+  descriptions, no new tool, and a test that holds the catalogue's growth over
+  the snapshot of `0.25` to at most 700 characters (D85.8); a fixture of
+  model requests. No runtime build or Player dist change.
+- **PR-78** (the host guide, ducking as keyframes, and the release): the sound
+  section of the host guide and the README on a video's fades, volume curves,
+  and ducking computed by the host as keyframes with the exact product of two
+  curves (D85.9); every package at version `0.9.0` for the release `v0.9.0`,
+  whose tag the owner pushes from `main`; the host flow on the released
+  tarballs.
+
 ## Impact on Q14, parity, and golden frames
 
 - PR-60 and PR-61 change the Player's dist tree, so parity is measured again in
@@ -434,6 +485,12 @@ in captions broken by width. They follow PR-63 and PR-68 and the release
   and say so with the hashes. No golden PNG file changes: the browser draws
   WOFF and WOFF2 from their own bytes as it does today, and only the measure is
   new.
+- PR-76 (D85) changes the runtime build and the Player's dist tree, so Q14
+  reopens and parity is measured again; PR-75 is expected not to, and says so
+  with the hashes. No golden PNG file changes (the change is of sound only);
+  the golden manifests change in the three fields of D42, and a render of a
+  document without a volume animation or a video's fades writes the same audio
+  and manifests as before.
 - The golden PNG files of every earlier composition stay byte for byte; one new
   composition with its golden frames enters in PR-61, so
   `REQUIRED_PINNED_FILES` and the Q14 artifact list grow in the same diff.
