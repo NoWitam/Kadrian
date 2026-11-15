@@ -11,7 +11,8 @@
  * Every time of an entry is an integer: a composition time, a source time, or
  * an offset from the entry's start. A sound at another speed or reversed
  * carries the exact map of its clip as well (D82.6), and a frozen video is not
- * heard (D82.3). Nothing is ever added past the end of the
+ * heard (D82.3). A sound with a volume curve carries its keyframes in
+ * composition time (D85.3). Nothing is ever added past the end of the
  * composition, so every value stays a safe integer however far a lifetime
  * reaches (the repair of the debt of D29.6, where the end of a clip was
  * computed as a sum).
@@ -33,7 +34,18 @@ import type {
   SceneNode,
   ValidatedComposition,
   VideoNode,
+  VolumeAnimation,
 } from './types.js';
+
+/** A keyframe of a sound's volume curve, moved into composition time (D85.3). */
+export interface AudioPlanVolumeKey {
+  /** Composition time; before 0 for a keyframe of a definition placed from after its time 0. */
+  readonly timeUs: number;
+  /** A linear factor of the amplitude, from 0 to 1. */
+  readonly value: number;
+  /** How the curve moves from this keyframe to the next (D85.2). */
+  readonly easing: { readonly kind: 'linear' } | { readonly kind: 'hold' };
+}
 
 /** One sound of the plan: an audio clip, or the sound of a video node. */
 export interface AudioPlanEntry {
@@ -63,14 +75,21 @@ export interface AudioPlanEntry {
   readonly volume: number;
   /**
    * The length of the lifetime the fades are counted in, from `startUs`: the
-   * clip's whole `durationUs`, which may reach past the end of what holds it, or,
-   * for a video, the part that is heard.
+   * rest of the clip's or the video node's `durationUs` from the first instant
+   * heard, which may reach past the end of what holds it (D85.3).
    */
   readonly lifetimeUs: number;
-  /** The gain rises linearly from 0 over `[0, fadeInUs)` of the lifetime; 0 for a video. */
+  /** The gain rises linearly from 0 over `[0, fadeInUs)` of the lifetime. */
   readonly fadeInUs: number;
-  /** The gain falls linearly to 0 over the last `fadeOutUs` of the lifetime; 0 for a video. */
+  /** The gain falls linearly to 0 over the last `fadeOutUs` of the lifetime. */
   readonly fadeOutUs: number;
+  /**
+   * The keyframes of the sound's volume curve (D85.3), moved into composition
+   * time by the offset of what holds it: a factor multiplied with `volume` and
+   * the fades. Absent without a curve, so such an entry is that of 0.25 byte
+   * for byte.
+   */
+  readonly volumeKeys?: readonly AudioPlanVolumeKey[];
 }
 
 /**
@@ -131,6 +150,30 @@ function clipEntry(clip: AudioClip, offsetUs: number, limitUs: number): AudioPla
     lifetimeUs: clip.durationUs,
     fadeInUs: clip.fadeInUs,
     fadeOutUs: clip.fadeOutUs,
+    ...volumeKeysOf(clip, offsetUs),
+  };
+}
+
+/**
+ * The volume curve of a clip or a video node in composition time (D85.3): its
+ * keyframes moved by `offsetUs`, the composition time of its holder's time 0,
+ * each a new object; none without a curve.
+ */
+function volumeKeysOf(
+  holder: AudioClip | VideoNode,
+  offsetUs: number,
+): { readonly volumeKeys?: readonly AudioPlanVolumeKey[] } {
+  const animations: readonly { readonly property: string }[] = holder.animations;
+  const curve = animations.find(
+    (animation): animation is VolumeAnimation => animation.property === 'volume',
+  );
+  if (curve === undefined) return {};
+  return {
+    volumeKeys: curve.keyframes.map((keyframe) => ({
+      timeUs: offsetUs + keyframe.timeUs,
+      value: keyframe.value,
+      easing: { kind: keyframe.easing.kind },
+    })),
   };
 }
 
@@ -227,6 +270,7 @@ function definitionEntries(
         lifetimeUs: clip.durationUs - cutUs,
         fadeInUs: cutUs === 0 ? clip.fadeInUs : 0,
         fadeOutUs: Math.min(clip.fadeOutUs, clip.durationUs - cutUs),
+        ...volumeKeysOf(clip, inner.offsetUs),
       });
     }
     definitionEntries(composition, definition.nodes, inner, entries);
@@ -242,7 +286,10 @@ function definitionEntries(
  * the scene's start (D49.3). The sound of a video in a group is heard only while
  * the group is active too (D42.4), from the source time its node shows at that
  * instant (D49.5). A sound at another speed or reversed carries its clip's map
- * in composition time (D82.6); a frozen video is not heard (D82.3).
+ * in composition time (D82.6); a frozen video is not heard (D82.3). A video's
+ * fades are counted in its node's lifetime, a fade-in only when it is heard
+ * from its start (D85.1), and a sound's volume curve is carried in composition
+ * time; a curve that is 0 everywhere keeps its sound in the plan (D85.3).
  */
 export function audioPlan(composition: ValidatedComposition): AudioPlan {
   const end = composition.durationUs;
@@ -283,6 +330,8 @@ export function audioPlan(composition: ValidatedComposition): AudioPlan {
       }
       if (startUs >= endUs) continue;
       const durationUs = endUs - startUs;
+      // Heard from its group's start, a video has no fade-in; its fade-out keeps its place (D85.1).
+      const cutUs = startUs - node.startUs;
       const map = composedMap(node, offset);
       entries.push({
         kind: 'video',
@@ -297,9 +346,10 @@ export function audioPlan(composition: ValidatedComposition): AudioPlan {
             : sourceTimeOfMap(map, offset + startUs),
         ...(map === null ? {} : { map }),
         volume: node.volume,
-        lifetimeUs: durationUs,
-        fadeInUs: 0,
-        fadeOutUs: 0,
+        lifetimeUs: node.durationUs - cutUs,
+        fadeInUs: cutUs === 0 ? node.fadeInUs : 0,
+        fadeOutUs: Math.min(node.fadeOutUs, node.durationUs - cutUs),
+        ...volumeKeysOf(node, offset),
       });
     }
   });

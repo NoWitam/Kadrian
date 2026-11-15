@@ -103,6 +103,8 @@ describe('videos with their scene (D54.3)', () => {
     crop: { top: 0, right: 0, bottom: 0, left: 0 },
     cornerRadius: 0,
     volume: 0.5,
+    fadeInUs: 0,
+    fadeOutUs: 0,
     effects: [],
     mask: { kind: 'none' },
     matte: { kind: 'none' },
@@ -147,15 +149,18 @@ describe('videos with their scene (D54.3)', () => {
     });
   });
 
-  it('is heard from its scene start, cut to its scene', () => {
+  it('is heard from its scene start, cut to its scene, its fades counted in its whole lifetime', () => {
     const entry = audioPlan(withVideo).entries.find(({ id }) => id === 'node-video');
     expect(entry).toMatchObject({
       kind: 'video',
       startUs: 2_700_000,
       durationUs: 500_000,
       sourceStartUs: 3_000_000,
-      lifetimeUs: 500_000,
+      lifetimeUs: 2_000_000,
+      fadeInUs: 0,
+      fadeOutUs: 0,
     });
+    expect(entry).not.toHaveProperty('volumeKeys');
   });
 });
 

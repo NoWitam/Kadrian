@@ -423,6 +423,9 @@ export const EVIDENCE_KEYS = Object.freeze([
 
 /** The files the pinned run leaves in `.kadrion-out`, which the artifact holds, sorted. */
 export const ARTIFACT_FILES = Object.freeze([
+  'audio-curves-player-report.json',
+  'audio-curves-report.json',
+  'audio-curves/audio.wav',
   'audio-player-report.json',
   'audio-report.json',
   'audio/audio.wav',

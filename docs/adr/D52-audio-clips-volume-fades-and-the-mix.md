@@ -13,6 +13,7 @@
 - Amended by: PR-30 (D54) on 2026-11-01: 52.4: the plan holds the clips of each scene, placed at the scene start and cut to its end (D54.3)
 - Amended by: PR-40 (D64) on 2026-11-04: 52.5: a sound source read by path gets no private copy (D64.6)
 - Amended by: PR-58 (D82) on 2026-11-11, in force from PR-61: 52.4: the plan entry of a sound at another speed or reversed carries its clip's time map, and a frozen video is not heard; 52.5: the Producer computes such a sound with `stretchSound` of the runtime, the pitch kept, into a 32-bit float WAV that the audio pass reads, with an additive `stretch` in the audio manifest; a sound at speed 1 forwards is unchanged byte for byte (D82.6)
+- Amended by: PR-74 (D85) on 2026-11-15, in force from PR-76: 52.1 and 52.2: a video node has `fadeInUs` and `fadeOutUs` after its `volume`, counted in its whole lifetime as a clip's, and a video's plan entry carries them; 52.4: a plan entry carries the keyframes of its sound's `volume` animation in composition time (`volumeKeys`), absent without one; 52.5: the Producer multiplies a sound with a curve by its envelope (`amultiply`, the envelope on an extra pipe), with additive `volumeKeys` and `envelopeSha256` in the audio manifest; a sound without a curve is unchanged byte for byte (D85.1 to D85.5)
 - Related: D04, D13, D14, D15, D17, D19, D30, D38, D42, D43, D48,
   [roadmap of phase three](../roadmap/phase-3.md) PR-29
 

@@ -271,13 +271,17 @@ export interface FfmpegTools {
    * Runs FFmpeg with `input` on standard input and returns what it printed on
    * standard output as bytes: the audio pass, the join, and a still (D47). A
    * process that outlives `timeoutMs`, or whose `signal` aborts, is killed and
-   * reported with code `null` (D48.2).
+   * reported with code `null` (D48.2). Each of `pipes` is written, chunk by
+   * chunk as the process reads it, to the descriptor `3 + i` (`pipe:3`, …):
+   * the envelopes of the audio pass (D85.5). A chunk the process does not read
+   * before it ends is left in its iterator.
    */
   run(
     args: readonly string[],
     input: Uint8Array,
     timeoutMs: number,
     signal?: AbortSignal,
+    pipes?: readonly Iterator<Uint8Array>[],
   ): Promise<BinaryResult>;
   /** The SHA-256 of a file, read as a stream. */
   sha256File(file: string): Promise<string>;
@@ -312,16 +316,54 @@ export interface BinaryResult {
   readonly stderr: string;
 }
 
-/** Runs `path` with `input` on standard input and collects standard output as bytes. */
+/**
+ * Writes the chunks of `source` to `pipe` as it drains, then ends it; stops,
+ * leaving the rest in `source`, when the pipe fails or closes first.
+ */
+async function pump(pipe: Writable, source: Iterator<Uint8Array>): Promise<void> {
+  // Set by the pipe's events, so read through an object the loop does not narrow.
+  const state = { open: true };
+  const closed = (): void => {
+    state.open = false;
+  };
+  pipe.on('error', closed);
+  pipe.once('close', closed);
+  while (state.open) {
+    const chunk = source.next();
+    if (chunk.done === true) break;
+    if (pipe.write(chunk.value)) continue;
+    await new Promise<void>((resolve) => {
+      const done = (): void => {
+        pipe.off('drain', done);
+        pipe.off('close', done);
+        pipe.off('error', done);
+        resolve();
+      };
+      pipe.once('drain', done);
+      pipe.once('close', done);
+      pipe.once('error', done);
+    });
+  }
+  if (state.open) pipe.end();
+}
+
+/**
+ * Runs `path` with `input` on standard input, and each of `pipes` on the
+ * descriptor `3 + i`, and collects standard output as bytes.
+ */
 function runBinary(
   path: string,
   args: readonly string[],
   input: Uint8Array,
   timeoutMs: number,
   signal: AbortSignal | undefined,
+  pipes: readonly Iterator<Uint8Array>[] = [],
 ): Promise<BinaryResult> {
   return new Promise((resolve) => {
-    const child = spawn(path, [...args], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+    const child = spawn(path, [...args], {
+      stdio: ['pipe', 'pipe', 'pipe', ...pipes.map(() => 'pipe' as const)],
+      windowsHide: true,
+    });
     const kill = (): void => {
       child.kill('SIGKILL');
     };
@@ -339,6 +381,9 @@ function runBinary(
     // FFmpeg may stop reading once it has what it needs; that is not an error here.
     child.stdin.on('error', () => undefined);
     child.stdin.end(input);
+    pipes.forEach((source, index) => {
+      void pump(child.stdio[3 + index] as Writable, source);
+    });
     const finish = (code: number | null, extra: string): void => {
       clearTimeout(timer);
       signal?.removeEventListener('abort', kill);
@@ -920,8 +965,8 @@ export async function pinnedFfmpeg(
         .split('\n')
         .map((line) => Number(line.split(',')[0]?.trim()));
     },
-    run: (args, input, timeoutMs, signal) =>
-      runBinary(paths.ffmpegPath, args, input, timeoutMs, signal),
+    run: (args, input, timeoutMs, signal, pipes) =>
+      runBinary(paths.ffmpegPath, args, input, timeoutMs, signal, pipes),
     sha256File: (file) => host.sha256(file),
     probeVideo: (file) => probeVideoWith(paths.ffprobePath, file),
     decodeVideo: (file, width, height, startUs) =>

@@ -55,6 +55,7 @@ import {
   PLAYWRIGHT_CORE_VERSION,
   type LaunchedChromium,
 } from './environment.js';
+import { envelopeStream, type EnvelopeStream } from './envelope.js';
 import { asProducerError, ProducerError } from './errors.js';
 import {
   checkAssetLimits,
@@ -117,6 +118,8 @@ import {
   audioPassArgs,
   audioPassGraph,
   audioRangeOf,
+  envelopePipe,
+  envelopePlaceholder,
   soundPlaceholder,
   checkedMinSegmentFrames,
   checkedSegmentFrames,
@@ -397,6 +400,7 @@ async function checkedAudio(
 function manifestSounds(
   audio: CheckedAudio,
   stretches: readonly (ManifestStretch | null)[],
+  envelopes: readonly (string | null)[],
 ): ManifestSound[] {
   return audio.layout.sounds.map((sound, index) => ({
     kind: sound.entry.kind,
@@ -410,6 +414,9 @@ function manifestSounds(
     fadeIn: sound.fadeIn,
     fadeOut: sound.fadeOut,
     ...(stretches[index] == null ? {} : { stretch: stretches[index] }),
+    ...(sound.volumeKeys === undefined
+      ? {}
+      : { volumeKeys: sound.volumeKeys, envelopeSha256: envelopes[index] ?? '' }),
   }));
 }
 
@@ -804,12 +811,25 @@ async function audioWith(options: {
     stretched = await stretchedAudio(audio.layout, audio.inputs, tools, timeoutMs, signal);
     throwIfCancelled(signal);
     const graph = audioPassGraph(stretched.graphLayout, samples);
-    const args = audioPassArgs({ graph, inputs: stretched.inputs, output: partial });
+    // The envelope of every sound with a curve, streamed on its own pipe (D85.5).
+    const curved = stretched.graphLayout.sounds.flatMap((sound, index) =>
+      sound.volumeKeys === undefined ? [] : [{ index, sound, volumeKeys: sound.volumeKeys }],
+    );
+    const streams = curved.map(({ sound, volumeKeys }) =>
+      envelopeStream(volumeKeys, sound.sampleCount),
+    );
+    const args = audioPassArgs({
+      graph,
+      inputs: stretched.inputs,
+      envelopes: curved.map((_, index) => envelopePipe(index)),
+      output: partial,
+    });
     const result = await tools.run(
       args,
       new Uint8Array(0),
       timeoutMs * PASS_TIMEOUT_FACTOR,
       signal,
+      streams.map(({ chunks }) => chunks),
     );
     throwIfCancelled(signal);
     if (result.code !== 0) {
@@ -831,6 +851,10 @@ async function audioWith(options: {
     // The pass is kept only if every source it read is still the file verified (D64.3).
     await audio.check();
     const hash = await tools.sha256File(partial);
+    const envelopes: (string | null)[] = stretched.graphLayout.sounds.map(() => null);
+    curved.forEach(({ index }, ordinal) => {
+      envelopes[index] = (streams[ordinal] as EnvelopeStream).sha256();
+    });
     throwIfCancelled(signal);
     await dependencies.renameFile(partial, path);
     return {
@@ -838,7 +862,7 @@ async function audioWith(options: {
       audio: {
         sampleRate: SAMPLE_RATE,
         totalSamples: audio.layout.totalSamples,
-        sounds: manifestSounds(audio, stretched.stretches),
+        sounds: manifestSounds(audio, stretched.stretches, envelopes),
         rangeStartSample: samples.startSample,
         rangeSampleCount: samples.sampleCount,
         channelLayout: AUDIO_CHANNEL_LAYOUT,
@@ -852,6 +876,7 @@ async function audioWith(options: {
         audioArgs: audioPassArgs({
           graph,
           inputs: audio.inputs.map((_, index) => soundPlaceholder(index)),
+          envelopes: curved.map(({ index }) => envelopePlaceholder(index)),
           output: OUTPUT_PLACEHOLDER,
         }),
       },

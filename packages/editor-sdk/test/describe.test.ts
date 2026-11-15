@@ -19,7 +19,7 @@ describe('describeDocument (D46.3)', () => {
   it('lists the scene, its nodes bottom to top with parent and layer, and the group children', () => {
     const description = describeDocument(reference());
     expect(description).toMatchObject({
-      schemaVersion: '0.25',
+      schemaVersion: '0.26',
       width: 1080,
       height: 1920,
       fps: 30,
@@ -112,6 +112,7 @@ describe('describeDocument (D46.3)', () => {
         volume: 1,
         fadeInUs: 0,
         fadeOutUs: 0,
+        animations: [],
       },
     ]);
     // The keys keep the document's order; the remainder is the commands' (D82.9).
@@ -128,6 +129,7 @@ describe('describeDocument (D46.3)', () => {
       'volume',
       'fadeInUs',
       'fadeOutUs',
+      'animations',
     ]);
   });
 

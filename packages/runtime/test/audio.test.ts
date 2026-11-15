@@ -36,6 +36,7 @@ function clip(id: string, fields: Record<string, number>): Record<string, unknow
     volume: 1,
     fadeInUs: 0,
     fadeOutUs: 0,
+    animations: [],
     ...fields,
   };
 }

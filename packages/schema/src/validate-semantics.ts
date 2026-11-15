@@ -83,6 +83,7 @@ import type { CompositionV021 } from './v0-21/composition-schema.js';
 import type { CompositionV022 } from './v0-22/composition-schema.js';
 import type { CompositionV023 } from './v0-23/composition-schema.js';
 import type { CompositionV024 } from './v0-24/composition-schema.js';
+import type { CompositionV025 } from './v0-25/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -108,6 +109,7 @@ type SceneNodeV021 = CompositionV021['scenes'][number]['nodes'][number];
 type SceneNodeV022 = CompositionV022['scenes'][number]['nodes'][number];
 type SceneNodeV023 = CompositionV023['scenes'][number]['nodes'][number];
 type SceneNodeV024 = CompositionV024['scenes'][number]['nodes'][number];
+type SceneNodeV025 = CompositionV025['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -532,7 +534,8 @@ export function validateSemantics(
     | CompositionV021
     | CompositionV022
     | CompositionV023
-    | CompositionV024,
+    | CompositionV024
+    | CompositionV025,
   options: SemanticOptions = CHECK_EVERYTHING,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -556,6 +559,22 @@ export function validateSemantics(
   };
   const animationErrors: ValidationError[] = [];
   const sourceErrors: ValidationError[] = [];
+  const fadeErrors: ValidationError[] = [];
+  /** Fades longer than their lifetime (D52.3, and a video's of 0.26, D85.1). */
+  const checkFades = (
+    holder: { readonly durationUs: number; readonly fadeInUs: number; readonly fadeOutUs: number },
+    path: string,
+  ): void => {
+    // Both fades are at most a safe integer each, so their sum is exact as a double
+    // only up to 2^53; compared as a difference, it never rounds.
+    if (holder.fadeInUs > holder.durationUs - holder.fadeOutUs) {
+      fadeErrors.push({
+        code: 'clip-fades-exceed-duration',
+        path: pointer(path, 'fadeOutUs'),
+        message: 'fadeInUs + fadeOutUs must not exceed durationUs.',
+      });
+    }
+  };
   const captionErrors: ValidationError[] = [];
   const shapeErrors: ValidationError[] = [];
   const matteErrors: ValidationError[] = [];
@@ -572,6 +591,7 @@ export function validateSemantics(
       | SceneNodeV022
       | SceneNodeV023
       | SceneNodeV024
+      | SceneNodeV025
     )[];
     readonly transitions?: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
     readonly effects?: Composition['scenes'][number]['effects'];
@@ -613,6 +633,8 @@ export function validateSemantics(
           // Every source time of the lifetime stays a safe integer (D50.2), so the
           // runtime never forms one that is not; the map of 0.24 is checked first (D82.1).
           checkSourceTimes(member.node, member.path, 'video', sourceErrors);
+          // The fades of a video's sound of 0.26 (D85.1).
+          if ('fadeInUs' in member.node) checkFades(member.node, member.path);
         } else if (member.node.type === 'text') {
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
           // The tracks of a text animation of 0.14 follow the rules of animations (D69).
@@ -689,21 +711,16 @@ export function validateSemantics(
       checkEffects(scene.effects, pointer(scene.path, 'effects'), animationErrors);
     }
   });
-  const fadeErrors: ValidationError[] = [];
   const checkClip = (clip: AudioClip | CompositionV03['clips'][number], clipPath: string): void => {
     checkReference(clip.assetId, 'audio', pointer(clipPath, 'assetId'));
     // The fields of 0.4 (D52.3); a clip of an earlier version has none of them.
     if ('sourceStartUs' in clip) {
       checkSourceTimes(clip, clipPath, 'audio', sourceErrors);
-      // Both fades are at most a safe integer each, so their sum is exact as a double
-      // only up to 2^53; compared as a difference, it never rounds.
-      if (clip.fadeInUs > clip.durationUs - clip.fadeOutUs) {
-        fadeErrors.push({
-          code: 'clip-fades-exceed-duration',
-          path: pointer(clipPath, 'fadeOutUs'),
-          message: 'fadeInUs + fadeOutUs must not exceed durationUs.',
-        });
-      }
+      checkFades(clip, clipPath);
+    }
+    // The volume curve of 0.26 follows the rules of animations (D85.2).
+    if ('animations' in clip) {
+      checkAnimations(clip.animations, pointer(clipPath, 'animations'), animationErrors);
     }
   };
   const clips: readonly (AudioClip | CompositionV03['clips'][number])[] = composition.clips;
@@ -784,6 +801,7 @@ export function validateSemantics(
   // The elements of 0.22 (D77): the templates of definitions and the values of instances.
   if (
     composition.schemaVersion === SCHEMA_VERSION ||
+    composition.schemaVersion === '0.25' ||
     composition.schemaVersion === '0.24' ||
     composition.schemaVersion === '0.23' ||
     composition.schemaVersion === '0.22'
@@ -817,7 +835,13 @@ export function validateSemantics(
  * instances, counted from a scene, is more than `MAX_INSTANCE_DEPTH` deep.
  */
 function checkDefinitions(
-  composition: Composition | CompositionV021 | CompositionV022 | CompositionV023 | CompositionV024,
+  composition:
+    | Composition
+    | CompositionV021
+    | CompositionV022
+    | CompositionV023
+    | CompositionV024
+    | CompositionV025,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -1005,6 +1029,18 @@ function withFrames(definition: Definition): Definition {
   return { ...definition, nodes: definition.nodes.map((child) => node(child) as typeof child) };
 }
 
+/**
+ * A definition of 0.25 or earlier with the volume curve of 0.26 on its clips:
+ * none, `animations: []` after each `fadeOutUs`, which hears what the clip
+ * heard (D85.7). A definition holds no video node (D76.1).
+ */
+function withCurves(definition: Definition): Definition {
+  const clips = definition.clips.map(
+    (clip) => withAfter(clip, 'fadeOutUs', [['animations', []]]) as AudioClip,
+  );
+  return { ...definition, clips };
+}
+
 /** A definition seen as a composition of one scene: its nodes, clips, and transitions (D77). */
 function definitionHolder(
   composition: Pick<Composition, 'fps' | 'assets'>,
@@ -1095,13 +1131,14 @@ const ASSET_TYPES: readonly string[] = ['image', 'video', 'audio'];
  * every instance count together toward `MAX_REPEAT_IDS`.
  */
 function checkElements(
-  document: Composition | CompositionV022 | CompositionV023 | CompositionV024,
+  document: Composition | CompositionV022 | CompositionV023 | CompositionV024 | CompositionV025,
   options: SemanticOptions,
 ): ValidationError[] {
-  // The definitions of 0.22 to 0.24 are those of 0.25 without the time maps of their
-  // clips (before 0.24) and the frames and alignments of their texts and the line
-  // breaks and highlight outlines of their captions, which `withSpeedOne` and
-  // `withFrames` add where a definition is validated as one (D82.8, D83.9).
+  // The definitions of 0.22 to 0.25 are those of 0.26 without the time maps of their
+  // clips (before 0.24), the frames and alignments of their texts and the line
+  // breaks and highlight outlines of their captions (before 0.25), and the volume
+  // curves of their clips, which `withSpeedOne`, `withFrames`, and `withCurves` add
+  // where a definition is validated as one (D82.8, D83.9, D85.7).
   const composition = document as Composition;
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -1197,9 +1234,11 @@ function checkElements(
         // A document of 0.22 or 0.23 has no time maps; its clips play at speed 1, which the
         // map of 0.24 states as its defaults, and a document before 0.25 has no frames; its
         // texts and captions look as the defaults of 0.25 draw them, so the current schema
-        // judges them as theirs did (D82.8, D83.9).
+        // judges them as theirs did, and a document before 0.26 has no volume curves, which
+        // `animations: []` states (D82.8, D83.9, D85.7).
         const current = document.schemaVersion === SCHEMA_VERSION;
-        const upgraded = (from: Definition): Definition => withFrames(withSpeedOne(from));
+        const upgraded = (from: Definition): Definition =>
+          withCurves(withFrames(withSpeedOne(from)));
         const instantiated = definitionHolder(
           composition,
           current ? made.definition : upgraded(made.definition),
@@ -1459,6 +1498,7 @@ function checkTemplate(
     | CompositionV022
     | CompositionV023
     | CompositionV024
+    | CompositionV025
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1978,6 +2018,7 @@ function subtreeOf(
     | CompositionV022
     | CompositionV023
     | CompositionV024
+    | CompositionV025
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -2058,7 +2099,9 @@ interface Located {
     | SceneNodeV023
     | Extract<SceneNodeV023, { type: 'group' }>['children'][number]
     | SceneNodeV024
-    | Extract<SceneNodeV024, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV024, { type: 'group' }>['children'][number]
+    | SceneNodeV025
+    | Extract<SceneNodeV025, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -2091,7 +2134,8 @@ function checkTransitions(
     | CompositionV021
     | CompositionV022
     | CompositionV023
-    | CompositionV024,
+    | CompositionV024
+    | CompositionV025,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

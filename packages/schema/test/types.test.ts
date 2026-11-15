@@ -345,8 +345,24 @@ type ExpectedShapeAnimation =
   | ExpectedAnimation<'trim/end', number>
   | ExpectedAnimation<'geometry', ExpectedGeometry>;
 
+/** The volume curve of a video or an audio clip: eased linear or hold only (D85.2). */
+interface ExpectedVolumeAnimation {
+  readonly id: string;
+  readonly property: 'volume';
+  readonly keyframes: readonly {
+    readonly timeUs: number;
+    readonly value: number;
+    readonly easing: { readonly kind: 'linear' } | { readonly kind: 'hold' };
+  }[];
+}
+
+type ExpectedVideoAnimation = ExpectedPictureAnimation | ExpectedVolumeAnimation;
+
 type ExpectedNodeAnimation =
-  ExpectedPictureAnimation | ExpectedColorAnimation | ExpectedShapeAnimation;
+  | ExpectedPictureAnimation
+  | ExpectedColorAnimation
+  | ExpectedShapeAnimation
+  | ExpectedVolumeAnimation;
 
 /** The lifetime every node has since schema 0.2 (D42.1). */
 interface ExpectedLifetime {
@@ -392,7 +408,7 @@ interface ExpectedSpeed {
   readonly den: number;
 }
 
-interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> {
+interface ExpectedVideoNode extends ExpectedTransform<ExpectedVideoAnimation> {
   readonly id: string;
   readonly type: 'video';
   readonly assetId: string;
@@ -407,6 +423,8 @@ interface ExpectedVideoNode extends ExpectedTransform<ExpectedPictureAnimation> 
   readonly crop: ExpectedCrop;
   readonly cornerRadius: number;
   readonly volume: number;
+  readonly fadeInUs: number;
+  readonly fadeOutUs: number;
   readonly effects: readonly ExpectedEffect[];
   readonly mask: ExpectedMask;
   readonly matte: ExpectedMatte;
@@ -657,6 +675,7 @@ interface ExpectedAudioClip {
   readonly volume: number;
   readonly fadeInUs: number;
   readonly fadeOutUs: number;
+  readonly animations: readonly ExpectedVolumeAnimation[];
 }
 
 type ExpectedDirection = 'left' | 'right' | 'up' | 'down';
@@ -872,7 +891,7 @@ interface ExpectedDefinition {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.25';
+  readonly schemaVersion: '0.26';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

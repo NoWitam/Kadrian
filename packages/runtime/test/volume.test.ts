@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
-import { sampleAt } from '../src/index.js';
+import { audioLayout, sampleAt, type AudioPlanEntry } from '../src/index.js';
 import { exp2, log2, scaleByPowerOfTwo, splitPowerOfTwo } from '../src/volume-arithmetic.js';
 import {
   placeVolumeKeys,
@@ -176,6 +176,18 @@ describe('the keyframes on the grid (D85.4)', () => {
     ]);
   });
 
+  it('places a keyframe before composition time 0 on the same grid, the nearest sample (D85.3)', () => {
+    // −10 µs is −0.48 of a sample, −11 µs −0.528, −31 µs −1.488, −32 µs −1.536.
+    const placedAt = (timeUs: number): number =>
+      (placeVolumeKeys([key(timeUs)], 0, 10)[0] as VolumeSampleKey).sample;
+    expect([-10, -11, -31, -32, -1_000_000].map(placedAt)).toEqual([0, -1, -1, -2, -48_000]);
+    // A definition placed from after its time 0 (D85.3): its keyframes before 0 shape the start.
+    expect(placeVolumeKeys([key(-500_000, 0), key(500_000, 1)], 0, 48_000)).toEqual([
+      { sample: -24_000, value: 0, easing: linear },
+      { sample: 24_000, value: 1, easing: linear },
+    ]);
+  });
+
   it('refuses keyframes that are no curve', () => {
     const refusals: (() => unknown)[] = [
       () => placeVolumeKeys([], 0, 10),
@@ -185,7 +197,7 @@ describe('the keyframes on the grid (D85.4)', () => {
       () => placeVolumeKeys([key(0, -0.1)], 0, 10),
       () => placeVolumeKeys([key(0, NaN)], 0, 10),
       () => placeVolumeKeys([key(0.5)], 0, 10),
-      () => placeVolumeKeys([key(-1)], 0, 10),
+      () => placeVolumeKeys([key(-1.5)], 0, 10),
       () => placeVolumeKeys([key(0)], -1, 10),
       () => placeVolumeKeys([key(0)], 0, -1),
       () => placeVolumeKeys([{ timeUs: 0, value: 1, easing: { kind: 'ease-in' } as never }], 0, 10),
@@ -339,6 +351,39 @@ describe('the envelope (D85.2, D85.4)', () => {
       expect(sha256(envelope(startUs, firstCount))).toBe(sha256(whole.subarray(0, firstCount)));
       expect(sha256(envelope(splitUs, secondCount))).toBe(sha256(whole.subarray(firstCount)));
     }
+  });
+
+  it('places the curve of every planned sound from its first sample in the audio layout', () => {
+    const entry = (id: string, startUs: number, volumeKeys?: VolumeKey[]): AudioPlanEntry => ({
+      kind: 'clip',
+      id,
+      assetId: 'asset-sound',
+      startUs,
+      durationUs: 1_000_000,
+      sourceStartUs: 0,
+      volume: 1,
+      lifetimeUs: 1_000_000,
+      fadeInUs: 0,
+      fadeOutUs: 0,
+      ...(volumeKeys === undefined ? {} : { volumeKeys }),
+    });
+    const keys = [
+      { timeUs: 0, value: 0, easing: linear },
+      { timeUs: 1_500_000, value: 1, easing: hold },
+      { timeUs: 3_000_000, value: 0.5, easing: linear },
+    ];
+    const layout = audioLayout({
+      durationUs: 3_000_000,
+      entries: [entry('plain', 0), entry('curved', 1_000_000, keys)],
+    });
+    const [plain, curved] = layout.sounds;
+    expect(plain && 'volumeKeys' in plain).toBe(false);
+    expect(curved?.volumeKeys).toEqual(placeVolumeKeys(keys, 1_000_000, 48_000));
+    expect(curved?.volumeKeys).toEqual([
+      { sample: -48_000, value: 0, easing: linear },
+      { sample: 24_000, value: 1, easing: hold },
+      { sample: 96_000, value: 0.5, easing: linear },
+    ]);
   });
 
   it('refuses a curve that is not placed', () => {

@@ -8,11 +8,13 @@
  * the Producer (D52.5) hears it. A sound at another speed or reversed plays the
  * samples `stretchSound` of `@kadrion/runtime/stretch` computes from the
  * decoded source, from the sample a play starts at, as one buffer source on
- * the same grid (D82.6).
+ * the same grid (D82.6). A sound with a volume curve has one more gain node,
+ * after its fades, whose automation follows its keyframes on the grid (D85.6).
  */
 import { heardSourceRange, type ClipTimeMap } from '@kadrion/schema';
 import { AUDIO_SAMPLE_RATE, type AudioLayout, type SoundLayout } from '@kadrion/runtime';
 import { stretchSound } from '@kadrion/runtime/stretch';
+import { volumeEnvelope, type VolumeSampleKey } from '@kadrion/runtime/volume';
 
 import { PlayerError, type PlayerErrorAsset } from './errors.js';
 
@@ -223,6 +225,38 @@ function fadeGain(
 }
 
 /**
+ * A gain node that follows the volume curve of a sound (D85.6): its gain at
+ * the first sample heard, computed by `volumeEnvelope` as the Producer
+ * computes it, then per segment Web Audio's exact curve, an exponential ramp
+ * between two values above 0 (linear in decibels), a linear ramp where one of
+ * them is 0, and a step at the next keyframe for `hold`.
+ */
+function curveGain(
+  context: SoundContext,
+  at: (sample: number) => number,
+  skip: number,
+  sound: SoundLayout & { readonly volumeKeys: readonly VolumeSampleKey[] },
+): GainNode {
+  const node = context.createGain();
+  const param = node.gain;
+  const keys = sound.volumeKeys;
+  param.setValueAtTime(volumeEnvelope(sound, skip, 1)[0] as number, at(skip));
+  const first = keys[0] as VolumeSampleKey;
+  // Before the first keyframe its value holds; the ramp after it starts from it.
+  if (skip < first.sample) param.setValueAtTime(first.value, at(first.sample));
+  for (let index = 0; index + 1 < keys.length; index += 1) {
+    const from = keys[index] as VolumeSampleKey;
+    const to = keys[index + 1] as VolumeSampleKey;
+    if (to.sample <= skip) continue;
+    if (from.easing.kind === 'hold') param.setValueAtTime(to.value, at(to.sample));
+    else if (from.value > 0 && to.value > 0) {
+      param.exponentialRampToValueAtTime(to.value, at(to.sample));
+    } else param.linearRampToValueAtTime(to.value, at(to.sample));
+  }
+  return node;
+}
+
+/**
  * Schedules the layout in `context` from output sample `fromSample`, which is
  * heard at context time `when` (D53): every sound that is heard at or after
  * it starts at its own sample, from its own source sample, and plays to the
@@ -329,6 +363,9 @@ function schedule(
   }
   if (sound.fadeIn !== null) nodes.push(fadeGain(context, at, skip, sound.fadeIn, 'in'));
   if (sound.fadeOut !== null) nodes.push(fadeGain(context, at, skip, sound.fadeOut, 'out'));
+  // The volume curve, after the fades (D85.6); a sound without one keeps its graph.
+  const { volumeKeys } = sound;
+  if (volumeKeys !== undefined) nodes.push(curveGain(context, at, skip, { ...sound, volumeKeys }));
   let previous: AudioNode = source;
   for (const node of nodes) {
     // Every node has two channels: a mono source is copied to both (the speaker rule for one

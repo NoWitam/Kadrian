@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyCommand as applyWithFacts,
+  createCommandBus,
   type Command,
   type CommandResult,
   type MediaFacts,
@@ -695,5 +696,156 @@ describe('SplitClip and JoinClips (D55.4, D55.5)', () => {
       fadeOutUs: 10_000,
     }).document;
     expect(joinCode(faded, 'middle-voice', 'voice-tail')).toBe('clips-not-joinable');
+  });
+});
+
+describe("a video's fades and an audio clip's volume curve (D85.8)", () => {
+  const linear = { kind: 'linear' } as const;
+
+  /** The fixture's video, heard at `volume`, fading in over 200 000 µs and out over 300 000 µs. */
+  function withFadedVideo(volume: number): ValidatedComposition {
+    const draft = structuredClone(withVideo(volume)) as unknown as Json;
+    Object.assign(clipOf(draft, 'node-video'), { fadeInUs: 200_000, fadeOutUs: 300_000 });
+    return validated(draft);
+  }
+
+  /** The fixture with a volume curve on the voice, in its scene's time. */
+  function withCurve(): ValidatedComposition {
+    const draft = structuredClone(scenesComposition);
+    clipOf(draft, 'middle-voice')['animations'] = [
+      {
+        id: 'middle-voice-a-volume',
+        property: 'volume',
+        keyframes: [
+          { timeUs: 300_000, value: 0.5, easing: linear },
+          { timeUs: 1_000_000, value: 1, easing: linear },
+        ],
+      },
+    ];
+    return validated(draft);
+  }
+
+  it("moves an audio clip's keyframes with it, and refuses one moved below 0", () => {
+    const curved = withCurve();
+    const moved = roundTrip(curved, { type: 'MoveClip', clipId: 'middle-voice', startUs: 0 });
+    expect(keyframeTimes(clipOf(moved.document, 'middle-voice'))).toEqual([[50_000, 750_000]]);
+    const early = structuredClone(curved) as unknown as Json;
+    Object.assign(clipOf(early, 'middle-voice'), { startUs: 500_000, durationUs: 750_000 });
+    expect(
+      codeOf(() =>
+        applyCommand(validated(early), { type: 'MoveClip', clipId: 'middle-voice', startUs: 0 }),
+      ),
+    ).toBe('invalid-result');
+  });
+
+  it('splits a video between its fades: the first half keeps the fade-in, the second the fade-out', () => {
+    const video = withFadedVideo(1);
+    const result = roundTrip(video, {
+      type: 'SplitClip',
+      clipId: 'node-video',
+      atUs: 500_000,
+      newClipId: 'video-tail',
+    });
+    expect(clipOf(result.document, 'node-video')).toMatchObject({
+      durationUs: 500_000,
+      fadeInUs: 200_000,
+      fadeOutUs: 0,
+    });
+    expect(clipOf(result.document, 'video-tail')).toMatchObject({
+      startUs: 500_000,
+      durationUs: 500_000,
+      sourceStartUs: 1_000_000,
+      fadeInUs: 0,
+      fadeOutUs: 300_000,
+    });
+    // JoinClips, the inverse, keeps the second half's fade-out.
+    expect(
+      clipOf(applyCommand(result.document, result.inverse as Command).document, 'node-video'),
+    ).toMatchObject({ durationUs: 1_000_000, fadeInUs: 200_000, fadeOutUs: 300_000 });
+  });
+
+  it('refuses a split inside a fade of a heard video, and leaves a silent one to the schema', () => {
+    for (const atUs of [100_000, 750_000]) {
+      expect(
+        codeOf(() =>
+          applyCommand(withFadedVideo(1), {
+            type: 'SplitClip',
+            clipId: 'node-video',
+            atUs,
+            newClipId: 'video-tail',
+          }),
+        ),
+      ).toBe('split-not-exact');
+    }
+    // A silent video is cut anywhere; a first half shorter than its fade-in is no document.
+    expect(
+      codeOf(() =>
+        applyCommand(withFadedVideo(0), {
+          type: 'SplitClip',
+          clipId: 'node-video',
+          atUs: 100_000,
+          newClipId: 'video-tail',
+        }),
+      ),
+    ).toBe('invalid-result');
+    roundTrip(withFadedVideo(0), {
+      type: 'SplitClip',
+      clipId: 'node-video',
+      atUs: 600_000,
+      newClipId: 'video-tail',
+    });
+  });
+
+  it('refuses a trim of a video that leaves less than both fades', () => {
+    expect(
+      codeOf(() =>
+        applyCommand(withFadedVideo(1), {
+          type: 'TrimClipEnd',
+          clipId: 'node-video',
+          endUs: 400_000,
+        }),
+      ),
+    ).toBe('invalid-result');
+    roundTrip(withFadedVideo(1), { type: 'TrimClipEnd', clipId: 'node-video', endUs: 500_000 });
+  });
+
+  it("copies an audio clip's curve to the second half under its ID, and creates both IDs", () => {
+    const result = roundTrip(withCurve(), {
+      type: 'SplitClip',
+      clipId: 'middle-voice',
+      atUs: 750_000,
+      newClipId: 'voice-tail',
+    });
+    const animations = clipOf(withCurve(), 'middle-voice')['animations'] as Json[];
+    expect(clipOf(result.document, 'middle-voice')['animations']).toEqual(animations);
+    expect(clipOf(result.document, 'voice-tail')['animations']).toEqual([
+      { ...animations[0], id: 'voice-tail-a-volume' },
+    ]);
+    expect(result.createdIds).toEqual(['voice-tail', 'voice-tail-a-volume']);
+    // The join removes both IDs: a split and its join create nothing, net (D39.4).
+    const bus = createCommandBus(withCurve(), { mediaFacts });
+    const split = {
+      type: 'SplitClip',
+      clipId: 'middle-voice',
+      atUs: 750_000,
+      newClipId: 'voice-tail',
+    } as const;
+    const join = { type: 'JoinClips', clipId: 'middle-voice', nextClipId: 'voice-tail' } as const;
+    expect(bus.dispatchTransaction([split, join]).createdIds).toEqual([]);
+  });
+
+  it("removes and adds an audio clip with its animations' IDs", () => {
+    const curved = withCurve();
+    const removed = applyCommand(curved, { type: 'RemoveAudioClip', clipId: 'middle-voice' });
+    const added = applyCommand(removed.document, removed.inverse as Command);
+    expect(added.createdIds).toEqual(['middle-voice', 'middle-voice-a-volume']);
+    // Removing it again removes both IDs: added and removed, nothing is created, net.
+    const bus = createCommandBus(removed.document, { mediaFacts });
+    expect(
+      bus.dispatchTransaction([
+        removed.inverse as Command,
+        { type: 'RemoveAudioClip', clipId: 'middle-voice' },
+      ]).createdIds,
+    ).toEqual([]);
   });
 });

@@ -378,6 +378,9 @@ export declare const invalidCompositionCasesV023: readonly InvalidCompositionCas
 ---- invalidCompositionCasesV024
 export declare const invalidCompositionCasesV024: readonly InvalidCompositionCase[];
 
+---- invalidCompositionCasesV025
+export declare const invalidCompositionCasesV025: readonly InvalidCompositionCase[];
+
 ---- invalidCompositionCasesV03
 export declare const invalidCompositionCasesV03: readonly InvalidCompositionCase[];
 
@@ -452,6 +455,9 @@ export declare const migrationPair023To024: MigrationPair;
 
 ---- migrationPair024To025
 export declare const migrationPair024To025: MigrationPair;
+
+---- migrationPair025To026
+export declare const migrationPair025To026: MigrationPair;
 
 ---- migrationPair02To03
 export declare const migrationPair02To03: MigrationPair;
@@ -542,6 +548,9 @@ export declare const referenceCompositionV023: unknown;
 
 ---- referenceCompositionV024
 export declare const referenceCompositionV024: unknown;
+
+---- referenceCompositionV025
+export declare const referenceCompositionV025: unknown;
 
 ---- referenceCompositionV03
 export declare const referenceCompositionV03: unknown;

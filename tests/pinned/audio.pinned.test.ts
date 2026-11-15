@@ -10,7 +10,11 @@
  * The Player plays the same plan with Web Audio (D53): in pinned Chromium, its
  * graph rendered offline from the start and from a sample in the middle equals
  * the Producer's intermediate within the error of 32-bit float automation,
- * and the facts it reads are the decoded lengths. Skipped without
+ * and the facts it reads are the decoded lengths. A second document adds a
+ * video's fades and two volume curves, one on a clip at half speed (D85): the
+ * Producer's mix equals the sum of the decoded sources, the stretch, and the
+ * envelopes within 1e-5, and the Player's equals it within 1e-4 from sample 0
+ * and from inside a ramp in decibels. Skipped without
  * `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where the run is pinned.
  */
 import { execFile } from 'node:child_process';
@@ -40,6 +44,10 @@ import {
   type LaunchedChromium,
 } from '@kadrion/producer';
 import type { AssetResolver } from '@kadrion/renderer-dom';
+import { audioPlan } from '@kadrion/runtime';
+import { stretchSound } from '@kadrion/runtime/stretch';
+import { volumeEnvelope } from '@kadrion/runtime/volume';
+import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
 import { VIDEO_FIXTURE, VIDEO_SOUND_FIXTURE } from '@kadrion/test-fixtures';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -104,7 +112,7 @@ const VOICE = wav(2, RATE, (frame, channel) =>
 /** The document of this test: 2 s at 25 fps, a background, a video with sound, and three clips. */
 function document(videoHash: string, videoVolume = 0.5): Record<string, unknown> {
   return {
-    schemaVersion: '0.25',
+    schemaVersion: '0.26',
     width: 320,
     height: 180,
     safeArea: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
@@ -151,6 +159,8 @@ function document(videoHash: string, videoVolume = 0.5): Record<string, unknown>
             crop: { top: 0, right: 0, bottom: 0, left: 0 },
             cornerRadius: 0,
             volume: videoVolume,
+            fadeInUs: 0,
+            fadeOutUs: 0,
             effects: [],
             mask: { kind: 'none' },
             matte: { kind: 'none' },
@@ -176,6 +186,7 @@ function document(videoHash: string, videoVolume = 0.5): Record<string, unknown>
         volume: 0.6,
         fadeInUs: 333_333,
         fadeOutUs: 1_500_000,
+        animations: [],
       },
       {
         id: 'clip-silent',
@@ -190,6 +201,7 @@ function document(videoHash: string, videoVolume = 0.5): Record<string, unknown>
         volume: 0,
         fadeInUs: 0,
         fadeOutUs: 0,
+        animations: [],
       },
       {
         id: 'clip-voice',
@@ -204,6 +216,7 @@ function document(videoHash: string, videoVolume = 0.5): Record<string, unknown>
         volume: 1,
         fadeInUs: 0,
         fadeOutUs: 100_000,
+        animations: [],
       },
     ],
     transitions: [],
@@ -342,7 +355,10 @@ const PLAYED = `(async () => {
 })()`;
 
 /** The gain of a linear fade at sample `k` of the sound (D52.2). */
-function gain(sound: (typeof SOUNDS)[number], k: number): number {
+function gain(
+  sound: Pick<(typeof SOUNDS)[number] | (typeof CURVED_SOUNDS)[number], 'fadeIn' | 'fadeOut'>,
+  k: number,
+): number {
   let value = 1;
   if (sound.fadeIn !== null && k < sound.fadeIn.sampleCount) {
     value *= k / sound.fadeIn.sampleCount;
@@ -623,3 +639,270 @@ describe.skipIf(!available)('the audio mix of the Producer (D52.5)', () => {
     }
   });
 });
+
+const linear = { kind: 'linear' } as const;
+const hold = { kind: 'hold' } as const;
+
+/**
+ * The document of D85: that of this file with a video's sound faded in over
+ * 200 000 µs and out over 300 000 µs, the music under a volume curve (a ramp
+ * in decibels, a hold, and ramps to and from 0), and the voice at half speed
+ * (D82) under a curve in decibels. No silent clip.
+ */
+function curvedDocument(videoHash: string): Record<string, unknown> {
+  const draft = document(videoHash);
+  const [scene] = draft['scenes'] as { nodes: Record<string, unknown>[] }[];
+  Object.assign(scene?.nodes[1] ?? {}, { fadeInUs: 200_000, fadeOutUs: 300_000 });
+  const [music, , voice] = draft['clips'] as Record<string, unknown>[];
+  Object.assign(music ?? {}, {
+    animations: [
+      {
+        id: 'clip-music-a-volume',
+        property: 'volume',
+        keyframes: [
+          { timeUs: 200_000, value: 0.25, easing: linear },
+          { timeUs: 1_000_000, value: 1, easing: hold },
+          { timeUs: 1_400_000, value: 0.8, easing: linear },
+          { timeUs: 1_600_000, value: 0, easing: linear },
+          { timeUs: 1_900_000, value: 0.5, easing: linear },
+        ],
+      },
+    ],
+  });
+  Object.assign(voice ?? {}, {
+    speed: { num: 1, den: 2 },
+    animations: [
+      {
+        id: 'clip-voice-a-volume',
+        property: 'volume',
+        keyframes: [
+          { timeUs: 1_300_000, value: 1, easing: linear },
+          { timeUs: 1_800_000, value: 0.1, easing: linear },
+        ],
+      },
+    ],
+  });
+  draft['clips'] = [music, voice];
+  return draft;
+}
+
+/**
+ * The sounds of the curved document on the grid, by hand from D52.5 and D85.4.
+ * The music's keyframes at 0.2 s, 1 s, 1.4 s, 1.6 s, and 1.9 s are its samples
+ * 9 600, 48 000, 67 200, 76 800, and 91 200. The voice starts at sample
+ * 59 259 (59 259.216) and its keyframes at 1.3 s and 1.8 s, samples 62 400
+ * and 86 400, are its samples 3 141 and 27 141; at half speed it reads 16 800
+ * source samples. The video's fade-in of 200 000 µs is 9 600 samples; its
+ * lifetime ends at 1.4 s, sample 67 200, so its fade-out from 1.1 s starts at
+ * its sample 33 600 and lasts 14 400.
+ */
+const CURVED_SOUNDS = [
+  {
+    id: 'clip-music',
+    assetId: 'asset-music',
+    volume: 0.6,
+    startSample: 0,
+    sampleCount: 96_000,
+    sourceStartSample: 12_000,
+    fadeIn: { startSample: 0, sampleCount: 16_000 },
+    fadeOut: { startSample: 72_000, sampleCount: 72_000 },
+    volumeKeys: [
+      { sample: 9_600, value: 0.25, easing: linear },
+      { sample: 48_000, value: 1, easing: hold },
+      { sample: 67_200, value: 0.8, easing: linear },
+      { sample: 76_800, value: 0, easing: linear },
+      { sample: 91_200, value: 0.5, easing: linear },
+    ],
+  },
+  {
+    id: 'clip-voice',
+    assetId: 'asset-voice',
+    volume: 1,
+    startSample: 59_259,
+    sampleCount: 33_600,
+    sourceStartSample: 0,
+    fadeIn: null,
+    fadeOut: { startSample: 28_800, sampleCount: 4_800 },
+    volumeKeys: [
+      { sample: 3_141, value: 1, easing: linear },
+      { sample: 27_141, value: 0.1, easing: linear },
+    ],
+  },
+  {
+    id: 'node-video',
+    assetId: 'asset-video',
+    volume: 0.5,
+    startSample: 19_200,
+    sampleCount: 48_000,
+    sourceStartSample: 14_400,
+    fadeIn: { startSample: 0, sampleCount: 9_600 },
+    fadeOut: { startSample: 33_600, sampleCount: 14_400 },
+    volumeKeys: undefined,
+  },
+] as const;
+
+describe.skipIf(!available)("a video's fades and volume curves in the mix (D85.5, D85.6)", () => {
+  let video: Uint8Array;
+  let manifest: AudioManifest;
+  let mixed: { channels: number; rate: number; samples: Float32Array };
+  const directory = join(OUTPUT_DIRECTORY, 'audio-curves');
+
+  beforeAll(async () => {
+    video = await makeVideoSoundFixture(ffmpegPath ?? '');
+    const bytes: Record<string, { bytes: Uint8Array; mediaType: string }> = {
+      'asset-music': { bytes: MUSIC, mediaType: 'audio/wav' },
+      'asset-voice': { bytes: VOICE, mediaType: 'audio/wav' },
+      'asset-video': { bytes: video, mediaType: 'video/mp4' },
+    };
+    rmSync(directory, { recursive: true, force: true });
+    mkdirSync(directory, { recursive: true });
+    ({ manifest } = await renderAudio({
+      document: curvedDocument(VIDEO_SOUND_FIXTURE.contentHash),
+      resolveAsset: ({ id }) => bytes[id] ?? null,
+      outputDirectory: directory,
+      ffmpeg: FFMPEG,
+    }));
+    mixed = wavFloats(new Uint8Array(readFileSync(join(directory, AUDIO_FILE_NAME))));
+  }, 300_000);
+
+  it('places the fades and the keyframes on the grid, and records each envelope', () => {
+    const sounds = manifest.audio?.sounds ?? [];
+    expect(
+      sounds.map((sound) => ({
+        id: sound.id,
+        assetId: sound.assetId,
+        volume: sound.volume,
+        startSample: sound.startSample,
+        sampleCount: sound.sampleCount,
+        sourceStartSample: sound.sourceStartSample,
+        fadeIn: sound.fadeIn,
+        fadeOut: sound.fadeOut,
+        volumeKeys: sound.volumeKeys,
+      })),
+    ).toEqual(CURVED_SOUNDS);
+    for (const sound of CURVED_SOUNDS) {
+      const stated = sounds.find(({ id }) => id === sound.id);
+      if (sound.volumeKeys === undefined) {
+        expect(stated?.envelopeSha256).toBeUndefined();
+        continue;
+      }
+      const gains = volumeEnvelope({ volumeKeys: sound.volumeKeys }, 0, sound.sampleCount);
+      const frames = new Float32Array(gains.length * 2);
+      gains.forEach((gain, i) => {
+        frames[2 * i] = gain;
+        frames[2 * i + 1] = gain;
+      });
+      expect(stated?.envelopeSha256).toBe(sha256(new Uint8Array(frames.buffer)));
+    }
+    expect(manifest.ffmpeg.audioArgs).toEqual(
+      expect.arrayContaining(['<envelope-0>', '<envelope-1>']),
+    );
+  });
+
+  it('equals the mix summed here from the decoded sources and the envelopes, within 1e-5', async () => {
+    const plan = audioPlan(validatedDocument(curvedDocument(VIDEO_SOUND_FIXTURE.contentHash)));
+    const voiceMap = plan.entries.find(({ id }) => id === 'clip-voice')?.map;
+    if (voiceMap === undefined) throw new Error('The voice is not mapped.');
+    const sources: Record<string, Float32Array> = {
+      'asset-music': await decoded(MUSIC),
+      'asset-video': await decoded(video),
+    };
+    // The voice at half speed: `stretchSound` over its decoded channels, from source sample 0.
+    const voice = await decoded(VOICE);
+    const channels = [0, 1].map((channel) =>
+      Float32Array.from({ length: voice.length / 2 }, (_, i) => voice[2 * i + channel] ?? 0),
+    );
+    const stretched = stretchSound({
+      map: voiceMap,
+      source: { channels, startSample: 0 },
+      startSample: 59_259,
+      sampleCount: 33_600,
+    });
+    const expected = new Float64Array(96_000 * 2);
+    for (const sound of CURVED_SOUNDS) {
+      const envelope =
+        sound.volumeKeys === undefined
+          ? null
+          : volumeEnvelope({ volumeKeys: sound.volumeKeys }, 0, sound.sampleCount);
+      for (let k = 0; k < sound.sampleCount; k += 1) {
+        const factor = sound.volume * gain(sound, k) * (envelope?.[k] ?? 1);
+        for (let channel = 0; channel < 2; channel += 1) {
+          const value =
+            sound.id === 'clip-voice'
+              ? (stretched[channel]?.[k] ?? Number.NaN)
+              : (sources[sound.assetId]?.[(sound.sourceStartSample + k) * 2 + channel] ??
+                Number.NaN);
+          const at = (sound.startSample + k) * 2 + channel;
+          expected[at] = (expected[at] ?? Number.NaN) + value * factor;
+        }
+      }
+    }
+    let worst = { at: -1, difference: 0 };
+    let peak = 0;
+    for (let index = 0; index < expected.length; index += 1) {
+      const difference = Math.abs((mixed.samples[index] ?? Number.NaN) - (expected[index] ?? 0));
+      peak = Math.max(peak, Math.abs(expected[index] ?? 0));
+      if (!(difference <= worst.difference)) worst = { at: index, difference };
+    }
+    writeReport('audio-curves-report.json', { worst, peak, sounds: manifest.audio?.sounds });
+    expect(peak).toBeGreaterThan(0.3);
+    expect(worst.difference).toBeLessThan(1e-5);
+  });
+
+  describe("the Player's mix in Chromium (D85.6, D53.5)", () => {
+    let chromium: LaunchedChromium;
+    let host: ConformanceHost;
+    const text = JSON.stringify(curvedDocument(VIDEO_SOUND_FIXTURE.contentHash));
+
+    beforeAll(async () => {
+      chromium = await launchChromium();
+      host = await openConformanceHost(chromium, text, [
+        { id: 'asset-music', mediaType: 'audio/wav', bytes: MUSIC },
+        { id: 'asset-voice', mediaType: 'audio/wav', bytes: VOICE },
+        { id: 'asset-video', mediaType: 'video/mp4', bytes: video },
+      ]);
+    }, 120_000);
+
+    afterAll(async () => {
+      await closeConformanceHost(host);
+      await chromium.browser.close();
+    });
+
+    it("equals the Producer's mix from sample 0 and from inside a ramp in decibels, within 1e-4", async () => {
+      const report: Record<string, unknown> = {};
+      // Sample 30 001 lies in the music's ramp in decibels, from 9 600 to 48 000.
+      for (const from of [0, 30_001]) {
+        const input = JSON.stringify({
+          text,
+          sources: [
+            ['asset-music', Buffer.from(MUSIC).toString('base64')],
+            ['asset-voice', Buffer.from(VOICE).toString('base64')],
+            ['asset-video', Buffer.from(video).toString('base64')],
+          ],
+          fromSample: from,
+        });
+        const { samples } = await host.page.evaluate<{ samples: number[] }>(
+          PLAYED.replace('INPUT', input),
+        );
+        expect(samples).toHaveLength((96_000 - from) * 2);
+        let worst = { at: -1, difference: 0 };
+        for (let index = 0; index < samples.length; index += 1) {
+          const difference = Math.abs(
+            (samples[index] ?? Number.NaN) - (mixed.samples[from * 2 + index] ?? Number.NaN),
+          );
+          if (!(difference <= worst.difference)) worst = { at: index, difference };
+        }
+        report[`from-${String(from)}`] = { worst };
+        expect(worst.difference, `from sample ${String(from)}`).toBeLessThan(1e-4);
+      }
+      writeReport('audio-curves-player-report.json', report);
+    }, 120_000);
+  });
+});
+
+/** A document of this file, validated, or a failure that names its errors. */
+function validatedDocument(input: unknown): ValidatedComposition {
+  const result = validateComposition(input);
+  if (!result.ok) throw new Error(JSON.stringify(result.errors));
+  return result.composition;
+}

@@ -9,6 +9,7 @@
 - Amended by: PR-33 (D57) on 2026-11-02: a move carries the words of captions, a trim moves none, and a split copies them to both halves (D57.5)
 - Amended by: PR-49 (D69) on 2026-11-08: a move carries an accent of a text animation; a split hands the second half its entrance as an accent, and refuses a text with an exit (D69.7)
 - Amended by: PR-58 (D82) on 2026-11-11, in force from PR-61 and PR-62: 55.2, 55.4, and 55.5: `TrimClipStart`, `TrimClipEnd`, `SplitClip`, and `JoinClips` move a clip's time map exactly, forwards and reversed, so the frames that remain stay where they were at any speed (D82.2); PR-62 adds `SetClipSpeed`, `SetClipReverse`, and the helper `freezeFrame` (D82.9)
+- Amended by: PR-74 (D85) on 2026-11-15, in force from PR-76: 55.2 to 55.5: `MoveClip` moves an audio clip's keyframes; trims move none and keep a video's fades at its edges; `SplitClip` gives a video's first half `fadeOutUs: 0` and its second `fadeInUs: 0`, refuses a cut inside a fade of a video above volume 0 with `split-not-exact`, and copies an audio clip's animations to the second half as `<newClipId>-a-volume`; `JoinClips` keeps a video's second `fadeOutUs`; the IDs of an audio clip include its animations' (D85.8)
 - Related: D30, D38, D39, D41, D42, D49, D52, D53, D54,
   [roadmap of phase three](../roadmap/phase-3.md) PR-31
 

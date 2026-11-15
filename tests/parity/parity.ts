@@ -448,10 +448,12 @@ export const HOST_PACKAGES = ['player', 'renderer-dom', 'runtime', 'schema'] as 
  * The entry points other than an index that the built host packages import by
  * name, each mapped to its file in the package's dist: the Player computes a
  * sound at another speed with `@kadrion/runtime/stretch`, which reads the map
- * from `@kadrion/schema/time-map` (D82.6).
+ * from `@kadrion/schema/time-map` (D82.6), and the gain where a play starts in
+ * a volume curve with `@kadrion/runtime/volume` (D85.6).
  */
 export const HOST_ENTRIES: Readonly<Record<string, string>> = {
   '@kadrion/runtime/stretch': 'runtime/stretch.js',
+  '@kadrion/runtime/volume': 'runtime/volume.js',
   '@kadrion/schema/time-map': 'schema/time-map.js',
 };
 /** The two runtime files the host fetches besides the modules it imports. */

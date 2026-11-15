@@ -429,6 +429,7 @@ describe('AddSceneAudioClip and RemoveAudioClip in a scene (D54.5)', () => {
     volume: 1,
     fadeInUs: 0,
     fadeOutUs: 0,
+    animations: [],
   });
 
   it('inserts a clip into the scene; the inverse removes it, and its inverse adds it back', () => {

@@ -316,6 +316,8 @@ export function freezeFrame(document: ValidatedComposition, args: unknown): read
     sourceStartRemainder: 0,
     speed: { num: 0, den: 1 },
     reverse: false,
+    // A freeze frame is silent (D82.3): no fade of its sound reaches past its hold (D85.1).
+    ...('fadeOutUs' in half ? { fadeOutUs: 0 } : {}),
   };
   return Object.freeze([
     parseSplitClip({ type: 'SplitClip', clipId, atUs, newClipId: afterId }),

@@ -163,6 +163,8 @@ export function probeComposition(): unknown {
             crop: { top: 0, right: 0, bottom: 0, left: 0 },
             cornerRadius: 0,
             volume: 0,
+            fadeInUs: 0,
+            fadeOutUs: 0,
             effects: [],
             mask: { kind: 'none' },
             matte: { kind: 'none' },
