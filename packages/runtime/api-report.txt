@@ -829,6 +829,40 @@ export declare function textLinesHeight(lineCount: number, fontSize: number): nu
 ---- unitsToPixels
 export declare function unitsToPixels(units: number, fontSize: number, metrics: FontMetrics): number;
 
+==== Entry "./volume"
+
+---- VolumeCurve
+export interface VolumeCurve {
+    readonly volumeKeys: readonly VolumeSampleKey[];
+}
+
+---- VolumeEasing
+export type VolumeEasing = {
+    readonly kind: 'linear';
+} | {
+    readonly kind: 'hold';
+};
+
+---- VolumeKey
+export interface VolumeKey {
+    readonly timeUs: number;
+    readonly value: number;
+    readonly easing: VolumeEasing;
+}
+
+---- VolumeSampleKey
+export interface VolumeSampleKey {
+    readonly sample: number;
+    readonly value: number;
+    readonly easing: VolumeEasing;
+}
+
+---- placeVolumeKeys
+export declare function placeVolumeKeys(keys: readonly VolumeKey[], startUs: number, sampleCount: number): VolumeSampleKey[];
+
+---- volumeEnvelope
+export declare function volumeEnvelope(sound: VolumeCurve, fromSample: number, count: number): Float32Array;
+
 ==== Entry "./woff"
 
 ---- DECOMPRESSED_FONT_LIMIT

@@ -19,6 +19,7 @@ import { join, relative } from 'node:path';
 
 import * as runtimeEntry from '@kadrion/runtime';
 import * as textFrameEntry from '@kadrion/runtime/text-frame';
+import * as volumeEntry from '@kadrion/runtime/volume';
 import * as woffEntry from '@kadrion/runtime/woff';
 import * as mainEntry from '@kadrion/schema';
 import * as migrateEntry from '@kadrion/schema/migrate';
@@ -173,6 +174,19 @@ describe('the entries of @kadrion/runtime (D83, PR-65, PR-66)', () => {
     expect(woffEntry.FontMetricsError).toBe(runtimeEntry.FontMetricsError);
     expect(textFrameEntry.FontMetricsError).toBe(runtimeEntry.FontMetricsError);
     expect(Object.keys(woffEntry)).not.toContain('FontDecodeError');
+  });
+
+  it('keeps the volume curve behind its own entry until schema 0.26 (D85, PR-75)', () => {
+    expect(Object.keys(volumeEntry).sort()).toEqual(['placeVolumeKeys', 'volumeEnvelope']);
+    expect(Object.keys(runtimeEntry)).not.toContain('volumeEnvelope');
+    const main = names(reached(join(RUNTIME_DIST, 'index.js')), RUNTIME_DIST);
+    expect(main).not.toContain('volume.js');
+    expect(main).not.toContain('volume-arithmetic.js');
+    expect(names(reached(join(RUNTIME_DIST, 'volume.js')), RUNTIME_DIST)).toEqual([
+      'audio.js',
+      'volume-arithmetic.js',
+      'volume.js',
+    ]);
   });
 });
 

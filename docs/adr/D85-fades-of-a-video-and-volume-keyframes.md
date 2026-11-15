@@ -509,6 +509,78 @@ format:check` and `tests/repo/adr.test.ts` pass. No code; no impact on Q14,
   package at version `0.9.0` for the release `v0.9.0`, whose tag the owner
   pushes from `main`; the host flow on the released tarballs.
 
+## Implementation notes (PR-75)
+
+PR-75 adds the curve on the grid and its envelope as functions over explicit
+arguments, before any field uses them; nothing in this section is in force for
+a document before PR-76.
+
+- **One entry until PR-76.** `packages/runtime/src/volume.ts` is the entry
+  `@kadrion/runtime/volume`, which the main entry, the render page, and the
+  Player do not reach, so the runtime build and the Player's dist tree keep
+  their bytes (the hashes in the status of PR-75 in the roadmap, the same
+  before and after the change). It exports `placeVolumeKeys`,
+  `volumeEnvelope`, and the types `VolumeKey` (`{ timeUs, value, easing }`,
+  D85.3), `VolumeSampleKey` (`{ sample, value, easing }`, D85.4),
+  `VolumeEasing`, and `VolumeCurve` (`{ volumeKeys }`, which a `SoundLayout`
+  of PR-76 satisfies as it is). The entry reaches the runtime's audio module
+  for `sampleAt`, so that one function places every time on the grid, and
+  through it the main entry of `@kadrion/schema`; the arithmetic is the module
+  `volume-arithmetic.ts`, which no entry exports.
+- **The placement.** `placeVolumeKeys(keys, startUs, sampleCount)` puts each
+  keyframe at `sampleAt(timeUs) − sampleAt(startUs)`; the end of D85.4 is
+  read as sample `sampleCount`, the first sample not heard, so the keyframes
+  kept are the last at or before 0, every one between, and the first at or
+  after `sampleCount`. No time in microseconds is an exact half of a sample
+  at 48 kHz (`48 · t` is never 500 modulo 1 000), so "an exact half up" never
+  decides a placement; the tests check the nearest sample on either side of a
+  half. Times and the start are integers from 0.
+- **The envelope.** `volumeEnvelope(sound, fromSample, count)` gives one gain
+  per sample (the Producer of PR-76 writes each twice, for both channels). A
+  segment in decibels is computed as `m0 · 2^f · 2^(e0 + k)`, where
+  `g0 = m0 · 2^e0` exactly, `x = ((n − s0) / (s1 − s0)) · (log2 g1 − log2 g0)`,
+  `k = ⌊x⌋`, and `f = x − k`, so that a small `g0` loses no bits before the
+  last scaling, and the result is held within the two ends of its segment,
+  which rounding near `f = 1` could otherwise pass by an ulp. A segment in
+  amplitude is `g0 + ((g1 − g0) · (n − s0)) / (s1 − s0)`, the order of D18.3; a
+  hold, and a segment between two equal values, is `g0` without arithmetic.
+  At a keyframe the gain is its value rounded to 32 bits, exactly.
+- **The exponent and the logarithm.** `log2` reduces its argument exactly to
+  `m · 2^e` with `m` from 1 to 2 (a subnormal first scaled by `2^64`), then to
+  `[√2 / 2, √2]`, and evaluates `2·atanh((m − 1) / (m + 1))` with 11 terms;
+  `exp2` takes `k = ⌊x⌋` and evaluates `2^f` by the series of `e^(f · ln 2)`
+  with 19 terms; powers of two come from a table made by doubling and halving
+  one. The reference of the tests (exact rationals and BigInt, logarithms to
+  about 77 digits) meets both within 1e-14 relative on 2 000 seeded arguments
+  each over the whole range of binary64, and every power of two exactly.
+- **The bound of 1e-9.** An envelope's gain is a 32-bit float, whose rounding
+  alone is up to 6e-8, so the tests read D85.4 as: every gain is the 32-bit
+  rounding of a value within 1e-9 relative of the reference. Sixty seeded
+  curves with zeros, ones, holds, values over twenty octaves below 1, and
+  spans from 1 sample to 20 s, over 12 000 samples, meet it.
+- **Refusals.** Both functions throw `RangeError` for an empty curve, times
+  or samples that do not increase, a value outside 0 to 1, an easing other
+  than `linear` or `hold`, and arguments that are not integers; no error code
+  is needed before the schema holds a curve.
+- **Pinned.** The SHA-256 of seven fixed envelopes
+  (`packages/runtime/test/volume-support.ts`) is pinned in
+  `packages/runtime/test/volume.sha256.json`.
+  `tests/pinned/volume.pinned.test.ts`, a pinned test file added while Q14 is
+  open, compares them in the pinned Chromium with Node and the file, and
+  writes `volume/node-vs-chromium.json`; automates a `GainNode` in an
+  `OfflineAudioContext` as D85.6 says, over 9.5 s with a ramp in decibels of
+  5 s, a 0, and a hold, from sample 0 and from samples inside two ramps in
+  decibels, and compares it with the envelope (largest difference measured
+  3.0e-7, against the bound of 1e-5); and has the pinned FFmpeg multiply 10 s
+  of a stereo sound, after the Producer's steps up to `volume`, by its
+  envelope on an extra pipe (`-f f32le -ar 48000 -ch_layout stereo -i
+pipe:3`, 3 840 000 bytes written in chunks of 4 096 samples as the pipe
+  drains) with `[s0pre][e0]amultiply[s0post]`, which equals the product in
+  TypeScript byte for byte and writes `volume/amultiply.json`.
+- **Question 8.** The pipe held: FFmpeg reads the envelope while it decodes
+  the sound, with no deadlock and no temporary file, so PR-76 streams the
+  envelope as D85.5 says.
+
 ## Questions for the owner, with recommendations
 
 1. **The command for a video's fades.** Recommendation: widen `SetClipFades`
