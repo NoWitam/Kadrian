@@ -612,7 +612,7 @@ are those of the code as built.
   `sha256:e98d722b156580f090d238e1913253dfc7d803b561c22bcbb14218de92bc0676`
   (502 709 bytes, 2 636 more than PR-72's). The Player imports the entry for
   the gain where a play starts, so its dist tree is
-  `sha256:033b78e7e9d2df30a548773f7c52b53518853a62ee9a2517d48f63002a390706`
+  `sha256:5f23e9eb57430fb5073c0d4fd0a31fa4e54899fee7b4db74991aa739377233d0`
   (79 files: `volume.js` and `volume-arithmetic.js` of the runtime join it),
   and the parity host and the playground's import map name
   `@kadrion/runtime/volume` as they name the stretch.

@@ -491,7 +491,7 @@ answer before PR-75 starts.
   here, since W6 closed at the snapshot of `0.25`. The runtime build is
   `sha256:e98d722b156580f090d238e1913253dfc7d803b561c22bcbb14218de92bc0676`
   (502 709 bytes) and the Player's dist tree
-  `sha256:033b78e7e9d2df30a548773f7c52b53518853a62ee9a2517d48f63002a390706`
+  `sha256:5f23e9eb57430fb5073c0d4fd0a31fa4e54899fee7b4db74991aa739377233d0`
   (79 files); the twenty golden manifests change in `render.schemaVersion`,
   `render.compositionHash`, and `render.runtime.contentHash` only. The mix
   test of D52.7 and the parity of D53.5 gain a document with a faded video
