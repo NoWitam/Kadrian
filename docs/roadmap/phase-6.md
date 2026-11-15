@@ -453,7 +453,20 @@ answer before PR-75 starts.
   check of `amultiply` with an envelope on a pipe and of Chromium's
   exponential ramp against the envelope. The runtime build and the Player's
   dist tree keep their bytes (checked by their hashes, as PR-59, PR-65, and
-  PR-70 did).
+  PR-70 did). Status: in review. `placeVolumeKeys` and `volumeEnvelope` in
+  `@kadrion/runtime/volume`, over the exponent and logarithm of
+  `volume-arithmetic.ts`, which the entry does not export; the runtime build
+  stays
+  `sha256:573cbca11d74841d1c3d07b759a8ad2711ece6cdde76f175ca729b9d4dca120f`
+  (500 073 bytes) and the Player's dist tree
+  `sha256:db846bfec498728a4d64c75b2e3529825e8cedf5bf7f6ce9beac6918d17daac3`
+  (77 files), the same before and after; the API report gains only the new
+  entry. `tests/pinned/volume.pinned.test.ts` is a pinned test file added
+  while Q14 is open, so `REQUIRED_PINNED_FILES` and the Q14 artifact list
+  (`volume/node-vs-chromium.json`, `volume/amultiply.json`) grow in this
+  diff. The envelope pipe of question 8 of D85 held: no temporary file is
+  needed. The implementation notes of D85 record the readings and the
+  measurements.
 - **PR-76** (schema `0.26`): the step from `0.25` (`fadeInUs: 0` and
   `fadeOutUs: 0` on every video node, `animations: []` on every audio clip),
   the frozen `0.25`, the row `volume`, the plan with `volumeKeys`, the
@@ -487,7 +500,7 @@ answer before PR-75 starts.
   new.
 - PR-76 (D85) changes the runtime build and the Player's dist tree, so Q14
   reopens and parity is measured again; PR-75 is expected not to, and says so
-  with the hashes. No golden PNG file changes (the change is of sound only);
+  with the hashes (it did not: the hashes in its status are those of PR-72). No golden PNG file changes (the change is of sound only);
   the golden manifests change in the three fields of D42, and a render of a
   document without a volume animation or a video's fades writes the same audio
   and manifests as before.

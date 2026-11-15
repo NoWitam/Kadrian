@@ -1,0 +1,9 @@
+{
+  "fade down 1 to 0.1 over 1 s": "e6c14082a01ac7af66fb0443500119b9a11bc569feb54974e7cde63a5b04eeff",
+  "rise 0.001 to 1 over 3 s, from inside": "aebdabdb8b382ce43eecc62e42b0ded594de6917fc3d39c2bb075de704eef672",
+  "duck and release": "1c2a7e8990f38113cff7217bd63cce9190eb390d80d9a03054f03d36f731e7f0",
+  "to silence and back, linear in amplitude": "86982335cd8cfc2bf4fb41ed16469ca66d464ac6f9e50e695628372dbe7b9bf4",
+  "holds and a jump": "2b60b1495c8b32914acacf45afea30c9915b6c9538e08cc4a8f62bab0e1a5832",
+  "far below 1": "2e23dfcc024de4ea36ec1c715f94a5b83d134fa0c7e09954c7db4abc7504ee30",
+  "long ramp 0.5 to 0.01 over 60 s, a range": "8814599dace9e393d83dfbef9dd58de48acf5b059d5091879bd4fb1389a8e78e"
+}

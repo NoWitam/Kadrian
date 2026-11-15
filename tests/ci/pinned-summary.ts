@@ -50,6 +50,7 @@ export const REQUIRED_PINNED_FILES: readonly string[] = Object.freeze([
   'tests/pinned/text.pinned.test.ts',
   'tests/pinned/transitions.pinned.test.ts',
   'tests/pinned/video.pinned.test.ts',
+  'tests/pinned/volume.pinned.test.ts',
 ]);
 
 /** The file of the golden-frame test (D26.5) and of the parity test (D33, D34). */

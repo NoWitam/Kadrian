@@ -18,6 +18,10 @@
       "types": "./dist/text-frame.d.ts",
       "default": "./dist/text-frame.js"
     },
+    "./volume": {
+      "types": "./dist/volume.d.ts",
+      "default": "./dist/volume.js"
+    },
     "./woff": {
       "types": "./dist/woff.d.ts",
       "default": "./dist/woff.js"

@@ -518,6 +518,8 @@ export const ARTIFACT_FILES = Object.freeze([
   'video/golden-comparison.json',
   'video/source-frames.json',
   'vitest-pinned.json',
+  'volume/amultiply.json',
+  'volume/node-vs-chromium.json',
 ]);
 
 /** The keys of the verification record, exactly. */

@@ -13,6 +13,7 @@
     "../ci/diagnostic.ts",
     "../../packages/runtime/test/woff-support.ts",
     "../../packages/runtime/test/woff2-support.ts",
+    "../../packages/runtime/test/volume-support.ts",
     "../../vitest.pinned.config.ts",
     "../../apps/playground/scripts/media.ts",
     "../../apps/playground/scripts/serve.ts"
