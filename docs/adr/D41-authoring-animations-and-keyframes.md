@@ -5,6 +5,7 @@
 - Date: 2026-09-30
 - Amended by: PR-47 (D67) on 2026-11-07: 41.3: a new keyframe is written as `{ timeUs, value, easing }`, with the easing of the keyframe before it or `linear`; a replaced or moved keyframe keeps its easing; `SetKeyframeEasing` is a new command (D67.7)
 - Amended by: PR-48 (D68) on 2026-11-07: 41.1: `SetKeyframeValue` has an argument called `value`, judged by the animation's property (D65.2, D68.7)
+- Amended by: PR-77 (D85) on 2026-11-16: 41.1 and 41.2: `AddAnimation` takes the ID of an audio clip under `nodeId`, the other animation commands find an animation of an audio clip by its ID, and `SetKeyframeValue` sets `volume`, a number from 0 to 1 (D85.8)
 - Supersedes: —
 - Amends: D30 (D30.8), D38 (D38.1), D39 (D39.4, D39.9), each with an
   `Amended by: PR-20 (D41)` line

@@ -23,6 +23,7 @@
 - Amended by: PR-56 (D78) on 2026-11-10: `check_custom_html` and `set_custom_html`; the catalogue has 100 entries (96 command tools and four others; written as 99 until PR-67), and `describe_document` shows the html (D78.5, D78.6)
 - Amended by: PR-62 (D82) on 2026-11-11: `set_clip_speed` and `set_clip_reverse`, derived from their commands, and `freeze_frame`, a tool that is no command, after `add_clip_transition_at_cut`; a speed is a multiplier in every tool, converted by the command (D82.11); the catalogue grows from 100 to 103 entries (D82.9)
 - Amended by: PR-67 (D83) on 2026-11-12: `set_node_size` sets the frame of a text and takes `null` for both sides to remove it, and the descriptions of `set_text_style`, `set_caption_style`, `set_caption_highlight`, and `add_node` carry the fields of `0.25` (PR-66); the catalogue keeps 103 entries and grows by 797 characters over the snapshot of `0.24`, within the 800 of W6 (D83.10)
+- Amended by: PR-77 (D85) on 2026-11-16: the descriptions of `set_clip_fades`, `add_animation`, `set_keyframe_value`, `set_keyframe_easing`, `add_audio_clip`, `add_scene_audio_clip`, and `move_clip` carry a video's fades and volume curves, and those of `trim_clip_start`, `trim_clip_end`, and `set_clip_speed` name a clip's fades; no tool is added, the catalogue keeps 103 entries and grows by 518 characters over the snapshot of `0.25`, within the 700 of D85.8
 - Related: D09, D12, D30, D31, D38, D39, D40, D41, D42,
   [roadmap of phase three](../roadmap/phase-3.md) PR-24
 

@@ -583,34 +583,58 @@ export function assetUsers(
   return users.size === 0 ? null : [...users].sort();
 }
 
-/** An animation, the node that holds it, and its place in that node's `animations`. */
+/**
+ * An animation, the node or audio clip that holds it, and its place in that
+ * holder's `animations`. `clip` is where an audio clip holder lives, `null`
+ * for a node (D85.8).
+ */
 export interface AnimationLocation {
   readonly animation: DocumentObject;
   readonly owner: DocumentObject;
   readonly ownerId: string;
   readonly animations: readonly unknown[];
   readonly index: number;
+  readonly clip: { readonly owner: ClipOwner; readonly index: number } | null;
+}
+
+/** The animation with that ID in the `animations` of `owner`, or `null`. */
+function animationIn(
+  owner: DocumentObject,
+  animationId: string,
+  clip: AnimationLocation['clip'],
+): AnimationLocation | null {
+  const animations = asArray(owner['animations']);
+  if (animations === null) return null;
+  const index = animations.findIndex(
+    (animation) => isObject(animation) && animation['id'] === animationId,
+  );
+  const animation = animations[index];
+  if (!isObject(animation)) return null;
+  return { animation, owner, ownerId: idOf(owner), animations, index, clip };
 }
 
 /**
- * The animation with that ID, looked up in the `animations` of the nodes only —
+ * The animation with that ID, looked up in the `animations` of the nodes —
  * those of the scenes and definitions and of the groups' children (D41.2,
- * D76) — or `null`.
+ * D76) — then in those of the audio clips of the composition, the scenes, and
+ * the definitions (D85.8), or `null`.
  */
 export function locateAnimation(document: object, animationId: string): AnimationLocation | null {
   for (const { value: scene } of everyHolder(document)) {
     for (const node of objectsIn(scene['nodes'])) {
       for (const owner of [node, ...objectsIn(node['children'])]) {
-        const animations = asArray(owner['animations']);
-        if (animations === null) continue;
-        const index = animations.findIndex(
-          (animation) => isObject(animation) && animation['id'] === animationId,
-        );
-        const animation = animations[index];
-        if (isObject(animation)) {
-          return { animation, owner, ownerId: idOf(owner), animations, index };
-        }
+        const found = animationIn(owner, animationId, null);
+        if (found !== null) return found;
       }
+    }
+  }
+  const owners: ClipOwner[] = [null, ...everyHolder(document).map(({ address }) => address)];
+  for (const owner of owners) {
+    const clips = clipListOf(document, owner);
+    for (const [index, clip] of clips.entries()) {
+      if (!isObject(clip)) continue;
+      const found = animationIn(clip, animationId, { owner, index });
+      if (found !== null) return found;
     }
   }
   return null;
@@ -696,8 +720,8 @@ export function placedByTime(
 
 /**
  * The document with `animation` in the place of the animation at `location`, or
- * without it when `animation` is `null`. The path to it is rebuilt; everything
- * else keeps its identity (D30.7).
+ * without it when `animation` is `null`, in a node or in an audio clip (D85.8).
+ * The path to it is rebuilt; everything else keeps its identity (D30.7).
  */
 export function replaceAnimation(
   document: object,
@@ -708,7 +732,13 @@ export function replaceAnimation(
     animation === null
       ? location.animations.filter((_, at) => at !== location.index)
       : location.animations.map((item, at) => (at === location.index ? animation : item));
-  return replaceNode(document, location.ownerId, { ...location.owner, animations });
+  const owner = { ...location.owner, animations };
+  const { clip } = location;
+  if (clip === null) return replaceNode(document, location.ownerId, owner);
+  const clips = clipListOf(document, clip.owner).map((item, at) =>
+    at === clip.index ? owner : item,
+  );
+  return replaceClipList(document, clip.owner, clips);
 }
 
 /**

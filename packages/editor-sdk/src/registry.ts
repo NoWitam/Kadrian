@@ -543,6 +543,37 @@ function locatedAnimation(document: DocumentObject, animationId: string): Animat
   return location;
 }
 
+/**
+ * What `AddAnimation` adds to (D41.1, D85.8): the node with that ID, or else
+ * the audio clip, IDs being one namespace (D16.3), with how to put it back
+ * rebuilt; neither is `unknown-node`. Which rows a clip takes is the schema's.
+ */
+function animationHolder(
+  document: DocumentObject,
+  nodeId: string,
+): {
+  readonly owner: DocumentObject;
+  readonly put: (owner: DocumentObject) => DocumentObject;
+} {
+  const node = locateNode(document, nodeId);
+  if (node !== null) {
+    return { owner: node.node, put: (owner) => replaceNode(document, nodeId, owner) };
+  }
+  const found = locateClip(document, nodeId);
+  if (found === null) {
+    throw new EditorError('unknown-node', `The document has no node or audio clip \`${nodeId}\`.`);
+  }
+  return {
+    owner: found.clip,
+    put: (owner) =>
+      replaceClipList(
+        document,
+        found.owner,
+        clipListOf(document, found.owner).map((clip, at) => (at === found.index ? owner : clip)),
+      ),
+  };
+}
+
 /** The animation at `location`, which must animate `property` (D41.5). */
 function requireProperty(location: AnimationLocation, animationId: string, property: string): void {
   const actual: unknown = location.animation['property'];
@@ -1533,9 +1564,8 @@ const DEFINITIONS = deepFreeze<Definitions>({
   AddAnimation: {
     parse: parseAddAnimation,
     edit(document, command) {
-      const location = locateNode(document, command.nodeId);
-      if (location === null) throw unknownNode(command.nodeId);
-      const animations: unknown = location.node['animations'];
+      const holder = animationHolder(document, command.nodeId);
+      const animations: unknown = holder.owner['animations'];
       // Whether a node has animations is read from the node (D30.8).
       if (!Array.isArray(animations)) {
         throw new EditorError(
@@ -1565,8 +1595,8 @@ const DEFINITIONS = deepFreeze<Definitions>({
         );
       }
       return {
-        document: replaceNode(document, command.nodeId, {
-          ...location.node,
+        document: holder.put({
+          ...holder.owner,
           animations: inserted(list, command.index, command.animation),
         }),
         // The animation validated by now, so its `id` is an ID of the document's form.
@@ -1970,16 +2000,37 @@ const DEFINITIONS = deepFreeze<Definitions>({
   },
   SetClipFades: {
     parse: parseSetClipFades,
-    edit: (document, command) =>
-      onClip(document, command.clipId, (clip) => {
-        const fadeInUs = numberField(clip, 'fadeInUs', command.clipId);
-        const fadeOutUs = numberField(clip, 'fadeOutUs', command.clipId);
+    edit(document, command) {
+      // The fades of an audio clip or of a video node, a node looked up first (D85.8).
+      const faded = (
+        holder: DocumentObject,
+      ): { readonly faded: DocumentObject; readonly inverse: Command } | null => {
+        const fadeInUs = numberField(holder, 'fadeInUs', command.clipId);
+        const fadeOutUs = numberField(holder, 'fadeOutUs', command.clipId);
         if (fadeInUs === command.fadeInUs && fadeOutUs === command.fadeOutUs) return null;
         return {
-          clip: { ...clip, fadeInUs: command.fadeInUs, fadeOutUs: command.fadeOutUs },
+          faded: { ...holder, fadeInUs: command.fadeInUs, fadeOutUs: command.fadeOutUs },
           inverse: parseSetClipFades({ ...command, fadeInUs, fadeOutUs }),
         };
-      }),
+      };
+      if (findNode(document, command.clipId) !== null) {
+        return onNode(document, command.clipId, (node) => {
+          requireType(node, ['video'], command.clipId);
+          const edit = faded(node);
+          return edit === null ? null : { node: edit.faded, inverse: edit.inverse };
+        });
+      }
+      if (locateClip(document, command.clipId) === null) {
+        throw new EditorError(
+          'unknown-clip',
+          `The document has no audio clip or video node \`${command.clipId}\`.`,
+        );
+      }
+      return onClip(document, command.clipId, (clip) => {
+        const edit = faded(clip);
+        return edit === null ? null : { clip: edit.faded, inverse: edit.inverse };
+      });
+    },
   },
   SetClipSource: {
     parse: parseSetClipSource,
