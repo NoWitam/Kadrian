@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.25",
+  "schemaVersion": "0.26",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -156,6 +156,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "svg-grade-e0",
@@ -558,6 +560,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "svg-key-e0",
@@ -784,6 +788,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-curves-e0",
@@ -945,6 +951,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-colorgrade-e0",
@@ -1103,6 +1111,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-glow-e0",
@@ -1257,6 +1267,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-vignette-e0",
@@ -1414,6 +1426,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-chromakey-e0",
@@ -1469,6 +1483,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-bluekey-e0",

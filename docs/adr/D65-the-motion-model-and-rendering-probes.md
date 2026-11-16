@@ -10,6 +10,7 @@
 - Amended by: PR-54 (D75) on 2026-11-09: 65.1: the rows `mask/geometry` and `mask/feather` are animated by the mask's own animations, not by paths of the node's animations; only a shape may be a matte, since the pinned Chromium paints no `<foreignObject>` inside an SVG mask (D75.3, D75.4)
 - Amended by: PR-55a (D76) on 2026-11-10: 65.4: the existing commands work inside a definition by the document IDs of its nodes, clips, and transitions, not by a `definitionId` argument; `ExpandInstance` undoes `ConvertToDefinition` (D76.8)
 - Amended by: PR-64 (D83) on 2026-11-11, in force from PR-66: 65.1: the box of a text with a frame is its frame (D83.3)
+- Amended by: PR-74 (D85) on 2026-11-15, in force from PR-76: 65.1: the row `volume` on a video node and on an audio clip, a factor from 0 to 1, eased `linear` (in decibels between two values above 0) or `hold`; it changes no picture (D85.2)
 - Supersedes: —
 - Related: D03, D15, D16, D18, D19, D22, D23, D26, D28, D33, D34, D41, D46,
   D49, D56, D57, D58, D59, [phase five](../roadmap/phase-5.md) (PR-45), the

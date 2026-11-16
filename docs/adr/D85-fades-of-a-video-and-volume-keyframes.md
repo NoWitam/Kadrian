@@ -581,6 +581,84 @@ pipe:3`, 3 840 000 bytes written in chunks of 4 096 samples as the pipe
   the sound, with no deadlock and no temporary file, so PR-76 streams the
   envelope as D85.5 says.
 
+## Implementation notes (PR-76)
+
+PR-76 brings schema `0.26` and the curve into both hosts; the readings below
+are those of the code as built.
+
+- **The step and the corpus.** `step025To026` writes `fadeInUs: 0` and
+  `fadeOutUs: 0` after the `volume` of every video node (in scenes, groups,
+  and definitions) and `animations: []` after the `fadeOutUs` of every audio
+  clip (of the composition, of scenes, and of definitions). The frozen `0.25`
+  is `packages/schema/src/v0-25`; the pair `migration-0-25-to-0-26`, the
+  corpus `compatibility/v0-26` (every file of `v0-25` stepped, and `volume`,
+  written by hand: a faded video with a curve, one in a group, a scene clip,
+  a composition clip with a `hold` and a 0, and a clip of a definition
+  placed by an instance), and eleven new invalid cases hold it.
+- **Keyframes before composition time 0.** A definition placed by an
+  instance from after its own time 0 moves the keyframes of its clips before
+  composition time 0 (D85.3), which the placement of PR-75 refused.
+  `placeVolumeKeys` now takes any integer time: its sample is the same
+  quotient as `sampleAt`'s, rounded to the nearest sample below 0 as well (no
+  time is an exact half). The start of a sound stays a time from 0. A
+  keyframe time plus its holder's offset that leaves the safe integers is a
+  `RangeError` of the layout; no document of the tests comes near it.
+- **Where the placement lives.** `placeVolumeKeys`, its types, and its
+  checks moved from `volume.ts` to `audio.ts`, which `audioLayout` uses, so
+  that the main entry reaches the placement without the envelope; the entry
+  `@kadrion/runtime/volume` re-exports them, and `volumeEnvelope` and the
+  arithmetic stay behind it. The render page reaches neither: the runtime
+  build holds none of their code, and changes only with the schema. It is
+  `sha256:e98d722b156580f090d238e1913253dfc7d803b561c22bcbb14218de92bc0676`
+  (502 709 bytes, 2 636 more than PR-72's). The Player imports the entry for
+  the gain where a play starts, so its dist tree is
+  `sha256:5f23e9eb57430fb5073c0d4fd0a31fa4e54899fee7b4db74991aa739377233d0`
+  (79 files: `volume.js` and `volume-arithmetic.js` of the runtime join it),
+  and the parity host and the playground's import map name
+  `@kadrion/runtime/volume` as they name the stretch.
+- **The Producer.** The envelopes are inputs after every sound's, in the
+  order of the sounds, each `-f f32le -ar 48000 -ch_layout stereo -i
+pipe:<3 + i>`; the chain of sound `k` ends its steps at `[s<k>pre]`, reads
+  `[<n + i>:a:0]aformat=…[e<k>]`, and goes on from `[s<k>post]` with its
+  delay. In the manifest the pipe is `<envelope-k>`, `k` the sound's index,
+  as `<sound-k>` names its file. `FfmpegTools.run` takes the pipes as
+  iterators of chunks of 4 096 samples, which `runBinary` writes to the
+  descriptors 3 and up as each drains; the SHA-256 is computed over the
+  chunks as they are read, and over the rest after the process ends, so a
+  process that stopped reading early changes no hash. A sound without a
+  curve has no pipe, and its graph, arguments, and manifest entry are those
+  of `0.25` (checked against the strings of the tests of `main`). A stretched
+  sound keeps its `volumeKeys` and is multiplied after the stretch.
+- **The Player.** The curve's node follows the fades. Before the first
+  keyframe, the play sets its value at the first keyframe again, so that the
+  ramp after it starts there; a segment that ended before the play starts
+  schedules nothing.
+- **Commands.** `clipIds` of the timeline commands is `subtreeIds`, so a
+  split, a join, and `AddAudioClip`, `AddSceneAudioClip`, and
+  `RemoveAudioClip` name an audio clip's animations among the IDs they
+  create or remove. A split of a silent video inside one of its fades is not
+  `split-not-exact` (D85.8 refuses it for a video above volume 0); its halves
+  are then validated, and a half shorter than its fade is `invalid-result`.
+  The freeze frame that `freezeFrame` inserts is the second half of a split
+  with `fadeOutUs: 0` as well, since it is silent (D82.3) and its hold may
+  be shorter than the clip's fade-out; an overwrite gets the same from its
+  two splits.
+- **The catalogue.** The two complete-clip examples gain `"animations":[]`,
+  36 characters; the descriptions are PR-77's. The budget of W6 had closed at
+  the snapshot of `0.25` (232 830 characters, 795 of its 800), so its test
+  now states that snapshot, and the test of the budget of 700 characters over
+  it (D85.8) starts here, since this pull request is the first to grow the
+  catalogue after `0.25`.
+- **Measured here, outside the pinned container.** With the pinned FFmpeg
+  (`n8.1.3`, verified) and the Chromium of the workspace, the mix of a
+  document with a faded video, a curve with a ramp in decibels, a `hold`,
+  and ramps through 0, and a clip at half speed under a curve
+  (`tests/pinned/audio.pinned.test.ts`) differs from the sum in TypeScript
+  by at most 3.9e-8 (bound 1e-5), and the Player's graph from the Producer's
+  intermediate by at most 9.95e-6 from sample 0 and from sample 30 001
+  inside the ramp in decibels (bound 1e-4), as without a curve. The golden
+  frames, the parity records, and the evidence of Q14 are the pinned run's.
+
 ## Questions for the owner, with recommendations
 
 1. **The command for a video's fades.** Recommendation: widen `SetClipFades`

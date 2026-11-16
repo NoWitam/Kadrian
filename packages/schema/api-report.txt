@@ -40,6 +40,18 @@ export interface AudioPlanEntry {
     readonly lifetimeUs: number;
     readonly fadeInUs: number;
     readonly fadeOutUs: number;
+    readonly volumeKeys?: readonly AudioPlanVolumeKey[];
+}
+
+---- AudioPlanVolumeKey (type only)
+export interface AudioPlanVolumeKey {
+    readonly timeUs: number;
+    readonly value: number;
+    readonly easing: {
+        readonly kind: 'linear';
+    } | {
+        readonly kind: 'hold';
+    };
 }
 
 ---- BLEND_MODES
@@ -196,7 +208,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.25";
+export declare const SCHEMA_VERSION = "0.26";
 
 ---- SVG_IDENTITY
 export declare const SVG_IDENTITY: SvgMatrix;
@@ -485,6 +497,9 @@ export type ValidationResult = {
 ---- VideoNode (type only)
 export type VideoNode = Infer<typeof videoNodeSchema>;
 
+---- VolumeAnimation (type only)
+export type VolumeAnimation = AudioClip['animations'][number];
+
 ---- advanceClipSource
 export declare function advanceClipSource(clip: ClipTiming, deltaUs: number): AdvancedSource;
 
@@ -506,7 +521,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.25";
+            readonly const: "0.26";
         };
         readonly width: {
             readonly type: "integer";
@@ -2612,6 +2627,18 @@ export declare const compositionSchema: {
                                     readonly minimum: 0;
                                     readonly maximum: 1;
                                 };
+                                readonly fadeInUs: {
+                                    readonly description: "The sound rises linearly from silence to its volume over the first fadeInUs of the node's lifetime; the picture does not fade (D85.1).";
+                                    readonly type: "integer";
+                                    readonly minimum: 0;
+                                    readonly maximum: 9007199254740991;
+                                };
+                                readonly fadeOutUs: {
+                                    readonly description: "The sound falls linearly from its volume to silence over the last fadeOutUs of the node's lifetime, even where its scene or its group cuts it earlier (D85.1).";
+                                    readonly type: "integer";
+                                    readonly minimum: 0;
+                                    readonly maximum: 9007199254740991;
+                                };
                                 readonly effects: {
                                     readonly type: "array";
                                     readonly description: "Effects in the order they apply, the first to the content itself; none leaves the pixels exactly as they are. Any effect, even one whose values change nothing, draws its holder in a pass of its own, which may move a channel by a few levels (D65.5, D71).";
@@ -3639,6 +3666,52 @@ export declare const compositionSchema: {
                                                         };
                                                     }>;
                                                 };
+                                            }>,
+                                            import("./json-schema.js").ClosedObject<{
+                                                readonly id: {
+                                                    readonly type: "string";
+                                                    readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                                    readonly pattern: "^[A-Za-z0-9_-]+$";
+                                                };
+                                                readonly property: {
+                                                    readonly type: "string";
+                                                    readonly const: "volume";
+                                                };
+                                                readonly keyframes: {
+                                                    readonly type: "array";
+                                                    readonly minItems: 2;
+                                                    readonly items: import("./json-schema.js").ClosedObject<{
+                                                        readonly timeUs: {
+                                                            readonly type: "integer";
+                                                            readonly description: "Time in integer microseconds (D04): scene time inside a scene, composition time in the composition (D49.3).";
+                                                            readonly minimum: 0;
+                                                            readonly maximum: 9007199254740991;
+                                                        };
+                                                        readonly value: {
+                                                            readonly description: "Linear factor of the amplitude, from 0 to 1, multiplied with the volume and the fades; it never amplifies (D85.2).";
+                                                            readonly type: "number";
+                                                            readonly minimum: 0;
+                                                            readonly maximum: 1;
+                                                        };
+                                                        readonly easing: {
+                                                            readonly description: "How the gain moves to the next keyframe: linear, in decibels between two values above 0 and in amplitude where one of them is 0, or hold (D85.2).";
+                                                            readonly oneOf: readonly [
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "linear";
+                                                                    };
+                                                                }>,
+                                                                import("./json-schema.js").ClosedObject<{
+                                                                    readonly kind: {
+                                                                        readonly type: "string";
+                                                                        readonly const: "hold";
+                                                                    };
+                                                                }>
+                                                            ];
+                                                        };
+                                                    }>;
+                                                };
                                             }>
                                         ];
                                     };
@@ -3748,6 +3821,60 @@ export declare const compositionSchema: {
                             readonly type: "integer";
                             readonly minimum: 0;
                             readonly maximum: 9007199254740991;
+                        };
+                        readonly animations: {
+                            readonly type: "array";
+                            readonly description: "At most one animation, of volume: its keyframes are in the time of what holds the clip, like those of a node (D85.2).";
+                            readonly items: {
+                                readonly oneOf: readonly [
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly property: {
+                                            readonly type: "string";
+                                            readonly const: "volume";
+                                        };
+                                        readonly keyframes: {
+                                            readonly type: "array";
+                                            readonly minItems: 2;
+                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                readonly timeUs: {
+                                                    readonly type: "integer";
+                                                    readonly description: "Time in integer microseconds (D04): scene time inside a scene, composition time in the composition (D49.3).";
+                                                    readonly minimum: 0;
+                                                    readonly maximum: 9007199254740991;
+                                                };
+                                                readonly value: {
+                                                    readonly description: "Linear factor of the amplitude, from 0 to 1, multiplied with the volume and the fades; it never amplifies (D85.2).";
+                                                    readonly type: "number";
+                                                    readonly minimum: 0;
+                                                    readonly maximum: 1;
+                                                };
+                                                readonly easing: {
+                                                    readonly description: "How the gain moves to the next keyframe: linear, in decibels between two values above 0 and in amplitude where one of them is 0, or hold (D85.2).";
+                                                    readonly oneOf: readonly [
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly kind: {
+                                                                readonly type: "string";
+                                                                readonly const: "linear";
+                                                            };
+                                                        }>,
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly kind: {
+                                                                readonly type: "string";
+                                                                readonly const: "hold";
+                                                            };
+                                                        }>
+                                                    ];
+                                                };
+                                            }>;
+                                        };
+                                    }>
+                                ];
+                            };
                         };
                     }>;
                 };
@@ -4061,6 +4188,60 @@ export declare const compositionSchema: {
                     readonly type: "integer";
                     readonly minimum: 0;
                     readonly maximum: 9007199254740991;
+                };
+                readonly animations: {
+                    readonly type: "array";
+                    readonly description: "At most one animation, of volume: its keyframes are in the time of what holds the clip, like those of a node (D85.2).";
+                    readonly items: {
+                        readonly oneOf: readonly [
+                            import("./json-schema.js").ClosedObject<{
+                                readonly id: {
+                                    readonly type: "string";
+                                    readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                    readonly pattern: "^[A-Za-z0-9_-]+$";
+                                };
+                                readonly property: {
+                                    readonly type: "string";
+                                    readonly const: "volume";
+                                };
+                                readonly keyframes: {
+                                    readonly type: "array";
+                                    readonly minItems: 2;
+                                    readonly items: import("./json-schema.js").ClosedObject<{
+                                        readonly timeUs: {
+                                            readonly type: "integer";
+                                            readonly description: "Time in integer microseconds (D04): scene time inside a scene, composition time in the composition (D49.3).";
+                                            readonly minimum: 0;
+                                            readonly maximum: 9007199254740991;
+                                        };
+                                        readonly value: {
+                                            readonly description: "Linear factor of the amplitude, from 0 to 1, multiplied with the volume and the fades; it never amplifies (D85.2).";
+                                            readonly type: "number";
+                                            readonly minimum: 0;
+                                            readonly maximum: 1;
+                                        };
+                                        readonly easing: {
+                                            readonly description: "How the gain moves to the next keyframe: linear, in decibels between two values above 0 and in amplitude where one of them is 0, or hold (D85.2).";
+                                            readonly oneOf: readonly [
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "linear";
+                                                    };
+                                                }>,
+                                                import("./json-schema.js").ClosedObject<{
+                                                    readonly kind: {
+                                                        readonly type: "string";
+                                                        readonly const: "hold";
+                                                    };
+                                                }>
+                                            ];
+                                        };
+                                    }>;
+                                };
+                            }>
+                        ];
+                    };
                 };
             }>;
         };
@@ -4562,6 +4743,60 @@ export declare const compositionSchema: {
                             readonly type: "integer";
                             readonly minimum: 0;
                             readonly maximum: 9007199254740991;
+                        };
+                        readonly animations: {
+                            readonly type: "array";
+                            readonly description: "At most one animation, of volume: its keyframes are in the time of what holds the clip, like those of a node (D85.2).";
+                            readonly items: {
+                                readonly oneOf: readonly [
+                                    import("./json-schema.js").ClosedObject<{
+                                        readonly id: {
+                                            readonly type: "string";
+                                            readonly description: "Stable ID, unique across the whole document whatever the kind of entity (D16).";
+                                            readonly pattern: "^[A-Za-z0-9_-]+$";
+                                        };
+                                        readonly property: {
+                                            readonly type: "string";
+                                            readonly const: "volume";
+                                        };
+                                        readonly keyframes: {
+                                            readonly type: "array";
+                                            readonly minItems: 2;
+                                            readonly items: import("./json-schema.js").ClosedObject<{
+                                                readonly timeUs: {
+                                                    readonly type: "integer";
+                                                    readonly description: "Time in integer microseconds (D04): scene time inside a scene, composition time in the composition (D49.3).";
+                                                    readonly minimum: 0;
+                                                    readonly maximum: 9007199254740991;
+                                                };
+                                                readonly value: {
+                                                    readonly description: "Linear factor of the amplitude, from 0 to 1, multiplied with the volume and the fades; it never amplifies (D85.2).";
+                                                    readonly type: "number";
+                                                    readonly minimum: 0;
+                                                    readonly maximum: 1;
+                                                };
+                                                readonly easing: {
+                                                    readonly description: "How the gain moves to the next keyframe: linear, in decibels between two values above 0 and in amplitude where one of them is 0, or hold (D85.2).";
+                                                    readonly oneOf: readonly [
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly kind: {
+                                                                readonly type: "string";
+                                                                readonly const: "linear";
+                                                            };
+                                                        }>,
+                                                        import("./json-schema.js").ClosedObject<{
+                                                            readonly kind: {
+                                                                readonly type: "string";
+                                                                readonly const: "hold";
+                                                            };
+                                                        }>
+                                                    ];
+                                                };
+                                            }>;
+                                        };
+                                    }>
+                                ];
+                            };
                         };
                     }>;
                 };
@@ -6375,7 +6610,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.25";
+    readonly title: "Kadrion composition 0.26";
 };
 
 ---- definitionTimeUs
@@ -6502,7 +6737,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24' | '0.25';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24' | '0.25' | '0.26';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

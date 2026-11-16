@@ -337,10 +337,15 @@ export interface AudioRange {
  * it is heard from its source, given its volume and its fades, delayed to its
  * place and padded to the composition's length; then the sounds summed, cut to
  * the range's samples, and started again at 0. Every position is a sample
- * count, never a time.
+ * count, never a time. A sound with a volume curve is multiplied, after its
+ * fades and before its delay, by its envelope (D85.5), read from an input of
+ * its own after every sound's, in the order of the sounds:
+ * `[s<k>pre][e<k>]amultiply[s<k>post]`. Without a curve the graph is that of
+ * D52.5 byte for byte.
  */
 export function audioPassGraph(layout: AudioLayout, range: AudioRange): string {
   const total = String(layout.totalSamples);
+  let envelopes = 0;
   const chains = layout.sounds.map((sound, index) => {
     const from = sound.sourceStartSample;
     const steps = [
@@ -363,12 +368,22 @@ export function audioPassGraph(layout: AudioLayout, range: AudioRange): string {
         `afade=t=out:ss=${String(sound.fadeOut.startSample)}:ns=${String(sound.fadeOut.sampleCount)}:curve=tri`,
       );
     }
-    steps.push(
+    const placed = [
       `adelay=delays=${String(sound.startSample)}S:all=1`,
       `apad=whole_len=${total}`,
       `atrim=end_sample=${total}[s${String(index)}]`,
-    );
-    return steps.join(',');
+    ];
+    if (sound.volumeKeys === undefined) return [...steps, ...placed].join(',');
+    // The curve multiplies the samples heard by the envelope on input `e<k>` (D85.5).
+    const k = String(index);
+    const input = String(layout.sounds.length + envelopes);
+    envelopes += 1;
+    return [
+      `${steps.join(',')}[s${k}pre]`,
+      `[${input}:a:0]aformat=sample_fmts=fltp:sample_rates=${String(SAMPLE_RATE)}:channel_layouts=${AUDIO_CHANNEL_LAYOUT}[e${k}]`,
+      `[s${k}pre][e${k}]amultiply[s${k}post]`,
+      `[s${k}post]${placed.join(',')}`,
+    ].join(';');
   });
   const inputs = layout.sounds.map((_, index) => `[s${String(index)}]`).join('');
   const mix =
@@ -384,15 +399,34 @@ export function soundPlaceholder(index: number): string {
   return `<sound-${String(index)}>`;
 }
 
-/** The arguments of the audio pass (D47.4, D52.5): one file per sound, a WAV at `output`. */
+/** What the pipe of the envelope of sound `k` is replaced with in the manifest (D85.5). */
+export function envelopePlaceholder(index: number): string {
+  return `<envelope-${String(index)}>`;
+}
+
+/** The pipe of the `index`-th envelope of the audio pass: `pipe:3`, `pipe:4`, … (D85.5). */
+export function envelopePipe(index: number): string {
+  return `pipe:${String(3 + index)}`;
+}
+
+/**
+ * The arguments of the audio pass (D47.4, D52.5): one file per sound, then
+ * the envelope of each sound with a volume curve, raw 32-bit float stereo at
+ * 48 kHz (D85.5), a WAV at `output`.
+ */
 export function audioPassArgs(options: {
   readonly graph: string;
   readonly inputs: readonly string[];
+  readonly envelopes?: readonly string[];
   readonly output: string;
 }): string[] {
   return [
     ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1'],
     ...options.inputs.flatMap((input) => ['-i', `file:${input}`]),
+    ...(options.envelopes ?? []).flatMap((envelope) => [
+      ...['-f', 'f32le', '-ar', String(SAMPLE_RATE), '-ch_layout', AUDIO_CHANNEL_LAYOUT],
+      ...['-i', envelope],
+    ]),
     ...['-filter_complex_threads', '1', '-filter_complex', options.graph, '-map', '[a]'],
     ...['-c:a', AUDIO_INTERMEDIATE_CODEC, '-ar', String(SAMPLE_RATE), '-ac', '2'],
     ...BITEXACT,

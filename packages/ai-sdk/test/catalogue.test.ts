@@ -148,16 +148,34 @@ const CATALOGUE_LENGTH_OF_0_24 = 232_035;
 /** What the frame, alignment, the width mode, and W5 may add to it (D83.10, question 14). */
 const BUDGET_OF_W6 = 800;
 
+/**
+ * The catalogue of schema `0.25` (the committed snapshot of `main` before
+ * PR-76), measured the same way: where the budget of W6 closed, and from where
+ * D85.8 measures the growth of a video's fades and of volume curves.
+ */
+const CATALOGUE_LENGTH_OF_0_25 = 232_830;
+
+/** What a video's fades and volume curves may add to it (D85.8, question 11). */
+const BUDGET_OF_D85 = 700;
+
 /** The length of the JSON of every tool's entry, all tools together (D83.10). */
 function catalogueLength(catalogue: readonly ToolDefinition[]): number {
   return catalogue.reduce((sum, tool) => sum + JSON.stringify(tool).length, 0);
 }
 
 describe('the budget of W6 (D83.10)', () => {
-  it('grows the catalogue by at most 800 characters over the snapshot of 0.24', () => {
-    const growth = catalogueLength(TOOL_CATALOGUE) - CATALOGUE_LENGTH_OF_0_24;
+  it('grew the catalogue by at most 800 characters from the snapshot of 0.24 to that of 0.25', () => {
+    const growth = CATALOGUE_LENGTH_OF_0_25 - CATALOGUE_LENGTH_OF_0_24;
     expect(growth).toBeGreaterThan(0);
     expect(growth).toBeLessThanOrEqual(BUDGET_OF_W6);
+  });
+});
+
+describe('the budget of D85.8', () => {
+  it('grows the catalogue by at most 700 characters over the snapshot of 0.25', () => {
+    const growth = catalogueLength(TOOL_CATALOGUE) - CATALOGUE_LENGTH_OF_0_25;
+    expect(growth).toBeGreaterThan(0);
+    expect(growth).toBeLessThanOrEqual(BUDGET_OF_D85);
   });
 });
 

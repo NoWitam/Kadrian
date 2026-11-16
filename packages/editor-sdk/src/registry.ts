@@ -1111,7 +1111,10 @@ function splitHalves(
   const reversed = hasSource(found) && clip['reverse'] === true;
   const source = hasSource(found) && !reversed ? advancedSource(clip, clipId, offsetUs) : {};
   const firstSource = reversed ? advancedSource(clip, clipId, restUs) : {};
-  if (found.kind === 'audio') {
+  // A sound's fades: the first half ends without a fade-out, the second starts without a
+  // fade-in, and a cut inside a fade of a sound that is heard is refused (D55.4, D85.8).
+  const faded = found.kind === 'audio' || (clip['type'] === 'video' && 'fadeInUs' in clip);
+  if (faded && isHeard(found)) {
     const fadeInUs = numberField(clip, 'fadeInUs', clipId);
     const fadeOutUs = numberField(clip, 'fadeOutUs', clipId);
     if (fadeInUs > offsetUs || fadeOutUs > restUs) {
@@ -1120,16 +1123,26 @@ function splitHalves(
         `The time ${String(atUs)} µs lies inside a fade of the clip \`${clipId}\`; split it outside its fades (D55.4).`,
       );
     }
+  }
+  const firstFade = faded ? { fadeOutUs: 0 } : {};
+  const secondFade = faded ? { fadeInUs: 0 } : {};
+  if (found.kind === 'audio') {
     return {
-      first: { ...clip, durationUs: offsetUs, ...firstSource, fadeOutUs: 0 },
-      second: deepFreeze({
-        ...copyNode(clip),
-        id: newClipId,
-        startUs: atUs,
-        durationUs: restUs,
-        ...source,
-        fadeInUs: 0,
-      }),
+      first: { ...clip, durationUs: offsetUs, ...firstSource, ...firstFade },
+      // Its animations are copied under the second half's ID (D85.8).
+      second: deepFreeze(
+        renamedAnimations(
+          {
+            ...copyNode(clip),
+            id: newClipId,
+            startUs: atUs,
+            durationUs: restUs,
+            ...source,
+            ...secondFade,
+          },
+          newClipId,
+        ),
+      ),
     };
   }
   if (phasesOf(clip).includes('out')) {
@@ -1139,11 +1152,18 @@ function splitHalves(
     );
   }
   return {
-    first: { ...clip, durationUs: offsetUs, ...firstSource },
+    first: { ...clip, durationUs: offsetUs, ...firstSource, ...firstFade },
     second: deepFreeze(
       renamedAnimations(
         entrancesAt(
-          { ...copyNode(clip), id: newClipId, startUs: atUs, durationUs: restUs, ...source },
+          {
+            ...copyNode(clip),
+            id: newClipId,
+            startUs: atUs,
+            durationUs: restUs,
+            ...source,
+            ...secondFade,
+          },
           startUs,
         ),
         newClipId,
@@ -1196,11 +1216,9 @@ function entrancesAt(node: DocumentObject, startUs: number): DocumentObject {
   };
 }
 
-/** The IDs a clip holds: a node's subtree (D39.4), or the audio clip's own. */
-function clipIds(found: TimelineClip, clip: DocumentObject): readonly string[] {
-  if (found.kind === 'node') return subtreeIds(clip);
-  const id: unknown = clip['id'];
-  return typeof id === 'string' ? [id] : [];
+/** The IDs a clip holds: a node's subtree (D39.4), or the audio clip's own and its animations' (D85.8). */
+function clipIds(clip: DocumentObject): readonly string[] {
+  return subtreeIds(clip);
 }
 
 // The type argument makes the literal itself a `Definitions`: a missing entry and
@@ -1892,7 +1910,8 @@ const DEFINITIONS = deepFreeze<Definitions>({
       }
       // The ID is read only where it is a string; every other malformation is the validator's.
       const id: unknown = command.clip['id'];
-      const createdIds = typeof id === 'string' ? [id] : [];
+      // The clip and its animations (D85.8).
+      const createdIds = subtreeIds(command.clip);
       refuseTaken(document, createdIds);
       return {
         document: replaceClipList(document, null, inserted(clips, command.index, command.clip)),
@@ -1933,7 +1952,7 @@ const DEFINITIONS = deepFreeze<Definitions>({
         ),
         invert: () => inverse,
         createdIds: [],
-        removedIds: [command.clipId],
+        removedIds: subtreeIds(found.clip),
       };
     },
   },
@@ -2159,7 +2178,8 @@ const DEFINITIONS = deepFreeze<Definitions>({
         throw outOfRange(command.index, clips.length, `the clips of \`${command.sceneId}\``);
       }
       const id: unknown = command.clip['id'];
-      const createdIds = typeof id === 'string' ? [id] : [];
+      // The clip and its animations (D85.8).
+      const createdIds = subtreeIds(command.clip);
       refuseTaken(document, createdIds);
       return {
         document: replaceClipList(document, owner, inserted(clips, command.index, command.clip)),
@@ -2192,6 +2212,9 @@ const DEFINITIONS = deepFreeze<Definitions>({
             }),
           };
         }
+      } else {
+        // An audio clip's volume keyframes move with it (D85.8).
+        clip = shiftedAnimations(clip, deltaUs);
       }
       return {
         document: withClip(document, found, clip),
@@ -2276,7 +2299,7 @@ const DEFINITIONS = deepFreeze<Definitions>({
       const found = locatedClip(document, command.clipId);
       refuseGroup(found, command.clipId);
       const { first, second } = splitHalves(found, command.atUs, command.newClipId, command.clipId);
-      const createdIds = clipIds(found, second);
+      const createdIds = clipIds(second);
       refuseTaken(document, createdIds);
       const items = found.items.map((item, at) => (at === found.index ? first : item));
       return {
@@ -2322,7 +2345,8 @@ const DEFINITIONS = deepFreeze<Definitions>({
               sourceStartRemainder: next.clip['sourceStartRemainder'],
             }
           : {}),
-        ...(found.kind === 'audio'
+        // The second's fade-out, of an audio clip or a video's sound (D85.8).
+        ...(found.kind === 'audio' || (found.clip['type'] === 'video' && 'fadeOutUs' in found.clip)
           ? { fadeOutUs: numberField(next.clip, 'fadeOutUs', command.nextClipId) }
           : {}),
       };
@@ -2360,7 +2384,7 @@ const DEFINITIONS = deepFreeze<Definitions>({
             newClipId: command.nextClipId,
           }),
         createdIds: [],
-        removedIds: clipIds(next, next.clip),
+        removedIds: clipIds(next.clip),
       };
     },
   },

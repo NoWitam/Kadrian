@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.25",
+  "schemaVersion": "0.26",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -229,7 +229,8 @@
           "reverse": false,
           "volume": 0.8,
           "fadeInUs": 100000,
-          "fadeOutUs": 200000
+          "fadeOutUs": 200000,
+          "animations": []
         }
       ],
       "transitions": [],
@@ -310,7 +311,8 @@
       "reverse": false,
       "volume": 0.5,
       "fadeInUs": 0,
-      "fadeOutUs": 500000
+      "fadeOutUs": 500000,
+      "animations": []
     }
   ],
   "transitions": [],

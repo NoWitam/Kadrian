@@ -176,7 +176,8 @@ describe('the entries of @kadrion/runtime (D83, PR-65, PR-66)', () => {
     expect(Object.keys(woffEntry)).not.toContain('FontDecodeError');
   });
 
-  it('keeps the volume curve behind its own entry until schema 0.26 (D85, PR-75)', () => {
+  it('keeps the envelope behind its own entry, which the main entry does not reach (D85.4, PR-75, PR-76)', () => {
+    // The placement is the audio layout's since schema 0.26; the entry re-exports it.
     expect(Object.keys(volumeEntry).sort()).toEqual(['placeVolumeKeys', 'volumeEnvelope']);
     expect(Object.keys(runtimeEntry)).not.toContain('volumeEnvelope');
     const main = names(reached(join(RUNTIME_DIST, 'index.js')), RUNTIME_DIST);

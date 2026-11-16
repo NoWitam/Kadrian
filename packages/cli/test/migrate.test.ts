@@ -275,13 +275,18 @@ describe('kadrion migrate', () => {
 });
 
 describe('migrateText', () => {
+  // The library's bytes for every entry are the hand-written expectation, key
+  // for key (`saved-text.test.ts`), and the command matches the library entry by
+  // entry above. Compared with those bytes, this loop migrates each document
+  // once, not a second time for its oracle: the corpus grows by a version
+  // directory, and every older document by a step, with each schema version.
   it('is parseComposition, then serializeComposition', () => {
     for (const entry of compatibilityCorpus) {
       const text = readFileSync(join(FIXTURES, entry.inputFile), 'utf8');
       const outcome = migrateText(text);
       expect(outcome.ok).toBe(true);
       if (!outcome.ok) continue;
-      expect(outcome.text).toBe(libraryText(text));
+      expect(outcome.text).toBe(JSON.stringify(entry.expected));
       expect(outcome.current).toBe(entry.versions.length === 1);
       expect(outcome.text.endsWith('\n')).toBe(false);
     }

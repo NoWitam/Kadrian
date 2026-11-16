@@ -476,6 +476,37 @@ answer before PR-75 starts.
   parity of D53.5 extended. The runtime build and the Player's dist tree
   change, so Q14 reopens and parity is measured again; no golden PNG file
   changes, and the golden manifests change in the three fields of D42 alone.
+  Status: in review. Schema `0.26` with the step, the frozen `0.25`, the
+  pair and the corpus `compatibility/v0-26` (with `volume`, written by hand),
+  and eleven invalid cases; the plan carries `volumeKeys` and a video's
+  fades, `audioLayout` places the keyframes (`placeVolumeKeys` moved beside
+  it and takes keyframes before composition time 0, which a definition
+  placed by an instance can have), the Producer multiplies a curved sound by
+  its envelope on `pipe:3` and up with additive `volumeKeys` and
+  `envelopeSha256` (`EXPORT_MANIFEST_VERSION` stays 5, `MANIFEST_VERSION`
+  3), and the Player adds one gain node after the fades. `MoveClip`,
+  `SplitClip`, `JoinClips`, `freezeFrame`, and the IDs of the audio clip
+  commands carry the new fields as D85.8 says; the two complete-clip examples
+  gain `"animations":[]` (36 characters), and the budget test of D85.8 starts
+  here, since W6 closed at the snapshot of `0.25`. The runtime build is
+  `sha256:e98d722b156580f090d238e1913253dfc7d803b561c22bcbb14218de92bc0676`
+  (502 709 bytes) and the Player's dist tree
+  `sha256:5f23e9eb57430fb5073c0d4fd0a31fa4e54899fee7b4db74991aa739377233d0`
+  (79 files); the twenty golden manifests change in `render.schemaVersion`,
+  `render.compositionHash`, and `render.runtime.contentHash` only. The mix
+  test of D52.7 and the parity of D53.5 gain a document with a faded video
+  and two curved clips, one at half speed; with the pinned FFmpeg outside
+  the container they measure 3.9e-8 against 1e-5 and 9.95e-6 against 1e-4.
+  The Q14 artifact list gains `audio-curves-report.json`,
+  `audio-curves-player-report.json`, and `audio-curves/audio.wav`. With the
+  pinned FFmpeg and the workspace's Chromium outside the container, every
+  pinned file passes (339 tests in 33 files; parity and the golden frames are
+  gated to the container there), and the playground's import map names
+  `@kadrion/runtime/volume`. Open: the
+  pinned run in the container, which writes the golden frames byte for byte
+  and both parity records for this build, and Q14 closes by the evidence of
+  the CI run of the commit. The implementation notes of D85 record the
+  readings.
 - **PR-77** (commands and tools): `SetClipFades` on a video node, the
   animation commands on an audio clip, `volume` in `SetKeyframeValue`, six
   descriptions, no new tool, and a test that holds the catalogue's growth over

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.25",
+  "schemaVersion": "0.26",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -228,6 +228,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "effects-video-e0",
@@ -868,6 +870,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-blur-e0",
@@ -1018,6 +1022,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-brightness-e0",
@@ -1168,6 +1174,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-contrast-e0",
@@ -1318,6 +1326,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-saturate-e0",
@@ -1468,6 +1478,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-huerotate-e0",
@@ -1618,6 +1630,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-grayscale-e0",
@@ -1768,6 +1782,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-invert-e0",
@@ -1918,6 +1934,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-sepia-e0",
@@ -2080,6 +2098,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [
             {
               "id": "kinds-video-dropshadow-e0",

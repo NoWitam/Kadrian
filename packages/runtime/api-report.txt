@@ -38,6 +38,7 @@ export interface AudioPlanEntry {
     readonly lifetimeUs: number;
     readonly fadeInUs: number;
     readonly fadeOutUs: number;
+    readonly volumeKeys?: readonly AudioPlanVolumeKey[];
 }
 
 ---- BackgroundNodeState (type only)
@@ -469,6 +470,7 @@ export interface SoundLayout {
     readonly sourceStartSample: number;
     readonly fadeIn: SampleFade | null;
     readonly fadeOut: SampleFade | null;
+    readonly volumeKeys?: readonly VolumeSampleKey[];
 }
 
 ---- SvgEffectState (type only)
@@ -836,21 +838,21 @@ export interface VolumeCurve {
     readonly volumeKeys: readonly VolumeSampleKey[];
 }
 
----- VolumeEasing
+---- VolumeEasing (type only)
 export type VolumeEasing = {
     readonly kind: 'linear';
 } | {
     readonly kind: 'hold';
 };
 
----- VolumeKey
+---- VolumeKey (type only)
 export interface VolumeKey {
     readonly timeUs: number;
     readonly value: number;
     readonly easing: VolumeEasing;
 }
 
----- VolumeSampleKey
+---- VolumeSampleKey (type only)
 export interface VolumeSampleKey {
     readonly sample: number;
     readonly value: number;

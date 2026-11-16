@@ -36,6 +36,8 @@ export const PROPERTY_BOUNDS: Readonly<Record<NodeAnimation['property'], Bounds>
   'trim/start': { min: 0, max: 1000 },
   'trim/end': { min: 0, max: 1000 },
   geometry: { min: -1_000_000, max: 1_000_000 },
+  // Sampled by the audio plan on the sample grid, never here (D85.4).
+  volume: { min: 0, max: 1 },
 };
 
 /**

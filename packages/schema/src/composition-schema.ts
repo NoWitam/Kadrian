@@ -49,8 +49,11 @@
  * source start, a speed from 1/4 to 4 or 0 for a freeze frame of a video, and
  * reverse (D82); 0.25 is 0.24 plus the frame of a text, which its lines wrap
  * to, the alignment of a text's lines in the text style, the line break of
- * captions by width, and the outline and the shadow of the spoken word (D83).
- * The schemas of 0.1 to 0.24 are kept as data in `v0-1` to `v0-24` (D35.4).
+ * captions by width, and the outline and the shadow of the spoken word (D83);
+ * 0.26 is 0.25 plus the fades of a video's sound, and the volume curve of a
+ * video and of an audio clip: keyframes of factors from 0 to 1, linear in
+ * decibels or held, multiplied with the volume and the fades (D85). The
+ * schemas of 0.1 to 0.25 are kept as data in `v0-1` to `v0-25` (D35.4).
  */
 import {
   closedObject,
@@ -63,7 +66,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.25';
+export const SCHEMA_VERSION = '0.26';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -382,6 +385,38 @@ export const cornerRadiusAnimationSchema = animation(
   cornerRadius,
 );
 
+/** How a volume keyframe moves to the next: the two curves Web Audio defines exactly (D85.2). */
+const volumeEasingSchema = {
+  description:
+    'How the gain moves to the next keyframe: linear, in decibels between two values above 0 and in amplitude where one of them is 0, or hold (D85.2).',
+  oneOf: [linearEasingSchema, holdEasingSchema],
+} as const satisfies UnionSchema;
+
+/** The volume curve of a video or an audio clip (D85.2): factors multiplied with its volume and its fades. */
+export const volumeAnimationSchema = closedObject(
+  'Factors multiplied with the volume and the fades of the sound, in the time of what holds it (D85.2).',
+  {
+    id,
+    property: { type: 'string', const: 'volume' },
+    keyframes: {
+      type: 'array',
+      minItems: 2,
+      items: closedObject(
+        'The gain of the sound at one instant, and how it moves from here to the next keyframe; the easing of the last keyframe is never read (D85.2).',
+        {
+          timeUs,
+          value: {
+            ...volume,
+            description:
+              'Linear factor of the amplitude, from 0 to 1, multiplied with the volume and the fades; it never amplifies (D85.2).',
+          },
+          easing: volumeEasingSchema,
+        },
+      ),
+    },
+  },
+);
+
 /** A coordinate of a point of a shape, in composition pixels of the node's box; a JSON number (D73). */
 const shapeCoordinate = {
   type: 'number',
@@ -659,7 +694,7 @@ export const geometryAnimationSchema = animation(
  */
 export const animationSchema = {
   description:
-    'An animation of one property of the node that owns it: position, rotation, and origin are offsets added to the base value, scale and opacity factors multiplied with it, and size, color, crop, cornerRadius, and the fill, stroke/color, stroke/width, trim/start, trim/end, and geometry of a shape values that replace it (D16.6, D65.1, D68, D73).',
+    'An animation of one property of the node that owns it: position, rotation, and origin are offsets added to the base value, scale, opacity, and the volume of a video factors multiplied with it, and size, color, crop, cornerRadius, and the fill, stroke/color, stroke/width, trim/start, trim/end, and geometry of a shape values that replace it (D16.6, D65.1, D68, D73).',
   oneOf: [
     opacityAnimationSchema,
     positionAnimationSchema,
@@ -676,6 +711,7 @@ export const animationSchema = {
     trimStartAnimationSchema,
     trimEndAnimationSchema,
     geometryAnimationSchema,
+    volumeAnimationSchema,
   ],
 } as const satisfies UnionSchema;
 
@@ -713,6 +749,15 @@ const pictureTransform = transform([
   sizeAnimationSchema,
   cropAnimationSchema,
   cornerRadiusAnimationSchema,
+] as const);
+
+/** A video: the rows of a picture and the volume curve of its sound (D85.2). */
+const videoTransform = transform([
+  ...TRANSFORM_ANIMATIONS,
+  sizeAnimationSchema,
+  cropAnimationSchema,
+  cornerRadiusAnimationSchema,
+  volumeAnimationSchema,
 ] as const);
 
 /** A shape: the transform rows, size, and the rows of its fill, stroke, trim, and geometry (D73). */
@@ -1436,12 +1481,12 @@ type ImageNodeSchemaValue = typeof imageNodeSchemaValue;
 export const imageNodeSchema: ImageNodeSchema = imageNodeSchemaValue;
 
 export const videoNodeSchema = closedObject(
-  'A video asset: at each instant of its lifetime the source frame of D49.5 at the source time of its time map, fitted to the box of the node, and, at a volume above 0 and a speed above 0, the sound of its source at the same source time, its pitch kept (D50, D52, D82).',
+  'A video asset: at each instant of its lifetime the source frame of D49.5 at the source time of its time map, fitted to the box of the node, and, at a volume above 0 and a speed above 0, the sound of its source at the same source time, its pitch kept, at its volume, with its fades, and along its volume curve (D50, D52, D82, D85).',
   {
     id,
     type: { type: 'string', const: 'video' },
     ...lifetime,
-    ...pictureTransform,
+    ...videoTransform,
     assetId: assetReference,
     sourceStartUs: {
       ...timeUs,
@@ -1461,6 +1506,16 @@ export const videoNodeSchema = closedObject(
       ...volume,
       description:
         'Linear factor of the amplitude of the sound of the video, from 0 to 1. At 0 the video is silent and its source needs no sound; above 0 it needs exactly one audio stream (D52).',
+    },
+    fadeInUs: {
+      ...fadeUs,
+      description:
+        "The sound rises linearly from silence to its volume over the first fadeInUs of the node's lifetime; the picture does not fade (D85.1).",
+    },
+    fadeOutUs: {
+      ...fadeUs,
+      description:
+        "The sound falls linearly from its volume to silence over the last fadeOutUs of the node's lifetime, even where its scene or its group cuts it earlier (D85.1).",
     },
     effects,
     ...compositing,
@@ -2394,7 +2449,7 @@ export const definitionNodeSchema = {
  * composition's `clips`, scene time in a scene's `clips` (D49.3, D54).
  */
 export const audioClipSchema = closedObject(
-  'Plays an audio asset from sourceStartUs for durationUs, at its speed (its pitch kept) and in its direction, at its volume and with its fades; whatever lies past the end of what holds it — the composition, or its scene — is cut. Clips are mixed regardless of their order (D52, D54, D82).',
+  'Plays an audio asset from sourceStartUs for durationUs, at its speed (its pitch kept) and in its direction, at its volume, with its fades, and along its volume curve; whatever lies past the end of what holds it — the composition, or its scene — is cut. Clips are mixed regardless of their order (D52, D54, D82, D85).',
   {
     id,
     type: { type: 'string', const: 'audio' },
@@ -2419,6 +2474,12 @@ export const audioClipSchema = closedObject(
       ...fadeUs,
       description:
         'The clip falls linearly from its volume to silence over the last fadeOutUs of its lifetime, even where its scene or the composition cuts it earlier (D52).',
+    },
+    animations: {
+      type: 'array',
+      description:
+        'At most one animation, of volume: its keyframes are in the time of what holds the clip, like those of a node (D85.2).',
+      items: { oneOf: [volumeAnimationSchema] },
     },
   },
 );
@@ -3024,7 +3085,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.25',
+  title: 'Kadrion composition 0.26',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

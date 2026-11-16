@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.25",
+  "schemaVersion": "0.26",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -243,7 +243,8 @@
       "reverse": false,
       "volume": 1,
       "fadeInUs": 1000000,
-      "fadeOutUs": 1000000
+      "fadeOutUs": 1000000,
+      "animations": []
     },
     {
       "id": "clip-second",
@@ -257,7 +258,8 @@
       "reverse": false,
       "volume": 0.5,
       "fadeInUs": 1000000,
-      "fadeOutUs": 1000000
+      "fadeOutUs": 1000000,
+      "animations": []
     }
   ],
   "transitions": [],

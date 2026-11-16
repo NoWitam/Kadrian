@@ -342,6 +342,7 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
       'stroke/width',
       'trim/end',
       'trim/start',
+      'volume',
     ]);
     for (const [property, minimum] of minimums) {
       expect(keyframeMinimum(compositionSchema, property), property).toBe(minimum);

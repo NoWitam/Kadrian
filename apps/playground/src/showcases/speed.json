@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.25",
+  "schemaVersion": "0.26",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -83,6 +83,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": {
             "kind": "none"
@@ -185,6 +187,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": {
             "kind": "none"
@@ -287,6 +291,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": {
             "kind": "none"
@@ -339,6 +345,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": {
             "kind": "none"
@@ -441,6 +449,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": {
             "kind": "none"
@@ -522,7 +532,8 @@
       "reverse": false,
       "volume": 1,
       "fadeInUs": 200000,
-      "fadeOutUs": 200000
+      "fadeOutUs": 200000,
+      "animations": []
     },
     {
       "id": "clip-rewind",
@@ -539,7 +550,8 @@
       "reverse": true,
       "volume": 1,
       "fadeInUs": 200000,
-      "fadeOutUs": 200000
+      "fadeOutUs": 200000,
+      "animations": []
     }
   ],
   "transitions": [],

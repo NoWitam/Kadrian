@@ -16,93 +16,28 @@
  * The gain depends on the composition sample and the keyframes only, never on
  * the sound's start, so the halves of a split hear the curve of the whole.
  *
- * It is the entry `@kadrion/runtime/volume`, which neither the render page nor
- * the Player imports before schema `0.26` (PR-76), so the runtime build and
- * the Player's dist tree do not change (D21, D33.10, PR-75).
+ * It is the entry `@kadrion/runtime/volume`, which the render page does not
+ * import, so `volumeEnvelope` is no part of the runtime build (D21); the
+ * Producer multiplies a sound by its envelope (D85.5) and the Player reads the
+ * gain where a play starts from it (D85.6). The placement lives beside the
+ * audio layout, which places every curve of a document (D85.4), and is
+ * re-exported here.
  */
-import { sampleAt } from './audio.js';
+import {
+  checkVolumeEasing,
+  checkVolumeValue,
+  placeVolumeKeys,
+  type VolumeEasing,
+  type VolumeKey,
+  type VolumeSampleKey,
+} from './audio.js';
 import { log2, exp2Fraction, scaleByPowerOfTwo, splitPowerOfTwo } from './volume-arithmetic.js';
 
-/** The easings a volume keyframe takes (D85.2): both are curves Web Audio defines exactly. */
-export type VolumeEasing = { readonly kind: 'linear' } | { readonly kind: 'hold' };
-
-/** A keyframe of a sound's `volume` animation in composition time (D85.3). */
-export interface VolumeKey {
-  readonly timeUs: number;
-  /** A linear factor of the amplitude, from 0 to 1. */
-  readonly value: number;
-  /** How the curve moves from this keyframe to the next. */
-  readonly easing: VolumeEasing;
-}
-
-/** A keyframe on the sample grid, counted from the sound's first sample (D85.4). */
-export interface VolumeSampleKey {
-  readonly sample: number;
-  readonly value: number;
-  readonly easing: VolumeEasing;
-}
+export { placeVolumeKeys, type VolumeEasing, type VolumeKey, type VolumeSampleKey };
 
 /** A sound with a volume curve: its keyframes on the grid, at strictly increasing samples. */
 export interface VolumeCurve {
   readonly volumeKeys: readonly VolumeSampleKey[];
-}
-
-function checkValue(value: number): void {
-  if (!(value >= 0 && value <= 1)) {
-    throw new RangeError('A volume keyframe is a factor from 0 to 1 (D85.2).');
-  }
-}
-
-function checkEasing(easing: VolumeEasing): void {
-  const kind = (easing as { readonly kind?: unknown } | null)?.kind;
-  if (kind !== 'linear' && kind !== 'hold') {
-    throw new RangeError('A volume keyframe is eased linear or hold (D85.2).');
-  }
-}
-
-/**
- * Places the keyframes of a sound's curve on the grid of `AUDIO_SAMPLE_RATE`
- * (D85.4): each at the sample of its time by `sampleAt`, an exact half up,
- * counted from the sample of `startUs`. It keeps those that shape the
- * `sampleCount` samples heard: the last at or before sample 0, every one
- * between, and the first at or after sample `sampleCount`. Of two keyframes
- * on one sample the later is kept, so the curve jumps there.
- */
-export function placeVolumeKeys(
-  keys: readonly VolumeKey[],
-  startUs: number,
-  sampleCount: number,
-): VolumeSampleKey[] {
-  if (keys.length === 0) throw new RangeError('A volume curve has at least one keyframe.');
-  if (!Number.isSafeInteger(startUs) || startUs < 0) {
-    throw new RangeError('A sound starts at an integer time from 0.');
-  }
-  if (!Number.isSafeInteger(sampleCount) || sampleCount < 0) {
-    throw new RangeError('A sound hears a whole number of samples.');
-  }
-  const first = sampleAt(BigInt(startUs));
-  const placed: VolumeSampleKey[] = [];
-  keys.forEach((key, index) => {
-    if (!Number.isSafeInteger(key.timeUs) || key.timeUs < 0) {
-      throw new RangeError('A volume keyframe is at an integer time from 0.');
-    }
-    if (index > 0 && key.timeUs <= (keys[index - 1] as VolumeKey).timeUs) {
-      throw new RangeError('The keyframes of a volume curve are in strictly increasing time.');
-    }
-    checkValue(key.value);
-    checkEasing(key.easing);
-    const sample = Number(sampleAt(BigInt(key.timeUs)) - first);
-    // Two keyframes on one sample: the later replaces the earlier (a jump).
-    if (placed.length > 0 && (placed[placed.length - 1] as VolumeSampleKey).sample === sample) {
-      placed.pop();
-    }
-    placed.push({ sample, value: key.value, easing: key.easing });
-  });
-  let from = 0;
-  while (from + 1 < placed.length && (placed[from + 1] as VolumeSampleKey).sample <= 0) from += 1;
-  let to = from;
-  while (to + 1 < placed.length && (placed[to] as VolumeSampleKey).sample < sampleCount) to += 1;
-  return placed.slice(from, to + 1);
 }
 
 /** What a segment needs per sample, computed once when the envelope enters it. */
@@ -158,8 +93,8 @@ export function volumeEnvelope(
     if (index > 0 && key.sample <= (keys[index - 1] as VolumeSampleKey).sample) {
       throw new RangeError('The placed keyframes of a volume curve are at increasing samples.');
     }
-    checkValue(key.value);
-    checkEasing(key.easing);
+    checkVolumeValue(key.value);
+    checkVolumeEasing(key.easing);
   });
   if (!Number.isSafeInteger(fromSample) || !Number.isSafeInteger(count) || count < 0) {
     throw new RangeError('An envelope is of a whole number of samples from an integer sample.');

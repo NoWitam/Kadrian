@@ -135,6 +135,7 @@ describe('the existing commands inside a definition (D76)', () => {
         volume: 1,
         fadeInUs: 0,
         fadeOutUs: 0,
+        animations: [],
       },
     });
     expect(definition(added, 'badge').clips.map(({ id }) => id)).toEqual(['badge-sound']);

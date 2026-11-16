@@ -48,6 +48,8 @@ interface VideoFields {
   readonly speed?: { readonly num: number; readonly den: number };
   readonly reverse?: boolean;
   readonly volume?: number;
+  readonly fadeInUs?: number;
+  readonly fadeOutUs?: number;
 }
 
 /**
@@ -584,6 +586,21 @@ describe('freezeFrame holds the frame shown at atUs (D82.3, D82.9)', () => {
     expect(createdIds).toEqual(expect.arrayContaining(['node-video-after', 'node-video-freeze']));
     bus.undo();
     expect(json(bus.getDocument())).toBe(before);
+  });
+
+  it('freezes a heard video between its fades: each half keeps its own fade, the freeze none (D85.8)', () => {
+    const document = withVideo({ volume: 1, fadeInUs: 500_000, fadeOutUs: 1_000_000 });
+    for (const mode of ['overwrite', 'insert'] as const) {
+      const { bus, before, after } = frozen(document, { ...ARGS, mode });
+      expect(clipOf(after, 'node-video')).toMatchObject({ fadeInUs: 500_000, fadeOutUs: 0 });
+      expect(clipOf(after, 'node-video-freeze')).toMatchObject({ fadeInUs: 0, fadeOutUs: 0 });
+      expect(clipOf(after, 'node-video-after')).toMatchObject({
+        fadeInUs: 0,
+        fadeOutUs: 1_000_000,
+      });
+      bus.undo();
+      expect(json(bus.getDocument())).toBe(before);
+    }
   });
 
   it('builds the commands of D82.9 in order, and reads the document without changing it', () => {

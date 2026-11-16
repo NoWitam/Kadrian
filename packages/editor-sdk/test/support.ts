@@ -50,6 +50,8 @@ export const VIDEO_NODE = Object.freeze({
   crop: Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 }),
   cornerRadius: 0,
   volume: 0,
+  fadeInUs: 0,
+  fadeOutUs: 0,
   effects: Object.freeze([]),
   mask: Object.freeze({ kind: 'none' }),
   matte: Object.freeze({ kind: 'none' }),

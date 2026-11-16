@@ -46,6 +46,7 @@ const VOICE = Object.freeze({
   volume: 0.8,
   fadeInUs: 250_000,
   fadeOutUs: 1_000_000,
+  animations: [],
 });
 
 function clipsOf(document: unknown): Record<string, unknown>[] {

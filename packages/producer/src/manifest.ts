@@ -185,6 +185,25 @@ export interface ManifestSound {
    * render without a mapped sound keeps its bytes and its version.
    */
   readonly stretch?: ManifestStretch;
+  /**
+   * A sound with a volume curve (D85.5): its keyframes placed on the grid from
+   * its first sample, those that shape the samples heard (D85.4). Absent
+   * without a curve, so the manifest of a render without one keeps its bytes
+   * and its version.
+   */
+  readonly volumeKeys?: readonly ManifestVolumeKey[];
+  /**
+   * The SHA-256 of the envelope the curve multiplied the sound by, interleaved
+   * 32-bit little-endian float stereo of its samples heard; with `volumeKeys`.
+   */
+  readonly envelopeSha256?: string;
+}
+
+/** A keyframe of a volume curve on the grid of the mix (D85.4). */
+export interface ManifestVolumeKey {
+  readonly sample: number;
+  readonly value: number;
+  readonly easing: { readonly kind: 'linear' } | { readonly kind: 'hold' };
 }
 
 /** What the manifest records of a mapped sound (D82.6). */

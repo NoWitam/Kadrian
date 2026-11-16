@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.26"
+        "value": "0.27"
       }
     ],
     "expectedErrors": [
@@ -815,7 +815,8 @@
           "reverse": false,
           "volume": 1,
           "fadeInUs": 0,
-          "fadeOutUs": 0
+          "fadeOutUs": 0,
+          "animations": []
         }
       }
     ],
@@ -1367,6 +1368,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
@@ -1436,6 +1439,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
@@ -1507,6 +1512,8 @@
           "cornerRadius": 0,
           "muted": true,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
@@ -1568,6 +1575,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
@@ -1638,6 +1647,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
@@ -1708,6 +1719,8 @@
           },
           "cornerRadius": 0,
           "volume": 2,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
@@ -1778,6 +1791,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
@@ -1869,7 +1884,8 @@
           "reverse": false,
           "volume": 1,
           "fadeInUs": 0,
-          "fadeOutUs": 0
+          "fadeOutUs": 0,
+          "animations": []
         }
       }
     ],
@@ -1899,7 +1915,8 @@
           "reverse": false,
           "volume": 1,
           "fadeInUs": 600000,
-          "fadeOutUs": 600000
+          "fadeOutUs": 600000,
+          "animations": []
         }
       }
     ],
@@ -1930,6 +1947,7 @@
           "volume": 1,
           "fadeInUs": 0,
           "fadeOutUs": 0,
+          "animations": [],
           "muted": 0
         }
       }
@@ -12008,6 +12026,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
@@ -12108,6 +12128,598 @@
       {
         "code": "invalid-type",
         "path": "/clips/0/reverse"
+      }
+    ]
+  },
+  {
+    "name": "video-fades-exceed-duration",
+    "description": "A video's fades fit in its lifetime (D85.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 1,
+            "den": 1
+          },
+          "reverse": false,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 1,
+          "fadeInUs": 600000,
+          "fadeOutUs": 600000,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "clip-fades-exceed-duration",
+        "path": "/scenes/0/nodes/4/fadeOutUs"
+      }
+    ]
+  },
+  {
+    "name": "video-in-group-fades-exceed-duration",
+    "description": "The fades of a video in a group fit in its own lifetime (D85.1).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/children/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 1,
+            "den": 1
+          },
+          "reverse": false,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 1,
+          "fadeInUs": 1000000,
+          "fadeOutUs": 1,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "clip-fades-exceed-duration",
+        "path": "/scenes/0/nodes/1/children/2/fadeOutUs"
+      }
+    ]
+  },
+  {
+    "name": "video-fade-out-missing",
+    "description": "A video node of 0.26 states its fade-out (D85.7).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 1,
+            "den": 1
+          },
+          "reverse": false,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 1,
+          "fadeInUs": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/scenes/0/nodes/4/fadeOutUs"
+      }
+    ]
+  },
+  {
+    "name": "video-volume-animation-eased",
+    "description": "A volume keyframe is eased linear or hold only (D85.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/assets/-",
+        "value": {
+          "id": "asset-video",
+          "type": "video",
+          "contentHash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/-",
+        "value": {
+          "id": "node-video",
+          "type": "video",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "node-video-a-volume",
+              "property": "volume",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 1,
+                  "easing": {
+                    "kind": "ease-in"
+                  }
+                },
+                {
+                  "timeUs": 500000,
+                  "value": 0.5,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-video",
+          "sourceStartUs": 0,
+          "sourceStartRemainder": 0,
+          "speed": {
+            "num": 1,
+            "den": 1
+          },
+          "reverse": false,
+          "width": 320,
+          "height": 180,
+          "fit": "contain",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "volume": 1,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/4/animations/0/keyframes/0/easing/kind"
+      }
+    ]
+  },
+  {
+    "name": "image-volume-animation",
+    "description": "Only a video and an audio clip have a volume curve (D85.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/children/0/animations/-",
+        "value": {
+          "id": "image-a-volume",
+          "property": "volume",
+          "keyframes": [
+            {
+              "timeUs": 0,
+              "value": 1,
+              "easing": {
+                "kind": "linear"
+              }
+            },
+            {
+              "timeUs": 500000,
+              "value": 0.5,
+              "easing": {
+                "kind": "linear"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/1/children/0/animations/1/property"
+      }
+    ]
+  },
+  {
+    "name": "clip-animations-missing",
+    "description": "An audio clip of 0.26 states its animations (D85.7).",
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/clips/0/animations"
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/clips/0/animations"
+      }
+    ]
+  },
+  {
+    "name": "clip-volume-animation-duplicate",
+    "description": "A clip has at most one volume curve (D16.6, D85.7).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clips/0/animations",
+        "value": [
+          {
+            "id": "clip-audio-a-volume",
+            "property": "volume",
+            "keyframes": [
+              {
+                "timeUs": 0,
+                "value": 1,
+                "easing": {
+                  "kind": "linear"
+                }
+              },
+              {
+                "timeUs": 500000,
+                "value": 0.5,
+                "easing": {
+                  "kind": "linear"
+                }
+              }
+            ]
+          },
+          {
+            "id": "clip-audio-a-volume-2",
+            "property": "volume",
+            "keyframes": [
+              {
+                "timeUs": 0,
+                "value": 1,
+                "easing": {
+                  "kind": "hold"
+                }
+              },
+              {
+                "timeUs": 500000,
+                "value": 0.5,
+                "easing": {
+                  "kind": "linear"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "duplicate-animation-target",
+        "path": "/clips/0/animations/1/property"
+      }
+    ]
+  },
+  {
+    "name": "clip-volume-keyframe-above-one",
+    "description": "A volume keyframe never amplifies (D85.2, question 14).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/clips/0/animations/-",
+        "value": {
+          "id": "clip-audio-a-volume",
+          "property": "volume",
+          "keyframes": [
+            {
+              "timeUs": 0,
+              "value": 1,
+              "easing": {
+                "kind": "linear"
+              }
+            },
+            {
+              "timeUs": 500000,
+              "value": 1.5,
+              "easing": {
+                "kind": "linear"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/clips/0/animations/0/keyframes/1/value"
+      }
+    ]
+  },
+  {
+    "name": "clip-volume-easing-steps",
+    "description": "A volume keyframe is eased linear or hold only (D85.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/clips/0/animations/-",
+        "value": {
+          "id": "clip-audio-a-volume",
+          "property": "volume",
+          "keyframes": [
+            {
+              "timeUs": 0,
+              "value": 1,
+              "easing": {
+                "kind": "steps",
+                "count": 2,
+                "position": "end"
+              }
+            },
+            {
+              "timeUs": 500000,
+              "value": 0.5,
+              "easing": {
+                "kind": "linear"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/clips/0/animations/0/keyframes/0/easing/kind"
+      }
+    ]
+  },
+  {
+    "name": "clip-animation-opacity",
+    "description": "An audio clip animates its volume only (D85.8).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/clips/0/animations/-",
+        "value": {
+          "id": "clip-audio-a-opacity",
+          "property": "opacity",
+          "keyframes": [
+            {
+              "timeUs": 0,
+              "value": 1,
+              "easing": {
+                "kind": "linear"
+              }
+            },
+            {
+              "timeUs": 500000,
+              "value": 0.5,
+              "easing": {
+                "kind": "linear"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/clips/0/animations/0/property"
+      }
+    ]
+  },
+  {
+    "name": "clip-volume-keyframes-not-ascending",
+    "description": "The keyframes of a volume curve ascend strictly (D16).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/clips/0/animations/-",
+        "value": {
+          "id": "clip-audio-a-volume",
+          "property": "volume",
+          "keyframes": [
+            {
+              "timeUs": 500000,
+              "value": 1,
+              "easing": {
+                "kind": "linear"
+              }
+            },
+            {
+              "timeUs": 500000,
+              "value": 0.5,
+              "easing": {
+                "kind": "linear"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "keyframes-not-ascending",
+        "path": "/clips/0/animations/0/keyframes/1/timeUs"
       }
     ]
   }

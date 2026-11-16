@@ -122,6 +122,10 @@ function evaluateTransform(node: TransformedNode, timeUs: number): TransformStat
           unsupported(animation as never, 'property');
         }
         break;
+      case 'volume':
+        // The volume curve of a video's sound shapes no picture: the audio plan reads it (D85.2).
+        if (node.type !== 'video') unsupported(animation as never, 'property');
+        break;
       default:
         unsupported(animation, 'property');
     }

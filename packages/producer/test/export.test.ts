@@ -13,6 +13,7 @@ import { basename, join } from 'node:path';
 import { Writable } from 'node:stream';
 
 import { audioPlan } from '@kadrion/runtime';
+import { volumeEnvelope } from '@kadrion/runtime/volume';
 import {
   generateReferenceAssets,
   referenceComposition,
@@ -288,6 +289,7 @@ describe('samples at 48 kHz (D29.6)', () => {
           volume: 0.125,
           fadeInUs: 0,
           fadeOutUs: 0,
+          animations: [],
         });
       }),
     );
@@ -822,6 +824,8 @@ interface FakeRun {
   deliveredFrames: number;
   /** The arguments of every segment encoder, in order. */
   readonly encoderArgs: (readonly string[])[];
+  /** The first chunk of every envelope pipe of each audio pass, read as FFmpeg would start to (D85.5). */
+  readonly pipes: (Uint8Array | undefined)[][];
 }
 
 interface FakeOptions {
@@ -855,6 +859,7 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
     timer: manualTimer(),
     deliveredFrames: 0,
     encoderArgs: [],
+    pipes: [],
     dependencies: undefined as unknown as ExportDependencies,
   };
   const sequence: FrameSequence = async (prepared, frames, deliver) => {
@@ -914,8 +919,17 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
         samples: (options.audioSamples ?? ((n) => n))(samples),
       });
     },
-    run(args, input, _timeoutMs, signal) {
+    run(args, input, _timeoutMs, signal, pipes = []) {
       options.onPass?.(args);
+      // Only the first chunk is read: the export computes the rest of each envelope itself.
+      if (!args.includes('concat')) {
+        run.pipes.push(
+          pipes.map((pipe) => {
+            const chunk = pipe.next();
+            return chunk.done === true ? undefined : chunk.value;
+          }),
+        );
+      }
       const text = new TextDecoder().decode(input);
       const output = outputOf(args);
       run.inputs.push({ args, text: args.includes('concat') ? text : '', bytes: input.length });
@@ -1079,7 +1093,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
       'tools',
       `probe sound-0 ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.25',
+      'load 0.26',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,
@@ -2688,5 +2702,167 @@ describe('the audio of a file read by path (D64)', () => {
     } finally {
       host.done();
     }
+  });
+});
+
+describe('a volume curve in the audio pass (D85.5)', () => {
+  const linear = { kind: 'linear' } as const;
+  const hold = { kind: 'hold' } as const;
+  const keyframes = [
+    { timeUs: 1_000_000, value: 0, easing: linear },
+    { timeUs: 3_000_000, value: 1, easing: hold },
+    { timeUs: 6_000_000, value: 0.25, easing: linear },
+    { timeUs: 9_000_000, value: 0.5, easing: linear },
+  ];
+  /** The reference composition, its 10 s clip with the curve above. */
+  const curved = variant((draft) => {
+    const [clip] = draft.clips as Record<string, unknown>[];
+    Object.assign(clip ?? {}, {
+      animations: [{ id: 'clip-audio-a-volume', property: 'volume', keyframes }],
+    });
+  });
+  /** The envelope of the whole clip, written out from the samples of D85.4 independently of the export. */
+  const envelopeBytes = (): Uint8Array => {
+    // 1 s, 3 s, 6 s, 9 s: whole samples at 48 kHz.
+    const gains = volumeEnvelope(
+      {
+        volumeKeys: [
+          { sample: 48_000, value: 0, easing: linear },
+          { sample: 144_000, value: 1, easing: hold },
+          { sample: 288_000, value: 0.25, easing: linear },
+          { sample: 432_000, value: 0.5, easing: linear },
+        ],
+      },
+      0,
+      480_000,
+    );
+    const bytes = new Uint8Array(gains.length * 8);
+    const view = new DataView(bytes.buffer);
+    gains.forEach((gain, i) => {
+      view.setFloat32(8 * i, gain, true);
+      view.setFloat32(8 * i + 4, gain, true);
+    });
+    return bytes;
+  };
+
+  it('multiplies the sound by its envelope after its fades and before its delay', () => {
+    const layout = audioLayout(audioPlan(validated(curved)));
+    expect(layout.sounds[0]?.volumeKeys).toEqual([
+      { sample: 48_000, value: 0, easing: linear },
+      { sample: 144_000, value: 1, easing: hold },
+      { sample: 288_000, value: 0.25, easing: linear },
+      { sample: 432_000, value: 0.5, easing: linear },
+    ]);
+    expect(audioPassGraph(layout, { startSample: 0, sampleCount: 480_000 }).split(';')).toEqual([
+      '[0:a:0]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=0:end_sample=480000,asetpts=N/SR/TB[s0pre]',
+      '[1:a:0]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[e0]',
+      '[s0pre][e0]amultiply[s0post]',
+      '[s0post]adelay=delays=0S:all=1,apad=whole_len=480000,atrim=end_sample=480000[s0]',
+      '[s0]atrim=start_sample=0:end_sample=480000,asetpts=N/SR/TB[a]',
+    ]);
+  });
+
+  it('reads the envelopes after every sound, in the order of the sounds, and leaves a sound without a curve as it was', () => {
+    const two = validated(
+      variant((draft) => {
+        (draft.clips as unknown[]).push({
+          id: 'clip-second',
+          type: 'audio',
+          assetId: 'asset-audio',
+          startUs: 5_000_000,
+          durationUs: 1_000_000,
+          sourceStartUs: 0,
+          sourceStartRemainder: 0,
+          speed: { num: 1, den: 1 },
+          reverse: false,
+          volume: 0.125,
+          fadeInUs: 100_000,
+          fadeOutUs: 0,
+          animations: [
+            {
+              id: 'clip-second-a-volume',
+              property: 'volume',
+              keyframes: [
+                { timeUs: 5_000_000, value: 1, easing: linear },
+                { timeUs: 6_000_000, value: 0.5, easing: linear },
+              ],
+            },
+          ],
+        });
+      }),
+    );
+    const graph = audioPassGraph(audioLayout(audioPlan(two)), {
+      startSample: 96_000,
+      sampleCount: 96_000,
+    });
+    expect(graph.split(';')).toEqual([
+      '[0:a:0]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=0:end_sample=480000,asetpts=N/SR/TB,adelay=delays=0S:all=1,apad=whole_len=480000,atrim=end_sample=480000[s0]',
+      '[1:a:0]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,atrim=start_sample=0:end_sample=48000,asetpts=N/SR/TB,volume=volume=0.125:precision=float,afade=t=in:ss=0:ns=4800:curve=tri[s1pre]',
+      '[2:a:0]aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[e1]',
+      '[s1pre][e1]amultiply[s1post]',
+      '[s1post]adelay=delays=240000S:all=1,apad=whole_len=480000,atrim=end_sample=480000[s1]',
+      '[s0][s1]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,atrim=start_sample=96000:end_sample=192000,asetpts=N/SR/TB[a]',
+    ]);
+    expect(
+      audioPassArgs({
+        graph,
+        inputs: ['/a.wav', '/b.wav'],
+        envelopes: ['pipe:3'],
+        output: '/o.wav',
+      }),
+    ).toEqual([
+      ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1'],
+      ...['-i', 'file:/a.wav', '-i', 'file:/b.wav'],
+      ...['-f', 'f32le', '-ar', '48000', '-ch_layout', 'stereo', '-i', 'pipe:3'],
+      ...['-filter_complex_threads', '1', '-filter_complex', graph, '-map', '[a]'],
+      ...['-c:a', 'pcm_f32le', '-ar', '48000', '-ac', '2'],
+      ...['-map_metadata', '-1', '-map_chapters', '-1', '-fflags', '+bitexact'],
+      ...['-flags:a', '+bitexact'],
+      ...['-f', 'wav', '-y', '/o.wav'],
+    ]);
+    expect(audioPassArgs({ graph, inputs: ['/a.wav'], envelopes: [], output: '/o.wav' })).toEqual(
+      audioPassArgs({ graph, inputs: ['/a.wav'], output: '/o.wav' }),
+    );
+  });
+
+  it('streams the envelope on pipe:3 and records the placed keyframes and its SHA-256', async () => {
+    const run = fakeRun();
+    const { manifest } = await exportWith(request({ document: curved }), run.dependencies);
+    const expected = envelopeBytes();
+    expect(run.pipes).toHaveLength(1);
+    expect(run.pipes[0]).toEqual([expected.subarray(0, 4_096 * 8)]);
+    const passArgs = run.inputs.find(({ args }) => !args.includes('concat'))?.args ?? [];
+    expect(passArgs.slice(passArgs.indexOf('-f'), passArgs.indexOf('-f') + 8)).toEqual([
+      '-f',
+      'f32le',
+      '-ar',
+      '48000',
+      '-ch_layout',
+      'stereo',
+      '-i',
+      'pipe:3',
+    ]);
+    expect(manifest.audio?.sounds[0]).toMatchObject({
+      volumeKeys: [
+        { sample: 48_000, value: 0, easing: linear },
+        { sample: 144_000, value: 1, easing: hold },
+        { sample: 288_000, value: 0.25, easing: linear },
+        { sample: 432_000, value: 0.5, easing: linear },
+      ],
+      envelopeSha256: `sha256:${hex(expected)}`,
+    });
+    expect(manifest.ffmpeg.audioArgs).toContain('<envelope-0>');
+    expect(manifest.ffmpeg.audioArgs).not.toContain('pipe:3');
+    expect(manifest.manifestVersion).toBe(5);
+  });
+
+  it('keeps every byte of a render without a curve: no pipe, no field', async () => {
+    const run = fakeRun();
+    const { manifest } = await exportWith(request(), run.dependencies);
+    expect(run.pipes).toEqual([[]]);
+    const [sound] = manifest.audio?.sounds ?? [];
+    expect(Object.keys(sound ?? {})).not.toContain('volumeKeys');
+    expect(Object.keys(sound ?? {})).not.toContain('envelopeSha256');
+    expect(manifest.ffmpeg.audioArgs).not.toContain('f32le');
   });
 });

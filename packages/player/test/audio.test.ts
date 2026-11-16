@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 import { audioLayout, audioPlan, type AudioLayout } from '@kadrion/runtime';
 import { stretchSound } from '@kadrion/runtime/stretch';
+import { volumeEnvelope } from '@kadrion/runtime/volume';
 import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
 import { referenceComposition } from '@kadrion/test-fixtures';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -34,7 +35,8 @@ import { headerPng } from './media.js';
 const R = 48_000;
 
 interface Automation {
-  readonly kind: 'set' | 'ramp';
+  /** `ramp` is a linear ramp, `exponential` an exponential one. */
+  readonly kind: 'set' | 'ramp' | 'exponential';
   readonly value: number;
   readonly time: number;
 }
@@ -91,6 +93,9 @@ function fakeNode(kind: FakeNode['kind']): FakeNode & Record<string, unknown> {
       },
       linearRampToValueAtTime(value: number, time: number) {
         node.automation.push({ kind: 'ramp', value, time });
+      },
+      exponentialRampToValueAtTime(value: number, time: number) {
+        node.automation.push({ kind: 'exponential', value, time });
       },
     },
   };
@@ -192,6 +197,7 @@ const CLIP = {
   volume: 0.5,
   fadeInUs: 500_000,
   fadeOutUs: 1_000_000,
+  animations: [],
 };
 
 function layoutOf(document: ValidatedComposition): AudioLayout {
@@ -334,6 +340,78 @@ function tones(seconds: number): Float32Array[] {
     ),
   );
 }
+
+describe('a volume curve (D85.6)', () => {
+  const linear = { kind: 'linear' } as const;
+  const hold = { kind: 'hold' } as const;
+  // In composition time: the clip is heard from 1 s to 3 s, its first sample 48 000.
+  const curved = {
+    ...CLIP,
+    volume: 1,
+    fadeOutUs: 0,
+    animations: [
+      {
+        id: 'clip-a-a-volume',
+        property: 'volume',
+        keyframes: [
+          { timeUs: 1_500_000, value: 0.25, easing: linear },
+          { timeUs: 2_000_000, value: 1, easing: hold },
+          { timeUs: 2_500_000, value: 0.5, easing: linear },
+          { timeUs: 2_750_000, value: 0, easing: linear },
+          { timeUs: 3_500_000, value: 0.5, easing: linear },
+        ],
+      },
+    ],
+  };
+
+  it('follows the keyframes after the fades: a ramp in decibels, a hold, and ramps through 0', () => {
+    const { context, sources } = fakeContext();
+    const layout = layoutOf(withClips([curved]));
+    expect(layout.sounds[0]?.volumeKeys?.map(({ sample }) => sample)).toEqual([
+      24_000, 48_000, 72_000, 84_000, 120_000,
+    ]);
+    scheduleSounds(asContext(context), layout, new Map([['asset-audio', buffer(10 * R)]]), 0, 2);
+    const chain = chainOf(sources()[0] as FakeNode);
+    expect(chain).toHaveLength(3);
+    const [, fadeIn, curve] = chain;
+    expect(fadeIn?.automation[0]).toEqual({ kind: 'set', value: 0, time: 3 });
+    expect([curve?.channelCount, curve?.channelCountMode]).toEqual([2, 'explicit']);
+    // Sample k of the sound is heard at 3 + k / 48 000.
+    expect(curve?.automation).toEqual([
+      { kind: 'set', value: 0.25, time: 3 },
+      { kind: 'set', value: 0.25, time: 3.5 },
+      { kind: 'exponential', value: 1, time: 4 },
+      { kind: 'set', value: 0.5, time: 4.5 },
+      { kind: 'ramp', value: 0, time: 4.75 },
+      { kind: 'ramp', value: 0.5, time: 5.5 },
+    ]);
+  });
+
+  it('starts a seek inside a ramp in decibels from the gain of the envelope there', () => {
+    const { context, sources } = fakeContext();
+    const layout = layoutOf(withClips([curved]));
+    const sound = layout.sounds[0];
+    if (sound?.volumeKeys === undefined) throw new Error('No curve.');
+    // From 1.75 s, sample 36 000 of the sound: half-way from 0.25 to 1 in decibels, 0.5.
+    scheduleSounds(
+      asContext(context),
+      layout,
+      new Map([['asset-audio', buffer(10 * R)]]),
+      84_000,
+      10,
+    );
+    const [, , curve] = chainOf(sources()[0] as FakeNode);
+    const start = volumeEnvelope({ volumeKeys: sound.volumeKeys }, 36_000, 1)[0] as number;
+    expect(start).toBeCloseTo(0.5, 6);
+    expect(curve?.automation).toEqual([
+      { kind: 'set', value: start, time: 10 },
+      { kind: 'exponential', value: 1, time: 10.25 },
+      { kind: 'set', value: 0.5, time: 10.75 },
+      { kind: 'ramp', value: 0, time: 11 },
+      { kind: 'ramp', value: 0.5, time: 11.75 },
+    ]);
+  });
+});
 
 describe('sounds at another speed or reversed (D82.6)', () => {
   const MAPPED = {

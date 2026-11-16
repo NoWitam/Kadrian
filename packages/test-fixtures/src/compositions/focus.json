@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.25",
+  "schemaVersion": "0.26",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -155,6 +155,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
@@ -200,6 +202,8 @@
           },
           "cornerRadius": 0,
           "volume": 0,
+          "fadeInUs": 0,
+          "fadeOutUs": 0,
           "effects": [],
           "mask": { "kind": "none" },
           "matte": { "kind": "none" },
