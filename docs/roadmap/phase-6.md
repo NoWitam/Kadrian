@@ -412,7 +412,8 @@ in captions broken by width. They follow PR-63 and PR-68 and the release
   the host guide and the README on WOFF and WOFF2 in measured nodes,
   `font-invalid`, the limit, and the costs; every package at the version of
   question 5 of D84; the host flow on the released tarballs.
-  Status: in review. Section 5 of the host guide and the README say that a
+  Status: done (in `main` at `727f91b`, the commit of the tag `v0.8.0`).
+  Section 5 of the host guide and the README say that a
   measured node takes an sfnt, WOFF, or WOFF2 font, stored as it is; that a
   collection and a font whose five tables would decompress past 64 MiB are
   `font-unmeasurable`, and a damaged WOFF or WOFF2 container or stream
@@ -444,8 +445,8 @@ answer before PR-75 starts.
 - **PR-74** (D85, documents only): D85, its row in the index of ADRs, and
   these entries. Acceptance: the owner answers the questions of D85;
   `node --run format:check` and `tests/repo/adr.test.ts` pass. No code; no
-  impact on Q14, the runtime build, parity, or golden frames. Status: in
-  review.
+  impact on Q14, the runtime build, parity, or golden frames. Status: done
+  (in `main` at `179a453`).
 - **PR-75** (the volume curve on the grid and the envelope, library only): the
   placement of volume keyframes on the 48 kHz grid and `volumeEnvelope`, with
   an exponent and a logarithm of Kadrion's own (`+ − · /` only), in the entry
@@ -453,7 +454,7 @@ answer before PR-75 starts.
   check of `amultiply` with an envelope on a pipe and of Chromium's
   exponential ramp against the envelope. The runtime build and the Player's
   dist tree keep their bytes (checked by their hashes, as PR-59, PR-65, and
-  PR-70 did). Status: in review. `placeVolumeKeys` and `volumeEnvelope` in
+  PR-70 did). Status: done (in `main` at `d7eaf3b`). `placeVolumeKeys` and `volumeEnvelope` in
   `@kadrion/runtime/volume`, over the exponent and logarithm of
   `volume-arithmetic.ts`, which the entry does not export; the runtime build
   stays
@@ -476,7 +477,7 @@ answer before PR-75 starts.
   parity of D53.5 extended. The runtime build and the Player's dist tree
   change, so Q14 reopens and parity is measured again; no golden PNG file
   changes, and the golden manifests change in the three fields of D42 alone.
-  Status: in review. Schema `0.26` with the step, the frozen `0.25`, the
+  Status: done (in `main` at `95f213f`). Schema `0.26` with the step, the frozen `0.25`, the
   pair and the corpus `compatibility/v0-26` (with `volume`, written by hand),
   and eleven invalid cases; the plan carries `volumeKeys` and a video's
   fades, `audioLayout` places the keyframes (`placeVolumeKeys` moved beside
@@ -502,16 +503,17 @@ answer before PR-75 starts.
   pinned FFmpeg and the workspace's Chromium outside the container, every
   pinned file passes (339 tests in 33 files; parity and the golden frames are
   gated to the container there), and the playground's import map names
-  `@kadrion/runtime/volume`. Open: the
-  pinned run in the container, which writes the golden frames byte for byte
-  and both parity records for this build, and Q14 closes by the evidence of
-  the CI run of the commit. The implementation notes of D85 record the
+  `@kadrion/runtime/volume`. The pinned run in the container (`edcce0d`)
+  wrote every golden file byte for byte and both parity records for this
+  build (every row 0/0), and Q14 closes by the evidence of the CI run of the
+  commit. The implementation notes of D85 record the
   readings.
 - **PR-77** (commands and tools): `SetClipFades` on a video node, the
   animation commands on an audio clip, `volume` in `SetKeyframeValue`, six
   descriptions, no new tool, and a test that holds the catalogue's growth over
   the snapshot of `0.25` to at most 700 characters (D85.8); a fixture of
-  model requests. No runtime build or Player dist change. Status: in review.
+  model requests. No runtime build or Player dist change. Status: done (in
+  `main` at `544dd9a`).
   `SetClipFades` finds a node first and edits a video's fades
   (`unsupported-node` for any other node); `AddAnimation` takes an audio
   clip's ID, the animation commands find a clip's animation by its ID, and
@@ -532,7 +534,22 @@ answer before PR-75 starts.
   and ducking computed by the host as keyframes with the exact product of two
   curves (D85.9); every package at version `0.9.0` for the release `v0.9.0`,
   whose tag the owner pushes from `main`; the host flow on the released
-  tarballs.
+  tarballs. Status: in review; with it every pull request of D85 is done once
+  it is merged. Section 5 of the host guide has the sound of a film: a
+  video's fades (fields, `SetClipFades` on a video node, the timeline
+  rules), volume curves (a factor from 0 to 1 times the volume and the fades,
+  linear in decibels between values above 0 and in amplitude where one is 0,
+  `hold`, the holder's time, the commands and tools), ducking computed by the
+  host as the product of two curves at the union of their keyframe times,
+  with the cases that are not exact (a segment through 0, a hold against a
+  moving curve, a time off the grid) and a worked example that
+  `tests/repo/ducking-example.test.ts` checks sample by sample with
+  `volumeEnvelope`, and the costs; section 3 says that the Player plays them,
+  and section 13 that a range hears the mix of the whole. The README says the
+  same in short. Every package is version `0.9.0` (question 13 of D85) for
+  the release `v0.9.0`, whose tag the owner pushes from `main`; the lockfile
+  names no workspace version, so it does not change. The runtime build and
+  the Player's dist tree keep the bytes of PR-76, and no pinned file changes.
 
 ## Impact on Q14, parity, and golden frames
 
@@ -590,4 +607,6 @@ plan:
    D83), so PR-63 and PR-68 set every package to `0.7.0`, and the owner pushes
    the tag `v0.7.0` from `main` after them. D84 joined the phase after that
    release; by its question 5 PR-73 sets every package to `0.8.0`, and the
-   owner pushes the tag `v0.8.0` from `main` after it.
+   owner pushes the tag `v0.8.0` from `main` after it. D85 joined the phase
+   after that; by its question 13 PR-78 sets every package to `0.9.0`, and
+   the owner pushes the tag `v0.9.0` from `main` after it.
