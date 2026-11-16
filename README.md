@@ -16,8 +16,10 @@ PR-43; phase five, motion graphics, effects, and reusable elements
 PR-57, released as `v0.6.0`; the current phase is speed, freeze frames, and
 reverse playback of clips, with text frames
 ([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)), whose step PR-63 with
-PR-68 added its showcases and the release `v0.7.0`, and whose last step, PR-73,
-adds fonts in WOFF and WOFF2 in measured nodes (D84) and the release `v0.8.0`. Schema `0.26` with its forward migrations from `0.1` to `0.25`, the evaluation core, the DOM
+PR-68 added its showcases and the release `v0.7.0`, whose step PR-73 added
+fonts in WOFF and WOFF2 in measured nodes (D84) and the release `v0.8.0`, and
+whose last step, PR-78, adds a video's fades and volume curves in decibels
+(D85) and the release `v0.9.0`. Schema `0.26` with its forward migrations from `0.1` to `0.25`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -38,14 +40,14 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D84; all accepted except D10, superseded by
-  D37)
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D85; all accepted except D10, superseded by
+  D37, and D79 to D81, proposed)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
   its evidence and its limits
 - [`docs/roadmap/phase-2.md`](docs/roadmap/phase-2.md) — the plan of phase
-  two: authoring and the integration contract for the Taskio editor
+  two: authoring and the integration contract for a host's video editor
 - [`docs/roadmap/phase-3.md`](docs/roadmap/phase-3.md) — the plan of phase
   three: the engine under a host's video editor
 - [`docs/roadmap/phase-4.md`](docs/roadmap/phase-4.md) — the plan of phase
@@ -445,8 +447,13 @@ durationUs`. A child of a group is shown only while its group is shown too. A
   time in a scene's `clips` (sound that moves with its scene, cut at its end). A clip plays its
   asset from `sourceStartUs` for its `durationUs` (at speed 1 forwards), at a linear `volume` from 0
   to 1, with linear fades `fadeInUs` and `fadeOutUs`; clips and the sound of
-  video nodes are summed (D52). A `video` node has a `volume` too: at 0 it is
-  silent and its file needs no sound. The Producer mixes all of it with the
+  video nodes are summed (D52). A `video` node has a `volume` and the two fades
+  too: at volume 0 it is silent and its file needs no sound. A video node and
+  an audio clip may animate `volume`, a factor from 0 to 1 that multiplies the
+  stored volume and the fades: `linear` moves linearly in decibels between two
+  values above 0 and in amplitude where one is 0, and `hold` keeps a value;
+  no other easing is accepted (D85). Ducking is a host's own curve written as
+  such keyframes (host guide, section 5). The Producer mixes all of it with the
   pinned FFmpeg, sample-exact; the Player plays the same plan with Web Audio
   when the host gives it an audio context (D53).
 - **Assets:** images, fonts, audio, and video, by ID and `contentHash`.
@@ -1051,7 +1058,21 @@ unsubscribe();
   `RemoveAudioClip`, `SetClipVolume`, `SetClipFades`, and `SetClipSource`
   (D52): a clip is added whole, like a node, and is addressed by its ID
   (`unknown-clip`); a volume is a factor from 0 to 1, and the two fades
-  together fit in the clip's duration.
+  together fit in the clip's duration. `SetClipFades` sets a video node's fades
+  too (`unsupported-node` for any other node), and the animation commands take
+  an audio clip's ID under `nodeId` for its `volume` curve (D85).
+- Kadrion has no ducking (D85.9). A host that lowers music under speech
+  writes `volume` keyframes it computes itself; over a curve the user drew it
+  writes one curve, the product of the two values at every time of the union
+  of their keyframes, eased `linear`, which is exact, since both are linear in
+  decibels per segment, as long as the ducked level stays above 0. The host
+  guide (section 5) gives the cases that are not exact and a worked example,
+  checked by `tests/repo/ducking-example.test.ts`. A curved sound costs the
+  Producer one envelope gain per sample on an extra FFmpeg pipe (384 KB per
+  second, never held whole) and the Player one automation event per
+  keyframe; a sound without a curve is mixed byte for byte as before. The
+  runtime build is 502 709 bytes, 2 636 more than in `v0.8.0`, and the
+  Player's dist tree has 79 files.
 - The speed commands (D82) address a video node or an audio clip by its ID.
   `SetClipSpeed` takes `speed` as a multiplier (`"x0.5"`, `2`, `"x1/3"`, and
   `"x0"`, a freeze frame of a video), a number, or `{ num, den }`, which
@@ -1222,7 +1243,10 @@ const { outputPath, manifest, stats } = await exportMp4({
 - The export streams the frames to FFmpeg and writes no intermediate frames. It
   encodes H.264 video, and mixes every clip and the sound of every video node
   above volume 0 into one AAC track, each sound placed on the 48 kHz sample
-  grid (D29, D52). A source too short for what is heard is refused as
+  grid (D29, D52). A video's fades and a volume curve are heard as in the
+  Player: a curved sound is multiplied by its envelope, streamed to FFmpeg,
+  and the manifest names its `volumeKeys` and `envelopeSha256` (D85). A
+  source too short for what is heard is refused as
   `source-range-exceeded` before the first frame; a composition in which nothing
   is heard has no audio track.
 - The FFmpeg paths must be absolute and name the pinned build. `PATH` is never
@@ -1408,12 +1432,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.8.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.8.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.9.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.9.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.8.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.8.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.9.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.9.0.tgz"
   }
 }
 ```

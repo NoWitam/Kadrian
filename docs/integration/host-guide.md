@@ -105,7 +105,9 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   browser refuses most damaged files first, as `font-load-failed`.
 - **Limits:** `ackTimeoutMs` (default 2000) and `requestTimeoutMs` (default 10000) of `createPlayer`. Without `customHtml: { mode: 'trusted' }`, no
   Custom HTML runs; trusted is not a security boundary. Sound plays only with
-  `audio: { context }`, an `AudioContext` at 48 kHz made on a user gesture.
+  `audio: { context }`, an `AudioContext` at 48 kHz made on a user gesture;
+  it plays a video's fades and the volume curves as the Producer mixes them,
+  within the parity of D53.5 (section 5).
   The headers of the page that embeds the Player (CSP, Permissions-Policy) are
   the host's.
 - **Authority:** [D44](../adr/D44-host-facade-and-live-preview.md) (the
@@ -116,7 +118,8 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   (measured fonts in WOFF and WOFF2, `font-invalid`),
   [D36](../adr/D36-webrtc-in-the-player.md) (Custom HTML policy),
   [D51](../adr/D51-video-in-the-player.md) and [D53](../adr/D53-audio-in-the-player.md)
-  (video and sound in the Player), [D58](../adr/D58-templates-inputs-bindings-and-instantiation.md)
+  (video and sound in the Player), [D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md)
+  (a curve in the Player, D85.6), [D58](../adr/D58-templates-inputs-bindings-and-instantiation.md)
   (preview of a template).
 
 ## 4. Read the facts of a media asset
@@ -275,6 +278,100 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   font in a browser). The runtime build carries the decoders and the Brotli
   dictionary: it is 500 073 bytes, 132 652 more than in `v0.7.0`, about 78 KB
   of it the base64 of the dictionary, and the Player's dist tree has 77 files.
+- **Sound: a video's fades:** since schema `0.26` a video node has `fadeInUs`
+  and `fadeOutUs` after its `volume`, as an audio clip has: the gain rises
+  linearly from 0 to 1 over the first `fadeInUs` of the node's lifetime and
+  falls to 0 over the last `fadeOutUs`, also where its scene or group cuts
+  it; only the sound fades, and a host animates `opacity` for the picture.
+  `SetClipFades` takes the `clipId` of an audio clip or of a video node (any
+  other node is `unsupported-node`); the two fades together fit in the
+  duration (`invalid-result` with `clip-fades-exceed-duration`). A video cut
+  at its start by its group is heard from the group's start with no fade-in.
+  Trims and speeds keep the fades at their edges and are refused when the
+  clip would be shorter than both; a split gives the first half
+  `fadeOutUs: 0` and the second `fadeInUs: 0`, and inside a fade of a heard
+  video it is `split-not-exact`.
+- **Sound: volume curves:** `volume` is an animated property of a video node
+  and of an audio clip (its `animations`, whose only row is `volume`). A
+  keyframe's value is a factor from 0 to 1 that multiplies the stored
+  `volume` and the fades, so a curve never amplifies and `SetClipVolume` and
+  `SetVideoVolume` still set the level of the whole clip. Between two
+  keyframes above 0, `linear` is linear in decibels,
+  `g = g0 · (g1 / g0)^p`; where either is 0 it is linear in amplitude, as a
+  fade is; `hold` keeps `g0` until the next keyframe; no other easing is
+  accepted (`invalid-result`). Times are in the time of the holder, like every
+  animation: scene time for a video and a scene's clip, composition time for
+  a clip of the composition, definition time for a clip of a definition. A
+  host that keeps a curve relative to its clip converts it when it writes the
+  document. `MoveClip` carries the keyframes; a trim, a speed, and a reverse
+  move none; a split copies the curve to the second half as
+  `<newClipId>-a-volume`. The curve is written with `AddAnimation` (the
+  clip's ID under `nodeId`), `AddKeyframe`, `SetKeyframeValue`,
+  `MoveKeyframe`, `RemoveKeyframe`, and `SetKeyframeEasing`, and a model
+  reaches the same commands through `add_animation`, `set_keyframe_value`,
+  `move_keyframe`, `remove_keyframe`, and `set_keyframe_easing` (no tool is
+  added). Both hosts place each keyframe on the 48 kHz grid and hear the same
+  gain at every sample: the Producer multiplies the sound by the envelope of
+  `volumeEnvelope` (`@kadrion/runtime/volume`), and the Player follows the
+  same keyframes with Web Audio's exponential and linear ramps.
+- **Sound: ducking is the host's:** Kadrion has no ducking and no compressor.
+  A host that lowers music under speech computes the intervals and its
+  envelope itself and writes them as `volume` keyframes of the clips and
+  videos concerned. Where the user already drew a curve, the host writes one
+  curve: both are linear in decibels per segment, so their product is linear
+  in decibels between the union of their keyframe times, and the host writes,
+  at each time of the union, the product of the two values, eased `linear`.
+  Attack and release are the segments between the keyframe at full level and
+  the one at the ducked level. Three cases are not exact: a segment that
+  reaches 0 is linear in amplitude in both curves and their product is not,
+  so a host keeps the ducked level above 0 and only the user's own zeros meet
+  that case; a segment where one curve holds while the other moves has no
+  product at one time of the union, since its end is a jump, so a host adds
+  a keyframe one sample (about 21 µs) before the jump with the product there;
+  and a time off the grid is placed on the nearest sample, so a host writes
+  the union on multiples of 125 µs (6 samples) where it can. In this
+  example, a user's curve lowers a music clip of the composition from 1 at
+  0 s to 0.25 at 12 s; the host ducks it to 0.2 under speech from 4 s to
+  8 s, with an attack of 0.5 s and a release of 1 s; the product is printed
+  to six decimals (the host writes the values it computes, not rounded), and
+  `tests/repo/ducking-example.test.ts` checks it sample by sample:
+
+<!-- ducking-example:start -->
+
+```json
+{
+  "user": [
+    { "timeUs": 0, "value": 1, "easing": { "kind": "linear" } },
+    { "timeUs": 12000000, "value": 0.25, "easing": { "kind": "linear" } }
+  ],
+  "ducking": [
+    { "timeUs": 3500000, "value": 1, "easing": { "kind": "linear" } },
+    { "timeUs": 4000000, "value": 0.2, "easing": { "kind": "linear" } },
+    { "timeUs": 8000000, "value": 0.2, "easing": { "kind": "linear" } },
+    { "timeUs": 9000000, "value": 1, "easing": { "kind": "linear" } }
+  ],
+  "product": [
+    { "timeUs": 0, "value": 1, "easing": { "kind": "linear" } },
+    { "timeUs": 3500000, "value": 0.66742, "easing": { "kind": "linear" } },
+    { "timeUs": 4000000, "value": 0.125992, "easing": { "kind": "linear" } },
+    { "timeUs": 8000000, "value": 0.07937, "easing": { "kind": "linear" } },
+    { "timeUs": 9000000, "value": 0.353553, "easing": { "kind": "linear" } },
+    { "timeUs": 12000000, "value": 0.25, "easing": { "kind": "linear" } }
+  ]
+}
+```
+
+<!-- ducking-example:end -->
+
+- **The costs of sound:** a sound without a curve costs nothing new and is
+  mixed byte for byte as before. A curved sound costs the Producer one
+  envelope gain per sample, streamed to FFmpeg on an extra pipe (384 KB per
+  second, never held whole in memory or on disk), and the Player one
+  automation event per keyframe, plus one starting value after a seek. The
+  render manifest names each curved sound's placed keyframes (`volumeKeys`)
+  and the SHA-256 of its envelope (`envelopeSha256`), fields added without a
+  new manifest version. The runtime build is 502 709 bytes, 2 636 more than
+  in `v0.8.0`, and the Player's dist tree has 79 files.
 - **Limits:** IDs are chosen by the host and never reused across the history;
   times are never rounded; positions and sizes are.
 - **Authority:** [D30](../adr/D30-command-bus-and-undo.md),
@@ -297,10 +394,13 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   [D78](../adr/D78-custom-html-for-ai-authors.md) (Custom HTML for AI authors),
   and for phase six [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md)
   (speed, freeze frames, and reverse), [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md)
-  (text frames, alignment, and lines measured from the font), and
+  (text frames, alignment, and lines measured from the font),
   [D84](../adr/D84-fonts-in-woff-and-woff2-measured-by-kadrion.md) (fonts in
-  WOFF and WOFF2, `font-invalid`, the limit, and the costs). The playground
-  shows each of them in a showcase of its own ([D32](../adr/D32-playground-showcases.md)).
+  WOFF and WOFF2, `font-invalid`, the limit, and the costs), and
+  [D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md) (a video's fades,
+  volume curves, and ducking as keyframes, D85.9). The playground
+  shows each of them up to D83 in a showcase of its own
+  ([D32](../adr/D32-playground-showcases.md)); D84 and D85 have none.
 
 ## 6. Edit from a model
 
@@ -449,10 +549,13 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   changed during the job), and the asset and FFmpeg errors.
 - **Limits:** segments of `--segment-frames` frames, 60 by default; the
   `--assets` map gives each asset `{ path, mediaType }`, and video and audio
-  are read by path, never held in memory.
+  are read by path, never held in memory. The audio of a range is cut from
+  the mix of the whole, so it hears a video's fades and a curve as the whole
+  render does.
 - **Authority:** [D47](../adr/D47-segmented-rendering-join-and-stills.md),
   [D29](../adr/D29-mp4-export.md), [D07](../adr/D07-h264-mp4-720p-1080p-output.md),
-  [D52](../adr/D52-audio-clips-volume-fades-and-the-mix.md) (the mix),
+  [D52](../adr/D52-audio-clips-volume-fades-and-the-mix.md) and
+  [D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md) (the mix),
   [D64](../adr/D64-video-and-audio-read-by-path.md) (media by path).
 
 ## 14. Export in one pass

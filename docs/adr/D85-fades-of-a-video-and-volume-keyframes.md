@@ -706,6 +706,28 @@ code as built.
   hashes of PR-76 (the status of PR-77 in the roadmap); no pinned file is
   touched.
 
+## Implementation notes (PR-78)
+
+PR-78 writes the host guide and the README on the sound of D85 and sets every
+package to `0.9.0`; no code of a package changes.
+
+- **The product of two curves.** The guide reads "or `hold` where either
+  holds" of D85.9 as exact only where the other curve is constant over the
+  segment: where one curve holds while the other moves, the product moves and
+  then jumps at the end of the hold, which one keyframe at one time cannot
+  say, so the guide has the host add a keyframe one sample before the jump
+  with the product there (on the grid the one-sample ramp has no sample in
+  between). It also says that a time off the grid is placed on the nearest
+  sample, so the union is written on multiples of 125 µs where it can be.
+- **The worked example.** The guide's example (a user's curve from 1 to
+  0.25 over 12 s, ducked to 0.2 under speech from 4 s to 8 s) prints the
+  product to six decimals; `tests/repo/ducking-example.test.ts` computes it
+  again and has `volumeEnvelope` hear the product curve as the product of the
+  two envelopes at each of 624 000 samples, within 2e-7 relative (three
+  gains rounded to 32 bits). No helper is exported (D85.9).
+- **No build change.** The runtime build and the Player's dist tree keep the
+  hashes of PR-76; the version is in no file of either.
+
 ## Questions for the owner, with recommendations
 
 1. **The command for a video's fades.** Recommendation: widen `SetClipFades`
