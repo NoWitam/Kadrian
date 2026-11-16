@@ -659,6 +659,53 @@ pipe:<3 + i>`; the chain of sound `k` ends its steps at `[s<k>pre]`, reads
   inside the ramp in decibels (bound 1e-4), as without a curve. The golden
   frames, the parity records, and the evidence of Q14 are the pinned run's.
 
+## Implementation notes (PR-77)
+
+PR-77 widens the commands and the tools; the readings below are those of the
+code as built.
+
+- **`SetClipFades`.** A node with the `clipId` is looked up first: a video
+  node has its fades set and restored by the inverse, any other node is
+  `unsupported-node`; then an audio clip, as before; neither is
+  `unknown-clip`. A video's fades are judged by `clip-fades-exceed-duration`
+  at its own path, a group's child included.
+- **A clip's animations.** `locateAnimation` looks in the nodes first, then
+  in the audio clips of the composition, the scenes, and the definitions, and
+  `replaceAnimation` puts a clip back in its list, so `RemoveAnimation`,
+  `AddKeyframe`, `RemoveKeyframe`, `MoveKeyframe`, `SetKeyframeEasing`, and
+  `SetKeyframeValue` reach a clip with no change of their own. `AddAnimation`
+  takes a node, or else an audio clip, under `nodeId`; neither is
+  `unknown-node`, as before. A clip's other rows, an easing other than
+  `linear` or `hold`, and a value above 1 are the schema's, so
+  `invalid-result`; the inverse of removing a clip's curve names the clip.
+- **`volume` in `SetKeyframeValue`.** `volume` joins
+  `GENERIC_KEYFRAME_PROPERTIES`; its value is a finite number, never rounded,
+  -0 written as 0 (`invalid-argument` otherwise), and its bounds of 0 to 1
+  are the document's (`invalid-result`), as for every row the command sets.
+  An inserted keyframe takes the easing of the one before it, which for a
+  curve is `linear` or `hold`.
+- **The catalogue.** The six rows of D85.8 change seven entries, each by
+  short clauses and the argument descriptions: `set_clip_fades` +84,
+  `add_animation` +225, `set_keyframe_value` +39, `set_keyframe_easing` +45,
+  `add_audio_clip` +61, `add_scene_audio_clip` +24, and `move_clip` +35, 513
+  characters. Since PR-76 a trim and a speed keep a video's fades too, so,
+  at the owner's request (2026-11-16), `trim_clip_start` says "a clip's
+  fades" (−7), and `trim_clip_end` and `set_clip_speed` "the fades" (−12
+  each). The pull request adds 482 characters in all, so the growth over the
+  snapshot of `0.25` is 518 of the 700 the test of PR-76 allows. The text of a keyframe value shared by three
+  entries does not change: `add_animation` and `set_keyframe_value` state the
+  value of `volume` themselves. `describe_document` shows a video's fades and
+  a clip's animations as stored fields already, so its description does not
+  change.
+- **The fixture.** `packages/ai-sdk/test/sound-requests.test.ts` carries the
+  three requests of the Verification and three more (a deeper dip with an
+  abrupt return, a curve removed with a fade-out, a clip moved with its
+  curve) through `executeTool` alone, each one undo, and refuses a fade of a
+  text, an eased volume keyframe, a value above 1, and a second curve.
+- **No build change.** The runtime build and the Player's dist tree keep the
+  hashes of PR-76 (the status of PR-77 in the roadmap); no pinned file is
+  touched.
+
 ## Questions for the owner, with recommendations
 
 1. **The command for a video's fades.** Recommendation: widen `SetClipFades`

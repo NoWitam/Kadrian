@@ -150,7 +150,7 @@ describe('AddAnimation (D41.1)', () => {
   it.each([
     ['a missing node', 'node-missing', 'unknown-node'],
     ['an animation', 'anim-title-opacity', 'unknown-node'],
-    ['the clip', 'clip-audio', 'unknown-node'],
+    ['a scale of the clip, which takes volume only (D85.8)', 'clip-audio', 'invalid-result'],
     ['an asset', 'asset-image', 'unknown-node'],
     [
       'a scale of the background, which animates its colour only (D68)',

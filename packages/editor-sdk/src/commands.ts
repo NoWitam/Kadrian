@@ -2584,7 +2584,7 @@ export const addAudioClipArgumentsSchema: AddAudioClipArgumentsSchema = deepFree
     clip: {
       type: 'object',
       description:
-        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs.',
+        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in composition time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs; animations.',
     },
   },
   required: ['index', 'clip'],
@@ -2618,9 +2618,13 @@ const FADE_TEXT =
 /** The JSON Schema of the arguments of `SetClipFades` (D52.6). */
 export const setClipFadesArgumentsSchema: SetClipFadesArgumentsSchema = deepFreeze({
   type: 'object',
-  description: 'Sets the linear fade-in and fade-out of one audio clip.',
+  description: 'Sets the linear fade-in and fade-out of one audio clip or video.',
   properties: {
-    clipId: { type: 'string', description: CLIP_ID, minLength: 1 },
+    clipId: {
+      type: 'string',
+      description: 'The ID of an audio clip or a video node.',
+      minLength: 1,
+    },
     fadeInUs: {
       type: 'integer',
       description: `How long the clip rises from silence to its volume at its start, ${FADE_TEXT}`,
@@ -2675,7 +2679,7 @@ export const addAnimationArgumentsSchema: AddAnimationArgumentsSchema = deepFree
   properties: {
     nodeId: {
       type: 'string',
-      description: 'The stable ID of the node. The background has no animations.',
+      description: 'The stable ID of the node or audio clip. The background has no animations.',
       minLength: 1,
     },
     index: {
@@ -2867,7 +2871,7 @@ export const KEYFRAME_VALUES =
 export const setKeyframeValueArgumentsSchema: SetKeyframeValueArgumentsSchema = deepFreeze({
   type: 'object',
   description:
-    'Sets the keyframe at a time of an animation of rotation, origin, size, color, crop, cornerRadius, fill, stroke/color, stroke/width, trim/start, trim/end, or geometry, inserting it when none is there.',
+    'Sets the keyframe at a time of an animation of rotation, origin, size, color, crop, cornerRadius, volume, fill, stroke/color, stroke/width, trim/start, trim/end, or geometry, inserting it when none is there.',
   properties: {
     animationId: {
       type: 'string',
@@ -3046,7 +3050,7 @@ export const addSceneAudioClipArgumentsSchema: AddSceneAudioClipArgumentsSchema 
     clip: {
       type: 'object',
       description:
-        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in scene time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs.',
+        'The complete clip as the document stores it: its ID, unused in the document; type audio; the ID of an audio asset; startUs and durationUs in scene time; sourceStartUs; sourceStartRemainder, speed, and reverse, its time map (D82.1); volume; fadeInUs and fadeOutUs; animations.',
     },
   },
   required: ['sceneId', 'index', 'clip'],
@@ -3070,7 +3074,7 @@ function timelineTime(description: string) {
 export const moveClipArgumentsSchema: MoveClipArgumentsSchema = deepFreeze({
   type: 'object',
   description:
-    "Moves a clip to a new start, keeping its duration and its source; a node's keyframes, and a group's children with theirs, move by the same amount.",
+    "Moves a clip to a new start, keeping its duration and its source; a node's or audio clip's keyframes, and a group's children with theirs, move by the same amount.",
   properties: {
     clipId: { type: 'string', description: TIMELINE_CLIP_ID, minLength: 1 },
     startUs: timelineTime('The new start of the clip.'),
@@ -5020,7 +5024,10 @@ export function parseSetKeyframeValue(value: unknown): SetKeyframeValueCommand {
   return Object.freeze({ type: 'SetKeyframeValue', animationId, timeUs, value: data });
 }
 
-/** The properties whose keyframes `SetKeyframeValue` sets: every row added by schema 0.13 (D65.2). */
+/**
+ * The properties whose keyframes `SetKeyframeValue` sets: every row added by
+ * schema 0.13 and after (D65.2, D68, D85.8).
+ */
 export const GENERIC_KEYFRAME_PROPERTIES = Object.freeze([
   'rotation',
   'origin',
@@ -5034,6 +5041,7 @@ export const GENERIC_KEYFRAME_PROPERTIES = Object.freeze([
   'trim/start',
   'trim/end',
   'geometry',
+  'volume',
 ] as const);
 
 /**
@@ -5041,8 +5049,9 @@ export const GENERIC_KEYFRAME_PROPERTIES = Object.freeze([
  * `invalid-argument`: a rotation a finite number, never rounded; an origin
  * offset and a crop integers, never rounded; a size and a corner radius
  * rounded like a position (D15); a colour `#` and six hexadecimal digits,
- * stored in lower case. -0 becomes 0. The bounds are the document's: a value
- * outside them is `invalid-result`.
+ * stored in lower case; a volume a finite number, never rounded (D85.8). -0
+ * becomes 0. The bounds are the document's: a value outside them is
+ * `invalid-result`.
  */
 export function normalizedKeyframeValue(
   property: (typeof GENERIC_KEYFRAME_PROPERTIES)[number],
@@ -5077,6 +5086,8 @@ export function normalizedKeyframeValue(
       return value.toLowerCase();
     case 'stroke/width':
       return finite(value, 'The value of a stroke/width keyframe');
+    case 'volume':
+      return finite(value, 'The value of a volume keyframe');
     case 'trim/start':
     case 'trim/end':
       return integer(value, `The value of a ${property} keyframe`);

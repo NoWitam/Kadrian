@@ -511,7 +511,22 @@ answer before PR-75 starts.
   animation commands on an audio clip, `volume` in `SetKeyframeValue`, six
   descriptions, no new tool, and a test that holds the catalogue's growth over
   the snapshot of `0.25` to at most 700 characters (D85.8); a fixture of
-  model requests. No runtime build or Player dist change.
+  model requests. No runtime build or Player dist change. Status: in review.
+  `SetClipFades` finds a node first and edits a video's fades
+  (`unsupported-node` for any other node); `AddAnimation` takes an audio
+  clip's ID, the animation commands find a clip's animation by its ID, and
+  `SetKeyframeValue` sets `volume`. Seven entries of the catalogue change
+  for the six rows of D85.8, and `trim_clip_start`, `trim_clip_end`, and
+  `set_clip_speed` name a clip's fades rather than an audio clip's (the
+  owner, 2026-11-16); no tool is added, and the catalogue grows by 482
+  characters here and 518 over the snapshot of `0.25`, within the 700 of the
+  budget test of PR-76. `packages/ai-sdk/test/sound-requests.test.ts` is the
+  fixture of model requests. The runtime build stays
+  `sha256:e98d722b156580f090d238e1913253dfc7d803b561c22bcbb14218de92bc0676`
+  and the Player's dist tree
+  `sha256:5f23e9eb57430fb5073c0d4fd0a31fa4e54899fee7b4db74991aa739377233d0`
+  (79 files), the same before and after; no pinned file changes. D41 and D46
+  get their lines, and the implementation notes of D85 record the readings.
 - **PR-78** (the host guide, ducking as keyframes, and the release): the sound
   section of the host guide and the README on a video's fades, volume curves,
   and ducking computed by the host as keyframes with the exact product of two
