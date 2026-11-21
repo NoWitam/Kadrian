@@ -19,9 +19,11 @@ reverse playback of clips, with text frames
 PR-68 added its showcases and the release `v0.7.0`, whose step PR-73 added
 fonts in WOFF and WOFF2 in measured nodes (D84) and the release `v0.8.0`, and
 whose step PR-78 added a video's fades and volume curves in decibels (D85)
-and the release `v0.9.0`, and whose last step, PR-81, captures a frame only
-after its mark is read from the surface (D86) for the patch release `v0.9.1`:
-films rendered under load before it may hold a repeated frame. Schema `0.26` with its forward migrations from `0.1` to `0.25`, the evaluation core, the DOM
+and the release `v0.9.0`, whose step PR-81 captures a frame only
+after its mark is read from the surface (D86) for the patch release `v0.9.1`
+(films rendered under load before it may hold a repeated frame), and whose
+last step, PR-84, plays a video at the film's frame rate, decoded forward and
+converted in workers (D87), for the release `v0.10.0`. Schema `0.26` with its forward migrations from `0.1` to `0.25`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -42,7 +44,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D87; all accepted except D10, superseded by
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D88; all accepted except D10, superseded by
   D37, and D79 to D81, proposed)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
@@ -814,6 +816,18 @@ player.destroy();
   document. A `PlayerError` about an asset names it in
   `asset: { id, contentHash }`.
 
+**Video while a film plays.** A playing video node is decoded forward and its
+frames are converted in up to four module workers, started from
+`dist/worker/kadrion-convert-worker.js` next to the Player's own modules (a
+module of its own, with no import), and drawn into a `canvas` in the node's
+place (D87). The pixels are those of a sought frame for a clip at its own
+size; a clip scaled by a ratio that is not an integer may differ by its
+filter while it plays, and a pause, a seek, and an export show the exact
+frame. Serve that file beside the Player's modules and allow workers of your
+origin in your content security policy (`worker-src 'self'`, or a
+`script-src` that covers it). Where no worker starts, the Player plays by the
+slower path of D51 and tells `onWarning` once (`video-workers-unavailable`).
+
 **Whether a video plays as it is.** `inspectVideo(blobOrBytes)` of
 `@kadrion/player` reads a file and returns the Player's verdict on it, from the
 same examination the Player uses when it loads the video (D79.4):
@@ -1434,12 +1448,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.9.1.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.9.1.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.10.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.10.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.9.1.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.9.1.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.10.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.10.0.tgz"
   }
 }
 ```

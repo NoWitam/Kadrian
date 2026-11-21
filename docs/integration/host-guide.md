@@ -110,6 +110,26 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   within the parity of D53.5 (section 5).
   The headers of the page that embeds the Player (CSP, Permissions-Policy) are
   the host's.
+- **Workers for playing video:** while a film plays, the Player decodes each
+  video node forward and converts its frames in up to four dedicated module
+  workers (`min(4, max(1, cores − 2))`), each started with
+  `new Worker(new URL('./worker/kadrion-convert-worker.js', import.meta.url), { type: 'module' })`
+  from the Player's `pool.js`. So:
+  - serve `dist/worker/kadrion-convert-worker.js` of `@kadrion/player` at that
+    path next to the Player's modules; it is one module with no import, since
+    a worker does not see the page's import map;
+  - the URL is written in its literal form, so a bundler that rewrites
+    `new URL('…', import.meta.url)` copies the file by itself (Vite's
+    production build does); a development server that pre-bundles
+    dependencies moves `pool.js` away from it, so leave `@kadrion/player` out
+    of that step (in Vite, `optimizeDeps.exclude`);
+  - the page's content security policy allows workers of its own origin
+    (`worker-src 'self'`, or a `script-src` that covers them).
+- **Without workers:** where the window makes no worker, a worker does not
+  start, or one fails, the Player plays by the path of D51 (the same pixels,
+  far fewer frames per second) and calls the option `onWarning` once with
+  `{ code: 'video-workers-unavailable', message }`; nothing fails. A handler
+  that throws is ignored.
 - **Authority:** [D44](../adr/D44-host-facade-and-live-preview.md) (the
   session), [D25](../adr/D25-player-host-and-render-page.md) (the Player and
   its render page), [D21](../adr/D21-runtime-build-artifact.md) (the runtime
@@ -118,7 +138,8 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   (measured fonts in WOFF and WOFF2, `font-invalid`),
   [D36](../adr/D36-webrtc-in-the-player.md) (Custom HTML policy),
   [D51](../adr/D51-video-in-the-player.md) and [D53](../adr/D53-audio-in-the-player.md)
-  (video and sound in the Player), [D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md)
+  (video and sound in the Player), [D87](../adr/D87-video-played-at-the-films-frame-rate.md)
+  (workers and protocol version 3), [D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md)
   (a curve in the Player, D85.6), [D58](../adr/D58-templates-inputs-bindings-and-instantiation.md)
   (preview of a template).
 
@@ -458,8 +479,15 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   grid), `not-loaded`, `destroyed`.
 - **Limits:** playback rate 1 only, whatever the speed of a clip (a clip's
   speed is a field of the document, D82.10); a seek is the only frame
-  stepping.
+  stepping. A video plays at the film's rate up to about 1080p with two or
+  more workers (measured in D87: 1080p at 23 frames per second with two
+  workers); a reversed clip and a source of 2160p stay slow, so show large
+  sources from a smaller copy. While a film plays, a clip scaled by a ratio
+  that is not an integer may differ from the exact frame by its filter; a
+  pause, a seek, and the end show the exact frame, as the export does.
 - **Authority:** [D61](../adr/D61-player-playback-events.md),
+  [D87](../adr/D87-video-played-at-the-films-frame-rate.md) (frames of a
+  playing video),
   [D44](../adr/D44-host-facade-and-live-preview.md), [D13](../adr/D13-frame-grid-and-integer-frame-rate.md).
 
 ## 9. Save the document

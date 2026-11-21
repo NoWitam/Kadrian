@@ -408,3 +408,19 @@ roadmap.
   manifests changed in `render.runtime.contentHash` only. One `test:pinned`
   pass (343 of 343 tests in 34 files) wrote both parity records again; every
   row is 0/0, with the same PNG hashes.
+
+## Implementation notes (PR-84)
+
+- **The host guide** (section 3) tells a host to serve the worker's bundle
+  beside the Player's modules, to keep a development server's pre-bundling
+  from moving the Player's modules away from it (in Vite,
+  `optimizeDeps.exclude`), and to allow workers
+  of its origin in its policy; it names `onWarning` and
+  `video-workers-unavailable`. Section 8 gives the measured rates and says
+  that a playing frame of a clip scaled by a ratio that is not an integer may
+  differ by its filter, while a stopped film shows the exact frame. The
+  README says the same in short.
+- **The release.** Every package is `0.10.0` for the release `v0.10.0`, the
+  first with protocol version 3 (question 6): a host takes the Player and the
+  runtime build of one release together, as always. The runtime build and the
+  Player's dist tree keep the bytes of PR-83; no pinned file changes.
