@@ -81,6 +81,11 @@ export class ConversionPool {
     return this.members.length;
   }
 
+  /** Whether the pool refuses jobs: it was closed, or a worker failed. */
+  get failed(): boolean {
+    return this.failure !== null;
+  }
+
   /** The jobs every worker has in hand, in the order of the workers. */
   get load(): number[] {
     return this.members.map(({ pending }) => pending.size);

@@ -384,7 +384,7 @@ export function renderState(root: Element, state: CompositionState): void {
     // Back to what the mount wrote, so the tree never keeps an earlier instant.
     for (const node of element.querySelectorAll<HTMLElement>(`[${NODE_ATTRIBUTE}]`)) {
       for (const property of WRITTEN) node.style.removeProperty(property);
-      if (node.tagName === 'IMG') {
+      if (node.tagName === 'IMG' || node.tagName === 'CANVAS') {
         for (const property of PICTURE_WRITTEN) node.style.removeProperty(property);
       }
       writeCaptions(node, null);

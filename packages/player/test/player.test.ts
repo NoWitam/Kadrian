@@ -26,9 +26,11 @@ import {
   type PlayerAssetRequest,
   type PlayerAssetResolver,
   type PlayerScheduler,
+  type PlayerWarning,
 } from '../src/index.js';
 import { PAGE_AGENT_SCRIPT } from '../src/agent.js';
 import { playerCode } from '../src/errors.js';
+import { shownRgba, type ConvertJob } from '../src/convert.js';
 import { encodePng } from '../src/video.js';
 import { yuv420ToRgb } from '../src/yuv.js';
 import { createHarness, sleep, type Harness } from './harness.js';
@@ -587,7 +589,7 @@ describe('messages from anyone but the page or the Player (D25.4)', () => {
     harness.window.document.body.append(stranger);
     const starting = createPlayer(harness.container, { runtime, requestTimeoutMs: 80 });
     await sleep(20);
-    const ready = { type: 'kadrion-player:ready', version: 2 };
+    const ready = { type: 'kadrion-player:ready', version: 3 };
     await harness.deliver(harness.window as unknown as Window, ready, stranger.contentWindow);
     await harness.deliver(harness.window as unknown as Window, ready, harness.window);
     await expect(starting).rejects.toMatchObject({ code: 'page-timeout' });
@@ -607,7 +609,7 @@ describe('messages from anyone but the page or the Player (D25.4)', () => {
     const failure = { code: 'custom-html-timeout', message: 'forged', details: [] };
     const forged = {
       type: 'kadrion-player:result',
-      version: 2,
+      version: 3,
       requestId,
       ok: false,
       error: failure,
@@ -630,7 +632,7 @@ describe('messages from anyone but the page or the Player (D25.4)', () => {
     const view = pageView(harness) as unknown as Window;
     const seek = {
       type: 'kadrion-player:seek',
-      version: 2,
+      version: 3,
       requestId: 98,
       timeUs: 9_900_000,
       videoFrames: [],
@@ -655,7 +657,7 @@ describe('messages from anyone but the page or the Player (D25.4)', () => {
     const element = pageView(harness).document.querySelector('iframe')?.contentWindow;
     const seek = {
       type: 'kadrion-player:seek',
-      version: 2,
+      version: 3,
       requestId: 99,
       timeUs: 9_900_000,
       videoFrames: [],
@@ -960,7 +962,7 @@ describe('update in the same page (D44)', () => {
     const view = pageView(harness) as unknown as Window;
     const update = {
       type: 'kadrion-player:update',
-      version: 2,
+      version: 3,
       requestId: 97,
       document: JSON.stringify(retitled),
       assets: [],
@@ -1537,6 +1539,191 @@ describe('video in the host window (D51)', () => {
     });
     await player.update(moved, videoResolve);
     expect(sourceOf(harness, 'node-video-full')).toBe(await expectedPng(35));
+  });
+
+  /** A stand-in for `ImageBitmap`: its size and the red of its first pixel. */
+  class TestBitmap {
+    readonly width: number;
+    readonly height: number;
+    readonly red: number;
+    closed = false;
+    constructor(width: number, height: number, red: number) {
+      this.width = width;
+      this.height = height;
+      this.red = red;
+    }
+    get [Symbol.toStringTag](): string {
+      return 'ImageBitmap';
+    }
+    close(): void {
+      this.closed = true;
+    }
+  }
+
+  /** Workers that convert as the worker of D87.2 does, in this thread, or fail to start. */
+  const installWorkers = (view: object, starts = true): ConvertJob[] => {
+    const jobs: ConvertJob[] = [];
+    class TestWorker {
+      onmessage: ((event: { data: unknown }) => void) | null = null;
+      onerror: ((event: Event) => void) | null = null;
+      postMessage(message: { id: number; job?: ConvertJob }): void {
+        const { id, job } = message;
+        if (job !== undefined) jobs.push(job);
+        queueMicrotask(() => {
+          if (job === undefined) {
+            if (starts) this.onmessage?.({ data: { id } });
+            else this.onerror?.(new Event('error'));
+            return;
+          }
+          const { width, height, rgba } = shownRgba(job);
+          this.onmessage?.({ data: { id, bitmap: new TestBitmap(width, height, rgba[0] ?? 0) } });
+        });
+      }
+      terminate(): void {
+        this.onmessage = null;
+      }
+    }
+    Object.defineProperty(view, 'Worker', { configurable: true, value: TestWorker });
+    return jobs;
+  };
+
+  /** Gives the page's canvases a bitmaprenderer context that records what each was handed. */
+  const drawnBitmaps = (harness: Harness): Map<HTMLCanvasElement, TestBitmap> => {
+    const drawn = new Map<HTMLCanvasElement, TestBitmap>();
+    const page = pageView(harness) as unknown as {
+      HTMLCanvasElement: { prototype: { getContext: unknown } };
+    };
+    page.HTMLCanvasElement.prototype.getContext = function getContext(
+      this: HTMLCanvasElement,
+      kind: string,
+    ) {
+      if (kind !== 'bitmaprenderer') return null;
+      return {
+        transferFromImageBitmap: (bitmap: TestBitmap) => {
+          drawn.set(this, bitmap);
+        },
+      };
+    };
+    return drawn;
+  };
+
+  /** The red of the flat frame the stand-in decoder gives for presentation frame `index`. */
+  const expectedRed = (index: number): number =>
+    yuv420ToRgb(
+      {
+        width: 2,
+        height: 2,
+        y: new Uint8Array(4).fill(16 + index),
+        yStride: 2,
+        u: new Uint8Array([128]),
+        uStride: 1,
+        v: new Uint8Array([128]),
+        vStride: 1,
+      },
+      'bt601',
+      false,
+    )[0] ?? -1;
+
+  const seeksOf = (harness: Harness) =>
+    sent(harness)
+      .map(({ data }) => data as { type?: string; timeUs: number; videoFrames: object[] })
+      .filter(({ type }) => type === 'kadrion-player:seek');
+
+  /** Plays from 1 s for `ticks` frames of 30 fps, each let land. */
+  const playing = async (
+    harness: Harness,
+    player: Player,
+    clock: ReturnType<typeof manualScheduler>,
+    ticks: number,
+  ): Promise<void> => {
+    await player.seek(1_000_000);
+    player.play();
+    for (let tick = 0; tick < ticks; tick += 1) {
+      clock.advance(tick === 0 ? 0 : 100 / 3);
+      await harness.settle();
+      await sleep(5);
+      await harness.settle();
+    }
+  };
+
+  it('plays from streams converted in workers, draws their bitmaps in a canvas, and shows the sought frame after a pause (D87)', async () => {
+    videoDocument = await withVideoDocument();
+    const harness = createHarness();
+    installCodecs(harness.window);
+    const jobs = installWorkers(harness.window);
+    const clock = manualScheduler();
+    const warnings: PlayerWarning[] = [];
+    const player = await started(harness, {
+      scheduler: clock.scheduler,
+      onWarning: (warning) => warnings.push(warning),
+    });
+    const drawn = drawnBitmaps(harness);
+    await player.load(videoDocument, videoResolve);
+    await playing(harness, player, clock, 5);
+    expect(warnings).toEqual([]);
+    expect(jobs.length).toBeGreaterThan(0);
+    const played = seeksOf(harness).filter(({ videoFrames }) =>
+      videoFrames.some((entry) => 'bitmap' in entry),
+    );
+    expect(played.length).toBeGreaterThan(0);
+    for (const { videoFrames } of played) {
+      expect(videoFrames.map((entry) => Object.keys(entry).sort().join())).toEqual([
+        'bitmap,nodeId',
+        'bitmap,nodeId',
+        'bitmap,nodeId',
+      ]);
+    }
+    // The canvas shows the frame of the rule of D49.5 at the time shown: 25 fps from 0 s.
+    const shownAt = player.getState().timeUs ?? -1;
+    const full = pageView(harness).document.querySelector(
+      '[data-kadrion-node="node-video-full"]',
+    ) as HTMLCanvasElement;
+    expect(full.localName).toBe('canvas');
+    expect([full.width, full.height]).toEqual([32, 16]);
+    expect(drawn.get(full)?.red).toBe(expectedRed(Math.floor((shownAt * 25) / 1_000_000)));
+    // A pause shows the frame of its time again by the path of D51, as an image.
+    player.pause();
+    await harness.settle();
+    await sleep(5);
+    await harness.settle();
+    const last = seeksOf(harness).at(-1);
+    expect(last?.timeUs).toBe(shownAt);
+    expect(last?.videoFrames.every((entry) => 'mediaType' in entry)).toBe(true);
+    expect(player.getState()).toMatchObject({ status: 'ready', timeUs: shownAt });
+    expect(sourceOf(harness, 'node-video-full')).toBe(
+      await expectedPng(Math.floor((shownAt * 25) / 1_000_000)),
+    );
+  });
+
+  it('plays by the path of D51 and warns once where the window makes no worker (D87.2)', async () => {
+    videoDocument = await withVideoDocument();
+    for (const install of [() => undefined, (view: object) => installWorkers(view, false)]) {
+      const harness = createHarness();
+      installCodecs(harness.window);
+      install(harness.window);
+      const clock = manualScheduler();
+      const warnings: PlayerWarning[] = [];
+      const player = await started(harness, {
+        scheduler: clock.scheduler,
+        onWarning: (warning) => {
+          warnings.push(warning);
+          throw new Error('A handler that throws changes nothing.');
+        },
+      });
+      await player.load(videoDocument, videoResolve);
+      await playing(harness, player, clock, 3);
+      player.pause();
+      await playing(harness, player, clock, 3);
+      expect(warnings).toEqual([
+        { code: 'video-workers-unavailable', message: expect.any(String) as string },
+      ]);
+      expect(player.getState().status).toBe('playing');
+      const seeks = seeksOf(harness);
+      expect(seeks.length).toBeGreaterThan(4);
+      for (const { videoFrames } of seeks) {
+        expect(videoFrames.every((entry) => 'mediaType' in entry)).toBe(true);
+      }
+    }
   });
 });
 

@@ -619,7 +619,9 @@ and again before its commit and push.
 - **PR-83** (D87, protocol version 3 and the canvas): the bitmap entry, the
   `canvas` in a video node's place, the gates of D87.6. The runtime build
   changes, Q14 reopens, parity is measured again, golden frames keep their
-  bytes.
+  bytes. Status: done; a playing frame equals the sought frame at the clip's
+  own size, and a clip scaled by a ratio that is not an integer differs by
+  its filter (D87, implementation notes, with the measured rates).
 - **PR-84** (D87, the host guide and the release): workers and the content
   security policy in the host guide, the measured frame rates, and the
   release that carries protocol version 3.

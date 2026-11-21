@@ -332,7 +332,7 @@ export class VideoStream<T> {
         (reason: unknown) => {
           this.settle(
             entry,
-            reason instanceof PlayerError
+            reason instanceof PlayerError || reason instanceof StreamSuperseded
               ? reason
               : undecodable(video, `frame ${String(at)} cannot be converted: ${messageOf(reason)}`),
           );

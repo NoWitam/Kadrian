@@ -4,7 +4,7 @@
     "compositionHash": "sha256:ad5eafe957fa69fffc2520a55759d694011aceb7eb5a8d9a7f5adf52da0986e8",
     "schemaVersion": "0.26",
     "runtime": {
-      "contentHash": "sha256:e98d722b156580f090d238e1913253dfc7d803b561c22bcbb14218de92bc0676",
+      "contentHash": "sha256:e1dd151c9b9ca56a87ce4774373825aea0c7dd23e646947da7666c6b3090677e",
       "bundler": "esbuild@0.28.2",
       "compiler": "typescript@6.0.3"
     },

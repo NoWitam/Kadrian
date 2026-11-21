@@ -242,7 +242,7 @@ interface Codecs {
   readonly CompressionStream: new (format: CompressionFormat) => CompressionStream;
 }
 
-function codecsOf(view: Window): Codecs {
+export function codecsOf(view: Window): Codecs {
   const scope = view as unknown as Partial<Codecs>;
   const global = globalThis as unknown as Partial<Codecs>;
   const { VideoDecoder, EncodedVideoChunk } = scope;

@@ -13,6 +13,8 @@
  *   window. In these tests only a parent posts to its frame, which is what lets
  *   the facade stand for the incumbent rule (the attacker case is in
  *   `packages/renderer-dom/test/custom-html-element.test.ts`);
+ * - an object whose tag is `ImageBitmap` (a test's stand-in, since Node has no
+ *   bitmap) crosses as it is, as a browser clones a bitmap (D87.3);
  * - `decode`, `FontFace`, and `document.fonts` are doubles, resolved unless a
  *   test says so; the font set records the faces added to it (D27.1).
  *
@@ -57,6 +59,22 @@ export interface Harness {
   settle(): Promise<void>;
 }
 
+/** A structured clone that keeps the stand-in bitmaps of tests (D87.3). */
+function cloneMessage(data: unknown): unknown {
+  if (Object.prototype.toString.call(data) === '[object ImageBitmap]') return data;
+  if (Array.isArray(data)) return data.map(cloneMessage);
+  if (
+    data !== null &&
+    typeof data === 'object' &&
+    Object.getPrototypeOf(data) === Object.prototype
+  ) {
+    return Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [key, cloneMessage(value)]),
+    );
+  }
+  return structuredClone(data);
+}
+
 export function createHarness(options: HarnessOptions = {}): Harness {
   const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', {
     url: 'https://app.invalid/',
@@ -78,7 +96,7 @@ export function createHarness(options: HarnessOptions = {}): Harness {
     origin = 'null',
   ): Promise<void> => {
     inFlight += 1;
-    const clone: unknown = structuredClone(data);
+    const clone: unknown = cloneMessage(data);
     return Promise.resolve().then(() => {
       inFlight -= 1;
       log.push({ target, source, data: clone });

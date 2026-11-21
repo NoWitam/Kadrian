@@ -47,8 +47,16 @@ import {
 } from './audio.js';
 import { playerCode, PlayerError, withAsset, type PlayerErrorAsset } from './errors.js';
 import {
+  createPlaybackFrameSource,
+  type PlaybackFrameSource,
+  type VideoFrameEntry,
+} from './playback.js';
+import { createConversionPool, type ConversionPool, type WorkerWindow } from './pool.js';
+import { StreamSuperseded } from './stream.js';
+import {
   checkDecodable,
   checkSourceRanges,
+  codecsOf,
   createVideoFrameSource,
   readVideo,
   RunCache,
@@ -163,7 +171,28 @@ export interface PlayerOptions {
   readonly onListenerError?: PlayerListenerErrorHandler;
   /** Absent means no sound: the Player plays the picture only, as before D53. */
   readonly audio?: PlayerAudio;
+  /**
+   * Receives what the Player tells the host without failing (D87.2), at most
+   * once per kind for the Player's life. It must not throw; the Player
+   * catches it all the same.
+   */
+  readonly onWarning?: PlayerWarningHandler;
 }
+
+/**
+ * `video-workers-unavailable`: the window made no conversion worker, or one
+ * did not start or failed, so playing videos are shown by the path of D51,
+ * with the same pixels and fewer frames per second (D87.2).
+ */
+export type PlayerWarningCode = 'video-workers-unavailable';
+
+/** What the Player tells the host without failing. */
+export interface PlayerWarning {
+  readonly code: PlayerWarningCode;
+  readonly message: string;
+}
+
+export type PlayerWarningHandler = (warning: PlayerWarning) => void;
 
 /**
  * `waiting`: playing, but the frame the clock is at is not shown yet, because
@@ -805,6 +834,16 @@ export async function createPlayer(
   const preparedImages = new Map<string, PlayerAsset>();
   /** The decoders of the document shown now, or `null` without video nodes (D51.4). */
   let videoSource: VideoFrameSource | null = null;
+  /** The workers that convert the frames of playing videos, made at the first stream (D87.2). */
+  let pool: ConversionPool | null = null;
+  /** Whether the workers are not tried yet, started, or not available for the Player's life. */
+  let workers: 'untried' | 'ready' | 'unavailable' = 'untried';
+  /** The streams of the video nodes while the document shown plays, for its `videoSource` (D87.1). */
+  let playback: { readonly source: VideoFrameSource; readonly frames: PlaybackFrameSource } | null =
+    null;
+  /** The frame shown came from streams: a pause shows its time again by the path of D51 (D87.1). */
+  let streamed = false;
+  const { onWarning } = options;
   // One cache of decode runs for the Player's life, across loads and updates (D82.4): a
   // run is kept by the content hash of its video, so a frame is the same in every document.
   const runs = new RunCache();
@@ -958,6 +997,91 @@ export async function createPlayer(
     }
   };
 
+  /** Tells the host something without failing; what the handler throws is dropped. */
+  const warn = (warning: PlayerWarning): void => {
+    try {
+      onWarning?.(warning);
+    } catch {
+      // The handler must not throw (D87.2); playback goes on either way.
+    }
+  };
+
+  /** Ends every stream: after a seek, a pause, or a new document (D87.1). */
+  const closeStreams = (): void => {
+    playback?.frames.close();
+    playback = null;
+  };
+
+  /** No worker converts frames any more: the Player plays by the path of D51 and says so once. */
+  const workersUnavailable = (message: string): void => {
+    pool?.close();
+    pool = null;
+    closeStreams();
+    if (workers === 'unavailable' || destroyed) return;
+    workers = 'unavailable';
+    warn({ code: 'video-workers-unavailable', message });
+  };
+
+  /** The pool of workers once every one started, or `null` where there is none (D87.2). */
+  const startedPool = async (): Promise<ConversionPool | null> => {
+    if (workers === 'unavailable' || destroyed) return null;
+    pool ??= createConversionPool(view as unknown as WorkerWindow);
+    const created = pool;
+    if (created === null) {
+      workersUnavailable(
+        'The window creates no worker: playing videos are converted on its thread (D87.2).',
+      );
+      return null;
+    }
+    if (!(await created.start())) {
+      if (pool === created) {
+        workersUnavailable(
+          "A conversion worker did not start: playing videos are converted on the window's thread (D87.2).",
+        );
+      }
+      return null;
+    }
+    if (pool !== created) return null;
+    workers = 'ready';
+    return created;
+  };
+
+  /**
+   * The source frames of the video nodes for a frame of the clock (D87.1):
+   * from streams whose frames the workers convert, or by the path of D51 where
+   * no worker runs, after a pause, or once the streams were ended meanwhile.
+   */
+  const playingFramesOf = async (
+    source: VideoFrameSource | null,
+    shown: ValidatedComposition | null,
+    videos: ReadonlyMap<string, VerifiedVideo> | null,
+    target: number,
+  ): Promise<VideoFrameEntry[]> => {
+    if (source === null || shown === null || videos === null) return [];
+    const started = await startedPool();
+    if (started === null || playing === null || source !== videoSource) {
+      return framesOf(source, shown, target);
+    }
+    if (playback?.source !== source) {
+      closeStreams();
+      playback = {
+        source,
+        frames: createPlaybackFrameSource(codecsOf(view), videos, started, source),
+      };
+    }
+    try {
+      return await playback.frames.framesAt(shown, target);
+    } catch (reason) {
+      if (!(reason instanceof StreamSuperseded)) throw typed(reason);
+      if (started.failed && pool === started) {
+        workersUnavailable(
+          "A conversion worker failed: playing videos are converted on the window's thread (D87.2).",
+        );
+      }
+      return framesOf(source, shown, target);
+    }
+  };
+
   /** What a load or an update may take without asking the resolver again. */
   const knownAssets = (includeShown: boolean) => {
     const videos = new Map(preparedVideos);
@@ -1023,8 +1147,16 @@ export async function createPlayer(
     const requestId = nextRequestId++;
     const shown = composition;
     const source = videoSource;
+    const videos = shownAssets?.videos ?? null;
+    // A seek of the host ends the streams; its frame takes the path of D51 (D87.1).
+    if (!byClock) closeStreams();
+    let bitmaps = false;
     const sent = (async () => {
-      const videoFrames = await framesOf(source, shown, target);
+      const videoFrames: VideoFrameEntry[] =
+        byClock && playing !== null
+          ? await playingFramesOf(source, shown, videos, target)
+          : await framesOf(source, shown, target);
+      bitmaps = videoFrames.some((entry) => 'bitmap' in entry);
       await request(
         {
           type: SEEK,
@@ -1047,9 +1179,14 @@ export async function createPlayer(
         late = false;
         timeUs = target;
         error = null;
+        streamed = bitmaps;
+        // Stopped on a frame from streams, with no seek waiting: its time is shown again by
+        // the path of D51 (D87.1).
+        const again = bitmaps && playing === null && queued === null;
         done?.resolve();
         next();
         notify();
+        if (again) startSeek(target, null, true);
       },
       (reason: unknown) => {
         seeking = false;
@@ -1207,6 +1344,7 @@ export async function createPlayer(
     });
 
   const stopClock = (): void => {
+    closeStreams();
     if (playing !== null) {
       scheduler.cancelFrame(playing.handle);
       for (const pass of playing.sound?.passes.values() ?? []) pass.stop();
@@ -1459,6 +1597,10 @@ export async function createPlayer(
       if (error === null && (status === 'playing' || status === 'waiting')) {
         status = seeking ? 'seeking' : 'ready';
       }
+      // The frame shown came from streams: its time is shown again by the path of D51 (D87.1).
+      if (streamed && !seeking && error === null && timeUs !== null && composition !== null) {
+        startSeek(timeUs, null, true);
+      }
       notify();
     },
     setPlayRange(range) {
@@ -1640,6 +1782,9 @@ export async function createPlayer(
       listeners.clear();
       shownAssets = null;
       videoSource = null;
+      closeStreams();
+      pool?.close();
+      pool = null;
       preparedVideos.clear();
       preparedSounds.clear();
       preparedImages.clear();
