@@ -86,7 +86,7 @@
       {
         "index": 30,
         "timeUs": 1000000,
-        "sha256": "sha256:c691596e2ed737b7b88ba1c07b64933e0349fb6c535aa1cdb20ace8acd20433b"
+        "sha256": "sha256:2c6eca8567678df6549cd258af6e3294db99b18c5bece4ecbaaaaba03c2c9847"
       },
       {
         "index": 48,
@@ -146,7 +146,7 @@
       "file": "captions-motion-1000000.png",
       "timeUs": 1000000,
       "index": 30,
-      "sha256": "sha256:c691596e2ed737b7b88ba1c07b64933e0349fb6c535aa1cdb20ace8acd20433b"
+      "sha256": "sha256:2c6eca8567678df6549cd258af6e3294db99b18c5bece4ecbaaaaba03c2c9847"
     },
     {
       "file": "captions-motion-1600000.png",

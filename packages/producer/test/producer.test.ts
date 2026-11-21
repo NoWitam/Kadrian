@@ -43,6 +43,7 @@ import {
   verifiedScript,
 } from '../src/index.js';
 import { producerAgent } from '../src/agent.js';
+import { MARK_STRIP_HEIGHT } from '../src/render.js';
 import { hostNetworkInterfaces } from '../src/environment.js';
 import { producerCode } from '../src/errors.js';
 import { validateComposition, type ValidatedComposition } from '@kadrion/schema';
@@ -210,11 +211,12 @@ describe('the page of D28.1', () => {
   const html = hostDocument('/* runtime */', 1080, 1920);
   const frames = [...html.matchAll(/<iframe\b[^>]*>/g)];
 
-  it('holds exactly one sandboxed frame, sized and styled like the Player’s', () => {
+  it('holds exactly one sandboxed frame, styled like the Player’s, with the strip of the mark below (D86.1)', () => {
+    expect(MARK_STRIP_HEIGHT).toBe(2);
     expect(frames).toHaveLength(1);
     const tag = frames[0]?.[0] ?? '';
     expect(tag).toContain(`sandbox="${RENDER_PAGE_SANDBOX}"`);
-    const style = Object.entries({ ...RENDER_PAGE_FRAME_STYLE, width: '1080px', height: '1920px' })
+    const style = Object.entries({ ...RENDER_PAGE_FRAME_STYLE, width: '1080px', height: '1922px' })
       .map(([name, value]) => `${name}: ${value}`)
       .join('; ');
     expect(tag).toContain(`style="${style}"`);
@@ -309,6 +311,64 @@ describe('the agent of D28.3', () => {
     await expect(api.imageSize('image/jpeg', 'AAAA')).resolves.toEqual({ width: 20, height: 40 });
     await expect(api.imageSize('image/jpeg', 'broken')).resolves.toBeNull();
     expect(sources).toEqual(['data:image/jpeg;base64,AAAA', 'data:image/jpeg;base64,broken']);
+  });
+
+  it('sets a numbered mark below the composition, one element for the session (D86.1)', () => {
+    const appended: unknown[] = [];
+    const created: { style: Map<string, string> }[] = [];
+    const fakeDocument = {
+      getElementById: () => ({}),
+      createElement: () => {
+        const style = new Map<string, string>();
+        const element = {
+          style: { setProperty: (name: string, value: string) => style.set(name, value) },
+        };
+        created.push({ style });
+        return element;
+      },
+      body: { append: (element: unknown) => appended.push(element) },
+    };
+    const page = {
+      setTimeout,
+      clearTimeout,
+      KadrionRuntime: {
+        load: () => Promise.resolve({ ok: true }),
+        frame: () => Promise.resolve({ ok: true }),
+      },
+    };
+    const globals = globalThis as { window?: unknown; document?: unknown };
+    const saved = { window: globals.window, document: globals.document };
+    globals.window = page;
+    globals.document = fakeDocument;
+    try {
+      producerAgent();
+    } finally {
+      globals.window = saved.window;
+      globals.document = saved.document;
+    }
+    // The document it captured is used later, whatever the global is then.
+    const api = (page as unknown as { kadrionProducer: { mark(top: number): number | null } })
+      .kadrionProducer;
+    const numbers: (number | null)[] = [];
+    const colours: (string | undefined)[] = [];
+    for (let index = 0; index < 300; index += 1) {
+      numbers.push(api.mark(1920));
+      colours.push(created[0]?.style.get('background-color'));
+    }
+    expect(numbers.slice(0, 3)).toEqual([1, 2, 3]);
+    expect(numbers.at(-1)).toBe(300);
+    expect(colours[0]).toBe('rgb(1, 0, 0)');
+    expect(colours[255]).toBe('rgb(0, 1, 0)');
+    expect(colours[299]).toBe('rgb(44, 1, 0)');
+    expect(created).toHaveLength(1);
+    expect(appended).toHaveLength(1);
+    expect(Object.fromEntries(created[0]?.style ?? [])).toMatchObject({
+      position: 'absolute',
+      left: '0px',
+      top: '1920px',
+      width: '4px',
+      height: '2px',
+    });
   });
 
   it('only calls load and frame of the artifact, with a font constructor and a timer it captured', () => {

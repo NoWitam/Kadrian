@@ -600,7 +600,12 @@ and again before its commit and push.
   package at `0.9.1` for the patch release `v0.9.1`, whose tag the owner
   pushes from `main`, with a note that films rendered under load before it
   may hold a repeated frame. Golden frames, manifests, and parity records
-  keep their bytes.
+  keep their bytes. Status: done. Step 4 of D86.2 reads the mark at once
+  (the owner's amendment of 2026-11-21, 14:19 Europe/Warsaw); the mark costs
+  53 to 60 ms a frame in the pinned container. One golden frame changes, the
+  animated captions at 1 000 000 µs, which on `main` depended on the frames
+  rendered before it (D86, implementation notes); every other golden file,
+  manifest, and parity record keeps its bytes.
 - **PR-82** (D87, the stream and the pool): the forward stream per video
   node, the bound of 6 frames, every reason it starts again, the pool of
   workers and its fallback; library and unit tests, no protocol change. The
@@ -634,9 +639,10 @@ and again before its commit and push.
   `REQUIRED_PINNED_FILES` and the Q14 artifact list grow in the same diff.
 - Renders without a mapped clip keep every byte of their manifests (rules
   above).
-- PR-79 and PR-81 (D86) change no runtime build, Player dist tree, golden
-  frame, manifest, or parity record; PR-81 adds a pinned file, so
-  `REQUIRED_PINNED_FILES` grows in its diff. PR-82 (D87) changes the Player's
+- PR-79 and PR-81 (D86) change no runtime build, Player dist tree, or parity
+  record; PR-81 adds a pinned file, so `REQUIRED_PINNED_FILES` grows in its
+  diff, and writes again the one golden frame of `main` that depended on the
+  frames before it (the animated captions at 1 000 000 µs) with its manifest. PR-82 (D87) changes the Player's
   dist tree and PR-83 the runtime build, so parity is measured again in each
   and Q14 reopens in PR-83; no golden PNG file changes.
 

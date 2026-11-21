@@ -28,8 +28,10 @@ import type { Frame, Page, Request } from 'playwright-core';
 
 import { PRODUCER_AGENT_SCRIPT } from './agent.js';
 import {
+  awaitMark,
   awaitPresented,
   captureFrame,
+  capturePixel,
   customHtmlDocuments,
   documentsProblem,
   presentationSessions,
@@ -110,6 +112,7 @@ interface AgentWindow {
     ): Promise<Outcome>;
     stats(): { loads: number; frames: number };
     imageSize(mediaType: string, base64: string): Promise<{ width: number; height: number } | null>;
+    mark(top: number): number | null;
   };
 }
 
@@ -155,7 +158,17 @@ function escapeAttribute(text: string): string {
   return text.replaceAll('&', '&amp;').replaceAll('"', '&quot;');
 }
 
-/** The host document of D28.1: one sandboxed frame with the render page, at 0,0. */
+/**
+ * The strip below the composition that holds the mark of a frame (D86.1): the
+ * frame of the render page and the window of a render session are this much
+ * higher than the composition, and no capture of a frame includes it.
+ */
+export const MARK_STRIP_HEIGHT = 2;
+
+/**
+ * The host document of D28.1: one sandboxed frame with the render page, at
+ * 0,0, as wide as the composition and `MARK_STRIP_HEIGHT` pixels higher (D86.1).
+ */
 export function hostDocument(runtimeScript: string, width: number, height: number): string {
   let srcdoc: string;
   try {
@@ -169,7 +182,7 @@ export function hostDocument(runtimeScript: string, width: number, height: numbe
   const style = Object.entries({
     ...RENDER_PAGE_FRAME_STYLE,
     width: `${String(width)}px`,
-    height: `${String(height)}px`,
+    height: `${String(height + MARK_STRIP_HEIGHT)}px`,
   })
     .map(([name, value]) => `${name}: ${value}`)
     .join('; ');
@@ -213,7 +226,8 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
   const pageTimeoutMs = options.pageTimeoutMs ?? 30_000;
   const presentationTimeoutMs = options.presentationTimeoutMs ?? 5_000;
   const context = await options.chromium.browser.newContext(
-    contextOptions(options.width, options.height),
+    // The window holds the strip of the mark below the composition (D86.1).
+    contextOptions(options.width, options.height + MARK_STRIP_HEIGHT),
   );
   const attempts: { readonly url: string; readonly frame: Frame | null }[] = [];
   const seen = new Set<Request>();
@@ -371,7 +385,31 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
         );
         checked(outcome);
         await sameDocuments();
+        // D28.5, then D86.2: the barrier gives a late element its frames; the mark,
+        // set after it, is the last change of the page; the frame is captured once
+        // the surface shows the mark's number.
         await awaitPresented(page, presentationTimeoutMs);
+        const mark = await within(
+          renderFrame.evaluate(
+            (top) => (window as unknown as AgentWindow).kadrionProducer.mark(top),
+            options.height,
+          ),
+          pageTimeoutMs,
+          'set the mark of a frame',
+        );
+        if (mark === null) {
+          throw new ProducerError(
+            'page-error',
+            'The render session has used every number of the mark (D86.1).',
+          );
+        }
+        await awaitMark(
+          mark,
+          () => awaitPresented(page, presentationTimeoutMs),
+          () => capturePixel(page, 0, options.height),
+          presentationTimeoutMs,
+          `frame ${String(index)}`,
+        );
         const png = await captureFrame(page, options.width, options.height);
         await sameDocuments();
         noRequests();
