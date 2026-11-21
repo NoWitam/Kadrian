@@ -12,6 +12,7 @@
   the golden frames of the video composition (D51.6)
 - Amended by: K1 (D79) on 2026-11-10: 33.10 (the dist manifest also lists the Mediabunny
   bundle that a host maps for the Player's import of `mediabunny`, D79.7)
+- Amended by: PR-80 (D87) on 2026-11-21, in force from PR-83: beside the parity records, a measurement of a playing frame against the same frame sought, gated at zero for a clip at its own size (D87.6)
 - Related: D06, D13, D21, D25, D26, D28, D34,
   [specification](../spike/vertical-spike.md) §6.2, §6.3, §12, and open
   question Q9

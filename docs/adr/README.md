@@ -93,6 +93,8 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D83](D83-a-text-frame-and-lines-measured-from-the-font.md)   | A text frame, alignment, and lines measured from the font: schema 0.25                       | Accepted          |
 | [D84](D84-fonts-in-woff-and-woff2-measured-by-kadrion.md)     | Fonts in WOFF and WOFF2 measured by Kadrion: its own inflate and Brotli in the runtime       | Accepted          |
 | [D85](D85-fades-of-a-video-and-volume-keyframes.md)           | Fades of a video's sound and volume keyframes in decibels: schema 0.26                       | Accepted          |
+| [D86](D86-a-frame-is-captured-after-its-mark-is-read.md)      | A frame is captured only after its mark is read from the surface                             | Accepted          |
+| [D87](D87-video-played-at-the-films-frame-rate.md)            | Video played at the film's frame rate: decoded forward, converted in workers                 | Accepted          |
 
 ## Provenance of D01–D10
 
