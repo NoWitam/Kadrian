@@ -283,3 +283,39 @@ roadmap.
 |     2 | PR-82 | The stream and the pool of workers (library, tests)  | —      | —             | yes         | —   | M    |
 |     3 | PR-83 | Protocol version 3 and the canvas of a video node    | —      | yes           | yes         | yes | M    |
 |     4 | PR-84 | The host guide (workers, the policy) and the release | —      | —             | —           | —   | S    |
+
+## Implementation notes (PR-82)
+
+- **The modules.** `packages/player/src/stream.ts` (`VideoStream`),
+  `pool.ts` (`ConversionPool`, `poolSize`, `createConversionPool`),
+  `convert.ts` (the conversion of one frame), and `convert-worker.ts` (the
+  worker). The path of D51.4 now calls `convert.ts` too, so a sought frame and
+  a frame of a stream run one function. None of them is exported from the
+  package, and the Player does not use them yet: PR-83 joins them to protocol
+  version 3.
+- **Frames that come before they are wanted.** Two samples may wait in the
+  decoder's queue, so the decoder gives a frame or two past the last frame
+  wanted. The stream keeps the planes of up to 8 such frames, not converted,
+  and converts one when it becomes wanted; without them the next frame asked
+  for would start the stream again. A frame let go and asked for later starts
+  the stream again at its IDR sample, as D87.1 says for a frame behind it.
+- **The worker's module is a bundle.** A module worker does not see the
+  import map of the page that starts it (checked in the pinned Chromium,
+  157), so the worker cannot import `@kadrion/renderer-dom` by name. After
+  `tsc`, the build bundles `dist/convert-worker.js` with esbuild into
+  `dist/worker/kadrion-convert-worker.js`, a module of about 13 kB that
+  imports nothing; in that bundle `@kadrion/renderer-dom` resolves to its
+  module of the turn of D81 alone, which imports nothing either. `pool.ts`
+  starts its workers from that file, next to its own module. esbuild 0.28.2,
+  pinned already for the runtime build, becomes a development dependency of
+  the Player, and a unit test holds the written bundle to a fresh build.
+- **The rule of D25.8.** The Player's lint rule of D25.8 forbids `Worker`;
+  `pool.ts` is its one named exception, as D87.2 decides. `fetch`, a dynamic
+  `import()`, and every other way out stay closed there too.
+- **Measured.** The runtime build keeps its bytes
+  (`sha256:e98d722b…`, 502 709 bytes). The Player's dist tree is
+  `sha256:b26fa6bff3a26dad1213c11d29ff67ad425b9ee64956d8d0c63291d5466e4edc`
+  (80 files: `convert.js` joins the files a host serves for a sought frame;
+  the worker's files are served from PR-83). One `test:pinned` pass in the
+  pinned container (341 of 341 tests in 34 files) wrote both parity records
+  again; every row is 0/0, with the same PNG hashes.

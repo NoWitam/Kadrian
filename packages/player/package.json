@@ -25,6 +25,7 @@
   "devDependencies": {
     "@kadrion/test-fixtures": "workspace:*",
     "@types/jsdom": "28.0.3",
+    "esbuild": "0.28.2",
     "jsdom": "29.1.1"
   }
 }

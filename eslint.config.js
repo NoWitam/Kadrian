@@ -430,6 +430,20 @@ export default defineConfig(
     },
   },
   {
+    // The named exception of D87.2, in this one file only: the pool starts
+    // module workers of the Player's own worker module, from the host window.
+    // Every other way out stays closed here too.
+    files: ['packages/player/src/pool.ts'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        ...[...NETWORK_GLOBALS.filter((name) => name !== 'Worker'), 'sendBeacon'].map(
+          (property) => ({ property, message: NETWORK }),
+        ),
+      ],
+    },
+  },
+  {
     // After the brand block, which the shared rules repeat. The package imports
     // `@kadrion/schema` and its own files, nothing else (D12).
     files: ['packages/editor-sdk/src/**/*.ts'],
