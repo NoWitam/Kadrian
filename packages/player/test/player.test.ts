@@ -17,7 +17,7 @@ import {
   type ExpectedText,
 } from '@kadrion/test-fixtures';
 import type { DOMWindow } from 'jsdom';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createPlayer,
@@ -1682,10 +1682,19 @@ describe('video in the host window (D51)', () => {
     expect([full.width, full.height]).toEqual([32, 16]);
     expect(drawn.get(full)?.red).toBe(expectedRed(Math.floor((shownAt * 25) / 1_000_000)));
     // A pause shows the frame of its time again by the path of D51, as an image.
+    // The frame is decoded and encoded again, which takes as long as the machine needs.
     player.pause();
-    await harness.settle();
-    await sleep(5);
-    await harness.settle();
+    await vi.waitFor(
+      async () => {
+        await harness.settle();
+        expect(
+          seeksOf(harness)
+            .at(-1)
+            ?.videoFrames.every((entry) => 'mediaType' in entry),
+        ).toBe(true);
+      },
+      { timeout: 10_000, interval: 5 },
+    );
     const last = seeksOf(harness).at(-1);
     expect(last?.timeUs).toBe(shownAt);
     expect(last?.videoFrames.every((entry) => 'mediaType' in entry)).toBe(true);

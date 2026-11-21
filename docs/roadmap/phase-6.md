@@ -624,7 +624,9 @@ and again before its commit and push.
   its filter (D87, implementation notes, with the measured rates).
 - **PR-84** (D87, the host guide and the release): workers and the content
   security policy in the host guide, the measured frame rates, and the
-  release that carries protocol version 3.
+  release that carries protocol version 3. Status: done; every package is
+  `0.10.0` for the release `v0.10.0`, whose tag the owner pushes from
+  `main`.
 
 ### PR-85 to PR-87 — a faster export with the same pixels: D88
 
