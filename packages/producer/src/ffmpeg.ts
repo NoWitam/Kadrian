@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { createReadStream, statSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 import process from 'node:process';
-import type { Writable } from 'node:stream';
+import type { Readable, Writable } from 'node:stream';
 
 import { holdsIdr, videoOrientation, type VideoOrientation } from '@kadrion/renderer-dom';
 
@@ -835,31 +835,28 @@ async function idrTimestampsWith(paths: FfmpegPaths, file: string): Promise<numb
   return [...new Set(found)].sort((a, b) => a - b);
 }
 
+/** The frames of a stream of packed pixels, read one at a time. */
+export interface FrameQueue {
+  /** The next frame, or `null` after the last; one read at a time. */
+  next(): Promise<Uint8Array | null>;
+  /** The source of the stream is gone: a read that finds no whole frame left ends the queue. */
+  end(): void;
+  /** Every read from now on, and a pending one, rejects with `reason`; the first reason stays. */
+  fail(reason: ProducerError): void;
+}
+
 /**
- * The decode of D50.5: one thread, every frame passed through in presentation
- * order (`-fps_mode passthrough`), at its coded size without FFmpeg's own
- * rotation (`-noautorotate`, D81), converted to packed RGB with bit-exact
- * scaling flags, on standard output. The output is read one frame at a time,
- * and the process is paused while a frame waits, so memory stays two frames.
+ * Frames of `frameBytes` bytes out of `stream`, which stays paused: a frame is
+ * taken with `read(frameBytes)` only while a `next` waits for it, so the stream
+ * holds at most its high-water mark (which Node raises to one frame) and the
+ * writer is held back by the pipe meanwhile. Nothing is copied but the frame
+ * itself, once: a listener of `data` would put the stream in flowing mode, where
+ * the chunks of the frames the writer is ahead by pile up and are joined again
+ * for every frame read.
  */
-function decodeVideoWith(
-  ffmpegPath: string,
-  file: string,
-  width: number,
-  height: number,
-  startUs: number | undefined,
-): VideoDecoder {
-  const frameBytes = width * height * 3;
-  const args =
-    startUs === undefined ? videoDecodeArgs(file) : videoSeekArgs(file, seekStart(startUs));
-  const child = spawn(ffmpegPath, args, {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    windowsHide: true,
-  });
-  const stderr = collect(child.stderr, STDERR_TAIL);
-  let buffered: Buffer[] = [];
-  let size = 0;
+export function frameQueue(stream: Readable, frameBytes: number): FrameQueue {
   let ended = false;
+  let torn = false;
   let failure: ProducerError | null = null;
   let waiting: {
     resolve: (frame: Uint8Array | null) => void;
@@ -871,41 +868,27 @@ function decodeVideoWith(
     if (failure !== null) {
       waiting = null;
       reject(failure);
-    } else if (size >= frameBytes) {
-      waiting = null;
-      const all = Buffer.concat(buffered);
-      const frame = new Uint8Array(all.subarray(0, frameBytes));
-      buffered = all.length > frameBytes ? [all.subarray(frameBytes)] : [];
-      size = all.length - frameBytes;
-      resolve(frame);
-    } else if (ended) {
-      waiting = null;
-      if (size === 0) resolve(null);
-      else reject(undecodable('The decoded video ends inside a frame.'));
+      return;
     }
-    if (size >= frameBytes) child.stdout.pause();
-    else child.stdout.resume();
+    // `null` until a whole frame is buffered; fewer bytes only once the stream ended.
+    const frame = torn ? null : (stream.read(frameBytes) as Buffer | null);
+    if (frame !== null && frame.length === frameBytes) {
+      waiting = null;
+      resolve(new Uint8Array(frame.buffer, frame.byteOffset, frame.length));
+      return;
+    }
+    if (frame !== null && frame.length > 0) torn = true;
+    if (!ended) return;
+    waiting = null;
+    if (torn || stream.readableLength > 0) {
+      reject(undecodable('The decoded video ends inside a frame.'));
+    } else {
+      resolve(null);
+    }
   };
-  child.stdout.on('data', (chunk: Buffer) => {
-    buffered.push(chunk);
-    size += chunk.length;
-    settle();
-  });
-  child.stdout.on('error', () => undefined);
-  child.on('error', (reason) => {
-    failure ??= undecodable(`FFmpeg cannot decode the video: ${String(reason)}`);
-    settle();
-  });
-  child.on('close', (code, signal) => {
-    void stderr.then((text) => {
-      if (code !== 0 && signal === null) {
-        failure ??= undecodable(`FFmpeg cannot decode the video: ${text.trim()}`);
-      }
-      ended = true;
-      settle();
-    });
-  });
-  child.stdout.pause();
+  stream.on('readable', settle);
+  stream.on('end', settle);
+  stream.on('error', () => undefined);
   return {
     next() {
       return new Promise((resolve, reject) => {
@@ -917,10 +900,56 @@ function decodeVideoWith(
         settle();
       });
     },
-    close() {
-      failure ??= new ProducerError('cancelled', 'The video decoder was closed.');
-      child.kill('SIGKILL');
+    end() {
+      ended = true;
       settle();
+    },
+    fail(reason) {
+      failure ??= reason;
+      settle();
+    },
+  };
+}
+
+/**
+ * The decode of D50.5: one thread, every frame passed through in presentation
+ * order (`-fps_mode passthrough`), at its coded size without FFmpeg's own
+ * rotation (`-noautorotate`, D81), converted to packed RGB with bit-exact
+ * scaling flags, on standard output. The output is read one frame at a time
+ * (`frameQueue`), and the pipe holds FFmpeg back while a frame waits, so memory
+ * stays two frames.
+ */
+function decodeVideoWith(
+  ffmpegPath: string,
+  file: string,
+  width: number,
+  height: number,
+  startUs: number | undefined,
+): VideoDecoder {
+  const args =
+    startUs === undefined ? videoDecodeArgs(file) : videoSeekArgs(file, seekStart(startUs));
+  const child = spawn(ffmpegPath, args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    windowsHide: true,
+  });
+  const stderr = collect(child.stderr, STDERR_TAIL);
+  const frames = frameQueue(child.stdout, width * height * 3);
+  child.on('error', (reason) => {
+    frames.fail(undecodable(`FFmpeg cannot decode the video: ${String(reason)}`));
+  });
+  child.on('close', (code, signal) => {
+    void stderr.then((text) => {
+      if (code !== 0 && signal === null) {
+        frames.fail(undecodable(`FFmpeg cannot decode the video: ${text.trim()}`));
+      }
+      frames.end();
+    });
+  });
+  return {
+    next: () => frames.next(),
+    close() {
+      frames.fail(new ProducerError('cancelled', 'The video decoder was closed.'));
+      child.kill('SIGKILL');
     },
   };
 }
