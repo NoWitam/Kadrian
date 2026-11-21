@@ -172,7 +172,8 @@ export interface WorkerWindow {
  */
 export function createConversionPool(
   view: WorkerWindow,
-  url: URL = new URL(WORKER_MODULE, import.meta.url),
+  // The literal form, so a bundler that rewrites `new URL('…', import.meta.url)` finds the file.
+  url: URL = new URL('./worker/kadrion-convert-worker.js', import.meta.url),
 ): ConversionPool | null {
   const { Worker } = view;
   if (Worker === undefined) return null;

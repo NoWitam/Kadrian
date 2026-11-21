@@ -343,6 +343,11 @@ roadmap.
   Player's life, when the window makes no worker, a worker does not start,
   or one fails; playback goes on by the path of D51. What the handler throws
   is dropped.
+- **The worker's URL is a literal.** `createConversionPool` writes
+  `new URL('./worker/kadrion-convert-worker.js', import.meta.url)` in full,
+  so a bundler that rewrites that form (Vite's production build, checked)
+  copies the worker's bundle by itself; a unit test holds the built
+  `pool.js` to it.
 - **The bitmap crosses as a copy.** The Player posts the message without a
   transfer list, so the page receives a structured clone of the bitmap the
   stream holds (D87.1, D87.3).
@@ -397,7 +402,7 @@ roadmap.
 - **Measured.** The runtime build is
   `sha256:e1dd151c9b9ca56a87ce4774373825aea0c7dd23e646947da7666c6b3090677e`
   (504 591 bytes). The Player's dist tree is
-  `sha256:04b3169098e93dece37e5be93575316c92763e78c7648ab06fc29ce751e1c303`
+  `sha256:bb0c6136310efc943153d21d8050e6c66a290d158ceabad994ec4e947003aa7d`
   (83 files). Two isolated `goldens:update` passes wrote all 124 golden files
   byte for byte the same; every PNG file is as committed, and the twenty
   manifests changed in `render.runtime.contentHash` only. One `test:pinned`
