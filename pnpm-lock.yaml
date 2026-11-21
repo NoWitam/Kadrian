@@ -175,6 +175,9 @@ importers:
       '@types/jsdom':
         specifier: 28.0.3
         version: 28.0.3
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
       jsdom:
         specifier: 29.1.1
         version: 29.1.1

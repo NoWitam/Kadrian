@@ -15,13 +15,7 @@
  * every sampled frame of that run are kept in a cache bounded by bytes, so
  * frames shown backwards decode each group of pictures once (D82.4).
  */
-import {
-  holdsIdr,
-  mediaTypeFits,
-  orientedSize,
-  orientRgb,
-  type AssetRequest,
-} from '@kadrion/renderer-dom';
+import { holdsIdr, mediaTypeFits, orientedSize, type AssetRequest } from '@kadrion/renderer-dom';
 import {
   placedVideos,
   sampledSourceRange,
@@ -36,9 +30,9 @@ import {
 } from '@kadrion/schema';
 
 import { readVideoTrack, type VideoTrack } from './container.js';
+import { shownRgb, type ConvertJob } from './convert.js';
 import { PlayerError, withAsset } from './errors.js';
 import { Sha256 } from './sha256.js';
-import { yuv420ToRgb } from './yuv.js';
 
 /** A video delivered as a `Blob`: the host's file, never read whole into memory (D51.2). */
 export interface PlayerVideoBlob {
@@ -266,7 +260,7 @@ function codecsOf(view: Window): Codecs {
 }
 
 /** The decoder configuration of a track: software decoding, so pixels never depend on a GPU. */
-function configOf(track: VideoTrack): VideoDecoderConfig {
+export function configOf(track: VideoTrack): VideoDecoderConfig {
   return {
     codec: track.codec,
     description: track.description,
@@ -365,7 +359,7 @@ export async function encodePng(
   return png;
 }
 
-function undecodable(video: VerifiedVideo, message: string): PlayerError {
+export function undecodable(video: VerifiedVideo, message: string): PlayerError {
   return new PlayerError('video-undecodable', `The video ${video.contentHash}: ${message}`);
 }
 
@@ -374,7 +368,7 @@ function undecodable(video: VerifiedVideo, message: string): PlayerError {
  * hold an IDR picture (D79.5), and those bytes; a sync sample that is only a
  * recovery point is passed over for the one before it.
  */
-async function idrBefore(
+export async function idrBefore(
   video: VerifiedVideo,
   target: number,
 ): Promise<{ start: number; first: Uint8Array }> {
@@ -397,7 +391,7 @@ export interface DecodedPlanes {
 /** For decode index `d` of a track, the presentation index of its frame. */
 const presentationOf = new WeakMap<VideoTrack, readonly number[]>();
 
-function presentationIndices(track: VideoTrack): readonly number[] {
+export function presentationIndices(track: VideoTrack): readonly number[] {
   const known = presentationOf.get(track);
   if (known !== undefined) return known;
   const indices = new Array<number>(track.presentation.length).fill(-1);
@@ -406,6 +400,35 @@ function presentationIndices(track: VideoTrack): readonly number[] {
   });
   presentationOf.set(track, indices);
   return indices;
+}
+
+/**
+ * The planes of a decoded frame of a video, copied as the decoder laid them
+ * out (D51.4): the frame must be I420 at the track's coded size. The frame is
+ * not closed here.
+ */
+export async function copyPlanes(
+  video: VerifiedVideo,
+  frame: VideoFrame,
+  at: number,
+): Promise<DecodedPlanes> {
+  const { track } = video;
+  const rect = frame.visibleRect;
+  if (rect === null || rect.width !== track.width || rect.height !== track.height) {
+    throw undecodable(
+      video,
+      `frame ${String(at)} is not ${String(track.width)}x${String(track.height)}.`,
+    );
+  }
+  if (frame.format !== 'I420') {
+    throw undecodable(video, `frame ${String(at)} is ${String(frame.format)}, not I420.`);
+  }
+  // The decoded planes, which are FFmpeg's to the bit (H.264 decoding is exact), kept
+  // for FFmpeg's own conversion of them (D51.4): never the browser's colour conversion.
+  const data = new Uint8Array(frame.allocationSize({ rect }));
+  const layout = await frame.copyTo(data, { rect });
+  if (layout.length < 3) throw undecodable(video, `frame ${String(at)} has no three planes.`);
+  return { data, layout: layout.map(({ offset, stride }) => ({ offset, stride })) };
 }
 
 /**
@@ -435,22 +458,8 @@ async function decodeRun(
   let failure: unknown = null;
   const keep = async (frame: VideoFrame, at: number): Promise<void> => {
     try {
-      const rect = frame.visibleRect;
-      if (rect === null || rect.width !== track.width || rect.height !== track.height) {
-        throw undecodable(
-          video,
-          `frame ${String(at)} is not ${String(track.width)}x${String(track.height)}.`,
-        );
-      }
-      if (frame.format !== 'I420') {
-        throw undecodable(video, `frame ${String(at)} is ${String(frame.format)}, not I420.`);
-      }
-      // The decoded planes, which are FFmpeg's to the bit (H.264 decoding is exact), kept
-      // for FFmpeg's own conversion of them (D51.4): never the browser's colour conversion.
-      const data = new Uint8Array(frame.allocationSize({ rect }));
-      const layout = await frame.copyTo(data, { rect });
-      if (layout.length < 3) throw undecodable(video, `frame ${String(at)} has no three planes.`);
-      kept.set(at, { data, layout: layout.map(({ offset, stride }) => ({ offset, stride })) });
+      const { data, layout } = await copyPlanes(video, frame, at);
+      kept.set(at, { data, layout });
       bytes += data.length;
       while (bytes > budget) {
         let lowest: number | null = null;
@@ -511,29 +520,18 @@ async function decodeRun(
   return kept;
 }
 
-/** The packed RGB of decoded planes, by FFmpeg's own conversion (D51.4), before D81. */
-function rgbOf(video: VerifiedVideo, planes: DecodedPlanes): Uint8Array {
+/** The conversion job of decoded planes of a video (D51.4, D87.2). */
+export function jobOf(video: VerifiedVideo, planes: DecodedPlanes): ConvertJob {
   const { track } = video;
-  const [y, u, v] = planes.layout;
-  if (y === undefined || u === undefined || v === undefined) {
-    throw undecodable(video, 'a frame has no three planes.');
-  }
-  const { data } = planes;
-  const chromaHeight = (track.height + 1) >> 1;
-  return yuv420ToRgb(
-    {
-      width: track.width,
-      height: track.height,
-      y: data.subarray(y.offset, y.offset + y.stride * track.height),
-      yStride: y.stride,
-      u: data.subarray(u.offset, u.offset + u.stride * chromaHeight),
-      uStride: u.stride,
-      v: data.subarray(v.offset, v.offset + v.stride * chromaHeight),
-      vStride: v.stride,
-    },
-    track.colour.matrix,
-    track.colour.fullRange,
-  );
+  return {
+    width: track.width,
+    height: track.height,
+    matrix: track.colour.matrix,
+    fullRange: track.colour.fullRange,
+    orientation: track.orientation,
+    data: planes.data,
+    layout: planes.layout,
+  };
 }
 
 /** The bytes the run cache of a Player holds at most (D82.4): 256 MiB. */
@@ -682,11 +680,14 @@ export function createVideoFrameSource(
     }
     if (planes === undefined)
       throw undecodable(video, `the decoder gave no frame ${String(index)}.`);
-    const { track } = video;
     // After the conversion of colour, as the Producer turns its frames (D81).
-    const rgb = orientRgb(rgbOf(video, planes), track.width, track.height, track.orientation);
-    const shown = orientedSize(track.width, track.height, track.orientation);
-    const png = await encodePng(codecs, shown.width, shown.height, rgb);
+    let shown: { width: number; height: number; rgb: Uint8Array };
+    try {
+      shown = shownRgb(jobOf(video, planes));
+    } catch (reason) {
+      throw undecodable(video, messageOf(reason));
+    }
+    const png = await encodePng(codecs, shown.width, shown.height, shown.rgb);
     frames.set(index, png);
     if (frames.size > KEPT_FRAMES) frames.delete(frames.keys().next().value as number);
     return png;

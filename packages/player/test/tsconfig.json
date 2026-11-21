@@ -6,7 +6,7 @@
     "types": ["node"],
     "tsBuildInfoFile": "../../../node_modules/.cache/tsbuildinfo/player-test.tsbuildinfo"
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../scripts/**/*.ts"],
   "references": [
     {
       "path": ".."

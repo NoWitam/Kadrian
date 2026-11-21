@@ -609,7 +609,8 @@ and again before its commit and push.
 - **PR-82** (D87, the stream and the pool): the forward stream per video
   node, the bound of 6 frames, every reason it starts again, the pool of
   workers and its fallback; library and unit tests, no protocol change. The
-  Player's dist tree changes, so parity is measured again.
+  Player's dist tree changes, so parity is measured again. Status: done; the
+  worker's module is a bundle without imports (D87, implementation notes).
 - **PR-83** (D87, protocol version 3 and the canvas): the bitmap entry, the
   `canvas` in a video node's place, the gates of D87.6. The runtime build
   changes, Q14 reopens, parity is measured again, golden frames keep their
