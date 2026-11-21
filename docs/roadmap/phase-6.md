@@ -586,7 +586,13 @@ and again before its commit and push.
   inside a frame, failures); `node --run check`; `test:pinned` in the pinned
   container; the MP4 of an export with a 1080p clip keeps its bytes (97 s to
   88 s measured outside the container). The rule "speed 1 forwards stays byte
-  for byte" holds in full.
+  for byte" holds in full. Status: done; `test:pinned` in the pinned
+  container passed (33 files, 339 tests) on 2026-11-21. In the same container
+  the reader made the export of a 1080p clip 20 % faster (121 s to 96 s) and
+  of the reference composition 36 % (79 s to 51 s), and it makes the defect
+  of D86 more frequent: in the test under load of PR-81 two of four exports
+  held 6 repeated frames in all with it, while on `main` one export of four
+  held 1 in a first run and none did in a second.
 - **PR-81** (D86, the mark of a frame): the agent's `mark()`, the frame and
   window 2 pixels taller, the read of the mark after a second barrier, the
   capture of one pixel; `tests/pinned/load.pinned.test.ts` with four renders
