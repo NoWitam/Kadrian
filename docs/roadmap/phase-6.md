@@ -104,6 +104,9 @@ first, so that the schema step only wires what is already proven.
 |    25 | PR-82 | D87: the forward stream and the pool of workers           | —      | —             | yes         | —   | M    |
 |    26 | PR-83 | D87: protocol version 3 and the canvas of a video node    | —      | yes           | yes         | yes | M    |
 |    27 | PR-84 | D87: the host guide and the release                       | —      | —             | —           | —   | S    |
+|    28 | PR-85 | D88 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
+|    29 | PR-86 | D88: the fast capture of an export, manifest version 6    | —      | —             | —           | —   | M    |
+|    30 | PR-87 | D88: a first start that seeks in an export, host guide    | —      | —             | —           | —†  | M    |
 
 Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 2 000 to 3 000 (most of it the step, the corpus, and fixtures).
@@ -111,6 +114,8 @@ Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 \* PR-81 changes no schema, runtime, or renderer, so Q14 does not reopen by its
 rule; it adds a pinned test file and changes one pinned assertion, and its
 pinned run is the evidence (D86).
+
+† PR-87 reopens Q14 only if it changes fixtures (D88).
 
 PR-64 to PR-68 are the pull requests of
 [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md) (a text
@@ -618,6 +623,21 @@ and again before its commit and push.
 - **PR-84** (D87, the host guide and the release): workers and the content
   security policy in the host guide, the measured frame rates, and the
   release that carries protocol version 3.
+
+### PR-85 to PR-87 — a faster export with the same pixels: D88
+
+D88 is `Proposed`: it proposes a faster capture of the frames of an export
+and a first start of a decoder in an export that seeks, both keeping the
+pixels, after D86. Its rows join the phase on acceptance; until then nothing
+of it is built.
+
+- **PR-85** (D88, documents only): the ADR, its row in the index of ADRs,
+  and these entries.
+- **PR-86** (D88, the fast capture): an export captures with another
+  compression of the PNG; its frames equal those of `renderFrames` in pixels;
+  export manifest version 6 with the field `capture`.
+- **PR-87** (D88, the first start that seeks): the first start of a decoder
+  in an export may seek, with the evidence of D88.4; the host guide.
 
 ## Impact on Q14, parity, and golden frames
 
