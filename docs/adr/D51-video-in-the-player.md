@@ -16,6 +16,7 @@
   and `update`), D33 and D34 (the video rows of the parity measurement), D44
   (`editor-session` reads media facts), and D50 (video in the second host),
   each with an `Amended by: PR-28b (D51)` line
+- Amended by: PR-80 (D87) on 2026-11-21, in force from PR-82 and PR-83: 51.4: while a film plays, the Player decodes each video forward, one decoder per node from the last sample that holds an IDR picture, and converts the planes with the same function in a pool of workers; a sought frame keeps this path; 51.5: protocol version 3 carries a frame as `{ nodeId, bitmap }` beside `{ nodeId, mediaType, bytes }` (D87.1 to D87.3)
 - Related: D13, D14, D22, D27, D29, D30, D38, D46, D49,
   [roadmap of phase three](../roadmap/phase-3.md) PR-28,
   [spike report](../spike/report.md) §3

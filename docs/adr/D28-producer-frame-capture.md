@@ -13,6 +13,7 @@
 - Amended by: PR-28a (D50) on 2026-10-31: 28.3 (the agent passes video frames), 28.6 (`video-undecodable`, `source-range-exceeded`, `video-frames-invalid`), and 28.7 (the manifest field `video`, `MANIFEST_VERSION` 3) (D50.5)
 - Amended by: PR-28b (D51) on 2026-10-31: 28.3 (the Player's agent receives video frames with
   `seek` and `update`, as the Producer's agent does) (D51.5)
+- Amended by: PR-80 (D86) on 2026-11-21, in force from PR-81: 28.1: the frame that holds the render page is 2 pixels higher than the composition; 28.3: the agent has a third call, `mark()`, and one painted element below the root; 28.5: after the barrier the agent sets the mark, the barrier runs again, and the frame is captured only once one pixel of the mark, read from the surface, shows its number (D86.1, D86.2)
 - Related: D06, D12, D13, D14, D21, D23, D25, D26, D27, D29,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1–§6.3, §7, §8, and
   open questions Q3, Q9, and Q14

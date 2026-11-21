@@ -98,9 +98,19 @@ first, so that the schema step only wires what is already proven.
 |    19 | PR-76 | Schema `0.26`: a video's fades and volume curves, mixed   | `0.26` | yes           | yes         | yes | L    |
 |    20 | PR-77 | Commands and tools: fades of a video, a clip's animations | —      | —             | —           | —   | S    |
 |    21 | PR-78 | The host guide, ducking as keyframes, and the release     | —      | —             | —           | —   | S    |
+|    22 | PR-80 | D86 and D87 (documents only)                              | —      | —             | —           | —   | S    |
+|    23 | PR-79 | The reader of the decoder's output, one frame at a time   | —      | —             | —           | —   | S    |
+|    24 | PR-81 | D86: the mark of a frame, the test under load, `v0.9.1`   | —      | —             | —           | —\* | M    |
+|    25 | PR-82 | D87: the forward stream and the pool of workers           | —      | —             | yes         | —   | M    |
+|    26 | PR-83 | D87: protocol version 3 and the canvas of a video node    | —      | yes           | yes         | yes | M    |
+|    27 | PR-84 | D87: the host guide and the release                       | —      | —             | —           | —   | S    |
 
 Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 2 000 to 3 000 (most of it the step, the corpus, and fixtures).
+
+\* PR-81 changes no schema, runtime, or renderer, so Q14 does not reopen by its
+rule; it adds a pinned test file and changes one pinned assertion, and its
+pinned run is the evidence (D86).
 
 PR-64 to PR-68 are the pull requests of
 [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md) (a text
@@ -551,6 +561,52 @@ answer before PR-75 starts.
   names no workspace version, so it does not change. The runtime build and
   the Player's dist tree keep the bytes of PR-76, and no pinned file changes.
 
+### PR-79 to PR-84 — the speed of a render and of a preview with video: D86 and D87
+
+A host's editor reported on 2026-11-21 that a film with a video clip plays
+unevenly in the preview and renders slowly. The measurements behind the
+answer are in D86 and D87; they found one defect besides: under load the
+Producer can capture the frame before (D86). The owner accepted D86 and D87
+on 2026-11-21 at 13:31 (Europe/Warsaw) with the recommendations of all their
+questions: the defect is fixed first, in a patch release, then the preview.
+A faster capture of exports and a first decode that seeks are proposed
+separately and wait for D86. Each pull request is approved before it starts
+and again before its commit and push.
+
+- **PR-80** (D86 and D87, documents only): both ADRs, their rows in the index
+  of ADRs, the `Amended by` lines of D25, D26, D28, D29, D33, D50, and D51,
+  and these entries. Acceptance: `node --run format:check` and
+  `tests/repo/adr.test.ts` pass. No code; no impact on Q14, the runtime build,
+  parity, or golden frames.
+- **PR-79** (the reader of the decoder's output): `decodeVideoWith` in
+  `packages/producer/src/ffmpeg.ts` takes one frame at a time from FFmpeg's
+  standard output (`frameQueue`) instead of joining its whole backlog for
+  every frame, a defect and not a decision, so no ADR. Acceptance: unit tests
+  of the reader (chunks, waiting reads, back-pressure, a stream that ends
+  inside a frame, failures); `node --run check`; `test:pinned` in the pinned
+  container; the MP4 of an export with a 1080p clip keeps its bytes (97 s to
+  88 s measured outside the container). The rule "speed 1 forwards stays byte
+  for byte" holds in full.
+- **PR-81** (D86, the mark of a frame): the agent's `mark()`, the frame and
+  window 2 pixels taller, the read of the mark after a second barrier, the
+  capture of one pixel; `tests/pinned/load.pinned.test.ts` with four renders
+  at once, recorded red on `main` in the pinned container first; every
+  package at `0.9.1` for the patch release `v0.9.1`, whose tag the owner
+  pushes from `main`, with a note that films rendered under load before it
+  may hold a repeated frame. Golden frames, manifests, and parity records
+  keep their bytes.
+- **PR-82** (D87, the stream and the pool): the forward stream per video
+  node, the bound of 6 frames, every reason it starts again, the pool of
+  workers and its fallback; library and unit tests, no protocol change. The
+  Player's dist tree changes, so parity is measured again.
+- **PR-83** (D87, protocol version 3 and the canvas): the bitmap entry, the
+  `canvas` in a video node's place, the gates of D87.6. The runtime build
+  changes, Q14 reopens, parity is measured again, golden frames keep their
+  bytes.
+- **PR-84** (D87, the host guide and the release): workers and the content
+  security policy in the host guide, the measured frame rates, and the
+  release that carries protocol version 3.
+
 ## Impact on Q14, parity, and golden frames
 
 - PR-60 and PR-61 change the Player's dist tree, so parity is measured again in
@@ -572,6 +628,11 @@ answer before PR-75 starts.
   `REQUIRED_PINNED_FILES` and the Q14 artifact list grow in the same diff.
 - Renders without a mapped clip keep every byte of their manifests (rules
   above).
+- PR-79 and PR-81 (D86) change no runtime build, Player dist tree, golden
+  frame, manifest, or parity record; PR-81 adds a pinned file, so
+  `REQUIRED_PINNED_FILES` grows in its diff. PR-82 (D87) changes the Player's
+  dist tree and PR-83 the runtime build, so parity is measured again in each
+  and Q14 reopens in PR-83; no golden PNG file changes.
 
 ## Debts carried into this phase
 
@@ -609,4 +670,6 @@ plan:
    release; by its question 5 PR-73 sets every package to `0.8.0`, and the
    owner pushes the tag `v0.8.0` from `main` after it. D85 joined the phase
    after that; by its question 13 PR-78 sets every package to `0.9.0`, and
-   the owner pushes the tag `v0.9.0` from `main` after it.
+   the owner pushes the tag `v0.9.0` from `main` after it. D86 and D87 joined
+   the phase after that; by question 5 of D86 PR-81 sets every package to
+   `0.9.1`, and by question 6 of D87 PR-84 makes the next release.
