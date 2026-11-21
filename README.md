@@ -18,8 +18,10 @@ reverse playback of clips, with text frames
 ([`docs/roadmap/phase-6.md`](docs/roadmap/phase-6.md)), whose step PR-63 with
 PR-68 added its showcases and the release `v0.7.0`, whose step PR-73 added
 fonts in WOFF and WOFF2 in measured nodes (D84) and the release `v0.8.0`, and
-whose last step, PR-78, adds a video's fades and volume curves in decibels
-(D85) and the release `v0.9.0`. Schema `0.26` with its forward migrations from `0.1` to `0.25`, the evaluation core, the DOM
+whose step PR-78 added a video's fades and volume curves in decibels (D85)
+and the release `v0.9.0`, and whose last step, PR-81, captures a frame only
+after its mark is read from the surface (D86) for the patch release `v0.9.1`:
+films rendered under load before it may hold a repeated frame. Schema `0.26` with its forward migrations from `0.1` to `0.25`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -40,7 +42,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D85; all accepted except D10, superseded by
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D87; all accepted except D10, superseded by
   D37, and D79 to D81, proposed)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
@@ -1432,12 +1434,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.9.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.9.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.9.1.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.9.1.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.9.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.9.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.9.1.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.9.1.tgz"
   }
 }
 ```

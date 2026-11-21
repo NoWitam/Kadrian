@@ -10,6 +10,8 @@
  * `page.screenshot` is not used, because it injects a style sheet into every
  * frame. The Player's browser test measures through the same two functions.
  */
+import { inflateSync } from 'node:zlib';
+
 import type { CDPSession, Page } from 'playwright-core';
 
 import { ProducerError } from './errors.js';
@@ -142,6 +144,110 @@ export async function captureFrame(page: Page, width: number, height: number): P
     return new Uint8Array(Buffer.from(data, 'base64'));
   } finally {
     await session.detach().catch(() => undefined);
+  }
+}
+
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+/**
+ * The colour of the first pixel of a PNG of 8-bit RGB or RGBA without
+ * interlacing (D86.2). For the first pixel of the first row every filter of
+ * PNG predicts 0, so its bytes after the filter byte are its colour. Any other
+ * PNG is refused with `page-error`.
+ */
+export function firstPixel(png: Uint8Array): readonly [number, number, number] {
+  const refuse = (why: string): never => {
+    throw new ProducerError(
+      'page-error',
+      `The capture of the mark is not a PNG it can read: ${why}.`,
+    );
+  };
+  if (png.length < 8 || PNG_SIGNATURE.some((byte, index) => png[index] !== byte)) {
+    refuse('no PNG signature');
+  }
+  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  const data: Uint8Array[] = [];
+  let header: { depth: number; colour: number; interlace: number } | null = null;
+  for (let offset = 8; offset + 8 <= png.length;) {
+    const length = view.getUint32(offset);
+    const type = String.fromCharCode(...png.subarray(offset + 4, offset + 8));
+    const body = png.subarray(offset + 8, offset + 8 + length);
+    if (body.length !== length) refuse('a chunk ends early');
+    if (type === 'IHDR') {
+      header = { depth: body[8] ?? 0, colour: body[9] ?? 0, interlace: body[12] ?? 0 };
+    } else if (type === 'IDAT') {
+      data.push(body);
+    } else if (type === 'IEND') {
+      break;
+    }
+    offset += 12 + length;
+  }
+  if (header === null) return refuse('no IHDR');
+  if (
+    header.depth !== 8 ||
+    (header.colour !== 2 && header.colour !== 6) ||
+    header.interlace !== 0
+  ) {
+    refuse(`depth ${String(header.depth)}, colour type ${String(header.colour)}`);
+  }
+  const rows = inflateSync(Buffer.concat(data));
+  if (rows.length < 4) refuse('no pixel');
+  return [rows[1] ?? 0, rows[2] ?? 0, rows[3] ?? 0];
+}
+
+/**
+ * One pixel of the page's surface (D86.2): `Page.captureScreenshot` on the
+ * page's own target with the arguments of D28.5 and a clip of 1 × 1.
+ */
+export async function capturePixel(
+  page: Page,
+  x: number,
+  y: number,
+): Promise<readonly [number, number, number]> {
+  const session = await page.context().newCDPSession(page);
+  try {
+    const { data } = await session.send('Page.captureScreenshot', {
+      format: 'png',
+      fromSurface: true,
+      captureBeyondViewport: false,
+      clip: { x, y, width: 1, height: 1, scale: 1 },
+    });
+    return firstPixel(new Uint8Array(Buffer.from(data, 'base64')));
+  } finally {
+    await session.detach().catch(() => undefined);
+  }
+}
+
+/** The number a colour of the mark stands for (D86.1). */
+export function markNumber([red, green, blue]: readonly [number, number, number]): number {
+  return red + green * 256 + blue * 65_536;
+}
+
+/**
+ * Step 4 of D86.2, as amended by the owner: one read of the mark's pixel, and
+ * after a miss the barrier and another read, until the pixel shows `mark`. The
+ * read is the proof; the barrier only paces the reads after a miss. Resolves
+ * with the number of reads; rejects with `presentation-timeout` when the
+ * number has not appeared within `timeoutMs`. The barrier and the read are
+ * given, so a test can make the mark late.
+ */
+export async function awaitMark(
+  mark: number,
+  barrier: () => Promise<unknown>,
+  read: () => Promise<readonly [number, number, number]>,
+  timeoutMs: number,
+  what: string,
+): Promise<number> {
+  const deadline = performance.now() + timeoutMs;
+  for (let reads = 1; ; reads += 1) {
+    if (reads > 1) await barrier();
+    if (markNumber(await read()) === mark) return reads;
+    if (performance.now() >= deadline) {
+      throw new ProducerError(
+        'presentation-timeout',
+        `The mark of ${what} did not reach the surface within ${String(timeoutMs)} ms (D86.2).`,
+      );
+    }
   }
 }
 

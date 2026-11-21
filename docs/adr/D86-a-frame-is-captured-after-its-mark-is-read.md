@@ -1,7 +1,10 @@
 # D86 — A frame is captured only after its mark is read from the surface
 
 - Status: Accepted — by the project owner on 2026-11-21 (13:31 Europe/Warsaw),
-  before any code, with the recommendations of all five questions
+  before any code, with the recommendations of all five questions; step 4
+  of D86.2 amended by the owner on 2026-11-21 (14:19 Europe/Warsaw), in
+  PR-81, after the cost was measured: the mark is read at once, and the
+  barrier runs again only before a further read
 - Date: 2026-11-21
 - Supersedes: —
 - Extends, on acceptance, each with an `Amended by` line written then and in
@@ -108,12 +111,15 @@ tests render one composition at a time.
    for), before the mark exists.
 3. The Producer calls `mark()`. The mark is now the last change of the page:
    the Producer changes nothing else until the capture.
-4. The barrier runs again and the Producer captures the pixel at `(0,
-height)` with the arguments of D28.5 and a clip of 1 × 1, decodes it, and
-   compares it with the number. Not this number: step 4 again, until it is, or
-   until `presentationTimeoutMs` have passed since step 3 (a timer of its own;
-   each barrier keeps its own bound), which fails the frame with
-   `presentation-timeout`.
+4. The Producer captures the pixel at `(0, height)` with the arguments of
+   D28.5 and a clip of 1 × 1, decodes it, and compares it with the number.
+   Not this number: the barrier runs again and step 4 is repeated, until it
+   is, or until `presentationTimeoutMs` have passed since step 3 (a timer of
+   its own; each barrier keeps its own bound), which fails the frame with
+   `presentation-timeout`. The read is the proof; the barrier only paces the
+   reads that follow a miss. (As accepted, the barrier also ran before the
+   first read; measured in PR-81, that cost about 30 ms a frame and proved
+   nothing more, so the owner amended it.)
 5. The frame is captured as D28.5 says, and the documents are checked again.
 
 - **What the read proves.** The surface shows a commit of the render page's
@@ -222,6 +228,45 @@ height)` with the arguments of D28.5 and a clip of 1 × 1, decodes it, and
 - `tests/pinned` as a whole and `goldens:update`: no golden frame, manifest,
   or parity record changes.
 - `tests/repo`: the ADR's row in the index.
+
+## Implementation notes (PR-81)
+
+- **The code.** `agent.ts` gains `mark(top)` and its one element; `capture.ts`
+  gains `capturePixel` (one pixel of the surface), `firstPixel` (the colour
+  of the first pixel of a PNG of 8-bit RGB or RGBA, which every filter of PNG
+  leaves as it is), `markNumber`, and `awaitMark` (step 4, with the barrier
+  and the read given, so that a unit test makes the mark late); `render.ts`
+  makes the frame and the window 2 pixels taller and runs the steps of D86.2.
+  None of them is exported from the package.
+- **The test under load.** `tests/pinned/load.pinned.test.ts` exports, with
+  the CLI, a film of 10 s at 1080 × 1920 with one video node over the whole
+  frame (a clip the pinned FFmpeg makes from `testsrc2`, which changes every
+  frame) and the reference composition with its Custom HTML element: first
+  each alone, then four processes at once, two of each. In the pinned
+  container (4 processors), `main` held 1 repeated frame of the film in one
+  of four exports in a first run and none in a second; with the reader of
+  PR-79 alone, two of four held 6 in all; with the mark, no frame differed in
+  seven runs (two with step 4 as accepted, five as amended). The load was not raised, because `main` was red as it is.
+- **Step 4 amended.** As accepted, step 4 ran the barrier before every read.
+  Measured in the pinned container against the reader of PR-79 alone, that
+  cost 85 ms a frame (the film 96 s to 120 s, the reference composition 51 s
+  to 77 s); reading at once and running the barrier only after a miss cost
+  53 to 60 ms (112 s and 69 s). The read is the proof either way, so the
+  owner amended step 4 on 2026-11-21 (14:19 Europe/Warsaw). The prototype's
+  13 ms set the mark before the barrier, which D86.2 does not allow.
+- **One golden frame was wrong on `main`.** The frame at 1 000 000 µs of the
+  animated captions composition (D70) on `main` depends on the frames
+  rendered before it in the session: rendered alone it is
+  `sha256:2c6eca85…`, after the three earlier golden times it is the golden
+  `sha256:c691596e…` (311 pixels differ, by 1 level at most). With the mark it
+  is `sha256:2c6eca85…` in both orders, so it was not "right on `main`"
+  (D86.3): PR-81 writes it again, and it is the only golden file that
+  changes. Two runs of `goldens:update` in fresh containers wrote the same
+  bytes. A frame that depends on the frames before it is what the
+  invariants forbid; the mark is what made this one independent.
+- **Custom HTML.** In the pinned container the element's frame is in the
+  render page's process (`producer-processes.json`: one frame with a target
+  of its own, the render page), so the mark orders it (D86.2).
 
 ## Questions for the owner, with recommendations
 

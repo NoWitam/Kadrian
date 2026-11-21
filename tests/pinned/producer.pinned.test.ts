@@ -365,7 +365,8 @@ describe('the rendered page (D22, D27)', () => {
         width: innerWidth,
         height: innerHeight,
       }));
-      expect(view).toEqual({ dpr: 1, origin: 'null', width: WIDTH, height: HEIGHT });
+      // The window is the composition and the strip of the mark below it (D86.1).
+      expect(view).toEqual({ dpr: 1, origin: 'null', width: WIDTH, height: HEIGHT + 2 });
       // Every text node is drawn with the fixture font only: no system fallback (D27).
       const fonts = await fontsUsed(await frameSession(session.page, session.renderFrame));
       expect(fonts).toEqual({

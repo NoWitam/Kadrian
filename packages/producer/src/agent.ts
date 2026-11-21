@@ -2,9 +2,10 @@
  * The Producer's page agent (D28.3): its script inside the render page, next to
  * the runtime build. Like the Player's, it is serialised with `String(fn)`, so it
  * must stay self-contained. Its transport is CDP evaluation, not `postMessage`:
- * it exposes `kadrionProducer.load`, `kadrionProducer.frame`, and
- * `kadrionProducer.imageSize` (D62.3), which the Producer calls through
- * Playwright, and nothing else. It holds no pixel logic:
+ * it exposes `kadrionProducer.load`, `kadrionProducer.frame`,
+ * `kadrionProducer.imageSize` (D62.3), and `kadrionProducer.mark` (D86.1),
+ * which the Producer calls through Playwright, and nothing else. It holds no
+ * pixel logic beyond the colour of the mark:
  * it decodes the base64 of the asset bytes and of the video frames that CDP
  * carries, and calls
  * `KadrionRuntime.load`, with the policy `trusted` stated explicitly (D36, decision 5),
@@ -41,7 +42,8 @@ export function producerAgent(): void {
   }
 
   const runtime = (window as unknown as { KadrionRuntime?: Runtime }).KadrionRuntime;
-  const root = document.getElementById('kadrion-root');
+  const page = document;
+  const root = page.getElementById('kadrion-root');
   const startTimeout = window.setTimeout.bind(window);
   const stopTimeout = window.clearTimeout.bind(window);
   const Face = (window as unknown as { FontFace?: typeof FontFace }).FontFace;
@@ -51,6 +53,9 @@ export function producerAgent(): void {
       ? {}
       : { createFont: (family: string, bytes: ArrayBuffer): FontFace => new Face(family, bytes) };
   const state = { documentJson: null as string | null, loads: 0, frames: 0 };
+  // The numbers of the mark run from 1; the page's white (0xffffff) is never one (D86.1).
+  const LAST_MARK = 0xfffffe;
+  const marks = { element: null as HTMLElement | null, count: 0 };
 
   const done = (result: Result): Outcome =>
     result.ok
@@ -143,6 +148,34 @@ export function producerAgent(): void {
     },
     stats() {
       return { loads: state.loads, frames: state.frames };
+    },
+    /**
+     * Sets the next number of the mark (D86.1): an element of 4 × 2 pixels at
+     * the left edge, `top` pixels below the top of the render page, outside the
+     * root and below the composition, coloured `rgb(n mod 256, n ÷ 256 mod 256,
+     * n ÷ 65 536)`. Answers the number, or `null` once every number is used.
+     */
+    mark(top: number): number | null {
+      if (marks.count >= LAST_MARK) return null;
+      marks.count += 1;
+      const number = marks.count;
+      let element = marks.element;
+      if (element === null) {
+        element = page.createElement('div');
+        element.style.setProperty('position', 'absolute');
+        element.style.setProperty('left', '0px');
+        element.style.setProperty('width', '4px');
+        element.style.setProperty('height', '2px');
+        element.style.setProperty('pointer-events', 'none');
+        page.body.append(element);
+        marks.element = element;
+      }
+      element.style.setProperty('top', `${String(top)}px`);
+      element.style.setProperty(
+        'background-color',
+        `rgb(${String(number % 256)}, ${String(Math.floor(number / 256) % 256)}, ${String(Math.floor(number / 65_536))})`,
+      );
+      return number;
     },
     // The natural size the browser decodes an image to, or null when it cannot (D62.3).
     imageSize(
