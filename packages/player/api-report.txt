@@ -106,6 +106,7 @@ export interface PlayerOptions {
     readonly timers?: PlayerTimers;
     readonly onListenerError?: PlayerListenerErrorHandler;
     readonly audio?: PlayerAudio;
+    readonly onWarning?: PlayerWarningHandler;
 }
 
 ---- PlayerPlayRange (type only)
@@ -157,6 +158,18 @@ export interface PlayerVideoFacts {
     readonly height: number;
     readonly frames: number;
 }
+
+---- PlayerWarning (type only)
+export interface PlayerWarning {
+    readonly code: PlayerWarningCode;
+    readonly message: string;
+}
+
+---- PlayerWarningCode (type only)
+export type PlayerWarningCode = 'video-workers-unavailable';
+
+---- PlayerWarningHandler (type only)
+export type PlayerWarningHandler = (warning: PlayerWarning) => void;
 
 ---- ScheduledSounds (type only)
 export interface ScheduledSounds {

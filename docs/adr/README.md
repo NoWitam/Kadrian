@@ -95,7 +95,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D85](D85-fades-of-a-video-and-volume-keyframes.md)           | Fades of a video's sound and volume keyframes in decibels: schema 0.26                       | Accepted          |
 | [D86](D86-a-frame-is-captured-after-its-mark-is-read.md)      | A frame is captured only after its mark is read from the surface                             | Accepted          |
 | [D87](D87-video-played-at-the-films-frame-rate.md)            | Video played at the film's frame rate: decoded forward, converted in workers                 | Accepted          |
-| [D88](D88-a-faster-export-with-the-same-pixels.md)            | A faster export with the same pixels: a fast capture and a first decode that seeks           | Proposed          |
+| [D88](D88-a-faster-export-with-the-same-pixels.md)            | A faster export with the same pixels: a fast capture and a first decode that seeks           | Accepted          |
 
 ## Provenance of D01–D10
 

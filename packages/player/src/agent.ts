@@ -38,7 +38,7 @@ export function pageAgent(): void {
     ): Promise<{ ok: boolean; errors?: unknown }>;
   }
 
-  const VERSION = 2;
+  const VERSION = 3;
   const LOAD_KEYS = [
     'ackTimeoutMs',
     'assets',

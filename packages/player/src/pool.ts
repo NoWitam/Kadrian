@@ -81,6 +81,11 @@ export class ConversionPool {
     return this.members.length;
   }
 
+  /** Whether the pool refuses jobs: it was closed, or a worker failed. */
+  get failed(): boolean {
+    return this.failure !== null;
+  }
+
   /** The jobs every worker has in hand, in the order of the workers. */
   get load(): number[] {
     return this.members.map(({ pending }) => pending.size);
@@ -167,7 +172,8 @@ export interface WorkerWindow {
  */
 export function createConversionPool(
   view: WorkerWindow,
-  url: URL = new URL(WORKER_MODULE, import.meta.url),
+  // The literal form, so a bundler that rewrites `new URL('…', import.meta.url)` finds the file.
+  url: URL = new URL('./worker/kadrion-convert-worker.js', import.meta.url),
 ): ConversionPool | null {
   const { Worker } = view;
   if (Worker === undefined) return null;

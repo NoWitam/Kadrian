@@ -574,5 +574,8 @@ describe('the bundle of the worker (D87.2)', () => {
       new URL(WORKER_MODULE, pathToFileURL(join(repoRoot, 'packages/player/dist/pool.js'))),
     );
     expect(fromPool).toBe(WORKER_FILE);
+    // A bundler finds the file only by the literal form of the URL in the built pool.
+    const pool = readFileSync(join(repoRoot, 'packages/player/dist/pool.js'), 'utf8');
+    expect(pool).toContain(`new URL('${WORKER_MODULE}', import.meta.url)`);
   });
 });

@@ -195,3 +195,135 @@ describe('the frames of video nodes (D50.4)', () => {
     );
   });
 });
+
+/** A stand-in bitmap: what the renderer reads of one (its tag and size), and its transfer. */
+function bitmapOf(width = 4, height = 2): ImageBitmap {
+  return {
+    [Symbol.toStringTag]: 'ImageBitmap',
+    width,
+    height,
+    close: () => undefined,
+  } as unknown as ImageBitmap;
+}
+
+/** Gives every canvas of the root's window a bitmaprenderer context that records what it was handed. */
+function withBitmapRenderer<T>(
+  root: HTMLElement,
+  run: (shown: Map<HTMLCanvasElement, ImageBitmap>) => T,
+): T {
+  const shown = new Map<HTMLCanvasElement, ImageBitmap>();
+  const view = root.ownerDocument.defaultView as unknown as {
+    HTMLCanvasElement: { prototype: { getContext: unknown } };
+  };
+  const prototype = view.HTMLCanvasElement.prototype;
+  const before = prototype.getContext;
+  prototype.getContext = function getContext(this: HTMLCanvasElement, kind: string) {
+    if (kind !== 'bitmaprenderer') return null;
+    return {
+      transferFromImageBitmap: (bitmap: ImageBitmap) => {
+        shown.set(this, bitmap);
+      },
+    };
+  };
+  try {
+    return run(shown);
+  } finally {
+    prototype.getContext = before;
+  }
+}
+
+/** The video nodes active at 0. */
+const ACTIVE = ['node-video-full', 'node-video-cover'];
+
+describe('a frame of a playing video as a bitmap (D87.3, D87.4)', () => {
+  const at = (timeUs: number) => evaluateComposition(composition, timeUs);
+
+  it('puts a canvas in the image’s place with its attributes and styles, of the bitmap’s size, and the image back for bytes', () => {
+    const root = mounted();
+    withBitmapRenderer(root, (shown) => {
+      const image = elementOf(root, 'node-video-cover');
+      const attributes = [...image.attributes]
+        .map(({ name, value }) => [name, value])
+        .filter(([name]) => name !== 'alt');
+      const bitmap = bitmapOf(16, 9);
+      applyVideoFrames(root, at(0), [
+        frame('node-video-full'),
+        { nodeId: 'node-video-cover', bitmap },
+      ]);
+      const canvas = elementOf(root, 'node-video-cover') as HTMLCanvasElement;
+      expect(canvas.localName).toBe('canvas');
+      expect(image.isConnected).toBe(false);
+      for (const [name, value] of attributes)
+        expect(canvas.getAttribute(name ?? ''), name).toBe(value);
+      expect(canvas.hasAttribute('alt')).toBe(false);
+      expect([canvas.width, canvas.height]).toEqual([16, 9]);
+      expect(shown.get(canvas)).toBe(bitmap);
+      expect(elementOf(root, 'node-video-full').localName).toBe('img');
+      // The renderer writes the instant on the canvas as it does on the image.
+      renderState(root, at(0));
+      expect(canvas.style.getPropertyValue('object-fit')).toBe('cover');
+      applyVideoFrames(
+        root,
+        at(0),
+        ACTIVE.map((id) => frame(id, 7)),
+      );
+      const back = elementOf(root, 'node-video-cover');
+      expect(back.localName).toBe('img');
+      expect(back.getAttribute('alt')).toBe('');
+      expect(back.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
+      expect(back.hasAttribute('width')).toBe(false);
+      for (const [name, value] of attributes) {
+        if (name !== 'style') expect(back.getAttribute(name ?? ''), name).toBe(value);
+      }
+    });
+  });
+
+  it('keeps one canvas while bitmaps follow each other, and an inactive node is the image without a source', () => {
+    const root = mounted();
+    withBitmapRenderer(root, (shown) => {
+      const frames = (n: number) => ACTIVE.map((nodeId) => ({ nodeId, bitmap: bitmapOf(n, n) }));
+      applyVideoFrames(root, at(0), frames(2));
+      const canvas = elementOf(root, 'node-video-full');
+      applyVideoFrames(root, at(0), frames(3));
+      expect(elementOf(root, 'node-video-full')).toBe(canvas);
+      expect((canvas as HTMLCanvasElement).width).toBe(3);
+      expect(shown.get(canvas as HTMLCanvasElement)?.width).toBe(3);
+      const later = at(1_500_000);
+      const active = VIDEOS.filter((id) =>
+        later.scenes.some((scene) => scene.nodes.some((node) => node.id === id && node.active)),
+      );
+      applyVideoFrames(
+        root,
+        later,
+        active.map((id) => frame(id)),
+      );
+      for (const id of VIDEOS.filter((each) => !active.includes(each))) {
+        expect(elementOf(root, id).localName, id).toBe('img');
+        expect(elementOf(root, id).hasAttribute('src'), id).toBe(false);
+      }
+    });
+  });
+
+  it('refuses a bitmap entry of another shape, a closed bitmap, two frames of a node, and a page without the context, before writing', () => {
+    const root = mounted();
+    for (const frames of [
+      [{ nodeId: 'node-video-full', bitmap: {} }],
+      [{ nodeId: 'node-video-full', bitmap: bitmapOf(0, 0) }],
+      [{ nodeId: 'node-video-full', bitmap: bitmapOf(), mediaType: 'image/png' }],
+      [{ nodeId: 'node-video-full', bitmap: bitmapOf() }, frame('node-video-full')],
+    ]) {
+      expect(() => {
+        applyVideoFrames(root, at(0), [...frames, frame('node-video-cover')]);
+      }).toThrow(expect.objectContaining({ code: 'video-frames-invalid' }) as Error);
+    }
+    // jsdom draws nothing: without the context the frame is refused and the images stay.
+    expect(() => {
+      applyVideoFrames(
+        root,
+        at(0),
+        ACTIVE.map((nodeId) => ({ nodeId, bitmap: bitmapOf() })),
+      );
+    }).toThrow(/bitmaprenderer/);
+    expect(VIDEOS.map((id) => elementOf(root, id).localName)).toEqual(['img', 'img', 'img']);
+  });
+});

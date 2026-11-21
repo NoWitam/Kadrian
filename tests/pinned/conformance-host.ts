@@ -53,9 +53,22 @@ export const HOST_SCRIPT = `import { createPlayer } from '@kadrion/player';
 let player;
 let loadedText = null;
 let table = new Map();
+const warnings = [];
+// A clock the test advances, for frames of playback captured one at a time (D87.6).
+const clock = { now: 0, next: 1, callbacks: new Map() };
+const manual = {
+  now: () => clock.now,
+  requestFrame(callback) {
+    clock.callbacks.set(clock.next, callback);
+    return clock.next++;
+  },
+  cancelFrame(handle) {
+    clock.callbacks.delete(handle);
+  },
+};
 const bytesOf = (base64) => Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
 window.conformance = {
-  async start() {
+  async start(manualClock) {
     const [bytes, manifest] = await Promise.all([
       fetch('/runtime/kadrion-runtime.js').then((response) => response.arrayBuffer()),
       fetch('/runtime/kadrion-runtime.json').then((response) => response.json()),
@@ -65,8 +78,19 @@ window.conformance = {
     player = await createPlayer(document.getElementById('stage'), {
       runtime: { bytes: new Uint8Array(bytes), contentHash: manifest.contentHash },
       customHtml: { mode: 'trusted' },
+      onWarning: (warning) => warnings.push(warning.code),
+      ...(manualClock ? { scheduler: manual } : {}),
     });
   },
+  play: () => player.play(),
+  pause: () => player.pause(),
+  advance(milliseconds) {
+    clock.now += milliseconds;
+    const due = [...clock.callbacks.values()];
+    clock.callbacks.clear();
+    for (const callback of due) callback();
+  },
+  warnings: () => [...warnings],
   // A video can be delivered as a Blob, the way a host passes a file (D51.2).
   load(text, assets, videoAsBlob) {
     loadedText = text;
@@ -115,7 +139,11 @@ export const HOST_PAGE = `<!doctype html><html><head><meta charset="utf-8">
 
 interface HostWindow {
   readonly conformance: {
-    start(): Promise<void>;
+    start(manualClock: boolean): Promise<void>;
+    play(): void;
+    pause(): void;
+    advance(milliseconds: number): void;
+    warnings(): string[];
     load(text: string, assets: readonly HostAsset[], videoAsBlob: boolean): Promise<void>;
     prepare(id: string, contentHash: string): Promise<unknown>;
     loadedText(): string | null;
@@ -196,7 +224,8 @@ export async function openConformanceHost(
   chromium: LaunchedChromium,
   documentText: string,
   assets: readonly { id: string; mediaType: string; bytes: Uint8Array }[],
-  options: { readonly videoAsBlob?: boolean } = {},
+  /** `manualClock`: the Player's clock moves only by `advanceClock` (D87.6). */
+  options: { readonly videoAsBlob?: boolean; readonly manualClock?: boolean } = {},
 ): Promise<ConformanceHost> {
   const size = validateComposition(JSON.parse(documentText));
   if (!size.ok) throw new Error('The document to load is not valid.');
@@ -234,7 +263,10 @@ export async function openConformanceHost(
   const page = await context.newPage();
   await page.goto(`${ORIGIN}/`);
   await page.waitForFunction(() => 'conformanceReady' in window);
-  await page.evaluate(() => (window as unknown as HostWindow).conformance.start());
+  await page.evaluate(
+    (manualClock) => (window as unknown as HostWindow).conformance.start(manualClock),
+    options.manualClock === true,
+  );
   const renderFrame = page.mainFrame().childFrames()[0];
   if (renderFrame === undefined) throw new Error('The Player made no frame.');
   await page.evaluate(
@@ -440,6 +472,24 @@ export async function seekAndCapture(
   const state = await playerState(host);
   const png = await captureFrame(host.page, host.width, host.height);
   return { png, timeUs: state.timeUs ?? -1, runtimeHash: state.runtimeHash };
+}
+
+/** Plays, pauses, or advances the manual clock of a host opened with `manualClock` (D87.6). */
+export async function playback(
+  host: ConformanceHost,
+  action: 'play' | 'pause' | { readonly advanceMs: number },
+): Promise<void> {
+  await host.page.evaluate((given) => {
+    const { conformance } = window as unknown as HostWindow;
+    if (given === 'play') conformance.play();
+    else if (given === 'pause') conformance.pause();
+    else conformance.advance(given.advanceMs);
+  }, action);
+}
+
+/** The warnings the Player gave the host, by code (D87.2). */
+export async function playerWarnings(host: ConformanceHost): Promise<string[]> {
+  return host.page.evaluate(() => (window as unknown as HostWindow).conformance.warnings());
 }
 
 export async function closeConformanceHost(host: ConformanceHost): Promise<void> {

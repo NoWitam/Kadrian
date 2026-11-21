@@ -13,6 +13,8 @@
  * turn after the conversion to RGB (D81); a tilted one the Player refuses.
  */
 import {
+  awaitPresented,
+  captureFrame,
   launchChromium,
   PINNED_IMAGE,
   PINNED_IMAGE_VARIABLE,
@@ -30,7 +32,7 @@ import {
   videoGoldenTimestamps,
 } from '@kadrion/test-fixtures';
 import { frameCount, frameToTimeUs, timeUsToFrame, validateComposition } from '@kadrion/schema';
-import { readFileSync, rmSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -51,7 +53,9 @@ import {
 import {
   closeConformanceHost,
   openConformanceHost,
+  playback,
   playerState,
+  playerWarnings,
   preparedFacts,
   seekAndCapture,
   type ConformanceHost,
@@ -465,4 +469,300 @@ describe.skipIf(!available)('video in the Player (D51)', () => {
       }
     }
   });
+});
+
+/**
+ * The frames of a playing video (D87.6): decoded forward by a stream and
+ * converted in the Player's workers, they equal the frames of the path of
+ * D51.4, in the source pixels for every container, colour description, and
+ * turn, and on the page for a clip at its own size; a scaled clip is measured.
+ */
+describe.skipIf(!available)('video played from streams and workers (D87.6)', () => {
+  let chromium: LaunchedChromium;
+  let video: Uint8Array;
+
+  /** Plays at 25 fps for the whole source, one node at its own size: film frame i shows source frame i. */
+  const sourceText = (contentHash: string): string => {
+    const draft = structuredClone(videoComposition) as Draft;
+    const asset = draft.assets.find((candidate) => candidate.id === VIDEO_FIXTURE.id);
+    if (asset === undefined) throw new Error('No video asset.');
+    asset.contentHash = contentHash;
+    draft.fps = 25;
+    draft.durationUs = VIDEO_FIXTURE.sourceDurationUs;
+    const scene = draft.scenes[0] as Draft['scenes'][number] & { durationUs: number };
+    scene.durationUs = VIDEO_FIXTURE.sourceDurationUs;
+    scene.nodes = scene.nodes
+      .filter((node) => node.id === 'node-background' || node.id === 'node-video-full')
+      .map((node) => ({ ...node, durationUs: VIDEO_FIXTURE.sourceDurationUs }));
+    return JSON.stringify(draft);
+  };
+
+  const givenWith = (bytes: Uint8Array) => [
+    ...generateReferenceAssets(),
+    { id: VIDEO_FIXTURE.id, mediaType: VIDEO_FIXTURE.mediaType, bytes },
+  ];
+
+  beforeAll(async () => {
+    chromium = await launchChromium();
+    video = await makeVideoFixture(ffmpegPath ?? '');
+  });
+
+  afterAll(async () => {
+    await chromium.browser.close();
+  });
+
+  /** The variants of the source pixels: every container, colour description, and turn. */
+  const sources = async (): Promise<{ name: string; bytes: Uint8Array }[]> => {
+    const ffmpeg = ffmpegPath ?? '';
+    const variants = [{ name: 'MP4', bytes: video }];
+    for (const [name, extension, options] of REMUXES) {
+      variants.push({ name, bytes: await remuxed(ffmpeg, video, extension, options) });
+    }
+    for (const [name, filter] of [
+      [
+        'BT.709',
+        'h264_metadata=colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1',
+      ],
+      ['BT.601, full range', 'h264_metadata=video_full_range_flag=1:matrix_coefficients=6'],
+    ] as const) {
+      variants.push({ name, bytes: await remuxed(ffmpeg, video, 'mp4', ['-bsf:v', filter]) });
+    }
+    for (const fixture of ROTATED_VIDEO_FIXTURES) {
+      variants.push({
+        name: fixture.name,
+        bytes: await makeRotatedVideoFixture(ffmpeg, video, fixture),
+      });
+    }
+    return variants;
+  };
+
+  it('converts in a worker every frame of a stream, read across two later IDR samples, to the RGB of the path of D51.4 (D87.6)', async () => {
+    const rows: { name: string; frames: number; differing: number[] }[] = [];
+    for (const { name, bytes } of await sources()) {
+      const contentHash = sha256(bytes);
+      const text = sourceText(contentHash);
+      const target = await openConformanceHost(chromium, text, givenWith(bytes));
+      try {
+        // Run in the page as a string: the Player's own modules, as the host serves them.
+        const shown = await target.page.evaluate<{
+          error?: string;
+          frames: number;
+          differing: number[];
+          restarts: number;
+        }>(`(async () => {
+          const args = ${JSON.stringify({ base64: Buffer.from(bytes).toString('base64'), contentHash, text })};
+          const player = await import('/pkg/player/video.js');
+          const { VideoStream } = await import('/pkg/player/stream.js');
+          const { createConversionPool } = await import('/pkg/player/pool.js');
+          const schema = await import('/pkg/schema/index.js');
+          const bytes = Uint8Array.from(atob(args.base64), (character) => character.charCodeAt(0));
+          const verified = await player.verifyVideo(
+            { id: 'asset-video', type: 'video', contentHash: args.contentHash },
+            () => ({ bytes, mediaType: 'video/mp4' }),
+            Blob,
+          );
+          const video = await player.readVideo(verified);
+          const validated = schema.validateComposition(JSON.parse(args.text));
+          if (!validated.ok) return { error: 'invalid document' };
+          const composition = validated.composition;
+          const placed = schema.placedVideos(composition).find(({ node }) => node.id === 'node-video-full');
+          const sought = player.createVideoFrameSource(window, new Map([[video.contentHash, video]]), new player.RunCache());
+          const pool = createConversionPool(window);
+          if (pool === null || !(await pool.start())) return { error: 'no worker started' };
+          const { timestamps, timeBase } = video.track;
+          const indexAt = (frame) => {
+            const sceneTimeUs = schema.videoSceneTimeUs(placed, schema.frameToTimeUs(frame, composition.fps));
+            return schema.sourceFrameIndex(timestamps, timeBase, schema.sourceTimeUs(placed.node, sceneTimeUs));
+          };
+          const frames = schema.frameCount(composition.durationUs, composition.fps);
+          const stream = new VideoStream({
+            codecs: player.codecsOf(window),
+            video,
+            upcoming: (index) =>
+              [1, 2, 3, 4, 5, 6].map((ahead) => index + ahead).filter((at) => at < video.track.samples.length),
+            convert: (planes) => pool.convert(player.jobOf(video, planes)),
+            release: (bitmap) => bitmap.close(),
+          });
+          const canvas = new OffscreenCanvas(1, 1);
+          const context = canvas.getContext('2d', { willReadFrequently: true });
+          const pixels = async (image) => {
+            canvas.width = image.width;
+            canvas.height = image.height;
+            context.clearRect(0, 0, image.width, image.height);
+            context.drawImage(image, 0, 0);
+            return context.getImageData(0, 0, image.width, image.height).data;
+          };
+          const differing = [];
+          for (let frame = 0; frame < frames; frame += 1) {
+            const index = indexAt(frame);
+            const bitmap = await stream.frame(index);
+            const streamed = await pixels(bitmap);
+            const [entry] = await sought.framesAt(composition, schema.frameToTimeUs(frame, composition.fps));
+            const png = await createImageBitmap(new Blob([entry.bytes], { type: entry.mediaType }), {
+              colorSpaceConversion: 'none',
+              premultiplyAlpha: 'none',
+            });
+            const reference = await pixels(png);
+            png.close();
+            let count = streamed.length === reference.length ? 0 : -1;
+            for (let at = 0; count >= 0 && at < streamed.length; at += 1) {
+              if (streamed[at] !== reference[at]) count += 1;
+            }
+            differing.push(count);
+          }
+          stream.close();
+          pool.close();
+          return { frames, differing, restarts: stream.restarts };
+        })()`);
+        expect(shown.error, name).toBeUndefined();
+        // One decoder for the whole read: 75 frames, three IDR samples.
+        expect(shown.restarts, name).toBe(1);
+        rows.push({ name, frames: shown.frames, differing: shown.differing });
+      } finally {
+        await closeConformanceHost(target);
+      }
+    }
+    writeReport(join('player-video', 'stream-source-pixels.json'), rows);
+    for (const { name, frames, differing } of rows) {
+      expect(frames, name).toBe(VIDEO_FIXTURE.frames);
+      expect(
+        differing.filter((count) => count !== 0),
+        name,
+      ).toEqual([]);
+    }
+  }, 600_000);
+
+  /** One video node shown alone, at `box` with `fit`, beside the background and the image. */
+  const playedText = (
+    contentHash: string,
+    box: { readonly width: number; readonly height: number; readonly fit: string },
+  ): string => {
+    const draft = structuredClone(videoComposition) as Draft;
+    const asset = draft.assets.find((candidate) => candidate.id === VIDEO_FIXTURE.id);
+    if (asset === undefined) throw new Error('No video asset.');
+    asset.contentHash = contentHash;
+    const scene = draft.scenes[0];
+    if (scene === undefined) throw new Error('No scene.');
+    scene.nodes = scene.nodes
+      .filter((node) =>
+        ['node-background', 'node-image-contain', 'node-video-full'].includes(node.id),
+      )
+      .map((node) => (node.id === 'node-video-full' ? { ...node, ...box } : node));
+    return JSON.stringify(draft);
+  };
+
+  const nodeTag = (host: ConformanceHost): Promise<string | undefined> =>
+    host.renderFrame.evaluate(
+      () => document.querySelector('[data-kadrion-node="node-video-full"]')?.localName,
+    );
+
+  /** Film frames whose source frames lie on both sides of the IDR sample at 1 s, before the last frame. */
+  const PLAYED_FRAMES = [2, 14, 29, 31, 44, 58];
+
+  it('shows a playing frame as the page shows the sought frame: gated at its own size, measured scaled (D87.6)', async () => {
+    const rows: {
+      name: string;
+      timeUs: number;
+      differingPixels: number;
+      maxChannelDifference: number;
+    }[] = [];
+    const variants: {
+      name: string;
+      bytes: Uint8Array;
+      box: { width: number; height: number; fit: string };
+      gated: boolean;
+    }[] = [
+      {
+        name: 'own size',
+        bytes: video,
+        box: { width: 320, height: 180, fit: 'fill' },
+        gated: true,
+      },
+      { name: 'smaller', bytes: video, box: { width: 160, height: 90, fit: 'fill' }, gated: false },
+      { name: 'larger', bytes: video, box: { width: 640, height: 360, fit: 'fill' }, gated: false },
+      {
+        name: 'cropped',
+        bytes: video,
+        box: { width: 160, height: 160, fit: 'cover' },
+        gated: false,
+      },
+    ];
+    for (const fixture of ROTATED_VIDEO_FIXTURES) {
+      variants.push({
+        name: `${fixture.name}, its own size`,
+        bytes: await makeRotatedVideoFixture(ffmpegPath ?? '', video, fixture),
+        box: { width: fixture.width, height: fixture.height, fit: 'fill' },
+        gated: true,
+      });
+    }
+    for (const { name, bytes, box } of variants) {
+      const text = playedText(sha256(bytes), box);
+      const target = await openConformanceHost(chromium, text, givenWith(bytes), {
+        manualClock: true,
+      });
+      try {
+        for (const frame of PLAYED_FRAMES) {
+          const timeUs = frameToTimeUs(frame, FPS);
+          await target.page.evaluate(
+            (time) =>
+              (
+                window as unknown as { conformance: { seek(t: number): Promise<void> } }
+              ).conformance.seek(time),
+            frameToTimeUs(frame - 1, FPS),
+          );
+          await playback(target, 'play');
+          await playback(target, { advanceMs: 0 });
+          // More than one frame and less than two: the clock asks for the next frame.
+          await playback(target, { advanceMs: 40 });
+          await target.page.waitForFunction(
+            (time) =>
+              (
+                window as unknown as { conformance: { state(): { timeUs: number | null } } }
+              ).conformance.state().timeUs === time,
+            timeUs,
+          );
+          await awaitPresented(target.page, 5_000);
+          expect(await nodeTag(target), `${name} ${String(timeUs)}`).toBe('canvas');
+          const playing = await captureFrame(target.page, target.width, target.height);
+          await playback(target, 'pause');
+          await target.page.waitForFunction(
+            () =>
+              (
+                window as unknown as { conformance: { state(): { status: string } } }
+              ).conformance.state().status === 'ready',
+          );
+          await expect.poll(() => nodeTag(target)).toBe('img');
+          await awaitPresented(target.page, 5_000);
+          const sought = await captureFrame(target.page, target.width, target.height);
+          const metric = measure(decodePng(playing), decodePng(sought));
+          if (metric.differingPixels > 0) {
+            // Both captures of a differing row, for the reader of the report.
+            const stem = join(
+              OUTPUT_DIRECTORY,
+              'player-video',
+              `${name.replace(/[^a-z0-9]+/g, '-')}-${String(timeUs)}`,
+            );
+            writeFileSync(`${stem}-playing.png`, playing);
+            writeFileSync(`${stem}-sought.png`, sought);
+          }
+          rows.push({
+            name,
+            timeUs,
+            differingPixels: metric.differingPixels,
+            maxChannelDifference: metric.maxChannelDifference,
+          });
+        }
+        expect(await playerWarnings(target), name).toEqual([]);
+      } finally {
+        await closeConformanceHost(target);
+      }
+    }
+    const file = writeReport(join('player-video', 'playing-frames.json'), rows);
+    console.info(`Playing frames against sought frames: ${file}`);
+    for (const row of rows) {
+      if (variants.find((variant) => variant.name === row.name)?.gated !== true) continue;
+      expect(row.differingPixels, `${row.name} ${String(row.timeUs)}`).toBe(0);
+      expect(row.maxChannelDifference, `${row.name} ${String(row.timeUs)}`).toBe(0);
+    }
+  }, 600_000);
 });

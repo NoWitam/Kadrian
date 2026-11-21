@@ -619,17 +619,19 @@ and again before its commit and push.
 - **PR-83** (D87, protocol version 3 and the canvas): the bitmap entry, the
   `canvas` in a video node's place, the gates of D87.6. The runtime build
   changes, Q14 reopens, parity is measured again, golden frames keep their
-  bytes.
+  bytes. Status: done; a playing frame equals the sought frame at the clip's
+  own size, and a clip scaled by a ratio that is not an integer differs by
+  its filter (D87, implementation notes, with the measured rates).
 - **PR-84** (D87, the host guide and the release): workers and the content
   security policy in the host guide, the measured frame rates, and the
   release that carries protocol version 3.
 
 ### PR-85 to PR-87 — a faster export with the same pixels: D88
 
-D88 is `Proposed`: it proposes a faster capture of the frames of an export
-and a first start of a decoder in an export that seeks, both keeping the
-pixels, after D86. Its rows join the phase on acceptance; until then nothing
-of it is built.
+D88 makes the capture of the frames of an export faster and lets the first
+start of a decoder in an export seek, both keeping the pixels, after D86. The
+owner accepted it on 2026-11-21 at 20:15 (Europe/Warsaw) with the
+recommendations of all its questions; its pull requests follow those of D87.
 
 - **PR-85** (D88, documents only): the ADR, its row in the index of ADRs,
   and these entries.

@@ -319,3 +319,92 @@ roadmap.
   the worker's files are served from PR-83). One `test:pinned` pass in the
   pinned container (341 of 341 tests in 34 files) wrote both parity records
   again; every row is 0/0, with the same PNG hashes.
+
+## Implementation notes (PR-83)
+
+- **The Player.** `packages/player/src/playback.ts` gives the frames of a
+  frame of the clock: one `VideoStream` per active video node that is not
+  reversed, its frames converted by the pool, and the path of D51 for a
+  reversed clip. `player.ts` uses it only for a frame the clock asks for
+  while the film plays; a seek of the host, a pause, an update, a load, and
+  the end of a play end every stream and take the path of D51. The pool is
+  made at the first playing frame of a film with video and ended with the
+  Player.
+- **A pause shows the sought frame.** When the frame shown came from streams
+  and the film stops (a pause, or a frame of the clock that lands after
+  one), the Player renders the same time once more by the path of D51, so a
+  stopped film always shows the sought frame, image and all (D87.1).
+- **A stream ended under a frame.** A frame asked of a stream that a pause or
+  a seek ended meanwhile, or of a pool that failed, is taken by the path of
+  D51 instead of failing the film; a failed pool is closed and reported as
+  below.
+- **`video-workers-unavailable`.** A new option `onWarning` of the Player
+  receives `{ code: 'video-workers-unavailable', message }` once for the
+  Player's life, when the window makes no worker, a worker does not start,
+  or one fails; playback goes on by the path of D51. What the handler throws
+  is dropped.
+- **The worker's URL is a literal.** `createConversionPool` writes
+  `new URL('./worker/kadrion-convert-worker.js', import.meta.url)` in full,
+  so a bundler that rewrites that form (Vite's production build, checked)
+  copies the worker's bundle by itself; a unit test holds the built
+  `pool.js` to it.
+- **The bitmap crosses as a copy.** The Player posts the message without a
+  transfer list, so the page receives a structured clone of the bitmap the
+  stream holds (D87.1, D87.3).
+- **The renderer.** `applyVideoFrames` takes both shapes of an entry; a
+  bitmap puts a `canvas` with the bitmap's size in the image's place, with
+  every attribute but `src`, `alt`, `width`, and `height`, and bytes put the
+  image back. A page whose canvas has no `bitmaprenderer` context refuses a
+  bitmap entry (`video-frames-invalid`). The protocol version of the Player
+  and the page is 3.
+- **The measurement of D87.6, in the pinned container.**
+  - The source pixels: for the fixture as MP4, fragmented MP4, MOV, and MKV,
+    tagged BT.709, BT.601 in full range, and in the seven turns of D81.4,
+    every one of the 75 frames read by one stream (one decoder across the
+    IDR samples at 1 s and 2 s) and converted in a worker equals the RGB of
+    the path of D51.4: zero differing bytes in all 975 frames.
+  - The page: a playing frame against the sought frame of the same time, at
+    six times on both sides of the IDR sample at 1 s. A clip at its own
+    size, unscaled, and each of the seven turns at its own size as shown:
+    0 differing pixels in every row; both are gates at zero. A clip shown at
+    half its size and at twice its size: 0 in every row. A clip with `cover`
+    in a box of 160 by 160 (scaled by 8/9 and cropped): 8 554 to 9 222 of the
+    25 600 pixels of its box differ, about half of them by one level, the
+    largest by 57; the difference covers the whole box and no shift of a
+    pixel explains it, so it is the filter of the scale.
+  - So the measurement is not zero in every row of a scaled clip: by D87.6,
+    a playing frame of a clip scaled by a ratio that is not an integer may
+    differ from the sought frame by its filter, by up to 57 levels at the
+    sharp edges of the fixture, and the sought frame and the export stay the
+    reference. The rows of a scaled clip are written to
+    `.kadrion-out/player-video/playing-frames.json` with both captures of
+    each differing row, and are not gated.
+- **The rate.** The film of the context, 1080×1920 at 30 fps for 8 s, in the
+  same container (four virtual processors, so two workers), with the
+  Player's own clock:
+
+  | Clip                                    | Before (D51) | After |
+  | --------------------------------------- | -----------: | ----: |
+  | none (text and shapes)                  |           30 |    30 |
+  | 720p, a key picture every second        |          7.4 |  29.6 |
+  | 1080p, a key picture every second       |          4.2 |  23.4 |
+  | 1080p, a key picture every 250 pictures |          2.2 |  18.1 |
+  | 2160p, a key picture every second       |          1.5 |   1.2 |
+
+  The longest task of the host's thread while playing is under 50 ms for
+  720p and 1080p (no long task at all) and 59 ms for 2160p, where the path of
+  D51 blocked it for 2.2 s of every 6 s at 1080p. 2160p is outside this ADR
+  (D87.7): two workers do not keep up with it, every frame the clock asks
+  for lies beyond the next IDR sample and starts the stream again, and the
+  frames converted ahead are never shown, so it plays a little slower than
+  before. A host shows such a source from a smaller copy.
+
+- **Measured.** The runtime build is
+  `sha256:e1dd151c9b9ca56a87ce4774373825aea0c7dd23e646947da7666c6b3090677e`
+  (504 591 bytes). The Player's dist tree is
+  `sha256:bb0c6136310efc943153d21d8050e6c66a290d158ceabad994ec4e947003aa7d`
+  (83 files). Two isolated `goldens:update` passes wrote all 124 golden files
+  byte for byte the same; every PNG file is as committed, and the twenty
+  manifests changed in `render.runtime.contentHash` only. One `test:pinned`
+  pass (343 of 343 tests in 34 files) wrote both parity records again; every
+  row is 0/0, with the same PNG hashes.

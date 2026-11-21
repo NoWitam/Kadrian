@@ -35,6 +35,9 @@ export type {
   PlayerTimers,
   PlayerVideoAsset,
   PlayerVideoFacts,
+  PlayerWarning,
+  PlayerWarningCode,
+  PlayerWarningHandler,
 } from './player.js';
 export { decodeSound, scheduleSounds } from './audio.js';
 export { inspectVideo } from './container.js';

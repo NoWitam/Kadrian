@@ -1,6 +1,7 @@
 # D88 — A faster export with the same pixels: a fast capture and a first decode that seeks
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-21 (20:15 Europe/Warsaw),
+  before any code, with the recommendations of all six questions
 - Date: 2026-11-21
 - Supersedes: —
 - Extends, on acceptance, each with an `Amended by` line written then and in

@@ -53,5 +53,5 @@ export { applyVideoFrames } from './video.js';
 export { holdsIdr } from './video-idr.js';
 export { orientedSize, orientRgb, UPRIGHT, videoOrientation } from './video-orientation.js';
 export type { VideoOrientation, VideoRotation } from './video-orientation.js';
-export type { VideoFrame } from './video.js';
+export type { VideoFrame, VideoFrameBitmap } from './video.js';
 export type { CustomHtmlHost, MessageListener, MessageTarget } from './synchronize.js';

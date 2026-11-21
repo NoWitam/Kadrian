@@ -122,6 +122,12 @@ export interface VideoFrame {
     readonly bytes: ArrayBuffer;
 }
 
+---- VideoFrameBitmap (type only)
+export interface VideoFrameBitmap {
+    readonly nodeId: string;
+    readonly bitmap: ImageBitmap;
+}
+
 ---- VideoOrientation (type only)
 export interface VideoOrientation {
     readonly rotation: VideoRotation;
