@@ -245,5 +245,7 @@ describe('the history of the timeline commands against a model of snapshots (D38
     expect(refused).toBeGreaterThan(500);
     // A join as a command of its own is rarer: the undo of every split is one, too.
     expect(joined).toBeGreaterThan(5);
-  });
+    // 6 000 seeded commands with a snapshot each: 4.4 s of the default 5 s on a
+    // CI runner of `main`, so a busy runner timed it out without a wrong result.
+  }, 60_000);
 });
