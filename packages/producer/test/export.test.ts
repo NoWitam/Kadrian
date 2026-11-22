@@ -25,9 +25,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   audioLayout,
+  checkVideoCanvas,
   TIME_SCALE_PER_FRAME,
   FRAMES_IN_FLIGHT,
   FrameSink,
+  MAX_VIDEO_SIDE,
   presetSize,
   receiptHashes,
   samplesAt,
@@ -110,6 +112,38 @@ function variant(edit: (draft: Record<string, unknown>) => void): unknown {
 }
 
 const reference = validated(referenceComposition);
+
+/** The bound of a side of the canvas in schema 0.29 (D89.1). */
+const MAX_CANVAS = 4224;
+
+/** The reference composition on a canvas of `width` × `height`. */
+function largeCanvas(width: number, height: number): unknown {
+  return variant((draft) => Object.assign(draft, { width, height }));
+}
+
+/** The reference composition with an empty definition of `width` × `height`, placed nowhere. */
+function withDefinition(
+  width: number,
+  height: number,
+  base: unknown = referenceComposition,
+): unknown {
+  const draft = structuredClone(base) as Record<string, unknown>;
+  draft.definitions = [
+    {
+      id: 'definition-large',
+      sourceHash: '',
+      width,
+      height,
+      durationUs: 1_000_000,
+      nodes: [],
+      clips: [],
+      transitions: [],
+      template: { inputs: [], bindings: [], conditions: [], repeats: [] },
+    },
+  ];
+  return draft;
+}
+
 const hex = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 
 describe('presets (D29.5)', () => {
@@ -1098,7 +1132,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
       'tools',
       `probe sound-0 ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.28 white',
+      'load 0.29 white',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,
@@ -1944,6 +1978,21 @@ describe('a still frame on a fake render and FFmpeg (D47.7)', () => {
     expect(log).toEqual(['render 2500000']);
   });
 
+  it('renders a canvas of the bound of the schema, and refuses one above maxCanvasPixels before it renders (D89.1)', async () => {
+    const large = largeCanvas(MAX_CANVAS, MAX_CANVAS);
+    const { deps, log } = stillRun();
+    await expect(renderStillWith(still({ document: large }), deps)).resolves.toBeDefined();
+    expect(log).toEqual(['render 2500000']);
+    const refused = stillRun();
+    await expect(
+      renderStillWith(
+        still({ document: large, limits: { maxCanvasPixels: MAX_CANVAS * MAX_CANVAS - 1 } }),
+        refused.deps,
+      ),
+    ).rejects.toMatchObject({ code: 'limit-exceeded', message: /pixels of a canvas/ });
+    expect(refused.log).toEqual([]);
+  });
+
   it.each([
     ['jpeg', 'mjpeg', 'image/jpeg'],
     ['webp', 'webp', 'image/webp'],
@@ -2055,7 +2104,7 @@ describe('a transparent document in a still and a video job (D89.2)', () => {
   it('renders every frame of an export from a copy with a white clear, and keeps the hash of the document as given', async () => {
     const run = fakeRun();
     const { manifest } = await exportWith(request({ document: transparent }), run.dependencies);
-    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.28 white']);
+    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.29 white']);
     expect(manifest.clear).toBe('white');
     expect(manifest.compositionHash).toBe(transparentHash);
   });
@@ -2068,7 +2117,7 @@ describe('a transparent document in a still and a video job (D89.2)', () => {
       '/jobs/transparent',
       { document: transparent },
     );
-    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.28 white']);
+    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.29 white']);
     expect(manifest.clear).toBe('white');
     expect(manifest.compositionHash).toBe(transparentHash);
   });
@@ -2363,6 +2412,7 @@ describe('the job contract on a fake frame loop and FFmpeg (D48)', () => {
     ['the duration', { maxDurationUs: 9_999_999 }],
     ['the frames of the range', { maxFrames: 179 }],
     ['the number of assets', { maxAssets: 2 }],
+    ['the pixels of the canvas', { maxCanvasPixels: 1080 * 1920 - 1 }],
     ['the size of one asset', { maxAssetBytes: imageBytes - 1 }],
     ['the size of all assets', { maxTotalAssetBytes: totalBytes - 1 }],
     ['a limit that is not a non-negative integer', { maxFrames: -1 }],
@@ -2386,12 +2436,33 @@ describe('the job contract on a fake frame loop and FFmpeg (D48)', () => {
           maxDurationUs: 10_000_000,
           maxFrames: 180,
           maxAssets: 3,
+          maxCanvasPixels: 1080 * 1920,
           maxAssetBytes: Math.max(...Object.values(ASSETS).map(({ bytes }) => bytes.byteLength)),
           maxTotalAssetBytes: totalBytes,
         },
       },
     );
     expect(manifest.segments).toHaveLength(3);
+  });
+
+  it('checks the pixels of every definition, whether placed or not, against maxCanvasPixels (D89.1)', async () => {
+    const run = fakeRun();
+    await expect(
+      segmentsJob(run, { fromUs: 4_000_000, toUs: 10_000_000 }, '/jobs/c', {
+        document: withDefinition(1920, 1920),
+        limits: { maxCanvasPixels: 1080 * 1920 },
+      }),
+    ).rejects.toMatchObject({
+      code: 'limit-exceeded',
+      message: expect.stringMatching(/definition "definition-large".*3686400/) as unknown,
+    });
+    expect(run.log).toEqual([]);
+    await expect(
+      audioJob(fakeRun(), '/jobs/audio', {
+        document: withDefinition(1920, 1920),
+        limits: { maxCanvasPixels: 1920 * 1920 },
+      }),
+    ).resolves.toBeDefined();
   });
 
   it('checks the frames of the audio pass and of the export against their ranges', async () => {
@@ -2808,6 +2879,118 @@ describe('the plan of an estimate (D48.5)', () => {
       expect.objectContaining({ code: 'segment-length-invalid' }),
     );
   });
+});
+
+describe('a canvas above 1920 in a video job (D89.1)', () => {
+  const above = [
+    ['a composition 1921 wide', () => largeCanvas(1921, 1080)],
+    ['a composition 1921 tall', () => largeCanvas(1080, 1921)],
+    ['a composition of the bound', () => largeCanvas(MAX_CANVAS, MAX_CANVAS)],
+    ['a definition 1921 wide, placed nowhere', () => withDefinition(1921, 100)],
+    ['a definition 1921 tall, placed nowhere', () => withDefinition(100, 1921)],
+  ] as const;
+
+  it('draws a side of at most 1920', () => {
+    expect(MAX_VIDEO_SIDE).toBe(1920);
+  });
+
+  it.each(above)('refuses %s with preset-unsupported in every preset', (_, document) => {
+    const composition = validated(document());
+    expect(() => {
+      checkVideoCanvas(composition);
+    }).toThrow(
+      expect.objectContaining({
+        code: 'preset-unsupported',
+        message: expect.stringMatching(/D89\.1/) as unknown,
+      }),
+    );
+    for (const name of ['1080p', '720p']) {
+      expect(() => presetSize(composition, name)).toThrow(
+        expect.objectContaining({ code: 'preset-unsupported' }),
+      );
+    }
+  });
+
+  it('names the definition it refuses', () => {
+    expect(() => {
+      checkVideoCanvas(validated(withDefinition(1921, 100)));
+    }).toThrow(/definition "definition-large" is 1921x100/);
+  });
+
+  it('accepts a composition and a definition of exactly 1920', () => {
+    const square = validated(largeCanvas(1920, 1920));
+    expect(presetSize(square, '1080p')).toEqual({ name: '1080p', width: 1080, height: 1080 });
+    expect(() => {
+      checkVideoCanvas(validated(withDefinition(1920, 1920)));
+    }).not.toThrow();
+    expect(presetSize(validated(withDefinition(1920, 1920)), '1080p')).toEqual(
+      presetSize(reference, '1080p'),
+    );
+  });
+
+  it.each(above)(
+    'refuses %s in the one-pass export before a browser opens or FFmpeg starts',
+    async (_, document) => {
+      const run = fakeRun();
+      await expect(
+        exportWith(request({ document: document() }), run.dependencies),
+      ).rejects.toMatchObject({ code: 'preset-unsupported' });
+      expect(run.log).not.toContain('browser');
+      expect(run.log.some((line) => line.startsWith('spawn'))).toBe(false);
+    },
+  );
+
+  it.each(above)('refuses %s in a range job before anything starts', async (_, document) => {
+    const run = fakeRun();
+    await expect(
+      segmentsJob(run, { fromUs: 0, toUs: 2_000_000 }, '/jobs/a', { document: document() }),
+    ).rejects.toMatchObject({ code: 'preset-unsupported' });
+    expect(run.log).toEqual([]);
+  });
+
+  it.each(above)('refuses %s in the plan of an estimate', (_, document) => {
+    expect(() => estimatePlan(document())).toThrow(
+      expect.objectContaining({ code: 'preset-unsupported' }),
+    );
+  });
+
+  it('renders the audio of a composition and a definition of the bound', async () => {
+    const large = withDefinition(MAX_CANVAS, MAX_CANVAS, largeCanvas(MAX_CANVAS, MAX_CANVAS));
+    const run = fakeRun();
+    const audio = await audioJob(run, '/jobs/audio', { document: large });
+    const small = await audioJob(fakeRun(), '/jobs/audio-small');
+    // The sound does not depend on the canvas.
+    expect(audio.manifest.audio).toEqual(small.manifest.audio);
+    expect(audio.manifest.audio).not.toBeNull();
+  });
+
+  it.each([
+    ['wide', { sourceWidth: 1921 }],
+    ['tall', { sourceHeight: 1921 }],
+  ])(
+    'refuses, in a join, a segments manifest of a canvas 1921 %s before FFmpeg runs',
+    async (_, size) => {
+      const run = fakeRun();
+      const a = await segmentsJob(run, { fromUs: 0, toUs: 4_000_000 }, '/j/a');
+      const b = await segmentsJob(run, { fromUs: 4_000_000, toUs: 10_000_000 }, '/j/b');
+      const audio = await audioJob(run, '/j/audio');
+      const before = run.log.length;
+      const larger = <M extends SegmentsManifest>(part: JoinPart<M>): JoinPart<M> => ({
+        ...part,
+        manifest: { ...part.manifest, preset: { ...part.manifest.preset, ...size } },
+      });
+      expect(() => joinPlan([larger(a), larger(b)], audio)).toThrow(
+        expect.objectContaining({ code: 'preset-unsupported' }),
+      );
+      await expect(
+        joinSegmentsWith(
+          { segments: [a, larger(b)], audio, outputPath: '/j/v.mp4', ffmpeg: PATHS },
+          run.dependencies,
+        ),
+      ).rejects.toMatchObject({ code: 'preset-unsupported' });
+      expect(run.log.slice(before).some((line) => line.startsWith('join'))).toBe(false);
+    },
+  );
 });
 
 describe('the audio of a file read by path (D64)', () => {

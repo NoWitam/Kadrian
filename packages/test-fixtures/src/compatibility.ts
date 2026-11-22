@@ -507,6 +507,38 @@ import textV028 from './compatibility/v0-28/text.json' with { type: 'json' };
 import transitionsV028 from './compatibility/v0-28/transitions.json' with { type: 'json' };
 import videoV028 from './compatibility/v0-28/video.json' with { type: 'json' };
 import volumeV028 from './compatibility/v0-28/volume.json' with { type: 'json' };
+import audioV029 from './compatibility/v0-29/audio.json' with { type: 'json' };
+import captionsV029 from './compatibility/v0-29/captions.json' with { type: 'json' };
+import captionsMotionV029 from './compatibility/v0-29/captions-motion.json' with { type: 'json' };
+import canvasV029 from './compatibility/v0-29/canvas.json' with { type: 'json' };
+import clearV029 from './compatibility/v0-29/clear.json' with { type: 'json' };
+import compositingV029 from './compatibility/v0-29/compositing.json' with { type: 'json' };
+import customHtmlV029 from './compatibility/v0-29/custom-html.json' with { type: 'json' };
+import easingV029 from './compatibility/v0-29/easing.json' with { type: 'json' };
+import effectsV029 from './compatibility/v0-29/effects.json' with { type: 'json' };
+import effectsSvgV029 from './compatibility/v0-29/effects-svg.json' with { type: 'json' };
+import elementsV029 from './compatibility/v0-29/elements.json' with { type: 'json' };
+import extremesV029 from './compatibility/v0-29/extremes.json' with { type: 'json' };
+import flipV029 from './compatibility/v0-29/flip.json' with { type: 'json' };
+import focusV029 from './compatibility/v0-29/focus.json' with { type: 'json' };
+import framedTextV029 from './compatibility/v0-29/framed-text.json' with { type: 'json' };
+import inputsV029 from './compatibility/v0-29/inputs.json' with { type: 'json' };
+import lifetimeV029 from './compatibility/v0-29/lifetime.json' with { type: 'json' };
+import minimalV029 from './compatibility/v0-29/minimal.json' with { type: 'json' };
+import motionV029 from './compatibility/v0-29/motion.json' with { type: 'json' };
+import nestedV029 from './compatibility/v0-29/nested.json' with { type: 'json' };
+import pairV029 from './compatibility/v0-29/pair.json' with { type: 'json' };
+import referenceV029 from './compatibility/v0-29/reference.json' with { type: 'json' };
+import repeatsV029 from './compatibility/v0-29/repeats.json' with { type: 'json' };
+import scenesV029 from './compatibility/v0-29/scenes.json' with { type: 'json' };
+import shapesV029 from './compatibility/v0-29/shapes.json' with { type: 'json' };
+import speedV029 from './compatibility/v0-29/speed.json' with { type: 'json' };
+import svgV029 from './compatibility/v0-29/svg.json' with { type: 'json' };
+import templateV029 from './compatibility/v0-29/template.json' with { type: 'json' };
+import textV029 from './compatibility/v0-29/text.json' with { type: 'json' };
+import transitionsV029 from './compatibility/v0-29/transitions.json' with { type: 'json' };
+import videoV029 from './compatibility/v0-29/video.json' with { type: 'json' };
+import volumeV029 from './compatibility/v0-29/volume.json' with { type: 'json' };
 
 /**
  * An entry of the compatibility corpus (D43.6): a saved document that must keep
@@ -1027,6 +1059,38 @@ const FILES: Readonly<Record<string, unknown>> = {
   'compatibility/v0-28/transitions.json': transitionsV028,
   'compatibility/v0-28/video.json': videoV028,
   'compatibility/v0-28/volume.json': volumeV028,
+  'compatibility/v0-29/audio.json': audioV029,
+  'compatibility/v0-29/captions.json': captionsV029,
+  'compatibility/v0-29/captions-motion.json': captionsMotionV029,
+  'compatibility/v0-29/canvas.json': canvasV029,
+  'compatibility/v0-29/clear.json': clearV029,
+  'compatibility/v0-29/compositing.json': compositingV029,
+  'compatibility/v0-29/custom-html.json': customHtmlV029,
+  'compatibility/v0-29/easing.json': easingV029,
+  'compatibility/v0-29/effects.json': effectsV029,
+  'compatibility/v0-29/effects-svg.json': effectsSvgV029,
+  'compatibility/v0-29/elements.json': elementsV029,
+  'compatibility/v0-29/extremes.json': extremesV029,
+  'compatibility/v0-29/flip.json': flipV029,
+  'compatibility/v0-29/focus.json': focusV029,
+  'compatibility/v0-29/framed-text.json': framedTextV029,
+  'compatibility/v0-29/inputs.json': inputsV029,
+  'compatibility/v0-29/lifetime.json': lifetimeV029,
+  'compatibility/v0-29/minimal.json': minimalV029,
+  'compatibility/v0-29/motion.json': motionV029,
+  'compatibility/v0-29/nested.json': nestedV029,
+  'compatibility/v0-29/pair.json': pairV029,
+  'compatibility/v0-29/reference.json': referenceV029,
+  'compatibility/v0-29/repeats.json': repeatsV029,
+  'compatibility/v0-29/scenes.json': scenesV029,
+  'compatibility/v0-29/shapes.json': shapesV029,
+  'compatibility/v0-29/speed.json': speedV029,
+  'compatibility/v0-29/svg.json': svgV029,
+  'compatibility/v0-29/template.json': templateV029,
+  'compatibility/v0-29/text.json': textV029,
+  'compatibility/v0-29/transitions.json': transitionsV029,
+  'compatibility/v0-29/video.json': videoV029,
+  'compatibility/v0-29/volume.json': volumeV029,
 };
 
 function fileOf(path: string): unknown {

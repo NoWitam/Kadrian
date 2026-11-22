@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.29"
+        "value": "0.30"
       }
     ],
     "expectedErrors": [
@@ -379,18 +379,79 @@
   },
   {
     "name": "canvas-too-large",
-    "description": "D15: the canvas stops at 1920 because D07 stops at 1080p.",
+    "description": "D89.1: a side of the canvas stops at 4224, the bound the gate of D89.1 measured.",
     "patch": [
       {
         "op": "replace",
         "path": "/width",
-        "value": 3840
+        "value": 4225
       }
     ],
     "expectedErrors": [
       {
         "code": "out-of-range",
         "path": "/width"
+      }
+    ]
+  },
+  {
+    "name": "canvas-too-tall",
+    "description": "D89.1: the height of the canvas stops at 4224 as its width does.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/height",
+        "value": 4225
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/height"
+      }
+    ]
+  },
+  {
+    "name": "safe-inset-too-large",
+    "description": "D89.1: an inset of the safe area stops at 4224, the bound of a side.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/safeArea/fromTop",
+        "value": 4225
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/safeArea/fromTop"
+      }
+    ]
+  },
+  {
+    "name": "definition-canvas-too-large",
+    "description": "D89.1: a side of the canvas of a definition stops at 4224 as the composition's does.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "definition-large",
+          "sourceHash": "",
+          "width": 4224,
+          "height": 4225,
+          "durationUs": 1000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/definitions/0/height"
       }
     ]
   },

@@ -237,6 +237,7 @@ export declare const JOB_LIMITS: readonly [
     "maxDurationUs",
     "maxFrames",
     "maxAssets",
+    "maxCanvasPixels",
     "maxAssetBytes",
     "maxTotalAssetBytes"
 ];
@@ -247,6 +248,7 @@ export interface JobLimits {
     readonly maxDurationUs?: number;
     readonly maxFrames?: number;
     readonly maxAssets?: number;
+    readonly maxCanvasPixels?: number;
     readonly maxAssetBytes?: number;
     readonly maxTotalAssetBytes?: number;
 }

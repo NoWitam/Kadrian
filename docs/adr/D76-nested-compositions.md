@@ -12,6 +12,7 @@
 - Related: D15, D19, D30, D39, D46, D49, D52, D54, D56, D58, D65, D71, D75,
   [phase five](../roadmap/phase-5.md) PR-55a
 - Amended by: PR-55b (D77) on 2026-11-10: 76.6: a definition may carry a template of its own, an element; 76.8: `ExpandInstance` refuses an element (D77.1, D77.5)
+- Amended by: PR-91 (D89) on 2026-11-22: 76.1: a definition's sides go up to 4224, as the composition's do; a video job refuses a definition with a side above 1920, placed or not (D89.1)
 
 ## Context
 

@@ -56,8 +56,10 @@
  * 0.26 plus the flip of every transformable node, a mirror of what it draws in
  * its own box about the box's centre (D89.3); 0.28 is 0.27 plus the clear of
  * the composition, white or transparent: what a pixel that no node covers is
- * (D89.2). The schemas of 0.1 to 0.27 are kept as data in `v0-1` to `v0-27`
- * (D35.4).
+ * (D89.2); 0.29 is 0.28 with a side of the canvas and a safe inset up to
+ * 4224, the bound that the gate of D89.1 measured, for the composition and its
+ * definitions, where a video job still stops at 1920 (D89.1). The schemas of
+ * 0.1 to 0.28 are kept as data in `v0-1` to `v0-28` (D35.4).
  */
 import {
   closedObject,
@@ -70,9 +72,16 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.28';
+export const SCHEMA_VERSION = '0.29';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
+
+/**
+ * The bound of a side of a canvas and of a safe inset (D89.1): the largest side,
+ * on a grid of 128 pixels up to 8192, whose probe passed the gate of D89.1 in the
+ * pinned container, every time it was rendered.
+ */
+const MAX_CANVAS_LENGTH = 4224;
 
 const id = {
   type: 'string',
@@ -103,18 +112,19 @@ const durationUs = {
 
 const canvasLength = {
   type: 'integer',
-  description: 'Canvas side in composition pixels (D15).',
+  description:
+    'Canvas side in composition pixels, from 1 to 4224, the bound the gate of D89.1 measured; a video job refuses a side above 1920 (D15, D89.1).',
   minimum: 1,
-  maximum: 1920,
+  maximum: MAX_CANVAS_LENGTH,
 } as const satisfies NumberSchema;
 
 /** How far the safe area lies from one edge of the canvas (D70). */
 const safeInset = {
   type: 'integer',
   description:
-    'Composition pixels from the edge of the canvas to the safe area, from 0; two opposite insets leave at least 1 pixel (D70).',
+    'Composition pixels from the edge of the canvas to the safe area, from 0; two opposite insets leave at least 1 pixel (D70, D89.1).',
   minimum: 0,
-  maximum: 1920,
+  maximum: MAX_CANVAS_LENGTH,
 } as const satisfies NumberSchema;
 
 const coordinate = {
@@ -3110,7 +3120,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.28',
+  title: 'Kadrion composition 0.29',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

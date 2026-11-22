@@ -21,7 +21,43 @@ export interface PresetSize {
   readonly height: number;
 }
 
-/** The output size of a preset for a composition, or `preset-unsupported` (D29.5). */
+/**
+ * The longest side of a canvas a video job draws (D07, D29.5, D89.1). A still
+ * may be larger, up to the bound of the schema; a video job draws no more
+ * pixels a frame than it did before the canvas grew.
+ */
+export const MAX_VIDEO_SIDE = 1920;
+
+/**
+ * Refuses, with `preset-unsupported`, a composition with a side above
+ * `MAX_VIDEO_SIDE`, or any definition of it with one, whether an instance
+ * places it or not (D89.1): every video job and the estimate check it before a
+ * page opens.
+ */
+export function checkVideoCanvas(composition: ValidatedComposition): void {
+  const canvases = [
+    { what: 'The composition', width: composition.width, height: composition.height },
+    ...composition.definitions.map(({ id, width, height }) => ({
+      what: `The definition "${id}"`,
+      width,
+      height,
+    })),
+  ];
+  for (const { what, width, height } of canvases) {
+    if (width > MAX_VIDEO_SIDE || height > MAX_VIDEO_SIDE) {
+      throw new ProducerError(
+        'preset-unsupported',
+        `${what} is ${String(width)}x${String(height)}: a video job draws a side of at most ${String(MAX_VIDEO_SIDE)} (D89.1).`,
+      );
+    }
+  }
+}
+
+/**
+ * The output size of a preset for a composition, or `preset-unsupported`
+ * (D29.5), also for a composition or a definition with a side above
+ * `MAX_VIDEO_SIDE` (D89.1).
+ */
 export function presetSize(composition: ValidatedComposition, name: string): PresetSize {
   if (!Object.hasOwn(PRESETS, name)) {
     throw new ProducerError(
@@ -29,6 +65,7 @@ export function presetSize(composition: ValidatedComposition, name: string): Pre
       `The preset must be one of ${Object.keys(PRESETS).join(', ')}, got ${JSON.stringify(name)}.`,
     );
   }
+  checkVideoCanvas(composition);
   const preset = name as PresetName;
   const shortSide = PRESETS[preset];
   const { width, height } = composition;

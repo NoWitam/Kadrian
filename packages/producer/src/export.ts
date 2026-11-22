@@ -36,6 +36,7 @@ import {
   AUDIO_CODEC,
   audioLayout,
   FrameSink,
+  MAX_VIDEO_SIDE,
   OUTPUT_PLACEHOLDER,
   presetSize,
   realTimer,
@@ -1048,6 +1049,15 @@ export function joinPlan(
     ) {
       throw joinInvalid(
         `A segments manifest of version ${String(EXPORT_MANIFEST_VERSION)} was expected, got ${JSON.stringify(manifest.kind)} of version ${String(manifest.manifestVersion)}.`,
+      );
+    }
+    // A video job draws a side of at most 1920 (D89.1); the range job refuses a
+    // larger canvas, and so does the join of segments that claim one.
+    const { sourceWidth, sourceHeight } = manifest.preset;
+    if (sourceWidth > MAX_VIDEO_SIDE || sourceHeight > MAX_VIDEO_SIDE) {
+      throw new ProducerError(
+        'preset-unsupported',
+        `A segments manifest names a composition of ${String(sourceWidth)}x${String(sourceHeight)}: a video job draws a side of at most ${String(MAX_VIDEO_SIDE)} (D89.1).`,
       );
     }
     for (const field of SHARED_FIELDS) {

@@ -867,7 +867,7 @@ describe('the job contract of the CLI (D48)', () => {
     const seen: SegmentsRequest[] = [];
     const limits = [
       ...['--max-document-bytes', '100000', '--max-duration-us', '10000000'],
-      ...['--max-frames', '300', '--max-assets', '3'],
+      ...['--max-frames', '300', '--max-assets', '3', '--max-canvas-pixels', '2073600'],
       ...['--max-asset-bytes', '5000000', '--max-total-asset-bytes', '9000000'],
     ];
     await runCli(documentArgs('render-range', dir, ...RANGE, ...limits), io().io, {
@@ -879,6 +879,7 @@ describe('the job contract of the CLI (D48)', () => {
       maxDurationUs: 10_000_000,
       maxFrames: 300,
       maxAssets: 3,
+      maxCanvasPixels: 2_073_600,
       maxAssetBytes: 5_000_000,
       maxTotalAssetBytes: 9_000_000,
     });

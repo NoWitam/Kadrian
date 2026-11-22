@@ -2,7 +2,7 @@ import { invalidCompositionCases, referenceComposition } from '@kadrion/test-fix
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 
-import { compositionSchema } from '../src/index.js';
+import { compositionSchema, validateComposition } from '../src/index.js';
 import type { JsonSchema } from '../src/json-schema.js';
 import { assertSupportedSchema, validateStructure } from '../src/validate-structure.js';
 import { applyPatch } from './apply-patch.js';
@@ -401,4 +401,78 @@ describe('conformance with JSON Schema draft 2020-12 (D17)', () => {
     expect(verdicts.filter(({ own }) => !own).length).toBeGreaterThan(1000);
     expect(verdicts.filter(({ own }) => own).length).toBeGreaterThan(50);
   }, 60_000);
+});
+
+describe('the bound of a side of the canvas (D89.1)', () => {
+  const BOUND = 4224;
+  const codesOf = (document: unknown): string[] => {
+    const result = validateComposition(document);
+    return result.ok ? [] : result.errors.map(({ code, path }) => `${code} ${path}`);
+  };
+  const reference = (): Record<string, unknown> =>
+    JSON.parse(JSON.stringify(referenceComposition)) as Record<string, unknown>;
+  const definition = (width: number, height: number) => ({
+    id: 'bound-definition',
+    sourceHash: '',
+    width,
+    height,
+    durationUs: 1_000_000,
+    nodes: [],
+    clips: [],
+    transitions: [],
+    template: { inputs: [], bindings: [], conditions: [], repeats: [] },
+  });
+
+  it('is the bound the schema states for both sides of the composition and of a definition, and for every inset', () => {
+    expect(compositionSchema.properties.width.maximum).toBe(BOUND);
+    expect(compositionSchema.properties.height.maximum).toBe(BOUND);
+    for (const inset of Object.values(compositionSchema.properties.safeArea.properties)) {
+      expect(inset.maximum).toBe(BOUND);
+    }
+  });
+
+  it('accepts a canvas of the bound on both sides, a definition of the bound, and an inset that leaves 1 pixel', () => {
+    const document = reference();
+    document['width'] = BOUND;
+    document['height'] = BOUND;
+    document['safeArea'] = { fromTop: BOUND - 1, fromRight: 0, fromBottom: 0, fromLeft: BOUND - 1 };
+    document['definitions'] = [definition(BOUND, BOUND)];
+    expect(codesOf(document)).toEqual([]);
+  });
+
+  it.each([
+    ['the width', (document: Record<string, unknown>) => (document['width'] = BOUND + 1), '/width'],
+    [
+      'the height',
+      (document: Record<string, unknown>) => (document['height'] = BOUND + 1),
+      '/height',
+    ],
+    [
+      'the width of a definition',
+      (document: Record<string, unknown>) => (document['definitions'] = [definition(BOUND + 1, 1)]),
+      '/definitions/0/width',
+    ],
+    [
+      'the height of a definition',
+      (document: Record<string, unknown>) => (document['definitions'] = [definition(1, BOUND + 1)]),
+      '/definitions/0/height',
+    ],
+    [
+      'an inset',
+      (document: Record<string, unknown>) =>
+        (document['safeArea'] = { fromTop: 0, fromRight: BOUND + 1, fromBottom: 0, fromLeft: 0 }),
+      '/safeArea/fromRight',
+    ],
+  ])('refuses %s of the bound + 1 as out of range', (_, edit, path) => {
+    const document = reference();
+    edit(document);
+    expect(codesOf(document)).toEqual([`out-of-range ${path}`]);
+  });
+
+  it('judges an inset of the bound by the canvas, not by its range', () => {
+    const document = reference();
+    document['height'] = BOUND;
+    document['safeArea'] = { fromTop: BOUND, fromRight: 0, fromBottom: 0, fromLeft: 0 };
+    expect(codesOf(document)).toEqual(['safe-area-empty /safeArea']);
+  });
 });

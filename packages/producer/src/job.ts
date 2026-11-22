@@ -58,6 +58,11 @@ export interface JobLimits {
   readonly maxFrames?: number;
   /** The assets the document declares. */
   readonly maxAssets?: number;
+  /**
+   * The pixels of a canvas, width × height, of the composition and of each of
+   * its definitions (D89.1); a host's own bound, below the bound of the schema.
+   */
+  readonly maxCanvasPixels?: number;
   /** The bytes of any one asset, as the resolver returned them or as its file holds them (D64.1). */
   readonly maxAssetBytes?: number;
   /** The bytes of all assets together. */
@@ -70,6 +75,7 @@ export const JOB_LIMITS = [
   'maxDurationUs',
   'maxFrames',
   'maxAssets',
+  'maxCanvasPixels',
   'maxAssetBytes',
   'maxTotalAssetBytes',
 ] as const satisfies readonly (keyof JobLimits)[];
@@ -90,7 +96,12 @@ function exceeded(what: string, value: number, limit: number): ProducerError {
 }
 
 /** Checks a limit; a limit that is not a non-negative safe integer is refused as well. */
-function within(limits: JobLimits | undefined, name: keyof JobLimits, value: number): void {
+function within(
+  limits: JobLimits | undefined,
+  name: keyof JobLimits,
+  value: number,
+  what = LIMIT_WHAT[name],
+): void {
   const limit = limits?.[name];
   if (limit === undefined) return;
   if (!Number.isSafeInteger(limit) || limit < 0) {
@@ -99,7 +110,7 @@ function within(limits: JobLimits | undefined, name: keyof JobLimits, value: num
       `The limit ${name} must be a non-negative integer, got ${String(limit)}.`,
     );
   }
-  if (value > limit) throw exceeded(LIMIT_WHAT[name], value, limit);
+  if (value > limit) throw exceeded(what, value, limit);
 }
 
 const LIMIT_WHAT: Readonly<Record<keyof JobLimits, string>> = {
@@ -107,6 +118,7 @@ const LIMIT_WHAT: Readonly<Record<keyof JobLimits, string>> = {
   maxDurationUs: 'The duration (µs)',
   maxFrames: 'The frames of the job',
   maxAssets: 'The number of assets',
+  maxCanvasPixels: 'The pixels of a canvas (width × height)',
   maxAssetBytes: 'An asset (bytes)',
   maxTotalAssetBytes: 'All assets together (bytes)',
 };
@@ -126,6 +138,16 @@ export function checkDocumentLimits(
   within(limits, 'maxDurationUs', composition.durationUs);
   within(limits, 'maxFrames', frames);
   within(limits, 'maxAssets', composition.assets.length);
+  // The canvas of the composition, and of every definition, whether placed or not (D89.1).
+  within(limits, 'maxCanvasPixels', composition.width * composition.height);
+  for (const { id, width, height } of composition.definitions) {
+    within(
+      limits,
+      'maxCanvasPixels',
+      width * height,
+      `The pixels of the canvas of the definition "${id}" (width × height)`,
+    );
+  }
 }
 
 /**
