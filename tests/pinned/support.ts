@@ -167,6 +167,27 @@ export function differingPixels(a: Pixels, b: Pixels, limit = 400): readonly Dif
   return found;
 }
 
+/**
+ * The layout of a PNG apart from its image data (D88.4): its `IHDR` as hex and
+ * the types of its ancillary chunks, in order. Two captures of one picture by
+ * the reference and the fast capture must share it.
+ */
+export function pngLayout(png: Uint8Array): { ihdr: string; ancillary: string[] } {
+  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  let ihdr = '';
+  const ancillary: string[] = [];
+  for (let offset = 8; offset + 8 <= png.length;) {
+    const length = view.getUint32(offset);
+    const type = String.fromCharCode(...png.subarray(offset + 4, offset + 8));
+    if (type === 'IHDR')
+      ihdr = Buffer.from(png.subarray(offset + 8, offset + 8 + length)).toString('hex');
+    // A lowercase first letter marks an ancillary chunk (PNG §5.4).
+    else if (type[0] !== undefined && type[0] === type[0].toLowerCase()) ancillary.push(type);
+    offset += 12 + length;
+  }
+  return { ihdr, ancillary };
+}
+
 export function samePixels(a: Uint8Array, b: Uint8Array): boolean {
   return difference(decodePng(a), decodePng(b)).differingPixels === 0;
 }

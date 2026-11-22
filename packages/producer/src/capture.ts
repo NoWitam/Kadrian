@@ -131,8 +131,26 @@ export async function awaitPresented(page: Page, timeoutMs: number): Promise<num
   }
 }
 
-/** The composition's area of the page as PNG bytes, at scale 1 (D28.5). */
-export async function captureFrame(page: Page, width: number, height: number): Promise<Uint8Array> {
+/**
+ * How a frame is captured (D88.1): `reference` is the capture of D28.5;
+ * `fast` adds Chromium's `optimizeForSpeed`, whose PNG compresses less and
+ * decodes to the same pixels. Only an export and a range job of D47 ask for
+ * `fast`; every frame that leaves the Producer as PNG is a `reference` one.
+ */
+export type FrameCapture = 'reference' | 'fast';
+
+/** The composition's area of the page as PNG bytes, at scale 1 (D28.5), by the reference capture. */
+export function captureFrame(page: Page, width: number, height: number): Promise<Uint8Array> {
+  return captureAs(page, width, height, 'reference');
+}
+
+/** The composition's area of the page as PNG bytes, at scale 1, by the given capture (D28.5, D88.1). */
+export async function captureAs(
+  page: Page,
+  width: number,
+  height: number,
+  capture: FrameCapture,
+): Promise<Uint8Array> {
   const session = await page.context().newCDPSession(page);
   try {
     const { data } = await session.send('Page.captureScreenshot', {
@@ -140,6 +158,7 @@ export async function captureFrame(page: Page, width: number, height: number): P
       fromSurface: true,
       captureBeyondViewport: false,
       clip: { x: 0, y: 0, width, height, scale: 1 },
+      ...(capture === 'fast' ? { optimizeForSpeed: true } : {}),
     });
     return new Uint8Array(Buffer.from(data, 'base64'));
   } finally {

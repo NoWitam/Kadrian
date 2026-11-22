@@ -639,7 +639,9 @@ recommendations of all its questions; its pull requests follow those of D87.
   and these entries.
 - **PR-86** (D88, the fast capture): an export captures with another
   compression of the PNG; its frames equal those of `renderFrames` in pixels;
-  export manifest version 6 with the field `capture`.
+  export manifest version 6 with the field `capture`. Status: done; the MP4 and
+  every segment keep the bytes of `main`, alone and four at once, and an
+  export of the reference composition takes 54.8 s instead of 63.1 s.
 - **PR-87** (D88, the first start that seeks): the first start of a decoder
   in an export may seek, with the evidence of D88.4; the host guide.
 

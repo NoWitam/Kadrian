@@ -821,6 +821,8 @@ interface FakeRun {
     readonly bytes: number;
   }[];
   readonly timer: ReturnType<typeof manualTimer>;
+  /** The capture every browser was asked for (D88.1), in order. */
+  readonly captures: string[];
   deliveredFrames: number;
   /** The arguments of every segment encoder, in order. */
   readonly encoderArgs: (readonly string[])[];
@@ -857,6 +859,7 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
     files: new Map(),
     inputs: [],
     timer: manualTimer(),
+    captures: [],
     deliveredFrames: 0,
     encoderArgs: [],
     pipes: [],
@@ -1032,8 +1035,9 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
         ? Promise.resolve(tools)
         : Promise.reject(Object.assign(new Error('no ffmpeg'), { code: options.toolsFail }));
     },
-    browser: () => {
+    browser: (_, capture) => {
       run.log.push('browser');
+      run.captures.push(capture);
       return Promise.resolve({
         chromium: { browser: {} as Browser, reportedVersion: CHROMIUM_VERSION },
         sequence,
@@ -1136,7 +1140,10 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
     expect(manifest.range).toEqual({ fromUs: 0, toUs: 10_000_000, firstFrame: 0, frameCount: 300 });
     expect(manifest.segmentFrames).toBe(60);
     expect(manifest.kind).toBe('export');
-    expect(manifest.manifestVersion).toBe(5);
+    expect(manifest.manifestVersion).toBe(6);
+    // The frames were captured for speed, and the manifest says so (D88.1, D88.2).
+    expect(manifest.capture).toBe('fast');
+    expect(run.captures).toEqual(['fast']);
     expect(manifest.preset).toEqual({
       name: 'mp4-1080p',
       width: 1080,
@@ -1448,6 +1455,14 @@ describe('jobs of one render on a fake frame loop and FFmpeg (D47.3–D47.6)', (
     const early = await segmentsJob(run, { fromUs: 0, toUs: 2_000_000 }, '/jobs/a');
     const middle = await segmentsJob(run, { fromUs: 2_000_000, toUs: 4_000_000 }, '/jobs/b');
     expect(late.manifest.segments.map(({ file }) => file)).toEqual(SEGMENT_NAMES.slice(2));
+    // Every range job captures for speed and says so (D88.1, D88.2).
+    expect(run.captures).toEqual(['fast', 'fast', 'fast']);
+    expect([late, early, middle].map(({ manifest }) => manifest.capture)).toEqual([
+      'fast',
+      'fast',
+      'fast',
+    ]);
+    expect(early.manifest.manifestVersion).toBe(6);
     expect(early.manifest.range).toEqual({
       fromUs: 0,
       toUs: 2_000_000,
@@ -1606,6 +1621,31 @@ describe('the checks of a join (D47.5)', () => {
       /runtime/,
     ],
     [
+      // A later capture never joins this one (D88.2).
+      'another capture',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [a, edited(b, (m) => Object.assign(m, { capture: 'reference' }))],
+        audio,
+      }),
+      /differ in capture/,
+    ],
+    [
+      // A part written before D88 is rendered again, not joined (D88.2).
+      'a part of version 5',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [
+          a,
+          edited(b, (m) => {
+            const old = m as unknown as Record<string, unknown>;
+            old.manifestVersion = 5;
+            delete old.capture;
+          }),
+        ],
+        audio,
+      }),
+      /segments manifest of version 6 was expected, got "segments" of version 5/,
+    ],
+    [
       'another preset',
       ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
         segments: [
@@ -1707,7 +1747,7 @@ describe('the checks of a join (D47.5)', () => {
         segments: [a, b],
         audio: edited(audio, (m) => Object.assign(m, { kind: 'segments' })),
       }),
-      /audio manifest of version 5/,
+      /audio manifest of version 6/,
     ],
     [
       'no segments',
@@ -1857,12 +1897,14 @@ describe('a still frame on a fake render and FFmpeg (D47.7)', () => {
     expect(result.bytes).toBe(png);
     expect(result.mediaType).toBe('image/png');
     expect(result.manifest).toMatchObject({
-      manifestVersion: 5,
+      manifestVersion: 6,
       kind: 'still',
       preset: { name: 'still-png' },
       output: { mediaType: 'image/png', sha256: sha256(png) },
       ffmpeg: null,
     });
+    // A still is a reference capture: its manifest names no capture (D88.1, D88.2).
+    expect(result.manifest).not.toHaveProperty('capture');
     expect(log).toEqual(['render 2500000']);
   });
 
@@ -2853,7 +2895,7 @@ describe('a volume curve in the audio pass (D85.5)', () => {
     });
     expect(manifest.ffmpeg.audioArgs).toContain('<envelope-0>');
     expect(manifest.ffmpeg.audioArgs).not.toContain('pipe:3');
-    expect(manifest.manifestVersion).toBe(5);
+    expect(manifest.manifestVersion).toBe(6);
   });
 
   it('keeps every byte of a render without a curve: no pipe, no field', async () => {

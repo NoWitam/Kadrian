@@ -85,7 +85,7 @@ export declare const DEFAULT_SEGMENT_FRAMES = 60;
 export declare const DEVICE_SCALE_FACTOR = 1;
 
 ---- EXPORT_MANIFEST_VERSION
-export declare const EXPORT_MANIFEST_VERSION = 5;
+export declare const EXPORT_MANIFEST_VERSION = 6;
 
 ---- EnvironmentFacts (type only)
 export interface EnvironmentFacts {
@@ -135,6 +135,7 @@ export interface EstimatePlan {
 ---- ExportManifest (type only)
 export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
     readonly kind: 'export';
+    readonly capture: ManifestCapture;
     readonly preset: ManifestMp4Preset;
     readonly segmentFrames: number;
     readonly grid?: ManifestGrid;
@@ -208,6 +209,9 @@ export interface FfmpegPaths {
     readonly ffmpegPath: string;
     readonly ffprobePath: string;
 }
+
+---- FrameCapture (type only)
+export type FrameCapture = 'reference' | 'fast';
 
 ---- FrameRange (type only)
 export interface FrameRange {
@@ -348,6 +352,9 @@ export interface ManifestAudioPass {
     readonly file: string;
     readonly sha256: string;
 }
+
+---- ManifestCapture (type only)
+export type ManifestCapture = 'fast';
 
 ---- ManifestFfmpeg (type only)
 export interface ManifestFfmpeg extends ManifestFfmpegBuild {
@@ -585,6 +592,7 @@ export interface RenderSessionOptions extends RenderTimeouts {
     readonly height: number;
     readonly customHtmlNodes: number;
     readonly runtime?: RuntimeBuild;
+    readonly capture?: FrameCapture;
 }
 
 ---- RenderTimeouts (type only)
@@ -649,6 +657,7 @@ export interface SegmentGrid {
 ---- SegmentsManifest (type only)
 export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
     readonly kind: 'segments';
+    readonly capture: ManifestCapture;
     readonly preset: ManifestMp4Preset;
     readonly segmentFrames: number;
     readonly grid?: ManifestGrid;
