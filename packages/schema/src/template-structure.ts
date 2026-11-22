@@ -23,6 +23,7 @@ import type { CompositionV023 } from './v0-23/composition-schema.js';
 import type { CompositionV024 } from './v0-24/composition-schema.js';
 import type { CompositionV025 } from './v0-25/composition-schema.js';
 import type { CompositionV026 } from './v0-26/composition-schema.js';
+import type { CompositionV027 } from './v0-27/composition-schema.js';
 
 /** A scene, or a node with the scene and the group it lies in. */
 export interface TemplateElement {
@@ -132,6 +133,11 @@ type AnyNode =
   | Extract<
       CompositionV026['scenes'][number]['nodes'][number],
       { type: 'group' }
+    >['children'][number]
+  | CompositionV027['scenes'][number]['nodes'][number]
+  | Extract<
+      CompositionV027['scenes'][number]['nodes'][number],
+      { type: 'group' }
     >['children'][number];
 
 /**
@@ -164,6 +170,7 @@ export function templateStructure(
     | CompositionV024
     | CompositionV025
     | CompositionV026
+    | CompositionV027
     | CompositionV015
     | CompositionV014
     | CompositionV013

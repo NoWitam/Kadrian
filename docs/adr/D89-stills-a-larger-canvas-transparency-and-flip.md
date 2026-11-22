@@ -372,3 +372,84 @@ those of the code as built, before the pinned run.
   `docs/spike` are measured again with zero differing pixels, and the
   hashes of `docs/spike/report.md` follow them. Q14 reopens with the runtime
   build and the golden manifests.
+
+## Implementation notes (PR-90)
+
+PR-90 brings schema `0.28` and the clear of D89.2; the readings below are
+those of the code as built and of the pinned run.
+
+- **The step and the corpus.** `step027To028` writes `clear: 'white'`
+  directly after the composition's `safeArea` and nowhere else; definitions
+  have no clear. The frozen `0.27` is `packages/schema/src/v0-27`; the pair
+  `migration-0-27-to-0-28`, the corpus `compatibility/v0-28` (every file of
+  `v0-27` stepped, and `clear`, written by hand: a transparent clear, a disc
+  at half opacity, a shape of blend mode `multiply`, and an instance of blend
+  mode `screen` of a definition), and four invalid cases (a missing clear, the
+  value `black`, a clear that is no string, and a clear on a definition) hold
+  it.
+- **The page.** `frame` sets the background colour of the page's `html` to
+  `transparent` for a transparent document right after the document is
+  validated, and removes it otherwise. The page's style is
+  `html{background-color:#ffffff;color-scheme:normal}` and
+  `RENDER_PAGE_FRAME_STYLE` gains `color-scheme: normal`; no golden PNG file
+  changed with them.
+- **The override, as built: on the session of each capture.** D89.2 sets the
+  override once, on a session kept with the page. Measured in the pinned
+  Chromium, that does not hold: an override ends when any CDP session of the
+  page detaches, and the sessions of the presentation (D28.5) and of the mark
+  (D86.2) attach and detach before every capture, so every frame came out
+  opaque white (PNG colour type 2), even when the override was sent again on
+  the kept session. A capture of a frame of a transparent document therefore
+  sends `Emulation.setDefaultBackgroundColorOverride` with transparent black
+  on its own session, immediately before `Page.captureScreenshot` with the
+  arguments of D28.5, as Playwright does for a screenshot without a
+  background. The host document states `html{background-color:transparent}`
+  for it. A white document gets neither and is captured by the calls it was
+  before.
+- **Opaque outputs.** `withWhiteClear` makes the copy with a white clear and
+  validates it (Q17). A JPEG still renders it; an export and every range job
+  load it for their segments. The manifest of a still names the clear its page
+  drew (`white` for a JPEG); those of segments and of an export always name
+  `white`, and the join compares it as it compares `capture`.
+  `EXPORT_MANIFEST_VERSION` is 7. Every manifest keeps the `compositionHash`
+  of the document as given.
+- **WebP.** The arguments of D47.7 stay: the PNG enters FFmpeg as BGRA, and
+  libwebp keeps its alpha. The WebP of a transparent document has a `VP8X`
+  header with the alpha flag, and that of the white document has none. No
+  argument is added.
+- **The command and the tool.** `SetCompositionClear` follows `SetSafeArea`
+  in the registry, so `set_composition_clear` follows `set_safe_area` in the
+  catalogue (105 tools). `describeDocument` and `describe_document` state the
+  clear. The catalogue grows by 1 357 characters over the snapshot of `0.27`,
+  and D89 sets no budget for it.
+- **The transparent reference still.** `compositions/clear.json` is 640x360
+  for 1 s at 30 fps with no background and no assets: an opaque square, a disc
+  whose opacity grows from 0.25 to 0.75 as it moves, a gradient from
+  transparent to opaque red, and an orange square of blend mode `multiply`,
+  half over the square and half over the clear. It has no mask or matte. Its
+  golden frames are at 0, 0.5, and 0.966 666 s.
+- **The probes.** `tests/pinned/clear.pinned.test.ts` checks every one of the
+  30 frames of `renderFrames`: colour type 6; transparent black where no node
+  is; the square opaque and exact; the multiply over the square within 2
+  levels of the product; the multiply over the clear the orange itself,
+  opaque; the disc's alpha within 2 levels of its opacity; and the gradient's
+  alpha rising. It also covers the golden frames, and a PNG still equal to
+  the frame. The WebP keeps alpha; the JPEG still and an MP4 at 1280x720
+  (`720p` refuses to upscale 640x360) are byte for byte those of the white
+  document. In the Player over a host page of dark scheme, the host shows
+  through a transparent document and a white document stays white. That test
+  seeks without the preflight of the conformance host, which refuses a host
+  page with a style of its own (D33.2).
+- **The golden manifests** change in the three fields of D42 only. No golden
+  PNG file changes; the three of the clear composition are added.
+- **Builds.** The runtime build is
+  `sha256:e3df8346dfdb1d674d8975d4e8150d02a1783510a0143add006e18c081e1c907`
+  (506 805 bytes), and the Player's dist tree
+  `sha256:dadc1a9b200d27e5a76820d2994d1449548189992eecf666445b03149eb08417`
+  (83 files).
+- **The pinned run** (four processors): `goldens:update` twice in fresh
+  containers gave the same bytes, and no earlier golden PNG file changed. The
+  whole pinned suite passes (36 files, 356 tests). The parity records of
+  `docs/spike` were measured again with zero differing pixels, and the hashes
+  of `docs/spike/report.md` follow them. Q14 reopens with the runtime build
+  and the golden manifests.

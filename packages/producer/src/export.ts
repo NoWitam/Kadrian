@@ -102,6 +102,7 @@ import {
   manifestBase,
   validated,
   verifiedAssets,
+  withWhiteClear,
   type FrameSequence,
   type GridFrame,
   type PreparedRender,
@@ -602,8 +603,11 @@ async function encodeSegments(options: {
     state.open?.encoder.kill();
   });
   try {
+    // Every video job renders a copy of the document with a white clear, whose
+    // frames are those of the white document; the manifest keeps the hash of the
+    // document as given (D89.2).
     const { blockedRequests } = await browser.sequence(
-      prepared,
+      { ...prepared, composition: withWhiteClear(prepared.composition) },
       grid(),
       async (frame: RenderedFrame) => {
         throwIfCancelled(signal);
@@ -755,6 +759,8 @@ async function segmentsWith(
       manifestVersion: EXPORT_MANIFEST_VERSION,
       kind: 'segments',
       capture: EXPORT_CAPTURE,
+      // A video has no alpha: its page draws a copy of the document over white (D89.2).
+      clear: 'white',
       preset: mp4Preset(prepared.composition, size),
       segmentFrames,
       // Named only when it is not the grid of D47.1, so a render without one keeps its bytes (D80.2).
@@ -964,6 +970,7 @@ const EXPORT_CAPTURE: ManifestCapture & FrameCapture = 'fast';
 const SHARED_FIELDS = [
   'manifestVersion',
   'capture',
+  'clear',
   'compositionHash',
   'schemaVersion',
   'runtime',
@@ -1308,6 +1315,7 @@ async function joinWith(
     identity: first.identity,
     kind: 'export',
     capture: first.capture,
+    clear: first.clear,
     range,
     segments: plan.segments.map(({ index, firstFrame, frameCount, sha256: hash }) => ({
       index,

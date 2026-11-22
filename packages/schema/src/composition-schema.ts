@@ -54,8 +54,10 @@
  * video and of an audio clip: keyframes of factors from 0 to 1, linear in
  * decibels or held, multiplied with the volume and the fades (D85); 0.27 is
  * 0.26 plus the flip of every transformable node, a mirror of what it draws in
- * its own box about the box's centre (D89.3). The schemas of 0.1 to 0.26 are
- * kept as data in `v0-1` to `v0-26` (D35.4).
+ * its own box about the box's centre (D89.3); 0.28 is 0.27 plus the clear of
+ * the composition, white or transparent: what a pixel that no node covers is
+ * (D89.2). The schemas of 0.1 to 0.27 are kept as data in `v0-1` to `v0-27`
+ * (D35.4).
  */
 import {
   closedObject,
@@ -68,7 +70,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.27';
+export const SCHEMA_VERSION = '0.28';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -3108,7 +3110,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.27',
+  title: 'Kadrion composition 0.28',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,
@@ -3122,6 +3124,12 @@ export const compositionSchema = deepFreeze({
         fromLeft: safeInset,
       },
     ),
+    clear: {
+      type: 'string',
+      description:
+        "What a pixel that no node covers is (D89.2): 'white', opaque white, or 'transparent', which a PNG or WebP still and the frames of a render keep as alpha; a JPEG still and a video are drawn over white. A definition has none (D89.2).",
+      enum: ['white', 'transparent'],
+    },
     fps: {
       type: 'integer',
       description: 'Integer frame rate; the frame grid follows D13.',

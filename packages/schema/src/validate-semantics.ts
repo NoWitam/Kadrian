@@ -85,6 +85,7 @@ import type { CompositionV023 } from './v0-23/composition-schema.js';
 import type { CompositionV024 } from './v0-24/composition-schema.js';
 import type { CompositionV025 } from './v0-25/composition-schema.js';
 import type { CompositionV026 } from './v0-26/composition-schema.js';
+import type { CompositionV027 } from './v0-27/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -112,6 +113,7 @@ type SceneNodeV023 = CompositionV023['scenes'][number]['nodes'][number];
 type SceneNodeV024 = CompositionV024['scenes'][number]['nodes'][number];
 type SceneNodeV025 = CompositionV025['scenes'][number]['nodes'][number];
 type SceneNodeV026 = CompositionV026['scenes'][number]['nodes'][number];
+type SceneNodeV027 = CompositionV027['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -538,7 +540,8 @@ export function validateSemantics(
     | CompositionV023
     | CompositionV024
     | CompositionV025
-    | CompositionV026,
+    | CompositionV026
+    | CompositionV027,
   options: SemanticOptions = CHECK_EVERYTHING,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -596,6 +599,7 @@ export function validateSemantics(
       | SceneNodeV024
       | SceneNodeV025
       | SceneNodeV026
+      | SceneNodeV027
     )[];
     readonly transitions?: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
     readonly effects?: Composition['scenes'][number]['effects'];
@@ -805,6 +809,7 @@ export function validateSemantics(
   // The elements of 0.22 (D77): the templates of definitions and the values of instances.
   if (
     composition.schemaVersion === SCHEMA_VERSION ||
+    composition.schemaVersion === '0.27' ||
     composition.schemaVersion === '0.26' ||
     composition.schemaVersion === '0.25' ||
     composition.schemaVersion === '0.24' ||
@@ -847,7 +852,8 @@ function checkDefinitions(
     | CompositionV023
     | CompositionV024
     | CompositionV025
-    | CompositionV026,
+    | CompositionV026
+    | CompositionV027,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -1075,6 +1081,7 @@ function definitionHolder(
     width: definition.width,
     height: definition.height,
     safeArea: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
+    clear: 'white',
     fps: composition.fps,
     durationUs: definition.durationUs,
     assets: composition.assets,
@@ -1159,7 +1166,8 @@ function checkElements(
     | CompositionV023
     | CompositionV024
     | CompositionV025
-    | CompositionV026,
+    | CompositionV026
+    | CompositionV027,
   options: SemanticOptions,
 ): ValidationError[] {
   // The definitions of 0.22 to 0.26 are those of 0.27 without the time maps of their
@@ -1167,7 +1175,8 @@ function checkElements(
   // breaks and highlight outlines of their captions (before 0.25), the volume
   // curves of their clips (before 0.26), and the flips of their nodes, which
   // `withSpeedOne`, `withFrames`, `withCurves`, and `withFlips` add where a
-  // definition is validated as one (D82.8, D83.9, D85.7, D89.3).
+  // definition is validated as one (D82.8, D83.9, D85.7, D89.3); those of 0.27 are
+  // those of 0.28, since a definition has no clear (D89.2).
   const composition = document as Composition;
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -1530,6 +1539,7 @@ function checkTemplate(
     | CompositionV024
     | CompositionV025
     | CompositionV026
+    | CompositionV027
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -2051,6 +2061,7 @@ function subtreeOf(
     | CompositionV024
     | CompositionV025
     | CompositionV026
+    | CompositionV027
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -2135,7 +2146,9 @@ interface Located {
     | SceneNodeV025
     | Extract<SceneNodeV025, { type: 'group' }>['children'][number]
     | SceneNodeV026
-    | Extract<SceneNodeV026, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV026, { type: 'group' }>['children'][number]
+    | SceneNodeV027
+    | Extract<SceneNodeV027, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -2170,7 +2183,8 @@ function checkTransitions(
     | CompositionV023
     | CompositionV024
     | CompositionV025
-    | CompositionV026,
+    | CompositionV026
+    | CompositionV027,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

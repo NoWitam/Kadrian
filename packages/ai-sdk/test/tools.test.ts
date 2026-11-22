@@ -570,6 +570,7 @@ const SETUP: { readonly [T in Command['type']]: readonly Command[] } = {
   SetCaptionHighlight: CAPTIONS_SETUP,
   SetCaptionPageAnimation: CAPTIONS_SETUP,
   SetSafeArea: [],
+  SetCompositionClear: [],
   AddTemplateInput: [],
   RemoveTemplateInput: INPUT_SETUP,
   SetTemplateInput: BINDING_SETUP,

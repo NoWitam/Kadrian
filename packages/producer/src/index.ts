@@ -117,6 +117,7 @@ export type {
   ManifestAudio,
   ManifestAudioPass,
   ManifestCapture,
+  ManifestClear,
   ManifestFfmpeg,
   ManifestFfmpegBuild,
   ManifestFrame,

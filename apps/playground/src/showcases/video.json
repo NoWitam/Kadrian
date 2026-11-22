@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.27",
+  "schemaVersion": "0.28",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -8,6 +8,7 @@
     "fromBottom": 0,
     "fromLeft": 0
   },
+  "clear": "white",
   "fps": 30,
   "durationUs": 2500000,
   "assets": [

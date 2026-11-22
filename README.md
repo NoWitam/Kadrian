@@ -26,7 +26,8 @@ step PR-84 plays a video at the film's frame rate, decoded forward and
 converted in workers (D87), for the release `v0.10.0`, and whose last step,
 PR-87, makes an export faster with the same pixels and the same MP4 (D88),
 for the release `v0.11.0`; its next steps make stills for a graphics editor
-(D89), of which PR-89 adds the mirror flip of a node in schema `0.27`. Schema `0.27` with its forward migrations from `0.1` to `0.26`, the evaluation core, the DOM
+(D89), of which PR-89 adds the mirror flip of a node in schema `0.27` and PR-90
+the transparent clear of a still in schema `0.28`. Schema `0.28` with its forward migrations from `0.1` to `0.27`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -203,16 +204,17 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.27`
+A composition is a JSON document of schema `0.28`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.27",
+  "schemaVersion": "0.28",
   "width": 1080,
   "height": 1920,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
+  "clear": "white",
   "fps": 30,
   "durationUs": 3000000,
   "assets": [
@@ -489,8 +491,8 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.27` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.27` document, and none of them
+`validateComposition` accepts schema `0.28` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.28` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
@@ -502,8 +504,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.27 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.26', '0.27'], or ['0.27'] for a document that was current
+  migrated.composition; // a new, validated 0.28 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.27', '0.28'], or ['0.28'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -573,6 +575,8 @@ if (migrated.ok) {
 - The step from `0.26` gives every node but a background
   `flip: { "x": false, "y": false }` after its `origin`, in scenes, groups,
   and definitions: no mirror, the picture it had (D89).
+- The step from `0.27` gives the composition `clear: "white"` after its
+  `safeArea`, never a definition: the white it was drawn over (D89).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -597,8 +601,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.27 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.26', '0.27'] from 0.1, ['0.27'] when it was current
+  loaded.composition; // a new, validated 0.28 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.27', '0.28'] from 0.1, ['0.28'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -613,7 +617,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23', '0.24', '0.25', '0.26', '0.27']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23', '0.24', '0.25', '0.26', '0.27', '0.28']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -626,7 +630,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.27"`, speaks of that.
+  supports `"0.28"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -1290,7 +1294,10 @@ A host's queue can render the same MP4 in jobs (D47): `renderSegments` renders
 a range of whole segments, `renderAudio` the audio of a range, and
 `joinSegments` checks their manifests and joins them into the MP4 that one
 `exportMp4` would write, byte for byte. `renderStill` renders one frame as PNG,
-JPEG, or WebP.
+JPEG, or WebP. A document with `"clear": "transparent"` keeps what no node
+covers as alpha in a PNG or a WebP still and in `renderFrames`; a JPEG still
+and every video are drawn over white, and their manifests say so in `clear`
+(D89).
 
 ### 9. The command line
 
@@ -1403,7 +1410,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23","0.24","0.25","0.26","0.27"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23","0.24","0.25","0.26","0.27","0.28"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

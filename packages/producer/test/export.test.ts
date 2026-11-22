@@ -867,7 +867,7 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
     dependencies: undefined as unknown as ExportDependencies,
   };
   const sequence: FrameSequence = async (prepared, frames, deliver) => {
-    run.log.push(`load ${prepared.composition.schemaVersion}`);
+    run.log.push(`load ${prepared.composition.schemaVersion} ${prepared.composition.clear}`);
     for (const { index, timeUs } of frames) {
       if (options.failAt?.index === index) {
         throw Object.assign(new Error('failed'), { code: options.failAt.code });
@@ -1098,7 +1098,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
       'tools',
       `probe sound-0 ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.27',
+      'load 0.28 white',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,
@@ -1141,9 +1141,11 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
     expect(manifest.range).toEqual({ fromUs: 0, toUs: 10_000_000, firstFrame: 0, frameCount: 300 });
     expect(manifest.segmentFrames).toBe(60);
     expect(manifest.kind).toBe('export');
-    expect(manifest.manifestVersion).toBe(6);
+    expect(manifest.manifestVersion).toBe(7);
     // The frames were captured for speed, and the manifest says so (D88.1, D88.2).
     expect(manifest.capture).toBe('fast');
+    // A video is drawn over white, and the manifest says so (D89.2).
+    expect(manifest.clear).toBe('white');
     // A node's first decoder may start by a seek in an export (D88.3).
     expect(run.loops).toEqual([{ capture: 'fast', firstSeek: true }]);
     expect(manifest.preset).toEqual({
@@ -1464,7 +1466,12 @@ describe('jobs of one render on a fake frame loop and FFmpeg (D47.3–D47.6)', (
       'fast',
       'fast',
     ]);
-    expect(early.manifest.manifestVersion).toBe(6);
+    expect(early.manifest.manifestVersion).toBe(7);
+    expect([late, early, middle].map(({ manifest }) => manifest.clear)).toEqual([
+      'white',
+      'white',
+      'white',
+    ]);
     expect(early.manifest.range).toEqual({
       fromUs: 0,
       toUs: 2_000_000,
@@ -1632,6 +1639,15 @@ describe('the checks of a join (D47.5)', () => {
       /differ in capture/,
     ],
     [
+      // A part whose page cleared to another colour never joins this one (D89.2).
+      'another clear',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [a, edited(b, (m) => Object.assign(m, { clear: 'transparent' }))],
+        audio,
+      }),
+      /differ in clear/,
+    ],
+    [
       // A part written before D88 is rendered again, not joined (D88.2).
       'a part of version 5',
       ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
@@ -1641,11 +1657,28 @@ describe('the checks of a join (D47.5)', () => {
             const old = m as unknown as Record<string, unknown>;
             old.manifestVersion = 5;
             delete old.capture;
+            delete old.clear;
           }),
         ],
         audio,
       }),
-      /segments manifest of version 6 was expected, got "segments" of version 5/,
+      /segments manifest of version 7 was expected, got "segments" of version 5/,
+    ],
+    [
+      // A part written before D89 is rendered again, not joined (D89.2).
+      'a part of version 6',
+      ({ a, b, audio }: Awaited<ReturnType<typeof parts>>) => ({
+        segments: [
+          a,
+          edited(b, (m) => {
+            const old = m as unknown as Record<string, unknown>;
+            old.manifestVersion = 6;
+            delete old.clear;
+          }),
+        ],
+        audio,
+      }),
+      /segments manifest of version 7 was expected, got "segments" of version 6/,
     ],
     [
       'another preset',
@@ -1749,7 +1782,7 @@ describe('the checks of a join (D47.5)', () => {
         segments: [a, b],
         audio: edited(audio, (m) => Object.assign(m, { kind: 'segments' })),
       }),
-      /audio manifest of version 6/,
+      /audio manifest of version 7/,
     ],
     [
       'no segments',
@@ -1899,8 +1932,9 @@ describe('a still frame on a fake render and FFmpeg (D47.7)', () => {
     expect(result.bytes).toBe(png);
     expect(result.mediaType).toBe('image/png');
     expect(result.manifest).toMatchObject({
-      manifestVersion: 6,
+      manifestVersion: 7,
       kind: 'still',
+      clear: 'white',
       preset: { name: 'still-png' },
       output: { mediaType: 'image/png', sha256: sha256(png) },
       ffmpeg: null,
@@ -1933,6 +1967,110 @@ describe('a still frame on a fake render and FFmpeg (D47.7)', () => {
     const { deps, log } = stillRun();
     await expect(renderStillWith(still(change), deps)).rejects.toMatchObject({ code });
     expect(log).toEqual([]);
+  });
+});
+
+describe('a transparent document in a still and a video job (D89.2)', () => {
+  const transparent = variant((draft) => {
+    draft['clear'] = 'transparent';
+  });
+  const transparentHash = sha256(canonicalJson(validated(transparent)));
+
+  it('premise: the transparent document differs from the reference in its clear alone', () => {
+    expect((referenceComposition as { clear: string }).clear).toBe('white');
+    expect(transparentHash).not.toBe(sha256(canonicalJson(reference)));
+  });
+
+  /** A still on a fake render that records the document it was given. */
+  function stillOf(format: string) {
+    const documents: unknown[] = [];
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+    const deps: StillDependencies = {
+      render(given) {
+        documents.push(given.document);
+        const composition = validated(given.document);
+        return Promise.resolve({
+          frames: [{ index: 75, timeUs: 2_500_000, png }],
+          manifest: {
+            manifestVersion: 3,
+            compositionHash: sha256(canonicalJson(composition)),
+            preset: {
+              name: 'frames-png',
+              width: 1080,
+              height: 1920,
+              fps: 30,
+              deviceScaleFactor: 1,
+            },
+            frames: [{ index: 75, timeUs: 2_500_000, sha256: sha256(png) }],
+            ffmpeg: null,
+          } as unknown as RenderManifest,
+        });
+      },
+      tools: () =>
+        Promise.resolve({
+          identity: {
+            ffmpegSha256: FFMPEG_SHA256,
+            ffprobeSha256: FFPROBE_SHA256,
+            version: 'n8.1.3-20260921',
+            configuration: FFMPEG_CONFIGURATION,
+            encoders: [...REQUIRED_ENCODERS],
+          },
+          run: () => Promise.resolve({ code: 0, stdout: new Uint8Array([1, 2, 3]), stderr: '' }),
+        } as unknown as FfmpegTools),
+    };
+    const request: StillRequest = {
+      document: transparent,
+      resolveAsset: ({ id }) => ASSETS[id] ?? null,
+      timeUs: 2_500_000,
+      format,
+      ffmpeg: PATHS,
+    };
+    return { documents, run: () => renderStillWith(request, deps) };
+  }
+
+  it.each(['png', 'webp'])(
+    'keeps the clear of a %s still: the page loads the document as given',
+    async (format) => {
+      const { documents, run } = stillOf(format);
+      const { manifest } = await run();
+      expect(documents).toEqual([transparent]);
+      expect(documents[0]).toBe(transparent);
+      expect(manifest.clear).toBe('transparent');
+      expect(manifest.compositionHash).toBe(transparentHash);
+    },
+  );
+
+  it('renders a JPEG still from a copy with a white clear, and keeps the hash of the document as given', async () => {
+    const { documents, run } = stillOf('jpeg');
+    const { manifest } = await run();
+    expect(documents).toHaveLength(1);
+    expect(documents[0]).not.toBe(transparent);
+    expect(JSON.stringify(documents[0])).toBe(
+      JSON.stringify({ ...(transparent as object), clear: 'white' }),
+    );
+    expect(manifest.clear).toBe('white');
+    expect(manifest.compositionHash).toBe(transparentHash);
+  });
+
+  it('renders every frame of an export from a copy with a white clear, and keeps the hash of the document as given', async () => {
+    const run = fakeRun();
+    const { manifest } = await exportWith(request({ document: transparent }), run.dependencies);
+    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.28 white']);
+    expect(manifest.clear).toBe('white');
+    expect(manifest.compositionHash).toBe(transparentHash);
+  });
+
+  it('renders every frame of a range job from a copy with a white clear', async () => {
+    const run = fakeRun();
+    const { manifest } = await segmentsJob(
+      run,
+      { fromUs: 0, toUs: 2_000_000 },
+      '/jobs/transparent',
+      { document: transparent },
+    );
+    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.28 white']);
+    expect(manifest.clear).toBe('white');
+    expect(manifest.compositionHash).toBe(transparentHash);
   });
 });
 
@@ -2897,7 +3035,7 @@ describe('a volume curve in the audio pass (D85.5)', () => {
     });
     expect(manifest.ffmpeg.audioArgs).toContain('<envelope-0>');
     expect(manifest.ffmpeg.audioArgs).not.toContain('pipe:3');
-    expect(manifest.manifestVersion).toBe(6);
+    expect(manifest.manifestVersion).toBe(7);
   });
 
   it('keeps every byte of a render without a curve: no pipe, no field', async () => {

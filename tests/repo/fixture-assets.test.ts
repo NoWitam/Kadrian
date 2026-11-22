@@ -34,6 +34,7 @@ const GOLDEN_MANIFESTS = [
   'custom-html',
   'speed',
   'framed-text',
+  'clear',
 ].map((name) => `${GOLDEN_DIRECTORY}${name}.golden-frames.json`);
 
 interface ReferenceComposition {

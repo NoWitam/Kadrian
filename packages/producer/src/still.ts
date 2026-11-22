@@ -3,7 +3,10 @@
  * rendered by the frame loop of `renderFrames` (D28). A PNG is the captured
  * bytes, unchanged; a JPEG or a WebP is those bytes encoded by the pinned
  * FFmpeg with fixed quality settings, on pipes, so the Producer still writes
- * no file. The manifest names the frame, the output, and the encoder.
+ * no file. A PNG or a WebP of a transparent document keeps what no node covers
+ * as alpha; a JPEG renders a copy of the document with a white clear (D89.2).
+ * The manifest names the frame, what the page cleared to, the output, and the
+ * encoder.
  */
 
 import { asProducerError, ProducerError } from './errors.js';
@@ -18,11 +21,12 @@ import {
   type FfmpegTools,
 } from './ffmpeg.js';
 import { checkDocumentLimits, failure, throwIfCancelled, type JobOptions } from './job.js';
-import { EXPORT_MANIFEST_VERSION, sha256, type StillManifest } from './manifest.js';
+import { canonicalJson, EXPORT_MANIFEST_VERSION, sha256, type StillManifest } from './manifest.js';
 import {
   frameIndexOf,
   renderFrames,
   validated,
+  withWhiteClear,
   type RenderResult,
   type RenderTimeouts,
 } from './render.js';
@@ -95,8 +99,11 @@ async function stillOf(
     }
     tools = await dependencies.tools(request.ffmpeg);
   }
+  // A JPEG has no alpha: its page draws a copy of the document over white, and
+  // its bytes are those of the white document (D89.2). PNG and WebP keep the clear.
+  const page = format === 'jpeg' ? withWhiteClear(composition) : composition;
   const rendered = await dependencies.render({
-    document: request.document,
+    document: page === composition ? request.document : page,
     resolveAsset: request.resolveAsset,
     timesUs: [request.timeUs],
     ...(request.chromium === undefined ? {} : { chromium: request.chromium }),
@@ -137,8 +144,11 @@ async function stillOf(
   const identity = tools?.identity;
   const manifest: StillManifest = {
     ...base,
+    // The hash of the document as given, whichever document the page drew (D89.2).
+    compositionHash: sha256(canonicalJson(composition)),
     manifestVersion: EXPORT_MANIFEST_VERSION,
     kind: 'still',
+    clear: page.clear,
     preset: { ...preset, name: `still-${format}` },
     output: { mediaType, sha256: sha256(bytes) },
     ffmpeg:

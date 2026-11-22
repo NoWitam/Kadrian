@@ -109,6 +109,8 @@ export interface DocumentDescription {
     readonly fromBottom: number;
     readonly fromLeft: number;
   };
+  /** What a pixel that no node covers is, white or transparent, as the document stores it (D89.2). */
+  readonly clear: 'white' | 'transparent';
   readonly fps: number;
   /** The length of the composition, in integer microseconds. */
   readonly durationUs: number;
@@ -225,6 +227,7 @@ export function describeDocument(
     width: copy.width,
     height: copy.height,
     safeArea: copy.safeArea,
+    clear: copy.clear,
     fps: copy.fps,
     durationUs: copy.durationUs,
     scenes: copy.scenes.map((scene, index) => ({

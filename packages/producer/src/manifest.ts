@@ -5,6 +5,8 @@
  */
 import { createHash } from 'node:crypto';
 
+import type { Clear } from '@kadrion/schema';
+
 import type { EnvironmentManifest } from './environment.js';
 
 /**
@@ -17,9 +19,10 @@ export const MANIFEST_VERSION = 3;
  * The version of the manifests of a segmented render (D47.8): segments, audio,
  * export, and still. 3 since PR-25a, 4 since PR-28a (`video`, D50.5), 5 since
  * PR-29 (the sounds of the mix, D52.5), 6 since PR-86 (`capture` of an export and a
- * range job, D88.2); a render of frames keeps `MANIFEST_VERSION`.
+ * range job, D88.2), 7 since PR-90 (`clear` of a still, a range job, and an export,
+ * D89.2); a render of frames keeps `MANIFEST_VERSION`.
  */
-export const EXPORT_MANIFEST_VERSION = 6;
+export const EXPORT_MANIFEST_VERSION = 7;
 
 /**
  * The capture of the frames of an export and of a range job (D88.1, D88.2):
@@ -27,6 +30,14 @@ export const EXPORT_MANIFEST_VERSION = 6;
  * refuses parts that name another.
  */
 export type ManifestCapture = 'fast';
+
+/**
+ * What the page of a still, a range job, or an export cleared to (D89.2): the
+ * document's clear for a PNG or a WebP still, and `white` for a JPEG still and
+ * every video job, which render a copy of the document with a white clear. A
+ * join refuses parts that name another.
+ */
+export type ManifestClear = Clear;
 
 /** `sha256:` and 64 lowercase hex digits of the bytes, the format of D14. */
 export function sha256(bytes: Uint8Array | string): string {
@@ -308,6 +319,8 @@ export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpe
   readonly kind: 'segments';
   /** How the frames were captured (D88.2); their hashes are those of that capture. */
   readonly capture: ManifestCapture;
+  /** What the page cleared to (D89.2): `white`, since a video has no alpha. */
+  readonly clear: ManifestClear;
   readonly preset: ManifestMp4Preset;
   readonly segmentFrames: number;
   /** Only for a grid other than D47.1's (D80.2). */
@@ -357,6 +370,8 @@ export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'
   readonly kind: 'export';
   /** How the frames were captured (D88.2); their hashes are those of that capture. */
   readonly capture: ManifestCapture;
+  /** What the page cleared to (D89.2): `white`, since a video has no alpha. */
+  readonly clear: ManifestClear;
   readonly preset: ManifestMp4Preset;
   readonly segmentFrames: number;
   /** Only for a grid other than D47.1's (D80.2). */
@@ -371,6 +386,12 @@ export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'
 /** The manifest of a still frame (D47.7): the render manifest of its one frame, and the output. */
 export interface StillManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
   readonly kind: 'still';
+  /**
+   * What the page cleared to (D89.2): the document's clear for PNG and WebP,
+   * which keep a transparent clear as alpha, and `white` for JPEG. The
+   * `compositionHash` is the document's as given, whatever the page cleared to.
+   */
+  readonly clear: ManifestClear;
   readonly preset: {
     readonly name: 'still-png' | 'still-jpeg' | 'still-webp';
     readonly width: number;

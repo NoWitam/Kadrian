@@ -108,6 +108,8 @@ export type CaptionHighlight = CaptionStyle['highlight'];
 export type CaptionPageAnimation = CaptionStyle['pageIn'];
 /** The safe area of a composition, from each edge of the canvas (D70). */
 export type SafeArea = Composition['safeArea'];
+/** What a pixel that no node covers is, white or transparent (D89.2). */
+export type Clear = Composition['clear'];
 export type NodeAnimation = Infer<typeof animationSchema>;
 /** One keyframe of an animation: its time, its value, and the easing of the segment it starts (D67). */
 export type AnimationKeyframe = NodeAnimation['keyframes'][number];

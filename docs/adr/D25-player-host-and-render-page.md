@@ -24,6 +24,7 @@
 - Amended by: PR-38 (D61) on 2026-11-03: 25.6 (the play range and its loop, `setPlayRange`; the frames of the clock leave the status as it is) and 25.7 (the statuses `waiting` and `ended`, `playRange` in the state, `asset` of a `PlayerError`, the code `invalid-play-range`)
 - Amended by: PR-56 (D78) on 2026-11-10: 25.2: the policy of the render page admits `font-src data:` (D78.2)
 - Amended by: PR-80 (D87) on 2026-11-21, in force from PR-83: the protocol version becomes 3, whose `videoFrames` entry may be a bitmap (D87.3)
+- Amended by: PR-90 (D89) on 2026-11-22: 25.2: the page's style states `color-scheme: normal` on `html` besides its white, and the frame of the render page states `color-scheme: normal` (`RENDER_PAGE_FRAME_STYLE`); `frame` writes the clear of a transparent document on `html` (D89.2)
 - Related: D12, D13, D14, D19, D20, D21, D22, D23, D24,
   [specification](../spike/vertical-spike.md) §5 P1, §6.1, §6.2, §7, and open
   questions Q3, Q5, Q9, and Q14

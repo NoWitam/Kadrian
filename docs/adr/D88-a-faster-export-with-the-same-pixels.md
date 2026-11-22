@@ -13,6 +13,7 @@
   a decoder in an export may seek, D88.3), and the rule "speed 1 forwards
   stays byte for byte" of the [roadmap of phase six](../roadmap/phase-6.md)
   (D88.5)
+- Amended by: PR-90 (D89) on 2026-11-22: 88.2: `EXPORT_MANIFEST_VERSION` 7, with `clear` beside `capture` in the manifests of segments and of an export, compared by the join (D89.2)
 - Depends on: D86 (a frame is captured only after it was presented). The fast
   capture is not built before D86 is in force.
 - Related: D26, D34, D48, D50, D79, D80, D81. D79 to D81 are `Proposed` in the

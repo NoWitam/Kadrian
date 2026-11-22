@@ -19,7 +19,7 @@ describe('describeDocument (D46.3)', () => {
   it('lists the scene, its nodes bottom to top with parent and layer, and the group children', () => {
     const description = describeDocument(reference());
     expect(description).toMatchObject({
-      schemaVersion: '0.27',
+      schemaVersion: '0.28',
       width: 1080,
       height: 1920,
       fps: 30,

@@ -43,6 +43,7 @@ import {
   setCaptionHighlightArgumentsSchema,
   setCaptionPageAnimationArgumentsSchema,
   setSafeAreaArgumentsSchema,
+  setCompositionClearArgumentsSchema,
   addEffectArgumentsSchema,
   removeEffectArgumentsSchema,
   reorderEffectArgumentsSchema,
@@ -145,6 +146,7 @@ import {
   type SetCaptionHighlightArgumentsSchema,
   type SetCaptionPageAnimationArgumentsSchema,
   type SetSafeAreaArgumentsSchema,
+  type SetCompositionClearArgumentsSchema,
   type AddEffectArgumentsSchema,
   type SetEffectArgumentsSchema,
   type SetCaptionWordArgumentsSchema,
@@ -203,6 +205,7 @@ export type CommandArgumentsSchema =
   | SetCaptionHighlightArgumentsSchema
   | SetCaptionPageAnimationArgumentsSchema
   | SetSafeAreaArgumentsSchema
+  | SetCompositionClearArgumentsSchema
   | AddEffectArgumentsSchema
   | SetEffectArgumentsSchema
   | AddTemplateInputArgumentsSchema
@@ -999,6 +1002,12 @@ const METADATA = deepFreeze<MetadataTable>({
     description: `Replaces the safe area of the composition, {fromTop, fromRight, fromBottom, fromLeft}: integer composition pixels from each edge of the canvas to the part of the frame where captions and other text that must be read belong, clear of what a platform draws over the video; two opposite insets leave at least 1 pixel, and all zero is the whole canvas. It is a frame of reference, not a clip: it cuts and moves nothing, and nothing outside it is hidden. Keep captions inside it by placing their box with set_node_position and set_node_size. describe_document shows it. Refused with invalid-argument and invalid-result.`,
     example: { safeArea: { fromTop: 160, fromRight: 64, fromBottom: 320, fromLeft: 64 } },
     argumentsSchema: setSafeAreaArgumentsSchema,
+  },
+  SetCompositionClear: {
+    description:
+      'Sets what a pixel that no node covers is, for the whole composition: "white" is opaque white; "transparent" leaves it transparent, so that a PNG or WebP still and the frames of a render keep it as alpha, and the preview shows the host\'s page through it. A JPEG still and a video have no alpha and are drawn over white, so a node that blends with what lies below it (set_blend_mode) can look different there than in a PNG. A background node covers the canvas whatever the clear. describe_document shows it. Refused with invalid-argument.',
+    example: { clear: 'transparent' },
+    argumentsSchema: setCompositionClearArgumentsSchema,
   },
   AddEffect: {
     description: `Adds an effect to an image, video, text, captions node, group, or instance, or to a whole scene, at an index of its effects: effects apply in their order, the first to the content itself, after the corner radius and before the opacity and the transform, so a blur or a shadow turns and scales with the node; a group's or a scene's effects apply to everything in it composited together, and a scene transition then acts on the result. The effect is {id, kind, ...parameters, animations}: "blur" {radius} blurs by a Gaussian of that standard deviation in composition pixels (0 to 1000) and spills beyond the box; "brightness", "contrast", and "saturate" {amount} scale by a factor from 0 to 10 (1 changes nothing; brightness 0 is black, contrast and saturate 0 grey); "grayscale", "invert", and "sepia" {amount} apply from 0 (nothing) to 1 (all grey, the negative, all sepia); "hue-rotate" {angle} turns every hue by degrees; "drop-shadow" {color, opacity, offset {x, y}, blur} casts the shape's shadow (lowercase #rrggbb, 0 to 1, pixels -1000 to 1000, a blur radius 0 to 1000). Drawn by SVG filters in sRGB: "curves" {red, green, blue, amount} maps each channel through a table of 2 to 32 output levels from 0 to 1 at evenly spaced inputs ([0, 1] changes nothing, [1, 0] inverts) and mixes the result in by amount 0 to 1 (only amount animates); "color-grade" {lift, gamma, gain, temperature, tint} is a primary grade: white balance first (temperature -1 to 1 warms above 0, tint -1 to 1 goes magenta above 0), then black to lift (-1 to 1) and white to gain (0 to 10), then gamma 0.1 to 10 brightens the mid-tones above 1 (0, 1, 1, 0, 0 change nothing); "glow" {color, opacity, radius} draws the shape blurred by radius (0 to 1000, it spills beyond the box) and filled with the colour under it; "vignette" {amount, size} darkens the box towards its edges, amount 0 to 1, size 0.05 to 10 (small is tight, 0.5 typical); "chroma-key" {key, tolerance, softness, spill} makes a green or blue screen transparent by channel difference: a pixel goes transparent as its key channel exceeds the mean of the other two by tolerance (0 to 1, about 0.1) over softness (0.01 to 1, about 0.1), and spill 0 to 1 pulls the key colour out of what remains; it keys a channel, not any colour. animations animate parameters: at most one per parameter, {id, property, keyframes} with property the parameter's name (radius, amount, angle, color, opacity, offset, blur, lift, gamma, gain, temperature, tint, size, tolerance, softness, spill) and at least two keyframes {timeUs, value, easing} in ascending scene time, like a node's keyframes; a sampled value replaces the parameter, and before the first and after the last keyframe the nearest value holds; [] for none. ${EASINGS} An effect whose values change nothing still draws its holder in a pass of its own, a few levels from none; remove_effect for none. Refused with unknown-node when ownerId names no node or scene, unsupported-node for a background or Custom HTML, index-out-of-range, id-in-use, and invalid-result.`,

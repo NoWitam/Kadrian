@@ -8,6 +8,7 @@
   closes Q14 again ([the first CI run](../ci/first-run.md))
 - Amended by: PR-22 (D43) on 2026-10-04 at the owner's request, D42.9 (the explicit
   host APIs for saved text)
+- Amended by: PR-90 (D89) on 2026-11-22: 42.5: the page keeps its white, `html{background-color:#ffffff;color-scheme:normal}`; for a transparent document `frame` sets the background colour of `html` to `transparent`, and removes it otherwise (D89.2)
 - Date: 2026-10-03
 - Supersedes: —
 - Amends: D16 (16.2, 16.5), D18 (new 18.6), D19 (19.4), D22 (22.2, 22.4), D24

@@ -13,6 +13,7 @@ import {
   parseSpeed,
   type Asset,
   type BlendMode,
+  type Clear,
   type Crop,
   type Fit,
   type Flip,
@@ -1042,6 +1043,19 @@ export interface SetSafeAreaCommand extends SetSafeAreaArguments {
   readonly type: 'SetSafeArea';
 }
 
+/** What a caller states for `SetCompositionClear` (D89.2). */
+export interface SetCompositionClearArguments {
+  readonly clear: Clear;
+}
+
+/**
+ * Sets what a pixel that no node covers is: white, or transparent, which a PNG
+ * or WebP still keeps as alpha (D89.2).
+ */
+export interface SetCompositionClearCommand extends SetCompositionClearArguments {
+  readonly type: 'SetCompositionClear';
+}
+
 /** What a caller states for `AddEffect` (D71). */
 export interface AddEffectArguments {
   /** The node or the scene that takes the effect. */
@@ -1393,6 +1407,7 @@ export type Command =
   | SetCaptionHighlightCommand
   | SetCaptionPageAnimationCommand
   | SetSafeAreaCommand
+  | SetCompositionClearCommand
   | AddEffectCommand
   | RemoveEffectCommand
   | ReorderEffectCommand
@@ -1920,6 +1935,11 @@ export interface SetSafeAreaArgumentsSchema {
   readonly required: readonly (keyof SetSafeAreaArguments)[];
   readonly additionalProperties: false;
 }
+
+/** The argument schema of `SetCompositionClear`, typed by the fields of its arguments (D89.2). */
+export type SetCompositionClearArgumentsSchema = ClosedObjectSchema<
+  keyof SetCompositionClearArguments
+>;
 
 /** The argument schema of `AddEffect`: closed, with `effect` an open object (D71). */
 export interface AddEffectArgumentsSchema {
@@ -3692,6 +3712,25 @@ export const setSafeAreaArgumentsSchema: SetSafeAreaArgumentsSchema = deepFreeze
     },
   },
   required: ['safeArea'],
+  additionalProperties: false,
+});
+
+/** The clears of the schema (D89.2). */
+const CLEARS: readonly Clear[] = compositionSchema.properties.clear.enum;
+
+/** The JSON Schema of the arguments of `SetCompositionClear` (D89.2): one value of the schema's set. */
+export const setCompositionClearArgumentsSchema: SetCompositionClearArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Sets what a pixel that no node covers is: white or transparent.',
+  properties: {
+    clear: {
+      type: 'string',
+      description:
+        'white is opaque white; transparent keeps what no node covers as alpha in a PNG or WebP still and in the frames of a render, and a JPEG still and a video are drawn over white.',
+      enum: CLEARS,
+    },
+  },
+  required: ['clear'],
   additionalProperties: false,
 });
 
@@ -5846,6 +5885,17 @@ export function parseSetSafeArea(value: unknown): SetSafeAreaCommand {
     type: 'SetSafeArea',
     safeArea: dataOf(fields['safeArea'], 'safeArea'),
   });
+}
+
+/** The fields of a `SetCompositionClear` (D89.2): one value of the schema's set. */
+export function parseSetCompositionClear(value: unknown): SetCompositionClearCommand {
+  const fields = fieldsOf(value, ['type', 'clear'], 'The command `SetCompositionClear`');
+  const clear: unknown = fields['clear'];
+  const known = CLEARS.find((item) => item === clear);
+  if (known === undefined) {
+    throw new EditorError('invalid-argument', `\`clear\` must be one of ${CLEARS.join(', ')}.`);
+  }
+  return Object.freeze({ type: 'SetCompositionClear', clear: known });
 }
 
 /** The fields of an `AddEffect` (D71); the document's validation judges the effect. */
