@@ -3,6 +3,7 @@
 - Status: Accepted — by the project owner on 2026-09-21
 - Date: 2026-09-21
 - Amended by: PR-48 (D68) on 2026-11-07: a node scales and turns about its origin point, in per mille of its box; a rotation in degrees, positive clockwise; the crop and the corner radius of a picture (D68.1, D68.2, D68.5)
+- Amended by: PR-89 (D89) on 2026-11-22: every transformable node has a flip, `x` and `y` booleans, that mirrors what it draws in its own box about the box's centre, before scale and rotation; the box, the position, and the origin do not move, and a group's box is the canvas (D89.3)
 - Related: D03, D04, D07, D16, [specification](../spike/vertical-spike.md) open
   questions Q2 and Q10
 

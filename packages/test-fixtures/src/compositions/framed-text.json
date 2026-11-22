@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.26",
+  "schemaVersion": "0.27",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -47,6 +47,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -104,6 +108,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
@@ -159,6 +167,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -216,6 +228,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
@@ -271,6 +287,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -328,6 +348,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
@@ -383,6 +407,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -440,6 +468,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
@@ -495,6 +527,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -569,6 +605,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "mmmmmmmmmmmmmmmmmmmm draws",
@@ -625,6 +665,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws time and lines in the width",
@@ -676,6 +720,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -796,6 +844,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "Kadrion\ndraws\nmmm lines",
@@ -849,6 +901,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],

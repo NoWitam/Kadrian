@@ -57,6 +57,7 @@ describe('the source time of video nodes (D49.5)', () => {
       scale: { x: 1, y: 1 },
       rotation: 0,
       origin: { x: 0, y: 0 },
+      flip: { x: false, y: false },
       opacity: 1,
       size: { width: 160, height: 160 },
       crop: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },

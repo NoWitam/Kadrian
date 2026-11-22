@@ -294,6 +294,7 @@ describe('the arithmetic rule (D18)', () => {
       scale: { x: 3 * (0.25 + ((0.75 - 0.25) * 2) / 3), y: 3 * (0.75 + ((0.25 - 0.75) * 2) / 3) },
       rotation: 0,
       origin: { x: 0, y: 0 },
+      flip: { x: false, y: false },
       opacity: 0.3 * (0.2 + ((0.8 - 0.2) * 2) / 3),
       color: '#ffffff',
       fragments: null,
@@ -326,6 +327,7 @@ describe('sampling (D16.6, D18)', () => {
       scale: { x: 3 * 3, y: 0.5 * 4 },
       rotation: 0,
       origin: { x: 0, y: 0 },
+      flip: { x: false, y: false },
       opacity: 0.5 * 0.75,
       size: { width: 400, height: 400 },
       crop: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
@@ -351,6 +353,7 @@ describe('sampling (D16.6, D18)', () => {
       scale: { x: 2, y: 3 },
       rotation: 0,
       origin: { x: 0, y: 0 },
+      flip: { x: false, y: false },
       opacity: 0.75 * 0.5,
     };
     for (const timeUs of [0, 999_999, 1_000_000]) {
@@ -361,6 +364,7 @@ describe('sampling (D16.6, D18)', () => {
       scale: { x: 4, y: 5 },
       rotation: 0,
       origin: { x: 0, y: 0 },
+      flip: { x: false, y: false },
       opacity: 0.75 * 0.25,
     };
     for (const timeUs of [2_000_000, 2_000_001, durationUs - 1]) {
@@ -422,6 +426,7 @@ describe('sampling (D16.6, D18)', () => {
       scale: { x: 1 * 1.5, y: 1 * 1.5 },
       rotation: 0,
       origin: { x: 0, y: 0 },
+      flip: { x: false, y: false },
       opacity: 0.75 * 0.5,
       color: '#ffffff',
       fragments: null,

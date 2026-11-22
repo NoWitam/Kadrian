@@ -1,6 +1,7 @@
 # D89 — Stills: a canvas up to 8192 pixels, transparency, and a mirror flip of nodes
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-22 (13:30 Europe/Warsaw),
+  before any code, with the recommendations of all seventeen questions
 - Date: 2026-11-22
 - Supersedes: —
 - Extends, on acceptance, each with an `Amended by` line written then and in
@@ -291,3 +292,83 @@ question 5 only if the owner accepts it.
 |     3 | PR-90 | Schema `0.28`: the clear, transparent stills, manifest | `0.28` | yes           | yes         | yes | M    |
 |     4 | PR-91 | Schema `0.29`: a canvas up to 8192, video kept at 1920 | `0.29` | yes           | yes         | yes | M    |
 |     5 | PR-92 | The host guide and the release                         | —      | —             | —           | —   | S    |
+
+## Implementation notes (PR-89)
+
+PR-89 brings schema `0.27` and the flip of D89.3; the readings below are
+those of the code as built, before the pinned run.
+
+- **The step and the corpus.** `step026To027` writes
+  `flip: { x: false, y: false }` directly after the `origin` of every node
+  that has one, in scenes, in definitions, and in the children of groups at
+  any depth, and leaves backgrounds as they are. The frozen `0.26` is
+  `packages/schema/src/v0-26`; the pair `migration-0-26-to-0-27`, the corpus
+  `compatibility/v0-27` (every file of `v0-26` stepped, and `flip`, written
+  by hand: flips on an image, a text, and a shape of a definition, on an
+  instance and a group, a background beside them in a definition, and a group
+  in a definition with a flipped child), and six invalid cases (a missing
+  flip, on a node and on a child of a group, an axis that is no boolean or is
+  missing, an unknown field, and a flip on a background) hold it. Groups do
+  not nest in a valid document (D16), so a group in a group in a definition
+  is tested on the step alone, which recurses; a valid document with a group
+  in a definition goes through `migrateComposition`.
+- **The renderer.** `flipParts` (`css.ts`) is the one rule of the CSS
+  transform and of the matte's transform (`svgTransform`, `masks.ts`): the
+  flipped side as a length and `scale(-1)` along it, nothing without a flip.
+  A side that is not flipped is written `0px`, not `0` as D89.3 writes it:
+  the CSS Object Model serialises a unitless zero length as `0px` (read back
+  in Chrome), and every string the renderer writes is the one the CSSOM
+  gives back (D22). The matte's own element, which is hidden, carries the
+  flip in per cent as every node does. The flip is not animated: it is read
+  from the node as it is stored.
+- **The command and the tool.** `SetNodeFlip` follows `SetNodeOrigin` in the
+  registry, so `set_node_flip` follows `set_node_origin` in the catalogue
+  (104 tools). A node whose stored flip is missing is `unsupported-node`,
+  which is a background; the same value is no edit, and the inverse sets the
+  old flip. Its description carries the recipe of D89.3 for a rotated node;
+  the formula is the host guide's (PR-92). The catalogue grows by 1 738
+  characters over the snapshot of `0.26`; D89 sets no budget for it.
+- **The probes.** `tests/pinned/flip.pinned.test.ts`, on the composition of
+  compositing at 1 s: the flip on `x`, on `y`, and on both of an image, a
+  text, a shape, a group, and the matte `matte-gradient`; the same on `x`
+  with a rotation of 30° about `250, 750` of every flipped node but the
+  matte; and an image with a crop, a corner radius, and a drop shadow,
+  flipped on `x` and on both. Every probe is the same frame rendered alone
+  and after another frame, the Player shows the Producer's frame exactly, and
+  each host gives it twice. A second test renders the photo at its natural
+  size (128 by 128, `fill`): no pixel outside its box changes, and inside it
+  every pixel is the source's pixel mirrored, exactly. At the fixture's 150
+  pixels the picture is resampled, and the sampling positions, quantised to a
+  fraction of a pixel, are not symmetric about the box's centre: a mirrored
+  pixel differed by up to 10 levels at the sharp edges of the quadrants,
+  which compares the resampler, not the flip. No probe has golden frames.
+  Both tests passed twice in the pinned container.
+- **A defect of masks found by the probes, outside the flip.** Content turned
+  off the axes inside an SVG mask (D75) is painted differently by the first
+  frame of a page than by every frame after it, the same time included: the
+  unflipped composition of compositing at 1 s differs in 186 pixels, by 1
+  level, between a frame rendered alone and one rendered after another, in
+  the Producer as in the Player, from the turned star matte (109 pixels) and
+  the animated polygon of the text's mask; a mask held still, or turned by a
+  multiple of 90° or flipped, shows no difference. The first probes compared
+  a Producer frame rendered alone with a Player that had rendered before, so
+  they failed on it (163 pixels for `y`); they now hold the composition's
+  mask animations still and do not turn the matte, and assert that each
+  probe is free of it. The golden frames of compositing are rendered in one
+  sequence and keep their bytes. The defect is not fixed here: it needs its
+  own change, since every frame of a document with a turned mask is affected.
+- **The golden manifests** change in the three fields of D42 (the schema
+  version, the composition hash, and the runtime's content hash), as in
+  PR-76: the step changes every fixture, so its hash. No golden PNG file
+  changes.
+- **Builds.** The runtime build is
+  `sha256:b7f9b46fa735aff4b5eab5dc21cb178a629182ab86f49b839733e833b3acb97b`
+  (506 099 bytes), and the Player's dist tree
+  `sha256:93c12b4b7dc0178711970adcc1f4cd3b3a41585f4e014be900fbb7ae744fddbf`
+  (83 files).
+- **The pinned run** (four processors): `goldens:update` twice in fresh
+  containers gave the same bytes, and no golden PNG file changed; the whole
+  pinned suite passes (35 files, 352 tests); the parity records of
+  `docs/spike` are measured again with zero differing pixels, and the
+  hashes of `docs/spike/report.md` follow them. Q14 reopens with the runtime
+  build and the golden manifests.

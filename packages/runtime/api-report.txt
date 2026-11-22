@@ -536,6 +536,10 @@ export interface TransformState {
     readonly scale: Vec2;
     readonly rotation: number;
     readonly origin: Vec2;
+    readonly flip: {
+        readonly x: boolean;
+        readonly y: boolean;
+    };
     readonly opacity: number;
 }
 

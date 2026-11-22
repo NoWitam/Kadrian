@@ -130,8 +130,10 @@ function evaluateTransform(node: TransformedNode, timeUs: number): TransformStat
         unsupported(animation, 'property');
     }
   }
-  // `-0 + 0` is `0`: a rotation of -0 degrees is reported as 0.
-  return { position, scale, rotation: rotation + 0, origin, opacity };
+  // `-0 + 0` is `0`: a rotation of -0 degrees is reported as 0. The flip is not
+  // animated (D89.3).
+  const flip = { x: node.flip.x, y: node.flip.y };
+  return { position, scale, rotation: rotation + 0, origin, flip, opacity };
 }
 
 /** The animation of a row in `replace` mode, when the node has one (D65.1, D68). */

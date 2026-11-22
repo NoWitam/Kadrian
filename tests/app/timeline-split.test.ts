@@ -54,6 +54,7 @@ function document(): ValidatedComposition {
     scale: { x: 1, y: 1 },
     rotation: 0,
     origin: { x: 0, y: 0 },
+    flip: { x: false, y: false },
     opacity: 1,
     animations: [
       {

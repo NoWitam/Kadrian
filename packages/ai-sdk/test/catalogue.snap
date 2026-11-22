@@ -101,7 +101,7 @@
   },
   {
     "name": "add_node",
-    "description": "Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {\"kind\":\"none\"}, matte {\"kind\":\"none\"}, and blendMode \"normal\" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit \"fill\", \"contain\", or \"cover\" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {\"num\":1,\"den\":1} (describe_document shows a speed as a multiplier such as \"x0.5\"; stored, it is the fraction {\"num\":1,\"den\":2}, from 1/4 to 4, or {\"num\":0,\"den\":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"rotation\":0,\"origin\":{\"x\":0,\"y\":0},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"frame\":{\"kind\":\"none\"},\"color\":\"#ffffff\",\"style\":{\"stroke\":{\"kind\":\"none\"},\"shadow\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"},\"align\":\"left\",\"verticalAlign\":\"top\"},\"textAnimations\":[],\"effects\":[],\"mask\":{\"kind\":\"none\"},\"matte\":{\"kind\":\"none\"},\"blendMode\":\"normal\"}}",
+    "description": "Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, flip, opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {\"kind\":\"none\"}, matte {\"kind\":\"none\"}, and blendMode \"normal\" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit \"fill\", \"contain\", or \"cover\" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {\"num\":1,\"den\":1} (describe_document shows a speed as a multiplier such as \"x0.5\"; stored, it is the fraction {\"num\":1,\"den\":2}, from 1/4 to 4, or {\"num\":0,\"den\":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. Times are integer microseconds (1 second is 1000000), never rounded: a node's lifetime, a keyframe, and a scene's clip are in the time of its scene, from 0 at the scene's start; the composition's own clips are in composition time. A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"parentId\":\"scene-main\",\"index\":4,\"node\":{\"id\":\"node-subtitle\",\"type\":\"text\",\"startUs\":1000000,\"durationUs\":4000000,\"position\":{\"x\":90,\"y\":400},\"scale\":{\"x\":1,\"y\":1},\"rotation\":0,\"origin\":{\"x\":0,\"y\":0},\"flip\":{\"x\":false,\"y\":false},\"opacity\":1,\"animations\":[],\"text\":\"Made with Kadrion\",\"fontAssetId\":\"asset-font\",\"fontSize\":64,\"frame\":{\"kind\":\"none\"},\"color\":\"#ffffff\",\"style\":{\"stroke\":{\"kind\":\"none\"},\"shadow\":{\"kind\":\"none\"},\"box\":{\"kind\":\"none\"},\"align\":\"left\",\"verticalAlign\":\"top\"},\"textAnimations\":[],\"effects\":[],\"mask\":{\"kind\":\"none\"},\"matte\":{\"kind\":\"none\"},\"blendMode\":\"normal\"}}",
     "inputSchema": {
       "type": "object",
       "description": "Inserts a complete node, with its animations and children, into a list.",
@@ -987,6 +987,45 @@
       "required": [
         "nodeId",
         "origin"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "set_node_flip",
+    "description": "Mirrors what a node draws in its own box, about the box's centre, before its scale and rotation: x true flips it left to right, y true top to bottom, false on both is no flip. Its content, crop, corners, mask, and effects mirror with it (a drop shadow's offset too); the box, the position, the origin, and the area a host hits stay, and a group's box is the canvas. It is not animated. To mirror a rotated node across its parent's axis, set its rotation to the negative and its position in the same transaction. Refused with invalid-argument for a value that is not true or false, unknown-node, and unsupported-node for a background. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"nodeId\":\"node-image\",\"flip\":{\"x\":true,\"y\":false}}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Mirrors what a node draws in its own box, about the box's centre; the box, the position, and the origin stay.",
+      "properties": {
+        "nodeId": {
+          "type": "string",
+          "description": "The stable ID of the node. Every node but a background has a flip; a group's box is the canvas.",
+          "minLength": 1
+        },
+        "flip": {
+          "type": "object",
+          "description": "The flip on each axis; false on both is no flip.",
+          "properties": {
+            "x": {
+              "type": "boolean",
+              "description": "true mirrors the node left to right."
+            },
+            "y": {
+              "type": "boolean",
+              "description": "true mirrors the node top to bottom."
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "nodeId",
+        "flip"
       ],
       "additionalProperties": false
     }
@@ -2967,6 +3006,7 @@
                   "set_node_focus",
                   "set_node_rotation",
                   "set_node_origin",
+                  "set_node_flip",
                   "set_node_crop",
                   "set_node_corner_radius",
                   "set_video_asset",

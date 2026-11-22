@@ -53,6 +53,12 @@ export interface TransformState {
   /** The point of the node's box that scale and rotation are about, in per mille of its sides (D68). */
   readonly origin: Vec2;
   /**
+   * Whether what the node draws is mirrored in its own box about the box's
+   * centre, left to right (`x`) and top to bottom (`y`), before scale and
+   * rotation; never animated (D89.3).
+   */
+  readonly flip: { readonly x: boolean; readonly y: boolean };
+  /**
    * Not multiplied into children: a group is composited before its opacity
    * applies (D15). A clip transition's factor is part of it (D56).
    */

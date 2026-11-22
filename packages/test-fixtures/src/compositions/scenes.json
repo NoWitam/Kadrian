@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.26",
+  "schemaVersion": "0.27",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -57,6 +57,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [
@@ -146,6 +150,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [
             {
@@ -207,6 +215,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "width": 900,
@@ -265,6 +277,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],

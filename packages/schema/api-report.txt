@@ -151,6 +151,9 @@ export type EffectKind = Effect['kind'];
 ---- Fit (type only)
 export type Fit = ImageNode['fit'];
 
+---- Flip (type only)
+export type Flip = ImageNode['flip'];
+
 ---- Focus (type only)
 export type Focus = ImageNode['focus'];
 
@@ -208,7 +211,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.26";
+export declare const SCHEMA_VERSION = "0.27";
 
 ---- SVG_IDENTITY
 export declare const SVG_IDENTITY: SvgMatrix;
@@ -521,7 +524,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.26";
+            readonly const: "0.27";
         };
         readonly width: {
             readonly type: "integer";
@@ -916,6 +919,16 @@ export declare const compositionSchema: {
                                         readonly description: "Per mille of a side, from 0 at the left or top edge to 1000 at the right or bottom edge (D68).";
                                         readonly minimum: 0;
                                         readonly maximum: 1000;
+                                    };
+                                }>;
+                                readonly flip: import("./json-schema.js").ClosedObject<{
+                                    readonly x: {
+                                        readonly type: "boolean";
+                                        readonly description: `true mirrors what the node draws ${string} about the centre of its box (D89.3).`;
+                                    };
+                                    readonly y: {
+                                        readonly type: "boolean";
+                                        readonly description: `true mirrors what the node draws ${string} about the centre of its box (D89.3).`;
                                     };
                                 }>;
                                 readonly opacity: {
@@ -2690,6 +2703,16 @@ export declare const compositionSchema: {
                                         readonly description: "Per mille of a side, from 0 at the left or top edge to 1000 at the right or bottom edge (D68).";
                                         readonly minimum: 0;
                                         readonly maximum: 1000;
+                                    };
+                                }>;
+                                readonly flip: import("./json-schema.js").ClosedObject<{
+                                    readonly x: {
+                                        readonly type: "boolean";
+                                        readonly description: `true mirrors what the node draws ${string} about the centre of its box (D89.3).`;
+                                    };
+                                    readonly y: {
+                                        readonly type: "boolean";
+                                        readonly description: `true mirrors what the node draws ${string} about the centre of its box (D89.3).`;
                                     };
                                 }>;
                                 readonly opacity: {
@@ -6610,7 +6633,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.26";
+    readonly title: "Kadrion composition 0.27";
 };
 
 ---- definitionTimeUs
@@ -6737,7 +6760,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24' | '0.25' | '0.26';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24' | '0.25' | '0.26' | '0.27';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

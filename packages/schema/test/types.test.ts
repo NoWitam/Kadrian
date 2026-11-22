@@ -375,6 +375,7 @@ interface ExpectedTransform<A = ExpectedTransformAnimation> extends ExpectedLife
   readonly scale: Vec2;
   readonly rotation: number;
   readonly origin: Vec2;
+  readonly flip: { readonly x: boolean; readonly y: boolean };
   readonly opacity: number;
   readonly animations: readonly A[];
 }
@@ -891,7 +892,7 @@ interface ExpectedDefinition {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.26';
+  readonly schemaVersion: '0.27';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.26",
+  "schemaVersion": "0.27",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -58,6 +58,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -112,6 +116,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "slow",
@@ -161,6 +169,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -216,6 +228,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "slower",
@@ -265,6 +281,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -320,6 +340,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -374,6 +398,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "text": "x2 then still",
@@ -423,6 +451,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -477,6 +509,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],

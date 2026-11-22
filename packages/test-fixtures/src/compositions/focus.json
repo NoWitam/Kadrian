@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.26",
+  "schemaVersion": "0.27",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -53,6 +53,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-image",
@@ -93,6 +97,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-image",
@@ -132,6 +140,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],
@@ -179,6 +191,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],

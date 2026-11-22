@@ -2,7 +2,8 @@
  * The audio plan of schema 0.26 (D85.1, D85.3): a video's fades counted in its
  * node's lifetime, and the volume curve of every sound carried in composition
  * time. The expectations are derived by hand from D85 for the document
- * `volume-0-26` of the compatibility corpus, never from the code.
+ * `volume-0-26` of the compatibility corpus, never from the code; the tests
+ * read it as the corpus expects it in the current schema.
  */
 import { compatibilityCorpus } from '@kadrion/test-fixtures/compatibility';
 import { describe, expect, it } from 'vitest';
@@ -38,11 +39,11 @@ interface Draft {
   scenes: { nodes: Fields[]; clips: Fields[] }[];
 }
 
-/** A copy of the document `volume-0-26`, to change before it is validated. */
+/** A copy of the document `volume-0-26` in the current schema, to change before it is validated. */
 function draft(): Draft {
   const entry = compatibilityCorpus.find(({ id }) => id === 'volume-0-26');
   if (entry === undefined) throw new Error('No volume-0-26 in the corpus.');
-  return structuredClone(entry.input) as Draft;
+  return structuredClone(entry.expected) as Draft;
 }
 
 /** The item at `index` of a list of a draft, which the test knows is there. */

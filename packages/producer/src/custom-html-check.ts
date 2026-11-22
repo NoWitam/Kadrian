@@ -100,7 +100,7 @@ function nodeOf(composition: ValidatedComposition, nodeId: string): CustomHtmlNo
 /**
  * A document of the element alone: the canvas and the frame rate of its
  * document, one scene as long as the element, which starts at 0 at the
- * top-left corner, unscaled, unrotated, opaque, and unanimated, over a mid
+ * top-left corner, unscaled, unrotated, unflipped, opaque, and unanimated, over a mid
  * grey background, so that white and black content both show, and its fonts
  * as the only assets. The managed clock counts from the node's start (D78), so
  * the element sees the times it sees in its document.
@@ -138,6 +138,7 @@ export function customHtmlCheckDocument(
             scale: { x: 1, y: 1 },
             rotation: 0,
             origin: { x: 0, y: 0 },
+            flip: { x: false, y: false },
             opacity: 1,
             animations: [],
           },
