@@ -15,7 +15,7 @@
  */
 export { PRODUCER_AGENT_SCRIPT } from './agent.js';
 export { awaitPresented, captureFrame, presentationSessions } from './capture.js';
-export type { PresentationSessions } from './capture.js';
+export type { FrameCapture, PresentationSessions } from './capture.js';
 export {
   CHROMIUM_ARGS,
   CHROMIUM_CHANNEL,
@@ -116,6 +116,7 @@ export type {
   ManifestAsset,
   ManifestAudio,
   ManifestAudioPass,
+  ManifestCapture,
   ManifestFfmpeg,
   ManifestFfmpegBuild,
   ManifestFrame,

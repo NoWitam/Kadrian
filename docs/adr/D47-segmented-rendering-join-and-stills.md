@@ -9,6 +9,7 @@
 - Amended by: PR-28a (D50) on 2026-10-31: 47.8: `EXPORT_MANIFEST_VERSION` 4 with the field `video`, which every part of a join shares (D50.5)
 - Amended by: PR-29a (D52) on 2026-10-31: 47.4 and 47.8: the audio pass mixes every sound of the plan, `EXPORT_MANIFEST_VERSION` 5 (D52.5)
 - Amended by: K-range (D80) on 2026-11-10, proposed: 47.1, 47.2, 47.5, and 47.8: a job may name a grid anchored on a span with a shortest last segment, which its manifests record and the join checks; without one, every byte is that of D47 (D80.1–D80.4, D80.6)
+- Amended by: PR-85 (D88) on 2026-11-21, in force from PR-86: 47.8: `EXPORT_MANIFEST_VERSION` 6; the manifests of segments and of an export name `capture: 'fast'`, which a join compares as it compares the other facts of a part; a still and an audio pass change only their number (D88.2)
 - Related: D04, D06, D13, D14, D26, D28, D29, D44,
   [roadmap of phase three](../roadmap/phase-3.md) PR-25a and PR-25b
 

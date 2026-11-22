@@ -16,9 +16,17 @@ export const MANIFEST_VERSION = 3;
 /**
  * The version of the manifests of a segmented render (D47.8): segments, audio,
  * export, and still. 3 since PR-25a, 4 since PR-28a (`video`, D50.5), 5 since
- * PR-29 (the sounds of the mix, D52.5); a render of frames keeps `MANIFEST_VERSION`.
+ * PR-29 (the sounds of the mix, D52.5), 6 since PR-86 (`capture` of an export and a
+ * range job, D88.2); a render of frames keeps `MANIFEST_VERSION`.
  */
-export const EXPORT_MANIFEST_VERSION = 5;
+export const EXPORT_MANIFEST_VERSION = 6;
+
+/**
+ * The capture of the frames of an export and of a range job (D88.1, D88.2):
+ * Chromium's faster PNG compression. Their manifests name it, and a join
+ * refuses parts that name another.
+ */
+export type ManifestCapture = 'fast';
 
 /** `sha256:` and 64 lowercase hex digits of the bytes, the format of D14. */
 export function sha256(bytes: Uint8Array | string): string {
@@ -298,6 +306,8 @@ export type FfmpegIdentityBlock = Pick<
  */
 export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
   readonly kind: 'segments';
+  /** How the frames were captured (D88.2); their hashes are those of that capture. */
+  readonly capture: ManifestCapture;
   readonly preset: ManifestMp4Preset;
   readonly segmentFrames: number;
   /** Only for a grid other than D47.1's (D80.2). */
@@ -345,6 +355,8 @@ export interface AudioManifest {
  */
 export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
   readonly kind: 'export';
+  /** How the frames were captured (D88.2); their hashes are those of that capture. */
+  readonly capture: ManifestCapture;
   readonly preset: ManifestMp4Preset;
   readonly segmentFrames: number;
   /** Only for a grid other than D47.1's (D80.2). */

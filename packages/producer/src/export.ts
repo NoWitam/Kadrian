@@ -84,6 +84,7 @@ import {
   type AudioManifest,
   type ExportManifest,
   type FfmpegIdentityBlock,
+  type ManifestCapture,
   type ManifestAudio,
   type ManifestFfmpegBuild,
   type ManifestFrame,
@@ -108,6 +109,7 @@ import {
   type RenderTimeouts,
 } from './render.js';
 import type { ProducerAssetResolver } from './media-path.js';
+import type { FrameCapture } from './capture.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
 import { stretchedAudio, type StretchedAudio } from './stretch.js';
 import { mediaFiles, prepareVideos, type MediaFiles } from './video.js';
@@ -259,7 +261,11 @@ export interface ExportBrowser {
 /** What the export runs on; tests pass fakes (not exported by the package). */
 export interface ExportDependencies {
   readonly tools: (paths: FfmpegPaths) => Promise<FfmpegTools>;
-  readonly browser: (request: SegmentsRequest | ExportRequest) => Promise<ExportBrowser>;
+  /** A browser whose frame loop captures as `capture` asks (D88.1). */
+  readonly browser: (
+    request: SegmentsRequest | ExportRequest,
+    capture: FrameCapture,
+  ) => Promise<ExportBrowser>;
   readonly removeFile: (path: string) => Promise<void>;
   /** Renames a complete file to its final name, replacing what is there (D47.6). */
   readonly renameFile: (from: string, to: string) => Promise<void>;
@@ -710,7 +716,8 @@ async function segmentsWith(
 ): Promise<SegmentsResult> {
   const { prepared, size, segmentFrames, grid, frames, segments, tools } = given;
   const timeoutMs = request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const browser = await dependencies.browser(request);
+  // An export and a range job capture for speed; their frames go only to the encoder (D88.1).
+  const browser = await dependencies.browser(request, EXPORT_CAPTURE);
   try {
     throwIfCancelled(request.signal);
     const targets = segments.map((segment) => ({ segment, path: pathOf(segment) }));
@@ -734,6 +741,7 @@ async function segmentsWith(
       ...base,
       manifestVersion: EXPORT_MANIFEST_VERSION,
       kind: 'segments',
+      capture: EXPORT_CAPTURE,
       preset: mp4Preset(prepared.composition, size),
       segmentFrames,
       // Named only when it is not the grid of D47.1, so a render without one keeps its bytes (D80.2).
@@ -937,8 +945,12 @@ function plainName(name: string): string {
 }
 
 /** The fields every part of one render shares, compared as canonical JSON (D47.5). */
+/** The capture of an export and of every range job (D88.1), which their manifests name (D88.2). */
+const EXPORT_CAPTURE: ManifestCapture & FrameCapture = 'fast';
+
 const SHARED_FIELDS = [
   'manifestVersion',
+  'capture',
   'compositionHash',
   'schemaVersion',
   'runtime',
@@ -1282,6 +1294,7 @@ async function joinWith(
     video: plan.video,
     identity: first.identity,
     kind: 'export',
+    capture: first.capture,
     range,
     segments: plan.segments.map(({ index, firstFrame, frameCount, sha256: hash }) => ({
       index,
@@ -1401,11 +1414,11 @@ async function exportOf(
 function realDependencies(): ExportDependencies {
   return {
     tools: (paths) => pinnedFfmpeg(paths),
-    async browser(given) {
+    async browser(given, capture) {
       const chromium = given.chromium ?? (await launchChromium());
       return {
         chromium,
-        sequence: chromiumSequence(chromium, given),
+        sequence: chromiumSequence(chromium, { ...given, capture }),
         async close() {
           if (given.chromium === undefined) await chromium.browser.close();
         },

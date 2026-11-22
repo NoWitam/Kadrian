@@ -30,11 +30,12 @@ import { PRODUCER_AGENT_SCRIPT } from './agent.js';
 import {
   awaitMark,
   awaitPresented,
-  captureFrame,
+  captureAs,
   capturePixel,
   customHtmlDocuments,
   documentsProblem,
   presentationSessions,
+  type FrameCapture,
   type FrameDocument,
 } from './capture.js';
 import {
@@ -91,6 +92,12 @@ export interface RenderSessionOptions extends RenderTimeouts {
   readonly customHtmlNodes: number;
   /** The runtime build; the one of `@kadrion/renderer-dom` unless a test passes another. */
   readonly runtime?: RuntimeBuild;
+  /**
+   * How `frame` captures (D88.1): `reference` (the default, D28.5) or `fast`,
+   * which an export and a range job ask for. A test passes `fast` to read the
+   * frames an export wrote.
+   */
+  readonly capture?: FrameCapture;
 }
 
 /** What the page reports for a call of its agent. */
@@ -225,6 +232,7 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
   const ackTimeoutMs = options.ackTimeoutMs ?? 2_000;
   const pageTimeoutMs = options.pageTimeoutMs ?? 30_000;
   const presentationTimeoutMs = options.presentationTimeoutMs ?? 5_000;
+  const capture = options.capture ?? 'reference';
   const context = await options.chromium.browser.newContext(
     // The window holds the strip of the mark below the composition (D86.1).
     contextOptions(options.width, options.height + MARK_STRIP_HEIGHT),
@@ -410,7 +418,7 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
           presentationTimeoutMs,
           `frame ${String(index)}`,
         );
-        const png = await captureFrame(page, options.width, options.height);
+        const png = await captureAs(page, options.width, options.height, capture);
         await sameDocuments();
         noRequests();
         return png;
@@ -578,9 +586,9 @@ export type FrameSequence = (
 /** The frame sequence of a browser from `launchChromium`. */
 export function chromiumSequence(
   chromium: LaunchedChromium,
-  options: RenderTimeouts & Pick<JobOptions, 'signal'>,
+  options: RenderTimeouts & Pick<JobOptions, 'signal'> & Pick<RenderSessionOptions, 'capture'>,
 ): FrameSequence {
-  const { ackTimeoutMs, pageTimeoutMs, presentationTimeoutMs, signal } = options;
+  const { ackTimeoutMs, pageTimeoutMs, presentationTimeoutMs, signal, capture } = options;
   return async (prepared, frames, deliver) => {
     const { composition, assets, runtime, videos } = prepared;
     throwIfCancelled(signal);
@@ -593,6 +601,7 @@ export function chromiumSequence(
       height: composition.height,
       customHtmlNodes: customHtmlNodes(composition),
       runtime,
+      ...(capture === undefined ? {} : { capture }),
     });
     // A cancelled job closes its page at once, so a call in flight fails now
     // instead of after its timeout (D48.2).
@@ -701,20 +710,19 @@ async function framesOf(request: RenderRequest): Promise<RenderResult> {
   try {
     onProgress?.({ event: 'start', frames: grid.length, segments: 0 });
     const frames: RenderedFrame[] = [];
-    const { blockedRequests } = await chromiumSequence(chromium, request)(
-      prepared,
-      grid,
-      (frame) => {
-        frames.push(frame);
-        onProgress?.({
-          event: 'frame',
-          frame: frame.index,
-          done: frames.length,
-          frames: grid.length,
-        });
-        return Promise.resolve();
-      },
-    );
+    const { blockedRequests } = await chromiumSequence(chromium, {
+      ...request,
+      capture: 'reference',
+    })(prepared, grid, (frame) => {
+      frames.push(frame);
+      onProgress?.({
+        event: 'frame',
+        frame: frame.index,
+        done: frames.length,
+        frames: grid.length,
+      });
+      return Promise.resolve();
+    });
     const manifest: RenderManifest = {
       ...manifestBase(prepared, chromium, hostNetworkInterfaces()),
       preset: {

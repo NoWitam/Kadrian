@@ -25,6 +25,7 @@ import {
   exportMp4,
   launchChromium,
   networkFacts,
+  openRenderSession,
   PINNED_IMAGE,
   PINNED_IMAGE_VARIABLE,
   renderFrames,
@@ -37,7 +38,8 @@ import {
   type RenderResult,
   type SegmentsManifest,
 } from '@kadrion/producer';
-import { frameToTimeUs } from '@kadrion/schema';
+import { resolveAssets } from '@kadrion/renderer-dom';
+import { frameToTimeUs, validateComposition } from '@kadrion/schema';
 import {
   generateReferenceAssets,
   goldenTimestamps,
@@ -49,9 +51,12 @@ import {
   customHtmlNode,
   decodePng,
   OUTPUT_DIRECTORY,
+  pixelReport,
+  pngLayout,
   readGoldens,
   referenceResolver,
   repoRoot,
+  samePixels,
   variant,
   writeReport,
   type Pixels,
@@ -346,26 +351,72 @@ describe.skipIf(!available)('the MP4 export with the pinned FFmpeg (D29, P5)', (
     expect(readdirSync(EXPORTS).sort()).toEqual(['video-1080p.mp4', 'video-720p.mp4']);
   });
 
-  it('pipes exactly the pre-encode frames of the Producer for every (composition, timeUs)', () => {
+  it('pipes exactly the pre-encode frames of the Producer for every (composition, timeUs)', async () => {
     // The FFmpeg the export verified and used (D29.1), for ci-identity.json.
     report.ffmpeg = full.manifest.ffmpeg;
+    expect(full.manifest.capture).toBe('fast');
     expect(full.manifest.frames).toHaveLength(300);
     full.manifest.frames.forEach((frame, index) => {
       expect(frame.index).toBe(index);
       // frameToTimeUs of D13 at 30 fps, written out: ⌊index × 1 000 000 / 30⌋.
       expect(frame.timeUs).toBe(Math.floor((index * 1_000_000) / 30));
     });
-    expect(full.manifest.frames).toEqual(reference.manifest.frames);
-  });
+    expect(full.manifest.frames.map(({ timeUs }) => timeUs)).toEqual(
+      reference.manifest.frames.map(({ timeUs }) => timeUs),
+    );
+    // D88.4: the fast capture of every frame, in a page of its own, is what the export piped,
+    // byte for byte, and holds the pixels, the IHDR, and the ancillary chunks of the reference
+    // capture of `renderFrames`. Compared one frame at a time; the fast frames are not kept.
+    const result = validateComposition(variant(() => undefined).document);
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    const session = await openRenderSession({
+      chromium,
+      width: result.composition.width,
+      height: result.composition.height,
+      // The one sandboxed Custom HTML element of the reference composition (D29.7).
+      customHtmlNodes: 1,
+      capture: 'fast',
+    });
+    const problems: string[] = [];
+    let fastBytes = 0;
+    try {
+      const assets = await resolveAssets(result.composition, referenceResolver, (bytes) =>
+        Promise.resolve(sha256(bytes)),
+      );
+      await session.load(JSON.stringify(result.composition), assets);
+      for (const [index, frame] of full.manifest.frames.entries()) {
+        const fast = await session.frame(index, frame.timeUs, []);
+        const slow = reference.frames[index]?.png;
+        if (slow === undefined) throw new Error(`No reference frame ${String(index)}.`);
+        fastBytes += fast.length;
+        if (sha256(fast) !== frame.sha256) problems.push(`${String(index)}: not the piped bytes`);
+        if (JSON.stringify(pngLayout(fast)) !== JSON.stringify(pngLayout(slow))) {
+          problems.push(`${String(index)}: another layout`);
+        }
+        if (!samePixels(fast, slow)) problems.push(pixelReport(String(index), fast, slow));
+      }
+    } finally {
+      await session.close();
+    }
+    report.capture = {
+      frames: full.manifest.frames.length,
+      fastBytes,
+      referenceBytes: reference.frames.reduce((sum, { png }) => sum + png.length, 0),
+      problems,
+    };
+    expect(problems).toEqual([]);
+  }, 600_000);
 
-  it('pipes the golden frames at the golden timestamps, where the pinned goldens exist', () => {
+  it('captures the golden frames at the golden timestamps by the reference capture, where the pinned goldens exist', () => {
     const goldens = readGoldens();
     report.goldens = goldens === null ? 'none' : goldens.manifest.environment.pinned;
     report.pinned = pinned;
     report.goldenFramesCompared = false;
     if (goldens === null || !goldens.manifest.environment.pinned || !pinned) return;
+    // The frames of `renderFrames`, whose capture is the golden frames' (D88.1); the export's
+    // hold their pixels (above).
     for (const { timeUs, frame: index } of goldenTimestamps) {
-      expect(full.manifest.frames[index]?.sha256, String(timeUs)).toBe(
+      expect(reference.manifest.frames[index]?.sha256, String(timeUs)).toBe(
         goldens.manifest.frames.find((frame) => frame.timeUs === timeUs)?.sha256,
       );
     }

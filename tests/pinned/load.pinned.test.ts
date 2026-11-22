@@ -5,7 +5,10 @@
  * timeouts, and every frame's hash must equal the hash of the same frame
  * exported by one process alone. Before D86 the capture could hold the frame
  * before, while the page already showed the right one. The number of
- * processors and the times are reported. Skipped without `KADRION_FFMPEG` and
+ * processors and the times are reported. Since D88 the report also holds the
+ * SHA-256 of every segment and of every MP4 (D88.4: the fast capture keeps the
+ * file of `main`, alone and under load), and the MP4 of every export under load
+ * must equal the one alone. Skipped without `KADRION_FFMPEG` and
  * `KADRION_FFPROBE`; required where the run is pinned.
  */
 import { execFile } from 'node:child_process';
@@ -103,6 +106,9 @@ interface Inputs {
 interface Export {
   readonly frames: ExportManifest['frames'];
   readonly seconds: number;
+  /** The SHA-256 of the MP4 and of its segments (D88.4). */
+  readonly mp4: string;
+  readonly segments: readonly string[];
 }
 
 async function exported(inputs: Inputs, out: string): Promise<Export> {
@@ -121,7 +127,14 @@ async function exported(inputs: Inputs, out: string): Promise<Export> {
   const manifest = JSON.parse(
     readFileSync(join(out, 'video-1080p.render-manifest.json'), 'utf8'),
   ) as ExportManifest;
-  return { frames: manifest.frames, seconds: (performance.now() - started) / 1000 };
+  return {
+    frames: manifest.frames,
+    seconds: (performance.now() - started) / 1000,
+    mp4: `sha256:${createHash('sha256')
+      .update(readFileSync(join(out, 'video-1080p.mp4')))
+      .digest('hex')}`,
+    segments: manifest.segments.map(({ sha256 }) => sha256),
+  };
 }
 
 /** The indices of the frames whose hash differs from the frame alone, and which of them repeat the frame before. */
@@ -209,15 +222,24 @@ describe.skipIf(!available)('frames exported under load (D86)', () => {
     const results = loaded.map(({ name, result }) => {
       const reference = alone.get(name);
       if (reference === undefined) throw new Error(`No export alone of ${name}.`);
-      return { name, seconds: result.seconds, ...compared(reference, result) };
+      return {
+        name,
+        seconds: result.seconds,
+        mp4: result.mp4,
+        sameMp4: result.mp4 === reference.mp4,
+        ...compared(reference, result),
+      };
     });
     report.alone = Object.fromEntries(
-      [...alone].map(([name, { frames, seconds }]) => [name, { frames: frames.length, seconds }]),
+      [...alone].map(([name, { frames, seconds, mp4, segments }]) => [
+        name,
+        { frames: frames.length, seconds, mp4, segments },
+      ]),
     );
     report.loaded = results;
     for (const [name, { frames }] of alone) expect(frames.length, name).toBe(300);
-    expect(results.map(({ name, differing }) => ({ name, differing }))).toEqual(
-      results.map(({ name }) => ({ name, differing: [] })),
+    expect(results.map(({ name, differing, sameMp4 }) => ({ name, differing, sameMp4 }))).toEqual(
+      results.map(({ name }) => ({ name, differing: [], sameMp4: true })),
     );
   });
 });

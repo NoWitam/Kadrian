@@ -277,3 +277,39 @@ roadmap. PR-79 needs no ADR and has a roadmap row of its own.
 |     1 | PR-85 | D88 and the roadmap rows (documents only)             | —      | —             | —           | —           | S    |
 |     2 | PR-86 | The fast capture of an export, manifest version 6     | —      | —             | —           | —           | M    |
 |     3 | PR-87 | A first start that seeks in an export, the host guide | —      | —             | —           | if fixtures | M    |
+
+## Implementation notes (PR-86)
+
+- **The capture.** `capture.ts` has the type `FrameCapture` (`reference` or
+  `fast`) and `captureAs`, which adds `optimizeForSpeed: true` for `fast`;
+  `captureFrame` keeps its signature and is the reference capture. The render
+  session takes `capture` as an option (default `reference`), and so does the
+  frame loop `chromiumSequence`.
+- **Who asks for which.** The browser of an export and of every range job is
+  asked for `fast` by `segmentsWith`, the one place that opens it, so
+  `exportMp4`, `renderSegments`, and the sample of the estimate capture for
+  speed. `renderFrames` names `reference` itself, so a field `capture` that a
+  caller slips into its request changes nothing; `renderStill` and the Custom
+  HTML check open their own sessions without the option.
+- **The manifests.** `EXPORT_MANIFEST_VERSION` is 6; the manifests of segments
+  and of an export carry `capture: 'fast'` (type `ManifestCapture`, exported),
+  the join compares it with the other shared fields and copies it into the
+  export's manifest, and a part of version 5 is refused before FFmpeg runs. A
+  still and an audio pass carry only the new number.
+- **Evidence, in the pinned container (four processors).**
+  - `export.pinned.test.ts`: for all 300 frames of the reference export, the
+    fast capture of a page of its own is the piped bytes and holds the pixels,
+    the `IHDR`, and the ancillary chunks of the frame of `renderFrames`; the
+    golden frames are compared with the frames of `renderFrames`.
+  - `load.pinned.test.ts` now reports the SHA-256 of every segment and every
+    MP4 and requires the MP4 of an export under load to equal the one alone.
+    On `main` (5a36b44, with only that test changed) and with PR-86, the MP4s
+    are the same bytes, alone and four at once: the clip film
+    `sha256:b3205d4b…`, the reference composition `sha256:fcea26be…`, and the
+    five segments of each.
+  - Times of one export alone, `main` against PR-86: the clip film 115.7 s to
+    85.2 s, the reference composition 63.1 s to 54.8 s; under load (four at
+    once) 144 s to 107 s and 96 s to 72 s.
+- No schema, runtime build, Player dist tree, golden frame, or parity record
+  changes. The measurements of D29 and D48.5 are restated with PR-87, after
+  the first start that seeks.
