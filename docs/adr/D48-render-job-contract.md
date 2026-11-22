@@ -170,7 +170,9 @@ library caller sees on the `ProducerError`.
   `--budget-ms` after the setup, or `null` without a budget.
 - It is advice for the host's batching. It writes no file the host keeps, and
   no output of any job depends on it. In the pinned container the reference
-  composition measured `setupMs` 1 562 and `msPerFrame` 193 at `1080p`.
+  composition measured `setupMs` 1 562 and `msPerFrame` 193 at `1080p`
+  (restated with PR-87 of D88: `setupMs` about 1 570 and `msPerFrame` 198 to
+  215).
 
 ## Alternatives considered
 

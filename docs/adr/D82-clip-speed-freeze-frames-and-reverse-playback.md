@@ -17,6 +17,7 @@
   request from which it is in force. D35 (the step from `0.23` to `0.24`) and
   D46 (three tools) get their lines from PR-61 and PR-62, as every schema step
   and every tool before them
+- Amended by: PR-85 (D88) on 2026-11-21, in force from PR-87: 82.5 and 82.10: in an export and a range job, a node's first decoder starts at the IDR picture before its first frame when that frame is at source frame 256 or later, keeps no window, and records `seekArgs` (D88.3)
 - Related: D04, D12, D13, D18, D30, D34, D35, D38, D46, D47, D48, D56, D57,
   D65.4, D66, D67, D76, D77, D79, D80, D81,
   [roadmap of phase six](../roadmap/phase-6.md) PR-58 to PR-63

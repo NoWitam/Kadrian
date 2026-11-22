@@ -313,3 +313,46 @@ roadmap. PR-79 needs no ADR and has a roadmap row of its own.
 - No schema, runtime build, Player dist tree, golden frame, or parity record
   changes. The measurements of D29 and D48.5 are restated with PR-87, after
   the first start that seeks.
+
+## Implementation notes (PR-87)
+
+- **The seek.** `FIRST_SEEK_FRAMES` is 256 in `video.ts`. `open` of a video
+  source takes `VideoOpenOptions` (`firstSeek`, `signal`); when the first
+  frame asked of a node is at source frame 256 or later and `firstSeek` is
+  set, its first decoder starts at the IDR picture before it, as a decoder
+  that goes back already did (D82.5), and keeps no window. Below 256, or
+  without an IDR picture after frame 0 before it, it decodes from frame 0 as
+  before.
+- **Who asks for it.** `segmentsWith` passes `{ capture: 'fast', firstSeek:
+true }` (`ExportLoop`) to the frame loop, so an export, a range job, and the
+  sample of the estimate may seek; `renderFrames` passes `firstSeek: false`
+  and a still never decodes past its one frame.
+- **Cancelling.** `idrTimestamps` takes the job's signal; the FFprobe scan is
+  spawned with it and killed with `SIGKILL`, and a cancelled scan throws the
+  job's cancellation, not a read error.
+- **Evidence, in the pinned container (four processors).**
+  - `video.pinned.test.ts`, a source of 25 s with an IDR picture every 120
+    frames: for MP4, fragmented MP4, MOV, MKV, and a turned video (D81), a
+    range job from frame 300 seeks (it records `seekArgs`) and its 210 frames,
+    read across the IDR pictures 360 and 480, equal those of a range job from
+    frame 240, which reads on from frame 0 and records none.
+  - A film of 12 s whose clip starts at source frame 0, joined from
+    `[10 s, 12 s)` and `[0, 10 s)`: the MP4 bytes and `frames` of one pass,
+    and a manifest equal apart from `video.seekArgs`. A clip that starts at
+    source frame 300, joined from `[6 s, 12 s)` and `[0, 6 s)`: equal
+    manifests, `seekArgs` included.
+  - The whole pinned suite passes (350 tests). The MP4 of the clip film and of
+    the reference composition, and their five segments each, keep the bytes
+    of `main` and of PR-86 (`sha256:b3205d4b…`, `sha256:fcea26be…`), alone
+    and four at once. The parity records and the golden frames are unchanged.
+- **The measurements restated.** The 300 frames of the reference export are
+  24.1 MB in the fast capture (14.3 MB at the reference compression); none of
+  them is stored, so the `tmpfs` of 29.11 is still not needed for frames.
+  The estimate of D48.5 for the reference composition at `1080p`, three runs
+  in the container: `setupMs` 1 561, 1 595, 1 555 and `msPerFrame` 215, 198,
+  201 (193 before). That composition has no clip, so nothing seeks, and its
+  flat frames gain little from the fast capture; the estimate of a film whose
+  middle segment enters a clip late no longer pays the decode from frame 0.
+- **The release.** Every package is `0.11.0` for the release `v0.11.0`; the
+  host guide says that manifests are version 6 from it, and that one pass and
+  a join may differ in `video.seekArgs`.

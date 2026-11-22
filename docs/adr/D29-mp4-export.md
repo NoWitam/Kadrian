@@ -486,8 +486,9 @@ mounted read-only, Node.js v24.20.0 of the image. `node --run test:pinned`:
   temporary directory, or `/dev/shm` while exporting; at most 2 frames were ever
   in flight; 300 frames were written once each. The `kadrion export` run of
   29.11, in a container with a read-only root file system and a 48 MB `tmpfs`
-  for `/tmp`, used 256 KB of it — 300 PNG frames are about 10 MB — and wrote
-  only `video-1080p.mp4` (744 KB), `video-720p.mp4` (721 KB), and their
+  for `/tmp`, used 256 KB of it — 300 PNG frames are about 10 MB (restated
+  with PR-87 of D88: 14.3 MB at the reference compression, 24.1 MB in the fast
+  capture of an export) — and wrote only `video-1080p.mp4` (744 KB), `video-720p.mp4` (721 KB), and their
   manifests.
 - **Memory.** Peak live memory of Node.js was 74.1 MB for a 60-frame export and
   73.8 MB for a 300-frame export; FFmpeg's `VmHWM` was 424 MB and 432 MB. Five

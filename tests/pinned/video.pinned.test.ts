@@ -11,9 +11,11 @@
  * display matrix that is no quarter turn is refused (D81). Skipped without
  * `KADRION_FFMPEG` and `KADRION_FFPROBE`; required where the run is pinned.
  */
+import { execFile } from 'node:child_process';
 import {
   appendFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -21,22 +23,33 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 
 import {
+  exportMp4,
+  joinSegments,
   launchChromium,
   PINNED_IMAGE,
   PINNED_IMAGE_VARIABLE,
+  renderAudio,
   renderFrames,
+  renderSegments,
   sha256,
+  type ExportManifest,
+  type ExportResult,
+  type JoinPart,
+  type JoinResult,
   type LaunchedChromium,
   type ProducerAssetResolver,
   type RenderResult,
+  type SegmentsManifest,
 } from '@kadrion/producer';
 import { orientRgb, type AssetResolver, type VideoOrientation } from '@kadrion/renderer-dom';
 import { frameCount, frameToTimeUs, sourceFrameIndex, sourceTimeUs } from '@kadrion/schema';
 import {
   generateReferenceAssets,
   ROTATED_VIDEO_FIXTURES,
+  rotatedVideoFixtureArguments,
   TILTED_VIDEO_FIXTURE,
   VIDEO_FIXTURE,
   videoComposition,
@@ -63,6 +76,7 @@ import {
   REMUXES,
 } from './video-fixture.ts';
 
+const run = promisify(execFile);
 const ffmpegPath = process.env.KADRION_FFMPEG;
 const ffprobePath = process.env.KADRION_FFPROBE;
 const available = ffmpegPath !== undefined && ffprobePath !== undefined;
@@ -538,4 +552,230 @@ describe.skipIf(!available)('video nodes in the Producer (D49, D50)', () => {
       });
     });
   });
+});
+
+/**
+ * The first start of a decoder in an export (D88.3, D88.4). A source of 25 s at
+ * 30 fps with an IDR picture every 120 frames, made by the pinned FFmpeg and
+ * not stored, in every container the Producer reads and turned by its
+ * container (D81): a range job that enters the clip at source frame 300 starts
+ * its decoder at the IDR picture of frame 240 and reads across those of 360
+ * and 480, and its frames are the frames of a job that read from frame 0. A
+ * film joined from ranges equals the film exported in one pass: in its MP4
+ * bytes, its frames, and its manifest apart from `video.seekArgs`.
+ */
+describe.skipIf(!available)('a first start that seeks in an export (D88.3, D88.4)', () => {
+  const LONG = { width: 160, height: 96, fps: 30, seconds: 25 } as const;
+  let chromium: LaunchedChromium;
+  let directory: string;
+  let long: Uint8Array;
+
+  /** The long source, made by the pinned FFmpeg with a fixed distance of IDR pictures. */
+  const longSource = async (): Promise<Uint8Array> => {
+    const output = join(directory, 'long.mp4');
+    await run(FFMPEG.ffmpegPath, [
+      ...['-nostdin', '-v', 'error', '-y', '-f', 'lavfi'],
+      ...[
+        '-i',
+        `testsrc2=size=${String(LONG.width)}x${String(LONG.height)}:rate=${String(LONG.fps)}:duration=${String(LONG.seconds)}`,
+      ],
+      ...['-c:v', 'libx264', '-preset', 'veryfast', '-g', '120', '-keyint_min', '120'],
+      ...['-sc_threshold', '0', '-pix_fmt', 'yuv420p', '-threads', '1', output],
+    ]);
+    return new Uint8Array(readFileSync(output));
+  };
+
+  /** The background and node-video-full alone, showing `bytes` from `sourceStartUs` for `durationUs`. */
+  const film = (bytes: Uint8Array, durationUs: number, sourceStartUs: number): unknown => {
+    const draft = structuredClone(videoComposition) as {
+      width: number;
+      height: number;
+      durationUs: number;
+      assets: { id: string; contentHash: string }[];
+      scenes: { durationUs: number; nodes: { id: string; type: string }[] }[];
+    };
+    // The size of the preset 720p, which never upscales (D29.5).
+    draft.width = 1280;
+    draft.height = 720;
+    draft.durationUs = durationUs;
+    const asset = draft.assets.find(({ id }) => id === VIDEO_FIXTURE.id);
+    if (asset === undefined) throw new Error('No video asset.');
+    asset.contentHash = sha256(bytes);
+    for (const scene of draft.scenes) {
+      scene.durationUs = durationUs;
+      scene.nodes = scene.nodes
+        .filter(({ id }) => id === 'node-background' || id === 'node-video-full')
+        .map((node) => ({
+          ...node,
+          durationUs,
+          ...(node.type === 'video' ? { sourceStartUs } : {}),
+        }));
+    }
+    return draft;
+  };
+
+  const resolver =
+    (bytes: Uint8Array): AssetResolver =>
+    ({ id }) =>
+      id === VIDEO_FIXTURE.id
+        ? { bytes, mediaType: VIDEO_FIXTURE.mediaType }
+        : (generated[id] ?? null);
+
+  /** A range job of `document` into a directory of its own. */
+  const job = async (
+    document: unknown,
+    bytes: Uint8Array,
+    name: string,
+    range?: { fromUs: number; toUs: number },
+  ): Promise<JoinPart<SegmentsManifest>> => {
+    const outputDirectory = join(directory, name);
+    mkdirSync(outputDirectory, { recursive: true });
+    const { manifest } = await renderSegments({
+      document,
+      resolveAsset: resolver(bytes),
+      preset: '720p',
+      ...(range === undefined ? {} : { range }),
+      outputDirectory,
+      ffmpeg: FFMPEG,
+      chromium,
+    });
+    return { manifest, directory: outputDirectory };
+  };
+
+  beforeAll(async () => {
+    chromium = await launchChromium();
+    directory = mkdtempSync(join(tmpdir(), 'kadrion-first-seek-'));
+    long = await longSource();
+  }, 120_000);
+
+  afterAll(async () => {
+    await chromium.browser.close();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  const containers: readonly (readonly [string, () => Promise<Uint8Array>])[] = [
+    ['MP4', () => Promise.resolve(long)],
+    ...REMUXES.map(
+      ([name, extension, options]) =>
+        [name, () => remuxed(FFMPEG.ffmpegPath, long, extension, options)] as const,
+    ),
+    [
+      'a video turned by its container (D81)',
+      async () => {
+        const input = join(directory, 'upright.mp4');
+        const output = join(directory, 'turned.mp4');
+        writeFileSync(input, long);
+        const [turned] = ROTATED_VIDEO_FIXTURES;
+        if (turned === undefined) throw new Error('No turned fixture.');
+        await run(FFMPEG.ffmpegPath, [
+          ...rotatedVideoFixtureArguments(turned.display, input, output),
+        ]);
+        return new Uint8Array(readFileSync(output));
+      },
+    ],
+  ];
+
+  it.each(containers)(
+    'reads %s from a late IDR picture across two more as from frame 0',
+    async (name, make) => {
+      const bytes = await make();
+      // 17 s of the clip from its start: frame f of the film shows source frame f.
+      const document = film(bytes, 17_000_000, 0);
+      const slug = name.replace(/[^a-z0-9]+/gi, '-');
+      // From frame 240, below FIRST_SEEK_FRAMES: the decoder starts at frame 0 and reads on.
+      const early = await job(document, bytes, `${slug}-early`, {
+        fromUs: 8_000_000,
+        toUs: 17_000_000,
+      });
+      const late = await job(document, bytes, `${slug}-late`, {
+        fromUs: 10_000_000,
+        toUs: 17_000_000,
+      });
+      expect(early.manifest.video).not.toHaveProperty('seekArgs');
+      expect(late.manifest.video?.seekArgs).toEqual(
+        expect.arrayContaining(['-seek_timestamp', '1', '-ss', '<start>']),
+      );
+      // Frames 300 to 509 of the film: source frames 300 to 509, across the IDR pictures 360 and 480.
+      expect(late.manifest.frames).toHaveLength(210);
+      expect(late.manifest.frames).toEqual(early.manifest.frames.slice(60));
+    },
+    900_000,
+  );
+
+  /** One pass and a join of `ranges`, of a film of 12 s that shows the clip from `sourceStartUs`. */
+  const bothWays = async (
+    sourceStartUs: number,
+    ranges: readonly (readonly [number, number])[],
+    name: string,
+  ): Promise<{ onePass: ExportResult; joined: JoinResult; files: [string, string] }> => {
+    const document = film(long, 12_000_000, sourceStartUs);
+    const onePassFile = join(directory, `${name}-one-pass.mp4`);
+    const onePass = await exportMp4({
+      document,
+      resolveAsset: resolver(long),
+      preset: '720p',
+      outputPath: onePassFile,
+      ffmpeg: FFMPEG,
+      chromium,
+    });
+    const parts: JoinPart<SegmentsManifest>[] = [];
+    for (const [fromUs, toUs] of ranges) {
+      parts.push(await job(document, long, `${name}-${String(fromUs)}`, { fromUs, toUs }));
+    }
+    const audioDirectory = join(directory, `${name}-audio`);
+    mkdirSync(audioDirectory, { recursive: true });
+    const audio = await renderAudio({
+      document,
+      resolveAsset: resolver(long),
+      outputDirectory: audioDirectory,
+      ffmpeg: FFMPEG,
+    });
+    const joinedFile = join(directory, `${name}-joined.mp4`);
+    const joined = await joinSegments({
+      segments: parts,
+      audio: { manifest: audio.manifest, directory: audioDirectory },
+      outputPath: joinedFile,
+      ffmpeg: FFMPEG,
+    });
+    return { onePass, joined, files: [onePassFile, joinedFile] };
+  };
+
+  /** The manifest without `video.seekArgs`, which a job records only when it started by a seek. */
+  const withoutSeek = (manifest: ExportManifest): unknown => {
+    const copy = structuredClone(manifest) as { video: Record<string, unknown> | null };
+    if (copy.video !== null) delete copy.video.seekArgs;
+    return copy;
+  };
+
+  it('joins a later range that seeks into the film of one pass that read on (D88.4)', async () => {
+    // The clip starts at source frame 0; the second range enters it at frame 300.
+    const { onePass, joined, files } = await bothWays(
+      0,
+      [
+        [10_000_000, 12_000_000],
+        [0, 10_000_000],
+      ],
+      'below',
+    );
+    expect(onePass.manifest.video).not.toHaveProperty('seekArgs');
+    expect(joined.manifest.video).toHaveProperty('seekArgs');
+    expect(sha256(readFileSync(files[1]))).toBe(sha256(readFileSync(files[0])));
+    expect(joined.manifest.frames).toEqual(onePass.manifest.frames);
+    expect(withoutSeek(joined.manifest)).toEqual(withoutSeek(onePass.manifest));
+  }, 900_000);
+
+  it('writes equal manifests when the clip starts at 256 or later and both seek (D88.4)', async () => {
+    // The clip starts at source frame 300; the ranges enter it at 300 and 480.
+    const { onePass, joined, files } = await bothWays(
+      10_000_000,
+      [
+        [6_000_000, 12_000_000],
+        [0, 6_000_000],
+      ],
+      'late',
+    );
+    expect(onePass.manifest.video).toHaveProperty('seekArgs');
+    expect(sha256(readFileSync(files[1]))).toBe(sha256(readFileSync(files[0])));
+    expect(joined.manifest).toEqual(onePass.manifest);
+  }, 900_000);
 });
