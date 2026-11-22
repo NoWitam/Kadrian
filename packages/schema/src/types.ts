@@ -140,6 +140,8 @@ export type Focus = ImageNode['focus'];
 export type Crop = ImageNode['crop'];
 /** The point of a node's box that its scale and rotation are about, in per mille (D68). */
 export type Origin = ImageNode['origin'];
+/** The mirror flip of a node in its own box, about the box's centre, on each axis (D89.3). */
+export type Flip = ImageNode['flip'];
 /** The property an animation targets: a row of the table of D65.1 (D68). */
 export type AnimatedProperty = NodeAnimation['property'];
 /** The outline, the shadow, and the box of a text node (D69), and the alignment of its lines (D83.4). */

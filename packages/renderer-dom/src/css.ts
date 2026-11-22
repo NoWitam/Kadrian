@@ -32,16 +32,39 @@ export function cssPixels(value: number): string {
  * the element's own box), scaled, rotated, and moved back. A part that is the
  * identity for every value it can take is left out: no pivot while the origin
  * is the top-left corner, no rotation while it is 0, so a node of 0.12 is
- * written exactly as before.
+ * written exactly as before. The flip ends the list, so it applies first, in
+ * the node's own box and before scale and rotation (D89.3); without one
+ * nothing is written, so a node of 0.26 is written exactly as before.
  */
-export function cssTransform({ position, scale, rotation, origin }: TransformState): string {
+export function cssTransform({ position, scale, rotation, origin, flip }: TransformState): string {
   const parts = [`translate(${cssPixels(position.x)}, ${cssPixels(position.y)})`];
   const pivot = origin.x !== 0 || origin.y !== 0;
   if (pivot) parts.push(`translate(${cssPercent(origin.x)}, ${cssPercent(origin.y)})`);
   if (rotation !== 0) parts.push(`rotate(${cssNumber(rotation)}deg)`);
   parts.push(`scale(${cssNumber(scale.x)}, ${cssNumber(scale.y)})`);
   if (pivot) parts.push(`translate(${cssPercent(-origin.x)}, ${cssPercent(-origin.y)})`);
+  parts.push(...flipParts(flip, '100%', '100%'));
   return parts.join(' ');
+}
+
+/**
+ * The mirror of a flip in a box of `width` by `height` (D89.3): moved by the
+ * flipped side and scaled by -1 along it, so that a point at `x` lands at
+ * `width - x`; nothing without a flip. The one rule of the CSS transform and
+ * of the transform of a matte (`svgTransform`), which writes the sides in
+ * pixels. A side that is not flipped moves by `0px`, as the CSS Object Model
+ * serialises a zero length (D22).
+ */
+export function flipParts(
+  flip: { readonly x: boolean; readonly y: boolean },
+  width: string,
+  height: string,
+): string[] {
+  if (!flip.x && !flip.y) return [];
+  return [
+    `translate(${flip.x ? width : '0px'}, ${flip.y ? height : '0px'})`,
+    `scale(${flip.x ? '-1' : '1'}, ${flip.y ? '-1' : '1'})`,
+  ];
 }
 
 /** Per mille as a CSS percentage: `x / 10` per cent (D63.2, D68). */

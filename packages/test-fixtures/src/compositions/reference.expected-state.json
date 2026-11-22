@@ -1,5 +1,5 @@
 {
-  "description": "Expected evaluated state of reference.json at the five golden timestamps (specification \u00a73.3). Pure data, derived by hand from the rule below and never generated from an implementation: the runtime is tested against these numbers, not the other way round. Each `state` is exactly what `evaluateComposition(reference, timeUs)` of @kadrion/runtime must return, compared bit for bit. Derived first in PR-02 for identity base values and again in PR-03, when the project owner gave the reference composition base values that are not the identity (D18). PR-48 added the properties every node state carries since schema 0.13 (D68), with their base values. PR-54 added the mask, the matte, and the blend mode that every image, text, and group state carries since schema 0.20 (D75): none, none, and normal, as the document gives them.",
+  "description": "Expected evaluated state of reference.json at the five golden timestamps (specification \u00a73.3). Pure data, derived by hand from the rule below and never generated from an implementation: the runtime is tested against these numbers, not the other way round. Each `state` is exactly what `evaluateComposition(reference, timeUs)` of @kadrion/runtime must return, compared bit for bit. Derived first in PR-02 for identity base values and again in PR-03, when the project owner gave the reference composition base values that are not the identity (D18). PR-48 added the properties every node state carries since schema 0.13 (D68), with their base values. PR-54 added the mask, the matte, and the blend mode that every image, text, and group state carries since schema 0.20 (D75): none, none, and normal, as the document gives them. PR-89 added the flip that every transformable node state carries since schema 0.27 (D89.3): false on both axes, as the document gives it.",
   "rule": [
     "Shape: the state mirrors the document. Scenes, nodes, and group children keep their order and hierarchy (D16.4), and every value is local to the node's parent (D15). The background has no transform; its state carries its colour.",
     "A property without an animation keeps its base value.",
@@ -49,6 +49,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 1,
                 "children": [
                   {
@@ -67,6 +71,10 @@
                     "origin": {
                       "x": 0,
                       "y": 0
+                    },
+                    "flip": {
+                      "x": false,
+                      "y": false
                     },
                     "opacity": 1,
                     "size": {
@@ -102,6 +110,10 @@
                       "x": 0,
                       "y": 0
                     },
+                    "flip": {
+                      "x": false,
+                      "y": false
+                    },
                     "opacity": 1,
                     "color": "#d0d5dd",
                     "fragments": null,
@@ -133,6 +145,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 0.1875,
                 "color": "#ffffff",
                 "fragments": null,
@@ -157,6 +173,10 @@
                 "origin": {
                   "x": 0,
                   "y": 0
+                },
+                "flip": {
+                  "x": false,
+                  "y": false
                 },
                 "opacity": 1
               }
@@ -203,6 +223,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 1,
                 "children": [
                   {
@@ -221,6 +245,10 @@
                     "origin": {
                       "x": 0,
                       "y": 0
+                    },
+                    "flip": {
+                      "x": false,
+                      "y": false
                     },
                     "opacity": 1,
                     "size": {
@@ -256,6 +284,10 @@
                       "x": 0,
                       "y": 0
                     },
+                    "flip": {
+                      "x": false,
+                      "y": false
+                    },
                     "opacity": 1,
                     "color": "#d0d5dd",
                     "fragments": null,
@@ -287,6 +319,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 0.375,
                 "color": "#ffffff",
                 "fragments": null,
@@ -311,6 +347,10 @@
                 "origin": {
                   "x": 0,
                   "y": 0
+                },
+                "flip": {
+                  "x": false,
+                  "y": false
                 },
                 "opacity": 1
               }
@@ -357,6 +397,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 1,
                 "children": [
                   {
@@ -375,6 +419,10 @@
                     "origin": {
                       "x": 0,
                       "y": 0
+                    },
+                    "flip": {
+                      "x": false,
+                      "y": false
                     },
                     "opacity": 1,
                     "size": {
@@ -410,6 +458,10 @@
                       "x": 0,
                       "y": 0
                     },
+                    "flip": {
+                      "x": false,
+                      "y": false
+                    },
                     "opacity": 1,
                     "color": "#d0d5dd",
                     "fragments": null,
@@ -441,6 +493,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 0.5625,
                 "color": "#ffffff",
                 "fragments": null,
@@ -465,6 +521,10 @@
                 "origin": {
                   "x": 0,
                   "y": 0
+                },
+                "flip": {
+                  "x": false,
+                  "y": false
                 },
                 "opacity": 1
               }
@@ -511,6 +571,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 1,
                 "children": [
                   {
@@ -529,6 +593,10 @@
                     "origin": {
                       "x": 0,
                       "y": 0
+                    },
+                    "flip": {
+                      "x": false,
+                      "y": false
                     },
                     "opacity": 1,
                     "size": {
@@ -564,6 +632,10 @@
                       "x": 0,
                       "y": 0
                     },
+                    "flip": {
+                      "x": false,
+                      "y": false
+                    },
                     "opacity": 1,
                     "color": "#d0d5dd",
                     "fragments": null,
@@ -595,6 +667,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 0.75,
                 "color": "#ffffff",
                 "fragments": null,
@@ -619,6 +695,10 @@
                 "origin": {
                   "x": 0,
                   "y": 0
+                },
+                "flip": {
+                  "x": false,
+                  "y": false
                 },
                 "opacity": 1
               }
@@ -670,6 +750,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 1,
                 "children": [
                   {
@@ -688,6 +772,10 @@
                     "origin": {
                       "x": 0,
                       "y": 0
+                    },
+                    "flip": {
+                      "x": false,
+                      "y": false
                     },
                     "opacity": 1,
                     "size": {
@@ -723,6 +811,10 @@
                       "x": 0,
                       "y": 0
                     },
+                    "flip": {
+                      "x": false,
+                      "y": false
+                    },
                     "opacity": 1,
                     "color": "#d0d5dd",
                     "fragments": null,
@@ -754,6 +846,10 @@
                   "x": 0,
                   "y": 0
                 },
+                "flip": {
+                  "x": false,
+                  "y": false
+                },
                 "opacity": 0.75,
                 "color": "#ffffff",
                 "fragments": null,
@@ -778,6 +874,10 @@
                 "origin": {
                   "x": 0,
                   "y": 0
+                },
+                "flip": {
+                  "x": false,
+                  "y": false
                 },
                 "opacity": 1
               }

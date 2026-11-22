@@ -89,6 +89,7 @@ describe('videos with their scene (D54.3)', () => {
     scale: { x: 1, y: 1 },
     rotation: 0,
     origin: { x: 0, y: 0 },
+    flip: { x: false, y: false },
     opacity: 1,
     animations: [],
     assetId: 'asset-video',

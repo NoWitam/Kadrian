@@ -15,6 +15,7 @@ import {
   type BlendMode,
   type Crop,
   type Fit,
+  type Flip,
   type Focus,
   type Origin,
   type Speed,
@@ -397,6 +398,20 @@ export interface SetNodeOriginArguments {
  */
 export interface SetNodeOriginCommand extends SetNodeOriginArguments {
   readonly type: 'SetNodeOrigin';
+}
+
+/** What a caller states for `SetNodeFlip` (D89.3). */
+export interface SetNodeFlipArguments {
+  readonly nodeId: string;
+  readonly flip: Flip;
+}
+
+/**
+ * The mirror flip of what a node draws in its own box, about the box's centre,
+ * on each axis (D89.3). The box, the position, and the origin do not move.
+ */
+export interface SetNodeFlipCommand extends SetNodeFlipArguments {
+  readonly type: 'SetNodeFlip';
 }
 
 /** What a caller states for `SetNodeCrop` (D68). */
@@ -1330,6 +1345,7 @@ export type Command =
   | SetNodeFocusCommand
   | SetNodeRotationCommand
   | SetNodeOriginCommand
+  | SetNodeFlipCommand
   | SetNodeCropCommand
   | SetNodeCornerRadiusCommand
   | SetVideoAssetCommand
@@ -1529,6 +1545,26 @@ export interface SetNodeOriginArgumentsSchema extends ClosedObjectSchema<
     readonly nodeId: ArgumentSchema;
     readonly origin: ClosedObjectSchema<keyof Origin>;
   };
+}
+
+/** The argument schema of `SetNodeFlip` (D89.3): closed, with two booleans. */
+export interface SetNodeFlipArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly flip: {
+      readonly type: 'object';
+      readonly description: string;
+      readonly properties: {
+        readonly [P in keyof Flip]: { readonly type: 'boolean'; readonly description: string };
+      };
+      readonly required: readonly (keyof Flip)[];
+      readonly additionalProperties: false;
+    };
+  };
+  readonly required: readonly (keyof SetNodeFlipArguments)[];
+  readonly additionalProperties: false;
 }
 
 /** The argument schema of `SetNodeCrop`, typed by the fields of its arguments. */
@@ -2417,6 +2453,32 @@ export const setNodeOriginArgumentsSchema: SetNodeOriginArgumentsSchema = deepFr
     },
   },
   required: ['nodeId', 'origin'],
+  additionalProperties: false,
+});
+
+/** The JSON Schema of the arguments of `SetNodeFlip` (D89.3): a boolean on each axis. */
+export const setNodeFlipArgumentsSchema: SetNodeFlipArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Mirrors what a node draws in its own box, about the box's centre; the box, the position, and the origin stay.",
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Every node but a background has a flip; a group's box is the canvas.`,
+      minLength: 1,
+    },
+    flip: {
+      type: 'object',
+      description: 'The flip on each axis; false on both is no flip.',
+      properties: {
+        x: { type: 'boolean', description: 'true mirrors the node left to right.' },
+        y: { type: 'boolean', description: 'true mirrors the node top to bottom.' },
+      },
+      required: ['x', 'y'],
+      additionalProperties: false,
+    },
+  },
+  required: ['nodeId', 'flip'],
   additionalProperties: false,
 });
 
@@ -4965,6 +5027,25 @@ export function parseSetNodeOrigin(value: unknown): SetNodeOriginCommand {
       x: boundedInteger(origin['x'], ORIGIN, '`origin.x`'),
       y: boundedInteger(origin['y'], ORIGIN, '`origin.y`'),
     }),
+  });
+}
+
+/** The fields of a `SetNodeFlip` (D89.3): a boolean on each axis. */
+export function parseSetNodeFlip(value: unknown): SetNodeFlipCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'flip'], 'The command `SetNodeFlip`');
+  const nodeId = nodeIdOf(fields);
+  const flip = fieldsOf(fields['flip'], ['x', 'y'], '`flip`');
+  const axis = (key: 'x' | 'y'): boolean => {
+    const found: unknown = flip[key];
+    if (typeof found !== 'boolean') {
+      throw new EditorError('invalid-argument', `\`flip.${key}\` must be true or false.`);
+    }
+    return found;
+  };
+  return Object.freeze({
+    type: 'SetNodeFlip',
+    nodeId,
+    flip: Object.freeze({ x: axis('x'), y: axis('y') }),
   });
 }
 

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.26",
+  "schemaVersion": "0.27",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -58,6 +58,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [
             {
@@ -105,6 +109,10 @@
               "origin": {
                 "x": 0,
                 "y": 0
+              },
+              "flip": {
+                "x": false,
+                "y": false
               },
               "opacity": 1,
               "animations": [
@@ -173,6 +181,10 @@
                 "x": 0,
                 "y": 0
               },
+              "flip": {
+                "x": false,
+                "y": false
+              },
               "opacity": 1,
               "animations": [],
               "text": "Deterministic by design",
@@ -222,6 +234,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 0.75,
           "animations": [
@@ -287,6 +303,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],

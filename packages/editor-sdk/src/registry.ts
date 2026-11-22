@@ -98,6 +98,7 @@ import {
   parseSetNodeFocus,
   parseSetNodeRotation,
   parseSetNodeOrigin,
+  parseSetNodeFlip,
   parseSetNodeCrop,
   parseSetNodeCornerRadius,
   parseSetKeyframeValue,
@@ -1853,6 +1854,27 @@ const DEFINITIONS = deepFreeze<Definitions>({
           // The position is not touched: the origin moves nothing by itself (D68).
           node: { ...node, origin: command.origin },
           inverse: parseSetNodeOrigin({ ...command, origin }),
+        };
+      }),
+  },
+  SetNodeFlip: {
+    parse: parseSetNodeFlip,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const stored = node['flip'];
+        if (
+          !isObject(stored) ||
+          typeof stored['x'] !== 'boolean' ||
+          typeof stored['y'] !== 'boolean'
+        ) {
+          throw new EditorError('unsupported-node', `The node \`${command.nodeId}\` has no flip.`);
+        }
+        const flip = { x: stored['x'], y: stored['y'] };
+        if (flip.x === command.flip.x && flip.y === command.flip.y) return null;
+        return {
+          // The box, the position, and the origin are not touched (D89.3).
+          node: { ...node, flip: command.flip },
+          inverse: parseSetNodeFlip({ ...command, flip }),
         };
       }),
   },
@@ -3717,6 +3739,7 @@ function plainInstance(instanceId: string, definitionId: string, frame: Frame): 
     scale: { x: 1, y: 1 },
     rotation: 0,
     origin: { x: 0, y: 0 },
+    flip: { x: false, y: false },
     opacity: 1,
     animations: [],
     definitionId,

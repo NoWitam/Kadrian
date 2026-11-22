@@ -4,6 +4,7 @@
   (PR #64)
 - Date: 2026-11-07
 - Amended by: PR-64 (D83) on 2026-11-11, in force from PR-66: 68.10: the box of a text with a frame is its frame (D83.3)
+- Amended by: PR-89 (D89) on 2026-11-22: 68.6: the transform list ends with the flip, which so applies first, in the node's own box and before the pivot, the rotation, and the scale (D89.3)
 - Supersedes: —
 - Amends: D15 (a node turns and scales about its origin point; the corner
   radius and the crop of a picture), D16 (16.6: rotation and origin are

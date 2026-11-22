@@ -28,7 +28,12 @@ function rendered(timeUs: number): HTMLElement {
   return root;
 }
 
-const identity = { position: { x: 3, y: 4 }, scale: { x: 2, y: 0.5 }, opacity: 1 };
+const identity = {
+  position: { x: 3, y: 4 },
+  scale: { x: 2, y: 0.5 },
+  flip: { x: false, y: false },
+  opacity: 1,
+};
 
 describe('the transform list (D68)', () => {
   it('writes the list of 0.12 for a node at its top-left corner without rotation', () => {

@@ -19,6 +19,7 @@ interface DocumentNode {
   scale?: Vec2;
   rotation?: number;
   origin?: Vec2;
+  flip?: { x: boolean; y: boolean };
   opacity?: number;
   color?: string;
   width?: number;
@@ -37,6 +38,7 @@ interface StateNode {
   scale?: Vec2;
   rotation?: number;
   origin?: Vec2;
+  flip?: { x: boolean; y: boolean };
   opacity?: number;
   color?: string;
   fragments?: null;
@@ -61,7 +63,7 @@ const reference = readJson(...COMPOSITIONS, 'reference.json') as {
 };
 const expected = readJson(...COMPOSITIONS, 'reference.expected-state.json') as ExpectedStates;
 
-const PROPERTIES = ['position', 'scale', 'rotation', 'origin', 'opacity'] as const;
+const PROPERTIES = ['position', 'scale', 'rotation', 'origin', 'flip', 'opacity'] as const;
 
 /**
  * The properties of D68 an animation can reach, besides the transform, by type

@@ -21,6 +21,7 @@
 - Amended by: PR-52 (D73) on 2026-11-09: the box of a shape holds an inline `<svg data-kadrion-shape>` with its gradient and one `<path>`, written by every render (D73.5)
 - Amended by: PR-64 (D83) on 2026-11-11, in force from PR-66: 22.6: a text with a frame, and captions broken by width, are drawn as the lines the runtime measured (D83.5)
 - Amended by: K3 (opacity history) on 2026-11-11 at the owner's request: 22.9: every node, and every scene, fragment, and caption piece whose opacity can fall below 1, carries `will-change: opacity` from the mount on, so that a frame does not depend on the frames rendered before it
+- Amended by: PR-89 (D89) on 2026-11-22: 22.2: the transform list of a node ends with its flip, `translate(100%, 0px) scale(-1, 1)`, `translate(0px, 100%) scale(1, -1)`, or `translate(100%, 100%) scale(-1, -1)`, and with nothing without one, so a document of `0.26` writes the string it wrote before; a zero length is written `0px`, as the CSS Object Model serialises it (D89.3)
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, and open
   question Q5

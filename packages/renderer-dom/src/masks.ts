@@ -34,7 +34,7 @@ import type { MaskState, ShapeNodeState } from '@kadrion/runtime';
 import type { GroupNode, SceneNode, ShapeNode, ValidatedComposition } from '@kadrion/schema';
 
 import type { AssetUrls } from './assets.js';
-import { cssFilter, cssNumber, cssPixels } from './css.js';
+import { cssFilter, cssNumber, cssPixels, flipParts } from './css.js';
 import { siblingLists } from './nested.js';
 import { pathData, writeShapePath, clearShapePath } from './shapes.js';
 import { FILTER_REACH, SVG_NAMESPACE } from './svg-filters.js';
@@ -234,10 +234,11 @@ const CONTENT_WRITTEN = ['filter', 'transform', 'opacity', 'visibility'] as cons
 /**
  * The transform of a matte inside its mask (D75): that of its element (D15,
  * D68), with the origin in pixels of its box, since a percentage of an SVG
- * element is one of the viewport.
+ * element is one of the viewport; its flip ends the list, in pixels of its box
+ * too (D89.3).
  */
-function svgTransform(node: ShapeNodeState): string {
-  const { position, scale, rotation, origin, size } = node;
+export function svgTransform(node: ShapeNodeState): string {
+  const { position, scale, rotation, origin, flip, size } = node;
   const parts = [`translate(${cssPixels(position.x)}, ${cssPixels(position.y)})`];
   const x = (origin.x / 1000) * size.width;
   const y = (origin.y / 1000) * size.height;
@@ -246,6 +247,7 @@ function svgTransform(node: ShapeNodeState): string {
   if (rotation !== 0) parts.push(`rotate(${cssNumber(rotation)}deg)`);
   parts.push(`scale(${cssNumber(scale.x)}, ${cssNumber(scale.y)})`);
   if (pivot) parts.push(`translate(${cssPixels(-x)}, ${cssPixels(-y)})`);
+  parts.push(...flipParts(flip, cssPixels(size.width), cssPixels(size.height)));
   return parts.join(' ');
 }
 

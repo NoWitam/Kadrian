@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.26",
+  "schemaVersion": "0.27",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -52,6 +52,10 @@
           "origin": {
             "x": 0,
             "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [
@@ -122,6 +126,10 @@
             "x": 500,
             "y": 500
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [
             {
@@ -186,6 +194,10 @@
           "origin": {
             "x": 500,
             "y": 500
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [
@@ -284,6 +296,10 @@
             "x": 0,
             "y": 0
           },
+          "flip": {
+            "x": false,
+            "y": false
+          },
           "opacity": 1,
           "animations": [
             {
@@ -378,6 +394,10 @@
           "origin": {
             "x": 0,
             "y": 1000
+          },
+          "flip": {
+            "x": false,
+            "y": false
           },
           "opacity": 1,
           "animations": [],

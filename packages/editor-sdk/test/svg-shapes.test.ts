@@ -40,6 +40,7 @@ describe('svgToShapes (D74.5)', () => {
       scale: { x: 1, y: 1 },
       rotation: 0,
       origin: { x: 500, y: 500 },
+      flip: { x: false, y: false },
       opacity: 1,
       animations: [],
       width: 40,

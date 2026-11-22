@@ -8,6 +8,7 @@
   schema) and D65 (65.1: the rows `mask/geometry` and `mask/feather` are
   animated by the mask's own animations), each with an
   `Amended by: PR-54 (D75)` line
+- Amended by: PR-89 (D89) on 2026-11-22: 75.6: the transform of a matte inside its mask ends with the matte's own flip in pixels of its box, `translate(<width>px, 0px) scale(-1, 1)` and its pairs (D89.3)
 - Related: D15, D16, D18, D22, D42, D49, D56, D59, D65, D67, D71, D72, D73,
   [phase five](../roadmap/phase-5.md) PR-54
 

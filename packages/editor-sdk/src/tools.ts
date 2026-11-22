@@ -97,6 +97,7 @@ import {
   setNodeFocusArgumentsSchema,
   setNodeRotationArgumentsSchema,
   setNodeOriginArgumentsSchema,
+  setNodeFlipArgumentsSchema,
   setNodeCropArgumentsSchema,
   setNodeCornerRadiusArgumentsSchema,
   setKeyframeValueArgumentsSchema,
@@ -154,6 +155,7 @@ import {
   type AddTemplateInputArgumentsSchema,
   type SetTemplateInputArgumentsSchema,
   type SetClipReverseArgumentsSchema,
+  type SetNodeFlipArgumentsSchema,
   type SetClipSpeedArguments,
   type SetClipSpeedArgumentsSchema,
   type ClosedObjectSchema,
@@ -213,7 +215,8 @@ export type CommandArgumentsSchema =
   | ReplaceDefinitionArgumentsSchema
   | SetCustomHtmlArgumentsSchema
   | SetClipSpeedArgumentsSchema
-  | SetClipReverseArgumentsSchema;
+  | SetClipReverseArgumentsSchema
+  | SetNodeFlipArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -288,7 +291,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {"kind":"none"}, matte {"kind":"none"}, and blendMode "normal" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit "fill", "contain", or "cover" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {"num":1,"den":1} (describe_document shows a speed as a multiplier such as "x0.5"; stored, it is the fraction {"num":1,"den":2}, from 1/4 to 4, or {"num":0,"den":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, flip, opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {"kind":"none"}, matte {"kind":"none"}, and blendMode "normal" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit "fill", "contain", or "cover" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {"num":1,"den":1} (describe_document shows a speed as a multiplier such as "x0.5"; stored, it is the fraction {"num":1,"den":2}, from 1/4 to 4, or {"num":0,"den":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -301,6 +304,7 @@ const METADATA = deepFreeze<MetadataTable>({
         scale: { x: 1, y: 1 },
         rotation: 0,
         origin: { x: 0, y: 0 },
+        flip: { x: false, y: false },
         opacity: 1,
         animations: [],
         text: 'Made with Kadrion',
@@ -491,6 +495,12 @@ const METADATA = deepFreeze<MetadataTable>({
       "Sets the point of a node's box that its scale and rotation are about, as integers in per mille of the box: 0, 0 is the top-left corner and 500, 500 the centre; a group's box is the canvas, a text's box the box of its lines. The position still places the top-left corner, so the node does not move while it is neither rotated nor scaled; to keep a rotated or scaled node in place, set its position in the same transaction. An origin animation of the node adds to it. Refused with invalid-argument for a coordinate that is not an integer from 0 to 1000, unknown-node, and unsupported-node for a background.",
     example: { nodeId: 'node-image', origin: { x: 500, y: 500 } },
     argumentsSchema: setNodeOriginArgumentsSchema,
+  },
+  SetNodeFlip: {
+    description:
+      "Mirrors what a node draws in its own box, about the box's centre, before its scale and rotation: x true flips it left to right, y true top to bottom, false on both is no flip. Its content, crop, corners, mask, and effects mirror with it (a drop shadow's offset too); the box, the position, the origin, and the area a host hits stay, and a group's box is the canvas. It is not animated. To mirror a rotated node across its parent's axis, set its rotation to the negative and its position in the same transaction. Refused with invalid-argument for a value that is not true or false, unknown-node, and unsupported-node for a background.",
+    example: { nodeId: 'node-image', flip: { x: true, y: false } },
+    argumentsSchema: setNodeFlipArgumentsSchema,
   },
   SetNodeCrop: {
     description:

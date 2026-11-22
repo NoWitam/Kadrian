@@ -678,7 +678,21 @@ included, and its pull requests follow those of D88. Video output stays as D07 a
   transformable node and its step, the end of `cssTransform` and of the
   matte's `svgTransform`, `SetNodeFlip` and `set_node_flip`, and the probes of
   the flip, a flipped matte among them, in both hosts. Every document of
-  `0.26` writes the transform it wrote before.
+  `0.26` writes the transform it wrote before. Status: implemented, before
+  the pinned run. Schema `0.27` with the step, the frozen `0.26`, the pair
+  `migration-0-26-to-0-27`, the corpus `compatibility/v0-27` (with `flip`,
+  written by hand), and six invalid cases; the flip ends the CSS transform
+  and the matte's, with `0px` for a side not flipped, as the CSS Object Model
+  serialises it; `SetNodeFlip` and `set_node_flip` (104 tools). The probes
+  are a pinned file of their own, `tests/pinned/flip.pinned.test.ts`, so
+  `REQUIRED_PINNED_FILES` and the Q14 artifact list grow by it (`flip/probes.json`,
+  `flip/mirror.json`). No golden PNG file changes; the golden manifests change
+  in the three fields of D42 alone, as in PR-76, since the schema version and
+  the composition hash of every fixture change with the step. The runtime build
+  is `sha256:b7f9b46fa735aff4b5eab5dc21cb178a629182ab86f49b839733e833b3acb97b`
+  (506 099 bytes) and the Player's dist tree
+  `sha256:93c12b4b7dc0178711970adcc1f4cd3b3a41585f4e014be900fbb7ae744fddbf`
+  (83 files); the parity records and the evidence of Q14 are the pinned run's.
 - **PR-90** (D89.2, transparent stills): schema `0.28` with `clear` and its
   step; the page's clear in the runtime build; `color-scheme: normal` on the
   frame and the page; the override of the default background on a session

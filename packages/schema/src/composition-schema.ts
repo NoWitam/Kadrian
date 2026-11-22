@@ -52,8 +52,10 @@
  * captions by width, and the outline and the shadow of the spoken word (D83);
  * 0.26 is 0.25 plus the fades of a video's sound, and the volume curve of a
  * video and of an audio clip: keyframes of factors from 0 to 1, linear in
- * decibels or held, multiplied with the volume and the fades (D85). The
- * schemas of 0.1 to 0.25 are kept as data in `v0-1` to `v0-25` (D35.4).
+ * decibels or held, multiplied with the volume and the fades (D85); 0.27 is
+ * 0.26 plus the flip of every transformable node, a mirror of what it draws in
+ * its own box about the box's centre (D89.3). The schemas of 0.1 to 0.26 are
+ * kept as data in `v0-1` to `v0-26` (D35.4).
  */
 import {
   closedObject,
@@ -66,7 +68,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.26';
+export const SCHEMA_VERSION = '0.27';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -194,6 +196,19 @@ const permille = {
 const origin = closedObject(
   "The point of the node's box that scale and rotation are about, in per mille of the width and height of the box; 0, 0 is the top-left corner of D15 and 500, 500 the centre. A group's box is the canvas. It moves nothing by itself: the position is that of the top-left corner (D68).",
   { x: permille, y: permille },
+);
+
+/** Whether a node is mirrored in its own box along an axis (D89.3). */
+const mirrored = (axis: string) =>
+  ({
+    type: 'boolean',
+    description: `true mirrors what the node draws ${axis} about the centre of its box (D89.3).`,
+  }) as const satisfies BooleanSchema;
+
+/** The mirror flip of a node in its own box (D89.3); never animated. */
+const flip = closedObject(
+  "A mirror of what the node draws in its own box, about the box's centre, before scale and rotation: its content, crop, corners, mask, and effects. The box, the position, and the origin do not move; a group's box is the canvas (D89.3).",
+  { x: mirrored('left to right'), y: mirrored('top to bottom') },
 );
 
 /** The radius of the corners of an image or a video, in composition pixels (D68). */
@@ -734,7 +749,15 @@ function animations<const S extends readonly ObjectSchema[]>(rows: S) {
 }
 
 function transform<const S extends readonly ObjectSchema[]>(rows: S) {
-  return { position, scale, rotation, origin, opacity, animations: animations(rows) } as const;
+  return {
+    position,
+    scale,
+    rotation,
+    origin,
+    flip,
+    opacity,
+    animations: animations(rows),
+  } as const;
 }
 
 /** A group, a Custom HTML element: the transform rows only. */
@@ -3085,7 +3108,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.26',
+  title: 'Kadrion composition 0.27',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,
