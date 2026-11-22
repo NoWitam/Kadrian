@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.28"
+        "value": "0.29"
       }
     ],
     "expectedErrors": [
@@ -5319,6 +5319,84 @@
       {
         "code": "unknown-field",
         "path": "/scenes/0/nodes/0/flip"
+      }
+    ]
+  },
+  {
+    "name": "clear-missing",
+    "description": "D89.2: the composition states its clear; there is no default.",
+    "patch": [
+      {
+        "op": "remove",
+        "path": "/clear"
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "missing-field",
+        "path": "/clear"
+      }
+    ]
+  },
+  {
+    "name": "clear-unknown",
+    "description": "D89.2: the clear is white or transparent; no other colour (D89.4).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clear",
+        "value": "black"
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/clear"
+      }
+    ]
+  },
+  {
+    "name": "clear-not-a-string",
+    "description": "D89.2: the clear is a word, not a colour value.",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/clear",
+        "value": { "r": 0, "g": 0, "b": 0, "a": 0 }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-type",
+        "path": "/clear"
+      }
+    ]
+  },
+  {
+    "name": "clear-on-definition",
+    "description": "D89.2: a definition has no clear.",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/definitions/-",
+        "value": {
+          "id": "definition-clear",
+          "sourceHash": "",
+          "width": 80,
+          "height": 80,
+          "clear": "transparent",
+          "durationUs": 1000000,
+          "nodes": [],
+          "clips": [],
+          "transitions": [],
+          "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "unknown-field",
+        "path": "/definitions/0/clear"
       }
     ]
   },

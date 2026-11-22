@@ -14,7 +14,7 @@
  * D21.
  */
 import { evaluateComposition } from '@kadrion/runtime';
-import { validateComposition, type ValidationError } from '@kadrion/schema';
+import { validateComposition, type Clear, type ValidationError } from '@kadrion/schema';
 
 import { checkAssetUrls, type AssetUrls } from './assets.js';
 import { measureFonts, readFontMetrics } from './fonts.js';
@@ -118,8 +118,20 @@ export function synchronize(
 }
 
 /**
+ * The page's clear (D89.2): a transparent document sets the background colour
+ * of the page's root, the `html` element of the document that holds `root`, to
+ * `transparent`, and any other removes it, so that the white the page's style
+ * states shows (D42.5). Both hosts run it through `frame`.
+ */
+function applyClear(root: Element, clear: Clear): void {
+  const { style } = root.ownerDocument.documentElement;
+  if (clear === 'transparent') style.setProperty('background-color', 'transparent');
+  else style.removeProperty('background-color');
+}
+
+/**
  * One complete frame (D25.3), in the one order both hosts use: validate,
- * evaluate, write the frames of the active video nodes that the host supplies
+ * write the page's clear (D89.2), evaluate, write the frames of the active video nodes that the host supplies
  * (D50.4) — none when it passes none — render, and then push the time to the
  * Custom HTML elements while the media of the frame become ready. Resolves with `{ ok: true }` only when the
  * elements acknowledged, every image is decoded, and the font set has settled; a
@@ -139,6 +151,7 @@ export function frame(
       resolve({ ok: false, errors: result.errors });
       return;
     }
+    applyClear(root, result.composition.clear);
     const state = evaluateComposition(result.composition, timeUs, readFontMetrics(root));
     applyVideoFrames(root, state, videoFrames);
     renderState(root, state);

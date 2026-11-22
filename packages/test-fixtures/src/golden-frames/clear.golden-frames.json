@@ -1,0 +1,139 @@
+{
+  "render": {
+    "manifestVersion": 3,
+    "compositionHash": "sha256:13a567f42c5b14091bf197e2b7e43b3f49a710456000e132a4809f81cc5917dd",
+    "schemaVersion": "0.28",
+    "runtime": {
+      "contentHash": "sha256:e3df8346dfdb1d674d8975d4e8150d02a1783510a0143add006e18c081e1c907",
+      "bundler": "esbuild@0.28.2",
+      "compiler": "typescript@6.0.3"
+    },
+    "chromium": {
+      "playwrightCore": "1.63.0",
+      "revision": "1243",
+      "expectedVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ]
+    },
+    "environment": {
+      "pinned": true,
+      "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+      "pinnedPlatform": "linux/amd64",
+      "os": "linux",
+      "arch": "x64",
+      "node": "v24.20.0",
+      "playwrightCore": "1.63.0",
+      "chromiumRevision": "1243",
+      "chromiumVersion": "153.0.8010.12",
+      "reportedVersion": "153.0.8010.12",
+      "channel": "chromium",
+      "args": [
+        "--force-color-profile=srgb",
+        "--disable-lcd-text",
+        "--hide-scrollbars",
+        "--mute-audio"
+      ],
+      "locale": "en-US",
+      "timezone": "UTC",
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "deviceScaleFactor": 1,
+      "network": {
+        "interfaces": [
+          "lo"
+        ],
+        "loopbackOnly": true
+      }
+    },
+    "assets": [],
+    "durationUs": 1000000,
+    "frameCount": 30,
+    "video": null,
+    "preset": {
+      "name": "frames-png",
+      "width": 640,
+      "height": 360,
+      "fps": 30,
+      "deviceScaleFactor": 1
+    },
+    "frames": [
+      {
+        "index": 0,
+        "timeUs": 0,
+        "sha256": "sha256:5e9fec0ce3878a5e3a06f4b63db320cc2ac057dd040e847e973bf222b7f5385d"
+      },
+      {
+        "index": 15,
+        "timeUs": 500000,
+        "sha256": "sha256:a6c7d7a815eea14347d9acf1a0f9188c029e77a923188770cccfdaf4be0035f9"
+      },
+      {
+        "index": 29,
+        "timeUs": 966666,
+        "sha256": "sha256:47aa944a6cfa9b46fa8c28f1986ccbc730e1c373eda94d392d1ec1d66b937bf0"
+      }
+    ],
+    "blockedRequests": [],
+    "ffmpeg": null
+  },
+  "environment": {
+    "pinned": true,
+    "image": "mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27",
+    "pinnedPlatform": "linux/amd64",
+    "os": "linux",
+    "arch": "x64",
+    "node": "v24.20.0",
+    "playwrightCore": "1.63.0",
+    "chromiumRevision": "1243",
+    "chromiumVersion": "153.0.8010.12",
+    "reportedVersion": "153.0.8010.12",
+    "channel": "chromium",
+    "args": [
+      "--force-color-profile=srgb",
+      "--disable-lcd-text",
+      "--hide-scrollbars",
+      "--mute-audio"
+    ],
+    "locale": "en-US",
+    "timezone": "UTC",
+    "viewport": {
+      "width": 1080,
+      "height": 1920
+    },
+    "deviceScaleFactor": 1,
+    "network": {
+      "interfaces": [
+        "lo"
+      ],
+      "loopbackOnly": true
+    }
+  },
+  "frames": [
+    {
+      "file": "clear-0.png",
+      "timeUs": 0,
+      "index": 0,
+      "sha256": "sha256:5e9fec0ce3878a5e3a06f4b63db320cc2ac057dd040e847e973bf222b7f5385d"
+    },
+    {
+      "file": "clear-500000.png",
+      "timeUs": 500000,
+      "index": 15,
+      "sha256": "sha256:a6c7d7a815eea14347d9acf1a0f9188c029e77a923188770cccfdaf4be0035f9"
+    },
+    {
+      "file": "clear-966666.png",
+      "timeUs": 966666,
+      "index": 29,
+      "sha256": "sha256:47aa944a6cfa9b46fa8c28f1986ccbc730e1c373eda94d392d1ec1d66b937bf0"
+    }
+  ]
+}

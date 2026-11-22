@@ -95,6 +95,9 @@ export type CaptionWord = CaptionsNode['words'][number];
 ---- CaptionsNode (type only)
 export type CaptionsNode = Infer<typeof captionsNodeSchema>;
 
+---- Clear (type only)
+export type Clear = Composition['clear'];
+
 ---- ClipTimeMap (type only)
 export interface ClipTimeMap {
     readonly intercept: bigint;
@@ -211,7 +214,7 @@ export interface PlacedVideo {
 }
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.27";
+export declare const SCHEMA_VERSION = "0.28";
 
 ---- SVG_IDENTITY
 export declare const SVG_IDENTITY: SvgMatrix;
@@ -520,11 +523,11 @@ export declare const compositionSchema: {
     readonly type: "object";
     readonly description: string;
     readonly additionalProperties: false;
-    readonly required: readonly ("width" | "height" | "durationUs" | "clips" | "transitions" | "template" | "schemaVersion" | "safeArea" | "fps" | "assets" | "scenes" | "definitions")[];
+    readonly required: readonly ("width" | "height" | "durationUs" | "clips" | "transitions" | "template" | "schemaVersion" | "safeArea" | "clear" | "fps" | "assets" | "scenes" | "definitions")[];
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.27";
+            readonly const: "0.28";
         };
         readonly width: {
             readonly type: "integer";
@@ -564,6 +567,14 @@ export declare const compositionSchema: {
                 readonly maximum: 1920;
             };
         }>;
+        readonly clear: {
+            readonly type: "string";
+            readonly description: "What a pixel that no node covers is (D89.2): 'white', opaque white, or 'transparent', which a PNG or WebP still and the frames of a render keep as alpha; a JPEG still and a video are drawn over white. A definition has none (D89.2).";
+            readonly enum: readonly [
+                "white",
+                "transparent"
+            ];
+        };
         readonly fps: {
             readonly type: "integer";
             readonly description: "Integer frame rate; the frame grid follows D13.";
@@ -6633,7 +6644,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.27";
+    readonly title: "Kadrion composition 0.28";
 };
 
 ---- definitionTimeUs
@@ -6760,7 +6771,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24' | '0.25' | '0.26' | '0.27';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24' | '0.25' | '0.26' | '0.27' | '0.28';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

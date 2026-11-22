@@ -1,8 +1,9 @@
 {
-  "schemaVersion": "0.27",
+  "schemaVersion": "0.28",
   "width": 640,
   "height": 360,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
+  "clear": "white",
   "fps": 30,
   "durationUs": 2000000,
   "assets": [

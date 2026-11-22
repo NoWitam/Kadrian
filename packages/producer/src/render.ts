@@ -22,6 +22,7 @@ import {
   readSvg,
   timeUsToFrame,
   validateComposition,
+  type Clear,
   type ValidatedComposition,
 } from '@kadrion/schema';
 import type { Frame, Page, Request } from 'playwright-core';
@@ -104,6 +105,14 @@ export interface RenderSessionOptions extends RenderTimeouts {
    * frames an export wrote.
    */
   readonly capture?: FrameCapture;
+  /**
+   * The clear of the document the session loads (D89.2): `white`, the default,
+   * opens and captures the page as before; `transparent` states a transparent
+   * background in the host document, and every capture of a frame overrides
+   * the default background colour of the page with transparent black on its
+   * own session, so that it keeps what no node covers as alpha.
+   */
+  readonly clear?: Clear;
 }
 
 /** What the page reports for a call of its agent. */
@@ -181,8 +190,15 @@ export const MARK_STRIP_HEIGHT = 2;
 /**
  * The host document of D28.1: one sandboxed frame with the render page, at
  * 0,0, as wide as the composition and `MARK_STRIP_HEIGHT` pixels higher (D86.1).
+ * For a transparent clear it states a transparent background (D89.2); for a
+ * white one it is the document it was before.
  */
-export function hostDocument(runtimeScript: string, width: number, height: number): string {
+export function hostDocument(
+  runtimeScript: string,
+  width: number,
+  height: number,
+  clear: Clear = 'white',
+): string {
   let srcdoc: string;
   try {
     srcdoc = renderPageDocument([runtimeScript, PRODUCER_AGENT_SCRIPT]);
@@ -201,7 +217,9 @@ export function hostDocument(runtimeScript: string, width: number, height: numbe
     .join('; ');
   return [
     '<!doctype html><html><head><meta charset="utf-8">',
-    '<style>html,body{margin:0;padding:0;overflow:hidden}</style>',
+    clear === 'transparent'
+      ? '<style>html,body{margin:0;padding:0;overflow:hidden}html{background-color:transparent}</style>'
+      : '<style>html,body{margin:0;padding:0;overflow:hidden}</style>',
     `</head><body><iframe sandbox="${RENDER_PAGE_SANDBOX}" style="${style}" srcdoc="${escapeAttribute(srcdoc)}"></iframe>`,
     '</body></html>',
   ].join('');
@@ -234,7 +252,8 @@ function base64Of(bytes: Uint8Array): string {
 /** Opens a fresh page in the pinned context with the render page and its agent (D28.1). */
 export async function openRenderSession(options: RenderSessionOptions): Promise<RenderSession> {
   const runtime = options.runtime ?? loadRuntimeBuild();
-  const html = hostDocument(runtime.script, options.width, options.height);
+  const clear = options.clear ?? 'white';
+  const html = hostDocument(runtime.script, options.width, options.height, clear);
   const ackTimeoutMs = options.ackTimeoutMs ?? 2_000;
   const pageTimeoutMs = options.pageTimeoutMs ?? 30_000;
   const presentationTimeoutMs = options.presentationTimeoutMs ?? 5_000;
@@ -261,7 +280,10 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
   let baseline: ReadonlyMap<string, FrameDocument> | null = null;
   // Closed once: a cancelled job closes the page while a call is in flight (D48.2).
   let closing: Promise<void> | null = null;
-  const close = (): Promise<void> => (closing ??= context.close());
+  const close = (): Promise<void> =>
+    (closing ??= (async () => {
+      await context.close();
+    })());
   try {
     await context.route('**/*', (route) => {
       record(route.request());
@@ -424,7 +446,7 @@ export async function openRenderSession(options: RenderSessionOptions): Promise<
           presentationTimeoutMs,
           `frame ${String(index)}`,
         );
-        const png = await captureAs(page, options.width, options.height, capture);
+        const png = await captureAs(page, options.width, options.height, capture, clear);
         await sameDocuments();
         noRequests();
         return png;
@@ -589,6 +611,26 @@ export type FrameSequence = (
   deliver: (frame: RenderedFrame) => Promise<void>,
 ) => Promise<SequenceOutcome>;
 
+/**
+ * The document an opaque output renders (D89.2): a copy of `composition` with a
+ * white clear, so that the page draws over its own white. A JPEG still and
+ * every video job load it; their manifests keep the hash of the document as
+ * given. A document whose clear is white is its own copy.
+ */
+export function withWhiteClear(composition: ValidatedComposition): ValidatedComposition {
+  if (composition.clear === 'white') return composition;
+  // The clear is the only change, and white is a clear of every document; the
+  // copy is validated, as every document the Producer renders is (Q17).
+  const copy = validateComposition(Object.assign({}, composition, { clear: 'white' }));
+  if (!copy.ok) {
+    throw new ProducerError(
+      'invalid-document',
+      'The copy of the document with a white clear is not valid.',
+    );
+  }
+  return copy.composition;
+}
+
 /** The frame sequence of a browser from `launchChromium`. */
 export function chromiumSequence(
   chromium: LaunchedChromium,
@@ -612,6 +654,7 @@ export function chromiumSequence(
       customHtmlNodes: customHtmlNodes(composition),
       runtime,
       ...(capture === undefined ? {} : { capture }),
+      clear: composition.clear,
     });
     // A cancelled job closes its page at once, so a call in flight fails now
     // instead of after its timeout (D48.2).

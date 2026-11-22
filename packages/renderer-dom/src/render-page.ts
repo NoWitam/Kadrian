@@ -30,11 +30,15 @@ export const RENDER_PAGE_SANDBOX = 'allow-scripts';
 /**
  * The styles of the frame that holds the render page, besides its width and
  * height in pixels (D25.2, D28.1). Both hosts embed the page with them, so that
- * no border or layout of a host shifts the frame.
+ * no border or layout of a host shifts the frame. The frame states the colour
+ * scheme the page states, `normal`, since Chromium paints an opaque backdrop
+ * behind a frame whose colour scheme differs from its document's: a host page
+ * of dark scheme then shows through a transparent clear (D89.2).
  */
 export const RENDER_PAGE_FRAME_STYLE: Readonly<Record<string, string>> = Object.freeze({
   display: 'block',
   'border-style': 'none',
+  'color-scheme': 'normal',
 });
 
 /** Sequences that end a script element early or switch its parser state. */
@@ -58,8 +62,10 @@ export function renderPageDocument(scripts: readonly string[]): string {
     '<!doctype html><html><head><meta charset="utf-8">',
     `<meta http-equiv="Content-Security-Policy" content="${RENDER_PAGE_POLICY}">`,
     // The clear colour is the page's own (D42.5): a pixel that no active node covers is
-    // opaque white in every host, never whatever lies behind the frame.
-    '<style>html,body{margin:0;padding:0;overflow:hidden}html{background-color:#ffffff}</style>',
+    // opaque white in every host, never whatever lies behind the frame, unless the
+    // document's clear is transparent, which `frame` writes on the root (D89.2). The
+    // root's colour scheme is the frame's, for every document (D89.2).
+    '<style>html,body{margin:0;padding:0;overflow:hidden}html{background-color:#ffffff;color-scheme:normal}</style>',
     `</head><body><div id="${RENDER_ROOT_ID}"></div>`,
     ...scripts.map((script) => `<script>${script}</script>`),
     '</body></html>',

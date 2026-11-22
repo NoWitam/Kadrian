@@ -52,6 +52,7 @@ import {
   parseSetCaptionHighlight,
   parseSetCaptionPageAnimation,
   parseSetSafeArea,
+  parseSetCompositionClear,
   parseAddEffect,
   parseRemoveEffect,
   parseReorderEffect,
@@ -3093,6 +3094,22 @@ const DEFINITIONS = deepFreeze<Definitions>({
       return {
         // The safe area keeps its place in the document (D30.7).
         document: { ...document, safeArea: command.safeArea },
+        invert: () => inverse,
+        createdIds: [],
+        removedIds: [],
+      };
+    },
+  },
+  SetCompositionClear: {
+    parse: parseSetCompositionClear,
+    edit(document, command) {
+      const clear: unknown = document['clear'];
+      // The same value is no edit (D38.9).
+      if (clear === command.clear) return null;
+      const inverse = parseSetCompositionClear({ type: 'SetCompositionClear', clear });
+      return {
+        // The clear keeps its place in the document (D30.7).
+        document: { ...document, clear: command.clear },
         invert: () => inverse,
         createdIds: [],
         removedIds: [],

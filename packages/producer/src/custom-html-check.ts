@@ -101,7 +101,7 @@ function nodeOf(composition: ValidatedComposition, nodeId: string): CustomHtmlNo
  * A document of the element alone: the canvas and the frame rate of its
  * document, one scene as long as the element, which starts at 0 at the
  * top-left corner, unscaled, unrotated, unflipped, opaque, and unanimated, over a mid
- * grey background, so that white and black content both show, and its fonts
+ * grey background on a white clear, so that white and black content both show, and its fonts
  * as the only assets. The managed clock counts from the node's start (D78), so
  * the element sees the times it sees in its document.
  */
@@ -115,6 +115,7 @@ export function customHtmlCheckDocument(
     width: composition.width,
     height: composition.height,
     safeArea: { fromTop: 0, fromRight: 0, fromBottom: 0, fromLeft: 0 },
+    clear: 'white',
     fps: composition.fps,
     durationUs: node.durationUs,
     assets: composition.assets.filter((asset) => fonts.has(asset.id)),

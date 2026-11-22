@@ -15,6 +15,7 @@ import type {
   CaptionStyle,
   CaptionsNode,
   CaptionWord,
+  Clear,
   Composition,
   CustomHtmlNode,
   Definition,
@@ -892,7 +893,7 @@ interface ExpectedDefinition {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.27';
+  readonly schemaVersion: '0.28';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {
@@ -901,6 +902,7 @@ interface ExpectedComposition {
     readonly fromBottom: number;
     readonly fromLeft: number;
   };
+  readonly clear: 'white' | 'transparent';
   readonly fps: number;
   readonly durationUs: number;
   readonly assets: readonly ExpectedAsset[];
@@ -936,6 +938,7 @@ describe('types derived from the JSON Schema', () => {
     expectTypeOf<CaptionHighlight>().toEqualTypeOf<ExpectedCaptionHighlight>();
     expectTypeOf<CaptionPageAnimation>().toEqualTypeOf<ExpectedPageAnimation>();
     expectTypeOf<SafeArea>().toEqualTypeOf<ExpectedComposition['safeArea']>();
+    expectTypeOf<Clear>().toEqualTypeOf<ExpectedComposition['clear']>();
     expectTypeOf<NodeAnimation>().toEqualTypeOf<ExpectedNodeAnimation>();
     expectTypeOf<Easing>().toEqualTypeOf<ExpectedEasing>();
     expectTypeOf<AnimationKeyframe>().toEqualTypeOf<ExpectedNodeAnimation['keyframes'][number]>();

@@ -12,6 +12,7 @@
  */
 import { inflateSync } from 'node:zlib';
 
+import type { Clear } from '@kadrion/schema';
 import type { CDPSession, Page } from 'playwright-core';
 
 import { ProducerError } from './errors.js';
@@ -144,15 +145,36 @@ export function captureFrame(page: Page, width: number, height: number): Promise
   return captureAs(page, width, height, 'reference');
 }
 
-/** The composition's area of the page as PNG bytes, at scale 1, by the given capture (D28.5, D88.1). */
+/**
+ * The default background colour of a capture that keeps alpha (D89.2):
+ * transparent black, which `Emulation.setDefaultBackgroundColorOverride`
+ * paints where the host document and the render page paint nothing.
+ */
+export const TRANSPARENT_BACKGROUND = Object.freeze({ r: 0, g: 0, b: 0, a: 0 });
+
+/**
+ * The composition's area of the page as PNG bytes, at scale 1, by the given
+ * capture (D28.5, D88.1). For a transparent clear (D89.2) the session of the
+ * capture first overrides the page's default background colour with
+ * transparent black: an override ends when any CDP session of the page
+ * detaches, as the sessions of the presentation and of the mark do before
+ * every capture (measured in the pinned Chromium, PR-90), so it is set on the
+ * session that captures, right before the capture.
+ */
 export async function captureAs(
   page: Page,
   width: number,
   height: number,
   capture: FrameCapture,
+  clear: Clear = 'white',
 ): Promise<Uint8Array> {
   const session = await page.context().newCDPSession(page);
   try {
+    if (clear === 'transparent') {
+      await session.send('Emulation.setDefaultBackgroundColorOverride', {
+        color: { ...TRANSPARENT_BACKGROUND },
+      });
+    }
     const { data } = await session.send('Page.captureScreenshot', {
       format: 'png',
       fromSurface: true,

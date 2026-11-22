@@ -85,7 +85,7 @@ export declare const DEFAULT_SEGMENT_FRAMES = 60;
 export declare const DEVICE_SCALE_FACTOR = 1;
 
 ---- EXPORT_MANIFEST_VERSION
-export declare const EXPORT_MANIFEST_VERSION = 6;
+export declare const EXPORT_MANIFEST_VERSION = 7;
 
 ---- EnvironmentFacts (type only)
 export interface EnvironmentFacts {
@@ -136,6 +136,7 @@ export interface EstimatePlan {
 export interface ExportManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
     readonly kind: 'export';
     readonly capture: ManifestCapture;
+    readonly clear: ManifestClear;
     readonly preset: ManifestMp4Preset;
     readonly segmentFrames: number;
     readonly grid?: ManifestGrid;
@@ -355,6 +356,9 @@ export interface ManifestAudioPass {
 
 ---- ManifestCapture (type only)
 export type ManifestCapture = 'fast';
+
+---- ManifestClear (type only)
+export type ManifestClear = Clear;
 
 ---- ManifestFfmpeg (type only)
 export interface ManifestFfmpeg extends ManifestFfmpegBuild {
@@ -593,6 +597,7 @@ export interface RenderSessionOptions extends RenderTimeouts {
     readonly customHtmlNodes: number;
     readonly runtime?: RuntimeBuild;
     readonly capture?: FrameCapture;
+    readonly clear?: Clear;
 }
 
 ---- RenderTimeouts (type only)
@@ -658,6 +663,7 @@ export interface SegmentGrid {
 export interface SegmentsManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
     readonly kind: 'segments';
     readonly capture: ManifestCapture;
+    readonly clear: ManifestClear;
     readonly preset: ManifestMp4Preset;
     readonly segmentFrames: number;
     readonly grid?: ManifestGrid;
@@ -695,6 +701,7 @@ export type StillFormat = keyof typeof STILL_FORMATS;
 ---- StillManifest (type only)
 export interface StillManifest extends Omit<RenderManifest, 'preset' | 'ffmpeg'> {
     readonly kind: 'still';
+    readonly clear: ManifestClear;
     readonly preset: {
         readonly name: 'still-png' | 'still-jpeg' | 'still-webp';
         readonly width: number;
@@ -802,7 +809,7 @@ export declare function gridRange(composition: ValidatedComposition, grid: Segme
 export declare function gridSegments(grid: SegmentGrid): Segment[];
 
 ---- hostDocument
-export declare function hostDocument(runtimeScript: string, width: number, height: number): string;
+export declare function hostDocument(runtimeScript: string, width: number, height: number, clear?: Clear): string;
 
 ---- installedPlaywright
 export declare function installedPlaywright(): {

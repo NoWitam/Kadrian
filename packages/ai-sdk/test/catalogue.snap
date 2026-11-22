@@ -1,7 +1,7 @@
 [
   {
     "name": "describe_document",
-    "description": "Describes the current document and changes nothing. Returns the canvas size in composition pixels, fps, and durationUs; every scene in the order they play, with its ID, its startUs in the composition (derived: the sum of the durations before it, less the scene transitions between them), its durationUs, its audio clips in scene time, and its nodes from the bottom layer to the top, each with its ID, type, parentId, layer (0 is the bottom), startUs and durationUs in integer microseconds of the time of its scene, its stored fields (position, scale, opacity, animations with their keyframes, text, colour, the html, fonts, and parameters of a Custom HTML element, and so on), a group's children, and the clip transitions and effects of the scene; the transitions between scenes; the definitions that instance nodes place, with their nodes and templates; the template section; the safe area; and the declared assets and the composition's clips, in composition time, where a video or audio asset also states its sourceDurationUs, the length of its source in integer microseconds, when the host knows it, and a video its soundDurationUs, the length of its sound, or null when it has none. Call it before editing to learn the IDs that other tools take.\n\nExample arguments: {}",
+    "description": "Describes the current document and changes nothing. Returns the canvas size in composition pixels, fps, and durationUs; every scene in the order they play, with its ID, its startUs in the composition (derived: the sum of the durations before it, less the scene transitions between them), its durationUs, its audio clips in scene time, and its nodes from the bottom layer to the top, each with its ID, type, parentId, layer (0 is the bottom), startUs and durationUs in integer microseconds of the time of its scene, its stored fields (position, scale, opacity, animations with their keyframes, text, colour, the html, fonts, and parameters of a Custom HTML element, and so on), a group's children, and the clip transitions and effects of the scene; the transitions between scenes; the definitions that instance nodes place, with their nodes and templates; the template section; the safe area and the clear (white or transparent); and the declared assets and the composition's clips, in composition time, where a video or audio asset also states its sourceDurationUs, the length of its source in integer microseconds, when the host knows it, and a video its soundDurationUs, the length of its sound, or null when it has none. Call it before editing to learn the IDs that other tools take.\n\nExample arguments: {}",
     "inputSchema": {
       "type": "object",
       "description": "No arguments.",
@@ -2411,6 +2411,28 @@
     }
   },
   {
+    "name": "set_composition_clear",
+    "description": "Sets what a pixel that no node covers is, for the whole composition: \"white\" is opaque white; \"transparent\" leaves it transparent, so that a PNG or WebP still and the frames of a render keep it as alpha, and the preview shows the host's page through it. A JPEG still and a video have no alpha and are drawn over white, so a node that blends with what lies below it (set_blend_mode) can look different there than in a PNG. A background node covers the canvas whatever the clear. describe_document shows it. Refused with invalid-argument. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"clear\":\"transparent\"}",
+    "inputSchema": {
+      "type": "object",
+      "description": "Sets what a pixel that no node covers is: white or transparent.",
+      "properties": {
+        "clear": {
+          "type": "string",
+          "description": "white is opaque white; transparent keeps what no node covers as alpha in a PNG or WebP still and in the frames of a render, and a JPEG still and a video are drawn over white.",
+          "enum": [
+            "white",
+            "transparent"
+          ]
+        }
+      },
+      "required": [
+        "clear"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
     "name": "add_template_input",
     "description": "Inserts an input into the template: {id, type, ...constraints, default}, with an ID unused in the document. A text has minLength and maxLength in code points, a number minimum and maximum, a boolean, a color (lowercase #rrggbb), an image, video, or audio only a default content hash, and a list minItems, maxItems, fields ({key, type, ...constraints}, no list among them), and a default whose items each list one {key, type, value} per field in their order; the default meets the constraints. Nothing reads a new input until a binding does; a boolean or a list is read by no binding yet. A template is a composition with inputs a host fills: instantiateTemplate makes a composition from it and their values, and the preview shows it with the defaults. A binding writes an input into a property of a node (the text of a text, the color of a text or a background), into a parameter of a Custom HTML element (an input of the type of the parameter), into the {{inputId}} placeholders of the text of a text node, into the words of a captions node (a list whose fields are text, startUs, and durationUs), or into an asset (its content hash), and inside a repeat over a list an item binding writes a field of the item of each copy; a property or asset bound to an input always holds its default. A condition keeps a scene or a node only while its test of an input holds; a repeat makes one copy of a scene or a node per item of a list, one after the other, with IDs <id>--<index>. Another command that changes a bound property, removes a bound node, a scene or node named by a condition or repeat, or a bound asset, spoils the placeholders of a bound text, or moves an item-bound node out of its repeat is refused with binding-in-use and the IDs of the bindings, conditions, or repeats: set the input with set_template_input instead, or remove them first. describe_document shows the template section. Refused with index-out-of-range, id-in-use, and invalid-result when the input is not one the document can hold. The edit goes through the host's command bus, as the same edit in the editor does: the result is validated in full, a refused call changes nothing, and the host can undo it. Returns the edited document and the IDs the call created.\n\nExample arguments: {\"index\":0,\"input\":{\"id\":\"headline\",\"type\":\"text\",\"minLength\":1,\"maxLength\":40,\"default\":\"Kadrion\"}}",
     "inputSchema": {
@@ -3058,6 +3080,7 @@
                   "reorder_effect",
                   "set_effect",
                   "set_safe_area",
+                  "set_composition_clear",
                   "add_template_input",
                   "remove_template_input",
                   "set_template_input",

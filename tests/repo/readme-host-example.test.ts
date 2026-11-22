@@ -75,7 +75,7 @@ describe('the host example of the README (D43.7)', () => {
   it.each([
     ['a text that is no JSON', '{'],
     ['a byte order mark', `\uFEFF${currentText}`],
-    ['a version this build does not know', currentText.replace('"0.27"', '"0.28"')],
+    ['a version this build does not know', currentText.replace('"0.28"', '"0.29"')],
     ['an invalid document', currentText.replace('"fps":30', '"fps":0')],
     ['an invalid document of an earlier version', olderText.replace('"fps":30', '"fps":0')],
     ['a value that is no string', 5 as unknown as string],
@@ -148,6 +148,7 @@ describe('the host example of the README (D43.7)', () => {
       '0.24',
       '0.25',
       '0.26',
+      '0.27',
       SCHEMA_VERSION,
     ]);
     const second = app.bus();

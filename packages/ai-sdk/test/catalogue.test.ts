@@ -39,8 +39,8 @@ describe('the catalogue covers the command registry exactly (D46.2)', () => {
       'check_custom_html',
       'run_transaction',
     ]);
-    expect(COMMAND_TOOLS).toHaveLength(99);
-    expect(TOOL_CATALOGUE).toHaveLength(104);
+    expect(COMMAND_TOOLS).toHaveLength(100);
+    expect(TOOL_CATALOGUE).toHaveLength(105);
   });
 
   it('offers speed, reverse, and the freeze frame, so a model can do each edit of D82 (D82.9)', () => {
@@ -165,6 +165,12 @@ const BUDGET_OF_D85 = 700;
  */
 const CATALOGUE_LENGTH_OF_0_26 = 233_348;
 
+/**
+ * The catalogue of schema `0.27` (the committed snapshot of `main` before
+ * PR-90), measured the same way: from where the clear of D89.2 is measured.
+ */
+const CATALOGUE_LENGTH_OF_0_27 = 235_086;
+
 /** The length of the JSON of every tool's entry, all tools together (D83.10). */
 function catalogueLength(catalogue: readonly ToolDefinition[]): number {
   return catalogue.reduce((sum, tool) => sum + JSON.stringify(tool).length, 0);
@@ -187,14 +193,26 @@ describe('the budget of D85.8', () => {
 });
 
 describe('the flip of D89.3 in the catalogue (D46.5)', () => {
-  it('grows the catalogue over the snapshot of 0.26 by set_node_flip, its name in run_transaction, and the flip of add_node alone', () => {
+  it('grew the catalogue from the snapshot of 0.26 to that of 0.27 by set_node_flip, its name in run_transaction, and the flip of add_node alone', () => {
     const flip = TOOL_CATALOGUE.find(({ name }) => name === 'set_node_flip');
     if (flip === undefined) throw new Error('No set_node_flip.');
-    const others = catalogueLength(TOOL_CATALOGUE) - JSON.stringify(flip).length;
     // `"set_node_flip",` in the names run_transaction takes (16), and in
     // add_node `, flip` in its text and `"flip":{"x":false,"y":false},` in its
     // example, escaped as JSON (41).
-    expect(others - CATALOGUE_LENGTH_OF_0_26).toBe(16 + 41);
+    expect(CATALOGUE_LENGTH_OF_0_27 - JSON.stringify(flip).length - CATALOGUE_LENGTH_OF_0_26).toBe(
+      16 + 41,
+    );
+  });
+});
+
+describe('the clear of D89.2 in the catalogue (D46.5)', () => {
+  it('grows the catalogue over the snapshot of 0.27 by set_composition_clear, its name in run_transaction, and the clear in describe_document alone', () => {
+    const clear = TOOL_CATALOGUE.find(({ name }) => name === 'set_composition_clear');
+    if (clear === undefined) throw new Error('No set_composition_clear.');
+    const others = catalogueLength(TOOL_CATALOGUE) - JSON.stringify(clear).length;
+    // `"set_composition_clear",` in the names run_transaction takes (24), and
+    // ` and the clear (white or transparent)` in the text of describe_document (37).
+    expect(others - CATALOGUE_LENGTH_OF_0_27).toBe(24 + 37);
   });
 });
 

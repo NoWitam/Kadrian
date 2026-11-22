@@ -6,7 +6,7 @@
  * easing composition (D67), of the motion composition (D68), of the text
  * composition (D69), of the animated captions composition (D70), and of the
  * effects composition (D71), of the SVG effects composition (D72), of the composition of shapes (D73), of the SVG composition (D74), and of the
- * composition of compositing (D75), of the nested composition (D76), of the elements (D77), of Custom HTML for AI authors (D78), of clips at another speed, frozen, and reversed (D82), and of texts in frames and captions broken by width (D83) with the
+ * composition of compositing (D75), of the nested composition (D76), of the elements (D77), of Custom HTML for AI authors (D78), of clips at another speed, frozen, and reversed (D82), of texts in frames and captions broken by width (D83), and of the transparent clear (D89.2) with the
  * Producer and writes the golden frames and their manifests into
  * `packages/test-fixtures/src/golden-frames/`. The video needs the pinned
  * FFmpeg of `KADRION_FFMPEG` and `KADRION_FFPROBE`. It refuses
@@ -28,6 +28,8 @@ import {
   sha256,
 } from '@kadrion/producer';
 import {
+  clearComposition,
+  clearGoldenTimestamps,
   framedTextComposition,
   framedTextGoldenTimestamps,
   generateProportionalFontAsset,
@@ -497,6 +499,24 @@ try {
       `${JSON.stringify({ render: framedTextResult.manifest, environment, frames: framedTextFrames }, null, 2)}\n`,
     );
     for (const frame of framedTextFrames) console.log(`${frame.file} ${frame.sha256}`);
+
+    // The transparent clear: what no node covers stays alpha in the frames (D89.2).
+    const clearResult = await renderFrames({
+      document: clearComposition,
+      resolveAsset: ({ id }) => assets[id] ?? null,
+      timesUs: clearGoldenTimestamps.map(({ timeUs }) => timeUs),
+      chromium,
+    });
+    const clearFrames = clearResult.frames.map(({ index, timeUs, png }) => {
+      const file = `clear-${String(timeUs)}.png`;
+      writeFileSync(join(directory, file), png);
+      return { file, timeUs, index, sha256: sha256(png) };
+    });
+    writeFileSync(
+      join(directory, 'clear.golden-frames.json'),
+      `${JSON.stringify({ render: clearResult.manifest, environment, frames: clearFrames }, null, 2)}\n`,
+    );
+    for (const frame of clearFrames) console.log(`${frame.file} ${frame.sha256}`);
   }
 } finally {
   await chromium.browser.close();

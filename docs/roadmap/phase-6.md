@@ -678,8 +678,7 @@ included, and its pull requests follow those of D88. Video output stays as D07 a
   transformable node and its step, the end of `cssTransform` and of the
   matte's `svgTransform`, `SetNodeFlip` and `set_node_flip`, and the probes of
   the flip, a flipped matte among them, in both hosts. Every document of
-  `0.26` writes the transform it wrote before. Status: implemented, before
-  the pinned run. Schema `0.27` with the step, the frozen `0.26`, the pair
+  `0.26` writes the transform it wrote before. Status: done (#129). Schema `0.27` with the step, the frozen `0.26`, the pair
   `migration-0-26-to-0-27`, the corpus `compatibility/v0-27` (with `flip`,
   written by hand), and six invalid cases; the flip ends the CSS transform
   and the matte's, with `0px` for a side not flipped, as the CSS Object Model
@@ -701,7 +700,24 @@ included, and its pull requests follow those of D88. Video output stays as D07 a
   segments, and exports, compared by the join, at `EXPORT_MANIFEST_VERSION`
   7; `SetCompositionClear` and its tool; a transparent reference still with
   golden frames, alpha checked in every frame, and a blend mode over the
-  clear.
+  clear. Status: implemented and measured in the pinned run. Schema `0.28`
+  with the step, the frozen `0.27`, the pair `migration-0-27-to-0-28`, the
+  corpus `compatibility/v0-28` (with `clear.json`, written by hand), and four
+  invalid cases; `SetCompositionClear` and `set_composition_clear` (105
+  tools). The override of the default background is sent on the session of
+  each capture, right before it, and not once on a session kept with the
+  page: in the pinned Chromium an override ends when any session of the
+  page detaches, as the sessions of the presentation (D28.5) and of the mark
+  (D86.2) do before every capture (D89, implementation notes of PR-90). The
+  transparent reference still `clear` (640x360) enters with three golden
+  frames and `tests/pinned/clear.pinned.test.ts`, so `REQUIRED_PINNED_FILES`
+  and the Q14 artifact list grow by it. No existing golden PNG file changes;
+  the golden manifests change in the three fields of D42 alone. The runtime
+  build is
+  `sha256:e3df8346dfdb1d674d8975d4e8150d02a1783510a0143add006e18c081e1c907`
+  (506 805 bytes) and the Player's dist tree
+  `sha256:dadc1a9b200d27e5a76820d2994d1449548189992eecf666445b03149eb08417`
+  (83 files); the parity records and the evidence of Q14 are the pinned run's.
 - **PR-91** (D89.1, the canvas): the gate of D89.1 measured first, then
   schema `0.29` with the bound it sets (at most 8192); video jobs refusing a
   composition or a definition with a side above 1920; `maxCanvasPixels`; the
