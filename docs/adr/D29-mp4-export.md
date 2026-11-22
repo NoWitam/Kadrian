@@ -14,6 +14,7 @@
 - Amended by: PR-29a (D52) on 2026-10-31: 29.6: several sounds mixed on the sample grid from private copies, a short source is `source-range-exceeded`, nothing heard means no audio stream, and the manifest's `audio` lists the sounds (D52.5)
 - Amended by: PR-80 (D86) on 2026-11-21, in force from PR-81: 29.7: the documents are checked before the first and after the last capture of a frame; 29.3: the Producer decodes one pixel of each frame's mark and still no frame (D86.2)
 - Amended by: PR-85 (D88) on 2026-11-21, in force from PR-86: 29.3 and its Verification: the frames FFmpeg reads are those of the export's fast capture, which equal the frames of `renderFrames` in pixels, no longer in bytes; 29.9: `EXPORT_MANIFEST_VERSION` 6 with the field `capture` (D88.1, D88.2)
+- Amended by: PR-91 (D89) on 2026-11-22: 29.5: every video job, the join, and the estimate refuse, with `preset-unsupported` and before a page opens, a composition or any definition with a side above 1920 (D89.1)
 - Related: D04, D06, D07, D10, D12, D13, D14, D23, D26, D27, D28,
   [specification](../spike/vertical-spike.md) §5 P5, §6.1, §8, and open
   questions Q2, Q4, and Q7

@@ -632,9 +632,9 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   installation, 2 usage, 4 an exceeded limit (`limit-exceeded`), 5 cancelled,
   6 `migrate --check` found a document that is not current.
 - **Limits:** `--max-document-bytes`, `--max-duration-us`, `--max-frames`,
-  `--max-assets`, `--max-asset-bytes`, and `--max-total-asset-bytes` are
-  checked before rendering; `--max-wall-ms` cancels the job when its time is
-  up. In the library, every job takes `signal`, `onProgress`, and `limits`.
+  `--max-assets`, `--max-canvas-pixels`, `--max-asset-bytes`, and
+  `--max-total-asset-bytes` are checked before rendering; `--max-wall-ms`
+  cancels the job when its time is up. In the library, every job takes `signal`, `onProgress`, and `limits`.
 - **Cancellation:** `SIGTERM` or `SIGINT` stops Chromium and FFmpeg, removes
   what the job wrote, and exits 5.
 - **Authority:** [D48](../adr/D48-render-job-contract.md).

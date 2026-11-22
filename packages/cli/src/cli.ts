@@ -26,7 +26,7 @@
  * output is JSON lines and nothing else (progress, the files written, and the
  * end), its diagnostics go to standard error, `SIGTERM` or `SIGINT` cancel it,
  * it takes the limits `--max-document-bytes`, `--max-duration-us`,
- * `--max-frames`, `--max-assets`, `--max-asset-bytes`,
+ * `--max-frames`, `--max-assets`, `--max-canvas-pixels`, `--max-asset-bytes`,
  * `--max-total-asset-bytes` (not `join`, which reads no document, nor
  * `migrate`, which renders nothing), and `--max-wall-ms`, and its exit code is
  * one of the table of D48.3.
@@ -180,7 +180,7 @@ export const USAGE = [
   '       kadrion fetch-ffmpeg --dir <dir>',
   '       kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion inspect [--json] <file>',
-  'Limits of a job: [--max-document-bytes <n>] [--max-duration-us <n>] [--max-frames <n>] [--max-assets <n>] [--max-asset-bytes <n>] [--max-total-asset-bytes <n>] [--max-wall-ms <n>]',
+  'Limits of a job: [--max-document-bytes <n>] [--max-duration-us <n>] [--max-frames <n>] [--max-assets <n>] [--max-canvas-pixels <n>] [--max-asset-bytes <n>] [--max-total-asset-bytes <n>] [--max-wall-ms <n>]',
 ].join('\n');
 
 /** Where `kadrion export` finds the pinned executables without flags (D29.10). */

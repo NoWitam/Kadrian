@@ -7,6 +7,7 @@
  */
 import { frameCount, frameToTimeUs } from '@kadrion/schema';
 
+import { checkVideoCanvas } from './encode.js';
 import { ProducerError } from './errors.js';
 import { validated } from './render.js';
 import {
@@ -47,6 +48,8 @@ export function estimatePlan(
   renderGrid?: GridRequest,
 ): EstimatePlan {
   const composition = validated(document);
+  // An estimate times a video job, which refuses a canvas above 1920 (D89.1).
+  checkVideoCanvas(composition);
   const length = checkedSegmentFrames(segmentFrames);
   // The grid the host renders on (D80.5); the sampled segment does not depend on it.
   const counted =

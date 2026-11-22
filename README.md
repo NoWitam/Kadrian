@@ -26,8 +26,9 @@ step PR-84 plays a video at the film's frame rate, decoded forward and
 converted in workers (D87), for the release `v0.10.0`, and whose last step,
 PR-87, makes an export faster with the same pixels and the same MP4 (D88),
 for the release `v0.11.0`; its next steps make stills for a graphics editor
-(D89), of which PR-89 adds the mirror flip of a node in schema `0.27` and PR-90
-the transparent clear of a still in schema `0.28`. Schema `0.28` with its forward migrations from `0.1` to `0.27`, the evaluation core, the DOM
+(D89), of which PR-89 adds the mirror flip of a node in schema `0.27`, PR-90
+the transparent clear of a still in schema `0.28`, and PR-91 a still canvas of
+up to 4224 pixels a side in schema `0.29`. Schema `0.29` with its forward migrations from `0.1` to `0.28`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -204,13 +205,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.28`
+A composition is a JSON document of schema `0.29`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.28",
+  "schemaVersion": "0.29",
   "width": 1080,
   "height": 1920,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
@@ -491,8 +492,8 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.28` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.28` document, and none of them
+`validateComposition` accepts schema `0.29` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.29` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
@@ -504,8 +505,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.28 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.27', '0.28'], or ['0.28'] for a document that was current
+  migrated.composition; // a new, validated 0.29 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.28', '0.29'], or ['0.29'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -577,6 +578,8 @@ if (migrated.ok) {
   and definitions: no mirror, the picture it had (D89).
 - The step from `0.27` gives the composition `clear: "white"` after its
   `safeArea`, never a definition: the white it was drawn over (D89).
+- The step from `0.28` changes `schemaVersion` alone: `0.29` only raises the
+  bound of a side of a canvas and of a safe inset to 4224 (D89).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -601,8 +604,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.28 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.27', '0.28'] from 0.1, ['0.28'] when it was current
+  loaded.composition; // a new, validated 0.29 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.28', '0.29'] from 0.1, ['0.29'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -617,7 +620,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23', '0.24', '0.25', '0.26', '0.27', '0.28']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23', '0.24', '0.25', '0.26', '0.27', '0.28', '0.29']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -630,7 +633,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.28"`, speaks of that.
+  supports `"0.29"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -1294,7 +1297,9 @@ A host's queue can render the same MP4 in jobs (D47): `renderSegments` renders
 a range of whole segments, `renderAudio` the audio of a range, and
 `joinSegments` checks their manifests and joins them into the MP4 that one
 `exportMp4` would write, byte for byte. `renderStill` renders one frame as PNG,
-JPEG, or WebP. A document with `"clear": "transparent"` keeps what no node
+JPEG, or WebP, of a canvas of up to 4224 pixels a side, while every video job
+refuses a composition or a definition with a side above 1920 with
+`preset-unsupported` (D89). A document with `"clear": "transparent"` keeps what no node
 covers as alpha in a PNG or a WebP still and in `renderFrames`; a JPEG still
 and every video are drawn over white, and their manifests say so in `clear`
 (D89).
@@ -1372,8 +1377,9 @@ Each of these commands is a job a host's queue can run (D48):
   what the job wrote, and exits 5. A job killed without a signal leaves only
   files under their temporary names, which the next run replaces.
 - **Limits:** `--max-document-bytes`, `--max-duration-us`, `--max-frames`,
-  `--max-assets`, `--max-asset-bytes`, and `--max-total-asset-bytes` are checked
-  before rendering; `--max-wall-ms` cancels the job when its time is up.
+  `--max-assets`, `--max-canvas-pixels` (width × height of the composition and
+  of each definition), `--max-asset-bytes`, and `--max-total-asset-bytes` are
+  checked before rendering; `--max-wall-ms` cancels the job when its time is up.
   `join` takes only `--max-wall-ms`.
 - **Exit codes:** 0 for success, 1 for an error of the Producer or of the FFmpeg
   installation, 2 for a usage error, 4 for an exceeded limit, 5 for a
@@ -1410,7 +1416,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23","0.24","0.25","0.26","0.27","0.28"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23","0.24","0.25","0.26","0.27","0.28","0.29"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

@@ -700,7 +700,7 @@ included, and its pull requests follow those of D88. Video output stays as D07 a
   segments, and exports, compared by the join, at `EXPORT_MANIFEST_VERSION`
   7; `SetCompositionClear` and its tool; a transparent reference still with
   golden frames, alpha checked in every frame, and a blend mode over the
-  clear. Status: implemented and measured in the pinned run. Schema `0.28`
+  clear. Status: done (#130). Schema `0.28`
   with the step, the frozen `0.27`, the pair `migration-0-27-to-0-28`, the
   corpus `compatibility/v0-28` (with `clear.json`, written by hand), and four
   invalid cases; `SetCompositionClear` and `set_composition_clear` (105
@@ -721,7 +721,26 @@ included, and its pull requests follow those of D88. Video output stays as D07 a
 - **PR-91** (D89.1, the canvas): the gate of D89.1 measured first, then
   schema `0.29` with the bound it sets (at most 8192); video jobs refusing a
   composition or a definition with a side above 1920; `maxCanvasPixels`; the
-  probe recorded by its SHA-256; the measurements D89.1 lists.
+  probe recorded by its SHA-256; the measurements D89.1 lists. Status:
+  implemented and measured in the pinned run. The gate passed at 4224² in seven
+  runs of seven and failed at 4352² and above, up to 8192², within today's
+  timeouts and without tiles or a new argument, so the bound of `0.29` is
+  4224 a side, amended into D89.1 with the measurements (D89, implementation
+  notes of PR-91). Schema `0.29` with the step, the frozen `0.28`, the pair
+  `migration-0-28-to-0-29`, the corpus `compatibility/v0-29` (with
+  `canvas.json`, written by hand), and three new invalid cases;
+  `checkVideoCanvas` refuses a side above 1920 in every video job and the
+  estimate, and the join refuses a segments manifest that names one;
+  `JobLimits.maxCanvasPixels` and `--max-canvas-pixels`. The gate,
+  `tests/pinned/canvas.pinned.test.ts`, enters, so `REQUIRED_PINNED_FILES`
+  and the Q14 artifact list grow by it; its frames are recorded by SHA-256 in
+  `canvas/gate.json` only. No golden PNG file changes; the golden manifests
+  change in the three fields of D42 alone. The runtime build is
+  `sha256:890ab89b338d9ccae52452365a1faf7ddd6bfcd7857af32091d4d1837de73c34`
+  (507 010 bytes) and the Player's dist tree
+  `sha256:8716f624a87f3686347801fa15b4f8dbf5dee44cc127e1237f3ac6f3fcfcace2`
+  (83 files); the parity records and the evidence of Q14 are the
+  pinned run's.
 - **PR-92** (D89, the host guide and the release): a large canvas scaled by
   the host, the checkerboard, a blend mode over the clear, the formula of a
   flip in the parent's space, and manifest version 7; the release after that

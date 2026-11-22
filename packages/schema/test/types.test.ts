@@ -893,7 +893,7 @@ interface ExpectedDefinition {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.28';
+  readonly schemaVersion: '0.29';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

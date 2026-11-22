@@ -429,6 +429,7 @@ export const ARTIFACT_FILES = Object.freeze([
   'audio-player-report.json',
   'audio-report.json',
   'audio/audio.wav',
+  'canvas/gate.json',
   'captions-motion/golden-comparison.json',
   'captions-motion/timing.json',
   'captions/golden-comparison.json',

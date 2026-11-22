@@ -26,6 +26,11 @@
   - D48 (48.4): the limit `maxCanvasPixels` (D89.1).
   - D65 (65.8): the probes of D89.2 and D89.3. D46 (46.5): two tools.
   - D35: the steps from `0.26` to `0.29`.
+- Amended by: PR-91 on 2026-11-22: D89.1: the bound of `0.29` is 4224
+  pixels a side, not 8192: the largest side on a grid of 128 pixels whose
+  probe passed the gate in every run in the pinned container; a larger side
+  would need tiles, a new Chromium argument, or a raised timeout, which D89.1
+  leaves to the owner (implementation notes of PR-91)
 - Related: D26, D33, D38, D57, D66, D71, D83, D86
 
 ## Context
@@ -87,6 +92,13 @@ the canvas.
   `0.29` is the largest side up to 8192 that passes, written into D89 by an
   amendment with the measurement. Never tiles, a new Chromium argument, or a
   raised timeout without the owner's consent.
+- **The bound, as measured (amended by PR-91).** The bound of `0.29` is
+  **4224** a side, for the composition, a definition, and a safe inset. The
+  gate passed at 4224² in seven runs out of seven and at 8192×1024, and failed at
+  4352² and every larger square it tried, up to 8192², within today's
+  timeouts and without tiles or a new argument (implementation notes of
+  PR-91). Wherever this ADR says 8192 of a still or of the schema, read 4224;
+  a viewport is at most 4224×4226.
 - **What PR-91 measures** besides: time and peak memory of Chromium and Node
   for PNG, JPEG, and WebP at 2048², 4096², the bound², and 8192×1024; the
   worst-case PNG and its base64 through CDP and in Node; the Player's first
@@ -453,3 +465,158 @@ those of the code as built and of the pinned run.
   `docs/spike` were measured again with zero differing pixels, and the hashes
   of `docs/spike/report.md` follow them. Q14 reopens with the runtime build
   and the golden manifests.
+
+## Implementation notes (PR-91)
+
+PR-91 measured the gate of D89.1 first, then brings schema `0.29` with the
+bound the gate set; the readings below are those of the pinned container
+(the image of D26.2, four processors, 15 GB of memory for the whole host)
+and of the code as built.
+
+- **The probe.** `tests/pinned/canvas-probe.ts` builds it at a side `n`: an
+  image of noise of `n`×`n` from a fixed seed (xorshift32), a palette PNG of
+  256 colours stored without compression, so that its capture does not
+  compress and is as large as a PNG of the canvas is; a 16-pixel square of
+  1-pixel checkers in every corner; and five frames: the noise, the noise
+  under a black rectangle 64 pixels beyond every edge at half opacity under
+  a blur of 8, the noise under a `curves` filter (D72) that inverts red, the
+  noise under a still mask of the whole box (D75), and the noise under a
+  white rectangle beyond every edge of blend mode `difference`. A pattern is
+  intact when every pixel of every corner is what its frame makes of it. The
+  noise frame must equal the image, pixel for pixel. An RGB image of noise
+  (201 MB at 8192²) closed the page in `load`, the assets travelling as one
+  message of the protocol, so the image is a palette one (67 MB at 8192²).
+- **The gate**, `tests/pinned/canvas.pinned.test.ts`: the probe at the bound,
+  rendered twice by `renderFrames` with the Producer's own timeouts, each on
+  a fresh page. Each side was measured with the gate as it is now, its side
+  taken from the run; the runs at 4224² include that of the pinned run below:
+
+  | Side      | Runs that passed | What failed                                                                                                                 |
+  | --------- | ---------------: | --------------------------------------------------------------------------------------------------------------------------- |
+  | 8192²     |           0 of 1 | Both passes within the timeouts, but corners white and 6 603 003 pixels of the noise frame not the image; the passes differ |
+  | 6144²     |           0 of 1 | `The mark of frame 2 did not reach the surface within 5000 ms`                                                              |
+  | 5120²     |           0 of 2 | White bands at the top and bottom of the blur and the blend, the same in both passes, and an incomplete noise frame         |
+  | 4608²     |           0 of 1 | The noise frame of the second pass incomplete                                                                               |
+  | 4352²     |           2 of 4 | `The mark of frame 0 did not reach the surface within 5000 ms` in two runs                                                  |
+  | **4224²** |       **7 of 7** | —                                                                                                                           |
+  | 4096²     |           7 of 7 | —                                                                                                                           |
+  | 8192×1024 |           1 of 1 | —                                                                                                                           |
+
+  No side failed by a clamp to a texture size: what fails is a surface
+  captured before every tile of it is drawn, or a mark that does not reach
+  the surface in time, which is area and time, not the length of a side.
+  The bound of `0.29` is therefore **4224**, the largest side on a grid of
+  128 pixels at which every run passed; a side of 8192 needs tiles, a new
+  argument of Chromium, or a longer timeout, which D89.1 leaves to the
+  owner. 8192×1024 passes, but `0.29` bounds each side, not the area, so it
+  is no valid document: an area bound is a decision of its own.
+
+- **The probe's record at 4224.** Every one of the fourteen renders, in the
+  seven runs, gave the same bytes. The image of noise is
+  `sha256:fe2bf477d4188101dd1323ec8385adaede1409faefea5ef215055b17d127ddb3`
+  (17 849 963 bytes), and the frames, PNG files of 50.7 to 53.6 MB that do
+  not enter Git, are:
+  - noise:
+    `sha256:d3c4a483e3eab649d7b582b7c582e415a7a4100432617fe6f44acaddf9844e60`;
+  - blur:
+    `sha256:2994236898393100c979155cc3b7708c0a6addb9699c83fab60c6c27b64ce32d`;
+  - filter:
+    `sha256:a04fd68250624ae9dbe6a103c5eb833331d2180756ab9f05068b167d08e5eb10`;
+  - mask: the noise's own bytes, since a still mask of the whole box changes
+    nothing;
+  - blend:
+    `sha256:f953a936448f7d62f725f0357765045d68c0a8af657d6b6c1f2750ac8efc694b`.
+- **What D89.1 lists, measured** (one run each, in the container above; peak
+  Chromium is the sum of the proportional set size of its processes, about
+  200 MB before the job; peak Node is the maximum resident set of the test
+  process, 380 to 440 MB before it, the image of noise and the test runner
+  included). The times are those of four processors shared with Docker and
+  vary by tens of per cent from run to run; the JPEG at 2048² was the first
+  FFmpeg of its container. Every side above 4224, 8192×1024 among them, was
+  measured with a provisional schema whose bound was 8192, before the gate
+  set it; `0.29` refuses those canvases.
+
+  | Still, `renderStill` | Format | Time (ms) |      Bytes | Peak Chromium (MB) | Peak Node (MB) |
+  | -------------------- | ------ | --------: | ---------: | -----------------: | -------------: |
+  | 2048²                | PNG    |     2 113 | 12 613 404 |                724 |            496 |
+  | 2048²                | JPEG   |     9 487 |  7 805 376 |                720 |            468 |
+  | 2048²                | WebP   |     3 721 |  3 494 412 |                721 |            468 |
+  | 4096²                | PNG    |     8 165 | 50 437 726 |              1 854 |            753 |
+  | 4096²                | JPEG   |     9 853 | 31 223 736 |              1 781 |            816 |
+  | 4096²                | WebP   |    11 904 | 13 980 606 |              1 798 |            752 |
+  | 4224²                | PNG    |     8 378 | 53 640 278 |              1 832 |            816 |
+  | 4224²                | JPEG   |    10 222 | 33 211 959 |              1 859 |            848 |
+  | 4224²                | WebP   |    12 263 | 14 868 804 |              1 829 |            780 |
+  | 8192×1024            | PNG    |     3 815 | 25 216 033 |              1 088 |            561 |
+  | 8192×1024            | JPEG   |     5 222 | 15 613 963 |              1 105 |            564 |
+  | 8192×1024            | WebP   |     6 216 |  6 989 482 |              1 092 |            570 |
+
+  The worst-case PNG, the noise frame captured again by
+  `Page.captureScreenshot` with the arguments of D28.5 after the frame was
+  presented: at 4096², 2.1 to 2.2 s a capture, base64 of 67 250 304
+  characters, decoded in Node in about 25 ms, the bytes those of the frame;
+  at 4224², 2.3 to 2.4 s, 71 520 372 characters, about 30 ms; at 8192×1024,
+  1.1 to 1.2 s, 33 621 380 characters, about 6 ms. Peak Chromium 1 808 and
+  1 848 MB, peak Node 899 and 938 MB (4096² and 4224²). At 4352² the capture
+  taken again differed from the frame: the frame had been captured before it
+  was drawn whole, with no error.
+
+  The Player's first seek, under a host scale of 1/8 (the stage scaled by
+  CSS in a viewport of 512 or 528 pixels, the frame itself not scaled,
+  D25.2), the noise loaded as base64 by the conformance host: at 4096², load
+  4.0 to 4.6 s, the first seek presented in 256 to 763 ms, the second in 27
+  to 87 ms, peak Chromium 1 501 to 1 543 MB, peak Node about 634 MB; at
+  4224², load 3.7 to 4.7 s, the first seek presented in 403 to 708 ms, the
+  second in 33 to 52 ms, peak Chromium 1 582 to 1 589 MB, peak Node 617 to
+  628 MB (three runs).
+
+- **Memory.** A still at the bound takes about 1.9 GB of Chromium and up to
+  about 0.9 GB of Node a job, the image of noise included, on a host of
+  15 GB: a host that runs jobs at the bound side by side counts about 2.8 GB
+  each. `maxCanvasPixels` is the host's lever; it has no default.
+- **A heavier document at the bound.** The gate proves the probe, not every
+  document. Full-canvas images of noise stacked at half opacity at 4096²:
+  two, three, and four passed; five failed once with the mark's timeout; six
+  once gave a first frame captured before it was drawn whole, with no error,
+  and once passed. 28 layers at 1920² and 40 at 1080×1920 passed. The
+  capture does not wait for every tile to be drawn, and D89.1 adds no wait
+  without the owner's consent; a host that renders large and heavy stills
+  checks them, or bounds their pixels.
+- **The schema.** `canvasLength` and the safe inset are 1 to 4224
+  (`MAX_CANVAS_LENGTH`) for the composition and a definition;
+  `step028To029` changes `schemaVersion` alone. The frozen `0.28` is
+  `packages/schema/src/v0-28`; the pair `migration-0-28-to-0-29`, the corpus
+  `compatibility/v0-29` (every file of `v0-28` stepped, and `canvas`, written
+  by hand: 4224×2376 and transparent, a safe inset of 4223, and an instance of
+  a definition of 4224² holding a flipped disc), and three new invalid cases
+  (a height and a safe inset of 4225, and a definition 4225 tall) with the
+  width of 4225 hold it.
+- **Video.** `checkVideoCanvas` (`encode.ts`) refuses with
+  `preset-unsupported` a composition or any definition, placed or not, with
+  a side above 1920 (`MAX_VIDEO_SIDE`); `presetSize` calls it, so
+  `exportMp4` and every range job refuse before a page opens or FFmpeg
+  starts, and `estimatePlan` calls it after validation. A join reads no
+  document: it refuses a segments manifest whose `preset.sourceWidth` or
+  `sourceHeight` is above 1920, and a definition is the range job's to
+  refuse. `renderAudio` accepts any canvas.
+- **The limit.** `JobLimits.maxCanvasPixels` (`--max-canvas-pixels`) is
+  width × height, of the composition and of each definition, placed or not,
+  checked with the other limits of the document before a page opens; a
+  definition over it is named in the message.
+- **The capture** is unchanged: one `Page.captureScreenshot` of the canvas at
+  scale 1 in a window of the canvas and two rows (D28.5, D86.1), no tiles, no
+  device scale factor, `CHROMIUM_ARGS` and every timeout as they were.
+- **The golden manifests** change in the three fields of D42 only. No golden
+  PNG file changes and none is added.
+- **Builds.** The runtime build is
+  `sha256:890ab89b338d9ccae52452365a1faf7ddd6bfcd7857af32091d4d1837de73c34`
+  (507 010 bytes), and the Player's dist tree
+  `sha256:8716f624a87f3686347801fa15b4f8dbf5dee44cc127e1237f3ac6f3fcfcace2`
+  (83 files).
+- **The pinned run** (four processors): `goldens:update` twice in fresh
+  containers gave the same bytes, and no golden PNG file changed. The whole
+  pinned suite passes (37 files, 357 tests), the
+  gate of D89.1 at 4224 among them. The parity records of `docs/spike` were
+  measured again with zero differing pixels, and the hashes of
+  `docs/spike/report.md` follow them. Q14 reopens with the runtime build and
+  the golden manifests.
