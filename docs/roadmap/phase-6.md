@@ -722,7 +722,7 @@ included, and its pull requests follow those of D88. Video output stays as D07 a
   schema `0.29` with the bound it sets (at most 8192); video jobs refusing a
   composition or a definition with a side above 1920; `maxCanvasPixels`; the
   probe recorded by its SHA-256; the measurements D89.1 lists. Status:
-  implemented and measured in the pinned run. The gate passed at 4224² in seven
+  done (#131). The gate passed at 4224² in seven
   runs of seven and failed at 4352² and above, up to 8192², within today's
   timeouts and without tiles or a new argument, so the bound of `0.29` is
   4224 a side, amended into D89.1 with the measurements (D89, implementation
@@ -744,7 +744,10 @@ included, and its pull requests follow those of D88. Video output stays as D07 a
 - **PR-92** (D89, the host guide and the release): a large canvas scaled by
   the host, the checkerboard, a blend mode over the clear, the formula of a
   flip in the parent's space, and manifest version 7; the release after that
-  of D88.
+  of D88. Status: done; the host guide carries each of them (sections 3, 5,
+  13, and 15), and every package is `0.12.0` for the release `v0.12.0`,
+  whose tag the owner pushes from `main`. The runtime build and the Player's
+  dist tree keep the bytes of PR-91; no pinned file changes.
 
 ## Impact on Q14, parity, and golden frames
 
