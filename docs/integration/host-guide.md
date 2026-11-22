@@ -143,6 +143,20 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   (a curve in the Player, D85.6), [D58](../adr/D58-templates-inputs-bindings-and-instantiation.md)
   (preview of a template).
 
+- **A large canvas, and a transparent document:** the Player draws a frame at
+  the composition's own size (D25.2); for a canvas larger than the space you
+  give it, scale the element around the Player's container with a CSS
+  transform (for example `transform: scale(0.125)` with
+  `transform-origin: 0 0` on a wrapper whose own box has the scaled size), and
+  give the container the composition's size. At 4224 pixels a side the first
+  seek took about 0.4 to 0.7 s and a later one about 50 ms in Kadrion's pinned
+  container. The frame states `color-scheme: normal`, so with
+  `"clear": "transparent"` whatever the host draws behind the container shows
+  through where no node covers the canvas: draw your own checkerboard there
+  to show transparency. A white document stays white over it.
+- **Authority (large canvas, clear):** [D89](../adr/D89-stills-a-larger-canvas-transparency-and-flip.md)
+  (D89.1, D89.2).
+
 ## 4. Read the facts of a media asset
 
 - **Call:** `session.readMediaFacts({ id, type, contentHash })` before the
@@ -393,6 +407,19 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   and the SHA-256 of its envelope (`envelopeSha256`), fields added without a
   new manifest version. The runtime build is 502 709 bytes, 2 636 more than
   in `v0.8.0`, and the Player's dist tree has 79 files.
+- **Flip and clear (D89):** `SetNodeFlip { nodeId, flip: { x, y } }`
+  (tool `set_node_flip`) mirrors a node about the centre of its own box,
+  before its scale and rotation; it is not animated, and a background is
+  `unsupported-node`. To mirror across the parent's axis through the node's
+  centre instead, dispatch in one transaction `SetNodeFlip`,
+  `SetNodeRotation` to `−r`, and `SetNodePosition` to
+  `p + (R(r) − R(−r)) · S · (c − o)`, where `p` is the position, `r` the
+  rotation, `R` the rotation matrix, `S` the scale, `c` the centre of the box
+  and `o` the origin, in pixels, rounded as a position; the shift is 0 when
+  `r` is a multiple of 180° or the origin is `500, 500`. The bus adds no such
+  edit. `SetCompositionClear { clear }` (tool `set_composition_clear`) sets
+  `'white'` or `'transparent'`, what the page shows where no node covers the
+  canvas (section 15). The same value is no edit for either command.
 - **Limits:** IDs are chosen by the host and never reused across the history;
   times are never rounded; positions and sizes are.
 - **Authority:** [D30](../adr/D30-command-bus-and-undo.md),
@@ -419,7 +446,9 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   [D84](../adr/D84-fonts-in-woff-and-woff2-measured-by-kadrion.md) (fonts in
   WOFF and WOFF2, `font-invalid`, the limit, and the costs), and
   [D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md) (a video's fades,
-  volume curves, and ducking as keyframes, D85.9). The playground
+  volume curves, and ducking as keyframes, D85.9), and
+  [D89](../adr/D89-stills-a-larger-canvas-transparency-and-flip.md) (the
+  flip of a node and the clear of a composition). The playground
   shows each of them up to D83 in a showcase of its own
   ([D32](../adr/D32-playground-showcases.md)); D84 and D85 have none.
 
@@ -563,11 +592,13 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   starts its decoder by a seek and records the seek's arguments, while one
   pass that read on from an earlier frame records none (D88.3).
 - **Manifest version:** the manifests of segments, audio, an export, and a
-  still are version 6 since `v0.11.0`; segments and an export also name
-  `capture: "fast"`, the capture of their frames (D88.2). A join refuses
-  parts of another version or another capture with `join-invalid`: render
-  parts stored by an earlier release again rather than joining them with new
-  ones. The `frames` hashes of an export are those of its own capture: they
+  still are version 7 since `v0.12.0`; segments and an export also name
+  `capture: "fast"`, the capture of their frames (D88.2), and segments, an
+  export, and a still name `clear`, what their page cleared to: always
+  `"white"` for video, which renders a copy of the document with a white
+  clear (D89.2). A join refuses parts of another version, another capture,
+  or another clear with `join-invalid`: render parts stored by an earlier
+  release again rather than joining them with new ones. The `frames` hashes of an export are those of its own capture: they
   hold the pixels of `render-frames`, not its bytes.
 - **A fragment:** for a range whose ends are not boundaries of the
   composition's grid, give `render-range` the fragment's own grid:
@@ -580,6 +611,9 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   grid. The frames, range, and audio are those of the same fragment in
   segments of one frame. Without these flags nothing changes. (Proposed in
   D80; this guide links it once the owner accepts it.)
+- **Canvas:** every video job (export, range, join, estimate) refuses a
+  composition or a definition with a side above 1920 with
+  `preset-unsupported`, before a page opens (D89.1).
 - **Errors:** `range-invalid` (an end not on the segment grid),
   `segment-length-invalid`, `join-invalid` (parts that are not one render, or
   a gap), `preset-unsupported` (a preset that would upscale or gives odd
@@ -617,11 +651,28 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
 - **Call:** `kadrion render-still … --time-us <t> --format <png|jpeg|webp>`,
   or `renderStill`; `render-frames` and `renderFrames` render PNG frames at
   given times.
+- **Canvas:** a still and `render-frames` take a canvas of up to 4224 pixels
+  a side (schema `0.29`, D89.1). In Kadrion's pinned container a PNG still of
+  4224² took about 8 s, with about 1.9 GB of Chromium and up to 0.9 GB of
+  Node at peak; JPEG and WebP take longer. Bound concurrent jobs by
+  `--max-canvas-pixels` (`limits.maxCanvasPixels`, width × height of the
+  composition and of every definition), which has no default. A document much
+  heavier than a full canvas of noise with a filter, a mask and a blend mode
+  may still fail at the bound (D89, implementation notes of PR-91).
+- **Transparency:** with `"clear": "transparent"`, a PNG or WebP still and
+  `render-frames` keep alpha where no node covers the canvas (PNG colour type
+  6; WebP with an alpha plane). A JPEG still is the JPEG of the same document
+  with a white clear, byte for byte, and so is every video. That is not the
+  PNG composited on white: a blend mode over the clear and the rounding at
+  semi-transparent edges differ between them, so composite a transparent PNG
+  yourself if you need both to match.
 - **Errors:** `frame-out-of-range` (a time not on the frame grid or past the
-  end), `still-format-unsupported`. PNG needs no FFmpeg unless the document
-  has video nodes.
+  end), `still-format-unsupported`, `limit-exceeded` (a canvas above
+  `--max-canvas-pixels`). PNG needs no FFmpeg unless the document has video
+  nodes.
 - **Authority:** [D47](../adr/D47-segmented-rendering-join-and-stills.md),
-  [D28](../adr/D28-producer-frame-capture.md).
+  [D28](../adr/D28-producer-frame-capture.md),
+  [D89](../adr/D89-stills-a-larger-canvas-transparency-and-flip.md).
 
 ## 16. Run, limit, and cancel jobs
 

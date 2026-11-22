@@ -620,3 +620,17 @@ and of the code as built.
   measured again with zero differing pixels, and the hashes of
   `docs/spike/report.md` follow them. Q14 reopens with the runtime build and
   the golden manifests.
+
+## Implementation notes (PR-92)
+
+- **The host guide** carries what D89 leaves to it: a large canvas scaled by
+  the host around the Player's container and the host's own checkerboard
+  behind a transparent document (section 3); `SetNodeFlip`,
+  `SetCompositionClear`, and the formula of a flip in the parent's space
+  (section 5); manifest version 7 with `clear`, compared by the join, and
+  the refusal of a video canvas above 1920 (section 13); the bound of 4224,
+  the memory of a still at it, `maxCanvasPixels`, and why a JPEG is not the
+  PNG composited on white (section 15). The README states the same in short.
+- **The release.** Every package is `0.12.0` for `v0.12.0`, after `v0.11.0`
+  of D88. No code, runtime build, Player dist tree, golden file, or parity
+  record changes.
