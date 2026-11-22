@@ -662,15 +662,18 @@ recommendations of all its questions; its pull requests follow those of D87.
 
 A host's graphics editor renders an image as a composition of one frame and
 needs a canvas larger than 1920 pixels, transparent stills, and mirrored
-nodes. D89 proposes all three; it is `Proposed`, and its pull requests follow
-those of D88 once the owner accepts it. Video output stays as D07 allows.
+nodes. D89 decides all three; the owner accepted it on 2026-11-22 at 13:30
+(Europe/Warsaw) with the recommendations of all its questions, question 5
+included, and its pull requests follow those of D88. Video output stays as D07 allows.
 
 - **PR-88** (D89, documents only): the ADR, its row in the index of ADRs,
   and these entries; if the owner accepts question 5 of D89, the line of
   `AGENTS.md` that excludes "4K" and D07's quotation of it, in the same
   words, with an `Amended by` line in D07. Acceptance:
   `node --run format:check` and `tests/repo/adr.test.ts` pass. No code; no
-  impact on Q14, the runtime build, parity, or golden frames.
+  impact on Q14, the runtime build, parity, or golden frames. Status: done
+  (#128); the owner accepted question 5, so the acceptance commit, carried
+  by PR-89, changes the line of `AGENTS.md` and D07's quotation.
 - **PR-89** (D89.3, the flip): schema `0.27` with `flip: { x, y }` on every
   transformable node and its step, the end of `cssTransform` and of the
   matte's `svgTransform`, `SetNodeFlip` and `set_node_flip`, and the probes of

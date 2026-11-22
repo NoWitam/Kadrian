@@ -147,5 +147,5 @@ that are not required by the current spike.
 - A production REST service or distributed render farm.
 - Full timeline UI, advanced trimming, or 3D scenes.
 - A conversational LLM agent or production asset generation pipeline.
-- CRDT collaboration, public plugins, 4K, HDR, and desktop/mobile apps.
+- CRDT collaboration, public plugins, 4K video output, HDR, and desktop/mobile apps.
 

@@ -1,6 +1,7 @@
 # D89 — Stills: a canvas up to 8192 pixels, transparency, and a mirror flip of nodes
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-22 (13:30 Europe/Warsaw),
+  before any code, with the recommendations of all seventeen questions
 - Date: 2026-11-22
 - Supersedes: —
 - Extends, on acceptance, each with an `Amended by` line written then and in

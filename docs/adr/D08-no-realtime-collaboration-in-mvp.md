@@ -2,7 +2,10 @@
 
 - Status: Accepted
 - Recorded: 2026-09-21, from `AGENTS.md` at commit `250ae8f`
-- Related: D02, D09
+- Amended by: PR-88 (D89) on 2026-11-22: the quotation of `AGENTS.md` below
+  reads "4K video output" since the owner accepted question 5 of D89; nothing
+  of this decision changes
+- Related: D02, D09, D89
 
 ## Decision
 
@@ -25,7 +28,7 @@ Verbatim quotations. `AGENTS.md` remains the authoritative text.
 
 Listed under "Explicitly outside the current scope":
 
-> CRDT collaboration, public plugins, 4K, HDR, and desktop/mobile apps.
+> CRDT collaboration, public plugins, 4K video output, HDR, and desktop/mobile apps.
 
 ## Verification
 
