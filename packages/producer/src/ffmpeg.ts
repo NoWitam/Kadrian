@@ -15,6 +15,7 @@ import type { Readable, Writable } from 'node:stream';
 import { holdsIdr, videoOrientation, type VideoOrientation } from '@kadrion/renderer-dom';
 
 import { ProducerError } from './errors.js';
+import { throwIfCancelled } from './job.js';
 
 export const FFMPEG_RELEASE = 'autobuild-2026-09-21-13-55';
 export const FFMPEG_ASSET = 'ffmpeg-n8.1.3-linux64-gpl-8.1.tar.xz';
@@ -298,8 +299,10 @@ export interface FfmpegTools {
    * of the samples of the first video stream of a file that hold an IDR
    * picture (D79.5, D82.5): empty for a stream that is not H.264 in
    * length-prefixed samples, where a decode can only start at the first frame.
+   * A `signal` that aborts kills the processes of the scan and ends it with
+   * the job's `cancelled` (D88.3).
    */
-  idrTimestamps(file: string): Promise<number[]>;
+  idrTimestamps(file: string, signal?: AbortSignal): Promise<number[]>;
   /** The samples, sample rate, and channels of the first audio stream of a file (D47.4). */
   audioStream(file: string): Promise<{
     readonly codec: string;
@@ -538,11 +541,13 @@ function fileLines(
   ffprobePath: string,
   args: readonly string[],
   onLine: (line: string) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(ffprobePath, [...args], {
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
+      ...(signal === undefined ? {} : { signal, killSignal: 'SIGKILL' as const }),
     });
     const stderr = collect(child.stderr, STDERR_TAIL);
     let rest = '';
@@ -755,7 +760,24 @@ export function parseDataDump(text: string): Uint8Array {
  * time, or bytes that do not add up give no time: the decode then starts at
  * the first frame, as before D82.5.
  */
-async function idrTimestampsWith(paths: FfmpegPaths, file: string): Promise<number[]> {
+async function idrTimestampsWith(
+  paths: FfmpegPaths,
+  file: string,
+  signal?: AbortSignal,
+): Promise<number[]> {
+  try {
+    return await idrScan(paths, file, signal);
+  } finally {
+    // An aborted scan ends with the job's error, whatever its processes reported (D48.2).
+    throwIfCancelled(signal);
+  }
+}
+
+async function idrScan(
+  paths: FfmpegPaths,
+  file: string,
+  signal: AbortSignal | undefined,
+): Promise<number[]> {
   let json = '';
   await fileLines(
     paths.ffprobePath,
@@ -766,6 +788,7 @@ async function idrTimestampsWith(paths: FfmpegPaths, file: string): Promise<numb
     (line) => {
       json += `${line}\n`;
     },
+    signal,
   );
   let stream: Partial<Record<string, unknown>> | undefined;
   try {
@@ -791,6 +814,7 @@ async function idrTimestampsWith(paths: FfmpegPaths, file: string): Promise<numb
         size: positiveInteger(size) ?? 0,
       });
     },
+    signal,
   );
   const found: number[] = [];
   const consistent = await new Promise<boolean>((resolve) => {
@@ -800,7 +824,11 @@ async function idrTimestampsWith(paths: FfmpegPaths, file: string): Promise<numb
         ...['-nostdin', '-v', 'error', '-i', file, '-map', '0:v:0', '-c:v', 'copy'],
         ...['-bsf:v', 'noise=drop=not(key)', '-f', 'data', 'pipe:1'],
       ],
-      { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true },
+      {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        windowsHide: true,
+        ...(signal === undefined ? {} : { signal, killSignal: 'SIGKILL' as const }),
+      },
     );
     const stderr = collect(child.stderr, STDERR_TAIL);
     let pending: Buffer[] = [];
@@ -1000,7 +1028,7 @@ export async function pinnedFfmpeg(
     probeVideo: (file) => probeVideoWith(paths.ffprobePath, file),
     decodeVideo: (file, width, height, startUs) =>
       decodeVideoWith(paths.ffmpegPath, file, width, height, startUs),
-    idrTimestamps: (file) => idrTimestampsWith(paths, file),
+    idrTimestamps: (file, signal) => idrTimestampsWith(paths, file, signal),
     async audioStream(file) {
       const result = await host.run(paths.ffprobePath, [
         ...['-v', 'error', '-select_streams', 'a:0'],

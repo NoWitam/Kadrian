@@ -22,8 +22,10 @@ whose step PR-78 added a video's fades and volume curves in decibels (D85)
 and the release `v0.9.0`, whose step PR-81 captures a frame only
 after its mark is read from the surface (D86) for the patch release `v0.9.1`
 (films rendered under load before it may hold a repeated frame), and whose
-last step, PR-84, plays a video at the film's frame rate, decoded forward and
-converted in workers (D87), for the release `v0.10.0`. Schema `0.26` with its forward migrations from `0.1` to `0.25`, the evaluation core, the DOM
+step PR-84 plays a video at the film's frame rate, decoded forward and
+converted in workers (D87), for the release `v0.10.0`, and whose last step,
+PR-87, makes an export faster with the same pixels and the same MP4 (D88),
+for the release `v0.11.0`. Schema `0.26` with its forward migrations from `0.1` to `0.25`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -828,6 +830,13 @@ origin in your content security policy (`worker-src 'self'`, or a
 `script-src` that covers it). Where no worker starts, the Player plays by the
 slower path of D51 and tells `onWarning` once (`video-workers-unavailable`).
 
+**A faster export.** An export and a range job capture their frames with
+Chromium's faster PNG compression, and a clip that starts at source frame 256
+or later is entered at the IDR picture before its first frame instead of
+being decoded from the first frame (D88). The MP4 keeps its bytes. Their
+manifests are version 6 and name `capture: "fast"`; a join refuses parts of
+an earlier version, so render stored parts again after an upgrade.
+
 **Whether a video plays as it is.** `inspectVideo(blobOrBytes)` of
 `@kadrion/player` reads a file and returns the Player's verdict on it, from the
 same examination the Player uses when it loads the video (D79.4):
@@ -1448,12 +1457,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.10.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.10.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.11.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.11.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.10.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.10.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.11.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.11.0.tgz"
   }
 }
 ```

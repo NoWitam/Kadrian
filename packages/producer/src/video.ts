@@ -73,10 +73,23 @@ export interface VideoLibrary {
   /**
    * What the render manifest records of the decode (D50.5), read after the
    * frames: `seekArgs` only once a frame loop of this library has gone back
-   * by a seek (D82.5).
+   * by a seek (D82.5), or started late by one (D88.3).
    */
   readonly manifest: ManifestVideo;
-  open(): Promise<VideoFrameSource>;
+  open(options?: VideoOpenOptions): Promise<VideoFrameSource>;
+}
+
+/** How a frame loop opens its decoders (D88.3). */
+export interface VideoOpenOptions {
+  /**
+   * Whether a node's first decoder may start by a seek: when its first frame
+   * is at or beyond `FIRST_SEEK_FRAMES`, at the IDR picture before it. Only an
+   * export and a range job ask for it; without it every decoder starts at
+   * frame 0, as before D88.
+   */
+  readonly firstSeek?: boolean;
+  /** The job's signal, which the scan for IDR pictures takes (D48.2, D88.3). */
+  readonly signal?: AbortSignal;
 }
 
 /**
@@ -85,6 +98,14 @@ export interface VideoLibrary {
  * frame needed, the 64 last ones.
  */
 export const DECODE_WINDOW_FRAMES = 64;
+
+/**
+ * The source frame from which a node's first decoder in an export starts by a
+ * seek (D88.3): four windows of `DECODE_WINDOW_FRAMES`, just above the
+ * default distance of key pictures of libx264 (250). A constant of source
+ * frames, never of a measured time.
+ */
+export const FIRST_SEEK_FRAMES = 256;
 
 /** The video nodes of a composition, groups included, in document order. */
 export function videoNodes(composition: ValidatedComposition): VideoNode[] {
@@ -253,8 +274,8 @@ export async function prepareVideos(
   const idrs = new Map<string, Promise<number[]>>();
   let sought = false;
   const seeking: Seeking = {
-    idrTimestamps(assetId, file) {
-      const known = idrs.get(assetId) ?? tools.idrTimestamps(file);
+    idrTimestamps(assetId, file, signal) {
+      const known = idrs.get(assetId) ?? tools.idrTimestamps(file, signal);
       idrs.set(assetId, known);
       return known;
     },
@@ -268,14 +289,14 @@ export async function prepareVideos(
       // Additive, so that a render that never goes back keeps its bytes (D82.5).
       return sought ? { ...base, seekArgs: videoSeekArgs('<input>', '<start>') } : base;
     },
-    open: () => openFrameSource(placed, videos, probes, tools, seeking),
+    open: (options = {}) => openFrameSource(placed, videos, probes, tools, seeking, options),
   };
 }
 
 /** What the frame loops of one library share to go back (D82.5). */
 interface Seeking {
   /** The presentation times of the IDR pictures of a video, read once (D79.5). */
-  idrTimestamps(assetId: string, file: string): Promise<number[]>;
+  idrTimestamps(assetId: string, file: string, signal?: AbortSignal): Promise<number[]>;
   /** Records that a decoder started at an IDR picture by a seek. */
   sought(): void;
 }
@@ -329,6 +350,7 @@ async function openFrameSource(
   probes: ReadonlyMap<string, VideoProbe>,
   tools: FfmpegTools,
   seeking: Seeking,
+  options: VideoOpenOptions,
 ): Promise<VideoFrameSource> {
   const decoders = new Map<string, NodeDecoder>();
   const media = await mediaFiles(videos, 'video');
@@ -338,7 +360,9 @@ async function openFrameSource(
    * seeks to the IDR picture before the frame (D82.5), or starts again from
    * frame 0 when that picture is the first or none is known, and from then on
    * keeps a window of the frames it read, so a clip shown backwards decodes
-   * each group of pictures once while the group is at most 64 frames.
+   * each group of pictures once while the group is at most 64 frames. With
+   * `firstSeek`, its first decoder starts the same way when the frame is at or
+   * beyond `FIRST_SEEK_FRAMES`, and keeps no window (D88.3).
    */
   const frameOf = async (
     node: VideoNode,
@@ -356,14 +380,9 @@ async function openFrameSource(
     const file = files.get(node.assetId) ?? '';
     let rgb = state.window?.get(index) ?? null;
     if (rgb === null) {
-      if (state.decoder === null) {
-        state.decoder = tools.decodeVideo(file, probe.width, probe.height);
-        state.position = 0;
-      } else if (index < state.position) {
-        state.decoder.close();
-        state.decoder = null;
-        state.window = new Map();
-        const idrs = await seeking.idrTimestamps(node.assetId, file);
+      /** A decoder at the IDR picture before the frame, or at frame 0 (D82.5). */
+      const startAt = async (): Promise<void> => {
+        const idrs = await seeking.idrTimestamps(node.assetId, file, options.signal);
         const start = idrFrameBefore(probe.timestamps, idrs, index);
         const startUs = start === 0 ? null : startUsOf(probe, start);
         if (startUs === null) {
@@ -374,8 +393,23 @@ async function openFrameSource(
           state.position = start;
           seeking.sought();
         }
+      };
+      if (state.decoder === null) {
+        if (options.firstSeek === true && index >= FIRST_SEEK_FRAMES) {
+          // The first start of an export seeks; the window stays closed (D88.3).
+          await startAt();
+        } else {
+          state.decoder = tools.decodeVideo(file, probe.width, probe.height);
+          state.position = 0;
+        }
+      } else if (index < state.position) {
+        state.decoder.close();
+        state.decoder = null;
+        state.window = new Map();
+        await startAt();
       }
       const { decoder, window } = state;
+      if (decoder === null) throw new Error('A node has no decoder after its start.');
       while (state.position <= index) {
         const next = await decoder.next();
         if (next === null) {

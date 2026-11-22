@@ -385,6 +385,129 @@ describe('the frames of a frame loop (D49.5, D50.4)', () => {
   });
 });
 
+describe('the first start of a decoder in an export (D88.3)', () => {
+  // 1000 frames at 100 fps (10 s), an IDR picture every 120 frames.
+  const LONG: VideoProbe = {
+    ...PROBE,
+    timestamps: Array.from({ length: 1000 }, (_, at) => at * 128),
+    lastDuration: 128,
+  };
+  const EVERY_120 = LONG.timestamps.filter((_, at) => at % 120 === 0);
+
+  /** node-video-full alone, from source time `sourceStartUs`: it shows frame 100 · s + t / 10 ms. */
+  const startingAt = (sourceStartUs: number): ValidatedComposition =>
+    composition(
+      (() => {
+        const draft = structuredClone(videoComposition) as {
+          scenes: { nodes: { id: string; sourceStartUs?: number }[] }[];
+        };
+        for (const scene of draft.scenes) {
+          scene.nodes = scene.nodes.filter(
+            ({ id }) => id === 'node-background' || id === 'node-video-full',
+          );
+          for (const node of scene.nodes) {
+            if (node.id === 'node-video-full') node.sourceStartUs = sourceStartUs;
+          }
+        }
+        return draft;
+      })(),
+    );
+
+  /** The byte a frame's pixels hold: its index, modulo 256 (`frameBytes`). */
+  const byteOf = (index: number): number => index % 256;
+
+  const reads = (from: number, to: number): string[] =>
+    Array.from({ length: to - from + 1 }, (_, at) => `read ${String(from + at)}`);
+
+  it('starts at the IDR picture before a first frame at 256 or beyond, and records the seek', async () => {
+    const run = fakeTools(LONG, 1000, EVERY_120);
+    const library = await prepareVideos(startingAt(3_000_000), [VIDEO_ASSET], run.tools);
+    const source = await library?.open({ firstSeek: true });
+    if (source === undefined || library === null) throw new Error('no source');
+    run.log.length = 0;
+    expect(pixelOf((await source.framesAt(0))[0]?.bytes ?? new Uint8Array())).toBe(byteOf(300));
+    // Frame 300 lies after the IDR picture of frame 240 (2.4 s).
+    expect(run.log).toEqual(['idrs', 'decode 4x2 from 2400000', ...reads(240, 300)]);
+    expect(library.manifest.seekArgs).toEqual(videoSeekArgs('<input>', '<start>'));
+    // On from there, forward, as from frame 0.
+    run.log.length = 0;
+    expect(pixelOf((await source.framesAt(40_000))[0]?.bytes ?? new Uint8Array())).toBe(
+      byteOf(304),
+    );
+    expect(run.log).toEqual(reads(301, 304));
+    await source.close();
+  });
+
+  it('keeps no window after a first start by a seek: going back decodes again (D82.5)', async () => {
+    const run = fakeTools(LONG, 1000, EVERY_120);
+    const library = await prepareVideos(startingAt(3_000_000), [VIDEO_ASSET], run.tools);
+    const source = await library?.open({ firstSeek: true });
+    if (source === undefined) throw new Error('no source');
+    await source.framesAt(40_000);
+    run.log.length = 0;
+    // Frame 300 is behind the decoder: it seeks again, since no frame was kept.
+    expect(pixelOf((await source.framesAt(0))[0]?.bytes ?? new Uint8Array())).toBe(byteOf(300));
+    expect(run.log).toEqual(['close decoder', 'decode 4x2 from 2400000', ...reads(240, 300)]);
+    await source.close();
+  });
+
+  it('starts at frame 0 below 256, without reading the IDR pictures', async () => {
+    const run = fakeTools(LONG, 1000, EVERY_120);
+    const library = await prepareVideos(startingAt(2_550_000), [VIDEO_ASSET], run.tools);
+    const source = await library?.open({ firstSeek: true });
+    if (source === undefined || library === null) throw new Error('no source');
+    run.log.length = 0;
+    expect(pixelOf((await source.framesAt(0))[0]?.bytes ?? new Uint8Array())).toBe(byteOf(255));
+    expect(run.log).toEqual(['decode 4x2', ...reads(0, 255)]);
+    expect(library.manifest).not.toHaveProperty('seekArgs');
+    await source.close();
+  });
+
+  it('starts at frame 0 at 256 when the IDR picture before it is the first', async () => {
+    const run = fakeTools(LONG, 1000, [0]);
+    const library = await prepareVideos(startingAt(2_560_000), [VIDEO_ASSET], run.tools);
+    const source = await library?.open({ firstSeek: true });
+    if (source === undefined || library === null) throw new Error('no source');
+    run.log.length = 0;
+    expect(pixelOf((await source.framesAt(0))[0]?.bytes ?? new Uint8Array())).toBe(byteOf(256));
+    expect(run.log).toEqual(['idrs', 'decode 4x2', ...reads(0, 256)]);
+    expect(library.manifest).not.toHaveProperty('seekArgs');
+    await source.close();
+  });
+
+  it('starts at frame 0 in a frame loop that does not ask for it, as renderFrames and a still do', async () => {
+    const run = fakeTools(LONG, 1000, EVERY_120);
+    const library = await prepareVideos(startingAt(3_000_000), [VIDEO_ASSET], run.tools);
+    const source = await library?.open();
+    if (source === undefined || library === null) throw new Error('no source');
+    run.log.length = 0;
+    await source.framesAt(0);
+    expect(run.log).toEqual(['decode 4x2', ...reads(0, 300)]);
+    expect(library.manifest).not.toHaveProperty('seekArgs');
+    await source.close();
+  });
+
+  it("hands the job's signal to the scan for IDR pictures (D48.2)", async () => {
+    const run = fakeTools(LONG, 1000, EVERY_120);
+    const signals: (AbortSignal | undefined)[] = [];
+    const scan = run.tools.idrTimestamps.bind(run.tools);
+    const tools = {
+      ...run.tools,
+      idrTimestamps: (file: string, signal?: AbortSignal) => {
+        signals.push(signal);
+        return scan(file, signal);
+      },
+    };
+    const library = await prepareVideos(startingAt(3_000_000), [VIDEO_ASSET], tools);
+    const controller = new AbortController();
+    const source = await library?.open({ firstSeek: true, signal: controller.signal });
+    if (source === undefined) throw new Error('no source');
+    await source.framesAt(0);
+    expect(signals).toEqual([controller.signal]);
+    await source.close();
+  });
+});
+
 describe('a video read by path (D64)', () => {
   /** The video's bytes in a file of the host's, verified by path. */
   async function pathAsset(): Promise<{ readonly asset: PathAsset; readonly done: () => void }> {

@@ -251,6 +251,12 @@ export interface ExportResult {
   readonly stats: ExportStats;
 }
 
+/** How the frame loop of an export and of a range job runs (D88.1, D88.3). */
+export interface ExportLoop {
+  readonly capture: FrameCapture;
+  readonly firstSeek: boolean;
+}
+
 /** A browser for one render: its frame loop, and how to let it go. */
 export interface ExportBrowser {
   readonly chromium: LaunchedChromium;
@@ -261,10 +267,13 @@ export interface ExportBrowser {
 /** What the export runs on; tests pass fakes (not exported by the package). */
 export interface ExportDependencies {
   readonly tools: (paths: FfmpegPaths) => Promise<FfmpegTools>;
-  /** A browser whose frame loop captures as `capture` asks (D88.1). */
+  /**
+   * A browser whose frame loop captures as `loop.capture` asks (D88.1) and
+   * whose first decoder of a node may start by a seek (D88.3).
+   */
   readonly browser: (
     request: SegmentsRequest | ExportRequest,
-    capture: FrameCapture,
+    loop: ExportLoop,
   ) => Promise<ExportBrowser>;
   readonly removeFile: (path: string) => Promise<void>;
   /** Renames a complete file to its final name, replacing what is there (D47.6). */
@@ -717,7 +726,11 @@ async function segmentsWith(
   const { prepared, size, segmentFrames, grid, frames, segments, tools } = given;
   const timeoutMs = request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS;
   // An export and a range job capture for speed; their frames go only to the encoder (D88.1).
-  const browser = await dependencies.browser(request, EXPORT_CAPTURE);
+  // A node's first decoder starts at the IDR picture before a late first frame (D88.3).
+  const browser = await dependencies.browser(request, {
+    capture: EXPORT_CAPTURE,
+    firstSeek: true,
+  });
   try {
     throwIfCancelled(request.signal);
     const targets = segments.map((segment) => ({ segment, path: pathOf(segment) }));
@@ -1414,11 +1427,11 @@ async function exportOf(
 function realDependencies(): ExportDependencies {
   return {
     tools: (paths) => pinnedFfmpeg(paths),
-    async browser(given, capture) {
+    async browser(given, loop) {
       const chromium = given.chromium ?? (await launchChromium());
       return {
         chromium,
-        sequence: chromiumSequence(chromium, { ...given, capture }),
+        sequence: chromiumSequence(chromium, { ...given, ...loop }),
         async close() {
           if (given.chromium === undefined) await chromium.browser.close();
         },

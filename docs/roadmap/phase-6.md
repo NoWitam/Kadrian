@@ -65,7 +65,11 @@ Added for this phase:
 - **Speed 1 forwards stays byte for byte.** A render of a document without a
   mapped clip writes the same frames, sound, and manifests as on `main`; every
   pull request that touches the Producer's decode or its audio pass shows it
-  in the pinned container, as D80 did.
+  in the pinned container, as D80 did. (Amended by: PR-85 (D88), in force
+  from PR-86 and PR-87, D88.5: after D88 an export writes the same picture,
+  sound, and MP4 bytes, and its manifest differs in `version`, `capture`, the
+  hashes of `frames`, and, for a range job that starts late in a source,
+  `video.seekArgs`; `renderFrames` and a still keep the rule in full.)
 - **One function per rule, shared by both hosts.** The time map lives in
   `@kadrion/schema`, the stretch of sound in `@kadrion/runtime`; neither host
   computes either on its own (D82.1, D82.6).
@@ -643,7 +647,11 @@ recommendations of all its questions; its pull requests follow those of D87.
   every segment keep the bytes of `main`, alone and four at once, and an
   export of the reference composition takes 54.8 s instead of 63.1 s.
 - **PR-87** (D88, the first start that seeks): the first start of a decoder
-  in an export may seek, with the evidence of D88.4; the host guide.
+  in an export may seek, with the evidence of D88.4; the host guide. Status:
+  done; every container reads from a late IDR picture across two more as from
+  frame 0, a join that seeks writes the MP4 of one pass, and every package is
+  `0.11.0` for the release `v0.11.0`, whose tag the owner pushes from
+  `main`.
 
 ## Impact on Q14, parity, and golden frames
 

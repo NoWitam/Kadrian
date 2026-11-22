@@ -69,7 +69,13 @@ import {
   type ProducerAssetResolver,
 } from './media-path.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
-import { prepareVideos, videoNodes, type NodeVideoFrame, type VideoLibrary } from './video.js';
+import {
+  prepareVideos,
+  videoNodes,
+  type NodeVideoFrame,
+  type VideoLibrary,
+  type VideoOpenOptions,
+} from './video.js';
 
 export interface RenderTimeouts {
   /** How long the page waits for a Custom HTML acknowledgement (D23.4). */
@@ -586,9 +592,13 @@ export type FrameSequence = (
 /** The frame sequence of a browser from `launchChromium`. */
 export function chromiumSequence(
   chromium: LaunchedChromium,
-  options: RenderTimeouts & Pick<JobOptions, 'signal'> & Pick<RenderSessionOptions, 'capture'>,
+  options: RenderTimeouts &
+    Pick<JobOptions, 'signal'> &
+    Pick<RenderSessionOptions, 'capture'> &
+    Pick<VideoOpenOptions, 'firstSeek'>,
 ): FrameSequence {
-  const { ackTimeoutMs, pageTimeoutMs, presentationTimeoutMs, signal, capture } = options;
+  const { ackTimeoutMs, pageTimeoutMs, presentationTimeoutMs, signal, capture, firstSeek } =
+    options;
   return async (prepared, frames, deliver) => {
     const { composition, assets, runtime, videos } = prepared;
     throwIfCancelled(signal);
@@ -611,7 +621,12 @@ export function chromiumSequence(
     let source: Awaited<ReturnType<VideoLibrary['open']>> | null = null;
     try {
       throwIfCancelled(signal);
-      source = (await videos?.open()) ?? null;
+      // An export's first decoder of a node may start by a seek (D88.3).
+      source =
+        (await videos?.open({
+          ...(firstSeek === undefined ? {} : { firstSeek }),
+          ...(signal === undefined ? {} : { signal }),
+        })) ?? null;
       await session.load(JSON.stringify(composition), assets);
       for (const { index, timeUs } of frames) {
         throwIfCancelled(signal);
@@ -713,6 +728,7 @@ async function framesOf(request: RenderRequest): Promise<RenderResult> {
     const { blockedRequests } = await chromiumSequence(chromium, {
       ...request,
       capture: 'reference',
+      firstSeek: false,
     })(prepared, grid, (frame) => {
       frames.push(frame);
       onProgress?.({

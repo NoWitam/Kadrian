@@ -44,6 +44,7 @@ import {
   renderSegmentsWith,
   type AudioRequest,
   type ExportDependencies,
+  type ExportLoop,
   type ExportRequest,
   type JoinPart,
   type SegmentsRequest,
@@ -821,8 +822,8 @@ interface FakeRun {
     readonly bytes: number;
   }[];
   readonly timer: ReturnType<typeof manualTimer>;
-  /** The capture every browser was asked for (D88.1), in order. */
-  readonly captures: string[];
+  /** How every browser's frame loop was asked to run (D88.1, D88.3), in order. */
+  readonly loops: ExportLoop[];
   deliveredFrames: number;
   /** The arguments of every segment encoder, in order. */
   readonly encoderArgs: (readonly string[])[];
@@ -859,7 +860,7 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
     files: new Map(),
     inputs: [],
     timer: manualTimer(),
-    captures: [],
+    loops: [],
     deliveredFrames: 0,
     encoderArgs: [],
     pipes: [],
@@ -1035,9 +1036,9 @@ function fakeRun(options: FakeOptions = {}): FakeRun {
         ? Promise.resolve(tools)
         : Promise.reject(Object.assign(new Error('no ffmpeg'), { code: options.toolsFail }));
     },
-    browser: (_, capture) => {
+    browser: (_, loop) => {
       run.log.push('browser');
-      run.captures.push(capture);
+      run.loops.push(loop);
       return Promise.resolve({
         chromium: { browser: {} as Browser, reportedVersion: CHROMIUM_VERSION },
         sequence,
@@ -1143,7 +1144,8 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
     expect(manifest.manifestVersion).toBe(6);
     // The frames were captured for speed, and the manifest says so (D88.1, D88.2).
     expect(manifest.capture).toBe('fast');
-    expect(run.captures).toEqual(['fast']);
+    // A node's first decoder may start by a seek in an export (D88.3).
+    expect(run.loops).toEqual([{ capture: 'fast', firstSeek: true }]);
     expect(manifest.preset).toEqual({
       name: 'mp4-1080p',
       width: 1080,
@@ -1456,7 +1458,7 @@ describe('jobs of one render on a fake frame loop and FFmpeg (D47.3–D47.6)', (
     const middle = await segmentsJob(run, { fromUs: 2_000_000, toUs: 4_000_000 }, '/jobs/b');
     expect(late.manifest.segments.map(({ file }) => file)).toEqual(SEGMENT_NAMES.slice(2));
     // Every range job captures for speed and says so (D88.1, D88.2).
-    expect(run.captures).toEqual(['fast', 'fast', 'fast']);
+    expect(run.loops).toEqual(Array(3).fill({ capture: 'fast', firstSeek: true }));
     expect([late, early, middle].map(({ manifest }) => manifest.capture)).toEqual([
       'fast',
       'fast',

@@ -558,7 +558,17 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   `kadrion join --in <dir> … --out <dir>`, with exactly one audio directory.
   In the library: `renderSegments`, `renderAudio`, `joinSegments`.
 - **Result:** the MP4 that one export of the same document and preset writes,
-  byte for byte.
+  byte for byte. Its manifest equals the one-pass manifest apart from
+  `video.seekArgs`: a job whose clip starts at source frame 256 or later
+  starts its decoder by a seek and records the seek's arguments, while one
+  pass that read on from an earlier frame records none (D88.3).
+- **Manifest version:** the manifests of segments, audio, an export, and a
+  still are version 6 since `v0.11.0`; segments and an export also name
+  `capture: "fast"`, the capture of their frames (D88.2). A join refuses
+  parts of another version or another capture with `join-invalid`: render
+  parts stored by an earlier release again rather than joining them with new
+  ones. The `frames` hashes of an export are those of its own capture: they
+  hold the pixels of `render-frames`, not its bytes.
 - **A fragment:** for a range whose ends are not boundaries of the
   composition's grid, give `render-range` the fragment's own grid:
   `--grid-from-us <t> --grid-to-us <t>` (the fragment) and
@@ -581,7 +591,8 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   the mix of the whole, so it hears a video's fades and a curve as the whole
   render does.
 - **Authority:** [D47](../adr/D47-segmented-rendering-join-and-stills.md),
-  [D29](../adr/D29-mp4-export.md), [D07](../adr/D07-h264-mp4-720p-1080p-output.md),
+  [D29](../adr/D29-mp4-export.md), [D88](../adr/D88-a-faster-export-with-the-same-pixels.md)
+  (the capture and the first start), [D07](../adr/D07-h264-mp4-720p-1080p-output.md),
   [D52](../adr/D52-audio-clips-volume-fades-and-the-mix.md) and
   [D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md) (the mix),
   [D64](../adr/D64-video-and-audio-read-by-path.md) (media by path).
@@ -591,10 +602,15 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
 - **Call:** `kadrion export --composition <file> --assets <file> --out <dir> --preset <720p|1080p>`,
   or `exportMp4` in the library. It writes `video-<preset>.mp4` and its render
   manifest and keeps no intermediate frames.
+- **Speed:** an export captures its frames with Chromium's faster PNG
+  compression, and a clip that starts late in its source is entered at the
+  IDR picture before its first frame instead of being decoded from the first
+  frame; neither changes a byte of the MP4 (D88).
 - **Errors:** as in section 13, plus `encode-failed`, `ffmpeg-missing`, and
   `ffmpeg-mismatch`. A failed export removes its partial output.
 - **Authority:** [D29](../adr/D29-mp4-export.md),
-  [D47](../adr/D47-segmented-rendering-join-and-stills.md).
+  [D47](../adr/D47-segmented-rendering-join-and-stills.md),
+  [D88](../adr/D88-a-faster-export-with-the-same-pixels.md).
 
 ## 15. Render a still
 
