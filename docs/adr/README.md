@@ -96,6 +96,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D86](D86-a-frame-is-captured-after-its-mark-is-read.md)      | A frame is captured only after its mark is read from the surface                             | Accepted          |
 | [D87](D87-video-played-at-the-films-frame-rate.md)            | Video played at the film's frame rate: decoded forward, converted in workers                 | Accepted          |
 | [D88](D88-a-faster-export-with-the-same-pixels.md)            | A faster export with the same pixels: a fast capture and a first decode that seeks           | Accepted          |
+| [D89](D89-stills-a-larger-canvas-transparency-and-flip.md)    | Stills: a canvas up to 8192 pixels, transparency, and a mirror flip of nodes                 | Proposed          |
 
 ## Provenance of D01–D10
 

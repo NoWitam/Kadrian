@@ -111,6 +111,11 @@ first, so that the schema step only wires what is already proven.
 |    28 | PR-85 | D88 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
 |    29 | PR-86 | D88: the fast capture of an export, manifest version 6    | —      | —             | —           | —   | M    |
 |    30 | PR-87 | D88: a first start that seeks in an export, host guide    | —      | —             | —           | —†  | M    |
+|    31 | PR-88 | D89 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
+|    32 | PR-89 | D89: schema `0.27`, the flip of a node and its command    | `0.27` | yes           | yes         | yes | M    |
+|    33 | PR-90 | D89: schema `0.28`, the clear and transparent stills      | `0.28` | yes           | yes         | yes | M    |
+|    34 | PR-91 | D89: schema `0.29`, a still canvas up to 8192             | `0.29` | yes           | yes         | yes | M    |
+|    35 | PR-92 | D89: the host guide and the release                       | —      | —             | —           | —   | S    |
 
 Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 2 000 to 3 000 (most of it the step, the corpus, and fixtures).
@@ -653,6 +658,42 @@ recommendations of all its questions; its pull requests follow those of D87.
   `0.11.0` for the release `v0.11.0`, whose tag the owner pushes from
   `main`.
 
+### PR-88 to PR-92 — stills for a graphics editor: D89
+
+A host's graphics editor renders an image as a composition of one frame and
+needs a canvas larger than 1920 pixels, transparent stills, and mirrored
+nodes. D89 proposes all three; it is `Proposed`, and its pull requests follow
+those of D88 once the owner accepts it. Video output stays as D07 allows.
+
+- **PR-88** (D89, documents only): the ADR, its row in the index of ADRs,
+  and these entries; if the owner accepts question 5 of D89, the line of
+  `AGENTS.md` that excludes "4K" and D07's quotation of it, in the same
+  words, with an `Amended by` line in D07. Acceptance:
+  `node --run format:check` and `tests/repo/adr.test.ts` pass. No code; no
+  impact on Q14, the runtime build, parity, or golden frames.
+- **PR-89** (D89.3, the flip): schema `0.27` with `flip: { x, y }` on every
+  transformable node and its step, the end of `cssTransform` and of the
+  matte's `svgTransform`, `SetNodeFlip` and `set_node_flip`, and the probes of
+  the flip, a flipped matte among them, in both hosts. Every document of
+  `0.26` writes the transform it wrote before.
+- **PR-90** (D89.2, transparent stills): schema `0.28` with `clear` and its
+  step; the page's clear in the runtime build; `color-scheme: normal` on the
+  frame and the page; the override of the default background on a session
+  that lives with the page, for outputs that keep alpha; a copy with a white
+  clear for a JPEG and every video job; `clear` in the manifests of stills,
+  segments, and exports, compared by the join, at `EXPORT_MANIFEST_VERSION`
+  7; `SetCompositionClear` and its tool; a transparent reference still with
+  golden frames, alpha checked in every frame, and a blend mode over the
+  clear.
+- **PR-91** (D89.1, the canvas): the gate of D89.1 measured first, then
+  schema `0.29` with the bound it sets (at most 8192); video jobs refusing a
+  composition or a definition with a side above 1920; `maxCanvasPixels`; the
+  probe recorded by its SHA-256; the measurements D89.1 lists.
+- **PR-92** (D89, the host guide and the release): a large canvas scaled by
+  the host, the checkerboard, a blend mode over the clear, the formula of a
+  flip in the parent's space, and manifest version 7; the release after that
+  of D88.
+
 ## Impact on Q14, parity, and golden frames
 
 - PR-60 and PR-61 change the Player's dist tree, so parity is measured again in
@@ -680,6 +721,13 @@ recommendations of all its questions; its pull requests follow those of D87.
   frames before it (the animated captions at 1 000 000 µs) with its manifest. PR-82 (D87) changes the Player's
   dist tree and PR-83 the runtime build, so parity is measured again in each
   and Q14 reopens in PR-83; no golden PNG file changes.
+- PR-89, PR-90, and PR-91 (D89) each change the schema, the runtime build,
+  and the Player's dist tree, so Q14 reopens and parity is measured again in
+  each. Every existing golden PNG file, golden manifest, and parity record
+  keeps its bytes, the colour scheme that PR-90 states for every document
+  included. PR-90 adds a transparent reference still with its golden frames,
+  so `REQUIRED_PINNED_FILES` grows in its diff; PR-91 records its probe by
+  SHA-256 only, and no large PNG enters Git.
 
 ## Debts carried into this phase
 
