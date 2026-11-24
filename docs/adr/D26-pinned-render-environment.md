@@ -9,6 +9,7 @@
 - Supersedes: —
 - Amended by: PR-80 (D86) on 2026-11-21, in force from PR-81: 26.3: the window of a render session is the composition's size and a strip of 2 pixels below it; 26.4: `viewport` records the composition's size (D86.1, D86.3)
 - Amended by: PR-91 (D89) on 2026-11-22: 26.3: the window of a render session may be 4224×4226, a canvas of the bound and the strip of the mark; the arguments of Chromium do not change (D89.1)
+- Amended by: PR-93 (D90) on 2026-11-24: 26.3: the arguments in addition to Playwright's defaults gain `--disable-partial-raster`, so every tile a frame changes is rastered whole and a frame does not depend on the frames rendered before it (D90)
 - Related: D06, D11, D12, D21, D25, D27, D28,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, §6.3, and open
   questions Q3, Q8, and Q14

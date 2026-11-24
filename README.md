@@ -29,7 +29,7 @@ for the release `v0.11.0`, and whose steps PR-89 to PR-92 make stills for a
 graphics editor (D89): the mirror flip of a node in schema `0.27`, the
 transparent clear of a still in schema `0.28`, and a still canvas of up to
 4224 pixels a side in schema `0.29`, for the release `v0.12.0`, and whose
-step PR-93 rasters every tile a frame changes whole (D90, proposed) for the
+step PR-93 rasters every tile a frame changes whole (D90) for the
 patch release `v0.12.1` (before it, a frame with a turned or animated mask,
 shape, or SVG asset could differ after another frame from the same frame
 rendered alone). Schema `0.29` with its forward migrations from `0.1` to `0.28`, the evaluation core, the DOM
@@ -54,7 +54,7 @@ are those of the spike and may still change.
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
 - [`docs/adr`](docs/adr/README.md) — decision log (D01–D90; all accepted except D10, superseded by
-  D37, and D79 to D81 and D90, proposed)
+  D37, and D79 to D81, proposed)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
