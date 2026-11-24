@@ -756,9 +756,9 @@ The probes of the flip found in PR-89 that a frame with content turned off
 the axes inside a mask depends on the frames rendered before it (D89,
 implementation notes of PR-89). The owner approved its fix on 2026-11-24.
 [D90](../adr/D90-every-changed-tile-is-rastered-whole.md) finds the cause in
-the partial raster of the pinned Chromium and proposes one argument of
-`launchChromium` against it; the code is provisional until the owner accepts
-D90.
+the partial raster of the pinned Chromium and adds one argument of
+`launchChromium` against it; the owner accepted D90 on 2026-11-24 with the
+recommendations of all three questions.
 
 - **PR-93** (D90): `--disable-partial-raster` in `CHROMIUM_ARGS`;
   `tests/pinned/mask-history.pinned.test.ts`, recorded red on `v0.12.0` in the
@@ -766,7 +766,7 @@ D90.
   frames written again; the parity records and `docs/spike/report.md`; every
   package at `0.12.1` for the patch release `v0.12.1`, whose tag the owner
   pushes from `main`. No schema, runtime build, or Player dist tree changes.
-  Status: done, provisional until D90 is accepted (D90, implementation notes).
+  Status: done; D90 accepted by the owner on 2026-11-24.
 
 ## Impact on Q14, parity, and golden frames
 

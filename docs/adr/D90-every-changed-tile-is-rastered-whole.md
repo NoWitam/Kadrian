@@ -1,10 +1,12 @@
 # D90 — Every changed tile is rastered whole
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-24 (13:21 Europe/Warsaw),
+  after PR-93 measured the cause and the cost, with the recommendations of
+  all three questions
 - Date: 2026-11-24
 - Supersedes: —
-- Extends, on acceptance, with an `Amended by` line written then and in force
-  from PR-93: D26 (26.3: the arguments in addition to Playwright's defaults
+- Extends, with an `Amended by` line written on acceptance and in force from
+  PR-93: D26 (26.3: the arguments in addition to Playwright's defaults
   gain `--disable-partial-raster`)
 - Related: D22 (22.9), D26, D28, D33, D34, D65, D75, D86, D89
 
@@ -144,7 +146,7 @@ manifest and parity record is written again with it.
 
 ## Implementation notes (PR-93)
 
-The code is provisional until the owner accepts this ADR.
+The owner accepted this ADR on 2026-11-24; the code is no longer provisional.
 
 - **The code.** `CHROMIUM_ARGS` of `packages/producer/src/environment.ts`
   gains the argument, and the unit test of D26.3 names it. Nothing else of a
