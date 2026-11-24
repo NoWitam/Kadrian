@@ -18,7 +18,8 @@
         "--force-color-profile=srgb",
         "--disable-lcd-text",
         "--hide-scrollbars",
-        "--mute-audio"
+        "--mute-audio",
+        "--disable-partial-raster"
       ]
     },
     "environment": {
@@ -37,7 +38,8 @@
         "--force-color-profile=srgb",
         "--disable-lcd-text",
         "--hide-scrollbars",
-        "--mute-audio"
+        "--mute-audio",
+        "--disable-partial-raster"
       ],
       "locale": "en-US",
       "timezone": "UTC",
@@ -190,7 +192,8 @@
       "--force-color-profile=srgb",
       "--disable-lcd-text",
       "--hide-scrollbars",
-      "--mute-audio"
+      "--mute-audio",
+      "--disable-partial-raster"
     ],
     "locale": "en-US",
     "timezone": "UTC",

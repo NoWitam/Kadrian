@@ -21,6 +21,8 @@
  * included, in both hosts (PR-89, measured in the pinned container). That is
  * a defect of masks (D75) of its own, outside the flip; the probes measure the
  * flip on frames that are free of it, and the test asserts that they are.
+ * D90 found its cause in Chromium's partial raster and disables that, which
+ * `mask-history.pinned.test.ts` proves; the probes still hold the masks still.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';

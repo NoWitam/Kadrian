@@ -18,7 +18,8 @@
         "--force-color-profile=srgb",
         "--disable-lcd-text",
         "--hide-scrollbars",
-        "--mute-audio"
+        "--mute-audio",
+        "--disable-partial-raster"
       ]
     },
     "environment": {
@@ -37,7 +38,8 @@
         "--force-color-profile=srgb",
         "--disable-lcd-text",
         "--hide-scrollbars",
-        "--mute-audio"
+        "--mute-audio",
+        "--disable-partial-raster"
       ],
       "locale": "en-US",
       "timezone": "UTC",
@@ -85,12 +87,12 @@
       {
         "index": 30,
         "timeUs": 1000000,
-        "sha256": "sha256:8446fb4fbbe8c217731e236c6fcbbc0f5b23265c292d40bb9b1bc96df4be3bfe"
+        "sha256": "sha256:61f89e7c1e133eb464684aeda37aead8067ed2b461a7ff1ae3e2be4d11f93326"
       },
       {
         "index": 42,
         "timeUs": 1400000,
-        "sha256": "sha256:8f181f675ed9ea6a63e13703733133378863fe5511c843f27eb004ebdb05d2fe"
+        "sha256": "sha256:cda7b736de1d970c39a576ed5d73e9413e3e346a110ea6a92de07b6385ca1709"
       }
     ],
     "blockedRequests": [],
@@ -112,7 +114,8 @@
       "--force-color-profile=srgb",
       "--disable-lcd-text",
       "--hide-scrollbars",
-      "--mute-audio"
+      "--mute-audio",
+      "--disable-partial-raster"
     ],
     "locale": "en-US",
     "timezone": "UTC",
@@ -145,13 +148,13 @@
       "file": "svg-1000000.png",
       "timeUs": 1000000,
       "index": 30,
-      "sha256": "sha256:8446fb4fbbe8c217731e236c6fcbbc0f5b23265c292d40bb9b1bc96df4be3bfe"
+      "sha256": "sha256:61f89e7c1e133eb464684aeda37aead8067ed2b461a7ff1ae3e2be4d11f93326"
     },
     {
       "file": "svg-1400000.png",
       "timeUs": 1400000,
       "index": 42,
-      "sha256": "sha256:8f181f675ed9ea6a63e13703733133378863fe5511c843f27eb004ebdb05d2fe"
+      "sha256": "sha256:cda7b736de1d970c39a576ed5d73e9413e3e346a110ea6a92de07b6385ca1709"
     }
   ]
 }

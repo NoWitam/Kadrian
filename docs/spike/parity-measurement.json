@@ -22,7 +22,8 @@
       "--force-color-profile=srgb",
       "--disable-lcd-text",
       "--hide-scrollbars",
-      "--mute-audio"
+      "--mute-audio",
+      "--disable-partial-raster"
     ],
     "locale": "en-US",
     "timezone": "UTC",
@@ -38,7 +39,7 @@
   },
   "reference": {
     "goldenManifest": "packages/test-fixtures/src/golden-frames/reference.golden-frames.json",
-    "goldenManifestSha256": "sha256:de1dafbd94ad82d4d099a2c2792295d156b7148d5e5bdc7848dc18bd291450af",
+    "goldenManifestSha256": "sha256:3dbc0e8fd0370fdd65e7a535b3198883ff4687bd812801fc9e4cd867b94977b7",
     "runtimeHash": "sha256:890ab89b338d9ccae52452365a1faf7ddd6bfcd7857af32091d4d1837de73c34",
     "compositionHash": "sha256:15f5f24944d2cfb2020e0da637831a1e4502c31d7afd58d43a0597bd2fa244e5",
     "width": 1080,

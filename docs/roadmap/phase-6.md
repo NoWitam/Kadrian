@@ -116,6 +116,7 @@ first, so that the schema step only wires what is already proven.
 |    33 | PR-90 | D89: schema `0.28`, the clear and transparent stills      | `0.28` | yes           | yes         | yes | M    |
 |    34 | PR-91 | D89: schema `0.29`, a still canvas up to 8192             | `0.29` | yes           | yes         | yes | M    |
 |    35 | PR-92 | D89: the host guide and the release                       | —      | —             | —           | —   | S    |
+|    36 | PR-93 | D90: every changed tile rastered whole, `v0.12.1`         | —      | —             | —           | yes | S    |
 
 Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 2 000 to 3 000 (most of it the step, the corpus, and fixtures).
@@ -749,6 +750,24 @@ included, and its pull requests follow those of D88. Video output stays as D07 a
   whose tag the owner pushes from `main`. The runtime build and the Player's
   dist tree keep the bytes of PR-91; no pinned file changes.
 
+### PR-93 — every changed tile rastered whole: D90
+
+The probes of the flip found in PR-89 that a frame with content turned off
+the axes inside a mask depends on the frames rendered before it (D89,
+implementation notes of PR-89). The owner approved its fix on 2026-11-24.
+[D90](../adr/D90-every-changed-tile-is-rastered-whole.md) finds the cause in
+the partial raster of the pinned Chromium and proposes one argument of
+`launchChromium` against it; the code is provisional until the owner accepts
+D90.
+
+- **PR-93** (D90): `--disable-partial-raster` in `CHROMIUM_ARGS`;
+  `tests/pinned/mask-history.pinned.test.ts`, recorded red on `v0.12.0` in the
+  pinned container first (186 and 227 pixels at 1 and 1.5 s); the golden
+  frames written again; the parity records and `docs/spike/report.md`; every
+  package at `0.12.1` for the patch release `v0.12.1`, whose tag the owner
+  pushes from `main`. No schema, runtime build, or Player dist tree changes.
+  Status: done, provisional until D90 is accepted (D90, implementation notes).
+
 ## Impact on Q14, parity, and golden frames
 
 - PR-60 and PR-61 change the Player's dist tree, so parity is measured again in
@@ -783,6 +802,12 @@ included, and its pull requests follow those of D88. Video output stays as D07 a
   included. PR-90 adds a transparent reference still with its golden frames,
   so `REQUIRED_PINNED_FILES` grows in its diff; PR-91 records its probe by
   SHA-256 only, and no large PNG enters Git.
+- PR-93 (D90) changes no runtime build or Player dist tree, but the
+  arguments of Chromium, a field of every environment manifest: every golden
+  manifest and parity record is written again, and six golden PNG files of
+  compositing, shapes, and svg change to the frames rendered alone, so Q14
+  reopens. It adds a pinned file, so `REQUIRED_PINNED_FILES` grows in its
+  diff.
 
 ## Debts carried into this phase
 
@@ -822,4 +847,6 @@ plan:
    after that; by its question 13 PR-78 sets every package to `0.9.0`, and
    the owner pushes the tag `v0.9.0` from `main` after it. D86 and D87 joined
    the phase after that; by question 5 of D86 PR-81 sets every package to
-   `0.9.1`, and by question 6 of D87 PR-84 makes the next release.
+   `0.9.1`, and by question 6 of D87 PR-84 makes the next release. D90 joined the
+   phase after `v0.12.0`; by its question 2 PR-93 sets every package to
+   `0.12.1`.
