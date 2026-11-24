@@ -502,6 +502,8 @@ export const ARTIFACT_FILES = Object.freeze([
   'framed-text/line-widths.json',
   'framed-text/player-parity.json',
   'golden-comparison.json',
+  'mask-history/player.json',
+  'mask-history/producer.json',
   'motion/golden-comparison.json',
   'nested/golden-comparison.json',
   'parity/parity-measurement.json',

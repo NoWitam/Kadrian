@@ -29,12 +29,19 @@ export const PINNED_PLATFORM = 'linux/amd64';
 /** The variable a pinned run sets to `PINNED_IMAGE` (D26.2). */
 export const PINNED_IMAGE_VARIABLE = 'KADRION_PINNED_IMAGE';
 
-/** D26.3: added to Playwright's own default arguments. */
+/**
+ * D26.3: added to Playwright's own default arguments. `--disable-partial-raster`
+ * (D90) rasters every tile a frame changes whole, as the first frame of a page
+ * does: rastered only where it changed, SVG content turned or morphed off the
+ * axes (a mask, a shape, an SVG asset) was painted differently, so a frame
+ * depended on the frames rendered before it.
+ */
 export const CHROMIUM_ARGS: readonly string[] = Object.freeze([
   '--force-color-profile=srgb',
   '--disable-lcd-text',
   '--hide-scrollbars',
   '--mute-audio',
+  '--disable-partial-raster',
 ]);
 export const LOCALE = 'en-US';
 export const TIMEZONE = 'UTC';

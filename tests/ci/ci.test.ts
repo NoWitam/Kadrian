@@ -95,15 +95,15 @@ describe('the pinned test summary', () => {
     expect(summary).toMatchObject({
       schemaVersion: 1,
       root: ROOT,
-      testFileCount: 37,
+      testFileCount: 38,
       testFiles: [...REQUIRED_PINNED_FILES],
-      tests: 74,
-      passed: 74,
+      tests: 76,
+      passed: 76,
       failed: 0,
       skipped: 0,
       todo: 0,
       startedAt: new Date(1_000).toISOString(),
-      lastTestEndedAt: new Date(3_036).toISOString(),
+      lastTestEndedAt: new Date(3_037).toISOString(),
       success: true,
     });
     expect(pinnedSummaryProblems(summary)).toEqual([]);

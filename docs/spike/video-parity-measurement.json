@@ -22,7 +22,8 @@
       "--force-color-profile=srgb",
       "--disable-lcd-text",
       "--hide-scrollbars",
-      "--mute-audio"
+      "--mute-audio",
+      "--disable-partial-raster"
     ],
     "locale": "en-US",
     "timezone": "UTC",
@@ -38,7 +39,7 @@
   },
   "reference": {
     "goldenManifest": "packages/test-fixtures/src/golden-frames/video.golden-frames.json",
-    "goldenManifestSha256": "sha256:1db0069f3dc8424ed539510ac019b8bc40f8ce8e15bf0293949c327b0bd7bc6b",
+    "goldenManifestSha256": "sha256:177fbe96791a28a9d2cf5a7041436ebdb0a7d9fd0b869bf739552bbc72ed2df8",
     "runtimeHash": "sha256:890ab89b338d9ccae52452365a1faf7ddd6bfcd7857af32091d4d1837de73c34",
     "compositionHash": "sha256:14cc6f6f34fa9d9b8a554ec67519c99823d999dd62bcd65e476d67ca09215a31",
     "width": 640,

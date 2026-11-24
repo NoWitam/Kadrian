@@ -93,6 +93,7 @@ describe('the pins of D26', () => {
       '--disable-lcd-text',
       '--hide-scrollbars',
       '--mute-audio',
+      '--disable-partial-raster',
     ]);
   });
 
