@@ -781,7 +781,7 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
 - **PR-94** (D91, documents only): the ADR, its row in the index of ADRs,
   and these entries. Acceptance: `node --run format:check` and
   `tests/repo/adr.test.ts` pass. No code; no impact on Q14, the runtime
-  build, parity, or golden frames.
+  build, parity, or golden frames. Status: done (#135).
 - **PR-95** (D91.1, the corners): the probe of a matte with corners first
   (question 2 of D91); schema `0.30` with `corners`, the step
   `packages/schema/src/migration/step-0-29-to-0-30.ts`, the frozen
@@ -796,7 +796,7 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   `packages/ai-sdk` reads (D46); the warning of `inspect` in `packages/cli`;
   `tests/pinned/corners.pinned.test.ts` with golden frames. Every document
   of `0.29` writes the transform it wrote before.
-  Status: in review. The probe of question 2 did not pass: Chromium draws a
+  Status: done (#136). The probe of question 2 did not pass: Chromium draws a
   perspective `matrix3d` on an SVG element inside a `<mask>` without its
   perspective (3 064 differing pixels against the same transform in HTML,
   0 against the affine part alone), so a matte refuses corners with
@@ -821,11 +821,35 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   of the format; the cells in the text of `packages/renderer-dom/src`;
   `SetTextNumber` and `set_text_number`; `tests/pinned/number.pinned.test.ts`
   with golden frames.
+  Status: in review. As decided for PR-95, `number` is required on every
+  text node, `{ "kind": "none" }` for none, as D16.1 asks; the step
+  0.30 → 0.31 writes it after `text`, and D91 says so in its header.
+  `SetTextNumber` states the text the node keeps, so its inverse restores
+  the old text. One error code, `invalid-number`. The format rounds half away
+  from zero on the digits of `Number::toString`; a cubic Bézier that
+  overshoots widens the box by its control values. The numbers use a fixture
+  font of their own (`Kadrion Fixture Numerals`), so no earlier font or
+  golden PNG file changes; the golden manifests change in the three fields
+  of D42 alone. The gate, `tests/pinned/number.pinned.test.ts`, enters, so
+  `REQUIRED_PINNED_FILES` and the Q14 artifact list grow by it. The runtime
+  build is
+  `sha256:22b773177561b753b4f2924e6d7edb2b1410420c82d2b9234b683c957bb5d09d`
+  (536 253 bytes) and the Player's dist tree
+  `sha256:50c7eb3436470071bfca0783930a12124c2ff0a4594a49d3c4bb46fa112de7f4`
+  (86 files); the parity records (every row 0/0) and the evidence
+  of Q14 are the pinned run's.
 - **PR-97** (D91, the host guide and the release): a frame before corners,
   a quadrilateral that turns concave, corners from a host's tracking frame by
   frame, the font of a number, and its separators; a showcase of both; every
   package at `0.13.0` for the release `v0.13.0`, whose tag the owner pushes
   from `main`. No runtime build, Player dist tree, or pinned file changes.
+  Status: in review. The host guide carries each of them (sections 2, 3, 5,
+  6, and 13), the README the status and the tarballs at `0.13.0`; the
+  showcase `corners-number` (D32.13) pins a picture and its bezel onto a
+  screen by animated corners and counts two numbers, with the numeral font
+  of the fixtures among the page's assets. The runtime build and the
+  Player's dist tree keep the bytes of PR-96; no pinned file changes, and
+  the pinned showcases test opens, plays, and edits the new showcase.
 
 ## Impact on Q14, parity, and golden frames
 

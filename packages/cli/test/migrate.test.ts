@@ -290,5 +290,8 @@ describe('migrateText', () => {
       expect(outcome.current).toBe(entry.versions.length === 1);
       expect(outcome.text.endsWith('\n')).toBe(false);
     }
-  });
+    // Every document of the corpus through every step after its own: 3.5 s
+    // alone at schema 0.31, past the default 5 s in a full parallel run, so the
+    // bound is set.
+  }, 60_000);
 });

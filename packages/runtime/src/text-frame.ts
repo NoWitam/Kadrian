@@ -634,8 +634,8 @@ type AnyNode =
 
 /**
  * The measured nodes of a document, in document order: every text with a
- * frame and every captions node broken by width, in its scenes, their groups,
- * and its definitions (D83.7).
+ * frame or a number (D91.2) and every captions node broken by width, in its
+ * scenes, their groups, and its definitions (D83.7).
  */
 export function measuredNodes(
   composition: Pick<Composition, 'scenes' | 'definitions'>,
@@ -644,7 +644,10 @@ export function measuredNodes(
   const visit = (node: AnyNode): void => {
     if (node.type === 'group') {
       for (const child of node.children) visit(child);
-    } else if (node.type === 'text' && node.frame.kind === 'fixed') {
+    } else if (
+      node.type === 'text' &&
+      (node.frame.kind === 'fixed' || node.number.kind === 'number')
+    ) {
       found.push({ nodeId: node.id, fontAssetId: node.fontAssetId });
     } else if (node.type === 'captions' && node.style.lineBreak === 'width') {
       found.push({ nodeId: node.id, fontAssetId: node.fontAssetId });

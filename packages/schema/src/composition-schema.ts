@@ -61,8 +61,11 @@
  * definitions, where a video job still stops at 1920 (D89.1); 0.30 is 0.29
  * plus the four corners of every transformable node, offsets in composition
  * pixels that move the corners of its box after its own transform, so that it
- * draws onto a quadrilateral by a homography, and their animation (D91.1). The
- * schemas of 0.1 to 0.29 are kept as data in `v0-1` to `v0-29` (D35.4).
+ * draws onto a quadrilateral by a homography, and their animation (D91.1); 0.31
+ * is 0.30 plus the number of every text node, none or a value formatted with
+ * its decimals, separators, prefix, and suffix in place of the text, and its
+ * animation (D91.2). The schemas of 0.1 to 0.30 are kept as data in `v0-1` to
+ * `v0-30` (D35.4).
  */
 import {
   closedObject,
@@ -75,7 +78,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.30';
+export const SCHEMA_VERSION = '0.31';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -427,6 +430,21 @@ export const cornersAnimationSchema = animation(
   cornersValue('Offsets of the four corners, in composition pixels (D91.1).'),
 );
 
+/** The value of the number of a text, a finite number within the safe integers (D15, D91.2). */
+const textNumberValue = {
+  type: 'number',
+  description:
+    'The value shown, a finite number; it is rounded half away from zero to the decimals of the number when it is written (D15, D91.2).',
+  minimum: -MAX_SAFE_INTEGER,
+  maximum: MAX_SAFE_INTEGER,
+} as const satisfies NumberSchema;
+
+export const numberAnimationSchema = animation(
+  'number',
+  "Values that replace the value of the text's number while the animation is sampled, rounded to its decimals after the interpolation; a text without a number has no such animation (D65.1, D91.2).",
+  textNumberValue,
+);
+
 export const sizeAnimationSchema = animation(
   'size',
   "The width and height of the node's box, which replace its own while the animation is sampled (D65.1, D68).",
@@ -763,7 +781,7 @@ export const geometryAnimationSchema = animation(
  */
 export const animationSchema = {
   description:
-    'An animation of one property of the node that owns it: position, rotation, origin, and corners are offsets added to the base value, scale, opacity, and the volume of a video factors multiplied with it, and size, color, crop, cornerRadius, and the fill, stroke/color, stroke/width, trim/start, trim/end, and geometry of a shape values that replace it (D16.6, D65.1, D68, D73, D91.1).',
+    'An animation of one property of the node that owns it: position, rotation, origin, and corners are offsets added to the base value, scale, opacity, and the volume of a video factors multiplied with it, and size, color, crop, cornerRadius, the number of a text, and the fill, stroke/color, stroke/width, trim/start, trim/end, and geometry of a shape values that replace it (D16.6, D65.1, D68, D73, D91).',
   oneOf: [
     opacityAnimationSchema,
     positionAnimationSchema,
@@ -773,6 +791,7 @@ export const animationSchema = {
     cornersAnimationSchema,
     sizeAnimationSchema,
     colorAnimationSchema,
+    numberAnimationSchema,
     cropAnimationSchema,
     cornerRadiusAnimationSchema,
     fillAnimationSchema,
@@ -820,8 +839,15 @@ function transform<const S extends readonly ObjectSchema[]>(rows: S) {
 /** A group, a Custom HTML element: the transform rows only. */
 const plainTransform = transform(TRANSFORM_ANIMATIONS);
 
-/** A text, captions: the transform rows and the colour. */
+/** Captions: the transform rows and the colour. */
 const coloredTransform = transform([...TRANSFORM_ANIMATIONS, colorAnimationSchema] as const);
+
+/** A text: the transform rows, the colour, and the number (D91.2). */
+const textTransform = transform([
+  ...TRANSFORM_ANIMATIONS,
+  colorAnimationSchema,
+  numberAnimationSchema,
+] as const);
 
 /** An image or a video: the transform rows, size, crop, and corner radius. */
 const pictureTransform = transform([
@@ -1886,14 +1912,51 @@ export const fixedFrameSchema = closedObject(
   },
 );
 
+/** No number: the text node shows its text (D91.2). */
+export const noNumberSchema = closedObject('No number: the node shows its text (D91.2).', {
+  kind: { type: 'string', const: 'none' },
+});
+
+/**
+ * A number shown in place of the text (D91.2): the prefix, the value written
+ * by its decimals and separators, and the suffix.
+ */
+export const textNumberSchema = closedObject(
+  "A number shown in place of the text, which must then be '': the prefix, the value rounded half away from zero to decimals, its integer part in groups of three joined by groupSeparator and its fraction after decimalSeparator, a negative value with - (U+002D) unless it rounds to zero, and the suffix. Its digits stand in cells as wide as the widest digit of the font, and its box and lines are those of the widest text it takes, so that it never jumps; its font is measured (D83.7, D91.2).",
+  {
+    kind: { type: 'string', const: 'number' },
+    value: textNumberValue,
+    decimals: {
+      type: 'integer',
+      description: 'The digits after the decimal separator, exactly, from 0 to 6 (D91.2).',
+      minimum: 0,
+      maximum: 6,
+    },
+    decimalSeparator: {
+      type: 'string',
+      description: 'What stands between the integer part and the fraction (D91.2).',
+      enum: ['.', ','],
+    },
+    groupSeparator: {
+      type: 'string',
+      description:
+        "What joins the groups of three digits of the integer part: '' for none, a space, U+00A0, U+202F, '.', ',', or an apostrophe; never the decimal separator (D91.2).",
+      enum: ['', ' ', '\u00a0', '\u202f', '.', ',', "'"],
+    },
+    prefix: { type: 'string', description: 'Text written before the number (D91.2).' },
+    suffix: { type: 'string', description: 'Text written after the number (D91.2).' },
+  },
+);
+
 const textNodeSchemaValue = closedObject(
   'A run of text; line breaks are preserved, and a frame wraps its lines to its width (D83).',
   {
     id,
     type: { type: 'string', const: 'text' },
     ...lifetime,
-    ...coloredTransform,
+    ...textTransform,
     text: { type: 'string' },
+    number: { oneOf: [noNumberSchema, textNumberSchema] },
     fontAssetId: assetReference,
     fontSize: length,
     frame: { oneOf: [noFrameSchema, fixedFrameSchema] },
@@ -3165,7 +3228,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.30',
+  title: 'Kadrion composition 0.31',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

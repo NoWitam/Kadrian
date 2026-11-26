@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -117,6 +117,7 @@
           "opacity": 1,
           "animations": [],
           "text": "{{name}} dd {{rank}}",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 48,
           "frame": { "kind": "none" },
@@ -171,6 +172,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Made by Kadrion",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 32,
           "frame": { "kind": "none" },

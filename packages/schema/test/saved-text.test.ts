@@ -190,6 +190,7 @@ describe('the supported versions (D43.5)', () => {
       '0.28',
       '0.29',
       '0.30',
+      '0.31',
     ]);
     expect(Object.isFrozen(SUPPORTED_SCHEMA_VERSIONS)).toBe(true);
     expect(SUPPORTED_SCHEMA_VERSIONS.at(-1)).toBe(SCHEMA_VERSION);
@@ -210,7 +211,8 @@ describe('the supported versions (D43.5)', () => {
   );
 
   it.each([
-    '0.31',
+    '0.32',
+    '0.310',
     '0.300',
     '0.290',
     '0.280',
@@ -366,7 +368,7 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
       ({ name, patch }) => [`0.1: ${name}`, applyPatch(referenceCompositionV01, patch)] as const,
     ),
     ...invalidCompositionCases.map(
-      ({ name, patch }) => [`0.30: ${name}`, applyPatch(referenceComposition, patch)] as const,
+      ({ name, patch }) => [`0.31: ${name}`, applyPatch(referenceComposition, patch)] as const,
     ),
   ];
 
@@ -402,15 +404,15 @@ describe('what the migration refuses, carried as it is (D42.8, D43.4)', () => {
 
 describe('the rules of JSON, and no others (D43.2)', () => {
   it('lets the last of two equal keys win, as JSON.parse does', () => {
-    // A valid 0.30 body with two versions: the later one decides.
+    // A valid 0.31 body with two versions: the later one decides.
     const current = referenceText.replace(
-      '"schemaVersion":"0.30"',
-      '"schemaVersion":"0.1","schemaVersion":"0.30"',
+      '"schemaVersion":"0.31"',
+      '"schemaVersion":"0.1","schemaVersion":"0.31"',
     );
-    expect(loaded(parseComposition(current)).versions).toEqual(['0.30']);
+    expect(loaded(parseComposition(current)).versions).toEqual(['0.31']);
     const older = referenceText.replace(
-      '"schemaVersion":"0.30"',
-      '"schemaVersion":"0.30","schemaVersion":"0.1"',
+      '"schemaVersion":"0.31"',
+      '"schemaVersion":"0.31","schemaVersion":"0.1"',
     );
     const judged = refused(parseComposition(older));
     // Judged as the 0.1 document its last key says it is, which it is not.
@@ -556,16 +558,17 @@ describe('deeply nested JSON (D43.4)', () => {
       '0.28',
       '0.29',
       '0.30',
+      '0.31',
     ].includes(version)
       ? '"rotation":0,"origin":{"x":0,"y":0},'
       : '';
     // From 0.27 it has a flip after its origin (D89.3).
-    const flip = ['0.27', '0.28', '0.29', '0.30'].includes(version)
+    const flip = ['0.27', '0.28', '0.29', '0.30', '0.31'].includes(version)
       ? '"flip":{"x":false,"y":false},'
       : '';
     // From 0.30 it has four corners after its flip, zero vectors for none (D91.1).
     const corners =
-      version === '0.30'
+      version === '0.30' || version === '0.31'
         ? '"corners":{"topLeft":{"x":0,"y":0},"topRight":{"x":0,"y":0},"bottomRight":{"x":0,"y":0},"bottomLeft":{"x":0,"y":0}},'
         : '';
     // From 0.15 the composition has a safe area (D70).
@@ -586,11 +589,12 @@ describe('deeply nested JSON (D43.4)', () => {
       '0.28',
       '0.29',
       '0.30',
+      '0.31',
     ].includes(version)
       ? '"safeArea":{"fromTop":0,"fromRight":0,"fromBottom":0,"fromLeft":0},'
       : '';
     // From 0.28 the composition has a clear after its safe area (D89.2).
-    const clear = ['0.28', '0.29', '0.30'].includes(version) ? '"clear":"white",' : '';
+    const clear = ['0.28', '0.29', '0.30', '0.31'].includes(version) ? '"clear":"white",' : '';
     // From 0.16 a group and a scene have effects (D71).
     const effects = [
       '0.16',
@@ -608,6 +612,7 @@ describe('deeply nested JSON (D43.4)', () => {
       '0.28',
       '0.29',
       '0.30',
+      '0.31',
     ].includes(version)
       ? ',"effects":[]'
       : '';
@@ -624,6 +629,7 @@ describe('deeply nested JSON (D43.4)', () => {
       '0.28',
       '0.29',
       '0.30',
+      '0.31',
     ].includes(version)
       ? ',"mask":{"kind":"none"},"matte":{"kind":"none"},"blendMode":"normal"'
       : '';
@@ -639,6 +645,7 @@ describe('deeply nested JSON (D43.4)', () => {
       '0.28',
       '0.29',
       '0.30',
+      '0.31',
     ].includes(version)
       ? ',"definitions":[]'
       : '';
@@ -741,6 +748,7 @@ describe('ownership and freezing (D43.4, D43.3)', () => {
         '0.27',
         '0.28',
         '0.29',
+        '0.30',
         SCHEMA_VERSION,
       ],
     ],

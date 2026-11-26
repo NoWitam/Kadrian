@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "0.31",
+  "width": 4224,
+  "height": 2376,
+  "safeArea": {
+    "fromTop": 2000,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 4223
+  },
+  "clear": "transparent",
+  "fps": 1,
+  "durationUs": 1000000,
+  "assets": [],
+  "scenes": [
+    {
+      "id": "canvas-scene",
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "canvas-poster",
+          "type": "instance",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": -924 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
+          "opacity": 1,
+          "animations": [],
+          "definitionId": "canvas-square",
+          "inputs": [],
+          "sourceStartUs": 0,
+          "width": 4224,
+          "height": 4224,
+          "fit": "fill",
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        },
+        {
+          "id": "canvas-band",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 0, "y": 2000 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 0, "y": 0 },
+          "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 4224,
+          "height": 376,
+          "geometry": { "kind": "rect", "cornerRadius": 0 },
+          "fill": { "kind": "solid", "color": "#101828" },
+          "stroke": { "color": "#ffffff", "width": 0, "dash": [], "cap": "round", "join": "round" },
+          "trim": { "start": 0, "end": 1000 },
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [
+    {
+      "id": "canvas-square",
+      "sourceHash": "",
+      "width": 4224,
+      "height": 4224,
+      "durationUs": 1000000,
+      "nodes": [
+        {
+          "id": "canvas-square-disc",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 1000000,
+          "position": { "x": 112, "y": 112 },
+          "scale": { "x": 1, "y": 1 },
+          "rotation": 0,
+          "origin": { "x": 500, "y": 500 },
+          "flip": { "x": true, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
+          "opacity": 1,
+          "animations": [],
+          "width": 4000,
+          "height": 4000,
+          "geometry": { "kind": "ellipse" },
+          "fill": {
+            "kind": "linear-gradient",
+            "start": { "x": 0, "y": 0 },
+            "end": { "x": 4000, "y": 0 },
+            "stops": [
+              { "offset": 0, "color": "#f79009", "opacity": 1 },
+              { "offset": 1000, "color": "#1d4ed8", "opacity": 1 }
+            ]
+          },
+          "stroke": { "color": "#ffffff", "width": 0, "dash": [], "cap": "round", "join": "round" },
+          "trim": { "start": 0, "end": 1000 },
+          "effects": [],
+          "mask": { "kind": "none" },
+          "matte": { "kind": "none" },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+    }
+  ],
+  "template": { "inputs": [], "bindings": [], "conditions": [], "repeats": [] }
+}

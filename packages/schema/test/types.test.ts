@@ -264,6 +264,9 @@ type ExpectedTransformAnimation =
 
 type ExpectedColorAnimation = ExpectedAnimation<'color', string>;
 
+/** The value a text with a number shows, which it replaces (D91.2). */
+type ExpectedNumberAnimation = ExpectedAnimation<'number', number>;
+
 type ExpectedPictureAnimation =
   | ExpectedTransformAnimation
   | ExpectedAnimation<'size', { readonly width: number; readonly height: number }>
@@ -363,6 +366,7 @@ type ExpectedVideoAnimation = ExpectedPictureAnimation | ExpectedVolumeAnimation
 type ExpectedNodeAnimation =
   | ExpectedPictureAnimation
   | ExpectedColorAnimation
+  | ExpectedNumberAnimation
   | ExpectedShapeAnimation
   | ExpectedVolumeAnimation;
 
@@ -499,11 +503,22 @@ interface ExpectedTextAnimation {
 }
 
 interface ExpectedTextNode extends ExpectedTransform<
-  ExpectedTransformAnimation | ExpectedColorAnimation
+  ExpectedTransformAnimation | ExpectedColorAnimation | ExpectedNumberAnimation
 > {
   readonly id: string;
   readonly type: 'text';
   readonly text: string;
+  readonly number:
+    | { readonly kind: 'none' }
+    | {
+        readonly kind: 'number';
+        readonly value: number;
+        readonly decimals: number;
+        readonly decimalSeparator: '.' | ',';
+        readonly groupSeparator: '' | ' ' | '\u00a0' | '\u202f' | '.' | ',' | "'";
+        readonly prefix: string;
+        readonly suffix: string;
+      };
   readonly fontAssetId: string;
   readonly fontSize: number;
   readonly frame:
@@ -903,7 +918,7 @@ interface ExpectedDefinition {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.30';
+  readonly schemaVersion: '0.31';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

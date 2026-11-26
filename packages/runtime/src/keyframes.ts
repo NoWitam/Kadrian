@@ -29,6 +29,7 @@ export const PROPERTY_BOUNDS: Readonly<Record<NodeAnimation['property'], Bounds>
   corners: { min: -1_000_000, max: 1_000_000 },
   size: { min: 1, max: 1_000_000 },
   color: { min: 0, max: 255 },
+  number: { min: -9_007_199_254_740_991, max: 9_007_199_254_740_991 },
   crop: { min: 0, max: 1000 },
   cornerRadius: { min: 0, max: 1_000_000 },
   fill: { min: 0, max: 255 },

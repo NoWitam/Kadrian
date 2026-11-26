@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -62,6 +62,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion animates",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 96,
           "frame": { "kind": "none" },
@@ -184,6 +185,7 @@
           "opacity": 1,
           "animations": [],
           "text": "scenes and stories made in time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 56,
           "frame": { "kind": "none" },
@@ -311,6 +313,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Dina and Kim design",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 64,
           "frame": { "kind": "none" },
@@ -444,6 +447,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion is easy",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 56,
           "frame": { "kind": "none" },

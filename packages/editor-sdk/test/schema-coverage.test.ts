@@ -333,6 +333,7 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
       'crop',
       'fill',
       'geometry',
+      'number',
       'opacity',
       'origin',
       'position',

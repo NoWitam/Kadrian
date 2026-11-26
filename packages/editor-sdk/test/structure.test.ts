@@ -89,6 +89,7 @@ function textNode(id: string, animationId?: string): Record<string, unknown> {
             },
           ],
     text: 'New',
+    number: { kind: 'none' },
     fontAssetId: 'asset-font',
     fontSize: 40,
     frame: { kind: 'none' },

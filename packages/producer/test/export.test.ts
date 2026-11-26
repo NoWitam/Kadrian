@@ -1132,7 +1132,7 @@ describe('the one-pass export on a fake frame loop and FFmpeg (D29.3, D47.6)', (
       'tools',
       `probe sound-0 ${String(AUDIO_BYTES.length)}`,
       'browser',
-      'load 0.30 white',
+      'load 0.31 white',
       ...SEGMENT_NAMES.flatMap((name) => [
         `spawn ${part(name)}.partial audio=false`,
         `count ${part(name)}.partial`,
@@ -2104,7 +2104,7 @@ describe('a transparent document in a still and a video job (D89.2)', () => {
   it('renders every frame of an export from a copy with a white clear, and keeps the hash of the document as given', async () => {
     const run = fakeRun();
     const { manifest } = await exportWith(request({ document: transparent }), run.dependencies);
-    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.30 white']);
+    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.31 white']);
     expect(manifest.clear).toBe('white');
     expect(manifest.compositionHash).toBe(transparentHash);
   });
@@ -2117,7 +2117,7 @@ describe('a transparent document in a still and a video job (D89.2)', () => {
       '/jobs/transparent',
       { document: transparent },
     );
-    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.30 white']);
+    expect(run.log.filter((line) => line.startsWith('load '))).toEqual(['load 0.31 white']);
     expect(manifest.clear).toBe('white');
     expect(manifest.compositionHash).toBe(transparentHash);
   });

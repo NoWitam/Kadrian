@@ -126,7 +126,14 @@ export type ValidationErrorCode =
    * in their order, at the node's base values; corners on a text without a
    * fixed frame; or corners on a shape that is a matte (D91.1).
    */
-  | 'invalid-corners';
+  | 'invalid-corners'
+  /**
+   * The number of a text that it cannot show (D91.2): a text with a number
+   * whose `text` is not '', a group separator equal to the decimal separator,
+   * a `number` animation on a text without a number, or a template binding
+   * that writes the text of a text with a number.
+   */
+  | 'invalid-number';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

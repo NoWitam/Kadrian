@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.31"
+        "value": "0.32"
       }
     ],
     "expectedErrors": [
@@ -13824,6 +13824,193 @@
       {
         "code": "invalid-corners",
         "path": "/scenes/0/nodes/2/corners"
+      }
+    ]
+  },
+  {
+    "name": "number-with-text",
+    "description": "A text that shows a number has no text of its own: its `text` is empty, and the number writes what it shows (D91.2).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/number",
+        "value": {
+          "kind": "number",
+          "value": 1234.5,
+          "decimals": 2,
+          "decimalSeparator": ",",
+          "groupSeparator": " ",
+          "prefix": "",
+          "suffix": ""
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-number",
+        "path": "/scenes/0/nodes/2/text"
+      }
+    ]
+  },
+  {
+    "name": "number-separators-equal",
+    "description": "The group separator of a number is never its decimal separator, or 1.234 would read both ways (D91.2).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/text",
+        "value": ""
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/number",
+        "value": {
+          "kind": "number",
+          "value": 1234.5,
+          "decimals": 2,
+          "decimalSeparator": ".",
+          "groupSeparator": ".",
+          "prefix": "",
+          "suffix": ""
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-number",
+        "path": "/scenes/0/nodes/2/number/groupSeparator"
+      }
+    ]
+  },
+  {
+    "name": "number-animation-without-number",
+    "description": "The row `number` animates the value of a number: a text without one has nothing it could animate (D91.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/2/animations/-",
+        "value": {
+          "id": "animation-title-number",
+          "property": "number",
+          "keyframes": [
+            {
+              "timeUs": 0,
+              "value": 0,
+              "easing": {
+                "kind": "linear"
+              }
+            },
+            {
+              "timeUs": 1000000,
+              "value": 10,
+              "easing": {
+                "kind": "linear"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-number",
+        "path": "/scenes/0/nodes/2/animations/1"
+      }
+    ]
+  },
+  {
+    "name": "number-decimals-seven",
+    "description": "A number shows at most six decimals (D91.2).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/text",
+        "value": ""
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/number",
+        "value": {
+          "kind": "number",
+          "value": 1234.5,
+          "decimals": 7,
+          "decimalSeparator": ",",
+          "groupSeparator": " ",
+          "prefix": "",
+          "suffix": ""
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "out-of-range",
+        "path": "/scenes/0/nodes/2/number/decimals"
+      }
+    ]
+  },
+  {
+    "name": "number-group-separator-unknown",
+    "description": "The group separator of a number is one of a closed list: none, a space, a no-break space, a narrow no-break space, a full stop, a comma, or an apostrophe (D91.2).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/text",
+        "value": ""
+      },
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/number",
+        "value": {
+          "kind": "number",
+          "value": 1234.5,
+          "decimals": 2,
+          "decimalSeparator": ",",
+          "groupSeparator": "_",
+          "prefix": "",
+          "suffix": ""
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/2/number/groupSeparator"
+      }
+    ]
+  },
+  {
+    "name": "number-animation-on-image",
+    "description": "The row `number` belongs to a text alone (D91.2).",
+    "patch": [
+      {
+        "op": "add",
+        "path": "/scenes/0/nodes/1/children/0/animations/-",
+        "value": {
+          "id": "animation-image-number",
+          "property": "number",
+          "keyframes": [
+            {
+              "timeUs": 0,
+              "value": 0,
+              "easing": {
+                "kind": "linear"
+              }
+            },
+            {
+              "timeUs": 1000000,
+              "value": 10,
+              "easing": {
+                "kind": "linear"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-value",
+        "path": "/scenes/0/nodes/1/children/0/animations/1/property"
       }
     ]
   }

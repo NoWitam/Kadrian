@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -136,6 +136,7 @@
           "opacity": 1,
           "animations": [],
           "text": "slow",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 32,
           "frame": {
@@ -260,6 +261,7 @@
           "opacity": 1,
           "animations": [],
           "text": "slower",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 32,
           "frame": {
@@ -448,6 +450,7 @@
           "opacity": 1,
           "animations": [],
           "text": "x2 then still",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 32,
           "frame": {
@@ -572,6 +575,7 @@
           "opacity": 1,
           "animations": [],
           "text": "rewind",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 32,
           "frame": {

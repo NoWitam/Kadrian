@@ -9,7 +9,8 @@
  * the font (D83): the metrics a host or the load step reads from a font's
  * bytes, the lines of a text in its frame and of captions broken by width,
  * and `frameLayout`, which places them for a host's overlay. They are also
- * the entry `@kadrion/runtime/text-frame`.
+ * the entry `@kadrion/runtime/text-frame`. And the number of a text (D91.2):
+ * its format, its value at an instant, and its lines in cells.
  */
 export { AUDIO_SAMPLE_RATE, audioLayout, audioPlan, sampleAt } from './audio.js';
 export type { AudioLayout, AudioPlan, AudioPlanEntry, SampleFade, SoundLayout } from './audio.js';
@@ -50,6 +51,23 @@ export type {
   MeasuredLine,
   TextFrameInput,
 } from './text-frame.js';
+export {
+  digitCellUnits,
+  formatNumber,
+  isDigit,
+  measureInCells,
+  numberExtremes,
+  numberText,
+  numberTextLayout,
+  numberValueAt,
+  widestNumberText,
+} from './text-number.js';
+export type {
+  NumberFormat,
+  NumberTextLayout,
+  NumberTextLine,
+  NumberTextNode,
+} from './text-number.js';
 export type { TextLayout, TextLine, TextRun, TextWord } from './graphemes.js';
 export type {
   AmountEffectState,
@@ -81,6 +99,7 @@ export type {
   LeafNodeState,
   LeafNodeType,
   LifetimeState,
+  NumberLineState,
   MaskState,
   MatteState,
   NodeState,
@@ -95,6 +114,7 @@ export type {
   SvgEffectState,
   TextFragmentsState,
   TextNodeState,
+  TextNumberState,
   TransformState,
   TrimState,
   Vec2,

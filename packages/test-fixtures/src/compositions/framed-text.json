@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -62,6 +62,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -128,6 +129,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -194,6 +196,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -260,6 +263,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -326,6 +330,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -392,6 +397,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -458,6 +464,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -524,6 +531,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -590,6 +598,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws lines with time",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -673,6 +682,7 @@
           "opacity": 1,
           "animations": [],
           "text": "mmmmmmmmmmmmmmmmmmmm draws",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 24,
           "frame": {
@@ -739,6 +749,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion draws time and lines in the width",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {
@@ -801,6 +812,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion\ndraws  lines with the width",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 26,
           "frame": {
@@ -930,6 +942,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion\ndraws\nmmm lines",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font-proportional",
           "fontSize": 20,
           "frame": {

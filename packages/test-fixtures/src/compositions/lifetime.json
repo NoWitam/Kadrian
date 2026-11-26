@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 400,
   "height": 300,
   "safeArea": {
@@ -93,6 +93,7 @@
               "opacity": 1,
               "animations": [],
               "text": "A",
+              "number": { "kind": "none" },
               "fontAssetId": "asset-font",
               "fontSize": 40,
               "frame": { "kind": "none" },
@@ -147,6 +148,7 @@
               "opacity": 1,
               "animations": [],
               "text": "B",
+              "number": { "kind": "none" },
               "fontAssetId": "asset-font",
               "fontSize": 40,
               "frame": { "kind": "none" },
@@ -234,6 +236,7 @@
             }
           ],
           "text": "C",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },
@@ -288,6 +291,7 @@
           "opacity": 1,
           "animations": [],
           "text": "D",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },

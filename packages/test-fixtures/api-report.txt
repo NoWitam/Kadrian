@@ -149,6 +149,15 @@ export interface MigrationPair {
     readonly after: unknown;
 }
 
+---- NUMERAL_FONT_ADVANCES
+export declare const NUMERAL_FONT_ADVANCES: Readonly<Record<string, number>>;
+
+---- NUMERAL_FONT_FAMILY_NAME
+export declare const NUMERAL_FONT_FAMILY_NAME = "Kadrion Fixture Numerals";
+
+---- NUMERAL_FONT_GLYPHS
+export declare const NUMERAL_FONT_GLYPHS: Readonly<Record<string, readonly string[]>>;
+
 ---- PROPORTIONAL_FONT_ADVANCES
 export declare const PROPORTIONAL_FONT_ADVANCES: Readonly<Record<string, number>>;
 
@@ -315,6 +324,12 @@ export declare const framedTextComposition: unknown;
 ---- framedTextGoldenTimestamps
 export declare const framedTextGoldenTimestamps: readonly GoldenTimestamp[];
 
+---- generateNumeralFont
+export declare function generateNumeralFont(): Uint8Array;
+
+---- generateNumeralFontAsset
+export declare function generateNumeralFontAsset(): FixtureAsset;
+
 ---- generateProportionalFont
 export declare function generateProportionalFont(cmap?: FixtureFontCmap): Uint8Array;
 
@@ -408,6 +423,9 @@ export declare const invalidCompositionCasesV029: readonly InvalidCompositionCas
 ---- invalidCompositionCasesV03
 export declare const invalidCompositionCasesV03: readonly InvalidCompositionCase[];
 
+---- invalidCompositionCasesV030
+export declare const invalidCompositionCasesV030: readonly InvalidCompositionCase[];
+
 ---- invalidCompositionCasesV04
 export declare const invalidCompositionCasesV04: readonly InvalidCompositionCase[];
 
@@ -498,6 +516,9 @@ export declare const migrationPair029To030: MigrationPair;
 ---- migrationPair02To03
 export declare const migrationPair02To03: MigrationPair;
 
+---- migrationPair030To031
+export declare const migrationPair030To031: MigrationPair;
+
 ---- migrationPair03To04
 export declare const migrationPair03To04: MigrationPair;
 
@@ -530,6 +551,12 @@ export declare const nestedComposition: unknown;
 
 ---- nestedGoldenTimestamps
 export declare const nestedGoldenTimestamps: readonly GoldenTimestamp[];
+
+---- numberComposition
+export declare const numberComposition: unknown;
+
+---- numberGoldenTimestamps
+export declare const numberGoldenTimestamps: readonly GoldenTimestamp[];
 
 ---- referenceComposition
 export declare const referenceComposition: unknown;
@@ -602,6 +629,9 @@ export declare const referenceCompositionV029: unknown;
 
 ---- referenceCompositionV03
 export declare const referenceCompositionV03: unknown;
+
+---- referenceCompositionV030
+export declare const referenceCompositionV030: unknown;
 
 ---- referenceCompositionV04
 export declare const referenceCompositionV04: unknown;

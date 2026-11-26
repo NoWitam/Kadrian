@@ -415,4 +415,29 @@ export const SHOWCASES: readonly Showcase[] = [
     },
     templateValues: null,
   },
+  {
+    id: 'corners-number',
+    title: 'Four corners and a number in a text',
+    description:
+      'A picture pinned onto a screen seen in perspective: the picture and its bezel move their four corners after their own transform, and a corners animation swings both from one side to the other and back, every instant a convex quadrilateral. Beside it, two counters: one from 0 to 1 234 567,89, grouped by spaces with a decimal comma, and a share from 0.0% to 99.5%. Each is laid out for its widest value, every digit in a cell as wide as the widest digit of the font, so neither text jumps as it counts. The tool call shows the first counter in whole dollars grouped by full stops (D91).',
+    features: ['D65', 'D91'],
+    url: '/app/showcases/corners-number.json',
+    sourceFile: 'apps/playground/src/showcases/corners-number.json',
+    dragNodeId: 'counter-main',
+    toolCall: {
+      name: 'set_text_number',
+      arguments: {
+        nodeId: 'counter-main',
+        number: {
+          value: 0,
+          decimals: 0,
+          decimalSeparator: ',',
+          groupSeparator: '.',
+          prefix: '$',
+          suffix: '',
+        },
+      },
+    },
+    templateValues: null,
+  },
 ];

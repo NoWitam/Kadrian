@@ -1222,7 +1222,7 @@ describe('kadrion inspect (D79.6, D91.1)', () => {
     expect(code).toBe(EXIT_OK);
     expect(err).toEqual([]);
     expect(out).toEqual([
-      `${path}: a composition of schema 0.30, 1 warning`,
+      `${path}: a composition of schema 0.31, 1 warning`,
       '  corners-not-convex corners-animated at 566666 µs: The corners of "corners-animated" do not form a convex quadrilateral at 566666 µs (scene time 566666 µs): it draws nothing then (D91.1).',
     ]);
     const json = io();
@@ -1246,12 +1246,12 @@ describe('kadrion inspect (D79.6, D91.1)', () => {
     const path = compositionFile(referenceComposition);
     const { out, io: streams } = io();
     await expect(runCli(['inspect', path], streams, {})).resolves.toBe(EXIT_OK);
-    expect(out).toEqual([`${path}: a composition of schema 0.30, 0 warnings`]);
+    expect(out).toEqual([`${path}: a composition of schema 0.31, 0 warnings`]);
   });
 
   it.each([
     ['no JSON', '{', /^error invalid-json: /],
-    ['no valid composition', '{"schemaVersion":"0.30"}', /^error invalid-document: /],
+    ['no valid composition', '{"schemaVersion":"0.31"}', /^error invalid-document: /],
   ])('exits 1 for a composition that is %s', async (_, text, first) => {
     const path = compositionFile(null, text);
     const { out, err, io: streams } = io();

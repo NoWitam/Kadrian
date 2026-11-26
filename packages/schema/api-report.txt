@@ -259,7 +259,7 @@ export type Quadrilateral = readonly [
 ];
 
 ---- SCHEMA_VERSION
-export declare const SCHEMA_VERSION = "0.30";
+export declare const SCHEMA_VERSION = "0.31";
 
 ---- SVG_IDENTITY
 export declare const SVG_IDENTITY: SvgMatrix;
@@ -484,6 +484,14 @@ export type TextFrame = TextNode['frame'];
 ---- TextNode (type only)
 export type TextNode = Infer<typeof textNodeSchema>;
 
+---- TextNumber (type only)
+export type TextNumber = TextNode['number'];
+
+---- TextNumberFormat (type only)
+export type TextNumberFormat = Extract<TextNumber, {
+    kind: 'number';
+}>;
+
 ---- TextStyle (type only)
 export type TextStyle = Infer<typeof textStyleSchema>;
 
@@ -534,7 +542,7 @@ export interface ValidationError {
 }
 
 ---- ValidationErrorCode (type only)
-export type ValidationErrorCode = 'unsupported-schema-version' | 'missing-field' | 'unknown-field' | 'invalid-type' | 'invalid-value' | 'out-of-range' | 'invalid-length' | 'duplicate-id' | 'unresolved-asset-reference' | 'asset-type-mismatch' | 'keyframes-not-ascending' | 'source-time-out-of-range' | 'clip-fades-exceed-duration' | 'composition-duration-mismatch' | 'unresolved-scene-reference' | 'unresolved-node-reference' | 'transition-not-adjacent' | 'transition-not-siblings' | 'transition-node-type' | 'transition-overlap-mismatch' | 'transition-too-long' | 'duplicate-transition' | 'caption-words-overlap' | 'duplicate-animation-target' | 'crop-empty' | 'safe-area-empty' | 'bound-property-animated' | 'template-input-invalid' | 'unresolved-input-reference' | 'binding-type-mismatch' | 'binding-value-mismatch' | 'duplicate-binding-target' | 'invalid-placeholder' | 'unresolved-target-reference' | 'unresolved-field-reference' | 'condition-type-mismatch' | 'repeat-type-mismatch' | 'nested-repeat' | 'repeat-in-transition' | 'repeat-of-matte' | 'repeat-id-reserved' | 'item-outside-repeat' | 'path-start-not-move' | 'gradient-stops-not-ascending' | 'stroke-dash-odd' | 'fill-not-solid' | 'geometry-mismatch' | 'matte-not-sibling' | 'matte-not-shape' | 'matte-not-plain' | 'matte-in-transition' | 'unresolved-definition-reference' | 'instance-exceeds-definition' | 'definition-cycle' | 'definition-too-deep' | 'element-asset-input' | 'instance-input-invalid' | 'duplicate-font-asset' | 'parameters-not-sorted' | 'unresolved-parameter-reference' | 'speed-invalid' | 'invalid-corners';
+export type ValidationErrorCode = 'unsupported-schema-version' | 'missing-field' | 'unknown-field' | 'invalid-type' | 'invalid-value' | 'out-of-range' | 'invalid-length' | 'duplicate-id' | 'unresolved-asset-reference' | 'asset-type-mismatch' | 'keyframes-not-ascending' | 'source-time-out-of-range' | 'clip-fades-exceed-duration' | 'composition-duration-mismatch' | 'unresolved-scene-reference' | 'unresolved-node-reference' | 'transition-not-adjacent' | 'transition-not-siblings' | 'transition-node-type' | 'transition-overlap-mismatch' | 'transition-too-long' | 'duplicate-transition' | 'caption-words-overlap' | 'duplicate-animation-target' | 'crop-empty' | 'safe-area-empty' | 'bound-property-animated' | 'template-input-invalid' | 'unresolved-input-reference' | 'binding-type-mismatch' | 'binding-value-mismatch' | 'duplicate-binding-target' | 'invalid-placeholder' | 'unresolved-target-reference' | 'unresolved-field-reference' | 'condition-type-mismatch' | 'repeat-type-mismatch' | 'nested-repeat' | 'repeat-in-transition' | 'repeat-of-matte' | 'repeat-id-reserved' | 'item-outside-repeat' | 'path-start-not-move' | 'gradient-stops-not-ascending' | 'stroke-dash-odd' | 'fill-not-solid' | 'geometry-mismatch' | 'matte-not-sibling' | 'matte-not-shape' | 'matte-not-plain' | 'matte-in-transition' | 'unresolved-definition-reference' | 'instance-exceeds-definition' | 'definition-cycle' | 'definition-too-deep' | 'element-asset-input' | 'instance-input-invalid' | 'duplicate-font-asset' | 'parameters-not-sorted' | 'unresolved-parameter-reference' | 'speed-invalid' | 'invalid-corners' | 'invalid-number';
 
 ---- ValidationResult (type only)
 export type ValidationResult = {
@@ -572,7 +580,7 @@ export declare const compositionSchema: {
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
-            readonly const: "0.30";
+            readonly const: "0.31";
         };
         readonly width: {
             readonly type: "integer";
@@ -7137,7 +7145,7 @@ export declare const compositionSchema: {
         }>;
     };
     readonly $schema: "https://json-schema.org/draft/2020-12/schema";
-    readonly title: "Kadrion composition 0.30";
+    readonly title: "Kadrion composition 0.31";
 };
 
 ---- cosSinOfDegrees
@@ -7282,7 +7290,7 @@ export type ParseCompositionResult = ParseOutcome<SchemaVersion>;
 export declare const SUPPORTED_SCHEMA_VERSIONS: readonly SchemaVersion[];
 
 ---- SchemaVersion
-export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24' | '0.25' | '0.26' | '0.27' | '0.28' | '0.29' | '0.30';
+export type SchemaVersion = '0.1' | '0.2' | '0.3' | '0.4' | '0.5' | '0.6' | '0.7' | '0.8' | '0.9' | '0.10' | '0.11' | '0.12' | '0.13' | '0.14' | '0.15' | '0.16' | '0.17' | '0.18' | '0.19' | '0.20' | '0.21' | '0.22' | '0.23' | '0.24' | '0.25' | '0.26' | '0.27' | '0.28' | '0.29' | '0.30' | '0.31';
 
 ---- SerializeCompositionResult (type only)
 export type SerializeCompositionResult = {

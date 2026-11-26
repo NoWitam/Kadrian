@@ -28,6 +28,7 @@ import { textFragments } from './fragments.js';
 import { cornersHomography } from './homography.js';
 import { shapeAt } from './shapes.js';
 import { measuredNodes, type FontMetrics } from './text-frame.js';
+import { hasNumber, numberTextLayout, numberValueAt } from './text-number.js';
 import {
   cropState,
   sampleColor,
@@ -69,7 +70,7 @@ const REPLACED: Readonly<Record<SceneNode['type'], readonly NodeAnimation['prope
   group: [],
   instance: [],
   'custom-html': [],
-  text: ['color'],
+  text: ['color', 'number'],
   captions: ['color'],
   image: ['size', 'crop', 'cornerRadius'],
   video: ['size', 'crop', 'cornerRadius'],
@@ -138,6 +139,7 @@ function evaluateTransform(
       }
       case 'size':
       case 'color':
+      case 'number':
       case 'crop':
       case 'cornerRadius':
       case 'fill':
@@ -315,12 +317,38 @@ function evaluateText(
   fonts: Fonts,
 ): TextNodeState {
   const color = colorOf(node, timeUs);
+  const metrics = fonts.get(node.fontAssetId);
+  if (!hasNumber(node)) {
+    return {
+      ...evaluateLeaf(node, timeUs, factors),
+      color,
+      fragments: textFragments(node, color, timeUs, metrics),
+      effects: effectsAt(node.effects, timeUs),
+      ...compositingAt(node, timeUs),
+    };
+  }
+  // A text with a number is measured (D83.7, D91.2): its box is its frame, or
+  // the block of the lines of its widest text, and its fragments those of the
+  // text it shows.
+  if (metrics === undefined) {
+    throw new EvaluationError(
+      'font-metrics-missing',
+      `The text "${node.id}" shows a number, and its font "${node.fontAssetId}" has no metrics (D83.7, D91.2).`,
+    );
+  }
+  const value = numberValueAt(node, timeUs);
+  const layout = numberTextLayout(node, value, metrics);
+  const lines = layout.lines.map(({ text, x, y }) => ({ text, x, y }));
   return {
-    ...evaluateLeaf(node, timeUs, factors),
+    ...evaluateLeaf(node, timeUs, factors, { width: layout.width, height: layout.height }),
     color,
-    fragments: textFragments(node, color, timeUs, fonts.get(node.fontAssetId)),
+    fragments: textFragments(node, color, timeUs, metrics, {
+      text: layout.text,
+      lines: lines.map(({ text }) => text),
+    }),
     effects: effectsAt(node.effects, timeUs),
     ...compositingAt(node, timeUs),
+    number: { value, text: layout.text, lines, cell: layout.cell },
   };
 }
 

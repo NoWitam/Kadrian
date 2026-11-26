@@ -272,6 +272,7 @@ function newNode(next: () => number, id: string): Json {
     ...base,
     animations,
     text: 'New',
+    number: { kind: 'none' },
     fontAssetId: 'asset-font',
     fontSize: 40,
     frame: { kind: 'none' },

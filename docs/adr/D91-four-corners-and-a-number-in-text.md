@@ -11,6 +11,11 @@
   measured: the pinned Chromium draws a perspective `matrix3d` on an SVG
   element inside a `<mask>` as the affine map without its perspective, so a
   matte has no corners (D91.1, question 2)
+- Amended by: PR-96 (D91) on 2026-11-26: adapted to D16.1 as PR-95 was:
+  every text node has a required `number`, `{ "kind": "none" }` for none or
+  `{ "kind": "number", … }`, and `step030To031` writes the kind `none` after
+  every text's `text`; `SetTextNumber` states the text the node keeps, so its
+  inverse restores the old text (D91.2)
 - Date: 2026-11-24
 - Supersedes: —
 - Extends, each with an `Amended by` line written in the pull request that
@@ -108,13 +113,18 @@ bottomRight, bottomLeft }`, each `{ x, y }` of numbers in composition
 
 ### D91.2 A number in a text (schema `0.31`)
 
-- **Schema.** A text node gains optional `number: { value, decimals,
-decimalSeparator, groupSeparator, prefix, suffix }`: `value` a finite
-  number (D15); `decimals` an integer from 0 to 6; `decimalSeparator` one of
-  `.` and `,`; `groupSeparator` one of none, a space, U+00A0, U+202F, `.`,
-  `,`, and `'`, never equal to the decimal separator; `prefix` and `suffix`
-  strings. With `number`, `text` is `''`, which the validation checks.
-  `step030To031` changes `schemaVersion` only.
+- **Schema.** Every text node gains `number`, required like every field of
+  the document (D16.1), right after its `text`: `{ kind: 'none' }` for no
+  number, or `{ kind: 'number', value, decimals, decimalSeparator,
+groupSeparator, prefix, suffix }`: `value` a finite number from
+  −(2⁵³ − 1) to 2⁵³ − 1 (D15); `decimals` an integer from 0 to 6;
+  `decimalSeparator` one of `.` and `,`; `groupSeparator` one of none, a
+  space, U+00A0, U+202F, `.`, `,`, and `'`, never equal to the decimal
+  separator; `prefix` and `suffix` strings. With a number, `text` is `''`,
+  which the validation checks. `step030To031` writes `{ kind: 'none' }` after
+  the `text` of every text node, in scenes, groups, and definitions; a
+  caption has none (amended by PR-96: the text first said optional, and that
+  the step changes `schemaVersion` only, which D16.1 does not allow).
 - **The text.** The node's text is `prefix + format(value) + suffix`.
   `format` rounds half away from zero to `decimals`, writes the integer part
   in groups of three with the group separator, and the fraction with the
@@ -136,10 +146,14 @@ decimalSeparator, groupSeparator, prefix, suffix }`: `value` a finite
 - **Fragments.** The animations of letters, words, and lines (D69) apply to
   the formatted text; a digit is a letter, and a run without white space is a
   word.
-- **Command.** `SetTextNumber { nodeId, number }`, tool `set_text_number`;
-  any node but a text is `unsupported-node`, the same value is no edit,
-  `null` removes the number and leaves `text` empty; the inverse restores
-  the old state. `describeDocument` states it.
+- **Command.** `SetTextNumber { nodeId, number, text }`, tool
+  `set_text_number`; `number` is the stored number without its kind, or
+  `null` for none, and `text`, `''` when the call omits it, is the text the
+  node keeps; any node but a text is `unsupported-node`, the same number and
+  text is no edit, `null` removes the number and leaves `text` empty; the
+  inverse restores the old state, the old text included (amended by PR-96:
+  the field `text` is what lets the inverse do so). `describeDocument` states
+  it.
 - **Probes.** A count from 0 to 1 234 567,89 with spaces and a comma, a
   negative value through zero, `decimals` 0 and 6, a prefix and a suffix, in
   a frame and without one, with a letter animation; the box of every frame
@@ -263,3 +277,102 @@ PR-95 brings schema `0.30` and the corners of D91.1.
   `set_node_corners` follows `set_node_flip` (106 tools). `null` is parsed to
   four zero vectors; the row `corners` is edited by `AddAnimation`,
   `AddKeyframe`, and `SetKeyframeValue`, whose values are never rounded.
+
+## Implementation notes (PR-96)
+
+PR-96 brings schema `0.31` and the number of D91.2.
+
+- **The step and the corpus.** `step030To031` writes `number: { "kind":
+"none" }` directly after the `text` of every text node, in scenes, in
+  definitions, and in the children of groups at any depth; a caption, whose
+  words are its text, gets none. The frozen `0.30` is
+  `packages/schema/src/v0-30`; the pair `migration-0-30-to-0-31`, the corpus
+  `compatibility/v0-31` (every file of `v0-30` stepped, and `number.json`,
+  the fixture of numbers), and six invalid cases hold it. The validation of
+  an instance of `0.30` or earlier judges its definition with the number
+  `none` on its texts, as it does with the corners of `0.30`.
+- **The errors.** One new code, `invalid-number`, named as
+  `invalid-corners`: a text with a number whose `text` is not `''`, equal
+  separators, a row `number` on a text without a number, and a template
+  binding that would write the text of a text with a number (`placeholders`,
+  or `property` and `item-property` of `text`). A `decimals` out of range or
+  a separator not listed is a structural error of the schema
+  (`out-of-range`, `invalid-value`), and a row `number` on any other node is
+  `invalid-value` of its property.
+- **The rounding rule.** `formatNumber` reads the digits of
+  `Number::toString`, the shortest decimal that names the same binary64
+  value, which ECMAScript specifies digit for digit, and rounds them half
+  away from zero: the digit after the last one kept decides, 5 to 9 rounding
+  the magnitude up. So `1.005` with two decimals is `1.01`, as it is written,
+  although its binary value lies just below 1.005, and `0.1 + 0.2` is `0.30`.
+  A value that rounds to zero has no sign, `-0` included. A seeded test
+  compares it with integer arithmetic on 3 000 decimals.
+- **A curve that overshoots.** The widest text is that of the base value,
+  every keyframe value, and, for a segment eased by a cubic Bézier whose
+  `y1` or `y2` leaves 0 to 1, the value `a + (b − a) · y` of each such
+  control value, held within the bounds of the row: a Bézier lies in the
+  hull of its control points. The box may be wider than the widest text the
+  curve actually shows, never narrower. Every other curve of D67 stays
+  between its keyframes. The width of a number in cells depends only on its
+  sign and its count of integer digits, both monotone in the distance from
+  zero on each side of it, so a value between two of these is never wider.
+- **The layout.** Without a frame, the box is as wide as the widest line of
+  the widest text and as high as its lines (`5/4` of the font size each);
+  with a frame, the widest text wraps to its width by the rule of
+  `textLines`, the number never broken, and the text of every value takes
+  the same breaks. Each line is placed by `align` and the block by
+  `verticalAlign` (D83.4); the text's box lies behind the block of the widest
+  text and does not move. A digit is centred in its cell.
+- **The state and the renderer.** A text with a number has `number: {
+value, text, lines, cell }` in its state; its element is mounted as large
+  as its box with no lines, and `renderState` writes its lines from the state
+  at every instant, every digit in a cell of `display: inline-block` as wide
+  as `cell`, and the fragments of every unit the state lists (D69), so the
+  tree after a frame is the tree of that frame alone (D20).
+- **The command and the tool.** `SetTextNumber` follows `SetTextStyle`, so
+  `set_text_number` follows `set_text_style` (107 tools). The row `number` is
+  edited by `AddAnimation`, `AddKeyframe`, and `SetKeyframeValue`, whose
+  values are finite numbers, never rounded in the document.
+- **The fixture font.** The proportional font of D83 lacks `,`, `.`, `-`,
+  `$`, `%`, `'`, U+00A0, and U+202F, and changing it would change the bytes
+  of earlier golden frames, so the numbers use a font of their own,
+  `Kadrion Fixture Numerals` (`generateNumeralFont`): the glyphs of the
+  proportional font and those characters, its digits of unequal advances (1
+  is 400 units, 7 is 500, every other 600), so the cells are seen.
+- **Limitations.** The validator reads no font, so corners on a text with a
+  number and without a frame, which question 1 allows, are not checked for
+  convexity in the document, and `inspect` lists no warning for them: a
+  frame where the quadrilateral is not convex draws nothing of the node, as
+  every animated quadrilateral does. A number counts only in a text, never in
+  captions (D91.4).
+
+## Implementation notes (PR-97)
+
+- **The host guide** carries what D91 leaves to it: the steps from `0.29`
+  and `kadrion migrate --check` (section 2); the font of a text with a
+  number among the measured fonts of a load (section 3); `SetNodeCorners`,
+  the box of each node, `invalid-corners`, `movedCorners` and
+  `isConvexQuadrilateral` for a host's handles, the row `corners` in mode
+  `offset`, an instant that is not convex drawing nothing and its warning in
+  `kadrion inspect` and `cornersWarnings`, corners from a host's tracking as
+  one keyframe per frame, `SetTextNumber`, the rules of the format and its
+  separators chosen by the host for a locale, `invalid-number`, the row
+  `number` in mode `replace`, the box of the widest value, digits in cells,
+  and the font of a number (section 5); the two tools (section 6); and the
+  join refusing parts of another runtime build at manifest version 7
+  (section 13). The README states the release and that a text with a number
+  is a measured node.
+- **The showcase** `corners-number` of the playground (D32.13): an image and
+  its bezel pinned onto a screen by their corners and swung by a `corners`
+  animation, convex at every frame, and two counters, one from 0 to
+  1 234 567,89 grouped by spaces with a decimal comma and one from 0.0% to
+  99.5%. The page generates the numeral font of the fixtures; the test of the
+  showcases checks every character a number may write against its font, and
+  that no showcase has a corners warning.
+- **The release.** Every package is `0.13.0` for `v0.13.0`, after `v0.12.1`
+  of D90. The runtime build
+  (`sha256:22b773177561b753b4f2924e6d7edb2b1410420c82d2b9234b683c957bb5d09d`,
+  536 253 bytes) and the Player's dist tree
+  (`sha256:50c7eb3436470071bfca0783930a12124c2ff0a4594a49d3c4bb46fa112de7f4`,
+  86 files) are those of PR-96; no golden file, parity record, or pinned
+  file changes.

@@ -67,6 +67,7 @@ const ERROR_CODES = [
   'unresolved-parameter-reference',
   'speed-invalid',
   'invalid-corners',
+  'invalid-number',
 ] as const;
 
 describe('negative fixtures', () => {

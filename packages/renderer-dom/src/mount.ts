@@ -11,9 +11,14 @@ import {
   captionsInPieces,
   EvaluationError,
   frameLayout,
+  isDigit,
+  numberTextLayout,
   textLayout,
   textLines,
   type FontMetrics,
+  type NumberTextNode,
+  type TextNodeState,
+  type TextNumberState,
   type TextRun,
 } from '@kadrion/runtime';
 import {
@@ -102,6 +107,15 @@ export const TEXT_BOX_ATTRIBUTE = 'data-kadrion-text-box';
  * `frameLayout` (for captions, of every page in order).
  */
 export const TEXT_LINE_ATTRIBUTE = 'data-kadrion-text-line';
+/**
+ * The element of a text with a number (D91.2), whose lines `renderState`
+ * writes at every instant from the state; its value lists the units of the
+ * fragments whose opacity an animation can take below 1 (D22.9), which those
+ * lines carry, as the mount writes them on any other text.
+ */
+export const NUMBER_ATTRIBUTE = 'data-kadrion-number';
+/** The cell of a digit of a text with a number, as wide as the widest digit of its font (D91.2). */
+export const DIGIT_CELL_ATTRIBUTE = 'data-kadrion-digit-cell';
 /** The custom property on a captions box that holds its highlight colour (D57). */
 export const HIGHLIGHT_PROPERTY = '--kadrion-caption-highlight';
 /**
@@ -486,6 +500,7 @@ function lineFragments(
   runs: readonly TextRun[],
   units: ReadonlySet<FragmentUnit>,
   fading: ReadonlySet<FragmentUnit>,
+  cell: number | null = null,
 ): void {
   const fragment = (unit: FragmentUnit): HTMLElement =>
     create(
@@ -494,6 +509,23 @@ function lineFragments(
       { [FRAGMENT_ATTRIBUTE]: unit },
       { display: 'inline-block', ...opacityStyles(fading.has(unit)) },
     );
+  /** The letters of a word as text, every digit in its cell when the text has a number (D91.2). */
+  const letters = (wordParent: HTMLElement, list: readonly string[]): void => {
+    let pending = '';
+    for (const letter of list) {
+      if (cell === null || !isDigitLetter(letter)) {
+        pending += letter;
+        continue;
+      }
+      if (pending !== '') wordParent.append(document.createTextNode(pending));
+      pending = '';
+      const digit = create(document, 'span', { [DIGIT_CELL_ATTRIBUTE]: '' }, CELL);
+      digit.style.setProperty('width', cssPixels(cell));
+      digit.append(document.createTextNode(letter));
+      wordParent.append(digit);
+    }
+    if (pending !== '') wordParent.append(document.createTextNode(pending));
+  };
   let lineParent = parent;
   if (units.has('line') && runs.some((run) => 'letters' in run)) {
     lineParent = fragment('line');
@@ -512,14 +544,31 @@ function lineFragments(
     if (units.has('letter')) {
       for (const letter of run.letters) {
         const element = fragment('letter');
+        // A digit's letter is its cell (D91.2).
+        if (cell !== null && isDigitLetter(letter)) {
+          element.setAttribute(DIGIT_CELL_ATTRIBUTE, '');
+          for (const [name, value] of Object.entries(CELL)) element.style.setProperty(name, value);
+          element.style.setProperty('width', cssPixels(cell));
+        }
         element.append(document.createTextNode(letter));
         wordParent.append(element);
       }
     } else {
-      wordParent.append(document.createTextNode(run.letters.join('')));
+      letters(wordParent, run.letters);
     }
   }
 }
+
+/** Whether a letter (a grapheme) is one digit 0 to 9, which a text with a number sets in a cell (D91.2). */
+function isDigitLetter(letter: string): boolean {
+  return letter.length === 1 && isDigit(letter.charCodeAt(0));
+}
+
+/**
+ * The cell of a digit (D91.2): a box as wide as the widest digit of the font,
+ * the digit centred in it, as a font's tabular figures are.
+ */
+const CELL: Styles = Object.freeze({ display: 'inline-block', 'text-align': 'center' });
 
 /** The units of a text's fragments whose opacity its animations can take below 1 (D22.9). */
 function fadingUnits(node: TextNode): ReadonlySet<FragmentUnit> {
@@ -621,6 +670,97 @@ function framedTextElement(
     text.append(line);
   });
   return text;
+}
+
+/**
+ * A text with a number (D91.2): an element as large as its box — its frame,
+ * or the block of the lines of the widest text it takes — so that its origin
+ * is a fraction of a box that never changes, with the text's box behind the
+ * block of the lines of that widest text. Its lines are not mounted:
+ * `renderState` writes them at every instant from the state, by
+ * `writeNumberLines`.
+ */
+function numberTextElement(
+  document: Document,
+  node: NumberTextNode,
+  address: Styles,
+  fonts: FontMetricsMap,
+): HTMLElement {
+  const { style } = node;
+  const layout = numberTextLayout(node, node.number.value, metricsOf(fonts, node));
+  const fading = (['line', 'word', 'letter'] as const).filter((unit) =>
+    fadingUnits(node).has(unit),
+  );
+  const text = create(
+    document,
+    'div',
+    { ...address, [NUMBER_ATTRIBUTE]: fading.join(' ') },
+    {
+      ...TRANSFORMED,
+      width: cssPixels(layout.width),
+      height: cssPixels(layout.height),
+      ...textFont(node),
+      ...textStyle(style),
+    },
+  );
+  if (style.box.kind === 'solid') {
+    const { padding } = style.box;
+    const box = textBox(document, style.box);
+    for (const property of ['right', 'bottom']) box.style.removeProperty(property);
+    box.style.setProperty('left', cssPixels(layout.block.x - padding));
+    box.style.setProperty('top', cssPixels(layout.block.y - padding));
+    box.style.setProperty('width', cssPixels(layout.block.width + 2 * padding));
+    box.style.setProperty('height', cssPixels(layout.block.height + 2 * padding));
+    text.append(box);
+  }
+  return text;
+}
+
+/**
+ * Writes the lines of a text with a number at one instant (D91.2), in place of
+ * those of the instant before: each line an element measured from the font
+ * (`MEASURED`) placed where the state puts it, every digit in a cell of the
+ * state's width, and the fragments of every unit the state lists, which
+ * `renderState` then writes as it writes those of any text (D69).
+ */
+export function writeNumberLines(
+  element: HTMLElement,
+  state: TextNodeState & { readonly number: TextNumberState },
+): void {
+  const document = element.ownerDocument;
+  for (const line of element.querySelectorAll(`:scope > [${TEXT_LINE_ATTRIBUTE}]`)) line.remove();
+  const fragments = state.fragments;
+  const units = new Set<FragmentUnit>(
+    fragments === null
+      ? []
+      : (
+          [
+            ['line', fragments.lines],
+            ['word', fragments.words],
+            ['letter', fragments.letters],
+          ] as const
+        )
+          .filter(([, list]) => list.length > 0)
+          .map(([unit]) => unit),
+  );
+  const fading = new Set(
+    (element.getAttribute(NUMBER_ATTRIBUTE) ?? '')
+      .split(' ')
+      .filter(
+        (unit): unit is FragmentUnit => unit === 'line' || unit === 'word' || unit === 'letter',
+      ),
+  );
+  state.number.lines.forEach((placed, index) => {
+    const line = create(
+      document,
+      'div',
+      { [TEXT_LINE_ATTRIBUTE]: String(index) },
+      { ...PLACED, left: cssPixels(placed.x), top: cssPixels(placed.y), ...MEASURED },
+    );
+    const runs = textLayout(placed.text).lines[0]?.runs ?? [];
+    lineFragments(document, line, runs, units, fading, state.number.cell);
+    element.append(line);
+  });
 }
 
 /**
@@ -768,6 +908,9 @@ function nodeElement(
         },
       );
     case 'text':
+      if (node.number.kind === 'number') {
+        return numberTextElement(document, node as NumberTextNode, address, fonts);
+      }
       return node.frame.kind === 'none'
         ? textElement(document, node, address)
         : framedTextElement(document, node, node.frame, address, fonts);

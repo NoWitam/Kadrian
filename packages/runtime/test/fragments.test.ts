@@ -34,6 +34,7 @@ function text(content: string, textAnimations: readonly TextAnimation[]): TextNo
     opacity: 1,
     animations: [],
     text: content,
+    number: { kind: 'none' },
     fontAssetId: 'asset-font',
     fontSize: 40,
     frame: { kind: 'none' },

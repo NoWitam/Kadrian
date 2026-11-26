@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -99,6 +99,7 @@
             }
           ],
           "text": "Intro",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 120,
           "frame": { "kind": "none" },
@@ -310,6 +311,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Outro",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 120,
           "frame": { "kind": "none" },

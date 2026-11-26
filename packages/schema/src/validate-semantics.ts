@@ -52,6 +52,7 @@ import type {
   SceneNode,
   ShapeGeometry,
   ShapeNode,
+  TextNode,
   Definition,
   InstanceInput,
   TemplateCondition,
@@ -90,6 +91,7 @@ import type { CompositionV026 } from './v0-26/composition-schema.js';
 import type { CompositionV027 } from './v0-27/composition-schema.js';
 import type { CompositionV028 } from './v0-28/composition-schema.js';
 import type { CompositionV029 } from './v0-29/composition-schema.js';
+import type { CompositionV030 } from './v0-30/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -120,6 +122,7 @@ type SceneNodeV026 = CompositionV026['scenes'][number]['nodes'][number];
 type SceneNodeV027 = CompositionV027['scenes'][number]['nodes'][number];
 type SceneNodeV028 = CompositionV028['scenes'][number]['nodes'][number];
 type SceneNodeV029 = CompositionV029['scenes'][number]['nodes'][number];
+type SceneNodeV030 = CompositionV030['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -531,6 +534,7 @@ interface CorneredNode {
   readonly width?: number;
   readonly height?: number;
   readonly frame?: { readonly kind: string; readonly width?: number; readonly height?: number };
+  readonly number?: { readonly kind: string };
 }
 
 /** Whether a node has corners: offsets that are not all zero, or an animation of them (D91.1). */
@@ -563,6 +567,11 @@ function checkCorners(
   else if (node.type === 'text') {
     if (node.frame?.kind === 'fixed' && node.frame.width !== undefined) {
       box = { width: node.frame.width, height: node.frame.height ?? 0 };
+    } else if (node.number?.kind === 'number') {
+      // A text with a number is measured (D91.2, question 1 of D91): its box is
+      // that of its widest text, which only the font's bytes give, so its
+      // quadrilateral is the runtime's to judge, frame by frame.
+      return;
     }
   } else if (node.width !== undefined && node.height !== undefined) {
     box = { width: node.width, height: node.height };
@@ -572,7 +581,7 @@ function checkCorners(
       code: 'invalid-corners',
       path: at,
       message:
-        'A text has corners only with a fixed frame, whose box the runtime knows; give it a frame first (D91.1).',
+        'A text has corners only with a fixed frame or a number, whose box the runtime knows; give it a frame first (D91.1, D91.2).',
     });
     return;
   }
@@ -613,6 +622,50 @@ function checkCorneredMattes(
   });
 }
 
+/** What the number of a text is checked against (D91.2). */
+interface NumberedText {
+  readonly text: string;
+  readonly number: TextNode['number'];
+  readonly animations: readonly { readonly property: string }[];
+}
+
+/**
+ * The number of a text (D91.2): with a number, the text is '' and the group
+ * separator is not the decimal separator; a `number` animation needs a number
+ * to replace the value of.
+ */
+function checkNumber(value: object, path: string, errors: ValidationError[]): void {
+  const node = value as NumberedText;
+  const at = pointer(path, 'number');
+  if (node.number.kind === 'none') {
+    node.animations.forEach((animation, index) => {
+      if (animation.property !== 'number') return;
+      errors.push({
+        code: 'invalid-number',
+        path: pointer(pointer(path, 'animations'), index),
+        message:
+          'A number animation replaces the value of a number, and this text has none (D91.2).',
+      });
+    });
+    return;
+  }
+  if (node.text !== '') {
+    errors.push({
+      code: 'invalid-number',
+      path: pointer(path, 'text'),
+      message:
+        "A text with a number shows the number in place of its text, which must be '' (D91.2).",
+    });
+  }
+  if (node.number.groupSeparator === node.number.decimalSeparator) {
+    errors.push({
+      code: 'invalid-number',
+      path: pointer(at, 'groupSeparator'),
+      message: `The group separator must not be the decimal separator, "${node.number.decimalSeparator}" (D91.2).`,
+    });
+  }
+}
+
 export function validateSemantics(
   composition:
     | Composition
@@ -644,7 +697,8 @@ export function validateSemantics(
     | CompositionV026
     | CompositionV027
     | CompositionV028
-    | CompositionV029,
+    | CompositionV029
+    | CompositionV030,
   options: SemanticOptions = CHECK_EVERYTHING,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -688,6 +742,7 @@ export function validateSemantics(
   const shapeErrors: ValidationError[] = [];
   const matteErrors: ValidationError[] = [];
   const cornerErrors: ValidationError[] = [];
+  const numberErrors: ValidationError[] = [];
 
   // The nodes of every scene, and of every definition of 0.21 (D76), which are
   // checked as the nodes of a scene are.
@@ -706,6 +761,7 @@ export function validateSemantics(
       | SceneNodeV027
       | SceneNodeV028
       | SceneNodeV029
+      | SceneNodeV030
     )[];
     readonly transitions?: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
     readonly effects?: Composition['scenes'][number]['effects'];
@@ -755,6 +811,8 @@ export function validateSemantics(
           if ('fadeInUs' in member.node) checkFades(member.node, member.path);
         } else if (member.node.type === 'text') {
           checkReference(member.node.fontAssetId, 'font', pointer(member.path, 'fontAssetId'));
+          // The number of 0.31 (D91.2).
+          if ('number' in member.node) checkNumber(member.node, member.path, numberErrors);
           // The tracks of a text animation of 0.14 follow the rules of animations (D69).
           if ('textAnimations' in member.node) {
             member.node.textAnimations.forEach((item, index) => {
@@ -925,6 +983,7 @@ export function validateSemantics(
   // The elements of 0.22 (D77): the templates of definitions and the values of instances.
   if (
     composition.schemaVersion === SCHEMA_VERSION ||
+    composition.schemaVersion === '0.30' ||
     composition.schemaVersion === '0.29' ||
     composition.schemaVersion === '0.28' ||
     composition.schemaVersion === '0.27' ||
@@ -951,6 +1010,7 @@ export function validateSemantics(
     ...shapeErrors,
     ...matteErrors,
     ...cornerErrors,
+    ...numberErrors,
     ...safeAreaErrors,
     ...definitionErrors,
     ...templateErrors,
@@ -974,7 +1034,8 @@ function checkDefinitions(
     | CompositionV026
     | CompositionV027
     | CompositionV028
-    | CompositionV029,
+    | CompositionV029
+    | CompositionV030,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -1216,6 +1277,22 @@ function withCorners(definition: Definition): Definition {
   return { ...definition, nodes: definition.nodes.map((child) => node(child) as typeof child) };
 }
 
+/**
+ * A definition of 0.30 or earlier with the number of 0.31 on its texts: the
+ * number `none` after the `text` of every text node and of every text among
+ * the children of a group, which shows the text it showed (D91.2).
+ */
+function withNumbers(definition: Definition): Definition {
+  const node = (value: object): object => {
+    const record = value as Readonly<Record<string, unknown>>;
+    if (record['type'] === 'text') return withAfter(value, 'text', [['number', { kind: 'none' }]]);
+    if (record['type'] !== 'group') return value;
+    const children = record['children'] as readonly object[];
+    return { ...value, children: children.map(node) };
+  };
+  return { ...definition, nodes: definition.nodes.map((child) => node(child) as typeof child) };
+}
+
 /** A definition seen as a composition of one scene: its nodes, clips, and transitions (D77). */
 function definitionHolder(
   composition: Pick<Composition, 'fps' | 'assets'>,
@@ -1316,7 +1393,8 @@ function checkElements(
     | CompositionV026
     | CompositionV027
     | CompositionV028
-    | CompositionV029,
+    | CompositionV029
+    | CompositionV030,
   options: SemanticOptions,
 ): ValidationError[] {
   // The definitions of 0.22 to 0.26 are those of 0.27 without the time maps of their
@@ -1425,11 +1503,12 @@ function checkElements(
         // texts and captions look as the defaults of 0.25 draw them, so the current schema
         // judges them as theirs did, and a document before 0.26 has no volume curves, which
         // `animations: []` states, and one before 0.27 no flips, which `flip` of false on
-        // both axes states, and one before 0.30 no corners, which four zero vectors state
-        // (D82.8, D83.9, D85.7, D89.3, D91.1).
+        // both axes states, and one before 0.30 no corners, which four zero vectors state,
+        // and one before 0.31 no numbers, which the number `none` states (D82.8, D83.9,
+        // D85.7, D89.3, D91.1, D91.2).
         const current = document.schemaVersion === SCHEMA_VERSION;
         const upgraded = (from: Definition): Definition =>
-          withCorners(withFlips(withCurves(withFrames(withSpeedOne(from)))));
+          withNumbers(withCorners(withFlips(withCurves(withFrames(withSpeedOne(from))))));
         const instantiated = definitionHolder(
           composition,
           current ? made.definition : upgraded(made.definition),
@@ -1694,6 +1773,7 @@ function checkTemplate(
     | CompositionV027
     | CompositionV028
     | CompositionV029
+    | CompositionV030
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -1843,6 +1923,22 @@ function checkTemplate(
         pointer(path, 'nodeId'),
         `No node has the ID "${binding.nodeId}".`,
       );
+    }
+    // A text with a number shows no text, so nothing may write one (D91.2).
+    if (
+      node?.type === 'text' &&
+      'number' in node &&
+      node.number.kind === 'number' &&
+      (binding.kind === 'placeholders' ||
+        ((binding.kind === 'property' || binding.kind === 'item-property') &&
+          binding.property === 'text'))
+    ) {
+      push(
+        'invalid-number',
+        pointer(path, 'nodeId'),
+        `The text "${node.id}" shows a number, and a binding may not write its text (D91.2).`,
+      );
+      return;
     }
     if (binding.kind === 'words') {
       const input = inputOf(binding.inputId);
@@ -2218,6 +2314,7 @@ function subtreeOf(
     | CompositionV027
     | CompositionV028
     | CompositionV029
+    | CompositionV030
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -2308,7 +2405,9 @@ interface Located {
     | SceneNodeV028
     | Extract<SceneNodeV028, { type: 'group' }>['children'][number]
     | SceneNodeV029
-    | Extract<SceneNodeV029, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV029, { type: 'group' }>['children'][number]
+    | SceneNodeV030
+    | Extract<SceneNodeV030, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -2346,7 +2445,8 @@ function checkTransitions(
     | CompositionV026
     | CompositionV027
     | CompositionV028
-    | CompositionV029,
+    | CompositionV029
+    | CompositionV030,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));

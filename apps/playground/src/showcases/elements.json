@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -484,6 +484,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 56,
           "frame": { "kind": "none" },
@@ -567,6 +568,7 @@
           "opacity": 1,
           "animations": [],
           "text": "{{title}}",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 56,
           "frame": { "kind": "none" },
