@@ -5,7 +5,8 @@
  * on top of the Producer's `renderFrames` and `exportMp4`, the jobs of a
  * segmented render `render-range`, `render-audio`, and `join`, and
  * `render-still` (D47), `estimate`, `segment-keys`, the keys of the segments of a
- * grid (D92.1), `migrate` over the saved text (D43), `kadrion
+ * grid (D92.1), `check-custom-html`, the check of one Custom HTML element
+ * (D93), `migrate` over the saved text (D43), `kadrion
  * fetch-ffmpeg` and `kadrion doctor` for a host's worker (D45), and `kadrion
  * inspect`, the Player's verdict on a video file (D79); `bin.ts` is the
  * executable. Every render command is a job of D48: JSON lines on standard
@@ -35,6 +36,7 @@ export {
   USAGE,
 } from './cli.js';
 export type {
+  CheckCustomHtml,
   CliHosts,
   CliIo,
   Doctor,
@@ -43,6 +45,7 @@ export type {
   Inspect,
   JobLine,
   Join,
+  LaunchBrowser,
   MeasureFonts,
   Render,
   RenderAudio,

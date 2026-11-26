@@ -6,10 +6,13 @@
  * pixels forward, backward, and shuffled, in the Producer and in the Player,
  * and the frames of the fixture meet their golden frames (D26.5). The render
  * check of `check_custom_html` finds nothing in them, and finds the frames of an
- * element that counts its frames or reads the document timeline.
+ * element that counts its frames or reads the document timeline; so does the
+ * command `kadrion check-custom-html` (D93).
  */
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 
 import {
   checkCustomHtml,
@@ -38,6 +41,7 @@ import {
   pinnedRun,
   pixelReport,
   referenceResolver,
+  repoRoot,
   samePixels,
   writeReport,
 } from './support.js';
@@ -45,6 +49,9 @@ import {
 const MANIFEST = join(GOLDEN_DIRECTORY, 'custom-html.golden-frames.json');
 const TIMES = customHtmlGoldenTimestamps.map(({ timeUs }) => timeUs);
 const MORE = [...TIMES, 1_000_000, 1_033_333, 3_966_666, 6_000_000];
+const CLI = join(repoRoot, 'packages', 'cli', 'dist', 'bin.js');
+const COUNTING_HTML =
+  '<div id="n" style="font:40px sans-serif;color:#fff"></div><script>var n=0;function draw(){n+=1;document.getElementById("n").style.width=String(n*20)+"px";document.getElementById("n").style.height="20px";document.getElementById("n").style.background="#fff";requestAnimationFrame(draw)}requestAnimationFrame(draw)</script>';
 
 let chromium: LaunchedChromium;
 
@@ -119,10 +126,7 @@ describe('an element with no protocol code renders each frame from its time alon
   }, 180_000);
 
   it('finds an element that counts its frames, and one that reads the document timeline', async () => {
-    const counting = withHtml(
-      'html-script',
-      '<div id="n" style="font:40px sans-serif;color:#fff"></div><script>var n=0;function draw(){n+=1;document.getElementById("n").style.width=String(n*20)+"px";document.getElementById("n").style.height="20px";document.getElementById("n").style.background="#fff";requestAnimationFrame(draw)}requestAnimationFrame(draw)</script>',
-    );
+    const counting = withHtml('html-script', COUNTING_HTML);
     const timeline = withHtml(
       'html-script',
       '<div id="t" style="height:20px;background:#fff"></div><script>function draw(){document.getElementById("t").style.width=String(Math.round(document.timeline.currentTime%600))+"px";requestAnimationFrame(draw)}requestAnimationFrame(draw)</script>',
@@ -158,6 +162,68 @@ describe('an element with no protocol code renders each frame from its time alon
     });
     expect(check.problems.map(({ code }) => code)).toEqual(['no-acknowledgement']);
   }, 60_000);
+});
+
+describe('kadrion check-custom-html (D93)', () => {
+  const CHECK = join(OUTPUT_DIRECTORY, 'custom-html-ai', 'check');
+  const run = promisify(execFile);
+
+  /** The command on `document` with the fixture's font, as a host's worker runs it. */
+  async function checked(name: string, document: unknown, nodeId: string): Promise<unknown[]> {
+    writeFileSync(join(CHECK, `${name}.json`), JSON.stringify(document));
+    const { stdout } = await run(process.execPath, [
+      CLI,
+      'check-custom-html',
+      ...['--composition', join(CHECK, `${name}.json`)],
+      ...['--assets', join(CHECK, 'assets.json')],
+      ...['--node-id', nodeId],
+      ...['--max-wall-ms', '120000'],
+    ]);
+    return stdout
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as unknown);
+  }
+
+  beforeAll(() => {
+    rmSync(CHECK, { recursive: true, force: true });
+    mkdirSync(CHECK, { recursive: true });
+    const map: Record<string, { path: string; mediaType: string }> = {};
+    for (const asset of generateReferenceAssets().filter(({ id }) => id === 'asset-font')) {
+      writeFileSync(join(CHECK, asset.id), asset.bytes);
+      map[asset.id] = { path: asset.id, mediaType: asset.mediaType };
+    }
+    writeFileSync(join(CHECK, 'assets.json'), JSON.stringify(map));
+  });
+
+  it('reports ok on the fixture and the frames of an element that counts its frames, exiting 0', async () => {
+    const fixture = await checked('fixture', customHtmlComposition, 'html-script');
+    expect(fixture).toEqual([
+      {
+        event: 'check',
+        nodeId: 'html-script',
+        findings: [],
+        render: { timesUs: expect.any(Array) as unknown, problems: [] },
+        ok: true,
+      },
+      { event: 'done', manifest: null },
+    ]);
+    expect((fixture[0] as { render: { timesUs: unknown[] } }).render.timesUs).toHaveLength(5);
+
+    const counting = await checked(
+      'counting',
+      withHtml('html-script', COUNTING_HTML),
+      'html-script',
+    );
+    const [line, end] = counting as [
+      { event: string; ok: boolean; render: { problems: { code: string }[] } },
+      unknown,
+    ];
+    expect(line.event).toBe('check');
+    expect(line.ok).toBe(false);
+    expect(line.render.problems.some(({ code }) => code === 'frames-differ')).toBe(true);
+    expect(end).toEqual({ event: 'done', manifest: null });
+  }, 240_000);
 });
 
 describe('the Player shows the frames of the Producer (D33, D78)', () => {

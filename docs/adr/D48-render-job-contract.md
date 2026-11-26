@@ -12,6 +12,7 @@
   grid of D80.1, and `segments` counts its segments (D80.5)
 - Amended by: PR-91 (D89) on 2026-11-22: 48.4: the limit `maxCanvasPixels` (`--max-canvas-pixels`), width × height of the composition and of each definition, checked before a page opens, with no default (D89.1)
 - Amended by: PR-98 (D92) on 2026-11-26, in force from PR-99: 48.1: the job `segment-keys`, which renders nothing and prints the line `segment-keys` (keys `keyVersion` and `segments`) before its `done` with `manifest: null` (D92.1)
+- Amended by: PR-101 (D93) on 2026-11-26: 48.1: the job `check-custom-html`, which writes no file and prints the line `check` (keys `nodeId`, `findings`, `render`, and `ok`) before its `done` with `manifest: null`; it exits 0 whether `ok` is true or false (D93.1)
 - Related: D04, D06, D12, D26, D28, D29, D47,
   [roadmap of phase three](../roadmap/phase-3.md) PR-25b
 

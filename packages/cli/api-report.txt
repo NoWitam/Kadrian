@@ -9,6 +9,9 @@ export declare const AUDIO_MANIFEST_NAME = "audio.manifest.json";
 ---- CANCEL_GRACE_MS
 export declare const CANCEL_GRACE_MS = 10000;
 
+---- CheckCustomHtml (type only)
+export type CheckCustomHtml = (request: CustomHtmlCheckRequest) => Promise<CustomHtmlCheck>;
+
 ---- CliHosts (type only)
 export interface CliHosts {
     readonly render: Render;
@@ -19,6 +22,8 @@ export interface CliHosts {
     readonly renderStill: RenderStill;
     readonly segmentKeys: SegmentKeysHost;
     readonly measureFonts: MeasureFonts;
+    readonly checkCustomHtml: CheckCustomHtml;
+    readonly launchChromium: LaunchBrowser;
     readonly fetchFfmpeg: FetchFfmpeg;
     readonly doctor: Doctor;
     readonly inspect: Inspect;
@@ -204,6 +209,7 @@ export declare const JOB_COMMANDS: readonly [
     "render-still",
     "estimate",
     "segment-keys",
+    "check-custom-html",
     "migrate"
 ];
 
@@ -224,6 +230,12 @@ export type JobLine = ProgressEvent | {
     readonly event: 'segment-keys';
     readonly keyVersion: number;
     readonly segments: readonly SegmentKey[];
+} | {
+    readonly event: 'check';
+    readonly nodeId: string;
+    readonly findings: readonly CustomHtmlFinding[];
+    readonly render: CustomHtmlCheck;
+    readonly ok: boolean;
 } | MigrateLine | {
     readonly event: 'done';
     readonly manifest: string | null;
@@ -235,6 +247,9 @@ export type JobLine = ProgressEvent | {
 
 ---- Join (type only)
 export type Join = (request: JoinRequest) => Promise<JoinResult>;
+
+---- LaunchBrowser (type only)
+export type LaunchBrowser = () => Promise<LaunchedChromium>;
 
 ---- MeasureFonts (type only)
 export type MeasureFonts = (document: unknown, resolveAsset: RenderRequest['resolveAsset'], limits?: JobLimits) => Promise<SegmentKeysSettings['fonts']>;

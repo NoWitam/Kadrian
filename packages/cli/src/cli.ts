@@ -20,6 +20,7 @@
  *   kadrion segment-keys --composition <file> --assets <file> --preset <1080p|720p>
  *                  [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>]
  *                  [--min-segment-frames <n>] [--spans-us <t,…>]
+ *   kadrion check-custom-html --composition <file> --assets <file> --node-id <id> [--samples <n>]
  *   kadrion migrate <file> (--out <file> | --check)
  *   kadrion fetch-ffmpeg --dir <dir>
  *   kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]
@@ -58,6 +59,10 @@
  * Custom HTML nodes active in it, computed without a browser from the document
  * and the fonts of its measured nodes, the only assets it reads (D92.1);
  * `--spans-us` divides the grid into spans at those start times (D92.2).
+ * `check-custom-html` runs the check of D78.6 on one Custom HTML node: the
+ * findings of its html and the render check of the Producer in the pinned
+ * Chromium, which it launches itself, and prints the report of the tool
+ * `check_custom_html` in one `check` line before its `done` (D93).
  * `migrate` reads one saved document, reports the versions it passed through,
  * and writes it in the current version to `--out`, or with `--check` writes
  * nothing and exits 6 when the document is not current (D43, amended by PR-41).
@@ -78,7 +83,10 @@ import { parseArgs } from 'node:util';
 
 import {
   AUDIO_FILE_NAME,
+  canonicalJson,
+  checkCustomHtml,
   cornersWarnings,
+  CUSTOM_HTML_CHECK_SAMPLES,
   DEFAULT_ESTIMATE_SAMPLES,
   estimatePlan,
   exportMp4,
@@ -86,6 +94,7 @@ import {
   FFPROBE_SHA256,
   JOB_LIMITS,
   joinSegments,
+  launchChromium,
   measuredFontMetrics,
   PARTIAL_SUFFIX,
   ProducerError,
@@ -94,11 +103,14 @@ import {
   renderSegments,
   renderStill,
   segmentKeys,
+  sha256,
   STILL_FORMATS,
   type AudioManifest,
   type AudioRequest,
   type AudioResult,
   type CornersWarning,
+  type CustomHtmlCheck,
+  type CustomHtmlCheckRequest,
   type ExportRequest,
   type ExportResult,
   type FfmpegPaths,
@@ -107,6 +119,7 @@ import {
   type JoinRequest,
   type JoinResult,
   type JobLimits,
+  type LaunchedChromium,
   type ProgressEvent,
   type RenderRequest,
   type RenderResult,
@@ -121,8 +134,14 @@ import {
   type StillRequest,
   type StillResult,
 } from '@kadrion/producer';
+import { checkCustomHtmlSource, type CustomHtmlFinding } from '@kadrion/editor-sdk';
 import { inspectVideo, type VideoInspection } from '@kadrion/player';
-import { validateComposition } from '@kadrion/schema';
+import {
+  frameCount,
+  validateComposition,
+  type CustomHtmlNode,
+  type ValidatedComposition,
+} from '@kadrion/schema';
 
 import { runDoctor, type DoctorReport } from './doctor.js';
 import {
@@ -162,14 +181,15 @@ export const JOB_COMMANDS = [
   'render-still',
   'estimate',
   'segment-keys',
+  'check-custom-html',
   'migrate',
 ] as const;
 
 /**
  * A line of a job's standard output (D48.1): the Producer's progress, then a
  * `file` per file written under its final name, then exactly one `done` or
- * `error`. `estimate` reports its measurement before its `done`, and
- * `segment-keys` its keys (D92.1).
+ * `error`. `estimate` reports its measurement before its `done`,
+ * `segment-keys` its keys (D92.1), and `check-custom-html` its report (D93).
  */
 export type JobLine =
   | ProgressEvent
@@ -189,6 +209,13 @@ export type JobLine =
       readonly keyVersion: number;
       readonly segments: readonly SegmentKey[];
     }
+  | {
+      readonly event: 'check';
+      readonly nodeId: string;
+      readonly findings: readonly CustomHtmlFinding[];
+      readonly render: CustomHtmlCheck;
+      readonly ok: boolean;
+    }
   | MigrateLine
   | { readonly event: 'done'; readonly manifest: string | null }
   | { readonly event: 'error'; readonly code: string; readonly exitCode: number };
@@ -202,6 +229,7 @@ export const USAGE = [
   '       kadrion render-still --composition <file> --assets <file> --out <dir> --time-us <t> --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion estimate --composition <file> --assets <file> --preset <1080p|720p> [--samples <n>] [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--budget-ms <ms>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion segment-keys --composition <file> --assets <file> --preset <1080p|720p> [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--spans-us <t,...>]',
+  '       kadrion check-custom-html --composition <file> --assets <file> --node-id <id> [--samples <n>]',
   '       kadrion migrate <file> (--out <file> | --check)',
   '       kadrion fetch-ffmpeg --dir <dir>',
   '       kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]',
@@ -238,6 +266,10 @@ export type MeasureFonts = (
   resolveAsset: RenderRequest['resolveAsset'],
   limits?: JobLimits,
 ) => Promise<SegmentKeysSettings['fonts']>;
+/** The render check of one Custom HTML element (D78.6); `checkCustomHtml` of `@kadrion/producer`. */
+export type CheckCustomHtml = (request: CustomHtmlCheckRequest) => Promise<CustomHtmlCheck>;
+/** Launches the pinned Chromium and refuses any other (D26.1); `launchChromium` of `@kadrion/producer`. */
+export type LaunchBrowser = () => Promise<LaunchedChromium>;
 /** The Player's verdict on a file (D79.4); `inspectVideo` of `@kadrion/player`. */
 export type Inspect = (file: Blob) => Promise<VideoInspection>;
 
@@ -254,6 +286,8 @@ export interface CliHosts {
   readonly renderStill: RenderStill;
   readonly segmentKeys: SegmentKeysHost;
   readonly measureFonts: MeasureFonts;
+  readonly checkCustomHtml: CheckCustomHtml;
+  readonly launchChromium: LaunchBrowser;
   readonly fetchFfmpeg: FetchFfmpeg;
   readonly doctor: Doctor;
   readonly inspect: Inspect;
@@ -967,6 +1001,243 @@ async function segmentKeysCommand(args: readonly string[], job: Job): Promise<nu
   return EXIT_OK;
 }
 
+type CheckNode =
+  | ValidatedComposition['scenes'][number]['nodes'][number]
+  | Extract<
+      ValidatedComposition['scenes'][number]['nodes'][number],
+      { type: 'group' }
+    >['children'][number];
+
+/** The node `nodeId` among `nodes` and the children of their groups, or `null`. */
+function findCheckNode(nodes: readonly CheckNode[], nodeId: string): CheckNode | null {
+  for (const node of nodes) {
+    if (node.id === nodeId) return node;
+    if (node.type === 'group') {
+      const found = findCheckNode(node.children, nodeId);
+      if (found !== null) return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * The validated document and its Custom HTML node `nodeId`, of a scene, a
+ * group, or a definition; an invalid document, no such node, or a node of
+ * another type is `invalid-document`, as `checkCustomHtml` refuses them (D93.1).
+ */
+function customHtmlNodeOf(
+  document: unknown,
+  nodeId: string,
+): { readonly composition: ValidatedComposition; readonly node: CustomHtmlNode } {
+  const result = validateComposition(document);
+  if (!result.ok) {
+    const details = result.errors.map(({ path, message }) => `${path}: ${message}`).join('; ');
+    throw new ProducerError(INVALID_DOCUMENT, `The document is not valid: ${details}`);
+  }
+  const { composition } = result;
+  for (const nodes of [
+    ...composition.scenes.map((scene) => scene.nodes),
+    ...composition.definitions.map((definition) => definition.nodes),
+  ]) {
+    const node = findCheckNode(nodes, nodeId);
+    if (node === null) continue;
+    if (node.type !== 'custom-html') {
+      throw new ProducerError(
+        INVALID_DOCUMENT,
+        `Node "${nodeId}" is a ${node.type} node, not Custom HTML.`,
+      );
+    }
+    return { composition, node };
+  }
+  throw new ProducerError(INVALID_DOCUMENT, `No Custom HTML node has the ID "${nodeId}".`);
+}
+
+/** Refuses `value` over the limit `name`, in the words of the Producer's limits (D48.4). */
+function withinLimit(limits: JobLimits, name: keyof JobLimits, value: number, what: string): void {
+  const limit = limits[name];
+  if (limit === undefined) return;
+  if (!Number.isSafeInteger(limit) || limit < 0) {
+    throw new ProducerError(
+      'limit-exceeded',
+      `The limit ${name} must be a non-negative integer, got ${String(limit)}.`,
+    );
+  }
+  if (value > limit) {
+    throw new ProducerError(
+      'limit-exceeded',
+      `${what} is ${String(value)}, more than the limit of ${String(limit)}.`,
+    );
+  }
+}
+
+/**
+ * The limits of D48.4 for `check-custom-html`, checked before the browser
+ * opens. `checkCustomHtml` takes none (D93.3), so the command checks them
+ * itself: the document as given, the frames the check renders (each sampled
+ * time twice), and the bytes of the element's fonts as the resolver returned them.
+ */
+function checkLimits(
+  limits: JobLimits | undefined,
+  composition: ValidatedComposition,
+  frames: number,
+  fonts: readonly { readonly id: string; readonly bytes: number }[],
+): void {
+  if (limits === undefined) return;
+  withinLimit(
+    limits,
+    'maxDocumentBytes',
+    new TextEncoder().encode(canonicalJson(composition)).byteLength,
+    'The document (canonical JSON, bytes)',
+  );
+  withinLimit(limits, 'maxDurationUs', composition.durationUs, 'The duration (µs)');
+  withinLimit(limits, 'maxFrames', frames, 'The frames of the job');
+  withinLimit(limits, 'maxAssets', composition.assets.length, 'The number of assets');
+  withinLimit(
+    limits,
+    'maxCanvasPixels',
+    composition.width * composition.height,
+    'The pixels of a canvas (width × height)',
+  );
+  for (const { id, width, height } of composition.definitions) {
+    withinLimit(
+      limits,
+      'maxCanvasPixels',
+      width * height,
+      `The pixels of the canvas of the definition "${id}" (width × height)`,
+    );
+  }
+  let total = 0;
+  for (const { id, bytes } of fonts) {
+    withinLimit(limits, 'maxAssetBytes', bytes, `The asset "${id}" (bytes)`);
+    total += bytes;
+  }
+  withinLimit(limits, 'maxTotalAssetBytes', total, 'All assets together (bytes)');
+}
+
+/**
+ * The bytes of the element's fonts, read once before the browser opens: a font
+ * the asset file lacks, given as no bytes, or with other bytes than its content
+ * hash is the error of a render (D14), not a problem of the element.
+ */
+async function elementFonts(
+  composition: ValidatedComposition,
+  node: CustomHtmlNode,
+  resolveAsset: RenderRequest['resolveAsset'],
+): Promise<ReadonlyMap<string, { readonly bytes: Uint8Array; readonly mediaType: string }>> {
+  const fonts = new Map<string, { readonly bytes: Uint8Array; readonly mediaType: string }>();
+  for (const id of node.fontAssetIds) {
+    const asset = composition.assets.find((candidate) => candidate.id === id);
+    if (asset === undefined || fonts.has(id)) continue;
+    const resolved = await resolveAsset({
+      id,
+      type: asset.type,
+      contentHash: asset.contentHash,
+    });
+    if (resolved === null) {
+      throw new ProducerError('asset-missing', `The asset file has no entry for the font "${id}".`);
+    }
+    if (!('bytes' in resolved)) {
+      throw new ProducerError('asset-invalid', `The font "${id}" must be given as bytes (D64.2).`);
+    }
+    if (sha256(resolved.bytes) !== asset.contentHash) {
+      throw new ProducerError(
+        'asset-hash-mismatch',
+        `The bytes of the font "${id}" do not have its content hash.`,
+      );
+    }
+    fonts.set(id, resolved);
+  }
+  return fonts;
+}
+
+/**
+ * `kadrion check-custom-html` (D93): the check of D78.6 on one Custom HTML
+ * node, the report of the tool `check_custom_html`. The findings come from
+ * `checkCustomHtmlSource`; the render check from `checkCustomHtml` in the
+ * pinned Chromium, which the command launches itself, so that a browser other
+ * than the pinned one is an error of the job (exit 1), not a problem of the
+ * element, and closes when the job is cancelled or its wall time is up. It
+ * writes no file, and exits 0 whether `ok` is true or false.
+ */
+async function checkCustomHtmlCommand(args: readonly string[], job: Job): Promise<number> {
+  const { values } = parseArgs({
+    args: [...args],
+    options: {
+      composition: { type: 'string' },
+      assets: { type: 'string' },
+      'node-id': { type: 'string' },
+      samples: { type: 'string' },
+      ...LIMIT_OPTIONS,
+    },
+    strict: true,
+    allowPositionals: false,
+  });
+  const { composition, assets } = values;
+  const nodeId = values['node-id'];
+  if (composition === undefined || assets === undefined || nodeId === undefined) {
+    throw new UsageError('--composition, --assets, and --node-id are required.');
+  }
+  if (nodeId === '') throw new UsageError('--node-id takes the ID of a Custom HTML node.');
+  const samples = integerFlag('samples', values.samples) ?? CUSTOM_HTML_CHECK_SAMPLES;
+  if (samples < 1) throw new UsageError('--samples takes a whole number from 1.');
+  const limits = limitsOf(values);
+  const inputs = await readInputs(composition, assets);
+  const checked = customHtmlNodeOf(inputs.document, nodeId);
+  const sampled = Math.min(samples, frameCount(checked.node.durationUs, checked.composition.fps));
+  const fonts = await elementFonts(checked.composition, checked.node, inputs.resolveAsset);
+  checkLimits(
+    limits,
+    checked.composition,
+    2 * sampled,
+    [...fonts].map(([id, font]) => ({ id, bytes: font.bytes.byteLength })),
+  );
+  const findings = checkCustomHtmlSource(checked.node.html);
+  throwIfAborted(job.signal);
+  const chromium = await job.hosts.launchChromium();
+  // The check turns a failed render into a problem of the element, so a job
+  // cancelled while it runs closes the browser, which fails the render in
+  // flight at once, and ends as cancelled whatever the check returned (D48.2).
+  const state: { cancelled: boolean } = { cancelled: false };
+  const close = (): void => {
+    chromium.browser.close().catch(() => undefined);
+  };
+  const stop = (): void => {
+    state.cancelled = true;
+    close();
+  };
+  const stopListening = (): void => {
+    job.signal?.removeEventListener('abort', stop);
+  };
+  job.signal?.addEventListener('abort', stop, { once: true });
+  if (job.signal?.aborted === true) stop();
+  let render: CustomHtmlCheck;
+  try {
+    render = await job.hosts.checkCustomHtml({
+      document: inputs.document,
+      nodeId,
+      resolveAsset: ({ id }) => fonts.get(id) ?? null,
+      samples,
+      chromium,
+    });
+  } catch (reason) {
+    if (state.cancelled) throwIfAborted(job.signal);
+    throw reason;
+  } finally {
+    stopListening();
+    close();
+  }
+  if (state.cancelled) throwIfAborted(job.signal);
+  job.emit({
+    event: 'check',
+    nodeId,
+    findings,
+    render,
+    ok: findings.length === 0 && render.problems.length === 0,
+  });
+  job.emit({ event: 'done', manifest: null });
+  return EXIT_OK;
+}
+
 /**
  * `kadrion migrate` (D43, amended by PR-41): `parseComposition` of the input
  * text, then `serializeComposition` of the result to `--out`, written under a
@@ -1206,6 +1477,7 @@ const JOBS: Readonly<
   'render-still': renderStillCommand,
   estimate: estimateCommand,
   'segment-keys': segmentKeysCommand,
+  'check-custom-html': checkCustomHtmlCommand,
   migrate: migrateCommand,
 };
 
@@ -1298,6 +1570,8 @@ export async function runCli(
     renderStill: hosts.renderStill ?? renderStill,
     segmentKeys: hosts.segmentKeys ?? segmentKeys,
     measureFonts: hosts.measureFonts ?? measuredFontMetrics,
+    checkCustomHtml: hosts.checkCustomHtml ?? checkCustomHtml,
+    launchChromium: hosts.launchChromium ?? (() => launchChromium()),
     fetchFfmpeg: hosts.fetchFfmpeg ?? fetchFfmpeg,
     doctor: hosts.doctor ?? ((ffmpeg) => runDoctor(ffmpeg)),
     inspect: hosts.inspect ?? inspectVideo,

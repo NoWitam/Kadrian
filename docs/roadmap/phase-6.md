@@ -925,6 +925,13 @@ K-range (D80)` lines that D80 is accepted.
   it is accepted; every package at `0.14.0` for the release `v0.14.0`, whose
   tag the owner pushes from `main`. No runtime build, Player dist tree, or
   pinned file changes.
+  Status: the command is in review; the host guide and the release follow
+  PR-100. `kadrion check-custom-html` launches the pinned Chromium itself and
+  lends it to `checkCustomHtml`, so a refused browser exits 1, a cancelled
+  job or its wall time closes it, and the limits of D48.4 and the element's
+  fonts are checked before it opens (D93, Implementation notes). The API
+  report of the CLI grows; no other report, the runtime build, the Player's
+  dist tree, or a pinned file list changes.
 
 ## Impact on Q14, parity, and golden frames
 

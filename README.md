@@ -1424,6 +1424,17 @@ Each of these commands is a job a host's queue can run (D48):
     --assets assets.json --preset 1080p --spans-us 0,4000000
   ```
 
+- **`check-custom-html`:** runs the check of D78.6 on one Custom HTML node in
+  the pinned Chromium, which it launches itself, and prints the report of the
+  tool `check_custom_html` in one `check` line: the `findings` of its html,
+  the `render` check, and `ok`. It writes no file and exits 0 whether `ok` is
+  true or false; a browser other than the pinned one exits 1 (D93):
+
+  ```bash
+  node packages/cli/dist/bin.js check-custom-html --composition composition.json \
+    --assets assets.json --node-id node-custom-html
+  ```
+
 In the library, every job takes `signal` (an `AbortSignal`), `onProgress`, and
 `limits`.
 

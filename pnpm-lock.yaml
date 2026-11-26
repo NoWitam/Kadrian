@@ -105,6 +105,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@kadrion/editor-sdk':
+        specifier: workspace:*
+        version: link:../editor-sdk
       '@kadrion/player':
         specifier: workspace:*
         version: link:../player

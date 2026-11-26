@@ -12,6 +12,9 @@
   `0.23` and the frozen `0.22` schema), D46 (the catalogue gains
   `check_custom_html`, and `describe_document` shows the html), and D58 (the
   binding kind `parameter`), each with an `Amended by: PR-56 (D78)` line
+- Amended by: PR-101 (D93) on 2026-11-26: 78.6: a host's command line runs
+  the check, `kadrion check-custom-html`, which always lends the render
+  check, so its `render` is never `null` (D93.1)
 - Related: D05, D14, D20, D23, D27, D28, D33, D36, D46, D54, D58, D77,
   [phase five](../roadmap/phase-5.md) PR-56
 
