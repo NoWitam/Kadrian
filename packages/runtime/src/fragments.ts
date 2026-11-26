@@ -194,27 +194,44 @@ function lineFragments(
 }
 
 /**
+ * What a text with a number shows at an instant (D91.2): its text, and the
+ * text of each of its lines, whose fragments its animations move in place of
+ * those of the node's own `text`.
+ */
+export interface ShownText {
+  readonly text: string;
+  readonly lines: readonly string[];
+}
+
+/**
  * The fragments of a text node at the scene time `timeUs` (D69), or `null`
  * for a node without text animations, which is drawn in one piece. Each unit
  * its animations use lists one state per fragment, in the order of the text;
  * a unit no animation uses lists none. `color` is the colour of the text at
  * that instant, which a fragment shows until a colour track replaces it. The
  * lines of a text with a frame are those of its wrap (D83.5), for which
- * `metrics`, the metrics of its font, are needed.
+ * `metrics`, the metrics of its font, are needed. A text with a number passes
+ * what it shows at this instant, `shown`: its letters, words, and lines are those of
+ * that text, a digit a letter and a run without white space a word (D91.2).
  */
 export function textFragments(
   node: TextNode,
   color: string,
   timeUs: number,
   metrics?: FontMetrics,
+  shown?: ShownText,
 ): TextFragmentsState | null {
   if (node.textAnimations.length === 0) return null;
-  const layout = textLayout(node.text);
+  const layout = textLayout(shown?.text ?? node.text);
   const used = new Set(node.textAnimations.map((animation) => animation.unit));
   const counts: Readonly<Record<FragmentUnit, number>> = {
     letter: layout.letters,
     word: layout.words,
-    line: used.has('line') ? lineFragments(node, layout, metrics) : 0,
+    line: !used.has('line')
+      ? 0
+      : shown === undefined
+        ? lineFragments(node, layout, metrics)
+        : shown.lines.filter((line) => textLayout(line).fragmentLines > 0).length,
   };
   const fragments: Record<FragmentUnit, FragmentState[]> = {
     letter: [],

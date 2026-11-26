@@ -21,6 +21,8 @@ import {
   type Focus,
   type Origin,
   type Speed,
+  type TextNumber,
+  type TextNumberFormat,
 } from '@kadrion/schema';
 
 import { keyframeTimeBounds } from './animations.js';
@@ -901,6 +903,33 @@ export interface SetTextStyleCommand extends SetTextStyleArguments {
   readonly type: 'SetTextStyle';
 }
 
+/** A number as a caller states it for `SetTextNumber` (D91.2): the stored number without its kind. */
+export type TextNumberArgument = Omit<TextNumberFormat, 'kind'>;
+
+/** What a caller states for `SetTextNumber` (D91.2). */
+export interface SetTextNumberArguments {
+  readonly nodeId: string;
+  /** The number the text shows in place of its text, or `null` for none. */
+  readonly number: TextNumberArgument | null;
+  /**
+   * The text the node keeps: `''` when it is not stated, as a number needs it;
+   * the inverse of a command that gave a text a number states its old text.
+   */
+  readonly text?: string;
+}
+
+/**
+ * Gives a text node a number, changes it, or removes it (D91.2): its `number`
+ * as the document stores it without its kind, `null` for the kind `none`, and
+ * its `text`, `''` when the call states none.
+ */
+export interface SetTextNumberCommand {
+  readonly type: 'SetTextNumber';
+  readonly nodeId: string;
+  readonly number: TextNumberArgument | null;
+  readonly text: string;
+}
+
 /** What a caller states for `SetShapeGeometry` (D73). */
 export interface SetShapeGeometryArguments {
   readonly nodeId: string;
@@ -1413,6 +1442,7 @@ export type Command =
   | SetCaptionWordCommand
   | SetCaptionStyleCommand
   | SetTextStyleCommand
+  | SetTextNumberCommand
   | SetShapeGeometryCommand
   | SetShapeFillCommand
   | SetShapeStrokeCommand
@@ -1883,6 +1913,25 @@ export interface SetTextStyleArgumentsSchema {
     readonly style: OpenObjectSchema;
   };
   readonly required: readonly (keyof SetTextStyleArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetTextNumber` (D91.2): a number or `null`, and an optional text. */
+export interface SetTextNumberArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly number: {
+      readonly type: readonly ['object', 'null'];
+      readonly description: string;
+      readonly properties: { readonly [K in keyof TextNumberArgument]: ArgumentSchema };
+      readonly required: readonly (keyof TextNumberArgument)[];
+      readonly additionalProperties: false;
+    };
+    readonly text: ArgumentSchema;
+  };
+  readonly required: readonly ('nodeId' | 'number')[];
   readonly additionalProperties: false;
 }
 
@@ -3047,7 +3096,7 @@ export const setKeyframeEasingArgumentsSchema: SetKeyframeEasingArgumentsSchema 
  * (D65.2, D68). Exported for the descriptions of the tools.
  */
 export const KEYFRAME_VALUES =
-  'The value depends on the property of the animation: rotation, a number of degrees added to the node\'s rotation; origin, {"x":…,"y":…} integers in per mille (-1000 to 1000) added to the node\'s origin; corners, {"topLeft":{"x":…,"y":…},"topRight":…,"bottomRight":…,"bottomLeft":…} offsets in composition pixels added to the node\'s corners, every frame whose quadrilateral is not convex drawing nothing of the node; size, {"width":…,"height":…} in composition pixels (rounded) that replaces the node\'s size; color, "#rrggbb" that replaces the node\'s colour; crop, {"top":…,"right":…,"bottom":…,"left":…} integers in per mille that replaces the node\'s crop; cornerRadius, composition pixels (rounded) that replace the node\'s corner radius; fill and stroke/color, "#rrggbb" that replaces the colour of a shape\'s solid fill or of its stroke; stroke/width, composition pixels (0 to 1000) that replace the width of its stroke; trim/start and trim/end, integers in per mille (0 to 1000) of the outline that replace where its drawn part starts or ends; geometry, a complete geometry of the structure of the shape\'s own (its kind, its number of points, its commands in the same order with the same arc flags) that replaces it, every number moving on its own, so that a path morphs.';
+  'The value depends on the property of the animation: rotation, a number of degrees added to the node\'s rotation; origin, {"x":…,"y":…} integers in per mille (-1000 to 1000) added to the node\'s origin; corners, {"topLeft":{"x":…,"y":…},"topRight":…,"bottomRight":…,"bottomLeft":…} offsets in composition pixels added to the node\'s corners, every frame whose quadrilateral is not convex drawing nothing of the node; size, {"width":…,"height":…} in composition pixels (rounded) that replaces the node\'s size; color, "#rrggbb" that replaces the node\'s colour; number, the value of a text\'s number (a finite number) that replaces it, rounded to its decimals only when written; crop, {"top":…,"right":…,"bottom":…,"left":…} integers in per mille that replaces the node\'s crop; cornerRadius, composition pixels (rounded) that replace the node\'s corner radius; fill and stroke/color, "#rrggbb" that replaces the colour of a shape\'s solid fill or of its stroke; stroke/width, composition pixels (0 to 1000) that replace the width of its stroke; trim/start and trim/end, integers in per mille (0 to 1000) of the outline that replace where its drawn part starts or ends; geometry, a complete geometry of the structure of the shape\'s own (its kind, its number of points, its commands in the same order with the same arc flags) that replaces it, every number moving on its own, so that a path morphs.';
 
 /** The JSON Schema of the arguments of `SetKeyframeValue` (D65.2): the value is the row's to judge. */
 export const setKeyframeValueArgumentsSchema: SetKeyframeValueArgumentsSchema = deepFreeze({
@@ -3574,6 +3623,79 @@ export const setTextStyleArgumentsSchema: SetTextStyleArgumentsSchema = deepFree
     style: { type: 'object', description: TEXT_STYLE },
   },
   required: ['nodeId', 'style'],
+  additionalProperties: false,
+});
+
+type TextShape = Extract<
+  (typeof NODE_SHAPES)[number],
+  { readonly properties: { readonly type: { readonly const: 'text' } } }
+>;
+const TEXT_SHAPE = NODE_SHAPES.find(
+  (shape): shape is TextShape => shape.properties.type.const === 'text',
+);
+if (TEXT_SHAPE === undefined) throw new Error('The schema has no text node.');
+/** The fields of a number of a text, read from the schema (D91.2). */
+const NUMBER_FIELDS = TEXT_SHAPE.properties.number.oneOf[1].properties;
+/** The bounds of the value of a number, read from the schema (D91.2). */
+const NUMBER_VALUE: Bounds = {
+  minimum: NUMBER_FIELDS.value.minimum,
+  maximum: NUMBER_FIELDS.value.maximum,
+};
+/** The bounds of the decimals of a number, read from the schema (D91.2). */
+const NUMBER_DECIMALS: Bounds = {
+  minimum: NUMBER_FIELDS.decimals.minimum,
+  maximum: NUMBER_FIELDS.decimals.maximum,
+};
+const DECIMAL_SEPARATORS: readonly string[] = NUMBER_FIELDS.decimalSeparator.enum;
+const GROUP_SEPARATORS: readonly string[] = NUMBER_FIELDS.groupSeparator.enum;
+
+/** The JSON Schema of the arguments of `SetTextNumber` (D91.2): a number, or null for none. */
+export const setTextNumberArgumentsSchema: SetTextNumberArgumentsSchema = deepFreeze({
+  type: 'object',
+  description: 'Gives a text node a number shown in place of its text, changes it, or removes it.',
+  properties: {
+    nodeId: { type: 'string', description: TEXT_ID, minLength: 1 },
+    number: {
+      type: ['object', 'null'],
+      description:
+        "The number the text shows, prefix + the value written + suffix, or null for none; with a number the node's text is ''.",
+      properties: {
+        value: {
+          type: 'number',
+          description: `The value, a finite number from ${String(NUMBER_VALUE.minimum)} to ${String(NUMBER_VALUE.maximum)}, rounded half away from zero to decimals when it is written.`,
+          minimum: NUMBER_VALUE.minimum,
+          maximum: NUMBER_VALUE.maximum,
+        },
+        decimals: {
+          type: 'integer',
+          description: `The digits written after the decimal separator, exactly, from ${String(NUMBER_DECIMALS.minimum)} to ${String(NUMBER_DECIMALS.maximum)}.`,
+          minimum: NUMBER_DECIMALS.minimum,
+          maximum: NUMBER_DECIMALS.maximum,
+        },
+        decimalSeparator: {
+          type: 'string',
+          description: 'What stands between the integer part and the fraction.',
+          enum: DECIMAL_SEPARATORS,
+        },
+        groupSeparator: {
+          type: 'string',
+          description:
+            "What joins the groups of three digits of the integer part: '' for none, a space, U+00A0, U+202F, '.', ',', or an apostrophe; never the decimal separator.",
+          enum: GROUP_SEPARATORS,
+        },
+        prefix: { type: 'string', description: 'Text written before the number, such as "$".' },
+        suffix: { type: 'string', description: 'Text written after the number, such as " zł".' },
+      },
+      required: ['value', 'decimals', 'decimalSeparator', 'groupSeparator', 'prefix', 'suffix'],
+      additionalProperties: false,
+    },
+    text: {
+      type: 'string',
+      description:
+        "The text the node keeps; '' when omitted, which a number needs. With null it is the text shown again.",
+    },
+  },
+  required: ['nodeId', 'number'],
   additionalProperties: false,
 });
 
@@ -5301,6 +5423,7 @@ export const GENERIC_KEYFRAME_PROPERTIES = Object.freeze([
   'corners',
   'size',
   'color',
+  'number',
   'crop',
   'cornerRadius',
   'fill',
@@ -5318,7 +5441,8 @@ export const GENERIC_KEYFRAME_PROPERTIES = Object.freeze([
  * offset and a crop integers, never rounded; the four offsets of corners
  * finite numbers, never rounded (D91.1); a size and a corner radius
  * rounded like a position (D15); a colour `#` and six hexadecimal digits,
- * stored in lower case; a volume a finite number, never rounded (D85.8). -0
+ * stored in lower case; a volume a finite number, never rounded (D85.8); the
+ * value of a number a finite number, never rounded (D91.2). -0
  * becomes 0. The bounds are the document's: a value outside them is
  * `invalid-result`.
  */
@@ -5357,6 +5481,8 @@ export function normalizedKeyframeValue(
       return finite(value, 'The value of a stroke/width keyframe');
     case 'volume':
       return finite(value, 'The value of a volume keyframe');
+    case 'number':
+      return finite(value, 'The value of a number keyframe');
     case 'trim/start':
     case 'trim/end':
       return integer(value, `The value of a ${property} keyframe`);
@@ -5895,6 +6021,92 @@ export function parseSetTextStyle(value: unknown): SetTextStyleCommand {
     nodeId,
     style: dataOf(fields['style'], 'style'),
   });
+}
+
+/**
+ * The fields of a `SetTextNumber` (D91.2): a number of the schema's fields,
+ * each in its bounds or among its values, the value never rounded and -0 as
+ * 0, stored with its kind; `null` is `{ kind: 'none' }`; the text `''` when it
+ * is not stated. Whether the separators differ and the text fits the number is
+ * the document's to judge (`invalid-result`, `invalid-number`).
+ */
+export function parseSetTextNumber(value: unknown): SetTextNumberCommand {
+  const withText = isPlainObject(value) && Object.hasOwn(value, 'text');
+  const fields = fieldsOf(
+    value,
+    ['type', 'nodeId', 'number', ...(withText ? ['text'] : [])],
+    'The command `SetTextNumber`',
+  );
+  const nodeId = nodeIdOf(fields);
+  const text: unknown = withText ? fields['text'] : '';
+  if (typeof text !== 'string') {
+    throw new EditorError('invalid-argument', '`text` must be a string.');
+  }
+  if (fields['number'] === null) {
+    return Object.freeze({ type: 'SetTextNumber', nodeId, number: null, text });
+  }
+  const number = fieldsOf(
+    fields['number'],
+    ['value', 'decimals', 'decimalSeparator', 'groupSeparator', 'prefix', 'suffix'],
+    '`number`',
+  );
+  const decimals: unknown = number['decimals'];
+  if (
+    typeof decimals !== 'number' ||
+    !Number.isInteger(decimals) ||
+    decimals < NUMBER_DECIMALS.minimum ||
+    decimals > NUMBER_DECIMALS.maximum
+  ) {
+    throw new EditorError(
+      'invalid-argument',
+      `\`number.decimals\` must be an integer from ${String(NUMBER_DECIMALS.minimum)} to ${String(NUMBER_DECIMALS.maximum)}.`,
+    );
+  }
+  const oneOf = (key: string, values: readonly string[]): string => {
+    const found: unknown = number[key];
+    if (typeof found !== 'string' || !values.includes(found)) {
+      throw new EditorError(
+        'invalid-argument',
+        `\`number.${key}\` must be one of ${values.map((item) => JSON.stringify(item)).join(', ')}.`,
+      );
+    }
+    return found;
+  };
+  const string = (key: string): string => {
+    const found: unknown = number[key];
+    if (typeof found !== 'string') {
+      throw new EditorError('invalid-argument', `\`number.${key}\` must be a string.`);
+    }
+    return found;
+  };
+  return Object.freeze({
+    type: 'SetTextNumber',
+    nodeId,
+    number: Object.freeze({
+      value: boundedNumber(number['value'], NUMBER_VALUE, '`number.value`'),
+      decimals: decimals === 0 ? 0 : decimals,
+      decimalSeparator: oneOf('decimalSeparator', DECIMAL_SEPARATORS),
+      groupSeparator: oneOf(
+        'groupSeparator',
+        GROUP_SEPARATORS,
+      ) as TextNumberArgument['groupSeparator'],
+      prefix: string('prefix'),
+      suffix: string('suffix'),
+    }) as TextNumberArgument,
+    text,
+  });
+}
+
+/** A text's number as `SetTextNumber` states it (D91.2): without its kind, or `null` for none. */
+export function textNumberArgument(number: TextNumber): TextNumberArgument | null {
+  if (number.kind === 'none') return null;
+  const { value, decimals, decimalSeparator, groupSeparator, prefix, suffix } = number;
+  return { value, decimals, decimalSeparator, groupSeparator, prefix, suffix };
+}
+
+/** A text's number as the document stores it (D91.2): the kind `none` for `null`. */
+export function storedTextNumber(number: TextNumberArgument | null): TextNumber {
+  return number === null ? { kind: 'none' } : { kind: 'number', ...number };
 }
 
 /** The fields of a `SetShapeGeometry` (D73); the document's validation judges the geometry. */

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 640,
   "height": 360,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
@@ -195,6 +195,7 @@
           "opacity": 1,
           "animations": [],
           "text": "{{title}}",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 36,
           "frame": { "kind": "none" },

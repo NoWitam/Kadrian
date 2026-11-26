@@ -5,6 +5,7 @@
 - Date: 2026-11-08
 - Amended by: PR-50 (D70) on 2026-11-08: 69.1 and 69.9: the text style on captions, its box behind every line (D70.1)
 - Amended by: PR-64 (D83) on 2026-11-11, in force from PR-66: 69.1 and 69.9: alignment lies in the text style, and measured wrapping is decided (D83.4, D83.5)
+- Amended by: PR-96 (D91) on 2026-11-26: 69.2: the fragments of a text with a number are those of the text it shows at the instant — a digit a letter, a run without white space a word, and its lines those of its widest text (D91.2)
 - Supersedes: —
 - Amends: D16 (a text has a `style` and `textAnimations`; the tracks of a text
   animation follow the rules of animations), D22 (the style of a text, its box,

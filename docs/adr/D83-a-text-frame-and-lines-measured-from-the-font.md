@@ -16,6 +16,7 @@
   four tools) get their lines from the pull requests of D83.9 and D83.10, as
   every schema step and tool change before them
 - Amended by: PR-69 (D84) on 2026-11-13, in force from PR-72: D83.1 and D83.11: `fontMetrics` reads fonts in WOFF and WOFF2 as well as sfnt fonts, and a measured node may use them; collections stay refused, and a damaged WOFF or WOFF2 file is `font-invalid` (D84.1 to D84.6)
+- Amended by: PR-96 (D91) on 2026-11-26: D83.7: a text with a number is a measured node, with or without a frame; `measuredNodes` and `measuredFontIds` list it, and without the metrics of its font its evaluation is `font-metrics-missing`. Its box and lines are those of the widest text it takes, every digit in a cell as wide as the widest digit of the font (D91.2)
 - Related: D04, D12, D13, D14, D15, D16, D21, D26, D30, D33, D34, D38, D57,
   D69, D70, D82, D84, [roadmap of phase six](../roadmap/phase-6.md)
 

@@ -35,6 +35,7 @@
 - Amended by: PR-90 (D89) on 2026-11-22: the step from `0.27` to `0.28` and the frozen `0.27` schema (D89.2)
 - Amended by: PR-91 (D89) on 2026-11-22: the step from `0.28` to `0.29` and the frozen `0.28` schema (D89.1)
 - Amended by: PR-95 (D91) on 2026-11-26: the step from `0.29` to `0.30`, which writes `corners` of four zero vectors after the `flip` of every node that has one, and the frozen `0.29` schema (D91.1)
+- Amended by: PR-96 (D91) on 2026-11-26: the step from `0.30` to `0.31`, which writes `number: { "kind": "none" }` after the `text` of every text node, never a caption, and the frozen `0.30` schema (D91.2)
 - Related: D02, D16, D17, D24,
   [specification](../spike/vertical-spike.md) §11 and open question Q16,
   [spike report](../spike/report.md)

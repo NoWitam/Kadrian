@@ -10,7 +10,13 @@
  * D30.4 for every command alike — validating the result in full, and only then
  * returning it with its inverse.
  */
-import { advanceClipSource, compositionSchema, type ClipTiming, type Speed } from '@kadrion/schema';
+import {
+  advanceClipSource,
+  compositionSchema,
+  type ClipTiming,
+  type Speed,
+  type TextNumber,
+} from '@kadrion/schema';
 
 import { keyframeMinimum } from './animations.js';
 import {
@@ -39,6 +45,9 @@ import {
   parseSetTransitionEasing,
   parseSetCaptionStyle,
   parseSetTextStyle,
+  parseSetTextNumber,
+  storedTextNumber,
+  textNumberArgument,
   parseSetShapeFill,
   parseSetBlendMode,
   parseSetNodeMask,
@@ -2798,6 +2807,33 @@ const DEFINITIONS = deepFreeze<Definitions>({
         return {
           node: { ...node, style: command.style },
           inverse: parseSetTextStyle({ ...command, style }),
+        };
+      }),
+  },
+  SetTextNumber: {
+    parse: parseSetTextNumber,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        requireType(node, ['text'], command.nodeId);
+        const number: unknown = node['number'];
+        const text: unknown = node['text'];
+        if (!isObject(number) || typeof text !== 'string') {
+          throw new EditorError(
+            'unsupported-node',
+            `The text \`${command.nodeId}\` has no number to set.`,
+          );
+        }
+        const stored = storedTextNumber(command.number);
+        if (sameData(number, stored) && text === command.text) return null;
+        return {
+          // The text shows the number in place of its text, which is '' (D91.2).
+          node: { ...node, text: command.text, number: stored },
+          inverse: parseSetTextNumber({
+            type: 'SetTextNumber',
+            nodeId: command.nodeId,
+            number: textNumberArgument(number as TextNumber),
+            text,
+          }),
         };
       }),
   },

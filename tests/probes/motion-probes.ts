@@ -145,6 +145,7 @@ export function probeComposition(): unknown {
             ...node('node-text', 960, 200),
             type: 'text',
             text: 'Kadrion',
+            number: { kind: 'none' },
             fontAssetId: 'asset-font',
             fontSize: 144,
             color: '#fec84b',

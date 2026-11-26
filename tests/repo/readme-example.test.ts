@@ -77,6 +77,7 @@ const captionNode = {
     },
   ],
   text: 'A caption',
+  number: { kind: 'none' },
   fontAssetId: 'asset-font',
   fontSize: 48,
   frame: { kind: 'none' },

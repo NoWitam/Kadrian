@@ -30,6 +30,7 @@ import {
   KEYFRAME_VALUES,
   setCaptionStyleArgumentsSchema,
   setTextStyleArgumentsSchema,
+  setTextNumberArgumentsSchema,
   setShapeGeometryArgumentsSchema,
   setShapeFillArgumentsSchema,
   setBlendModeArgumentsSchema,
@@ -135,6 +136,7 @@ import {
   type SetKeyframeValueArgumentsSchema,
   type SetCaptionStyleArgumentsSchema,
   type SetTextStyleArgumentsSchema,
+  type SetTextNumberArgumentsSchema,
   type SetShapeGeometryArgumentsSchema,
   type SetShapeFillArgumentsSchema,
   type SetBlendModeArgumentsSchema,
@@ -161,6 +163,7 @@ import {
   type SetNodeFlipArgumentsSchema,
   type SetNodeCornersArgumentsSchema,
   type SetClipSpeedArguments,
+  type SetTextNumberArguments,
   type SetClipSpeedArgumentsSchema,
   type ClosedObjectSchema,
   type Command,
@@ -174,7 +177,9 @@ import { COMMAND_TYPES } from './registry.js';
  */
 export type CommandArguments<T extends Command['type']> = T extends 'SetClipSpeed'
   ? SetClipSpeedArguments
-  : Omit<Extract<Command, { type: T }>, 'type'>;
+  : T extends 'SetTextNumber'
+    ? SetTextNumberArguments
+    : Omit<Extract<Command, { type: T }>, 'type'>;
 
 /** The JSON Schema of the arguments of any command, as `editor-sdk` exports it (D31.2). */
 export type CommandArgumentsSchema =
@@ -195,6 +200,7 @@ export type CommandArgumentsSchema =
   | SetCaptionWordArgumentsSchema
   | SetCaptionStyleArgumentsSchema
   | SetTextStyleArgumentsSchema
+  | SetTextNumberArgumentsSchema
   | SetShapeGeometryArgumentsSchema
   | SetShapeFillArgumentsSchema
   | SetBlendModeArgumentsSchema
@@ -297,7 +303,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, flip, corners (four zero offsets {"x":0,"y":0} for none; set_node_corners describes them), opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {"kind":"none"}, matte {"kind":"none"}, and blendMode "normal" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit "fill", "contain", or "cover" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {"num":1,"den":1} (describe_document shows a speed as a multiplier such as "x0.5"; stored, it is the fraction {"num":1,"den":2}, from 1/4 to 4, or {"num":0,"den":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, flip, corners (four zero offsets {"x":0,"y":0} for none; set_node_corners describes them), opacity, animations, and its own fields, a text's number {"kind":"none"} after its text (set_text_number describes one); an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {"kind":"none"}, matte {"kind":"none"}, and blendMode "normal" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit "fill", "contain", or "cover" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {"num":1,"den":1} (describe_document shows a speed as a multiplier such as "x0.5"; stored, it is the fraction {"num":1,"den":2}, from 1/4 to 4, or {"num":0,"den":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -320,6 +326,7 @@ const METADATA = deepFreeze<MetadataTable>({
         opacity: 1,
         animations: [],
         text: 'Made with Kadrion',
+        number: { kind: 'none' },
         fontAssetId: 'asset-font',
         fontSize: 64,
         frame: { kind: 'none' },
@@ -412,7 +419,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: removeAssetArgumentsSchema,
   },
   AddAnimation: {
-    description: `Adds one complete animation to a node or an audio clip, at an index of its animations: an ID unused in the document; the property, which the node must not animate yet (position, scale, opacity, rotation, origin, or corners on every node but a background; size, crop, and cornerRadius on an image or a video; color on a text, captions, or a background, which has no other animation; size, fill (a solid fill only), stroke/color, stroke/width, trim/start, trim/end, and geometry on a shape; volume on a video or an audio clip, which has no other); and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({"kind":"linear"} for a constant speed, or any easing set_keyframe_easing describes; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1, a volume value a factor from 0 to 1 times the volume, moving linearly in decibels (in amplitude to or from 0), eased linear or hold only. ${KEYFRAME_VALUES} ${TIME_US} Refused with unknown-node, duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
+    description: `Adds one complete animation to a node or an audio clip, at an index of its animations: an ID unused in the document; the property, which the node must not animate yet (position, scale, opacity, rotation, origin, or corners on every node but a background; size, crop, and cornerRadius on an image or a video; color on a text, captions, or a background, which has no other animation; number on a text that shows a number; size, fill (a solid fill only), stroke/color, stroke/width, trim/start, trim/end, and geometry on a shape; volume on a video or an audio clip, which has no other); and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({"kind":"linear"} for a constant speed, or any easing set_keyframe_easing describes; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1, a volume value a factor from 0 to 1 times the volume, moving linearly in decibels (in amplitude to or from 0), eased linear or hold only. ${KEYFRAME_VALUES} ${TIME_US} Refused with unknown-node, duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
     example: {
       nodeId: 'node-custom-html',
       index: 0,
@@ -475,7 +482,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setKeyframeEasingArgumentsSchema,
   },
   SetKeyframeValue: {
-    description: `Sets the value of an animation of rotation, origin, corners, size, color, crop, cornerRadius, volume (a factor from 0 to 1), or of a shape's fill, stroke/color, stroke/width, trim/start, trim/end, or geometry at a time: replaces the value of the keyframe at that time, or inserts one, eased as the keyframe before it. ${KEYFRAME_VALUES} ${TIME_US} ${ANIMATED} Refused with unknown-animation, use-typed-command for an animation of opacity, position, or scale (use set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe), invalid-argument for a value of the wrong form, and invalid-result for a value outside the range of the property.`,
+    description: `Sets the value of an animation of rotation, origin, corners, size, color, number, crop, cornerRadius, volume (a factor from 0 to 1), or of a shape's fill, stroke/color, stroke/width, trim/start, trim/end, or geometry at a time: replaces the value of the keyframe at that time, or inserts one, eased as the keyframe before it. ${KEYFRAME_VALUES} ${TIME_US} ${ANIMATED} Refused with unknown-animation, use-typed-command for an animation of opacity, position, or scale (use set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe), invalid-argument for a value of the wrong form, and invalid-result for a value outside the range of the property.`,
     example: { animationId: 'anim-image-rotation', timeUs: 1_000_000, value: 360 },
     argumentsSchema: setKeyframeValueArgumentsSchema,
   },
@@ -822,6 +829,22 @@ const METADATA = deepFreeze<MetadataTable>({
       },
     },
     argumentsSchema: setTextStyleArgumentsSchema,
+  },
+  SetTextNumber: {
+    description:
+      'Makes a text node show a number in place of its text, as for a counter, a price, or a statistic: prefix + the value + suffix, the value rounded half away from zero to decimals (0 to 6, exactly that many digits after decimalSeparator "." or ","), its integer part in groups of three joined by groupSeparator (\'\' for none, a space, U+00A0, U+202F, ".", ",", or "\'", never the decimal separator), a negative value with - unless it rounds to zero. Every digit stands in a cell as wide as the widest digit of the font and the box is that of the widest text the number takes, so the text never jumps as the value changes; its font is measured. With a number the node\'s text is \'\'. A number animation (add_animation, set_keyframe_value) replaces the value, rounded after the interpolation. null removes the number; text, \'\' when omitted, is the text the node shows then. Refused with invalid-argument, unknown-node, unsupported-node for a node that is not a text, and invalid-result with invalid-number for a number the document cannot hold.',
+    example: {
+      nodeId: 'node-title',
+      number: {
+        value: 1234567.89,
+        decimals: 2,
+        decimalSeparator: ',',
+        groupSeparator: ' ',
+        prefix: '',
+        suffix: ' zł',
+      },
+    },
+    argumentsSchema: setTextNumberArgumentsSchema,
   },
   SetShapeGeometry: {
     description:

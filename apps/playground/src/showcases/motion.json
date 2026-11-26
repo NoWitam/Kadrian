@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 1280,
   "height": 720,
   "safeArea": {
@@ -88,6 +88,7 @@
             }
           ],
           "text": "Kadrion motion",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 64,
           "frame": { "kind": "none" },
@@ -433,6 +434,7 @@
           "opacity": 1,
           "animations": [],
           "text": "rotation",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 48,
           "frame": { "kind": "none" },

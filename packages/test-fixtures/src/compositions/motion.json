@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -363,6 +363,7 @@
             }
           ],
           "text": "Kadrion",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 48,
           "frame": { "kind": "none" },

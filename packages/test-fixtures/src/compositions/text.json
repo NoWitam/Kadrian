@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -62,6 +62,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion danced",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },
@@ -176,6 +177,7 @@
           "opacity": 1,
           "animations": [],
           "text": "big dancing stars",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },
@@ -295,6 +297,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion\nis steady",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },
@@ -411,6 +414,7 @@
           "opacity": 1,
           "animations": [],
           "text": "radiant comets",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },

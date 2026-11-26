@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -207,6 +207,7 @@
               "opacity": 1,
               "animations": [],
               "text": "Deterministic by design",
+              "number": { "kind": "none" },
               "fontAssetId": "asset-font",
               "fontSize": 56,
               "frame": { "kind": "none" },
@@ -288,6 +289,7 @@
             }
           ],
           "text": "Kadrion",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 144,
           "frame": { "kind": "none" },

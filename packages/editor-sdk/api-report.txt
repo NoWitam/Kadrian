@@ -528,15 +528,15 @@ export interface ClosedObjectSchema<K extends string> {
 }
 
 ---- Command (type only)
-export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetKeyframeEasingCommand | SetKeyframeValueCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetNodeFocusCommand | SetNodeRotationCommand | SetNodeOriginCommand | SetNodeFlipCommand | SetNodeCornersCommand | SetNodeCropCommand | SetNodeCornerRadiusCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | SetClipSpeedCommand | SetClipReverseCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetTransitionEasingCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | SetTextStyleCommand | SetShapeGeometryCommand | SetShapeFillCommand | SetShapeStrokeCommand | SetShapeTrimCommand | SetBlendModeCommand | SetNodeMaskCommand | SetNodeMatteCommand | AddTextAnimationCommand | RemoveTextAnimationCommand | SetTextAnimationCommand | SetCaptionHighlightCommand | SetCaptionPageAnimationCommand | SetSafeAreaCommand | SetCompositionClearCommand | AddEffectCommand | RemoveEffectCommand | ReorderEffectCommand | SetEffectCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand | AddDefinitionCommand | RemoveDefinitionCommand | ConvertToDefinitionCommand | ExpandInstanceCommand | SetInstanceInputCommand | ClearInstanceInputCommand | ReplaceDefinitionCommand | SetCustomHtmlCommand;
+export type Command = SetNodePositionCommand | SetNodeOpacityCommand | SetTextContentCommand | AddNodeCommand | RemoveNodeCommand | DuplicateNodeCommand | ReorderNodeCommand | SetNodeScaleCommand | SetNodeSizeCommand | SetNodeColorCommand | SetTextFontSizeCommand | SetTextFontCommand | SetImageAssetCommand | AddAssetCommand | RemoveAssetCommand | AddAnimationCommand | RemoveAnimationCommand | SetOpacityKeyframeCommand | SetPositionKeyframeCommand | SetScaleKeyframeCommand | AddKeyframeCommand | RemoveKeyframeCommand | MoveKeyframeCommand | SetKeyframeEasingCommand | SetKeyframeValueCommand | SetNodeLifetimeCommand | SetNodeFitCommand | SetNodeFocusCommand | SetNodeRotationCommand | SetNodeOriginCommand | SetNodeFlipCommand | SetNodeCornersCommand | SetNodeCropCommand | SetNodeCornerRadiusCommand | SetVideoAssetCommand | SetVideoSourceCommand | SetVideoVolumeCommand | AddAudioClipCommand | RemoveAudioClipCommand | SetClipVolumeCommand | SetClipFadesCommand | SetClipSourceCommand | AddSceneCommand | RemoveSceneCommand | DuplicateSceneCommand | ReorderSceneCommand | SetSceneDurationCommand | MoveNodeToSceneCommand | AddSceneAudioClipCommand | MoveClipCommand | TrimClipStartCommand | TrimClipEndCommand | SplitClipCommand | JoinClipsCommand | SetClipSpeedCommand | SetClipReverseCommand | AddSceneTransitionCommand | AddClipTransitionCommand | RemoveTransitionCommand | SetTransitionDurationCommand | SetTransitionEffectCommand | SetTransitionEasingCommand | SetCaptionWordsCommand | SetCaptionWordCommand | SetCaptionStyleCommand | SetTextStyleCommand | SetTextNumberCommand | SetShapeGeometryCommand | SetShapeFillCommand | SetShapeStrokeCommand | SetShapeTrimCommand | SetBlendModeCommand | SetNodeMaskCommand | SetNodeMatteCommand | AddTextAnimationCommand | RemoveTextAnimationCommand | SetTextAnimationCommand | SetCaptionHighlightCommand | SetCaptionPageAnimationCommand | SetSafeAreaCommand | SetCompositionClearCommand | AddEffectCommand | RemoveEffectCommand | ReorderEffectCommand | SetEffectCommand | AddTemplateInputCommand | RemoveTemplateInputCommand | SetTemplateInputCommand | AddTemplateBindingCommand | RemoveTemplateBindingCommand | AddTemplateConditionCommand | RemoveTemplateConditionCommand | AddTemplateRepeatCommand | RemoveTemplateRepeatCommand | AddDefinitionCommand | RemoveDefinitionCommand | ConvertToDefinitionCommand | ExpandInstanceCommand | SetInstanceInputCommand | ClearInstanceInputCommand | ReplaceDefinitionCommand | SetCustomHtmlCommand;
 
 ---- CommandArguments (type only)
-export type CommandArguments<T extends Command['type']> = T extends 'SetClipSpeed' ? SetClipSpeedArguments : Omit<Extract<Command, {
+export type CommandArguments<T extends Command['type']> = T extends 'SetClipSpeed' ? SetClipSpeedArguments : T extends 'SetTextNumber' ? SetTextNumberArguments : Omit<Extract<Command, {
     type: T;
 }>, 'type'>;
 
 ---- CommandArgumentsSchema (type only)
-export type CommandArgumentsSchema = ClosedObjectSchema<string> | AddNodeArgumentsSchema | AddAnimationArgumentsSchema | AddKeyframeArgumentsSchema | AddAudioClipArgumentsSchema | AddSceneArgumentsSchema | AddSceneAudioClipArgumentsSchema | AddSceneTransitionArgumentsSchema | AddClipTransitionArgumentsSchema | SetTransitionEffectArgumentsSchema | SetTransitionEasingArgumentsSchema | SetKeyframeEasingArgumentsSchema | SetKeyframeValueArgumentsSchema | SetCaptionWordsArgumentsSchema | SetCaptionWordArgumentsSchema | SetCaptionStyleArgumentsSchema | SetTextStyleArgumentsSchema | SetShapeGeometryArgumentsSchema | SetShapeFillArgumentsSchema | SetBlendModeArgumentsSchema | SetNodeMaskArgumentsSchema | SetNodeMatteArgumentsSchema | SetShapeStrokeArgumentsSchema | AddTextAnimationArgumentsSchema | RemoveTextAnimationArgumentsSchema | SetTextAnimationArgumentsSchema | SetCaptionHighlightArgumentsSchema | SetCaptionPageAnimationArgumentsSchema | SetSafeAreaArgumentsSchema | SetCompositionClearArgumentsSchema | AddEffectArgumentsSchema | SetEffectArgumentsSchema | AddTemplateInputArgumentsSchema | SetTemplateInputArgumentsSchema | AddTemplateBindingArgumentsSchema | AddTemplateConditionArgumentsSchema | AddTemplateRepeatArgumentsSchema | AddDefinitionArgumentsSchema | SetInstanceInputArgumentsSchema | ReplaceDefinitionArgumentsSchema | SetCustomHtmlArgumentsSchema | SetClipSpeedArgumentsSchema | SetClipReverseArgumentsSchema | SetNodeFlipArgumentsSchema | SetNodeCornersArgumentsSchema;
+export type CommandArgumentsSchema = ClosedObjectSchema<string> | AddNodeArgumentsSchema | AddAnimationArgumentsSchema | AddKeyframeArgumentsSchema | AddAudioClipArgumentsSchema | AddSceneArgumentsSchema | AddSceneAudioClipArgumentsSchema | AddSceneTransitionArgumentsSchema | AddClipTransitionArgumentsSchema | SetTransitionEffectArgumentsSchema | SetTransitionEasingArgumentsSchema | SetKeyframeEasingArgumentsSchema | SetKeyframeValueArgumentsSchema | SetCaptionWordsArgumentsSchema | SetCaptionWordArgumentsSchema | SetCaptionStyleArgumentsSchema | SetTextStyleArgumentsSchema | SetTextNumberArgumentsSchema | SetShapeGeometryArgumentsSchema | SetShapeFillArgumentsSchema | SetBlendModeArgumentsSchema | SetNodeMaskArgumentsSchema | SetNodeMatteArgumentsSchema | SetShapeStrokeArgumentsSchema | AddTextAnimationArgumentsSchema | RemoveTextAnimationArgumentsSchema | SetTextAnimationArgumentsSchema | SetCaptionHighlightArgumentsSchema | SetCaptionPageAnimationArgumentsSchema | SetSafeAreaArgumentsSchema | SetCompositionClearArgumentsSchema | AddEffectArgumentsSchema | SetEffectArgumentsSchema | AddTemplateInputArgumentsSchema | SetTemplateInputArgumentsSchema | AddTemplateBindingArgumentsSchema | AddTemplateConditionArgumentsSchema | AddTemplateRepeatArgumentsSchema | AddDefinitionArgumentsSchema | SetInstanceInputArgumentsSchema | ReplaceDefinitionArgumentsSchema | SetCustomHtmlArgumentsSchema | SetClipSpeedArgumentsSchema | SetClipReverseArgumentsSchema | SetNodeFlipArgumentsSchema | SetNodeCornersArgumentsSchema;
 
 ---- CommandBus (type only)
 export interface CommandBus {
@@ -2136,6 +2136,45 @@ export interface SetTextFontSizeCommand extends SetTextFontSizeArguments {
     readonly type: 'SetTextFontSize';
 }
 
+---- SetTextNumberArguments (type only)
+export interface SetTextNumberArguments {
+    readonly nodeId: string;
+    readonly number: TextNumberArgument | null;
+    readonly text?: string;
+}
+
+---- SetTextNumberArgumentsSchema (type only)
+export interface SetTextNumberArgumentsSchema {
+    readonly type: 'object';
+    readonly description: string;
+    readonly properties: {
+        readonly nodeId: ArgumentSchema;
+        readonly number: {
+            readonly type: readonly [
+                'object',
+                'null'
+            ];
+            readonly description: string;
+            readonly properties: {
+                readonly [K in keyof TextNumberArgument]: ArgumentSchema;
+            };
+            readonly required: readonly (keyof TextNumberArgument)[];
+            readonly additionalProperties: false;
+        };
+        readonly text: ArgumentSchema;
+    };
+    readonly required: readonly ('nodeId' | 'number')[];
+    readonly additionalProperties: false;
+}
+
+---- SetTextNumberCommand (type only)
+export interface SetTextNumberCommand {
+    readonly type: 'SetTextNumber';
+    readonly nodeId: string;
+    readonly number: TextNumberArgument | null;
+    readonly text: string;
+}
+
 ---- SetTextStyleArguments (type only)
 export interface SetTextStyleArguments {
     readonly nodeId: string;
@@ -2327,6 +2366,9 @@ export interface SvgToShapesOptions {
     readonly startUs: number;
     readonly durationUs: number;
 }
+
+---- TextNumberArgument (type only)
+export type TextNumberArgument = Omit<TextNumberFormat, 'kind'>;
 
 ---- TransactionResult (type only)
 export interface TransactionResult {
@@ -2670,6 +2712,9 @@ export declare const setTextFontArgumentsSchema: SetTextFontArgumentsSchema;
 
 ---- setTextFontSizeArgumentsSchema
 export declare const setTextFontSizeArgumentsSchema: SetTextFontSizeArgumentsSchema;
+
+---- setTextNumberArgumentsSchema
+export declare const setTextNumberArgumentsSchema: SetTextNumberArgumentsSchema;
 
 ---- setTextStyleArgumentsSchema
 export declare const setTextStyleArgumentsSchema: SetTextStyleArgumentsSchema;

@@ -36,6 +36,7 @@ const GOLDEN_MANIFESTS = [
   'framed-text',
   'clear',
   'corners',
+  'number',
 ].map((name) => `${GOLDEN_DIRECTORY}${name}.golden-frames.json`);
 
 interface ReferenceComposition {

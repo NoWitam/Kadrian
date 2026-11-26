@@ -392,6 +392,49 @@ export interface MeasuredLine {
 ---- NodeState (type only)
 export type NodeState = InstanceNodeState | BackgroundNodeState | GroupNodeState | ImageNodeState | TextNodeState | LeafNodeState<'custom-html'> | VideoNodeState | CaptionsNodeState | ShapeNodeState;
 
+---- NumberFormat (type only)
+export interface NumberFormat {
+    readonly decimals: number;
+    readonly decimalSeparator: string;
+    readonly groupSeparator: string;
+}
+
+---- NumberLineState (type only)
+export interface NumberLineState {
+    readonly text: string;
+    readonly x: number;
+    readonly y: number;
+}
+
+---- NumberTextLayout (type only)
+export interface NumberTextLayout {
+    readonly text: string;
+    readonly lines: readonly NumberTextLine[];
+    readonly width: number;
+    readonly height: number;
+    readonly cell: number;
+    readonly block: {
+        readonly x: number;
+        readonly y: number;
+        readonly width: number;
+        readonly height: number;
+    };
+}
+
+---- NumberTextLine (type only)
+export interface NumberTextLine {
+    readonly text: string;
+    readonly units: number;
+    readonly width: number;
+    readonly x: number;
+    readonly y: number;
+}
+
+---- NumberTextNode (type only)
+export type NumberTextNode = TextNode & {
+    readonly number: TextNumberFormat;
+};
+
 ---- PathCommandState (type only)
 export type PathCommandState = {
     readonly kind: 'move' | 'line';
@@ -547,6 +590,15 @@ export interface TextLine {
 export interface TextNodeState extends LeafNodeState<'text'>, EffectsState, CompositingState {
     readonly color: string;
     readonly fragments: TextFragmentsState | null;
+    readonly number?: TextNumberState;
+}
+
+---- TextNumberState (type only)
+export interface TextNumberState {
+    readonly value: number;
+    readonly text: string;
+    readonly lines: readonly NumberLineState[];
+    readonly cell: number;
 }
 
 ---- TextRun (type only)
@@ -641,6 +693,9 @@ export declare function compositingAt(node: {
 ---- cornersWarnings
 export declare function cornersWarnings(composition: ValidatedComposition): CornersWarning[];
 
+---- digitCellUnits
+export declare function digitCellUnits(metrics: FontMetrics): number;
+
 ---- effectsAt
 export declare function effectsAt(effects: readonly Effect[], timeUs: number): EffectState[];
 
@@ -653,6 +708,9 @@ export declare function fitsWidth(units: number, fontSize: number, width: number
 ---- fontMetrics
 export declare function fontMetrics(bytes: Uint8Array): FontMetrics;
 
+---- formatNumber
+export declare function formatNumber(value: number, format: NumberFormat): string;
+
 ---- fragmentSteps
 export declare function fragmentSteps(order: TextAnimation['order'], count: number): number[];
 
@@ -663,11 +721,17 @@ export declare function frameLayout(node: TextFrameInput, metrics: FontMetrics):
 ---- graphemes
 export declare function graphemes(text: string): string[];
 
+---- isDigit
+export declare function isDigit(codePoint: number): boolean;
+
 ---- isWhiteSpace
 export declare function isWhiteSpace(codePoint: number): boolean;
 
 ---- maskAt
 export declare function maskAt(mask: Mask, timeUs: number): MaskState;
+
+---- measureInCells
+export declare function measureInCells(text: string, metrics: FontMetrics, cell: number): number;
 
 ---- measureText
 export declare function measureText(text: string, metrics: FontMetrics): number;
@@ -675,11 +739,23 @@ export declare function measureText(text: string, metrics: FontMetrics): number;
 ---- measuredFontIds
 export declare function measuredFontIds(composition: Pick<Composition, 'scenes' | 'definitions'>): string[];
 
+---- numberExtremes
+export declare function numberExtremes(node: NumberTextNode): number[];
+
+---- numberText
+export declare function numberText(number: TextNumberFormat, value: number): string;
+
+---- numberTextLayout
+export declare function numberTextLayout(node: NumberTextNode, value: number, metrics: FontMetrics): NumberTextLayout;
+
+---- numberValueAt
+export declare function numberValueAt(node: NumberTextNode, timeUs: number): number;
+
 ---- sampleAt
 export declare function sampleAt(timeUs: bigint): bigint;
 
 ---- textFragments
-export declare function textFragments(node: TextNode, color: string, timeUs: number, metrics?: FontMetrics): TextFragmentsState | null;
+export declare function textFragments(node: TextNode, color: string, timeUs: number, metrics?: FontMetrics, shown?: ShownText): TextFragmentsState | null;
 
 ---- textLayout
 export declare function textLayout(text: string): TextLayout;
@@ -695,6 +771,9 @@ export declare function textLinesHeight(lineCount: number, fontSize: number): nu
 
 ---- unitsToPixels
 export declare function unitsToPixels(units: number, fontSize: number, metrics: FontMetrics): number;
+
+---- widestNumberText
+export declare function widestNumberText(node: NumberTextNode, metrics: FontMetrics): string;
 
 ==== Entry "./stretch"
 

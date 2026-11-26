@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 1920,
   "height": 1080,
   "safeArea": {
@@ -170,6 +170,7 @@
             }
           ],
           "text": "Kadrion",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 200,
           "frame": { "kind": "none" },
@@ -251,6 +252,7 @@
             }
           ],
           "text": "a stage",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 72,
           "frame": { "kind": "none" },

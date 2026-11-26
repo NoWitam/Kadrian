@@ -97,6 +97,7 @@ function start(): ValidatedComposition {
           },
         ],
         text: 'Caption',
+        number: { kind: 'none' },
         fontAssetId: 'asset-font',
         fontSize: 64,
         frame: { kind: 'none' },

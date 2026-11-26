@@ -821,6 +821,23 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   of the format; the cells in the text of `packages/renderer-dom/src`;
   `SetTextNumber` and `set_text_number`; `tests/pinned/number.pinned.test.ts`
   with golden frames.
+  Status: in review. As decided for PR-95, `number` is required on every
+  text node, `{ "kind": "none" }` for none, as D16.1 asks; the step
+  0.30 → 0.31 writes it after `text`, and D91 says so in its header.
+  `SetTextNumber` states the text the node keeps, so its inverse restores
+  the old text. One error code, `invalid-number`. The format rounds half away
+  from zero on the digits of `Number::toString`; a cubic Bézier that
+  overshoots widens the box by its control values. The numbers use a fixture
+  font of their own (`Kadrion Fixture Numerals`), so no earlier font or
+  golden PNG file changes; the golden manifests change in the three fields
+  of D42 alone. The gate, `tests/pinned/number.pinned.test.ts`, enters, so
+  `REQUIRED_PINNED_FILES` and the Q14 artifact list grow by it. The runtime
+  build is
+  `sha256:22b773177561b753b4f2924e6d7edb2b1410420c82d2b9234b683c957bb5d09d`
+  (536 253 bytes) and the Player's dist tree
+  `sha256:50c7eb3436470071bfca0783930a12124c2ff0a4594a49d3c4bb46fa112de7f4`
+  (86 files); the parity records (every row 0/0) and the evidence
+  of Q14 are the pinned run's.
 - **PR-97** (D91, the host guide and the release): a frame before corners,
   a quadrilateral that turns concave, corners from a host's tracking frame by
   frame, the font of a number, and its separators; a showcase of both; every

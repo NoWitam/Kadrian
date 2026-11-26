@@ -155,6 +155,10 @@ export type AnimatedProperty = NodeAnimation['property'];
 export type TextStyle = Infer<typeof textStyleSchema>;
 /** The frame of a text node: none, or the box its lines wrap to (D83.3). */
 export type TextFrame = TextNode['frame'];
+/** The number of a text: none, or a value written in place of its text (D91.2). */
+export type TextNumber = TextNode['number'];
+/** A number of a text that shows one: its value and how it is written (D91.2). */
+export type TextNumberFormat = Extract<TextNumber, { kind: 'number' }>;
 /** An animation of the letters, words, or lines of a text node, one after another (D69). */
 export type TextAnimation = Infer<typeof textAnimationSchema>;
 /** One track of a text animation: one property of every fragment, in its own time (D69). */

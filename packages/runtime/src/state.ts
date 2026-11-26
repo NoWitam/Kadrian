@@ -299,12 +299,38 @@ export interface TextFragmentsState {
   readonly letters: readonly FragmentState[];
 }
 
+/** One line of a text with a number, placed in its box (D91.2). */
+export interface NumberLineState {
+  /** What the line draws. */
+  readonly text: string;
+  /** Its left edge and its top edge, in composition pixels from the top-left corner of the box. */
+  readonly x: number;
+  readonly y: number;
+}
+
+/** What a text with a number shows at an instant (D91.2). */
+export interface TextNumberState {
+  /** The value at this instant, before it is rounded to the decimals. */
+  readonly value: number;
+  /** `prefix + format(value) + suffix`. */
+  readonly text: string;
+  /** Its lines, those of its widest text, each placed as the style says. */
+  readonly lines: readonly NumberLineState[];
+  /** The width of the cell of every digit, in composition pixels: the widest digit of the font. */
+  readonly cell: number;
+}
+
 /** A text node with its colour, animated or not (D68), and its fragments (D69). */
 export interface TextNodeState extends LeafNodeState<'text'>, EffectsState, CompositingState {
   /** `#rrggbb`. */
   readonly color: string;
   /** `null` for a text without text animations, which is drawn in one piece. */
   readonly fragments: TextFragmentsState | null;
+  /**
+   * What a text with a number shows at this instant (D91.2), whose fragments
+   * are those of its text; a text without a number has no such field.
+   */
+  readonly number?: TextNumberState;
 }
 
 /** The box and the picture of an image or a video, animated or not (D68). */

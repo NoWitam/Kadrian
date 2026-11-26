@@ -49,8 +49,10 @@ import {
   HIGHLIGHT_STROKE_WIDTH_PROPERTY,
   INSTANCE_CONTENT_ATTRIBUTE,
   NODE_ATTRIBUTE,
+  NUMBER_ATTRIBUTE,
   SCENE_ATTRIBUTE,
   STAGE_ATTRIBUTE,
+  writeNumberLines,
 } from './mount.js';
 import {
   maskId,
@@ -218,6 +220,16 @@ function plan(
       return;
     }
     case 'text':
+      // A text with a number is mounted as one, and its lines are written from the state (D91.2).
+      if ((state.number !== undefined) !== element.hasAttribute(NUMBER_ATTRIBUTE)) {
+        mismatch(
+          `The text \`${state.id}\` ${state.number === undefined ? 'has no number in the state and was mounted with one' : 'has a number in the state and was mounted without one'}.`,
+        );
+      }
+      if (state.number !== undefined) {
+        writes.push({ element, state, sceneTimeUs });
+        return;
+      }
       // The fragments of every unit must be those the mount built (D69).
       for (const [unit, list] of FRAGMENT_UNITS) {
         const mounted = fragmentsOf(element, unit).length;
@@ -399,7 +411,10 @@ export function renderState(root: Element, state: CompositionState): void {
   }
   for (const { element, state: node } of tree.nodes) {
     if (node.type === 'captions') writeCaptions(element, node);
-    if (node.type === 'text') writeFragments(element, node);
+    if (node.type === 'text') {
+      if (node.number !== undefined) writeNumberLines(element, { ...node, number: node.number });
+      writeFragments(element, node);
+    }
     if (node.type === 'shape') writeShape(element, node);
     writeProperties(element, node);
     if (node.type !== 'background') {

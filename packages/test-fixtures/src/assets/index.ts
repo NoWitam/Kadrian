@@ -6,7 +6,7 @@
  * fails when a generator and a hash drift apart.
  */
 import { generateAudio } from './audio.js';
-import { generateFont, generateProportionalFont } from './font.js';
+import { generateFont, generateNumeralFont, generateProportionalFont } from './font.js';
 import { generateImage } from './image.js';
 import { generateSvg } from './svg.js';
 
@@ -16,7 +16,11 @@ export {
   FONT_GLYPHS,
   FONT_NOTDEF_ADVANCE,
   FONT_UNITS_PER_EM,
+  generateNumeralFont,
   generateProportionalFont,
+  NUMERAL_FONT_ADVANCES,
+  NUMERAL_FONT_FAMILY_NAME,
+  NUMERAL_FONT_GLYPHS,
   PROPORTIONAL_FONT_ADVANCES,
   PROPORTIONAL_FONT_FAMILY_NAME,
   PROPORTIONAL_FONT_GLYPHS,
@@ -74,4 +78,12 @@ export function generateProportionalFontAsset(): FixtureAsset {
     mediaType: 'font/ttf',
     bytes: generateProportionalFont(),
   };
+}
+
+/**
+ * The numeral font of the number composition (D91.2), apart from the
+ * reference assets: the bytes of `generateNumeralFont`, fresh on every call.
+ */
+export function generateNumeralFontAsset(): FixtureAsset {
+  return { id: 'asset-font-numerals', mediaType: 'font/ttf', bytes: generateNumeralFont() };
 }

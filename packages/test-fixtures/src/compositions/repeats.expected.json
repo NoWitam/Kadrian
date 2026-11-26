@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.30",
+  "schemaVersion": "0.31",
   "width": 640,
   "height": 360,
   "safeArea": {
@@ -72,6 +72,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kadrion",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 48,
           "frame": { "kind": "none" },
@@ -214,6 +215,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Dina Kadrion",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },
@@ -356,6 +358,7 @@
           "opacity": 1,
           "animations": [],
           "text": "Kim Kadrion",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },
@@ -454,6 +457,7 @@
             }
           ],
           "text": "Dina",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },
@@ -535,6 +539,7 @@
             }
           ],
           "text": "Kim",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 40,
           "frame": { "kind": "none" },
@@ -589,6 +594,7 @@
           "opacity": 1,
           "animations": [],
           "text": "stars",
+          "number": { "kind": "none" },
           "fontAssetId": "asset-font",
           "fontSize": 32,
           "frame": { "kind": "none" },

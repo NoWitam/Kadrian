@@ -268,17 +268,80 @@ export function generateFont(): Uint8Array {
  * variant; a variant without format 12 does not map U+1F642.
  */
 export function generateProportionalFont(cmap: FixtureFontCmap = 'both'): Uint8Array {
-  const characters = Object.keys(PROPORTIONAL_FONT_GLYPHS).sort(
+  return proportionalFont(
+    PROPORTIONAL_FONT_FAMILY_NAME,
+    'KadrionFixtureProportional-Regular',
+    PROPORTIONAL_FONT_GLYPHS,
+    PROPORTIONAL_FONT_ADVANCES,
+    cmap,
+  );
+}
+
+/**
+ * The numeral font of D91.2 (PR-96): the proportional font, whose digits 1
+ * and 7 are narrower than the others, with the characters a number writes —
+ * the separators `.`, `,`, and `'`, the no-break spaces U+00A0 and U+202F,
+ * `-`, and the signs `$` and `%` — so that a text with a number never falls
+ * back to another font. A font of its own, so that the bytes of the
+ * proportional font, which older fixtures pin, stay as they are.
+ */
+export const NUMERAL_FONT_FAMILY_NAME = 'Kadrion Fixture Numerals';
+
+export const NUMERAL_FONT_GLYPHS: Readonly<Record<string, readonly string[]>> = {
+  ...PROPORTIONAL_FONT_GLYPHS,
+  '\u00a0': [],
+  '\u202f': [],
+  $: ['.####', '#.#..', '#.#..', '.###.', '..#.#', '..#.#', '####.'],
+  '%': ['##..#', '##.#.', '...#.', '..#..', '.#...', '.#.##', '#..##'],
+  "'": ['#', '#', '.', '.', '.', '.', '.'],
+  ',': ['.', '.', '.', '.', '.', '#', '#'],
+  '-': ['...', '...', '...', '###', '...', '...', '...'],
+  '.': ['.', '.', '.', '.', '.', '.', '#'],
+};
+
+/** The advance of every glyph of the numeral font, in font units, as for the proportional font. */
+export const NUMERAL_FONT_ADVANCES: Readonly<Record<string, number>> = {
+  ...PROPORTIONAL_FONT_ADVANCES,
+  '\u00a0': 300,
+  '\u202f': 200,
+  $: 600,
+  '%': 600,
+  "'": 200,
+  ',': 200,
+  '-': 400,
+  '.': 200,
+};
+
+/** The numeral font of D91.2 (PR-96), with both subtables. */
+export function generateNumeralFont(): Uint8Array {
+  return proportionalFont(
+    NUMERAL_FONT_FAMILY_NAME,
+    'KadrionFixtureNumerals-Regular',
+    NUMERAL_FONT_GLYPHS,
+    NUMERAL_FONT_ADVANCES,
+    'both',
+  );
+}
+
+/** A font of glyphs of their own advances, built as the proportional font is. */
+function proportionalFont(
+  familyName: string,
+  postScriptName: string,
+  glyphSet: Readonly<Record<string, readonly string[]>>,
+  advances: Readonly<Record<string, number>>,
+  cmap: FixtureFontCmap,
+): Uint8Array {
+  const characters = Object.keys(glyphSet).sort(
     (a, b) => (a.codePointAt(0) ?? 0) - (b.codePointAt(0) ?? 0),
   );
   return buildFont({
-    familyName: PROPORTIONAL_FONT_FAMILY_NAME,
-    postScriptName: 'KadrionFixtureProportional-Regular',
+    familyName,
+    postScriptName,
     glyphs: [
       { ...NOTDEF, advance: ADVANCE, codePoint: null },
       ...characters.map((c) => {
-        const rows = PROPORTIONAL_FONT_GLYPHS[c] ?? [];
-        const advance = PROPORTIONAL_FONT_ADVANCES[c] ?? 0;
+        const rows = glyphSet[c] ?? [];
+        const advance = advances[c] ?? 0;
         const columns = rows.flatMap((row) =>
           Array.from(row).flatMap((cell, column) => (cell === '#' ? [column] : [])),
         );
