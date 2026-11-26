@@ -1,0 +1,760 @@
+{
+  "schemaVersion": "0.31",
+  "width": 1280,
+  "height": 720,
+  "safeArea": {
+    "fromTop": 0,
+    "fromRight": 0,
+    "fromBottom": 0,
+    "fromLeft": 0
+  },
+  "clear": "white",
+  "fps": 30,
+  "durationUs": 4000000,
+  "assets": [
+    {
+      "id": "asset-image",
+      "type": "image",
+      "contentHash": "sha256:9b0906ce8964add6530e7f7ab5058cc1e7c588b1b4dd88729637b72186556da2"
+    },
+    {
+      "id": "asset-font-numerals",
+      "type": "font",
+      "contentHash": "sha256:1dbe52e7d6416e11179660a4ef324919b057324444100f78905a505219667b5d"
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene-corners-number",
+      "durationUs": 4000000,
+      "nodes": [
+        {
+          "id": "corners-number-background",
+          "type": "background",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "color": "#101828",
+          "animations": []
+        },
+        {
+          "id": "screen-bezel",
+          "type": "shape",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 100,
+            "y": 160
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
+          },
+          "corners": {
+            "topLeft": {
+              "x": 0,
+              "y": 0
+            },
+            "topRight": {
+              "x": -40,
+              "y": 30
+            },
+            "bottomRight": {
+              "x": -40,
+              "y": -30
+            },
+            "bottomLeft": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "screen-bezel-swing",
+              "property": "corners",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "topLeft": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "topRight": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "bottomRight": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "bottomLeft": {
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 1800000,
+                  "value": {
+                    "topLeft": {
+                      "x": 40,
+                      "y": 30
+                    },
+                    "topRight": {
+                      "x": 40,
+                      "y": -30
+                    },
+                    "bottomRight": {
+                      "x": 40,
+                      "y": 30
+                    },
+                    "bottomLeft": {
+                      "x": 40,
+                      "y": -30
+                    }
+                  },
+                  "easing": {
+                    "kind": "hold"
+                  }
+                },
+                {
+                  "timeUs": 2200000,
+                  "value": {
+                    "topLeft": {
+                      "x": 40,
+                      "y": 30
+                    },
+                    "topRight": {
+                      "x": 40,
+                      "y": -30
+                    },
+                    "bottomRight": {
+                      "x": 40,
+                      "y": 30
+                    },
+                    "bottomLeft": {
+                      "x": 40,
+                      "y": -30
+                    }
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 3800000,
+                  "value": {
+                    "topLeft": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "topRight": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "bottomRight": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "bottomLeft": {
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "width": 520,
+          "height": 320,
+          "geometry": {
+            "kind": "rect",
+            "cornerRadius": 0
+          },
+          "fill": {
+            "kind": "solid",
+            "color": "#344054"
+          },
+          "stroke": {
+            "color": "#ffffff",
+            "width": 0,
+            "dash": [],
+            "cap": "round",
+            "join": "round"
+          },
+          "trim": {
+            "start": 0,
+            "end": 1000
+          },
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "screen-picture",
+          "type": "image",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 120,
+            "y": 180
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
+          },
+          "corners": {
+            "topLeft": {
+              "x": 0,
+              "y": 0
+            },
+            "topRight": {
+              "x": -40,
+              "y": 30
+            },
+            "bottomRight": {
+              "x": -40,
+              "y": -30
+            },
+            "bottomLeft": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "screen-picture-swing",
+              "property": "corners",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": {
+                    "topLeft": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "topRight": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "bottomRight": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "bottomLeft": {
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 1800000,
+                  "value": {
+                    "topLeft": {
+                      "x": 40,
+                      "y": 30
+                    },
+                    "topRight": {
+                      "x": 40,
+                      "y": -30
+                    },
+                    "bottomRight": {
+                      "x": 40,
+                      "y": 30
+                    },
+                    "bottomLeft": {
+                      "x": 40,
+                      "y": -30
+                    }
+                  },
+                  "easing": {
+                    "kind": "hold"
+                  }
+                },
+                {
+                  "timeUs": 2200000,
+                  "value": {
+                    "topLeft": {
+                      "x": 40,
+                      "y": 30
+                    },
+                    "topRight": {
+                      "x": 40,
+                      "y": -30
+                    },
+                    "bottomRight": {
+                      "x": 40,
+                      "y": 30
+                    },
+                    "bottomLeft": {
+                      "x": 40,
+                      "y": -30
+                    }
+                  },
+                  "easing": {
+                    "kind": "ease-in-out"
+                  }
+                },
+                {
+                  "timeUs": 3800000,
+                  "value": {
+                    "topLeft": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "topRight": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "bottomRight": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "bottomLeft": {
+                      "x": 0,
+                      "y": 0
+                    }
+                  },
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "assetId": "asset-image",
+          "width": 480,
+          "height": 280,
+          "fit": "cover",
+          "focus": {
+            "x": 500,
+            "y": 500
+          },
+          "crop": {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+          },
+          "cornerRadius": 0,
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "label-corners",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 100,
+            "y": 80
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
+          },
+          "corners": {
+            "topLeft": {
+              "x": 0,
+              "y": 0
+            },
+            "topRight": {
+              "x": 0,
+              "y": 0
+            },
+            "bottomRight": {
+              "x": 0,
+              "y": 0
+            },
+            "bottomLeft": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "corners",
+          "number": {
+            "kind": "none"
+          },
+          "fontAssetId": "asset-font-numerals",
+          "fontSize": 40,
+          "frame": {
+            "kind": "none"
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "align": "left",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "label-count",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 720,
+            "y": 120
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
+          },
+          "corners": {
+            "topLeft": {
+              "x": 0,
+              "y": 0
+            },
+            "topRight": {
+              "x": 0,
+              "y": 0
+            },
+            "bottomRight": {
+              "x": 0,
+              "y": 0
+            },
+            "bottomLeft": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          "opacity": 1,
+          "animations": [],
+          "text": "a number in a text",
+          "number": {
+            "kind": "none"
+          },
+          "fontAssetId": "asset-font-numerals",
+          "fontSize": 40,
+          "frame": {
+            "kind": "none"
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "none"
+            },
+            "align": "left",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "counter-main",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 720,
+            "y": 200
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
+          },
+          "corners": {
+            "topLeft": {
+              "x": 0,
+              "y": 0
+            },
+            "topRight": {
+              "x": 0,
+              "y": 0
+            },
+            "bottomRight": {
+              "x": 0,
+              "y": 0
+            },
+            "bottomLeft": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "counter-main-number",
+              "property": "number",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "ease-out"
+                  }
+                },
+                {
+                  "timeUs": 3600000,
+                  "value": 1234567.89,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "text": "",
+          "number": {
+            "kind": "number",
+            "value": 0,
+            "decimals": 2,
+            "decimalSeparator": ",",
+            "groupSeparator": " ",
+            "prefix": "",
+            "suffix": ""
+          },
+          "fontAssetId": "asset-font-numerals",
+          "fontSize": 64,
+          "frame": {
+            "kind": "none"
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 12,
+              "cornerRadius": 8
+            },
+            "align": "right",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        },
+        {
+          "id": "counter-share",
+          "type": "text",
+          "startUs": 0,
+          "durationUs": 4000000,
+          "position": {
+            "x": 720,
+            "y": 360
+          },
+          "scale": {
+            "x": 1,
+            "y": 1
+          },
+          "rotation": 0,
+          "origin": {
+            "x": 0,
+            "y": 0
+          },
+          "flip": {
+            "x": false,
+            "y": false
+          },
+          "corners": {
+            "topLeft": {
+              "x": 0,
+              "y": 0
+            },
+            "topRight": {
+              "x": 0,
+              "y": 0
+            },
+            "bottomRight": {
+              "x": 0,
+              "y": 0
+            },
+            "bottomLeft": {
+              "x": 0,
+              "y": 0
+            }
+          },
+          "opacity": 1,
+          "animations": [
+            {
+              "id": "counter-share-number",
+              "property": "number",
+              "keyframes": [
+                {
+                  "timeUs": 0,
+                  "value": 0,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                },
+                {
+                  "timeUs": 3600000,
+                  "value": 99.5,
+                  "easing": {
+                    "kind": "linear"
+                  }
+                }
+              ]
+            }
+          ],
+          "text": "",
+          "number": {
+            "kind": "number",
+            "value": 0,
+            "decimals": 1,
+            "decimalSeparator": ".",
+            "groupSeparator": ",",
+            "prefix": "",
+            "suffix": "%"
+          },
+          "fontAssetId": "asset-font-numerals",
+          "fontSize": 48,
+          "frame": {
+            "kind": "none"
+          },
+          "color": "#ffffff",
+          "style": {
+            "stroke": {
+              "kind": "none"
+            },
+            "shadow": {
+              "kind": "none"
+            },
+            "box": {
+              "kind": "solid",
+              "color": "#344054",
+              "opacity": 1,
+              "padding": 12,
+              "cornerRadius": 8
+            },
+            "align": "right",
+            "verticalAlign": "top"
+          },
+          "textAnimations": [],
+          "effects": [],
+          "mask": {
+            "kind": "none"
+          },
+          "matte": {
+            "kind": "none"
+          },
+          "blendMode": "normal"
+        }
+      ],
+      "clips": [],
+      "transitions": [],
+      "effects": []
+    }
+  ],
+  "clips": [],
+  "transitions": [],
+  "definitions": [],
+  "template": {
+    "inputs": [],
+    "bindings": [],
+    "conditions": [],
+    "repeats": []
+  }
+}

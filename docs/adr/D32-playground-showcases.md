@@ -14,6 +14,8 @@
   phase five, the SVG drawing among the page's assets)
 - Amended by: PR-63 and PR-68 on 2026-11-12, D32.8 and the new D32.12
   (showcases of phase six, the proportional font among the page's assets)
+- Amended by: PR-97 on 2026-11-26, D32.8 and the new D32.13 (the showcase of
+  D91, the numeral font among the page's assets)
 - Related: D13, D14, D23, D25, D27, D30, D31, D36,
   [specification](../spike/vertical-spike.md) §5 P1, P3, P4
 
@@ -161,6 +163,12 @@ showing a feature of phase six, D32.12, or stop calling `set_clip_speed` and
 `set_node_size` on a text; a video node or a clip is checked against its
 source through its time map, and a text against the glyphs of its own font.)
 
+(Amended by: PR-97. The test also fails when the showcases stop showing a
+picture on animated corners or a number counted with groups and decimals,
+D32.13, or stop calling `set_text_number`; a text with a number is checked
+against the glyphs of its font for every character its format may write, and
+every showcase against the warnings of `cornersWarnings`, which must be none.)
+
 ### D32.9 The page's Custom HTML policy (amendment of PR-17, implementing D36)
 
 Recorded at the project owner's request on 2026-09-28, describing what PR-16
@@ -278,6 +286,27 @@ built.
   opens, plays, and edits every entry of the manifest, so the new showcases
   need no change of a pinned file and do not reopen Q14; neither the runtime
   build nor the Player's dist tree changes.
+
+### D32.13 The showcase of D91 (amendment of PR-97)
+
+- **The showcase.** `corners-number`: an image and the shape of its bezel
+  pinned onto a screen seen in perspective by their four corners, a
+  `corners` animation swinging both to the other side and back, every frame
+  a convex quadrilateral (D91.1); and two texts with numbers, one counting
+  from 0 to 1 234 567,89 grouped by spaces with a decimal comma, eased out,
+  and one from 0.0% to 99.5%, each in a box of its widest value (D91.2). Its
+  tool call is `set_text_number` on the first counter: whole dollars grouped
+  by full stops, still counted by its animation.
+- **Its source is generated once and committed,** 1280×720 at 30 fps and 4
+  seconds long, from the image of the reference and, new among the page's
+  assets, the numeral font of the fixtures (`generateNumeralFontAsset`,
+  D91.2), which the page resolves and lists with the hash `numberComposition`
+  declares, so that its digits stand in cells of the widest digit. Its labels
+  and numbers use only the glyphs of that font.
+- **Its check** is the one of D32.10: `tests/pinned/showcases.pinned.test.ts`
+  opens, plays, and edits every entry of the manifest, so the new showcase
+  needs no change of a pinned file and does not reopen Q14; neither the
+  runtime build nor the Player's dist tree changes.
 
 ## Alternatives considered
 

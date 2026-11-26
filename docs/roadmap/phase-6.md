@@ -781,7 +781,7 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
 - **PR-94** (D91, documents only): the ADR, its row in the index of ADRs,
   and these entries. Acceptance: `node --run format:check` and
   `tests/repo/adr.test.ts` pass. No code; no impact on Q14, the runtime
-  build, parity, or golden frames.
+  build, parity, or golden frames. Status: done (#135).
 - **PR-95** (D91.1, the corners): the probe of a matte with corners first
   (question 2 of D91); schema `0.30` with `corners`, the step
   `packages/schema/src/migration/step-0-29-to-0-30.ts`, the frozen
@@ -796,7 +796,7 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   `packages/ai-sdk` reads (D46); the warning of `inspect` in `packages/cli`;
   `tests/pinned/corners.pinned.test.ts` with golden frames. Every document
   of `0.29` writes the transform it wrote before.
-  Status: in review. The probe of question 2 did not pass: Chromium draws a
+  Status: done (#136). The probe of question 2 did not pass: Chromium draws a
   perspective `matrix3d` on an SVG element inside a `<mask>` without its
   perspective (3 064 differing pixels against the same transform in HTML,
   0 against the affine part alone), so a matte refuses corners with
@@ -843,6 +843,13 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   frame, the font of a number, and its separators; a showcase of both; every
   package at `0.13.0` for the release `v0.13.0`, whose tag the owner pushes
   from `main`. No runtime build, Player dist tree, or pinned file changes.
+  Status: in review. The host guide carries each of them (sections 2, 3, 5,
+  6, and 13), the README the status and the tarballs at `0.13.0`; the
+  showcase `corners-number` (D32.13) pins a picture and its bezel onto a
+  screen by animated corners and counts two numbers, with the numeral font
+  of the fixtures among the page's assets. The runtime build and the
+  Player's dist tree keep the bytes of PR-96; no pinned file changes, and
+  the pinned showcases test opens, plays, and edits the new showcase.
 
 ## Impact on Q14, parity, and golden frames
 

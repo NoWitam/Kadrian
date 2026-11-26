@@ -74,10 +74,20 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   `invalid-document` (exit 1), or exits 6 (`not-current`) under `--check`.
 - **Limits:** only `validateComposition`'s current version is accepted by the
   Player, the Producer, the render jobs, and the bus; none of them migrates.
+- **From `v0.12`:** the current schema is `0.31` since `v0.13.0`. A document
+  of `0.29`, as `v0.12.0` and `v0.12.1` save it, migrates by two steps:
+  `0.29` → `0.30` writes four zero corners after the `flip` of every node but
+  a background, and `0.30` → `0.31` writes `number: { "kind": "none" }` after
+  the `text` of every text node, never a caption; both in scenes, groups, and
+  definitions. The migrated document renders byte for byte as before. Run
+  `kadrion migrate --check` over the stored documents to find them, and store
+  each migrated one as a new version.
 - **Authority:** [D43](../adr/D43-saved-compositions-and-compatibility.md)
   (saved form, migration, `kadrion migrate` by amendment), [D35](../adr/D35-schema-migration-policy.md)
   (forward migrations), [D48](../adr/D48-render-job-contract.md) (the job's
-  lines and exit codes, by amendment).
+  lines and exit codes, by amendment),
+  [D91](../adr/D91-four-corners-and-a-number-in-text.md) (the steps to
+  `0.30` and `0.31`, D91.3).
 
 ## 3. Open the editor: Player and session
 
@@ -96,8 +106,8 @@ the command bus ([D30](../adr/D30-command-bus-and-undo.md)).
   newer load replaced this one; expected after quick edits). An error about an
   asset names it in `asset: { id, contentHash }`. A template is shown as its
   instantiation with the defaults; the Player itself refuses a template. A
-  font that a framed text or captions broken by width use and that cannot be
-  measured (section 5) fails the load as `page-error`, whose message names the
+  font that a framed text, captions broken by width, or a text with a number
+  use and that cannot be measured (section 5) fails the load as `page-error`, whose message names the
   font, says it cannot be measured, and gives why: the render page raises
   `font-unmeasurable` or `font-invalid` (a `RenderErrorCode`, D84.6), and the
   Player and the Producer do not have these codes yet, so both report them as
@@ -420,6 +430,108 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   edit. `SetCompositionClear { clear }` (tool `set_composition_clear`) sets
   `'white'` or `'transparent'`, what the page shows where no node covers the
   canvas (section 15). The same value is no edit for either command.
+- **Four corners (D91.1):** `SetNodeCorners { nodeId, corners }` (tool
+  `set_node_corners`) pins the box of a node onto a quadrilateral, as for a
+  picture placed on a screen in a film or a card tilted in perspective.
+  `corners` is `{ topLeft, topRight, bottomRight, bottomLeft }`, each an
+  offset `{ x, y }` in composition pixels, fractions allowed and never
+  rounded; each corner of the box is first moved by the node's own transform
+  (position, scale, rotation about the origin, flip) into its parent's space,
+  and then by its offset. Four zero offsets, or `null`, are no quadrilateral,
+  and such a node writes the transform it wrote before. The box is an image's,
+  a video's, or a shape's size at the instant, the `width` and `height` of
+  captions, an instance, and Custom HTML, the canvas of its composition or
+  definition for a group, and for a text its fixed frame or, with a number,
+  the box of its widest value: give a text without either a frame first
+  (`SetNodeSize`, above). Everything the node draws follows: its content,
+  crop, corner radius, effects, and mask; the offset or zoom of a clip
+  transition still applies in the parent's space. The moved corners must form
+  a convex quadrilateral with a non-zero area in the order top-left,
+  top-right, bottom-right, bottom-left. Refusals: `unsupported-node` for a
+  background; `invalid-result` with `invalid-corners` for a quadrilateral
+  that is concave, crossed, or degenerate (three corners on one line, two at
+  one point), for a text with neither a frame nor a number, and for a node
+  that is the matte of a sibling, since the pinned Chromium draws a matte
+  without its perspective. The same corners are no edit; the inverse sets the
+  old ones. To draw handles at the corners, or to check a drag before it is
+  dispatched, `movedCorners(box, transform, corners)` and
+  `isConvexQuadrilateral(points)` of `@kadrion/schema` are the ones the
+  validation uses.
+- **Animated corners:** `corners` is an animated property of every node that
+  has corners. A keyframe's value is four offsets, added corner by corner to
+  the stored ones (mode `offset`; four zero offsets are neutral), with the
+  curves of D67, written by `AddAnimation`, `AddKeyframe`, and
+  `SetKeyframeValue`. The validation checks the stored corners only. An
+  instant whose quadrilateral is not convex or has no area draws nothing of
+  the node in that frame, in both hosts. `kadrion inspect <file>` of a
+  composition lists one `corners-not-convex` warning per such node with the
+  first instant on the frame grid (composition time; definition time for a
+  node of a definition), and `--json` prints `{ kind: 'composition', warnings }`;
+  in the library `cornersWarnings(composition)` of `@kadrion/runtime` (or
+  `@kadrion/producer`) gives the same list. Show it before a render: a node
+  that disappears for some frames is rarely meant. The corners of a text with
+  a number and without a frame are not checked in the document, nor listed
+  by `inspect`, since its box needs the font's metrics.
+- **Corners from tracking:** Kadrion tracks nothing. A host that tracks a
+  surface in a film writes what it found as a `corners` animation, one
+  keyframe per frame at that frame's time in the holder's time (scene time
+  for a node of a scene). Each value is the tracked point minus the corner
+  moved by the node's transform at that instant and minus the stored offset:
+  `offset(t) = p(t) − movedCorners(box, transform(t), zero) − stored`, where
+  `zero` is four zero offsets. A node without its own animated transform
+  needs `movedCorners` once. Ease the keyframes `linear` to move between the
+  tracked points, or `hold` to keep each frame's quadrilateral until the
+  next. Dispatch the whole animation with `AddAnimation`, one undo step, and
+  check it with `cornersWarnings`, since a tracked surface seen edge on turns
+  concave.
+- **A number in a text (D91.2):** `SetTextNumber { nodeId, number, text }`
+  (tool `set_text_number`) makes a text show
+  `prefix + format(value) + suffix` in place of its text, as for a counter, a
+  price, or a statistic. `number` is `{ value, decimals, decimalSeparator,
+groupSeparator, prefix, suffix }`: `value` a finite number from
+  −(2⁵³ − 1) to 2⁵³ − 1; `decimals` an integer from 0 to 6;
+  `decimalSeparator` `.` or `,`; `groupSeparator` `''` for none, a space,
+  U+00A0, U+202F, `.`, `,`, or `'`, never the decimal separator. The format
+  rounds the value half away from zero to `decimals` on the digits of its
+  shortest decimal form (so `1.005` with two decimals is `1.01`), writes the
+  integer part in groups of three joined by the group separator and exactly
+  `decimals` digits after the decimal separator, and starts a negative value
+  with `-` (U+002D) unless it rounds to zero. It reads no locale (`Intl`,
+  `toLocaleString`): a host that follows a user's locale chooses the
+  separators itself, for example `,` and a space or U+00A0 for Polish, `.`
+  and `,` for English. With a number the node's `text` is `''`; `null`
+  removes the number, and `text`, `''` when the call omits it, is the text the
+  node keeps then. Refusals: `unsupported-node` for any node but a text;
+  `invalid-argument` for a `decimals` or a separator out of its list; and
+  `invalid-result` with `invalid-number` for equal separators, a `text` that
+  is not `''` beside a number, a `number` animation on a text without one, or
+  a template binding that would write the text of a text with a number. The
+  same number and text are no edit; the inverse restores the old number and
+  the old text.
+- **A counting number:** `number` is an animated property of a text with a
+  number (mode `replace`): each keyframe's value is a value, interpolated by
+  the curves of D67 and then rounded to `decimals`, written by `AddAnimation`,
+  `AddKeyframe`, and `SetKeyframeValue`. The text is laid out once for the
+  widest value it takes over its lifetime (the stored value, every keyframe
+  value, and the control values of a cubic Bézier that overshoots), and every
+  digit 0–9 stands in a cell as wide as the widest digit of its font, so the
+  text does not jump as it counts; the other characters keep their advance.
+  Without a frame, the box is that of the widest text; with one, the widest
+  text wraps to its width and every value takes the same breaks, the number
+  never broken. `align` and `verticalAlign` place the lines in that box. The
+  animations of letters, words, and lines apply to the formatted text: a
+  digit is a letter, and a run without white space a word.
+- **The font of a number:** a text with a number is a measured node, so its
+  font is read from its bytes as for a framed text (above):
+  `measuredFontIds(composition)` lists it, and a host that evaluates the
+  document itself passes its `fontMetrics`. Choose a font that has every
+  character the format can write: the digits, `-`, the separators, the
+  prefix, and the suffix. A character the font lacks is measured as its
+  `.notdef` and drawn by the browser in another font, which no longer fits
+  its cell. A number counts in a text only, never in captions.
+- **The costs of corners and numbers:** a node without corners and a text
+  without a number cost nothing new. The runtime build is 536 253 bytes,
+  29 243 more than in `v0.12.1`, and the Player's dist tree has 86 files.
 - **Limits:** IDs are chosen by the host and never reused across the history;
   times are never rounded; positions and sizes are.
 - **Authority:** [D30](../adr/D30-command-bus-and-undo.md),
@@ -448,9 +560,11 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   [D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md) (a video's fades,
   volume curves, and ducking as keyframes, D85.9), and
   [D89](../adr/D89-stills-a-larger-canvas-transparency-and-flip.md) (the
-  flip of a node and the clear of a composition). The playground
-  shows each of them up to D83 in a showcase of its own
-  ([D32](../adr/D32-playground-showcases.md)); D84 and D85 have none.
+  flip of a node and the clear of a composition), and
+  [D91](../adr/D91-four-corners-and-a-number-in-text.md) (four corners of a
+  node and a number in a text). The playground shows each of them up to D83,
+  and D91, in a showcase of its own ([D32](../adr/D32-playground-showcases.md));
+  D84, D85, and D89 have none.
 
 ## 6. Edit from a model
 
@@ -474,6 +588,12 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   "break the captions by width": `set_node_size`, `set_text_style`,
   `set_caption_style`). A model writes a speed as a multiplier and reads it so
   in `describe_document`; it sees no lines, because the bus does not measure.
+  For "put this picture on the screen" a model calls `set_node_corners` with
+  the offsets, and for "count up to 1 234 567,89" `set_text_number` and
+  `add_animation` with a `number` row; `describe_document` states a node's
+  corners and a text's number. A model does not see the box of the widest
+  value, which the font gives, nor whether an animated quadrilateral turns
+  concave: the host runs `cornersWarnings` after its calls.
 - **Errors:** the bus's `EditorError` codes; a refused call changes nothing.
 - **Limits:** a tool never undoes or redoes; that stays with the host. Kadrion
   does not choose, prompt, or evaluate a model.
@@ -483,7 +603,8 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   [D68](../adr/D68-rotation-origin-and-more-animated-properties.md),
   [D78](../adr/D78-custom-html-for-ai-authors.md),
   [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md),
-  [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md).
+  [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md),
+  [D91](../adr/D91-four-corners-and-a-number-in-text.md).
 
 ## 7. Undo, redo, and the history
 
@@ -598,7 +719,9 @@ fonts)` with the metrics of `measuredFontIds(composition)` when it evaluates
   `"white"` for video, which renders a copy of the document with a white
   clear (D89.2). A join refuses parts of another version, another capture,
   or another clear with `join-invalid`: render parts stored by an earlier
-  release again rather than joining them with new ones. The `frames` hashes of an export are those of its own capture: they
+  release again rather than joining them with new ones. The version stays 7
+  in `v0.13.0`, but its runtime build is a new one, which the join compares
+  too: parts of `v0.12.1` and `v0.13.0` are `join-invalid`. The `frames` hashes of an export are those of its own capture: they
   hold the pixels of `render-frames`, not its bytes.
 - **A fragment:** for a range whose ends are not boundaries of the
   composition's grid, give `render-range` the fragment's own grid:

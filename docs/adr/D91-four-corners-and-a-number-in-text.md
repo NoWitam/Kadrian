@@ -345,3 +345,34 @@ value, text, lines, cell }` in its state; its element is mounted as large
   frame where the quadrilateral is not convex draws nothing of the node, as
   every animated quadrilateral does. A number counts only in a text, never in
   captions (D91.4).
+
+## Implementation notes (PR-97)
+
+- **The host guide** carries what D91 leaves to it: the steps from `0.29`
+  and `kadrion migrate --check` (section 2); the font of a text with a
+  number among the measured fonts of a load (section 3); `SetNodeCorners`,
+  the box of each node, `invalid-corners`, `movedCorners` and
+  `isConvexQuadrilateral` for a host's handles, the row `corners` in mode
+  `offset`, an instant that is not convex drawing nothing and its warning in
+  `kadrion inspect` and `cornersWarnings`, corners from a host's tracking as
+  one keyframe per frame, `SetTextNumber`, the rules of the format and its
+  separators chosen by the host for a locale, `invalid-number`, the row
+  `number` in mode `replace`, the box of the widest value, digits in cells,
+  and the font of a number (section 5); the two tools (section 6); and the
+  join refusing parts of another runtime build at manifest version 7
+  (section 13). The README states the release and that a text with a number
+  is a measured node.
+- **The showcase** `corners-number` of the playground (D32.13): an image and
+  its bezel pinned onto a screen by their corners and swung by a `corners`
+  animation, convex at every frame, and two counters, one from 0 to
+  1 234 567,89 grouped by spaces with a decimal comma and one from 0.0% to
+  99.5%. The page generates the numeral font of the fixtures; the test of the
+  showcases checks every character a number may write against its font, and
+  that no showcase has a corners warning.
+- **The release.** Every package is `0.13.0` for `v0.13.0`, after `v0.12.1`
+  of D90. The runtime build
+  (`sha256:22b773177561b753b4f2924e6d7edb2b1410420c82d2b9234b683c957bb5d09d`,
+  536 253 bytes) and the Player's dist tree
+  (`sha256:50c7eb3436470071bfca0783930a12124c2ff0a4594a49d3c4bb46fa112de7f4`,
+  86 files) are those of PR-96; no golden file, parity record, or pinned
+  file changes.

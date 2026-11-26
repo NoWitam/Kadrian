@@ -11,6 +11,7 @@
  */
 import { executeTool, TOOL_CATALOGUE } from '@kadrion/ai-sdk';
 import { createCommandBus, type MediaFacts } from '@kadrion/editor-sdk';
+import { cornersWarnings } from '@kadrion/runtime';
 import {
   sampledSourceRange,
   validateComposition,
@@ -21,6 +22,8 @@ import {
   AUDIO_SECONDS,
   FONT_GLYPHS,
   framedTextComposition,
+  NUMERAL_FONT_GLYPHS,
+  numberComposition,
   PROPORTIONAL_FONT_GLYPHS,
   referenceComposition,
   svgComposition,
@@ -37,6 +40,14 @@ interface Node {
   readonly id: string;
   readonly type: string;
   readonly text?: string;
+  readonly number?: {
+    readonly kind: string;
+    readonly decimals?: number;
+    readonly decimalSeparator?: string;
+    readonly groupSeparator?: string;
+    readonly prefix?: string;
+    readonly suffix?: string;
+  };
   readonly words?: readonly { text: string }[];
   readonly fontAssetId?: string;
   readonly assetId?: string;
@@ -75,15 +86,16 @@ const sourceOf = (file: string): unknown => JSON.parse(readText(...file.split('/
 
 /**
  * The assets the page generates, as the reference composition, since PR-57 the
- * SVG composition, and since PR-68 the framed-text composition declare them
- * (D32.2, D74, D83), and the video it serves from the recipe of the fixtures
- * (D32.10).
+ * SVG composition, since PR-68 the framed-text composition, and since PR-97 the
+ * number composition declare them (D32.2, D74, D83, D91.2), and the video it
+ * serves from the recipe of the fixtures (D32.10).
  */
 const PROVIDED = new Map([
   ...[
     ...(referenceComposition as Document).assets,
     ...(svgComposition as Document).assets,
     ...(framedTextComposition as Document).assets,
+    ...(numberComposition as Document).assets,
   ].map((asset) => [asset.id, asset] as const),
   [
     VIDEO_FIXTURE.id,
@@ -107,16 +119,29 @@ const nodesOf = (document: Document): Node[] =>
     scene.nodes.flatMap((node) => [node, ...(node.children ?? [])]),
   );
 
-/** The glyphs of each font the page generates, by asset ID (D27.5, D83). */
+/** The glyphs of each font the page generates, by asset ID (D27.5, D83, D91.2). */
 const GLYPHS: Readonly<Record<string, Readonly<Record<string, unknown>>>> = {
   'asset-font': FONT_GLYPHS,
   'asset-font-proportional': PROPORTIONAL_FONT_GLYPHS,
+  'asset-font-numerals': NUMERAL_FONT_GLYPHS,
 };
 
-/** What a generated font must draw: the texts and the words of captions, with their font. */
+/**
+ * Every character the format of a number may write (D91.2): its prefix and
+ * suffix, a sign, the digits, and its separators, whatever value it counts to.
+ */
+function numberCharacters(number: NonNullable<Node['number']>): string {
+  const decimal = (number.decimals ?? 0) > 0 ? (number.decimalSeparator ?? '') : '';
+  return `${number.prefix ?? ''}-0123456789${number.groupSeparator ?? ''}${decimal}${number.suffix ?? ''}`;
+}
+
+/** What a generated font must draw: the texts, numbers, and words of captions, with their font. */
 function textsOf(document: Document): { text: string; font: string }[] {
   return nodesOf(document).flatMap((node) => {
     const font = node.fontAssetId ?? '';
+    if (node.type === 'text' && node.number?.kind === 'number') {
+      return [{ text: numberCharacters(node.number), font }];
+    }
     if (node.type === 'text') return [{ text: node.text ?? '', font }];
     if (node.type === 'captions') return (node.words ?? []).map(({ text }) => ({ text, font }));
     return [];
@@ -495,9 +520,39 @@ describe('the features of phase six the showcases show (D32.12)', () => {
     ).toBe(true);
   });
 
-  it('call the tool of a speed and the tool of a text frame', () => {
+  it('include a picture on animated corners and a number counted with groups and decimals (D91)', () => {
+    const cornered = documents.flatMap((document) =>
+      nodesOf(document).filter(
+        (node) =>
+          node.type === 'image' &&
+          Object.values(
+            (node as unknown as { corners: Record<string, { x: number; y: number }> }).corners,
+          ).some((offset) => offset.x !== 0 || offset.y !== 0),
+      ),
+    ) as unknown as { animations: { property: string }[] }[];
+    expect(
+      cornered.some((node) =>
+        node.animations.some((animation) => animation.property === 'corners'),
+      ),
+    ).toBe(true);
+    const counted = documents.flatMap((document) =>
+      nodesOf(document).filter((node) => node.type === 'text' && node.number?.kind === 'number'),
+    ) as unknown as (Node & { animations: { property: string }[] })[];
+    expect(
+      counted.some(
+        (node) =>
+          (node.number?.decimals ?? 0) > 0 &&
+          node.number?.groupSeparator !== '' &&
+          node.animations.some((animation) => animation.property === 'number'),
+      ),
+    ).toBe(true);
+  });
+
+  it('call the tool of a speed, the tool of a text frame, and the tool of a number', () => {
     const names = new Set(SHOWCASES.map((showcase) => showcase.toolCall.name));
-    for (const name of ['set_clip_speed', 'set_node_size']) expect(names, name).toContain(name);
+    for (const name of ['set_clip_speed', 'set_node_size', 'set_text_number']) {
+      expect(names, name).toContain(name);
+    }
     const sized = SHOWCASES.find((showcase) => showcase.toolCall.name === 'set_node_size');
     const nodeId = (sized?.toolCall.arguments as { nodeId?: string } | undefined)?.nodeId;
     const document = sourceOf(sized?.sourceFile ?? '') as Document;
@@ -556,6 +611,10 @@ describe.each(SHOWCASES)('the showcase $id (D32.8)', (showcase) => {
         if (glyph !== '\n' && !(glyph in (glyphs ?? {}))) missing.push(glyph);
       expect(missing, text).toEqual([]);
     }
+  });
+
+  it('has no corners that turn concave at a frame (D91.1)', () => {
+    expect(cornersWarnings(validated(source))).toEqual([]);
   });
 
   it('names a node the grip may drag (D32.4)', () => {

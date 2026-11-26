@@ -32,8 +32,9 @@ transparent clear of a still in schema `0.28`, and a still canvas of up to
 step PR-93 rasters every tile a frame changes whole (D90) for the
 patch release `v0.12.1` (before it, a frame with a turned or animated mask,
 shape, or SVG asset could differ after another frame from the same frame
-rendered alone), and whose steps PR-95 and PR-96 move the four corners of a
-node in schema `0.30` and show a number in a text in schema `0.31` (D91).
+rendered alone), and whose steps PR-95 to PR-97 move the four corners of a
+node in schema `0.30` and show a number in a text in schema `0.31` (D91), for
+the release `v0.13.0`.
 Schema `0.31` with its forward migrations from `0.1` to `0.30`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
@@ -55,7 +56,7 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D90; all accepted except D10, superseded by
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D91; all accepted except D10, superseded by
   D37, and D79 to D81, proposed)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
@@ -777,8 +778,8 @@ const state = evaluateComposition(composition, 2_500_000);
 The evaluation is pure: no DOM, no clock, no assets. A time that is not an
 integer, or not in `[0, durationUs)`, throws an `EvaluationError`.
 
-A document with a measured node, a framed text or captions with
-`lineBreak: "width"` (D83), also needs the metrics of the fonts those nodes
+A document with a measured node, a framed text, captions with
+`lineBreak: "width"` (D83), or a text with a number (D91.2), also needs the metrics of the fonts those nodes
 use: `evaluateComposition(composition, timeUs, fonts)`, where `fonts` maps the
 ID of each font of `measuredFontIds(composition)` to `fontMetrics(bytes)` of
 its bytes, read once per font; a missing one throws `font-metrics-missing`.
@@ -1494,12 +1495,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.12.1.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.12.1.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.13.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.13.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.12.1.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.12.1.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.13.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.13.0.tgz"
   }
 }
 ```
