@@ -162,6 +162,15 @@ export interface CompositionState {
     readonly backdrop?: string;
 }
 
+---- CornersWarning (type only)
+export interface CornersWarning {
+    readonly code: 'corners-not-convex';
+    readonly nodeId: string;
+    readonly holderId: string;
+    readonly timeUs: number;
+    readonly message: string;
+}
+
 ---- CropState (type only)
 export interface CropState {
     readonly fromTop: number;
@@ -277,6 +286,26 @@ export interface Hole extends Circle {
     readonly width: number;
     readonly height: number;
 }
+
+---- Homography (type only)
+export type Homography = readonly [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number
+];
 
 ---- HueRotateEffectState (type only)
 export interface HueRotateEffectState {
@@ -540,6 +569,7 @@ export interface TransformState {
         readonly x: boolean;
         readonly y: boolean;
     };
+    readonly homography?: Homography | null;
     readonly opacity: number;
 }
 
@@ -607,6 +637,9 @@ export declare function compositingAt(node: {
     readonly matte: Matte;
     readonly blendMode: BlendMode;
 }, timeUs: number): CompositingState;
+
+---- cornersWarnings
+export declare function cornersWarnings(composition: ValidatedComposition): CornersWarning[];
 
 ---- effectsAt
 export declare function effectsAt(effects: readonly Effect[], timeUs: number): EffectState[];

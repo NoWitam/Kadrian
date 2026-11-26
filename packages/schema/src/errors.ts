@@ -120,7 +120,13 @@ export type ValidationErrorCode =
    * reversed or offset freeze frame, a freeze frame of an audio clip, or a
    * reversed clip that samples more than 600 000 000 µs of source.
    */
-  | 'speed-invalid';
+  | 'speed-invalid'
+  /**
+   * Corners that are not those of a convex quadrilateral with a non-zero area,
+   * in their order, at the node's base values; corners on a text without a
+   * fixed frame; or corners on a shape that is a matte (D91.1).
+   */
+  | 'invalid-corners';
 
 export interface ValidationError {
   readonly code: ValidationErrorCode;

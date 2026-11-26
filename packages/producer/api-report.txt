@@ -52,6 +52,15 @@ export declare const CHROMIUM_VERSION = "153.0.8010.12";
 ---- CUSTOM_HTML_CHECK_SAMPLES
 export declare const CUSTOM_HTML_CHECK_SAMPLES = 5;
 
+---- CornersWarning (type only)
+export interface CornersWarning {
+    readonly code: 'corners-not-convex';
+    readonly nodeId: string;
+    readonly holderId: string;
+    readonly timeUs: number;
+    readonly message: string;
+}
+
 ---- CustomHtmlCheck (type only)
 export interface CustomHtmlCheck {
     readonly timesUs: readonly number[];
@@ -776,6 +785,9 @@ export declare function checkedSegmentFrames(value: number | undefined): number;
 
 ---- contextOptions
 export declare function contextOptions(width: number, height: number): BrowserContextOptions;
+
+---- cornersWarnings
+export declare function cornersWarnings(composition: ValidatedComposition): CornersWarning[];
 
 ---- environmentManifest
 export declare function environmentManifest(reportedVersion: string, viewport: {

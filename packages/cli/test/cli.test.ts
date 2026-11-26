@@ -34,7 +34,11 @@ import {
   type StillResult,
 } from '@kadrion/producer';
 import type { VideoInspection } from '@kadrion/player';
-import { generateReferenceAssets, referenceComposition } from '@kadrion/test-fixtures';
+import {
+  cornersComposition,
+  generateReferenceAssets,
+  referenceComposition,
+} from '@kadrion/test-fixtures';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import {
@@ -1123,7 +1127,7 @@ describe('kadrion estimate (D48.5)', () => {
   });
 });
 
-describe('kadrion inspect (D79.6)', () => {
+describe('kadrion inspect (D79.6, D91.1)', () => {
   /** A verdict as `inspectVideo` gives it, for the plumbing of the command. */
   const verdict: VideoInspection = {
     playable: false,
@@ -1201,6 +1205,59 @@ describe('kadrion inspect (D79.6)', () => {
     await expect(runCli(argv, streams, {})).resolves.toBe(EXIT_USAGE);
     expect(out).toEqual([]);
     expect(err).toContain(USAGE);
+  });
+
+  function compositionFile(document: unknown, text = JSON.stringify(document, null, 2)): string {
+    const dir = scratchDirectory('kadrion-inspect-');
+    writeFileSync(join(dir, 'composition.json'), `\n  ${text}`);
+    return join(dir, 'composition.json');
+  }
+
+  it('lists the first instant at which the animated corners of a node turn concave (D91.1)', async () => {
+    const path = compositionFile(cornersComposition);
+    const { out, err, io: streams } = io();
+    const code = await runCli(['inspect', path], streams, {
+      inspect: () => Promise.reject(new Error('A composition is no video.')),
+    });
+    expect(code).toBe(EXIT_OK);
+    expect(err).toEqual([]);
+    expect(out).toEqual([
+      `${path}: a composition of schema 0.30, 1 warning`,
+      '  corners-not-convex corners-animated at 566666 µs: The corners of "corners-animated" do not form a convex quadrilateral at 566666 µs (scene time 566666 µs): it draws nothing then (D91.1).',
+    ]);
+    const json = io();
+    await expect(runCli(['inspect', '--json', path], json.io, {})).resolves.toBe(EXIT_OK);
+    expect(JSON.parse(json.out.join('\n'))).toEqual({
+      kind: 'composition',
+      warnings: [
+        {
+          code: 'corners-not-convex',
+          nodeId: 'corners-animated',
+          holderId: 'scene-corners',
+          timeUs: 566_666,
+          message:
+            'The corners of "corners-animated" do not form a convex quadrilateral at 566666 µs (scene time 566666 µs): it draws nothing then (D91.1).',
+        },
+      ],
+    });
+  });
+
+  it('lists no warning for a composition without corners', async () => {
+    const path = compositionFile(referenceComposition);
+    const { out, io: streams } = io();
+    await expect(runCli(['inspect', path], streams, {})).resolves.toBe(EXIT_OK);
+    expect(out).toEqual([`${path}: a composition of schema 0.30, 0 warnings`]);
+  });
+
+  it.each([
+    ['no JSON', '{', /^error invalid-json: /],
+    ['no valid composition', '{"schemaVersion":"0.30"}', /^error invalid-document: /],
+  ])('exits 1 for a composition that is %s', async (_, text, first) => {
+    const path = compositionFile(null, text);
+    const { out, err, io: streams } = io();
+    await expect(runCli(['inspect', path], streams, {})).resolves.toBe(EXIT_PRODUCER_ERROR);
+    expect(out).toEqual([]);
+    expect(err[0]).toMatch(first);
   });
 
   it('exits 1 for a file that cannot be opened', async () => {

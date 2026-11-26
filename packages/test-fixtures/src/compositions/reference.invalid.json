@@ -91,7 +91,7 @@
       {
         "op": "replace",
         "path": "/schemaVersion",
-        "value": "0.30"
+        "value": "0.31"
       }
     ],
     "expectedErrors": [
@@ -1415,6 +1415,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -1486,6 +1492,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -1562,6 +1574,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -1629,6 +1647,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -1706,6 +1730,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -1782,6 +1812,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -1857,6 +1893,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -2953,6 +2995,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -3050,6 +3098,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -3149,6 +3203,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-image",
@@ -3241,6 +3301,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -3335,6 +3401,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -3427,6 +3499,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -6392,6 +6470,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -6486,6 +6570,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -6583,6 +6673,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -6816,6 +6912,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -6904,6 +7006,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -6990,6 +7098,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -7080,6 +7194,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -7219,6 +7339,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -7331,6 +7457,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -7445,6 +7577,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -7537,6 +7675,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -8304,6 +8448,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "width": 100,
@@ -8389,6 +8539,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -8495,6 +8651,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "width": 100,
@@ -8580,6 +8742,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [
@@ -8686,6 +8854,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [
@@ -8835,6 +9009,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [
             {
@@ -8927,6 +9107,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "width": 100,
@@ -9001,6 +9187,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -9087,6 +9279,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [
@@ -9268,6 +9466,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "width": 100,
@@ -9346,6 +9550,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "width": 100,
@@ -9402,6 +9612,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -9515,6 +9731,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -9649,6 +9871,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "definitionId": "missing",
@@ -9719,6 +9947,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "definitionId": "definition-short",
@@ -9781,6 +10015,12 @@
                 "x": false,
                 "y": false
               },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "definitionId": "definition-b",
@@ -9835,6 +10075,12 @@
               "flip": {
                 "x": false,
                 "y": false
+              },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
               },
               "opacity": 1,
               "animations": [],
@@ -9907,6 +10153,12 @@
                 "x": false,
                 "y": false
               },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-2",
@@ -9961,6 +10213,12 @@
               "flip": {
                 "x": false,
                 "y": false
+              },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
               },
               "opacity": 1,
               "animations": [],
@@ -10017,6 +10275,12 @@
                 "x": false,
                 "y": false
               },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-4",
@@ -10071,6 +10335,12 @@
               "flip": {
                 "x": false,
                 "y": false
+              },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
               },
               "opacity": 1,
               "animations": [],
@@ -10127,6 +10397,12 @@
                 "x": false,
                 "y": false
               },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-6",
@@ -10181,6 +10457,12 @@
               "flip": {
                 "x": false,
                 "y": false
+              },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
               },
               "opacity": 1,
               "animations": [],
@@ -10237,6 +10519,12 @@
                 "x": false,
                 "y": false
               },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "definitionId": "deep-8",
@@ -10291,6 +10579,12 @@
               "flip": {
                 "x": false,
                 "y": false
+              },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
               },
               "opacity": 1,
               "animations": [],
@@ -10374,6 +10668,12 @@
                 "x": false,
                 "y": false
               },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "width": 900,
@@ -10418,6 +10718,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -10467,6 +10773,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -10615,6 +10927,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -10664,6 +10982,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -10785,6 +11109,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "definitionId": "element-speech",
@@ -10828,6 +11158,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -10877,6 +11213,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -10998,6 +11340,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "definitionId": "element-speech",
@@ -11051,6 +11399,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -11100,6 +11454,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -11221,6 +11581,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "definitionId": "element-speech",
@@ -11277,6 +11643,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -11326,6 +11698,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -11447,6 +11825,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "definitionId": "element-speech",
@@ -11490,6 +11874,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -11539,6 +11929,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -11676,6 +12072,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -11725,6 +12127,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -11854,6 +12262,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -11903,6 +12317,12 @@
               "rotation": 0,
               "origin": { "x": 0, "y": 0 },
               "flip": { "x": false, "y": false },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "fontAssetId": "asset-font",
@@ -12475,6 +12895,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -12637,6 +13063,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -12719,6 +13151,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],
@@ -12803,6 +13241,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "assetId": "asset-video",
@@ -12884,6 +13328,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [
@@ -13204,6 +13654,176 @@
       {
         "code": "keyframes-not-ascending",
         "path": "/clips/0/animations/0/keyframes/1/timeUs"
+      }
+    ]
+  },
+  {
+    "name": "corners-concave",
+    "description": "The moved corners of a node form a concave quadrilateral: its top-left corner lies inside the triangle of the other three (D91.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/1/children/0/corners",
+        "value": {
+          "topLeft": {
+            "x": 300,
+            "y": 300
+          },
+          "topRight": {
+            "x": 0,
+            "y": 0
+          },
+          "bottomRight": {
+            "x": 0,
+            "y": 0
+          },
+          "bottomLeft": {
+            "x": 0,
+            "y": 0
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-corners",
+        "path": "/scenes/0/nodes/1/children/0/corners"
+      }
+    ]
+  },
+  {
+    "name": "corners-crossed",
+    "description": "The moved corners of a node cross: the top-right and the bottom-right corner swap places, a self-intersecting quadrilateral (D91.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/1/children/0/corners",
+        "value": {
+          "topLeft": {
+            "x": 0,
+            "y": 0
+          },
+          "topRight": {
+            "x": 0,
+            "y": 400
+          },
+          "bottomRight": {
+            "x": 0,
+            "y": -400
+          },
+          "bottomLeft": {
+            "x": 0,
+            "y": 0
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-corners",
+        "path": "/scenes/0/nodes/1/children/0/corners"
+      }
+    ]
+  },
+  {
+    "name": "corners-collinear",
+    "description": "Three moved corners of a node lie on one line: the top-right corner of the image, scaled by 1.25, lands on its diagonal, a corner of 180 degrees (D91.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/1/children/0/corners",
+        "value": {
+          "topLeft": {
+            "x": 0,
+            "y": 0
+          },
+          "topRight": {
+            "x": -250,
+            "y": 250
+          },
+          "bottomRight": {
+            "x": 0,
+            "y": 0
+          },
+          "bottomLeft": {
+            "x": 0,
+            "y": 0
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-corners",
+        "path": "/scenes/0/nodes/1/children/0/corners"
+      }
+    ]
+  },
+  {
+    "name": "corners-one-point",
+    "description": "Two moved corners of a node lie at one point: the top-right corner of the image, scaled by 1.25, lands on its bottom-right corner, a side of length 0 (D91.1).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/1/children/0/corners",
+        "value": {
+          "topLeft": {
+            "x": 0,
+            "y": 0
+          },
+          "topRight": {
+            "x": 0,
+            "y": 500
+          },
+          "bottomRight": {
+            "x": 0,
+            "y": 0
+          },
+          "bottomLeft": {
+            "x": 0,
+            "y": 0
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-corners",
+        "path": "/scenes/0/nodes/1/children/0/corners"
+      }
+    ]
+  },
+  {
+    "name": "corners-text-without-frame",
+    "description": "A text without a frame is as large as its lines as the browser lays them out, which the runtime does not know: it has corners only with a fixed frame (D91.1, question 1 of D91).",
+    "patch": [
+      {
+        "op": "replace",
+        "path": "/scenes/0/nodes/2/corners",
+        "value": {
+          "topLeft": {
+            "x": 10,
+            "y": 0
+          },
+          "topRight": {
+            "x": 0,
+            "y": 0
+          },
+          "bottomRight": {
+            "x": 0,
+            "y": 0
+          },
+          "bottomLeft": {
+            "x": 0,
+            "y": 0
+          }
+        }
+      }
+    ],
+    "expectedErrors": [
+      {
+        "code": "invalid-corners",
+        "path": "/scenes/0/nodes/2/corners"
       }
     ]
   }

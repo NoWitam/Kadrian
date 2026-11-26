@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.29",
+  "schemaVersion": "0.30",
   "width": 640,
   "height": 360,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
@@ -36,6 +36,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "definitionId": "lower-third",
@@ -62,6 +68,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "definitionId": "lower-third",
@@ -88,6 +100,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "definitionId": "speech",
@@ -168,6 +186,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "text": "{{title}}",
@@ -198,6 +222,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "width": 32,
@@ -258,6 +288,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",
@@ -307,6 +343,12 @@
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "fontAssetId": "asset-font",

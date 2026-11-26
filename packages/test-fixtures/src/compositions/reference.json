@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.29",
+  "schemaVersion": "0.30",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -63,6 +63,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [
             {
@@ -114,6 +120,12 @@
               "flip": {
                 "x": false,
                 "y": false
+              },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
               },
               "opacity": 1,
               "animations": [
@@ -186,6 +198,12 @@
                 "x": false,
                 "y": false
               },
+              "corners": {
+                "topLeft": { "x": 0, "y": 0 },
+                "topRight": { "x": 0, "y": 0 },
+                "bottomRight": { "x": 0, "y": 0 },
+                "bottomLeft": { "x": 0, "y": 0 }
+              },
               "opacity": 1,
               "animations": [],
               "text": "Deterministic by design",
@@ -239,6 +257,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 0.75,
           "animations": [
@@ -308,6 +332,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],

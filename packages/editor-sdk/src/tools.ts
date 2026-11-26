@@ -99,6 +99,7 @@ import {
   setNodeRotationArgumentsSchema,
   setNodeOriginArgumentsSchema,
   setNodeFlipArgumentsSchema,
+  setNodeCornersArgumentsSchema,
   setNodeCropArgumentsSchema,
   setNodeCornerRadiusArgumentsSchema,
   setKeyframeValueArgumentsSchema,
@@ -158,6 +159,7 @@ import {
   type SetTemplateInputArgumentsSchema,
   type SetClipReverseArgumentsSchema,
   type SetNodeFlipArgumentsSchema,
+  type SetNodeCornersArgumentsSchema,
   type SetClipSpeedArguments,
   type SetClipSpeedArgumentsSchema,
   type ClosedObjectSchema,
@@ -219,7 +221,8 @@ export type CommandArgumentsSchema =
   | SetCustomHtmlArgumentsSchema
   | SetClipSpeedArgumentsSchema
   | SetClipReverseArgumentsSchema
-  | SetNodeFlipArgumentsSchema;
+  | SetNodeFlipArgumentsSchema
+  | SetNodeCornersArgumentsSchema;
 
 /** What a model is told about one command (D46.1). */
 export interface CommandToolMetadata<T extends Command['type'] = Command['type']> {
@@ -294,7 +297,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setTextContentArgumentsSchema,
   },
   AddNode: {
-    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, flip, opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {"kind":"none"}, matte {"kind":"none"}, and blendMode "normal" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit "fill", "contain", or "cover" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {"num":1,"den":1} (describe_document shows a speed as a multiplier such as "x0.5"; stored, it is the fraction {"num":1,"den":2}, from 1/4 to 4, or {"num":0,"den":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
+    description: `Inserts one complete node into a scene, or into a group, at a layer index: 0 is the bottom layer and the length of the list the top. The node is given exactly as the document stores it, with every field of its type (describe_document shows the stored fields of existing nodes): an ID unused in the document, its type (text, image, video, captions, shape, group, instance, or custom-html), startUs and durationUs, position, scale, rotation, origin, flip, corners (four zero offsets {"x":0,"y":0} for none; set_node_corners describes them), opacity, animations, and its own fields; an image, video, text, captions node, shape, group, or instance ends with its effects, [] for none (add_effect describes one), then mask {"kind":"none"}, matte {"kind":"none"}, and blendMode "normal" (set_node_mask, set_node_matte, and set_blend_mode describe each). A shape is {width, height, geometry, fill, stroke, trim, effects} after its animations, drawn in its box: set_shape_geometry, set_shape_fill, set_shape_stroke, and set_shape_trim describe each field. An instance places a definition (add_definition describes one) and is {definitionId, inputs, sourceStartUs, width, height, fit, effects} after its animations: inputs [] or the values of an Element's inputs as set_instance_input takes them, sorted by inputId; sourceStartUs the definition time shown at its startUs; fit "fill", "contain", or "cover" of the definition's canvas in its box. A video stores its time map after sourceStartUs: sourceStartRemainder 0, speed {"num":1,"den":1} (describe_document shows a speed as a multiplier such as "x0.5"; stored, it is the fraction {"num":1,"den":2}, from 1/4 to 4, or {"num":0,"den":1} for a freeze frame of the frame at sourceStartUs), and reverse false. A group takes text, image, video, and shape nodes only. ${TIME_US} A video must sample inside its source. Refused with unknown-parent, unsupported-node when the parent takes no children, index-out-of-range, id-in-use with the IDs already taken, and invalid-result when the node is not one the document can hold; a video also with media-facts-missing and source-range-exceeded.`,
     example: {
       parentId: 'scene-main',
       index: 4,
@@ -308,6 +311,12 @@ const METADATA = deepFreeze<MetadataTable>({
         rotation: 0,
         origin: { x: 0, y: 0 },
         flip: { x: false, y: false },
+        corners: {
+          topLeft: { x: 0, y: 0 },
+          topRight: { x: 0, y: 0 },
+          bottomRight: { x: 0, y: 0 },
+          bottomLeft: { x: 0, y: 0 },
+        },
         opacity: 1,
         animations: [],
         text: 'Made with Kadrion',
@@ -403,7 +412,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: removeAssetArgumentsSchema,
   },
   AddAnimation: {
-    description: `Adds one complete animation to a node or an audio clip, at an index of its animations: an ID unused in the document; the property, which the node must not animate yet (position, scale, opacity, rotation, or origin on every node but a background; size, crop, and cornerRadius on an image or a video; color on a text, captions, or a background, which has no other animation; size, fill (a solid fill only), stroke/color, stroke/width, trim/start, trim/end, and geometry on a shape; volume on a video or an audio clip, which has no other); and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({"kind":"linear"} for a constant speed, or any easing set_keyframe_easing describes; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1, a volume value a factor from 0 to 1 times the volume, moving linearly in decibels (in amplitude to or from 0), eased linear or hold only. ${KEYFRAME_VALUES} ${TIME_US} Refused with unknown-node, duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
+    description: `Adds one complete animation to a node or an audio clip, at an index of its animations: an ID unused in the document; the property, which the node must not animate yet (position, scale, opacity, rotation, origin, or corners on every node but a background; size, crop, and cornerRadius on an image or a video; color on a text, captions, or a background, which has no other animation; size, fill (a solid fill only), stroke/color, stroke/width, trim/start, trim/end, and geometry on a shape; volume on a video or an audio clip, which has no other); and at least two keyframes in ascending time, each {timeUs, value, easing}, where the easing says how the value moves from this keyframe to the next one ({"kind":"linear"} for a constant speed, or any easing set_keyframe_easing describes; the easing of the last keyframe is never read). A position value is an offset {x, y} in pixels added to the base position, a scale value factors {x, y} multiplied with the base scale, an opacity value a factor from 0 to 1, a volume value a factor from 0 to 1 times the volume, moving linearly in decibels (in amplitude to or from 0), eased linear or hold only. ${KEYFRAME_VALUES} ${TIME_US} Refused with unknown-node, duplicate-animation-target, index-out-of-range, id-in-use, and invalid-result.`,
     example: {
       nodeId: 'node-custom-html',
       index: 0,
@@ -466,7 +475,7 @@ const METADATA = deepFreeze<MetadataTable>({
     argumentsSchema: setKeyframeEasingArgumentsSchema,
   },
   SetKeyframeValue: {
-    description: `Sets the value of an animation of rotation, origin, size, color, crop, cornerRadius, volume (a factor from 0 to 1), or of a shape's fill, stroke/color, stroke/width, trim/start, trim/end, or geometry at a time: replaces the value of the keyframe at that time, or inserts one, eased as the keyframe before it. ${KEYFRAME_VALUES} ${TIME_US} ${ANIMATED} Refused with unknown-animation, use-typed-command for an animation of opacity, position, or scale (use set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe), invalid-argument for a value of the wrong form, and invalid-result for a value outside the range of the property.`,
+    description: `Sets the value of an animation of rotation, origin, corners, size, color, crop, cornerRadius, volume (a factor from 0 to 1), or of a shape's fill, stroke/color, stroke/width, trim/start, trim/end, or geometry at a time: replaces the value of the keyframe at that time, or inserts one, eased as the keyframe before it. ${KEYFRAME_VALUES} ${TIME_US} ${ANIMATED} Refused with unknown-animation, use-typed-command for an animation of opacity, position, or scale (use set_opacity_keyframe, set_position_keyframe, or set_scale_keyframe), invalid-argument for a value of the wrong form, and invalid-result for a value outside the range of the property.`,
     example: { animationId: 'anim-image-rotation', timeUs: 1_000_000, value: 360 },
     argumentsSchema: setKeyframeValueArgumentsSchema,
   },
@@ -504,6 +513,20 @@ const METADATA = deepFreeze<MetadataTable>({
       "Mirrors what a node draws in its own box, about the box's centre, before its scale and rotation: x true flips it left to right, y true top to bottom, false on both is no flip. Its content, crop, corners, mask, and effects mirror with it (a drop shadow's offset too); the box, the position, the origin, and the area a host hits stay, and a group's box is the canvas. It is not animated. To mirror a rotated node across its parent's axis, set its rotation to the negative and its position in the same transaction. Refused with invalid-argument for a value that is not true or false, unknown-node, and unsupported-node for a background.",
     example: { nodeId: 'node-image', flip: { x: true, y: false } },
     argumentsSchema: setNodeFlipArgumentsSchema,
+  },
+  SetNodeCorners: {
+    description:
+      "Pins the four corners of a node's box onto a quadrilateral, as for a picture placed on a screen or a card tilted in perspective: each corner is first moved by the node's own transform (position, scale, rotation about the origin, flip) and then by its offset {x, y} in composition pixels of the parent's space, x growing right and y down, fractions allowed, from -1000000 to 1000000; the node draws its box onto the moved corners in perspective, with its content, crop, corner radius, effects, and mask. Four zero offsets, or null, are no quadrilateral. The moved corners must form a convex quadrilateral with a non-zero area in the order top-left, top-right, bottom-right, bottom-left. A group's box is the canvas, an instance's its width and height; a text needs a fixed frame first (set_node_size gives it one), and a shape that is the matte of another node may not have corners. A corners animation of the node adds to each offset; a frame where the animated quadrilateral is not convex draws nothing of the node. Refused with invalid-argument, unknown-node, unsupported-node for a background, and invalid-result with invalid-corners for a quadrilateral the document cannot hold.",
+    example: {
+      nodeId: 'node-image',
+      corners: {
+        topLeft: { x: 40, y: 20 },
+        topRight: { x: -40, y: 0 },
+        bottomRight: { x: 0, y: 0 },
+        bottomLeft: { x: 0, y: -20 },
+      },
+    },
+    argumentsSchema: setNodeCornersArgumentsSchema,
   },
   SetNodeCrop: {
     description:

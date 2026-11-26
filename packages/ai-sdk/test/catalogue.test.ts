@@ -39,8 +39,8 @@ describe('the catalogue covers the command registry exactly (D46.2)', () => {
       'check_custom_html',
       'run_transaction',
     ]);
-    expect(COMMAND_TOOLS).toHaveLength(100);
-    expect(TOOL_CATALOGUE).toHaveLength(105);
+    expect(COMMAND_TOOLS).toHaveLength(101);
+    expect(TOOL_CATALOGUE).toHaveLength(106);
   });
 
   it('offers speed, reverse, and the freeze frame, so a model can do each edit of D82 (D82.9)', () => {
@@ -171,6 +171,12 @@ const CATALOGUE_LENGTH_OF_0_26 = 233_348;
  */
 const CATALOGUE_LENGTH_OF_0_27 = 235_086;
 
+/**
+ * The catalogue of schema `0.29` (the committed snapshot of `main` before
+ * PR-95), measured the same way: from where the corners of D91.1 are measured.
+ */
+const CATALOGUE_LENGTH_OF_0_29 = 236_443;
+
 /** The length of the JSON of every tool's entry, all tools together (D83.10). */
 function catalogueLength(catalogue: readonly ToolDefinition[]): number {
   return catalogue.reduce((sum, tool) => sum + JSON.stringify(tool).length, 0);
@@ -206,13 +212,28 @@ describe('the flip of D89.3 in the catalogue (D46.5)', () => {
 });
 
 describe('the clear of D89.2 in the catalogue (D46.5)', () => {
-  it('grows the catalogue over the snapshot of 0.27 by set_composition_clear, its name in run_transaction, and the clear in describe_document alone', () => {
+  it('grew the catalogue from the snapshot of 0.27 to that of 0.29 by set_composition_clear, its name in run_transaction, and the clear in describe_document alone', () => {
     const clear = TOOL_CATALOGUE.find(({ name }) => name === 'set_composition_clear');
     if (clear === undefined) throw new Error('No set_composition_clear.');
-    const others = catalogueLength(TOOL_CATALOGUE) - JSON.stringify(clear).length;
     // `"set_composition_clear",` in the names run_transaction takes (24), and
     // ` and the clear (white or transparent)` in the text of describe_document (37).
-    expect(others - CATALOGUE_LENGTH_OF_0_27).toBe(24 + 37);
+    expect(CATALOGUE_LENGTH_OF_0_29 - JSON.stringify(clear).length - CATALOGUE_LENGTH_OF_0_27).toBe(
+      24 + 37,
+    );
+  });
+});
+
+describe('the corners of D91.1 in the catalogue (D46.5)', () => {
+  it('grows the catalogue over the snapshot of 0.29 by set_node_corners, its name in run_transaction, and the corners of add_node, add_animation, and set_keyframe_value alone', () => {
+    const corners = TOOL_CATALOGUE.find(({ name }) => name === 'set_node_corners');
+    if (corners === undefined) throw new Error('No set_node_corners.');
+    const others = catalogueLength(TOOL_CATALOGUE) - JSON.stringify(corners).length;
+    // `"set_node_corners",` in the names run_transaction takes (19); in
+    // add_node the corners in its text and four zero offsets in its example
+    // (231); in add_animation the row in its text and the value of a corners
+    // keyframe (234); in set_keyframe_value the row in its text and that value
+    // in its text and in the schema of its value (459), escaped as JSON.
+    expect(others - CATALOGUE_LENGTH_OF_0_29).toBe(19 + 231 + 234 + 459);
   });
 });
 

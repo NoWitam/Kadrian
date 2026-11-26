@@ -2,7 +2,7 @@
  * Keyframe sampling and the one arithmetic rule of the runtime (D18). The order
  * of the operations is part of the contract: another order yields other bits.
  */
-import type { Easing, NodeAnimation } from '@kadrion/schema';
+import type { CornerOffsets, Easing, NodeAnimation } from '@kadrion/schema';
 
 import { easedValue, requireEasing, within, type Bounds } from './easing.js';
 import { EvaluationError } from './errors.js';
@@ -26,6 +26,7 @@ export const PROPERTY_BOUNDS: Readonly<Record<NodeAnimation['property'], Bounds>
   scale: { min: 0, max: 1000 },
   rotation: { min: -360_000, max: 360_000 },
   origin: { min: -1000, max: 1000 },
+  corners: { min: -1_000_000, max: 1_000_000 },
   size: { min: 1, max: 1_000_000 },
   color: { min: 0, max: 255 },
   crop: { min: 0, max: 1000 },
@@ -134,6 +135,47 @@ export function sampleVec2(
   const bounds = PROPERTY_BOUNDS[animation.property];
   const { x, y } = sampleChannels(keyframes, bounds, timeUs, VECTOR, (value) => value);
   return { x, y };
+}
+
+/** The eight coordinates of the offsets of four corners, in their order (D91.1). */
+const CORNER_CHANNELS = [
+  'topLeftX',
+  'topLeftY',
+  'topRightX',
+  'topRightY',
+  'bottomRightX',
+  'bottomRightY',
+  'bottomLeftX',
+  'bottomLeftY',
+] as const;
+
+/**
+ * The offsets of the four corners of an animation at `timeUs` (D91.1): eight
+ * channels of one rule and one easing, held within the bounds of the row.
+ */
+export function sampleCorners(animation: AnimationOf<'corners'>, timeUs: number): CornerOffsets {
+  const at = sampleChannels(
+    animation.keyframes,
+    PROPERTY_BOUNDS.corners,
+    timeUs,
+    CORNER_CHANNELS,
+    (value) => ({
+      topLeftX: value.topLeft.x,
+      topLeftY: value.topLeft.y,
+      topRightX: value.topRight.x,
+      topRightY: value.topRight.y,
+      bottomRightX: value.bottomRight.x,
+      bottomRightY: value.bottomRight.y,
+      bottomLeftX: value.bottomLeft.x,
+      bottomLeftY: value.bottomLeft.y,
+    }),
+  );
+  return {
+    topLeft: { x: at.topLeftX, y: at.topLeftY },
+    topRight: { x: at.topRightX, y: at.topRightY },
+    bottomRight: { x: at.bottomRightX, y: at.bottomRightY },
+    bottomLeft: { x: at.bottomLeftX, y: at.bottomLeftY },
+  };
 }
 
 /** The width and the height of a box, two channels (D68). */

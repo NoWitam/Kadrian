@@ -1,10 +1,14 @@
 import {
   definitionTimeUs,
+  frameCount,
+  frameToTimeUs,
+  hasCorners,
   instanceDefinition,
   scenesAt,
   sourceTimeUs,
   type CaptionsNode,
   type Composition,
+  type CornerOffsets,
   type ImageNode,
   type InstanceNode,
   type NodeAnimation,
@@ -21,11 +25,13 @@ import { compositingAt } from './compositing.js';
 import { effectsAt } from './effects.js';
 import { EvaluationError, unsupported } from './errors.js';
 import { textFragments } from './fragments.js';
+import { cornersHomography } from './homography.js';
 import { shapeAt } from './shapes.js';
 import { measuredNodes, type FontMetrics } from './text-frame.js';
 import {
   cropState,
   sampleColor,
+  sampleCorners,
   sampleCrop,
   sampleScalar,
   sampleSize,
@@ -48,6 +54,7 @@ import type {
   NodeState,
   PictureState,
   ShapeNodeState,
+  Size,
   TextNodeState,
   TransformState,
   Vec2,
@@ -76,12 +83,18 @@ const REPLACED: Readonly<Record<SceneNode['type'], readonly NodeAnimation['prope
  * operation (D18); a property without an animation is its base value. The
  * other rows of D65.1 are read by `replacing`, where the type takes them.
  */
-function evaluateTransform(node: TransformedNode, timeUs: number): TransformState {
+function evaluateTransform(
+  node: TransformedNode,
+  timeUs: number,
+  box: Size | null,
+): TransformState {
   let position: Vec2 = { x: node.position.x, y: node.position.y };
   let scale: Vec2 = { x: node.scale.x, y: node.scale.y };
   let rotation = node.rotation;
   let origin: Vec2 = { x: node.origin.x, y: node.origin.y };
   let opacity = node.opacity;
+  // The base corners, and a node with a corners animation has corners at every instant (D91.1).
+  let corners: CornerOffsets | null = hasCorners(node.corners) ? node.corners : null;
 
   // Validation guarantees at most one animation per property, in any order.
   for (const animation of node.animations) {
@@ -105,6 +118,22 @@ function evaluateTransform(node: TransformedNode, timeUs: number): TransformStat
       case 'origin': {
         const offset = sampleVec2(animation, timeUs);
         origin = { x: node.origin.x + offset.x, y: node.origin.y + offset.y };
+        break;
+      }
+      case 'corners': {
+        // Mode offset: the base and the sample add, corner by corner (D65.1, D91.1).
+        const offset = sampleCorners(animation, timeUs);
+        const base = node.corners;
+        const added = (key: keyof CornerOffsets): Vec2 => ({
+          x: base[key].x + offset[key].x,
+          y: base[key].y + offset[key].y,
+        });
+        corners = {
+          topLeft: added('topLeft'),
+          topRight: added('topRight'),
+          bottomRight: added('bottomRight'),
+          bottomLeft: added('bottomLeft'),
+        };
         break;
       }
       case 'size':
@@ -133,7 +162,43 @@ function evaluateTransform(node: TransformedNode, timeUs: number): TransformStat
   // `-0 + 0` is `0`: a rotation of -0 degrees is reported as 0. The flip is not
   // animated (D89.3).
   const flip = { x: node.flip.x, y: node.flip.y };
-  return { position, scale, rotation: rotation + 0, origin, flip, opacity };
+  const transform = { position, scale, rotation: rotation + 0, origin, flip, opacity };
+  // With corners, the homography of the box onto their quadrilateral replaces the
+  // transform; a box the runtime does not know (a text without a frame) has none,
+  // which validation refuses (D91.1).
+  if (corners === null || box === null) return transform;
+  return { ...transform, homography: cornersHomography(box, transform, corners) };
+}
+
+/**
+ * The box of a node in pixels at one instant (D91.1): the size of an image, a
+ * video, or a shape; the width and height of captions, an instance, or Custom
+ * HTML; the frame of a text, which has no box without one; and the canvas of
+ * what holds a group.
+ */
+function boxOf(
+  node: TransformedNode,
+  size: Size | null,
+  canvas: { readonly width: number; readonly height: number },
+): Size | null {
+  if (size !== null) return size;
+  switch (node.type) {
+    case 'text':
+      return node.frame.kind === 'fixed'
+        ? { width: node.frame.width, height: node.frame.height }
+        : null;
+    case 'group':
+      return { width: canvas.width, height: canvas.height };
+    case 'captions':
+    case 'instance':
+    case 'custom-html':
+    case 'image':
+    case 'video':
+    case 'shape':
+      return { width: node.width, height: node.height };
+    default:
+      return unsupported(node, 'type');
+  }
 }
 
 /** The animation of a row in `replace` mode, when the node has one (D65.1, D68). */
@@ -196,8 +261,9 @@ function transformOf(
   node: TransformedNode,
   timeUs: number,
   factors: Factors,
+  box: Size | null,
 ): TransformState & ClipTransitionSide {
-  const transform = evaluateTransform(node, timeUs);
+  const transform = evaluateTransform(node, timeUs, box);
   const effect = factors.get(node.id);
   if (effect === undefined) return transform;
   return {
@@ -207,24 +273,32 @@ function transformOf(
   };
 }
 
+/** What every node is laid out in: the canvas of the scene or definition that holds it (D76). */
+type Canvas = { readonly width: number; readonly height: number };
+
+/** A canvas for the leaves, which never read it: their box is their own (D91.1). */
+const NO_CANVAS: Canvas = { width: 1, height: 1 };
+
 function evaluateLeaf<Type extends LeafNodeType>(
   node: TransformedNode & { readonly type: Type },
   timeUs: number,
   factors: Factors,
+  size: Size | null = null,
 ): LeafNodeState<Type> {
   return {
     id: node.id,
     type: node.type,
     active: isActive(node, timeUs),
-    ...transformOf(node, timeUs, factors),
+    ...transformOf(node, timeUs, factors, boxOf(node, size, NO_CANVAS)),
   };
 }
 
 /** An image leaf with its box and picture (D68). */
 function evaluateImage(node: ImageNode, timeUs: number, factors: Factors): ImageNodeState {
+  const picture = pictureOf(node, timeUs);
   return {
-    ...evaluateLeaf(node, timeUs, factors),
-    ...pictureOf(node, timeUs),
+    ...evaluateLeaf(node, timeUs, factors, picture.size),
+    ...picture,
     effects: effectsAt(node.effects, timeUs),
     ...compositingAt(node, timeUs),
   };
@@ -252,10 +326,11 @@ function evaluateText(
 
 /** A video leaf with its box and picture, and the source time it shows while active (D49.5, D50.3). */
 function evaluateVideo(node: VideoNode, timeUs: number, factors: Factors): VideoNodeState {
-  const leaf = evaluateLeaf(node, timeUs, factors);
+  const picture = pictureOf(node, timeUs);
+  const leaf = evaluateLeaf(node, timeUs, factors, picture.size);
   return {
     ...leaf,
-    ...pictureOf(node, timeUs),
+    ...picture,
     sourceTimeUs: leaf.active ? sourceTimeUs(node, timeUs) : null,
     effects: effectsAt(node.effects, timeUs),
     ...compositingAt(node, timeUs),
@@ -290,9 +365,10 @@ function evaluateCaptions(
 
 /** A shape leaf with its box, path, fill, stroke, and trim (D73). */
 function evaluateShape(node: ShapeNode, timeUs: number, factors: Factors): ShapeNodeState {
+  const shape = shapeAt(node, timeUs);
   return {
-    ...evaluateLeaf(node, timeUs, factors),
-    ...shapeAt(node, timeUs),
+    ...evaluateLeaf(node, timeUs, factors, shape.size),
+    ...shape,
     effects: effectsAt(node.effects, timeUs),
     ...compositingAt(node, timeUs),
   };
@@ -334,7 +410,9 @@ function evaluateNodes(
   fonts: Fonts,
 ): NodeState[] {
   const factors = clipTransitionEffects(holder, timeUs, canvas);
-  return holder.nodes.map((node) => evaluateNode(node, timeUs, factors, definitions, fonts));
+  return holder.nodes.map((node) =>
+    evaluateNode(node, timeUs, factors, definitions, fonts, canvas),
+  );
 }
 
 /**
@@ -364,7 +442,7 @@ function evaluateInstance(
     id: node.id,
     type: node.type,
     active: isActive(node, timeUs),
-    ...transformOf(node, timeUs, factors),
+    ...transformOf(node, timeUs, factors, boxOf(node, null, NO_CANVAS)),
     definitionId: node.definitionId,
     definitionTimeUs: definitionTime,
     nodes: evaluateNodes(definition, definitionTime, definition, definitions, fonts),
@@ -384,6 +462,7 @@ function evaluateNode(
   factors: Factors,
   definitions: Definitions,
   fonts: Fonts,
+  canvas: Canvas,
 ): NodeState {
   switch (node.type) {
     case 'background':
@@ -402,7 +481,7 @@ function evaluateNode(
         id: node.id,
         type: node.type,
         active: isActive(node, timeUs),
-        ...transformOf(node, timeUs, factors),
+        ...transformOf(node, timeUs, factors, boxOf(node, null, canvas)),
         children: node.children.map((child) => evaluateChild(child, timeUs, factors, fonts)),
         effects: effectsAt(node.effects, timeUs),
         ...compositingAt(node, timeUs),
@@ -507,4 +586,98 @@ export function evaluateComposition(
     scenes,
     ...(transition?.backdrop == null ? {} : { backdrop: transition.backdrop }),
   };
+}
+
+/**
+ * The first instant at which the animated corners of a node do not form a
+ * convex quadrilateral with a non-zero area (D91.1): the node draws nothing
+ * then. A node of a scene at a time of the composition's frame grid, with its
+ * scene time; a node of a definition at a time of the definition's own grid.
+ */
+export interface CornersWarning {
+  readonly code: 'corners-not-convex';
+  readonly nodeId: string;
+  /** The scene or the definition that holds the node. */
+  readonly holderId: string;
+  /** Composition time for a node of a scene, definition time for a node of a definition. */
+  readonly timeUs: number;
+  readonly message: string;
+}
+
+/** The nodes of a holder that animate their corners, a group's children included (D91.1). */
+function animatedCornerNodes(nodes: readonly SceneNode[]): TransformedNode[] {
+  const found: TransformedNode[] = [];
+  const visit = (node: SceneNode): void => {
+    if (node.type === 'background') return;
+    if (node.animations.some((animation) => animation.property === 'corners')) found.push(node);
+    if (node.type === 'group') node.children.forEach(visit);
+  };
+  nodes.forEach(visit);
+  return found;
+}
+
+/** Whether a node draws nothing at its own time `timeUs` because of its corners (D91.1). */
+function cornersFail(node: TransformedNode, timeUs: number, canvas: Canvas): boolean {
+  const size =
+    node.type === 'image' || node.type === 'video'
+      ? pictureOf(node, timeUs).size
+      : node.type === 'shape'
+        ? shapeAt(node, timeUs).size
+        : null;
+  return evaluateTransform(node, timeUs, boxOf(node, size, canvas)).homography === null;
+}
+
+/**
+ * Every node whose animated corners turn concave, self-intersecting, or
+ * degenerate on the frame grid, with the first such instant (D91.1): what
+ * `kadrion inspect` lists as a warning. Only the active instants of a node of
+ * a scene count; a node of a definition is checked over the definition's
+ * time. Pure: derived from the document alone.
+ */
+export function cornersWarnings(composition: ValidatedComposition): CornersWarning[] {
+  const warnings: CornersWarning[] = [];
+  const warned = new Set<string>();
+  const warn = (node: TransformedNode, holderId: string, timeUs: number, local: string): void => {
+    warned.add(node.id);
+    warnings.push({
+      code: 'corners-not-convex',
+      nodeId: node.id,
+      holderId,
+      timeUs,
+      message: `The corners of "${node.id}" do not form a convex quadrilateral at ${local}: it draws nothing then (D91.1).`,
+    });
+  };
+  const frames = frameCount(composition.durationUs, composition.fps);
+  for (let frame = 0; frame < frames; frame += 1) {
+    const timeUs = frameToTimeUs(frame, composition.fps);
+    for (const { placement, timeUs: sceneTimeUs } of scenesAt(composition, timeUs)) {
+      const scene = composition.scenes[placement.index];
+      if (scene === undefined) continue;
+      for (const node of animatedCornerNodes(scene.nodes)) {
+        if (warned.has(node.id) || !isActive(node, sceneTimeUs)) continue;
+        if (cornersFail(node, sceneTimeUs, composition)) {
+          warn(
+            node,
+            scene.id,
+            timeUs,
+            `${String(timeUs)} µs (scene time ${String(sceneTimeUs)} µs)`,
+          );
+        }
+      }
+    }
+  }
+  for (const definition of composition.definitions) {
+    const nodes = animatedCornerNodes(definition.nodes);
+    const count = frameCount(definition.durationUs, composition.fps);
+    for (let frame = 0; frame < count && nodes.length > 0; frame += 1) {
+      const timeUs = frameToTimeUs(frame, composition.fps);
+      for (const node of nodes) {
+        if (warned.has(node.id) || !isActive(node, timeUs)) continue;
+        if (cornersFail(node, timeUs, definition)) {
+          warn(node, definition.id, timeUs, `definition time ${String(timeUs)} µs`);
+        }
+      }
+    }
+  }
+  return warnings;
 }

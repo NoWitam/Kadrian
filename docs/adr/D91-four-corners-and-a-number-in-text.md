@@ -4,6 +4,13 @@
   before any code; the four questions below accepted with their
   recommendations on 2026-11-26 (10:01 Europe/Warsaw), together with PR-94 to
   PR-97 without a separate approval of each
+- Amended by: PR-95 (D91) on 2026-11-26: adapted to D16.1 at the owner's
+  decision of that day: `corners` is required on every node that has `flip`,
+  four zero vectors are no quadrilateral, and `step029To030` writes them, as
+  the step to `0.27` wrote `flip` (D91.1, D91.3); D16 is unchanged. Question 2
+  measured: the pinned Chromium draws a perspective `matrix3d` on an SVG
+  element inside a `<mask>` as the affine map without its perspective, so a
+  matte has no corners (D91.1, question 2)
 - Date: 2026-11-24
 - Supersedes: —
 - Extends, each with an `Amended by` line written in the pull request that
@@ -51,10 +58,13 @@ The steps follow the pull requests: `0.30` the corners, `0.31` the number.
 ### D91.1 Four corners (schema `0.30`)
 
 - **Schema.** Every transformable node that has `flip` (D89.3), the group
-  and the instance included, gains optional `corners: { topLeft, topRight,
+  and the instance included, gains `corners: { topLeft, topRight,
 bottomRight, bottomLeft }`, each `{ x, y }` of numbers in composition
-  pixels (D15). No `corners` and four zero vectors mean the same: no
-  quadrilateral. `step029To030` changes `schemaVersion` only.
+  pixels (D15), required like every field of the document (D16.1). Four
+  zero vectors are no quadrilateral. `step029To030` writes four zero vectors
+  after the `flip` of every such node, in scenes, groups, and definitions
+  (amended by PR-95: the text first said optional, which D16.1 does not
+  allow).
 - **Meaning.** The corners of the node's box are first moved by its own
   transform (position, scale, rotation about the origin, flip; D68, D89.3)
   into its parent's space; each is then moved by its offset. The node draws
@@ -69,9 +79,10 @@ bottomRight, bottomLeft }`, each `{ x, y }` of numbers in composition
   `matrix3d(…)` in the numbers of D22 (`Number::toString`), in place of the
   affine list; the offset or zoom of a clip transition (D66) still precedes
   it in the list, so it applies in the parent's space as before. Without
-  corners, nothing changes, so every document of `0.29` writes the string it
-  wrote before. A matte writes the same matrix in its `svgTransform` if the
-  probe of question 2 passes.
+  corners, that is with four zero vectors, nothing changes, so every
+  document of `0.29` writes the string it wrote before. The probe of question
+  2 did not pass (PR-95): a matte has no corners, and `svgTransform` is
+  unchanged.
 - **What it reaches.** Everything the node draws: content, crop, corner
   radius, effects, and mask (D65.6, D75), which CSS applies before the
   transform. A group carries its children, an instance its definition.
@@ -88,7 +99,7 @@ bottomRight, bottomLeft }`, each `{ x, y }` of numbers in composition
   curves of D67.
 - **Command.** `SetNodeCorners { nodeId, corners }`, tool `set_node_corners`;
   a background is `unsupported-node`, the same value is no edit (D38.9), the
-  inverse sets the old corners, `null` removes them; a quadrilateral the
+  inverse sets the old corners, `null` removes them (four zero vectors); a quadrilateral the
   validation refuses is refused by the bus. `describeDocument` states it.
 - **Probes** (D65.8): the four corners of an image, a text with a frame, a
   shape, a group, and an instance; with a rotation of 30° about `250, 750`
@@ -136,8 +147,8 @@ decimalSeparator, groupSeparator, prefix, suffix }`: `value` a finite
 
 ### D91.3 The release
 
-A document of `0.29` migrates by two identity steps (`0.29` → `0.30` →
-`0.31`) and renders byte for byte. Each step has its frozen schema, its pair
+A document of `0.29` migrates by two steps (`0.29` → `0.30`, which writes
+four zero corners, amended by PR-95; → `0.31`) and renders byte for byte. Each step has its frozen schema, its pair
 of migration fixtures, and its compatibility corpus. Golden frames of both
 features in the Producer, the parity of the Player measured again, the host
 guide, and a showcase; one release, `v0.13.0`, after PR-97.
@@ -158,7 +169,15 @@ background.
    perspective `matrix3d` there is not proven. Recommendation: PR-95 probes
    first; if the probe is not exact in both hosts, a shape that is the matte
    of a sibling may not have corners (`invalid-corners`), and D91 is amended
-   with the measurement.
+   with the measurement. Measured in PR-95, in the pinned container: the same
+   perspective `matrix3d` on an HTML element and on a `<rect>` in a `<mask>`
+   differ in 3 064 pixels of a 200 by 200 panel, while the `<rect>` and an
+   HTML element with the matrix without its perspective (`m3 = m7 = 0`)
+   differ in none, inside a mask and outside one: Chromium drops the
+   perspective of an SVG element. So a node that is the matte of a sibling
+   has no corners, neither in its base nor in an animation
+   (`invalid-corners`), and the probe stays in
+   `tests/pinned/corners.pinned.test.ts`.
 3. **A number makes a measured node.** Recommendation: as written in D91.2,
    an amendment of D83.7; `measuredNodes` and `measuredFontIds` list it.
 4. **The mode of `number`.** Recommendation: `replace`, as above.
@@ -209,3 +228,38 @@ background.
   `tests/pinned/number.pinned.test.ts` with golden frames, so
   `REQUIRED_PINNED_FILES` and the Q14 artifact list grow; every existing
   golden PNG file keeps its bytes.
+
+## Implementation notes (PR-95)
+
+PR-95 brings schema `0.30` and the corners of D91.1.
+
+- **The step and the corpus.** `step029To030` writes `corners` of four zero
+  vectors directly after the `flip` of every node that has one, in scenes,
+  in definitions, and in the children of groups at any depth, and leaves
+  backgrounds as they are. The frozen `0.29` is `packages/schema/src/v0-29`;
+  the pair `migration-0-29-to-0-30`, the corpus `compatibility/v0-30` (every
+  file of `v0-29` stepped, and `corners.json`, the fixture of corners), and
+  five invalid cases (concave, crossed, three corners on one line, two at one
+  point, a text without a frame) hold it.
+- **The geometry.** `movedCorners`, `isConvexQuadrilateral`, and
+  `cosSinOfDegrees` live in `@kadrion/schema` (`corners.ts`), so the
+  validation and the runtime share them. The cosine and the sine are Taylor
+  series in Horner form on an angle reduced by comparisons to an eighth of a
+  turn, so a whole number of quarter turns is exact; the homography
+  (`homography.ts` of `@kadrion/runtime`) is the closed form of the unit
+  square onto a quadrilateral, scaled to the box. Both use `+ − × /` alone.
+- **The box.** An image, a video, and a shape: their size at the instant
+  (a `size` animation included); captions, an instance, and Custom HTML:
+  their `width` and `height`; a text: its fixed frame (question 1); a group:
+  the canvas of the scene's composition or of its definition.
+- **The state and the renderer.** A node with corners (non-zero offsets or a
+  `corners` animation) has `homography`: sixteen numbers, or `null` at an
+  instant where the quadrilateral is not convex, when its element is hidden;
+  a node without has no such field, and `cssTransform` writes the list it
+  wrote before. `cornersWarnings` (re-exported by `@kadrion/producer`) lists
+  the first such instant of every node on the frame grid, and
+  `kadrion inspect` prints it for a file whose text starts with `{`.
+- **The command and the tool.** `SetNodeCorners` follows `SetNodeFlip`, so
+  `set_node_corners` follows `set_node_flip` (106 tools). `null` is parsed to
+  four zero vectors; the row `corners` is edited by `AddAnimation`,
+  `AddKeyframe`, and `SetKeyframeValue`, whose values are never rounded.

@@ -50,6 +50,11 @@ export type {
   CustomHtmlCheckRequest,
 } from './custom-html-check.js';
 export { ProducerError } from './errors.js';
+/**
+ * The warnings of a document whose animated corners turn concave (D91.1),
+ * from `@kadrion/runtime`, which the CLI reaches through this package only.
+ */
+export { cornersWarnings, type CornersWarning } from '@kadrion/runtime';
 export { DEFAULT_ESTIMATE_SAMPLES, estimatePlan } from './estimate.js';
 export type { EstimatePlan } from './estimate.js';
 export { JOB_LIMITS } from './job.js';

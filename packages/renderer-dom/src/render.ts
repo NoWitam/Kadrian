@@ -415,8 +415,10 @@ export function renderState(root: Element, state: CompositionState): void {
         writeClipFrame(frame, node.transition);
       }
     }
-    // A matte is drawn into the mask of the node it mattes only (D75).
-    if (node.active && !element.hasAttribute(MATTE_ATTRIBUTE)) {
+    // A matte is drawn into the mask of the node it mattes only (D75); a node whose
+    // corners do not form a convex quadrilateral at this instant draws nothing (D91.1).
+    const drawn = node.type === 'background' || node.homography !== null;
+    if (node.active && drawn && !element.hasAttribute(MATTE_ATTRIBUTE)) {
       element.style.removeProperty('visibility');
     } else element.style.setProperty('visibility', 'hidden');
   }

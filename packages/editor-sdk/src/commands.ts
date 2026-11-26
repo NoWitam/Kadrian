@@ -14,6 +14,7 @@ import {
   type Asset,
   type BlendMode,
   type Clear,
+  type Corners,
   type Crop,
   type Fit,
   type Flip,
@@ -413,6 +414,23 @@ export interface SetNodeFlipArguments {
  */
 export interface SetNodeFlipCommand extends SetNodeFlipArguments {
   readonly type: 'SetNodeFlip';
+}
+
+/** What a caller states for `SetNodeCorners` (D91.1): `null` for no quadrilateral. */
+export interface SetNodeCornersArguments {
+  readonly nodeId: string;
+  readonly corners: Corners | null;
+}
+
+/**
+ * The offsets of the four corners of a node's box after its own transform, in
+ * composition pixels (D91.1): the node draws its box onto the quadrilateral of
+ * the moved corners. Four zero vectors are none; `null` is parsed to them.
+ */
+export interface SetNodeCornersCommand {
+  readonly type: 'SetNodeCorners';
+  readonly nodeId: string;
+  readonly corners: Corners;
 }
 
 /** What a caller states for `SetNodeCrop` (D68). */
@@ -1360,6 +1378,7 @@ export type Command =
   | SetNodeRotationCommand
   | SetNodeOriginCommand
   | SetNodeFlipCommand
+  | SetNodeCornersCommand
   | SetNodeCropCommand
   | SetNodeCornerRadiusCommand
   | SetVideoAssetCommand
@@ -1579,6 +1598,36 @@ export interface SetNodeFlipArgumentsSchema {
     };
   };
   readonly required: readonly (keyof SetNodeFlipArguments)[];
+  readonly additionalProperties: false;
+}
+
+/** The schema of the offset of one corner in the arguments of `SetNodeCorners` (D91.1). */
+export interface CornerOffsetArgumentSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly x: ArgumentSchema;
+    readonly y: ArgumentSchema;
+  };
+  readonly required: readonly ('x' | 'y')[];
+  readonly additionalProperties: false;
+}
+
+/** The argument schema of `SetNodeCorners` (D91.1): four offsets, or `null` for none. */
+export interface SetNodeCornersArgumentsSchema {
+  readonly type: 'object';
+  readonly description: string;
+  readonly properties: {
+    readonly nodeId: ArgumentSchema;
+    readonly corners: {
+      readonly type: readonly ['object', 'null'];
+      readonly description: string;
+      readonly properties: { readonly [K in keyof Corners]: CornerOffsetArgumentSchema };
+      readonly required: readonly (keyof Corners)[];
+      readonly additionalProperties: false;
+    };
+  };
+  readonly required: readonly (keyof SetNodeCornersArguments)[];
   readonly additionalProperties: false;
 }
 
@@ -2325,6 +2374,11 @@ const ORIGIN: Bounds = {
   minimum: VIDEO_SHAPE.properties.origin.properties.x.minimum,
   maximum: VIDEO_SHAPE.properties.origin.properties.x.maximum,
 };
+/** The bounds of a coordinate of an offset of `corners`, read from the schema (D91.1). */
+const CORNER: Bounds = {
+  minimum: VIDEO_SHAPE.properties.corners.properties.topLeft.properties.x.minimum,
+  maximum: VIDEO_SHAPE.properties.corners.properties.topLeft.properties.x.maximum,
+};
 /** The key of a top inset, held in a constant: a literal `top` reads like the global of a page. */
 const TOP = 'top';
 /** The bounds of an inset of `crop`, read from the schema (D68); images and videos share them. */
@@ -2499,6 +2553,52 @@ export const setNodeFlipArgumentsSchema: SetNodeFlipArgumentsSchema = deepFreeze
     },
   },
   required: ['nodeId', 'flip'],
+  additionalProperties: false,
+});
+
+/** The schema of the offset of one corner (D91.1). */
+function cornerOffsetArgument(corner: string): CornerOffsetArgumentSchema {
+  const coordinate = (axis: string): ArgumentSchema => ({
+    type: 'number',
+    description: `Composition pixels from ${String(CORNER.minimum)} to ${String(CORNER.maximum)} added to ${axis} of the ${corner} corner after the node's own transform; fractions allowed.`,
+    minimum: CORNER.minimum,
+    maximum: CORNER.maximum,
+  });
+  return {
+    type: 'object',
+    description: `The offset of the ${corner} corner of the box.`,
+    properties: { x: coordinate('x, growing right,'), y: coordinate('y, growing down,') },
+    required: ['x', 'y'],
+    additionalProperties: false,
+  };
+}
+
+/** The JSON Schema of the arguments of `SetNodeCorners` (D91.1): four offsets, or null. */
+export const setNodeCornersArgumentsSchema: SetNodeCornersArgumentsSchema = deepFreeze({
+  type: 'object',
+  description:
+    "Moves the four corners of a node's box after its own transform, so that it draws its box onto that quadrilateral in perspective.",
+  properties: {
+    nodeId: {
+      type: 'string',
+      description: `${NODE_ID} Every node but a background has corners; a group's box is the canvas, a text needs a fixed frame.`,
+      minLength: 1,
+    },
+    corners: {
+      type: ['object', 'null'],
+      description:
+        'The offset of each corner in composition pixels of the parent, in the order top-left, top-right, bottom-right, bottom-left; null or four zero vectors are no quadrilateral.',
+      properties: {
+        topLeft: cornerOffsetArgument('top-left'),
+        topRight: cornerOffsetArgument('top-right'),
+        bottomRight: cornerOffsetArgument('bottom-right'),
+        bottomLeft: cornerOffsetArgument('bottom-left'),
+      },
+      required: ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'],
+      additionalProperties: false,
+    },
+  },
+  required: ['nodeId', 'corners'],
   additionalProperties: false,
 });
 
@@ -2947,7 +3047,7 @@ export const setKeyframeEasingArgumentsSchema: SetKeyframeEasingArgumentsSchema 
  * (D65.2, D68). Exported for the descriptions of the tools.
  */
 export const KEYFRAME_VALUES =
-  'The value depends on the property of the animation: rotation, a number of degrees added to the node\'s rotation; origin, {"x":…,"y":…} integers in per mille (-1000 to 1000) added to the node\'s origin; size, {"width":…,"height":…} in composition pixels (rounded) that replaces the node\'s size; color, "#rrggbb" that replaces the node\'s colour; crop, {"top":…,"right":…,"bottom":…,"left":…} integers in per mille that replaces the node\'s crop; cornerRadius, composition pixels (rounded) that replace the node\'s corner radius; fill and stroke/color, "#rrggbb" that replaces the colour of a shape\'s solid fill or of its stroke; stroke/width, composition pixels (0 to 1000) that replace the width of its stroke; trim/start and trim/end, integers in per mille (0 to 1000) of the outline that replace where its drawn part starts or ends; geometry, a complete geometry of the structure of the shape\'s own (its kind, its number of points, its commands in the same order with the same arc flags) that replaces it, every number moving on its own, so that a path morphs.';
+  'The value depends on the property of the animation: rotation, a number of degrees added to the node\'s rotation; origin, {"x":…,"y":…} integers in per mille (-1000 to 1000) added to the node\'s origin; corners, {"topLeft":{"x":…,"y":…},"topRight":…,"bottomRight":…,"bottomLeft":…} offsets in composition pixels added to the node\'s corners, every frame whose quadrilateral is not convex drawing nothing of the node; size, {"width":…,"height":…} in composition pixels (rounded) that replaces the node\'s size; color, "#rrggbb" that replaces the node\'s colour; crop, {"top":…,"right":…,"bottom":…,"left":…} integers in per mille that replaces the node\'s crop; cornerRadius, composition pixels (rounded) that replace the node\'s corner radius; fill and stroke/color, "#rrggbb" that replaces the colour of a shape\'s solid fill or of its stroke; stroke/width, composition pixels (0 to 1000) that replace the width of its stroke; trim/start and trim/end, integers in per mille (0 to 1000) of the outline that replace where its drawn part starts or ends; geometry, a complete geometry of the structure of the shape\'s own (its kind, its number of points, its commands in the same order with the same arc flags) that replaces it, every number moving on its own, so that a path morphs.';
 
 /** The JSON Schema of the arguments of `SetKeyframeValue` (D65.2): the value is the row's to judge. */
 export const setKeyframeValueArgumentsSchema: SetKeyframeValueArgumentsSchema = deepFreeze({
@@ -5088,6 +5188,53 @@ export function parseSetNodeFlip(value: unknown): SetNodeFlipCommand {
   });
 }
 
+/** Four zero vectors: no quadrilateral (D91.1). */
+function zeroCorners(): Corners {
+  const zero = (): { readonly x: number; readonly y: number } => Object.freeze({ x: 0, y: 0 });
+  return Object.freeze({
+    topLeft: zero(),
+    topRight: zero(),
+    bottomRight: zero(),
+    bottomLeft: zero(),
+  });
+}
+
+/**
+ * The fields of a `SetNodeCorners` (D91.1): four offsets of finite numbers in
+ * the schema's bounds, never rounded, -0 as 0; `null` is four zero vectors.
+ * Whether the quadrilateral is convex is the document's to judge
+ * (`invalid-result`).
+ */
+export function parseSetNodeCorners(value: unknown): SetNodeCornersCommand {
+  const fields = fieldsOf(value, ['type', 'nodeId', 'corners'], 'The command `SetNodeCorners`');
+  const nodeId = nodeIdOf(fields);
+  if (fields['corners'] === null) {
+    return Object.freeze({ type: 'SetNodeCorners', nodeId, corners: zeroCorners() });
+  }
+  const corners = fieldsOf(
+    fields['corners'],
+    ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'],
+    '`corners`',
+  );
+  const offset = (key: keyof Corners): { readonly x: number; readonly y: number } => {
+    const point = fieldsOf(corners[key], ['x', 'y'], `\`corners.${key}\``);
+    return Object.freeze({
+      x: boundedNumber(point['x'], CORNER, `\`corners.${key}.x\``),
+      y: boundedNumber(point['y'], CORNER, `\`corners.${key}.y\``),
+    });
+  };
+  return Object.freeze({
+    type: 'SetNodeCorners',
+    nodeId,
+    corners: Object.freeze({
+      topLeft: offset('topLeft'),
+      topRight: offset('topRight'),
+      bottomRight: offset('bottomRight'),
+      bottomLeft: offset('bottomLeft'),
+    }),
+  });
+}
+
 /**
  * The fields of a `SetNodeCrop` (D68): four integer insets in per mille, in the
  * schema's bounds; whether two opposite ones leave a picture is the
@@ -5151,6 +5298,7 @@ export function parseSetKeyframeValue(value: unknown): SetKeyframeValueCommand {
 export const GENERIC_KEYFRAME_PROPERTIES = Object.freeze([
   'rotation',
   'origin',
+  'corners',
   'size',
   'color',
   'crop',
@@ -5167,7 +5315,8 @@ export const GENERIC_KEYFRAME_PROPERTIES = Object.freeze([
 /**
  * A keyframe value of `property` as the document stores it (D65.2, D68), or
  * `invalid-argument`: a rotation a finite number, never rounded; an origin
- * offset and a crop integers, never rounded; a size and a corner radius
+ * offset and a crop integers, never rounded; the four offsets of corners
+ * finite numbers, never rounded (D91.1); a size and a corner radius
  * rounded like a position (D15); a colour `#` and six hexadecimal digits,
  * stored in lower case; a volume a finite number, never rounded (D85.8). -0
  * becomes 0. The bounds are the document's: a value outside them is
@@ -5224,6 +5373,26 @@ export function normalizedKeyframeValue(
       return Object.freeze({
         x: integer(fields['x'], '`value.x`'),
         y: integer(fields['y'], '`value.y`'),
+      });
+    }
+    case 'corners': {
+      const fields = fieldsOf(
+        value,
+        ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'],
+        'The value of a corners keyframe',
+      );
+      const offset = (key: keyof Corners): DocumentObject => {
+        const point = fieldsOf(fields[key], ['x', 'y'], `\`value.${key}\``);
+        return Object.freeze({
+          x: finite(point['x'], `\`value.${key}.x\``),
+          y: finite(point['y'], `\`value.${key}.y\``),
+        });
+      };
+      return Object.freeze({
+        topLeft: offset('topLeft'),
+        topRight: offset('topRight'),
+        bottomRight: offset('bottomRight'),
+        bottomLeft: offset('bottomLeft'),
       });
     }
     case 'size': {

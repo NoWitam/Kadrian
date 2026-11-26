@@ -237,8 +237,12 @@ describe('the bounds of a sampled value (D67.6)', () => {
       if (property !== undefined && keyframes !== undefined) {
         const value = keyframes.items.properties.value;
         const channels = value['properties'] as Record<string, Record<string, unknown>> | undefined;
-        // A vector by its x, a size by its width, a crop by its top inset (D68).
-        const scalar = channels?.['x'] ?? channels?.['width'] ?? channels?.['top'] ?? value;
+        // A vector by its x, a size by its width, a crop by its top inset (D68),
+        // corners by the x of the top-left offset (D91.1).
+        const corner = channels?.['topLeft']?.['properties'] as
+          Record<string, Record<string, unknown>> | undefined;
+        const scalar =
+          channels?.['x'] ?? channels?.['width'] ?? channels?.['top'] ?? corner?.['x'] ?? value;
         found[property] = { min: scalar['minimum'], max: scalar['maximum'] };
       }
       // The tracks of a text animation and of a captions style, the parameters of

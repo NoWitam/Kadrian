@@ -144,6 +144,11 @@ export type Crop = ImageNode['crop'];
 export type Origin = ImageNode['origin'];
 /** The mirror flip of a node in its own box, about the box's centre, on each axis (D89.3). */
 export type Flip = ImageNode['flip'];
+/**
+ * The offsets of the four corners of a node's box, in composition pixels of its
+ * parent's space, after its own transform; four zero vectors are none (D91.1).
+ */
+export type Corners = ImageNode['corners'];
 /** The property an animation targets: a row of the table of D65.1 (D68). */
 export type AnimatedProperty = NodeAnimation['property'];
 /** The outline, the shadow, and the box of a text node (D69), and the alignment of its lines (D83.4). */

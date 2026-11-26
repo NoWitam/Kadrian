@@ -259,7 +259,8 @@ type ExpectedTransformAnimation =
   | ExpectedAnimation<'position', Vec2>
   | ExpectedAnimation<'scale', Vec2>
   | ExpectedAnimation<'rotation', number>
-  | ExpectedAnimation<'origin', Vec2>;
+  | ExpectedAnimation<'origin', Vec2>
+  | ExpectedAnimation<'corners', ExpectedCorners>;
 
 type ExpectedColorAnimation = ExpectedAnimation<'color', string>;
 
@@ -371,12 +372,21 @@ interface ExpectedLifetime {
   readonly durationUs: number;
 }
 
+/** The offsets of the four corners of a node's box (D91.1). */
+interface ExpectedCorners {
+  readonly topLeft: Vec2;
+  readonly topRight: Vec2;
+  readonly bottomRight: Vec2;
+  readonly bottomLeft: Vec2;
+}
+
 interface ExpectedTransform<A = ExpectedTransformAnimation> extends ExpectedLifetime {
   readonly position: Vec2;
   readonly scale: Vec2;
   readonly rotation: number;
   readonly origin: Vec2;
   readonly flip: { readonly x: boolean; readonly y: boolean };
+  readonly corners: ExpectedCorners;
   readonly opacity: number;
   readonly animations: readonly A[];
 }
@@ -893,7 +903,7 @@ interface ExpectedDefinition {
 }
 
 interface ExpectedComposition {
-  readonly schemaVersion: '0.29';
+  readonly schemaVersion: '0.30';
   readonly width: number;
   readonly height: number;
   readonly safeArea: {

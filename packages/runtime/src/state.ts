@@ -42,6 +42,30 @@ export interface CropState {
   readonly fromLeft: number;
 }
 
+/**
+ * The sixteen numbers of a CSS `matrix3d`, column by column (D91.1): a
+ * homography of the plane, whose third row and column are those of the
+ * identity.
+ */
+export type Homography = readonly [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+];
+
 /** The animatable properties of a node after its animations were applied (D16.6, D68). */
 export interface TransformState {
   /** Offset of the top-left corner of the node's box from the origin of its parent, in composition pixels. */
@@ -58,6 +82,15 @@ export interface TransformState {
    * rotation; never animated (D89.3).
    */
   readonly flip: { readonly x: boolean; readonly y: boolean };
+  /**
+   * The projective map of the node's box onto the quadrilateral of its moved
+   * corners (D91.1), as the sixteen numbers of a CSS `matrix3d`, column by
+   * column, from the pixels of the box to its parent's space: it is the whole
+   * of the node's own transform, which it replaces. Absent when the corners
+   * are four zero vectors. `null` when the quadrilateral of this instant is not
+   * convex with a non-zero area: the node draws nothing in this frame.
+   */
+  readonly homography?: Homography | null;
   /**
    * Not multiplied into children: a group is composited before its opacity
    * applies (D15). A clip transition's factor is part of it (D56).

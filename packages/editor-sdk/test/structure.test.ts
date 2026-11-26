@@ -68,6 +68,12 @@ function textNode(id: string, animationId?: string): Record<string, unknown> {
     rotation: 0,
     origin: { x: 0, y: 0 },
     flip: { x: false, y: false },
+    corners: {
+      topLeft: { x: 0, y: 0 },
+      topRight: { x: 0, y: 0 },
+      bottomRight: { x: 0, y: 0 },
+      bottomLeft: { x: 0, y: 0 },
+    },
     opacity: 1,
     animations:
       animationId === undefined
@@ -192,6 +198,12 @@ describe('AddNode (D39.1)', () => {
       rotation: 0,
       origin: { x: 0, y: 0 },
       flip: { x: false, y: false },
+      corners: {
+        topLeft: { x: 0, y: 0 },
+        topRight: { x: 0, y: 0 },
+        bottomRight: { x: 0, y: 0 },
+        bottomLeft: { x: 0, y: 0 },
+      },
       opacity: 1,
       animations: [],
       children: [],

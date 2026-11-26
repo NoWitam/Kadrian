@@ -796,6 +796,23 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   `packages/ai-sdk` reads (D46); the warning of `inspect` in `packages/cli`;
   `tests/pinned/corners.pinned.test.ts` with golden frames. Every document
   of `0.29` writes the transform it wrote before.
+  Status: in review. The probe of question 2 did not pass: Chromium draws a
+  perspective `matrix3d` on an SVG element inside a `<mask>` without its
+  perspective (3 064 differing pixels against the same transform in HTML,
+  0 against the affine part alone), so a matte refuses corners with
+  `invalid-corners` and `masks.ts` is unchanged (D91 and D75 amended). As
+  decided for PR-95, `corners` is required on every
+  node with `flip` and four zero vectors mean none, as D16.1 asks; the step
+  0.29 → 0.30 writes them, and D91 says so in its header. The gate,
+  `tests/pinned/corners.pinned.test.ts`, enters, so `REQUIRED_PINNED_FILES`
+  and the Q14 artifact list grow by it. No earlier golden PNG file changes;
+  the golden manifests change in the three fields of D42 alone. The runtime
+  build is
+  `sha256:7dde65de40a17e636a0f7c4aed27b327744723642080936748db8ad62b2314bd`
+  (518 267 bytes) and the Player's dist tree
+  `sha256:d64f5510a01ee041dc9f083902b5c36f6d5eae643d4de91b419d49072fa10061`
+  (85 files); the parity records (every row 0/0) and the evidence of Q14 are
+  the pinned run's.
 - **PR-96** (D91.2, the number): schema `0.31` with `number`, the step
   `step-0-30-to-0-31.ts`, the frozen `v0-30`, the pair, the corpus
   `compatibility/v0-31`, and invalid cases; the format, the widest text, the

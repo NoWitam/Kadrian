@@ -100,6 +100,7 @@ import {
   parseSetNodeRotation,
   parseSetNodeOrigin,
   parseSetNodeFlip,
+  parseSetNodeCorners,
   parseSetNodeCrop,
   parseSetNodeCornerRadius,
   parseSetKeyframeValue,
@@ -1876,6 +1877,40 @@ const DEFINITIONS = deepFreeze<Definitions>({
           // The box, the position, and the origin are not touched (D89.3).
           node: { ...node, flip: command.flip },
           inverse: parseSetNodeFlip({ ...command, flip }),
+        };
+      }),
+  },
+  SetNodeCorners: {
+    parse: parseSetNodeCorners,
+    edit: (document, command) =>
+      onNode(document, command.nodeId, (node) => {
+        const stored = node['corners'];
+        const keys = ['topLeft', 'topRight', 'bottomRight', 'bottomLeft'] as const;
+        const pointOf = (key: (typeof keys)[number]): { x: unknown; y: unknown } => {
+          const point = isObject(stored) ? stored[key] : undefined;
+          if (!isObject(point)) {
+            throw new EditorError(
+              'unsupported-node',
+              `The node \`${command.nodeId}\` has no corners.`,
+            );
+          }
+          return { x: point['x'], y: point['y'] };
+        };
+        const corners = {
+          topLeft: pointOf('topLeft'),
+          topRight: pointOf('topRight'),
+          bottomRight: pointOf('bottomRight'),
+          bottomLeft: pointOf('bottomLeft'),
+        };
+        const same = keys.every(
+          (key) =>
+            corners[key].x === command.corners[key].x && corners[key].y === command.corners[key].y,
+        );
+        if (same) return null;
+        return {
+          // The transform and the box are not touched (D91.1).
+          node: { ...node, corners: command.corners },
+          inverse: parseSetNodeCorners({ ...command, corners }),
         };
       }),
   },
@@ -3757,6 +3792,12 @@ function plainInstance(instanceId: string, definitionId: string, frame: Frame): 
     rotation: 0,
     origin: { x: 0, y: 0 },
     flip: { x: false, y: false },
+    corners: {
+      topLeft: { x: 0, y: 0 },
+      topRight: { x: 0, y: 0 },
+      bottomRight: { x: 0, y: 0 },
+      bottomLeft: { x: 0, y: 0 },
+    },
     opacity: 1,
     animations: [],
     definitionId,

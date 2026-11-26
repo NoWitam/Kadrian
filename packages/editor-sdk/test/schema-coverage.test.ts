@@ -329,6 +329,7 @@ describe('what the animation commands read from the schema (D41.2, D41.4)', () =
     expect([...minimums.keys()].sort()).toEqual([
       'color',
       'cornerRadius',
+      'corners',
       'crop',
       'fill',
       'geometry',

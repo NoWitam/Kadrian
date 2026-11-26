@@ -34,6 +34,7 @@
 - Amended by: PR-89 (D89) on 2026-11-22: the step from `0.26` to `0.27` and the frozen `0.26` schema (D89.3)
 - Amended by: PR-90 (D89) on 2026-11-22: the step from `0.27` to `0.28` and the frozen `0.27` schema (D89.2)
 - Amended by: PR-91 (D89) on 2026-11-22: the step from `0.28` to `0.29` and the frozen `0.28` schema (D89.1)
+- Amended by: PR-95 (D91) on 2026-11-26: the step from `0.29` to `0.30`, which writes `corners` of four zero vectors after the `flip` of every node that has one, and the frozen `0.29` schema (D91.1)
 - Related: D02, D16, D17, D24,
   [specification](../spike/vertical-spike.md) §11 and open question Q16,
   [spike report](../spike/report.md)

@@ -756,6 +756,12 @@ export function svgToShapes(
       rotation: 0,
       origin: { x: 500, y: 500 },
       flip: { x: false, y: false },
+      corners: {
+        topLeft: { x: 0, y: 0 },
+        topRight: { x: 0, y: 0 },
+        bottomRight: { x: 0, y: 0 },
+        bottomLeft: { x: 0, y: 0 },
+      },
       opacity: rounded(opacity * paintOpacity),
       animations: [],
       width,

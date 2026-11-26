@@ -23,6 +23,7 @@
  * function, never a branch here.
  */
 import { compositionSchema, SCHEMA_VERSION } from './composition-schema.js';
+import { hasCorners, isConvexQuadrilateral, movedCorners } from './corners.js';
 import { MAX_INSTANCE_DEPTH } from './definitions.js';
 import { pointer, type ValidationError } from './errors.js';
 import { instantiateDefinition, MAX_REPEAT_IDS, valuesOf } from './template-fill.js';
@@ -41,6 +42,7 @@ import type {
   AudioClip,
   CaptionsNode,
   Composition,
+  Corners,
   EffectAnimation,
   FragmentTrack,
   InstanceNode,
@@ -87,6 +89,7 @@ import type { CompositionV025 } from './v0-25/composition-schema.js';
 import type { CompositionV026 } from './v0-26/composition-schema.js';
 import type { CompositionV027 } from './v0-27/composition-schema.js';
 import type { CompositionV028 } from './v0-28/composition-schema.js';
+import type { CompositionV029 } from './v0-29/composition-schema.js';
 
 /** A node of a scene of 0.9, whose images and videos have no focus (D63). */
 type SceneNodeV09 = CompositionV09['scenes'][number]['nodes'][number];
@@ -116,6 +119,7 @@ type SceneNodeV025 = CompositionV025['scenes'][number]['nodes'][number];
 type SceneNodeV026 = CompositionV026['scenes'][number]['nodes'][number];
 type SceneNodeV027 = CompositionV027['scenes'][number]['nodes'][number];
 type SceneNodeV028 = CompositionV028['scenes'][number]['nodes'][number];
+type SceneNodeV029 = CompositionV029['scenes'][number]['nodes'][number];
 
 /**
  * Generic on purpose: every `id` anywhere in the document takes part, so a new
@@ -514,6 +518,101 @@ function checkMattes(
   });
 }
 
+/** What the corners of a node are checked against (D91.1): its box, its transform, its rows. */
+interface CorneredNode {
+  readonly type: string;
+  readonly corners: Corners;
+  readonly position: { readonly x: number; readonly y: number };
+  readonly scale: { readonly x: number; readonly y: number };
+  readonly rotation: number;
+  readonly origin: { readonly x: number; readonly y: number };
+  readonly flip: { readonly x: boolean; readonly y: boolean };
+  readonly animations: readonly { readonly property: string }[];
+  readonly width?: number;
+  readonly height?: number;
+  readonly frame?: { readonly kind: string; readonly width?: number; readonly height?: number };
+}
+
+/** Whether a node has corners: offsets that are not all zero, or an animation of them (D91.1). */
+function isCornered(node: CorneredNode): boolean {
+  return (
+    hasCorners(node.corners) ||
+    node.animations.some((animation) => animation.property === 'corners')
+  );
+}
+
+/**
+ * The corners of a node (D91.1). A node with corners needs a box the runtime
+ * knows: a text has one only with a fixed frame (question 1 of D91), and a
+ * group's is the canvas of what holds it. At its base values its four moved
+ * corners must form a convex quadrilateral with a non-zero area, in their
+ * order; while animated, an instant that does not draws nothing, which
+ * `kadrion inspect` reports.
+ */
+function checkCorners(
+  value: object,
+  path: string,
+  canvas: { readonly width: number; readonly height: number },
+  errors: ValidationError[],
+): void {
+  const node = value as CorneredNode;
+  if (!isCornered(node)) return;
+  const at = pointer(path, 'corners');
+  let box: { readonly width: number; readonly height: number } | null = null;
+  if (node.type === 'group') box = canvas;
+  else if (node.type === 'text') {
+    if (node.frame?.kind === 'fixed' && node.frame.width !== undefined) {
+      box = { width: node.frame.width, height: node.frame.height ?? 0 };
+    }
+  } else if (node.width !== undefined && node.height !== undefined) {
+    box = { width: node.width, height: node.height };
+  }
+  if (box === null) {
+    errors.push({
+      code: 'invalid-corners',
+      path: at,
+      message:
+        'A text has corners only with a fixed frame, whose box the runtime knows; give it a frame first (D91.1).',
+    });
+    return;
+  }
+  if (!isConvexQuadrilateral(movedCorners(box, node, node.corners))) {
+    errors.push({
+      code: 'invalid-corners',
+      path: at,
+      message:
+        'The moved corners must form a convex quadrilateral with a non-zero area, in the order top-left, top-right, bottom-right, bottom-left: not concave, not crossed, no three on one line (D91.1).',
+    });
+  }
+}
+
+/**
+ * No matte has corners (question 2 of D91, amended by PR-95): a matte is an
+ * SVG element in a mask, and Chromium draws a perspective `matrix3d` there as
+ * the affine map without its perspective, which the probe measured.
+ */
+function checkCorneredMattes(
+  siblings: readonly object[],
+  path: string,
+  errors: ValidationError[],
+): void {
+  const list = siblings as readonly (Sibling & Partial<CorneredNode>)[];
+  const mattes = new Set(
+    list.flatMap((node) =>
+      node.matte?.kind === 'node' && node.matte.nodeId !== undefined ? [node.matte.nodeId] : [],
+    ),
+  );
+  list.forEach((node, index) => {
+    if (!mattes.has(node.id) || node.corners === undefined) return;
+    if (!isCornered(node as CorneredNode)) return;
+    errors.push({
+      code: 'invalid-corners',
+      path: pointer(pointer(path, index), 'corners'),
+      message: `Node "${node.id}" is the matte of a sibling; a matte has no corners (D91.1).`,
+    });
+  });
+}
+
 export function validateSemantics(
   composition:
     | Composition
@@ -544,7 +643,8 @@ export function validateSemantics(
     | CompositionV025
     | CompositionV026
     | CompositionV027
-    | CompositionV028,
+    | CompositionV028
+    | CompositionV029,
   options: SemanticOptions = CHECK_EVERYTHING,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
@@ -587,6 +687,7 @@ export function validateSemantics(
   const captionErrors: ValidationError[] = [];
   const shapeErrors: ValidationError[] = [];
   const matteErrors: ValidationError[] = [];
+  const cornerErrors: ValidationError[] = [];
 
   // The nodes of every scene, and of every definition of 0.21 (D76), which are
   // checked as the nodes of a scene are.
@@ -604,19 +705,24 @@ export function validateSemantics(
       | SceneNodeV026
       | SceneNodeV027
       | SceneNodeV028
+      | SceneNodeV029
     )[];
     readonly transitions?: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
     readonly effects?: Composition['scenes'][number]['effects'];
     readonly path: string;
+    /** The canvas a group of this holder is as large as (D15, D76). */
+    readonly canvas: { readonly width: number; readonly height: number };
   }[] = [
     ...(composition.scenes as readonly Composition['scenes'][number][]).map((scene, index) => ({
       ...scene,
       path: pointer(pointer('', 'scenes'), index),
+      canvas: composition,
     })),
     ...('definitions' in composition ? composition.definitions : []).map((definition, index) => ({
       nodes: definition.nodes,
       transitions: definition.transitions,
       path: pointer(pointer('', 'definitions'), index),
+      canvas: definition,
     })),
   ];
   holders.forEach((scene) => {
@@ -703,6 +809,10 @@ export function validateSemantics(
         if ('effects' in member.node) {
           checkEffects(member.node.effects, pointer(member.path, 'effects'), animationErrors);
         }
+        // The corners of 0.30 (D91.1).
+        if ('corners' in member.node) {
+          checkCorners(member.node, member.path, scene.canvas, cornerErrors);
+        }
         // The mask of 0.20 (D75): an image mask shows an image asset.
         if ('mask' in member.node) {
           const maskPath = pointer(member.path, 'mask');
@@ -715,10 +825,12 @@ export function validateSemantics(
       // The mattes of 0.20 among the children of a group (D75).
       if (node.type === 'group') {
         checkMattes(node.children, pointer(nodePath, 'children'), clipSides, matteErrors);
+        checkCorneredMattes(node.children, pointer(nodePath, 'children'), cornerErrors);
       }
     });
     // The mattes of 0.20 among the nodes of a scene (D75).
     checkMattes(scene.nodes, nodesPath, clipSides, matteErrors);
+    checkCorneredMattes(scene.nodes, nodesPath, cornerErrors);
     if (scene.effects !== undefined) {
       checkEffects(scene.effects, pointer(scene.path, 'effects'), animationErrors);
     }
@@ -813,6 +925,7 @@ export function validateSemantics(
   // The elements of 0.22 (D77): the templates of definitions and the values of instances.
   if (
     composition.schemaVersion === SCHEMA_VERSION ||
+    composition.schemaVersion === '0.29' ||
     composition.schemaVersion === '0.28' ||
     composition.schemaVersion === '0.27' ||
     composition.schemaVersion === '0.26' ||
@@ -837,6 +950,7 @@ export function validateSemantics(
     ...captionErrors,
     ...shapeErrors,
     ...matteErrors,
+    ...cornerErrors,
     ...safeAreaErrors,
     ...definitionErrors,
     ...templateErrors,
@@ -859,7 +973,8 @@ function checkDefinitions(
     | CompositionV025
     | CompositionV026
     | CompositionV027
-    | CompositionV028,
+    | CompositionV028
+    | CompositionV029,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -1075,6 +1190,32 @@ function withFlips(definition: Definition): Definition {
   return { ...definition, nodes: definition.nodes.map((child) => node(child) as typeof child) };
 }
 
+/** Four zero corners, a new object at every call: no quadrilateral (D91.1). */
+function zeroCorners(): Corners {
+  return {
+    topLeft: { x: 0, y: 0 },
+    topRight: { x: 0, y: 0 },
+    bottomRight: { x: 0, y: 0 },
+    bottomLeft: { x: 0, y: 0 },
+  };
+}
+
+/**
+ * A definition of 0.29 or earlier with the corners of 0.30 on its nodes: four
+ * zero corners after the `flip` of every transformable node and of every child
+ * of a group, which draws what the node drew (D91.1). `withFlips` runs first.
+ */
+function withCorners(definition: Definition): Definition {
+  const node = (value: object): object => {
+    const record = value as Readonly<Record<string, unknown>>;
+    const cornered = withAfter(value, 'flip', [['corners', zeroCorners()]]);
+    if (record['type'] !== 'group') return cornered;
+    const children = record['children'] as readonly object[];
+    return { ...cornered, children: children.map(node) };
+  };
+  return { ...definition, nodes: definition.nodes.map((child) => node(child) as typeof child) };
+}
+
 /** A definition seen as a composition of one scene: its nodes, clips, and transitions (D77). */
 function definitionHolder(
   composition: Pick<Composition, 'fps' | 'assets'>,
@@ -1174,7 +1315,8 @@ function checkElements(
     | CompositionV025
     | CompositionV026
     | CompositionV027
-    | CompositionV028,
+    | CompositionV028
+    | CompositionV029,
   options: SemanticOptions,
 ): ValidationError[] {
   // The definitions of 0.22 to 0.26 are those of 0.27 without the time maps of their
@@ -1184,7 +1326,8 @@ function checkElements(
   // `withSpeedOne`, `withFrames`, `withCurves`, and `withFlips` add where a
   // definition is validated as one (D82.8, D83.9, D85.7, D89.3); those of 0.27 are
   // those of 0.28, since a definition has no clear (D89.2), and those of 0.28 are
-  // those of 0.29, whose bound of a side only grows (D89.1).
+  // those of 0.29, whose bound of a side only grows (D89.1); those of 0.29 lack the
+  // corners of 0.30, which `withCorners` adds as four zero vectors (D91.1).
   const composition = document as Composition;
   const errors: ValidationError[] = [];
   const definitions = new Map(
@@ -1282,10 +1425,11 @@ function checkElements(
         // texts and captions look as the defaults of 0.25 draw them, so the current schema
         // judges them as theirs did, and a document before 0.26 has no volume curves, which
         // `animations: []` states, and one before 0.27 no flips, which `flip` of false on
-        // both axes states (D82.8, D83.9, D85.7, D89.3).
+        // both axes states, and one before 0.30 no corners, which four zero vectors state
+        // (D82.8, D83.9, D85.7, D89.3, D91.1).
         const current = document.schemaVersion === SCHEMA_VERSION;
         const upgraded = (from: Definition): Definition =>
-          withFlips(withCurves(withFrames(withSpeedOne(from))));
+          withCorners(withFlips(withCurves(withFrames(withSpeedOne(from)))));
         const instantiated = definitionHolder(
           composition,
           current ? made.definition : upgraded(made.definition),
@@ -1549,6 +1693,7 @@ function checkTemplate(
     | CompositionV026
     | CompositionV027
     | CompositionV028
+    | CompositionV029
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -2072,6 +2217,7 @@ function subtreeOf(
     | CompositionV026
     | CompositionV027
     | CompositionV028
+    | CompositionV029
     | CompositionV014
     | CompositionV013
     | CompositionV011
@@ -2160,7 +2306,9 @@ interface Located {
     | SceneNodeV027
     | Extract<SceneNodeV027, { type: 'group' }>['children'][number]
     | SceneNodeV028
-    | Extract<SceneNodeV028, { type: 'group' }>['children'][number];
+    | Extract<SceneNodeV028, { type: 'group' }>['children'][number]
+    | SceneNodeV029
+    | Extract<SceneNodeV029, { type: 'group' }>['children'][number];
   readonly parentId: string | null;
 }
 
@@ -2197,7 +2345,8 @@ function checkTransitions(
     | CompositionV025
     | CompositionV026
     | CompositionV027
-    | CompositionV028,
+    | CompositionV028
+    | CompositionV029,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
   const sceneIndex = new Map(composition.scenes.map((scene, index) => [scene.id, index]));
