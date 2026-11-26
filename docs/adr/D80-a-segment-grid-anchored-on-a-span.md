@@ -1,6 +1,9 @@
 # D80 — A segment grid anchored on a span, with a shortest last segment
 
-- Status: Proposed
+- Status: Accepted — by the project owner on 2026-11-26 (15:45 Europe/Warsaw),
+  with PR-98, as written and as implemented in `cc66722`; proposed on
+  2026-11-10. Since then `EXPORT_MANIFEST_VERSION` became 6 (D88.2) and 7
+  (D89.2); `grid` stays an additive field of that version (80.2)
 - Date: 2026-11-10
 - Supersedes: —
 - Extends: D47 (47.1 the grid, 47.2 a range, 47.5 the join, 47.8 the CLI) and

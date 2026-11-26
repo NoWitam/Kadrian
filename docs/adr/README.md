@@ -87,7 +87,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D77](D77-elements.md)                                        | Elements: nested templates with inputs, schema 0.22                                          | Accepted          |
 | [D78](D78-custom-html-for-ai-authors.md)                      | Custom HTML for AI authors: a managed clock, fonts, and parameters, schema 0.23              | Accepted          |
 | [D79](D79-video-containers-read-with-mediabunny.md)           | Video containers read with Mediabunny, and the verdict of `inspectVideo`                     | Proposed          |
-| [D80](D80-a-segment-grid-anchored-on-a-span.md)               | A segment grid anchored on a span, with a shortest last segment                              | Proposed          |
+| [D80](D80-a-segment-grid-anchored-on-a-span.md)               | A segment grid anchored on a span, with a shortest last segment                              | Accepted          |
 | [D81](D81-video-turned-by-its-container.md)                   | Video turned by its container: the display matrix applied after the conversion to RGB        | Proposed          |
 | [D82](D82-clip-speed-freeze-frames-and-reverse-playback.md)   | Clip speed, freeze frames, and reverse playback: a rational time map, schema 0.24            | Accepted          |
 | [D83](D83-a-text-frame-and-lines-measured-from-the-font.md)   | A text frame, alignment, and lines measured from the font: schema 0.25                       | Accepted          |
@@ -99,6 +99,8 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D89](D89-stills-a-larger-canvas-transparency-and-flip.md)    | Stills: a canvas up to 8192 pixels, transparency, and a mirror flip of nodes                 | Accepted          |
 | [D90](D90-every-changed-tile-is-rastered-whole.md)            | Every changed tile is rastered whole                                                         | Accepted          |
 | [D91](D91-four-corners-and-a-number-in-text.md)               | Four corners of a node and a number in a text: schema 0.30 and 0.31                          | Accepted          |
+| [D92](D92-segment-keys-and-a-join-of-earlier-segments.md)     | The key of a segment, a grid of spans, and a join of segments of earlier renders             | Accepted          |
+| [D93](D93-the-command-check-custom-html.md)                   | The command `kadrion check-custom-html`                                                      | Accepted          |
 
 ## Provenance of D01–D10
 
