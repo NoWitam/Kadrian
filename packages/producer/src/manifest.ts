@@ -264,17 +264,37 @@ export interface ManifestRange {
  * The grid a render's segments lie on, when it is not the composition's grid of
  * D47.1 (D80.2): its span, whose first frame starts segment 0 and whose end
  * ends the last segment, and the shortest last segment, under which the last
- * one is merged into the one before it. Absent, the grid is D47.1's.
+ * one is merged into the one before it. Absent, the grid is D47.1's. A grid of
+ * spans is always named, with its spans (D92.2).
  */
 export interface ManifestGrid extends ManifestRange {
   readonly minSegmentFrames: number;
+  /**
+   * The spans of a grid of spans, in order, the first at the grid's first
+   * frame (D92.2). Absent without spans, so a manifest of D80 keeps its bytes.
+   */
+  readonly spans?: readonly ManifestSpan[];
+}
+
+/** A span of a grid of spans (D92.2): its start time, a frame time, and that frame. */
+export interface ManifestSpan {
+  readonly fromUs: number;
+  readonly firstFrame: number;
 }
 
 /** One encoded segment (D47.3): its frames and the SHA-256 of its file. */
 export interface ManifestSegment {
   readonly index: number;
+  /** The span it lies in, on a grid of spans only (D92.2). */
+  readonly span?: number;
   readonly firstFrame: number;
   readonly frameCount: number;
+  /**
+   * The key of the segment (D92.1), on a grid of spans only (D92.2): what
+   * decides the bytes of its file, by which the join places a segment of
+   * another document (D92.3).
+   */
+  readonly key?: string;
   /** The file's name, relative to the manifest's directory. */
   readonly file: string;
   readonly sha256: string;

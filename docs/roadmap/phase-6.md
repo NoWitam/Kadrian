@@ -915,6 +915,19 @@ K-range (D80)` lines that D80 is accepted.
   `video.seekArgs`); a job without spans writes the bytes of `737be15`. No
   new pinned file, so `REQUIRED_PINNED_FILES` and the Q14 artifact list do
   not change.
+  Status: in review. Jobs, manifests, the estimate, and the join take the
+  spans (`GridRequest.spans`, `SegmentGrid.spans`, `ManifestGrid.spans`, and
+  `span` and `key` of `ManifestSegment`), and `JoinRequest.target` (`kadrion
+join --composition --assets --spans-us`) joins by keys; the readings where
+  D92.3 leaves a choice are in the implementation notes of D92 (a join by keys
+  requires spans; a part of the target must carry the target's key).
+  Measured in the pinned container: of the 8 segments of the scenes fixture
+  edited (a longer first scene and a changed last one), 5 were reused from
+  the render before the edit and 3 rendered (27 of 102 frames); the join by
+  keys wrote the MP4 and the manifest of a fresh render byte for byte, and
+  every output a job without spans writes in `export.pinned.test.ts` keeps
+  the bytes of PR-99 (D92, Implementation notes). The runtime build and the
+  Player's dist tree keep their hashes; the API report of the Producer grows.
 - **PR-101** (D93, the command and the release): `kadrion check-custom-html`
   in `packages/cli`, the edge `cli` → `editor-sdk` in
   `docs/architecture/package-boundaries.json`, a run of the command in

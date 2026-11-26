@@ -9,14 +9,18 @@
  *   kadrion render-range --composition <file> --assets <file> --out <dir> --preset <1080p|720p>
  *                  [--from-us <t> --to-us <t>] [--segment-frames <n>] [--ffmpeg …] [--ffprobe …]
  *                  [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>]
+ *                  [--spans-us <t,…>]
  *   kadrion render-audio --composition <file> --assets <file> --out <dir>
  *                  [--from-us <t> --to-us <t>] [--ffmpeg <path>] [--ffprobe <path>]
  *   kadrion join --in <dir> [--in <dir> …] --out <dir> [--ffmpeg <path>] [--ffprobe <path>]
+ *                  [--composition <file> --assets <file> --spans-us <t,…>
+ *                   [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>]]
  *   kadrion render-still --composition <file> --assets <file> --out <dir> --time-us <t>
  *                  --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]
  *   kadrion estimate --composition <file> --assets <file> --preset <1080p|720p>
  *                  [--samples <n>] [--segment-frames <n>] [--budget-ms <ms>] [--ffmpeg …] [--ffprobe …]
  *                  [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>]
+ *                  [--spans-us <t,…>]
  *   kadrion segment-keys --composition <file> --assets <file> --preset <1080p|720p>
  *                  [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>]
  *                  [--min-segment-frames <n>] [--spans-us <t,…>]
@@ -31,9 +35,9 @@
  * end), its diagnostics go to standard error, `SIGTERM` or `SIGINT` cancel it,
  * it takes the limits `--max-document-bytes`, `--max-duration-us`,
  * `--max-frames`, `--max-assets`, `--max-canvas-pixels`, `--max-asset-bytes`,
- * `--max-total-asset-bytes` (not `join`, which reads no document, nor
- * `migrate`, which renders nothing), and `--max-wall-ms`, and its exit code is
- * one of the table of D48.3.
+ * `--max-total-asset-bytes` (not `join`, which reads no document unless it
+ * is given `--composition`, nor `migrate`, which renders nothing), and
+ * `--max-wall-ms`, and its exit code is one of the table of D48.3.
  *
  * `render-frames` renders frame times of a composition to `frame-<index>.png` and
  * writes `render-manifest.json`. `export` writes `video-<preset>.mp4` and
@@ -57,8 +61,13 @@
  * reports the time per frame and how many segments fit into a budget (D48.5).
  * `segment-keys` prints the key of every segment of a grid, its span, and the
  * Custom HTML nodes active in it, computed without a browser from the document
- * and the fonts of its measured nodes, the only assets it reads (D92.1);
- * `--spans-us` divides the grid into spans at those start times (D92.2).
+ * and the fonts of its measured nodes, the only assets it reads (D92.1).
+ * `--spans-us` divides the grid of `render-range`, `estimate`, and
+ * `segment-keys` into spans at those start times (D92.2), and a render on
+ * spans records the key of every segment in its manifest. `join` given
+ * `--composition` and `--assets` of a target document, with the grid of its
+ * render and its spans, places segments of renders of other documents wherever
+ * their keys are the target's and writes the target's export (D92.3).
  * `check-custom-html` runs the check of D78.6 on one Custom HTML node: the
  * findings of its html and the render check of the Producer in the pinned
  * Chromium, which it launches itself, and prints the report of the tool
@@ -223,11 +232,11 @@ export type JobLine =
 export const USAGE = [
   'Usage: kadrion render-frames --composition <file> --assets <file> --out <dir> --times <t,...> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion export --composition <file> --assets <file> --out <dir> --preset <1080p|720p> [--segment-frames <n>] [--ffmpeg <path>] [--ffprobe <path>]',
-  '       kadrion render-range --composition <file> --assets <file> --out <dir> --preset <1080p|720p> [--from-us <t> --to-us <t>] [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion render-range --composition <file> --assets <file> --out <dir> --preset <1080p|720p> [--from-us <t> --to-us <t>] [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--spans-us <t,...>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion render-audio --composition <file> --assets <file> --out <dir> [--from-us <t> --to-us <t>] [--ffmpeg <path>] [--ffprobe <path>]',
-  '       kadrion join --in <dir> [--in <dir> ...] --out <dir> [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion join --in <dir> [--in <dir> ...] --out <dir> [--composition <file> --assets <file> --spans-us <t,...> [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>]] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion render-still --composition <file> --assets <file> --out <dir> --time-us <t> --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]',
-  '       kadrion estimate --composition <file> --assets <file> --preset <1080p|720p> [--samples <n>] [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--budget-ms <ms>] [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion estimate --composition <file> --assets <file> --preset <1080p|720p> [--samples <n>] [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--spans-us <t,...>] [--budget-ms <ms>] [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion segment-keys --composition <file> --assets <file> --preset <1080p|720p> [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--spans-us <t,...>]',
   '       kadrion check-custom-html --composition <file> --assets <file> --node-id <id> [--samples <n>]',
   '       kadrion migrate <file> (--out <file> | --check)',
@@ -607,25 +616,31 @@ function rangeFlags(values: {
 }
 
 /**
- * `--grid-from-us` and `--grid-to-us` (both or neither) and
- * `--min-segment-frames`: a grid anchored on a span (D80.1), or `undefined`
- * for the composition's grid of D47.1.
+ * `--grid-from-us` and `--grid-to-us` (both or neither),
+ * `--min-segment-frames`, and `--spans-us`: a grid anchored on a span (D80.1)
+ * with its spans (D92.2), or `undefined` for the composition's grid of D47.1.
  */
 function gridFlags(values: {
   readonly 'grid-from-us'?: string | undefined;
   readonly 'grid-to-us'?: string | undefined;
   readonly 'min-segment-frames'?: string | undefined;
+  readonly 'spans-us'?: string | undefined;
 }): GridRequest | undefined {
   const fromUs = integerFlag('grid-from-us', values['grid-from-us']);
   const toUs = integerFlag('grid-to-us', values['grid-to-us']);
   const minSegmentFrames = integerFlag('min-segment-frames', values['min-segment-frames']);
+  const spans =
+    values['spans-us'] === undefined ? undefined : parseTimes(values['spans-us'], 'spans-us');
   if ((fromUs === undefined) !== (toUs === undefined)) {
     throw new UsageError('--grid-from-us and --grid-to-us go together.');
   }
-  if (fromUs === undefined && minSegmentFrames === undefined) return undefined;
+  if (fromUs === undefined && minSegmentFrames === undefined && spans === undefined) {
+    return undefined;
+  }
   return {
     ...(fromUs === undefined || toUs === undefined ? {} : { range: { fromUs, toUs } }),
     ...(minSegmentFrames === undefined ? {} : { minSegmentFrames }),
+    ...(spans === undefined ? {} : { spans }),
   };
 }
 
@@ -633,6 +648,7 @@ const GRID_OPTIONS = {
   'grid-from-us': { type: 'string' },
   'grid-to-us': { type: 'string' },
   'min-segment-frames': { type: 'string' },
+  'spans-us': { type: 'string' },
 } as const;
 
 const FFMPEG_OPTIONS = { ffmpeg: { type: 'string' }, ffprobe: { type: 'string' } } as const;
@@ -754,17 +770,46 @@ async function readManifest(path: string): Promise<unknown> {
   }
 }
 
+/**
+ * `kadrion join` (D47.5): every manifest of the `--in` directories joined into
+ * the files `export` writes. With `--composition` and `--assets`, both or
+ * neither, the target of a join by keys (D92.3), with the grid of its render:
+ * `--spans-us`, which it requires, and the grid flags of D80.6; its segment
+ * length and preset are the parts'. Only then does it take the limits of a
+ * document (D48.4).
+ */
 async function joinCommand(args: readonly string[], job: Job): Promise<number> {
   const { values } = parseArgs({
     args: [...args],
-    options: { in: { type: 'string', multiple: true }, out: { type: 'string' }, ...FFMPEG_OPTIONS },
+    options: {
+      in: { type: 'string', multiple: true },
+      out: { type: 'string' },
+      composition: { type: 'string' },
+      assets: { type: 'string' },
+      ...GRID_OPTIONS,
+      ...FFMPEG_OPTIONS,
+      ...LIMIT_OPTIONS,
+    },
     strict: true,
     allowPositionals: false,
   });
   const inputs = values.in ?? [];
-  const { out } = values;
+  const { out, composition, assets } = values;
   if (inputs.length === 0 || out === undefined)
     throw new UsageError('--in and --out are required.');
+  if ((composition === undefined) !== (assets === undefined)) {
+    throw new UsageError('--composition and --assets go together.');
+  }
+  const grid = gridFlags(values);
+  const limits = limitsOf(values);
+  if (composition === undefined && (grid !== undefined || limits !== undefined)) {
+    throw new UsageError(
+      'The grid flags, --spans-us, and the document limits go with --composition and --assets.',
+    );
+  }
+  if (composition !== undefined && grid?.spans === undefined) {
+    throw new UsageError('A join with --composition needs --spans-us, the spans of its grid.');
+  }
   const ffmpeg = ffmpegPaths(values, job.hosts);
   const segments: JoinPart<SegmentsManifest>[] = [];
   const audio: JoinPart<AudioManifest>[] = [];
@@ -796,6 +841,14 @@ async function joinCommand(args: readonly string[], job: Job): Promise<number> {
   if (preset === undefined) {
     throw new ProducerError('join-invalid', 'No segments manifest in the --in directories.');
   }
+  const target =
+    composition === undefined || assets === undefined || grid === undefined
+      ? undefined
+      : {
+          ...(await readInputs(composition, assets)),
+          grid,
+          ...(limits === undefined ? {} : { limits }),
+        };
   await mkdir(out, { recursive: true });
   const names = exportFileNames(preset);
   const result = await job.hosts.join({
@@ -803,6 +856,7 @@ async function joinCommand(args: readonly string[], job: Job): Promise<number> {
     audio: pass,
     outputPath: join(out, names.video),
     ffmpeg,
+    ...(target === undefined ? {} : { target }),
     ...(job.signal === undefined ? {} : { signal: job.signal }),
   });
   job.emit({ event: 'file', file: names.video });
@@ -966,7 +1020,6 @@ async function segmentKeysCommand(args: readonly string[], job: Job): Promise<nu
       preset: { type: 'string' },
       'segment-frames': { type: 'string' },
       ...GRID_OPTIONS,
-      'spans-us': { type: 'string' },
       ...LIMIT_OPTIONS,
     },
     strict: true,
@@ -979,8 +1032,6 @@ async function segmentKeysCommand(args: readonly string[], job: Job): Promise<nu
   if (!/^[0-9a-z]+$/.test(preset)) throw new UsageError('--preset takes a name such as 1080p.');
   const segmentFrames = integerFlag('segment-frames', values['segment-frames']);
   const grid = gridFlags(values);
-  const spans =
-    values['spans-us'] === undefined ? undefined : parseTimes(values['spans-us'], 'spans-us');
   const limits = limitsOf(values);
   const inputs = await readInputs(composition, assets);
   throwIfAborted(job.signal);
@@ -988,7 +1039,7 @@ async function segmentKeysCommand(args: readonly string[], job: Job): Promise<nu
   throwIfAborted(job.signal);
   const keys = job.hosts.segmentKeys(
     inputs.document,
-    { ...grid, ...(spans === undefined ? {} : { spans }) },
+    { ...grid },
     {
       preset,
       ...(segmentFrames === undefined ? {} : { segmentFrames }),

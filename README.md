@@ -1364,13 +1364,25 @@ node packages/cli/dist/bin.js render-still --composition composition.json \
   and `--min-segment-frames` merges a shorter last segment into the one before
   it, so a fragment on any frames renders in segments of at least that length;
   every job of the fragment gives the same grid, and the join checks it
-  (proposed in D80).
+  (D80). `--spans-us` divides the grid into spans at those frame times, the
+  same grid inside each span; the manifest then records the span and the key of
+  every segment (D92.2).
 - **`render-audio`:** writes `audio.wav` and `audio.manifest.json`. Its range is
   the range the join must cover, so a preview of a range is that range at
   `720p`, its audio, and a join.
 - **`join`:** reads the manifests of the `--in` directories, exactly one of them
   an audio manifest, refuses parts that are not one render, and writes
-  `video-<preset>.mp4` and its render manifest.
+  `video-<preset>.mp4` and its render manifest. Given `--composition`,
+  `--assets`, and the grid of its render with `--spans-us`, it joins for that
+  target document: the target's own parts fill their slots, and a segment of a
+  render of another document fills every other slot whose key is its own, so
+  only the segments whose keys changed are rendered again (D92.3):
+
+  ```bash
+  node packages/cli/dist/bin.js join --in stored --in changed --in audio --out video \
+    --composition composition.json --assets assets.json --spans-us 0,4000000
+  ```
+
 - **`render-still`:** writes `still-NNNNNN.<png|jpg|webp>` and its manifest; PNG
   needs no FFmpeg unless the document has video nodes, and neither does
   `render-frames`.
@@ -1400,7 +1412,8 @@ Each of these commands is a job a host's queue can run (D48):
   `--max-assets`, `--max-canvas-pixels` (width × height of the composition and
   of each definition), `--max-asset-bytes`, and `--max-total-asset-bytes` are
   checked before rendering; `--max-wall-ms` cancels the job when its time is up.
-  `join` takes only `--max-wall-ms`.
+  `join` takes only `--max-wall-ms`, and the document limits with
+  `--composition`.
 - **Exit codes:** 0 for success, 1 for an error of the Producer or of the FFmpeg
   installation, 2 for a usage error, 4 for an exceeded limit, 5 for a
   cancelled job, and 6 for a document `migrate --check` finds not current.

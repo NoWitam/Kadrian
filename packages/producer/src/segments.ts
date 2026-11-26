@@ -75,18 +75,40 @@ export interface SegmentGrid {
   readonly segmentFrames: number;
   /** 1 to `segmentFrames`; 1 merges nothing. */
   readonly minSegmentFrames: number;
+  /**
+   * The spans of a grid of spans (D92.2), the first at `firstFrame`; absent,
+   * the grid's span is its one span and the grid names none.
+   */
+  readonly spans?: readonly GridSpan[];
 }
 
-/** What a request names of a grid (D80.1): its span and its shortest last segment. */
+/** What a request names of a grid (D80.1, D92.2): its span, its shortest last segment, and its spans. */
 export interface GridRequest {
   /** The span the grid is anchored on; the whole composition if not given. */
   readonly range?: { readonly fromUs: number; readonly toUs: number };
   /** A last segment shorter than this is merged into the one before it; 1 if not given. */
   readonly minSegmentFrames?: number;
+  /**
+   * Start times of the spans, strictly increasing frame times inside the
+   * grid's span, the first its start (D92.2). A render on spans records the
+   * key of every segment in its manifests; without them, the grid's span is
+   * one span and the manifests hold no key (D92, question 6).
+   */
+  readonly spans?: readonly number[];
 }
 
-/** The segments of a grid, in order, indexed from its first frame (D80.1). */
+/**
+ * The segments of a grid, in order, indexed from its first frame (D80.1); on
+ * a grid of spans, the segments of every span, indexed over the whole grid,
+ * each with its span (D92.2).
+ */
 export function gridSegments(grid: SegmentGrid): Segment[] {
+  if (grid.spans !== undefined) return spanSegments(grid, grid.spans);
+  return anchoredSegments(grid);
+}
+
+/** The segments of one span of the grid (D80.1), without regard to spans. */
+function anchoredSegments(grid: SegmentGrid): Segment[] {
   const { firstFrame, frameCount: span, segmentFrames, minSegmentFrames } = grid;
   const end = firstFrame + span;
   const segments: Segment[] = [];
@@ -119,7 +141,8 @@ export function checkedMinSegmentFrames(value: number | undefined, segmentFrames
 
 /**
  * The grid a request names (D80.1): its span, a range of frame times of the
- * composition (`range-invalid` otherwise), and its shortest last segment.
+ * composition (`range-invalid` otherwise), its shortest last segment, and its
+ * spans (D92.2).
  */
 export function segmentGrid(
   composition: ValidatedComposition,
@@ -127,12 +150,15 @@ export function segmentGrid(
   request: GridRequest = {},
 ): SegmentGrid {
   const span = frameRange(composition, request.range);
-  return {
+  const grid = {
     firstFrame: span.firstFrame,
     frameCount: span.frameCount,
     segmentFrames,
     minSegmentFrames: checkedMinSegmentFrames(request.minSegmentFrames, segmentFrames),
   };
+  // A grid of spans names its spans, even one (D92.2); without them it is the grid of D80.1.
+  if (request.spans === undefined) return grid;
+  return { ...grid, spans: gridSpans(composition, grid, request.spans) };
 }
 
 /**
@@ -141,6 +167,8 @@ export function segmentGrid(
  * and a manifest does not name it (D80.2).
  */
 export function isCompositionGrid(composition: ValidatedComposition, grid: SegmentGrid): boolean {
+  // A grid of spans is always named: its manifests carry keys (D92.2).
+  if (grid.spans !== undefined) return false;
   const total = frameCount(composition.durationUs, composition.fps);
   if (grid.firstFrame !== 0 || grid.frameCount !== total) return false;
   const canonical = segmentsOf(composition, grid.segmentFrames);
@@ -246,17 +274,27 @@ export function gridSpans(
  */
 export function spanSegments(grid: SegmentGrid, spans: readonly GridSpan[]): SpanSegment[] {
   const end = grid.firstFrame + grid.frameCount;
+  const { segmentFrames, minSegmentFrames } = grid;
   const segments: SpanSegment[] = [];
   for (const [span, { firstFrame }] of spans.entries()) {
     const next = spans[span + 1]?.firstFrame ?? end;
-    for (const segment of gridSegments({ ...grid, firstFrame, frameCount: next - firstFrame })) {
+    const frameCount = next - firstFrame;
+    for (const segment of anchoredSegments({
+      firstFrame,
+      frameCount,
+      segmentFrames,
+      minSegmentFrames,
+    })) {
       segments.push({ ...segment, index: segments.length, span });
     }
   }
   return segments;
 }
 
-/** The segments of a grid that a range of whole segments of it covers. */
+/**
+ * The segments of a grid that a range of whole segments of it covers; on a
+ * grid of spans, each with its span (D92.2).
+ */
 export function gridRangeSegments(grid: SegmentGrid, range: FrameRange): Segment[] {
   return gridSegments(grid).filter(
     ({ firstFrame }) =>

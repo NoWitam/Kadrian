@@ -245,6 +245,13 @@ export interface GridRequest {
         readonly toUs: number;
     };
     readonly minSegmentFrames?: number;
+    readonly spans?: readonly number[];
+}
+
+---- GridSpan (type only)
+export interface GridSpan {
+    readonly fromUs: number;
+    readonly firstFrame: number;
 }
 
 ---- JOB_LIMITS
@@ -276,6 +283,9 @@ export interface JobOptions {
     readonly limits?: JobLimits;
 }
 
+---- JoinDocument (type only)
+export type JoinDocument = Pick<SegmentsManifest, 'compositionHash' | 'schemaVersion' | 'assets' | 'durationUs' | 'frameCount' | 'grid'>;
+
 ---- JoinPart (type only)
 export interface JoinPart<M> {
     readonly manifest: M;
@@ -285,6 +295,7 @@ export interface JoinPart<M> {
 ---- JoinPlan (type only)
 export interface JoinPlan {
     readonly first: SegmentsManifest;
+    readonly document: JoinDocument;
     readonly video: ManifestVideo | null;
     readonly range: AudioManifest['range'];
     readonly segments: readonly JoinSegment[];
@@ -299,6 +310,7 @@ export interface JoinRequest extends EncoderSettings, Pick<JobOptions, 'signal'>
     readonly audio: JoinPart<AudioManifest>;
     readonly outputPath: string;
     readonly ffmpeg: FfmpegPaths;
+    readonly target?: JoinTarget;
 }
 
 ---- JoinResult (type only)
@@ -310,6 +322,15 @@ export interface JoinResult {
 ---- JoinSegment (type only)
 export interface JoinSegment extends ManifestSegment {
     readonly path: string;
+}
+
+---- JoinTarget (type only)
+export interface JoinTarget {
+    readonly document: unknown;
+    readonly resolveAsset: ProducerAssetResolver;
+    readonly segmentFrames?: number;
+    readonly grid: GridRequest;
+    readonly limits?: JobLimits;
 }
 
 ---- LOCALE
@@ -408,6 +429,7 @@ export interface ManifestFrame {
 ---- ManifestGrid (type only)
 export interface ManifestGrid extends ManifestRange {
     readonly minSegmentFrames: number;
+    readonly spans?: readonly ManifestSpan[];
 }
 
 ---- ManifestMp4Preset (type only)
@@ -433,10 +455,18 @@ export interface ManifestRange {
 ---- ManifestSegment (type only)
 export interface ManifestSegment {
     readonly index: number;
+    readonly span?: number;
     readonly firstFrame: number;
     readonly frameCount: number;
+    readonly key?: string;
     readonly file: string;
     readonly sha256: string;
+}
+
+---- ManifestSpan (type only)
+export interface ManifestSpan {
+    readonly fromUs: number;
+    readonly firstFrame: number;
 }
 
 ---- ManifestVideo (type only)
@@ -678,6 +708,7 @@ export interface SegmentGrid {
     readonly frameCount: number;
     readonly segmentFrames: number;
     readonly minSegmentFrames: number;
+    readonly spans?: readonly GridSpan[];
 }
 
 ---- SegmentKey (type only)
@@ -697,9 +728,7 @@ export interface SegmentKeys {
 }
 
 ---- SegmentKeysGrid (type only)
-export interface SegmentKeysGrid extends GridRequest {
-    readonly spans?: readonly number[];
-}
+export type SegmentKeysGrid = GridRequest;
 
 ---- SegmentKeysSettings (type only)
 export interface SegmentKeysSettings {

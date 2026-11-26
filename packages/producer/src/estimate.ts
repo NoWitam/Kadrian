@@ -30,7 +30,10 @@ export interface EstimatePlan {
   readonly frames: number;
   /** The segment length the host renders with (D47.1). */
   readonly segmentFrames: number;
-  /** The segments of the whole composition at that length, or of the grid when one is given (D80.5). */
+  /**
+   * The segments of the whole composition at that length, or of the grid when
+   * one is given (D80.5), with its spans (D92.2).
+   */
   readonly segments: number;
 }
 
@@ -39,7 +42,7 @@ export interface EstimatePlan {
  * length is `samples`. At least two frames are needed to measure the time of
  * one; a composition with fewer frames, or fewer samples, is refused. With a
  * grid (D80.1), `segments` counts the segments of that grid instead of the
- * composition's.
+ * composition's, of every span of a grid of spans (D92.2).
  */
 export function estimatePlan(
   document: unknown,

@@ -87,7 +87,12 @@ import {
 } from './ffmpeg.js';
 import { checkAssetLimits, checkDocumentLimits, type JobLimits } from './job.js';
 import { canonicalJson, sha256, type ManifestClear } from './manifest.js';
-import { isBytesAsset, resolveProducerAsset, type ProducerAssetResolver } from './media-path.js';
+import {
+  isBytesAsset,
+  resolveProducerAsset,
+  type ProducerAsset,
+  type ProducerAssetResolver,
+} from './media-path.js';
 import { validated } from './render.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
 import {
@@ -106,15 +111,11 @@ import {
  */
 export const SEGMENT_KEY_VERSION = 1;
 
-/** The grid of D80.6 with the start times of its spans (D92.2). */
-export interface SegmentKeysGrid extends GridRequest {
-  /**
-   * Start times of the spans, strictly increasing frame times inside the
-   * grid's span, the first its start; without them, the grid's span is one
-   * span (D92.2).
-   */
-  readonly spans?: readonly number[];
-}
+/**
+ * The grid of D80.6 with the start times of its spans (D92.2): the grid of a
+ * render job; without spans, the grid's span is one span.
+ */
+export type SegmentKeysGrid = GridRequest;
 
 /** What the keys depend on besides the document and its grid (D92.1). */
 export interface SegmentKeysSettings {
@@ -240,11 +241,40 @@ export function segmentKeysWith(
   settings: Omit<SegmentKeysSettings, 'runtime'>,
   pins: SegmentKeyPins,
 ): SegmentKeys {
-  const size = presetSize(composition, settings.preset);
+  presetSize(composition, settings.preset);
   const segmentFrames = checkedSegmentFrames(settings.segmentFrames);
   const anchored = segmentGrid(composition, segmentFrames, grid);
-  const spans = gridSpans(composition, anchored, grid.spans);
   checkDocumentLimits(settings.limits, composition, anchored.frameCount);
+  const keyOf = segmentKeyer(
+    composition,
+    { preset: settings.preset, segmentFrames, fonts: settings.fonts },
+    pins,
+  );
+  const spans = anchored.spans ?? gridSpans(composition, anchored, undefined);
+  return {
+    keyVersion: SEGMENT_KEY_VERSION,
+    segments: spanSegments(anchored, spans).map(keyOf),
+  };
+}
+
+/**
+ * The key of a segment of a document (D92.1), as a function of the segment:
+ * the font metrics of every measured node checked once (`font-metrics-missing`),
+ * the common part of the hashed input written once, and the frames of each
+ * segment evaluated when its key is asked for. A render job asks for the keys
+ * of its range, and the join for those of the slots it fills (D92.2, D92.3).
+ */
+export function segmentKeyer(
+  composition: ValidatedComposition,
+  settings: {
+    readonly preset: string;
+    readonly segmentFrames: number;
+    readonly fonts: ReadonlyMap<string, FontMetrics>;
+  },
+  pins: SegmentKeyPins,
+): (segment: SpanSegment) => SegmentKey {
+  const size = presetSize(composition, settings.preset);
+  const { segmentFrames } = settings;
   for (const id of measuredFontIds(composition)) {
     if (!settings.fonts.has(id)) {
       throw new ProducerError(
@@ -277,12 +307,7 @@ export function segmentKeysWith(
   const head = `${empty.slice(0, at)}"frames":[`;
   const tail = empty.slice(at + '"frames":['.length);
   const document = keyDocument(composition);
-  return {
-    keyVersion: SEGMENT_KEY_VERSION,
-    segments: spanSegments(anchored, spans).map((segment) =>
-      segmentKey(composition, document, settings.fonts, segment, head, tail),
-    ),
-  };
+  return (segment) => segmentKey(composition, document, settings.fonts, segment, head, tail);
 }
 
 /** The key of one segment: its frames' records between the common head and tail. */
@@ -425,8 +450,7 @@ export async function measuredFontMetrics(
 ): Promise<ReadonlyMap<string, FontMetrics>> {
   const composition = validated(document);
   const assets = new Map(composition.assets.map((asset) => [asset.id, asset]));
-  const fonts = new Map<string, FontMetrics>();
-  const read = [];
+  const read: ProducerAsset[] = [];
   for (const id of measuredFontIds(composition)) {
     const asset = assets.get(id);
     if (asset === undefined) continue;
@@ -449,8 +473,33 @@ export async function measuredFontMetrics(
     }
     read.push(resolved);
     checkAssetLimits(limits, read);
+  }
+  return measuredFonts(composition, read);
+}
+
+/**
+ * The metrics of the fonts of a document's measured nodes (D83.7) from assets
+ * already resolved and verified, as a render job and the join by keys hold
+ * them (D92.2, D92.3): measured by the runtime's `fontMetrics`, which refuses
+ * a damaged WOFF or WOFF2 file as `font-invalid` and any other file it cannot
+ * measure as `font-unmeasurable` (D84.6). A font given by path is
+ * `asset-invalid` (D64.2); a font that is not given is left out, and
+ * `segmentKeyer` names it.
+ */
+export function measuredFonts(
+  composition: ValidatedComposition,
+  assets: readonly ProducerAsset[],
+): ReadonlyMap<string, FontMetrics> {
+  const byId = new Map(assets.map((asset) => [asset.id, asset]));
+  const fonts = new Map<string, FontMetrics>();
+  for (const id of measuredFontIds(composition)) {
+    const asset = byId.get(id);
+    if (asset === undefined) continue;
+    if (!isBytesAsset(asset)) {
+      throw new ProducerError('asset-invalid', `The font "${id}" must be given as bytes (D64.2).`);
+    }
     try {
-      fonts.set(id, fontMetrics(resolved.bytes));
+      fonts.set(id, fontMetrics(asset.bytes));
     } catch (reason) {
       const code =
         (reason as { code?: unknown } | null)?.code === 'font-invalid'

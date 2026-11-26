@@ -486,6 +486,26 @@ describe('kadrion render-range (D47.3)', () => {
     ]);
   });
 
+  it('passes the spans of a grid through, alone or with its span (D92.2)', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    for (const extra of [
+      ['--spans-us', '0,5000000'],
+      ['--grid-from-us', '233333', '--grid-to-us', '2466666', '--spans-us', '233333,1000000'],
+    ]) {
+      await expect(
+        runCli(documentArgs('render-range', dir, '--preset', '1080p', ...extra), io().io, {
+          renderRange: fakeRange(seen),
+          env: FFMPEG_ENV,
+        }),
+      ).resolves.toBe(EXIT_OK);
+    }
+    expect(seen.map(({ grid }) => grid)).toEqual([
+      { spans: [0, 5_000_000] },
+      { range: { fromUs: 233_333, toUs: 2_466_666 }, spans: [233_333, 1_000_000] },
+    ]);
+  });
+
   it.each([
     ['one end of the range only', ['--preset', '720p', '--from-us', '0']],
     [
@@ -495,6 +515,8 @@ describe('kadrion render-range (D47.3)', () => {
     ['a segment length that is not an integer', ['--preset', '720p', '--segment-frames', '-1']],
     ['a preset that could name a path', ['--preset', '../x']],
     ['one end of the grid only', ['--preset', '720p', '--grid-from-us', '0']],
+    ['a span start that is not an integer', ['--preset', '720p', '--spans-us', '0,1e6']],
+    ['an empty list of spans', ['--preset', '720p', '--spans-us', '']],
     [
       'a shortest segment that is not an integer',
       ['--preset', '720p', '--min-segment-frames', '1.5'],
@@ -650,6 +672,69 @@ describe('kadrion join (D47.5)', () => {
       }),
     ).resolves.toBe(EXIT_PRODUCER_ERROR);
     expect(err.join('\n')).toMatch(/^error join-invalid/);
+  });
+
+  it('gives the join a target with --composition and --assets, its grid, its spans, and its limits (D92.3)', async () => {
+    const { dir, a, b, audio } = parts();
+    const { dir: inputs } = workspace();
+    const seen: JoinRequest[] = [];
+    await expect(
+      runCli(
+        [
+          ...['join', '--in', a, '--in', b, '--in', audio, '--out', join(dir, 'out')],
+          ...['--composition', join(inputs, 'composition.json')],
+          ...['--assets', join(inputs, 'assets.json')],
+          ...['--spans-us', '0,5000000', '--min-segment-frames', '30', '--max-frames', '300'],
+        ],
+        io().io,
+        { join: fakeJoin(seen), env: FFMPEG_ENV },
+      ),
+    ).resolves.toBe(EXIT_OK);
+    const target = seen[0]?.target;
+    expect(target?.document).toEqual(referenceComposition);
+    expect(target?.grid).toEqual({ minSegmentFrames: 30, spans: [0, 5_000_000] });
+    expect(target?.limits).toEqual({ maxFrames: 300 });
+    expect(target !== undefined && 'segmentFrames' in target).toBe(false);
+    const font = await target?.resolveAsset({
+      id: 'asset-font',
+      type: 'font',
+      mediaType: 'font/ttf',
+      contentHash: '',
+    } as Parameters<NonNullable<typeof target>['resolveAsset']>[0]);
+    expect(font).toMatchObject({ mediaType: 'font/ttf' });
+    // Without the flags, the join of D47.5: no target.
+    await runCli(
+      ['join', '--in', a, '--in', b, '--in', audio, '--out', join(dir, 'out2')],
+      io().io,
+      {
+        join: fakeJoin(seen),
+        env: FFMPEG_ENV,
+      },
+    );
+    expect(seen[1] !== undefined && 'target' in seen[1]).toBe(false);
+  });
+
+  it('exits 2 for a target without its assets or its spans, and for grid flags or limits without a target', async () => {
+    const { dir, a, b, audio } = parts();
+    const { dir: inputs } = workspace();
+    const base = ['join', '--in', a, '--in', b, '--in', audio, '--out', join(dir, 'out')];
+    const composition = ['--composition', join(inputs, 'composition.json')];
+    const assets = ['--assets', join(inputs, 'assets.json')];
+    for (const extra of [
+      [...composition, '--spans-us', '0'],
+      [...assets, '--spans-us', '0'],
+      [...composition, ...assets],
+      [...composition, ...assets, '--min-segment-frames', '30'],
+      ['--spans-us', '0'],
+      ['--grid-from-us', '0', '--grid-to-us', '5000000'],
+      [...composition, ...assets, '--spans-us', '0,x'],
+    ]) {
+      const { out, io: streams } = io();
+      await expect(
+        runCli([...base, ...extra], streams, { join: never, env: FFMPEG_ENV }),
+      ).resolves.toBe(EXIT_USAGE);
+      expect(lines(out)).toEqual([{ event: 'error', code: 'usage', exitCode: EXIT_USAGE }]);
+    }
   });
 
   it('exits 2 without --in, or with a directory it cannot read', async () => {
@@ -1123,6 +1208,21 @@ describe('kadrion estimate (D48.5)', () => {
       range: { fromUs: 4_666_666, toUs: 5_000_000 },
       segmentFrames: 10,
     });
+    expect(seen[0] !== undefined && 'grid' in seen[0]).toBe(false);
+  });
+
+  it('counts the segments of every span of a grid of spans (D92.2)', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    const clock = { now: 0 };
+    const { out, io: streams } = io();
+    await runCli(estimateArgs(dir, '--spans-us', '0,233333'), streams, {
+      renderRange: timedRange(seen, clock),
+      env: FFMPEG_ENV,
+      now: () => clock.now,
+    });
+    // Spans of 7 and 293 frames in segments of 60: 1, and 4 of 60 and one of 53.
+    expect(lines(out).at(-2)).toMatchObject({ segmentFrames: 60, segments: 6 });
     expect(seen[0] !== undefined && 'grid' in seen[0]).toBe(false);
   });
 
