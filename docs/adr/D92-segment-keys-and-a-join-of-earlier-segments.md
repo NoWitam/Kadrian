@@ -504,3 +504,30 @@ the estimate, and the join, and the join by keys of D92.3.
   The API report of the Producer grows by `GridSpan`, `JoinDocument`,
   `JoinTarget`, `ManifestSpan`, and the fields above; that of the CLI keeps
   its bytes. The host guide of the keys and the join by keys is PR-101's.
+
+## Implementation notes (PR-101)
+
+- **The host guide** carries what D92 leaves to it. Section 13: the key of
+  a segment by `kadrion segment-keys` and `segmentKeys`, its fields and
+  `keyVersion`, what it reads and does not read, the font errors, and the
+  time of ten minutes measured in PR-99; storing segments under their keys
+  with their manifests, and the keys an upgrade of the runtime build, a pin,
+  or `keyVersion` changes; the grid of spans of `--spans-us` and its
+  manifests; the steps of a join by keys (`segment-keys` on the edited
+  document, `render-range` of the missing keys, `render-audio`, and
+  `join --composition --assets --spans-us`), its result, and its refusals;
+  the manifests of the current worker only, since every part given is
+  compared in the pins of the run, and a segment that fills no slot left
+  out (D92.3, D92.4); and reuse of a segment whose `customHtmlNodeIds` are
+  not empty only while `kadrion check-custom-html` of each is `ok`
+  (question 9). Section 12 counts the segments of spans; sections 12 and 13
+  link D80, accepted with PR-98, instead of naming it proposed. The README
+  states the release.
+- **The release.** Every package is `0.14.0` for `v0.14.0`, after `v0.13.0`
+  of D91. The runtime build
+  (`sha256:22b773177561b753b4f2924e6d7edb2b1410420c82d2b9234b683c957bb5d09d`)
+  and the Player's dist tree
+  (`sha256:50c7eb3436470071bfca0783930a12124c2ff0a4594a49d3c4bb46fa112de7f4`)
+  are those of PR-96 and of `v0.13.0`; no golden file, parity record, or
+  pinned file changes. A job without spans writes the bytes of `v0.13.0`,
+  and its manifests carry no key.

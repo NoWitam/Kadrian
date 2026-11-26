@@ -175,3 +175,9 @@ prohibits nowhere; PR-101 adds it to
   counts its frames, both exit 0. No pinned file is added, so
   `REQUIRED_PINNED_FILES` and the Q14 list do not change; no runtime build,
   Player dist tree, golden file, or schema changes.
+- **The host guide and the release** (the last commit of PR-101): section 11
+  of the host guide gives the command, its line, its exit codes with `ok`
+  false at 0, and the limits it checks before the browser opens; section 6
+  points a host without a model to it, and section 13 asks a host to run it
+  before it reuses a segment with Custom HTML (question 9 of D92). Every
+  package is `0.14.0` for `v0.14.0` (D92, Implementation notes of PR-101).

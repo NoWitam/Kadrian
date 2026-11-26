@@ -575,7 +575,9 @@ groupSeparator, prefix, suffix }`: `value` a finite number from
   `add_clip_transition_at_cut` puts a clip transition on a cut and
   `run_transaction` applies several calls, each as one undoable step;
   `check_custom_html` checks a Custom HTML element and, when the host lends
-  `checkCustomHtml` of `@kadrion/producer`, renders it twice.
+  `checkCustomHtml` of `@kadrion/producer`, renders it twice. A worker gives
+  the same report without a model or Node code of its own by
+  `kadrion check-custom-html` (section 11).
 - **What a model is expected to call:** the fixture of ten common requests
   ([`tests/app/fixtures/model-requests.json`](../../tests/app/fixtures/model-requests.json)),
   such as "animate this title letter by letter" or "put a push between these
@@ -604,7 +606,9 @@ groupSeparator, prefix, suffix }`: `value` a finite number from
   [D78](../adr/D78-custom-html-for-ai-authors.md),
   [D82](../adr/D82-clip-speed-freeze-frames-and-reverse-playback.md),
   [D83](../adr/D83-a-text-frame-and-lines-measured-from-the-font.md),
-  [D91](../adr/D91-four-corners-and-a-number-in-text.md).
+  [D91](../adr/D91-four-corners-and-a-number-in-text.md),
+  [D93](../adr/D93-the-command-check-custom-html.md) (the check from the
+  command line).
 
 ## 7. Undo, redo, and the history
 
@@ -684,10 +688,43 @@ groupSeparator, prefix, suffix }`: `value` a finite number from
   Playwright and Chromium, the pinned FFmpeg, no network but loopback) is
   reference output; anywhere else the output is informative. `PATH` is never
   searched for FFmpeg.
+- **Check Custom HTML:** `kadrion check-custom-html --composition <file> --assets <file> --node-id <id> [--samples <n>]`
+  runs the check of D78.6 on one Custom HTML node of a scene, a group, or a
+  definition: the findings of its html and two renders of the element alone
+  in the pinned Chromium, which the command launches itself and closes when
+  the check ends. It prints one line
+  `{ "event": "check", "nodeId", "findings", "render", "ok" }`, the report
+  of the tool `check_custom_html` with `render` never `null`, then
+  `{ "event": "done", "manifest": null }`, and writes no file. `--samples`
+  is the number of times sampled, 5 by default, a whole number from 1; more
+  than the element has frames samples every frame. It needs no FFmpeg and no
+  golden file, only the element's fonts in `--assets`. Run it before a
+  segment with Custom HTML is reused (section 13).
+- **Its exit codes:** 0 when the check ran, whether `ok` is true or false:
+  the verdict is data, so read `ok`, the `findings`, and `render.problems`;
+  1 for `invalid-document` (an invalid document, no such node, or a node
+  that is not Custom HTML), for a font the asset file lacks or gives with
+  other bytes (`asset-missing`, `asset-invalid`, `asset-hash-mismatch`), for
+  a browser other than the pinned one (`chromium-mismatch`,
+  `chromium-missing`), and for every other error of the Producer; 2 for a
+  usage error; 4 for a limit or the wall time; 5 when cancelled. A job
+  cancelled or out of time while the check runs prints no `check` line.
+- **Its limits:** checked before the browser opens, as every job's
+  (section 16): `--max-document-bytes`, `--max-duration-us`, `--max-assets`,
+  and `--max-canvas-pixels` on the document as given (each definition's
+  canvas too), `--max-frames` on the frames the check renders (each sampled
+  time twice, so 10 by default), and `--max-asset-bytes` and
+  `--max-total-asset-bytes` on the element's fonts; `--max-wall-ms` closes
+  the browser when the time is up. A request of the element is blocked
+  wherever the check runs; only the pinned image without a network is the
+  reference run, and elsewhere the verdict holds for the Chromium that
+  `kadrion doctor` names.
 - **Authority:** [D26](../adr/D26-pinned-render-environment.md),
   [D29](../adr/D29-mp4-export.md) (the pinned FFmpeg, D29.1),
   [D45](../adr/D45-delivering-packages-as-release-tarballs.md) (`fetch-ffmpeg`
-  and `doctor`), [D06](../adr/D06-reference-producer.md).
+  and `doctor`), [D06](../adr/D06-reference-producer.md),
+  [D78](../adr/D78-custom-html-for-ai-authors.md) (the check, D78.6), and
+  [D93](../adr/D93-the-command-check-custom-html.md) (`check-custom-html`).
 
 ## 12. Estimate a render
 
@@ -695,10 +732,12 @@ groupSeparator, prefix, suffix }`: `value` a finite number from
   or `estimatePlan` and a render of its range in the library. It renders and
   encodes a few frames, keeps none, and reports `msPerFrame`, `segments`, and
   `segmentsInBudget`. With the grid flags of section 13, `segments` counts the
-  segments of that grid. (Proposed in D80; this guide links it once the owner
-  accepts it.)
+  segments of that grid, and with `--spans-us` the segments of every span.
 - **Errors and limits:** those of every job (section 16).
-- **Authority:** [D48](../adr/D48-render-job-contract.md) (D48.5).
+- **Authority:** [D48](../adr/D48-render-job-contract.md) (D48.5),
+  [D80](../adr/D80-a-segment-grid-anchored-on-a-span.md) (the grid of a
+  span, D80.5), [D92](../adr/D92-segment-keys-and-a-join-of-earlier-segments.md)
+  (spans, D92.2).
 
 ## 13. Render in jobs and join
 
@@ -721,7 +760,10 @@ groupSeparator, prefix, suffix }`: `value` a finite number from
   or another clear with `join-invalid`: render parts stored by an earlier
   release again rather than joining them with new ones. The version stays 7
   in `v0.13.0`, but its runtime build is a new one, which the join compares
-  too: parts of `v0.12.1` and `v0.13.0` are `join-invalid`. The `frames` hashes of an export are those of its own capture: they
+  too: parts of `v0.12.1` and `v0.13.0` are `join-invalid`. The version
+  stays 7 in `v0.14.0` too, with the runtime build of `v0.13.0`; the spans
+  and keys below are fields added only on a grid of spans, so a part
+  `v0.13.0` wrote carries no key and is never reused by keys. The `frames` hashes of an export are those of its own capture: they
   hold the pixels of `render-frames`, not its bytes.
 - **A fragment:** for a range whose ends are not boundaries of the
   composition's grid, give `render-range` the fragment's own grid:
@@ -732,14 +774,90 @@ groupSeparator, prefix, suffix }`: `value` a finite number from
   grid flags and `--segment-frames`, and a range of whole segments of that
   grid, or no range for all of it; `render-audio` takes the fragment's range; the join checks the
   grid. The frames, range, and audio are those of the same fragment in
-  segments of one frame. Without these flags nothing changes. (Proposed in
-  D80; this guide links it once the owner accepts it.)
+  segments of one frame. Without these flags nothing changes.
+- **The key of a segment:** `kadrion segment-keys --composition <file> --assets <file> --preset <p> [--segment-frames <n>]`,
+  with the grid flags and `--spans-us`, renders nothing, needs no browser
+  and no FFmpeg, and prints one line
+  `{ "event": "segment-keys", "keyVersion", "segments" }` before its `done`;
+  in the library, `segmentKeys(document, grid, settings)`. Each segment is
+  `{ index, span, firstFrame, frameCount, key, customHtmlNodeIds }`, its
+  `key` a SHA-256 (`sha256:` and 64 hex digits) of what decides the bytes of
+  its file: `keyVersion` (1), the runtime build, the pins of the browser and
+  of FFmpeg, the preset and the segment length, the canvas, and for each of
+  its frames the state without the composition time, the document's objects
+  of the nodes it shows, and the content hashes of the assets they read. Two
+  segments with one key are the same bytes in the reference environment. The
+  key does not read the composition time, the frame index, or the
+  document's ID: a scene moved in time by a longer scene before it keeps its
+  keys, and two documents share a key where they draw the same frames. The
+  command reads the fonts of measured nodes from `--assets` and nothing
+  else; without one it fails with `font-metrics-missing`, or `font-invalid`
+  and `font-unmeasurable` for a font that cannot be measured. A film of ten
+  minutes at 30 fps took about 3.5 s in Kadrion's pinned container.
+- **Store segments under their keys:** with the segments manifest that
+  names each. An upgrade that changes the runtime build, a pin of the worker,
+  or `keyVersion` changes every key, so nothing stored is found and the
+  segments render again, never a wrong join. Finding, storing, and removing
+  segments is the host's; the audio pass has no key and always renders the
+  whole range.
+- **A grid of spans:** `--spans-us <t,…>` on `render-range`, `estimate`,
+  `segment-keys`, and `join --composition` divides the grid into spans:
+  start times that are frame times inside the grid's span, strictly
+  increasing, the first at that span's start (`0` without the grid flags).
+  Give the starts of the scenes, or any other frame times; inside each span
+  the grid of a fragment above holds (segments of `--segment-frames` from its
+  first frame, a short last one merged), and `index` counts the segments of
+  the whole grid while `span` names each one's span. Every job of one render
+  gives the same spans. The manifests then carry `grid.spans`
+  (`[{ fromUs, firstFrame }]`) and each segment's `span` and `key`, which
+  are those `segment-keys` prints; a grid with spans is always named, even
+  with one span over the whole film. Anything else is `range-invalid`
+  before a page opens. Without `--spans-us` every job writes the bytes of
+  `v0.13.0` and its manifests hold no key, so give spans, one span for a
+  whole film, to every render whose segments may be reused.
+- **Join by keys:** after an edit, run `segment-keys` on the new document
+  with the grid and spans of the stored render, render with `render-range`
+  only the ranges whose keys are not stored (whole segments of the grid),
+  run `render-audio` on the new document, and call
+  `kadrion join --in <dir> … --out <dir> --composition <file> --assets <file> --spans-us <t,…>`,
+  with the grid flags of the render. The new document's own parts fill their
+  slots, each with the new document's key there; a segment of an earlier
+  render fills every slot no part of the new document fills and whose key is
+  its own, so one stored file may fill several slots of a still scene, and a
+  segment that fills none is left out of the join and of its manifest:
+  stored manifests may be passed whole. The result is the export a fresh
+  render of the new document on the same grid writes: the MP4 byte for
+  byte, every frame hash, and the manifest apart from `video.seekArgs`, with
+  the new document's `compositionHash`, assets, grid, and keys. Measured on
+  the scenes fixture with a longer first scene and a changed last one: 3 of 8
+  segments, 27 of 102 frames, were rendered again. The segment length and
+  the preset come from the parts; the document limits apply only with
+  `--composition`.
+- **Parts of the current worker only:** every part given, also one that
+  fills no slot, is compared with the others in the pins of the run
+  (version, capture, clear, runtime build, Chromium, environment, preset,
+  segment length, FFmpeg) as in every join, so pass only the manifests a
+  worker of the current environment and release wrote: one part of another
+  environment makes the whole join `join-invalid`. A join by keys also
+  refuses a grid without spans (`kadrion join --composition` without
+  `--spans-us` is a usage error, exit 2), a slot the audio pass covers left
+  without a segment, two parts of the new document in one slot, a part of
+  the new document without its key there, and a segment without a key,
+  each with `join-invalid`. The audio manifest is the new document's.
+- **Custom HTML in a reused segment:** the key reads an element's html,
+  fonts, parameters, start, instance ID, and scene time, but not what it
+  keeps between frames or reads from a timer. `customHtmlNodeIds` lists the
+  Custom HTML nodes active in each segment: reuse such a segment only while
+  `kadrion check-custom-html` (section 11) of each of them is `ok`, and
+  render it again otherwise.
 - **Canvas:** every video job (export, range, join, estimate) refuses a
   composition or a definition with a side above 1920 with
   `preset-unsupported`, before a page opens (D89.1).
-- **Errors:** `range-invalid` (an end not on the segment grid),
-  `segment-length-invalid`, `join-invalid` (parts that are not one render, or
-  a gap), `preset-unsupported` (a preset that would upscale or gives odd
+- **Errors:** `range-invalid` (an end not on the segment grid, or spans that
+  are not frame times in order), `segment-length-invalid`, `join-invalid`
+  (parts that are not one render, a gap, or the refusals of a join by keys
+  above), `font-metrics-missing`, `font-invalid`, and `font-unmeasurable` (the
+  fonts of measured nodes for the keys), `preset-unsupported` (a preset that would upscale or gives odd
   sizes), `source-range-exceeded`, `asset-changed` (a file read by path
   changed during the job), and the asset and FFmpeg errors.
 - **Limits:** segments of `--segment-frames` frames, 60 by default; the
@@ -752,7 +870,12 @@ groupSeparator, prefix, suffix }`: `value` a finite number from
   (the capture and the first start), [D07](../adr/D07-h264-mp4-720p-1080p-output.md),
   [D52](../adr/D52-audio-clips-volume-fades-and-the-mix.md) and
   [D85](../adr/D85-fades-of-a-video-and-volume-keyframes.md) (the mix),
-  [D64](../adr/D64-video-and-audio-read-by-path.md) (media by path).
+  [D64](../adr/D64-video-and-audio-read-by-path.md) (media by path),
+  [D80](../adr/D80-a-segment-grid-anchored-on-a-span.md) (the grid of a
+  fragment), [D92](../adr/D92-segment-keys-and-a-join-of-earlier-segments.md)
+  (keys, spans, and the join by keys), and
+  [D93](../adr/D93-the-command-check-custom-html.md) (the check before a
+  segment with Custom HTML is reused).
 
 ## 14. Export in one pass
 
@@ -800,7 +923,9 @@ groupSeparator, prefix, suffix }`: `value` a finite number from
 ## 16. Run, limit, and cancel jobs
 
 - **Standard output:** JSON lines only: `start`, `frame`, `segment`, `file`,
-  and last one `done` or `error`. Diagnostics go to standard error. Every file
+  the `segment-keys` line of `segment-keys` and the `check` line of
+  `check-custom-html`, and last one `done` or `error`. Diagnostics go to
+  standard error. Every file
   is written under a temporary name and renamed when complete.
 - **Exit codes:** 0 success, 1 an error of the Producer or the FFmpeg
   installation, 2 usage, 4 an exceeded limit (`limit-exceeded`), 5 cancelled,

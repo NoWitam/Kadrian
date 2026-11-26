@@ -825,7 +825,7 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   of the format; the cells in the text of `packages/renderer-dom/src`;
   `SetTextNumber` and `set_text_number`; `tests/pinned/number.pinned.test.ts`
   with golden frames.
-  Status: in review. As decided for PR-95, `number` is required on every
+  Status: done (#137). As decided for PR-95, `number` is required on every
   text node, `{ "kind": "none" }` for none, as D16.1 asks; the step
   0.30 → 0.31 writes it after `text`, and D91 says so in its header.
   `SetTextNumber` states the text the node keeps, so its inverse restores
@@ -847,7 +847,7 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   frame, the font of a number, and its separators; a showcase of both; every
   package at `0.13.0` for the release `v0.13.0`, whose tag the owner pushes
   from `main`. No runtime build, Player dist tree, or pinned file changes.
-  Status: in review. The host guide carries each of them (sections 2, 3, 5,
+  Status: done (#137). The host guide carries each of them (sections 2, 3, 5,
   6, and 13), the README the status and the tarballs at `0.13.0`; the
   showcase `corners-number` (D32.13) pins a picture and its bezel onto a
   screen by animated corners and counts two numbers, with the numeral font
@@ -874,7 +874,7 @@ with PR-98 to PR-101 without a separate approval of each.
   index of ADRs, the status line and the row of D80, and these entries. Acceptance: `node --run format:check`
   and `tests/repo/adr.test.ts` pass. No code; no impact on Q14, the runtime
   build, parity, or golden frames. D47 and D48 state in their `Amended by:
-K-range (D80)` lines that D80 is accepted.
+K-range (D80)` lines that D80 is accepted. Status: done (#138).
 - **PR-99** (D92.1, the keys): `segmentKeys` and its types in
   `packages/producer/src` (a module of its own, exported by `index.ts`), with
   the spans of D92.2 accepted by the function only; `kadrion segment-keys` in
@@ -888,7 +888,7 @@ K-range (D80)` lines that D80 is accepted.
   document at 30 fps measured in the pinned container and recorded in D92
   (question 3). No render, manifest, runtime build, or Player dist tree
   changes, and the API report of the Producer grows by the new exports.
-  Status: in review. `packages/producer/src/segment-keys.ts` documents the
+  Status: done (#139). `packages/producer/src/segment-keys.ts` documents the
   byte layout of the key; a frame's record holds, beside the state and the
   nodes, the definitions of its instances, the facts the mount reads of
   each scene (its clip transitions and its scene transitions), and
@@ -938,13 +938,22 @@ join --composition --assets --spans-us`) joins by keys; the readings where
   it is accepted; every package at `0.14.0` for the release `v0.14.0`, whose
   tag the owner pushes from `main`. No runtime build, Player dist tree, or
   pinned file changes.
-  Status: the command is in review; the host guide and the release follow
-  PR-100. `kadrion check-custom-html` launches the pinned Chromium itself and
+  Status: in review. `kadrion check-custom-html` launches the pinned Chromium itself and
   lends it to `checkCustomHtml`, so a refused browser exits 1, a cancelled
   job or its wall time closes it, and the limits of D48.4 and the element's
   fonts are checked before it opens (D93, Implementation notes). The API
   report of the CLI grows; no other report, the runtime build, the Player's
-  dist tree, or a pinned file list changes.
+  dist tree, or a pinned file list changes. The host guide carries the rest
+  (D92 and D93, Implementation notes of PR-101): section 11 the command, its
+  exit codes, and the limits it checks; section 13 the keys of
+  `segment-keys` and `keyVersion`, storing segments under their keys, the
+  grid of spans of `--spans-us`, the join by keys of `join --composition
+--assets --spans-us` with the manifests of the current worker only and the
+  segments that fill no slot left out, and reuse of a segment with Custom
+  HTML only while its check is `ok`; sections 12 and 13 link D80. The
+  README states the release and the tarballs at `0.14.0`. Every package is
+  `0.14.0`; the runtime build and the Player's dist tree keep the bytes of
+  PR-96, and no golden file, parity record, or pinned file changes.
 
 ## Impact on Q14, parity, and golden frames
 
