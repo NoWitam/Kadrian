@@ -304,3 +304,96 @@ dist tree, golden frames, and parity records keep their bytes.
   the second on the same grid: the MP4 bytes, every frame hash, and the
   manifest apart from `video.seekArgs`. A job without spans writes the bytes
   of `737be15`.
+
+## Implementation notes (PR-99)
+
+PR-99 brings the keys of D92.1 and `kadrion segment-keys`; the grid of spans
+in render jobs and manifests and the join by keys are PR-100.
+
+- **The module.** `segmentKeys`, `measuredFontMetrics`, `SEGMENT_KEY_VERSION`
+  (1), and the types `SegmentKey`, `SegmentKeys`, `SegmentKeysGrid`, and
+  `SegmentKeysSettings` live in `packages/producer/src/segment-keys.ts`,
+  exported by `index.ts`; `FontMetrics` is re-exported from
+  `@kadrion/runtime`. Its comment states the byte layout of the hashed input,
+  and a test writes that input out by hand and hashes it. No package
+  boundary changes (D12): the Producer already depends on the runtime.
+- **The byte layout.** `sha256` of the UTF-8 bytes of `canonicalJson` of
+  `{ browser, canvas, ffmpeg, frames, keyVersion, preset, runtime,
+segmentFrames }`, hashed frame by frame without holding the segment's text.
+  `browser` holds the pins question 5 names (Playwright, the Chromium
+  revision and version, `CHROMIUM_ARGS`, the locale, the time zone, the
+  device scale factor, and `PINNED_IMAGE`) and `capture: "fast"` and
+  `clear: "white"`; `ffmpeg` the pins of D29.1 that D92.1 names and
+  `segmentArgs` with the preset's graph and `<output>`; `preset` the MP4
+  preset of the manifests. Each frame's record is
+  `{ assets, definitions, nodes, scenes, state }`.
+- **Readings closest to the ADR**, where the code reads more than D92.1
+  names:
+  - The mount reads two facts of a scene beside its nodes at every frame of
+    the scene, outside the state: a frame for each side of a clip transition
+    (`scene.transitions`) and a layer (`will-change: opacity`) for a scene a
+    scene transition fades. So a frame's record also holds, for each scene
+    of its state, the scene's object without its `nodes` (listed apart), its
+    `clips` (sounds), and its `durationUs` (which places the scenes, as the
+    states show), with `sceneTransitions`, the document's scene transitions
+    from or to it. A change of a transition renders its two scenes again,
+    never a wrong join.
+  - An asset is `{ contentHash, id, type }`, not `{ id, contentHash }`: the
+    renderer reads bytes by the asset's type, so the same SVG file is read by
+    `readSvg` as an `svg` asset (D74.3) and shown as it is as an `image`
+    asset (`resolve.ts` of the renderer). The assets of a frame are those
+    whose ID is a string anywhere in its record, sorted by ID, so an
+    element's asset input (D77) and a mask's image are named, whatever field
+    names them.
+  - The definitions of the instances a state lists, at any depth, are listed
+    once each in the order of the state, beside the nodes, rather than inside
+    each instance.
+- **Additions the ADR leaves open.** `SegmentKey` also carries
+  `customHtmlNodeIds`, the Custom HTML nodes whose own lifetime holds a frame
+  of the segment, by their IDs in the state (paths inside instances), which
+  `segment-keys` prints by question 9. `SegmentKeysSettings` also takes
+  `runtime` (as every job takes it; the build of `@kadrion/renderer-dom`,
+  read and verified by `loadRuntimeBuild`, when it is not given: the only
+  file the function reads) and `limits` (D48.4, the frames being those of
+  the grid's span). `measuredFontMetrics(document, resolveAsset, limits?)`
+  reads the fonts of measured nodes and nothing else, verified against their
+  `contentHash` and the byte limits, for the command line, which does not
+  depend on the runtime (D12). Three codes join `ProducerErrorCode`:
+  `font-metrics-missing` (D83.7), and `font-invalid` and
+  `font-unmeasurable` for a font `fontMetrics` refuses (D84.6).
+- **Spans.** `gridSpans` and `spanSegments` of `segments.ts` check the start
+  times of D92.2 (`range-invalid`) and lay the grid of D80.1 inside each
+  span; only `segmentKeys` takes them in this pull request, and `--spans-us`
+  only `segment-keys`. `render-range`, `estimate`, the manifests, and the
+  join are unchanged: every job writes the bytes of `737be15`.
+- **The command.** `kadrion segment-keys --composition --assets --preset
+[--segment-frames] [--grid-from-us --grid-to-us] [--min-segment-frames]
+[--spans-us]`, with the limits of D48.4 and `--max-wall-ms`, prints
+  `{ "event": "segment-keys", "keyVersion", "segments" }` and
+  `{ "event": "done", "manifest": null }`, writes no file, and exits as
+  D48.3 says. The computation is synchronous: a signal is honoured before
+  the fonts are read and before the keys are computed, and the grace of
+  D48.2 bounds the rest. D48 gains an `Amended by` line for the job (48.1),
+  besides the line of 48.5 that PR-100 writes; D47 gains the line of 47.6
+  and 47.8.
+- **What reaches the key.** A test walks every field of 25 fixture
+  documents (every fixture but the templates) and finds each in the record
+  of a frame that shows it, or in a list with the reason: the version, the
+  canvas (`canvas` and `preset`), the duration and the scenes' durations
+  (the frame grid and the states), `safeArea` (read by no runtime and no
+  renderer), the document's `clear` (every video job clears white), and
+  every sound and an asset only sounds name (the audio pass, D47.4).
+- **The time (question 3).** A film of ten minutes at 30 fps, the reference
+  scene sixty times with its IDs prefixed (18 000 states, 300 segments of
+  60 frames), took 3 501, 3 588, and 3 584 ms in three runs of
+  `segment-keys.test.ts` in the container of D26.2 (`--network none`, Node
+  24.20.0, 4 cores of an Intel Xeon at 2.10 GHz), about 0.2 ms a frame, and
+  3 961 ms on the host. Nothing is cached between frames; the measurement
+  asks for no amendment.
+- **Unchanged.** No schema, runtime build
+  (`sha256:22b773177561b753b4f2924e6d7edb2b1410420c82d2b9234b683c957bb5d09d`),
+  Player dist tree
+  (`sha256:50c7eb3436470071bfca0783930a12124c2ff0a4594a49d3c4bb46fa112de7f4`),
+  golden, parity, or pinned file changes, so the pinned suite does not run
+  again; `mp4Preset` and `EXPORT_CAPTURE` moved from `export.ts` to
+  `encode.ts` unchanged, so the manifests keep their bytes.

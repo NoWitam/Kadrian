@@ -186,6 +186,76 @@ export function gridRange(
   return frames;
 }
 
+/** A span of a grid of spans (D92.2): its start time and its first frame. */
+export interface GridSpan {
+  readonly fromUs: number;
+  readonly firstFrame: number;
+}
+
+/** A segment of a grid of spans (D92.2): `index` over the whole grid, `span` the span it lies in. */
+export interface SpanSegment extends Segment {
+  readonly span: number;
+}
+
+/**
+ * The spans of a grid (D92.2): start times, strictly increasing integers, each
+ * a frame time of the composition inside the grid's span, the first equal to
+ * that span's start. Without them, the grid's span is its one span. Anything
+ * else is `range-invalid`, before a page opens.
+ */
+export function gridSpans(
+  composition: ValidatedComposition,
+  grid: SegmentGrid,
+  spans: readonly number[] | undefined,
+): GridSpan[] {
+  const span = gridSpan(composition, grid);
+  if (spans === undefined) return [{ fromUs: span.fromUs, firstFrame: span.firstFrame }];
+  if (spans.length === 0) {
+    throw rangeInvalid('spans must list at least one start time, the start of the grid.');
+  }
+  const found: GridSpan[] = [];
+  for (const [at, fromUs] of spans.entries()) {
+    const name = `spans[${String(at)}]`;
+    if (!Number.isSafeInteger(fromUs) || fromUs < span.fromUs || fromUs >= span.toUs) {
+      throw rangeInvalid(
+        `${name} must be an integer in [${String(span.fromUs)}, ${String(span.toUs)}), the span of the grid, got ${String(fromUs)}.`,
+      );
+    }
+    const firstFrame = boundaryFrame(composition, fromUs, name);
+    const before = found.at(-1);
+    if (before === undefined && fromUs !== span.fromUs) {
+      throw rangeInvalid(
+        `${name} must be ${String(span.fromUs)}, the start of the grid's span, got ${String(fromUs)}.`,
+      );
+    }
+    if (before !== undefined && fromUs <= before.fromUs) {
+      throw rangeInvalid(
+        `${name} must be later than ${String(before.fromUs)}, got ${String(fromUs)}: the starts increase strictly.`,
+      );
+    }
+    found.push({ fromUs, firstFrame });
+  }
+  return found;
+}
+
+/**
+ * The segments of a grid of spans (D92.2): inside each span the rule of D80.1,
+ * segments of `segmentFrames` from its first frame and a last one shorter than
+ * `minSegmentFrames` merged into the one before it; `index` counts the
+ * segments of the whole grid in order. One span is the grid's own segments.
+ */
+export function spanSegments(grid: SegmentGrid, spans: readonly GridSpan[]): SpanSegment[] {
+  const end = grid.firstFrame + grid.frameCount;
+  const segments: SpanSegment[] = [];
+  for (const [span, { firstFrame }] of spans.entries()) {
+    const next = spans[span + 1]?.firstFrame ?? end;
+    for (const segment of gridSegments({ ...grid, firstFrame, frameCount: next - firstFrame })) {
+      segments.push({ ...segment, index: segments.length, span });
+    }
+  }
+  return segments;
+}
+
 /** The segments of a grid that a range of whole segments of it covers. */
 export function gridRangeSegments(grid: SegmentGrid, range: FrameRange): Segment[] {
   return gridSegments(grid).filter(

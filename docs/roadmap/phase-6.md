@@ -888,6 +888,18 @@ K-range (D80)` lines that D80 is accepted.
   document at 30 fps measured in the pinned container and recorded in D92
   (question 3). No render, manifest, runtime build, or Player dist tree
   changes, and the API report of the Producer grows by the new exports.
+  Status: in review. `packages/producer/src/segment-keys.ts` documents the
+  byte layout of the key; a frame's record holds, beside the state and the
+  nodes, the definitions of its instances, the facts the mount reads of
+  each scene (its clip transitions and its scene transitions), and
+  `{ contentHash, id, type }` of every asset its record names. Segments
+  carry `customHtmlNodeIds` (question 9); three error codes join
+  (`font-metrics-missing`, `font-invalid`, `font-unmeasurable`), and
+  `measuredFontMetrics` reads the fonts of measured nodes for the command
+  line. Ten minutes at 30 fps took about 3.5 s in the pinned container
+  (D92, Implementation notes). The API reports of the Producer and the CLI
+  grow; the runtime build and the Player's dist tree keep the hashes of
+  PR-96, and no pinned file changes.
 - **PR-100** (D92.2 and D92.3, the spans and the join): `spans` in the grid
   of `packages/producer/src/segments.ts`, `span` and `key` in the manifests
   of `manifest.ts` for a grid of spans, the join by keys in `export.ts`, the

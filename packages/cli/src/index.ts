@@ -4,7 +4,8 @@
  * `runCli` implements `kadrion render-frames` (D28.8) and `kadrion export` (D29.10)
  * on top of the Producer's `renderFrames` and `exportMp4`, the jobs of a
  * segmented render `render-range`, `render-audio`, and `join`, and
- * `render-still` (D47), `estimate`, `migrate` over the saved text (D43), `kadrion
+ * `render-still` (D47), `estimate`, `segment-keys`, the keys of the segments of a
+ * grid (D92.1), `migrate` over the saved text (D43), `kadrion
  * fetch-ffmpeg` and `kadrion doctor` for a host's worker (D45), and `kadrion
  * inspect`, the Player's verdict on a video file (D79); `bin.ts` is the
  * executable. Every render command is a job of D48: JSON lines on standard
@@ -42,10 +43,12 @@ export type {
   Inspect,
   JobLine,
   Join,
+  MeasureFonts,
   Render,
   RenderAudio,
   RenderRange,
   RenderStill,
+  SegmentKeysHost,
   StartTimer,
 } from './cli.js';
 export { INVALID_DOCUMENT, migrateText, NOT_CURRENT } from './migrate.js';

@@ -17,6 +17,8 @@ export interface CliHosts {
     readonly renderAudio: RenderAudio;
     readonly join: Join;
     readonly renderStill: RenderStill;
+    readonly segmentKeys: SegmentKeysHost;
+    readonly measureFonts: MeasureFonts;
     readonly fetchFfmpeg: FetchFfmpeg;
     readonly doctor: Doctor;
     readonly inspect: Inspect;
@@ -201,6 +203,7 @@ export declare const JOB_COMMANDS: readonly [
     "join",
     "render-still",
     "estimate",
+    "segment-keys",
     "migrate"
 ];
 
@@ -217,6 +220,10 @@ export type JobLine = ProgressEvent | {
     readonly msPerSegment: number;
     readonly segments: number;
     readonly segmentsInBudget: number | null;
+} | {
+    readonly event: 'segment-keys';
+    readonly keyVersion: number;
+    readonly segments: readonly SegmentKey[];
 } | MigrateLine | {
     readonly event: 'done';
     readonly manifest: string | null;
@@ -228,6 +235,9 @@ export type JobLine = ProgressEvent | {
 
 ---- Join (type only)
 export type Join = (request: JoinRequest) => Promise<JoinResult>;
+
+---- MeasureFonts (type only)
+export type MeasureFonts = (document: unknown, resolveAsset: RenderRequest['resolveAsset'], limits?: JobLimits) => Promise<SegmentKeysSettings['fonts']>;
 
 ---- MigrateLine (type only)
 export type MigrateLine = {
@@ -275,6 +285,9 @@ export type RenderRange = (request: SegmentsRequest) => Promise<SegmentsResult>;
 
 ---- RenderStill (type only)
 export type RenderStill = (request: StillRequest) => Promise<StillResult>;
+
+---- SegmentKeysHost (type only)
+export type SegmentKeysHost = (document: unknown, grid: SegmentKeysGrid, settings: SegmentKeysSettings) => SegmentKeys;
 
 ---- Spawn (type only)
 export type Spawn = (command: string, args: readonly string[], options: {
@@ -335,7 +348,7 @@ export declare function migrateText(text: string): MigrateOutcome;
 export declare function parseAssetMap(text: string): ReadonlyMap<string, AssetEntry>;
 
 ---- parseTimes
-export declare function parseTimes(text: string): number[];
+export declare function parseTimes(text: string, flag?: string): number[];
 
 ---- runCli
 export declare function runCli(argv: readonly string[], io: CliIo, hosts?: Partial<CliHosts>): Promise<number>;

@@ -9,7 +9,9 @@ import type { Writable } from 'node:stream';
 import { AUDIO_SAMPLE_RATE } from '@kadrion/runtime';
 import type { ValidatedComposition } from '@kadrion/schema';
 
+import type { FrameCapture } from './capture.js';
 import { ProducerError } from './errors.js';
+import type { ManifestCapture, ManifestMp4Preset } from './manifest.js';
 
 /** The presets of D07, named by their short side (D29.5). */
 export const PRESETS = Object.freeze({ '1080p': 1080, '720p': 720 } as const);
@@ -119,6 +121,23 @@ export function videoGraph(size: PresetSize): string {
   const scale = `scale=${String(size.width)}:${String(size.height)}:flags=lanczos`;
   return `[0:v]${scale}:out_color_matrix=bt709:out_range=tv,setsar=1,format=yuv420p[v]`;
 }
+
+/** The MP4 preset of D29.5 as the manifests of an export and its segments record it. */
+export function mp4Preset(composition: ValidatedComposition, size: PresetSize): ManifestMp4Preset {
+  return {
+    name: `mp4-${size.name}`,
+    width: size.width,
+    height: size.height,
+    sourceWidth: composition.width,
+    sourceHeight: composition.height,
+    fps: composition.fps,
+    deviceScaleFactor: 1,
+    videoGraph: videoGraph(size),
+  };
+}
+
+/** The capture of an export and of every range job (D88.1), which their manifests and the key of a segment name (D88.2, D92.1). */
+export const EXPORT_CAPTURE: ManifestCapture & FrameCapture = 'fast';
 
 /** The time base of the video track is `fps × TIME_SCALE_PER_FRAME` (D29.4). */
 export const TIME_SCALE_PER_FRAME = 512;

@@ -79,6 +79,12 @@ export type ProducerErrorCode =
   | 'video-frames-invalid'
   /** The job was cancelled by its signal; nothing stays under a final name (D48.2). */
   | 'cancelled'
+  /** A measured node's font has no metrics among the fonts given to `segmentKeys` (D83.7, D92.1). */
+  | 'font-metrics-missing'
+  /** A font of a measured node is a damaged WOFF or WOFF2 file (D84.6, D92.1). */
+  | 'font-invalid'
+  /** A font of a measured node is a file the runtime cannot measure (D83.1, D92.1). */
+  | 'font-unmeasurable'
   /** Anything else the page reported. */
   | 'page-error';
 

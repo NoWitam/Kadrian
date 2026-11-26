@@ -35,8 +35,10 @@ import {
   AUDIO_CHANNEL_LAYOUT,
   AUDIO_CODEC,
   audioLayout,
+  EXPORT_CAPTURE,
   FrameSink,
   MAX_VIDEO_SIDE,
+  mp4Preset,
   OUTPUT_PLACEHOLDER,
   presetSize,
   realTimer,
@@ -85,14 +87,12 @@ import {
   type AudioManifest,
   type ExportManifest,
   type FfmpegIdentityBlock,
-  type ManifestCapture,
   type ManifestAudio,
   type ManifestFfmpegBuild,
   type ManifestFrame,
   type ManifestGrid,
   type ManifestSound,
   type ManifestStretch,
-  type ManifestMp4Preset,
   type ManifestSegment,
   type ManifestVideo,
   type RenderIdentity,
@@ -459,19 +459,6 @@ function ffmpegIdentityBlock(tools: FfmpegTools): FfmpegIdentityBlock {
     ffprobeSha256: identity.ffprobeSha256,
     ffmpegVersion: identity.version,
     ffmpegBuildConfiguration: identity.configuration,
-  };
-}
-
-function mp4Preset(composition: ValidatedComposition, size: PresetSize): ManifestMp4Preset {
-  return {
-    name: `mp4-${size.name}`,
-    width: size.width,
-    height: size.height,
-    sourceWidth: composition.width,
-    sourceHeight: composition.height,
-    fps: composition.fps,
-    deviceScaleFactor: 1,
-    videoGraph: videoGraph(size),
   };
 }
 
@@ -965,9 +952,6 @@ function plainName(name: string): string {
 }
 
 /** The fields every part of one render shares, compared as canonical JSON (D47.5). */
-/** The capture of an export and of every range job (D88.1), which their manifests name (D88.2). */
-const EXPORT_CAPTURE: ManifestCapture & FrameCapture = 'fast';
-
 const SHARED_FIELDS = [
   'manifestVersion',
   'capture',
