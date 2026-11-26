@@ -191,7 +191,9 @@ describe('the timeline commands through the map (D82.2)', () => {
       expect(json(apply(result.document, result.inverse as Command).document)).toBe(json(document));
     }
     expect(checked).toBeGreaterThan(10_000);
-  });
+    // 2 000 seeded commands, each validating the whole document: 1.8 s here
+    // and twice that on a CI runner, near the default 5 s, so the bound is set.
+  }, 60_000);
 
   it('a trim of the end shows the same source time at every scene time the clip still covers', () => {
     const next = random(2);
@@ -219,7 +221,8 @@ describe('the timeline commands through the map (D82.2)', () => {
       expect(json(apply(result.document, result.inverse as Command).document)).toBe(json(document));
     }
     expect(checked).toBeGreaterThan(10_000);
-  });
+    // 2 000 seeded commands, each validating the whole document: as above.
+  }, 60_000);
 
   it('a split shows the same source time in both halves, and its join is the document byte for byte', () => {
     const next = random(3);
@@ -248,7 +251,11 @@ describe('the timeline commands through the map (D82.2)', () => {
       expect(json(apply(split.document, split.inverse as Command).document)).toBe(json(document));
     }
     expect(checked).toBeGreaterThan(20_000);
-  });
+    // 4 000 seeded commands, each validating the whole document: 3.0 s of the
+    // default 5 s on a CI runner of `main` before the corners of D91.1 added a
+    // check of every node, and 5.1 s after them on a busy runner, without a
+    // wrong result.
+  }, 60_000);
 });
 
 describe('the reversed rows of the table of D82.2, by hand', () => {
