@@ -11,7 +11,9 @@
  * `joinSegments` are the same export split into jobs a host runs on its own
  * queue; `renderStill` renders one frame as PNG, JPEG, or WebP (D47.7).
  * Every job reports progress, can be cancelled by an `AbortSignal`, and
- * checks the limits a host gives it before rendering (D48).
+ * checks the limits a host gives it before rendering (D48). `segmentKeys`
+ * computes, without a browser, the key of every segment of a grid: what decides
+ * the bytes of its file, so that a host can reuse a segment it stored (D92.1).
  */
 export { PRODUCER_AGENT_SCRIPT } from './agent.js';
 export { awaitPresented, captureFrame, presentationSessions } from './capture.js';
@@ -147,4 +149,13 @@ export type {
   RenderTimeouts,
 } from './render.js';
 export { loadRuntimeBuild, verifiedScript } from './runtime.js';
+export { measuredFontMetrics, SEGMENT_KEY_VERSION, segmentKeys } from './segment-keys.js';
+export type {
+  SegmentKey,
+  SegmentKeys,
+  SegmentKeysGrid,
+  SegmentKeysSettings,
+} from './segment-keys.js';
+/** The metrics of a font that `segmentKeys` takes (D83.7), from `@kadrion/runtime`. */
+export type { FontMetrics } from '@kadrion/runtime';
 export type { RuntimeBuild } from './runtime.js';

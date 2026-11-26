@@ -1412,6 +1412,18 @@ Each of these commands is a job a host's queue can run (D48):
     --assets assets.json --preset 1080p --samples 10 --budget-ms 600000
   ```
 
+- **`segment-keys`:** renders nothing and prints, in one `segment-keys` line,
+  the key of every segment of the grid, its span, and the Custom HTML nodes
+  active in it: a SHA-256 of what decides the bytes of its file, computed
+  without a browser from the document and the fonts of its measured nodes
+  (D92.1). `--spans-us` starts spans at those times, the grid holding inside
+  each:
+
+  ```bash
+  node packages/cli/dist/bin.js segment-keys --composition composition.json \
+    --assets assets.json --preset 1080p --spans-us 0,4000000
+  ```
+
 In the library, every job takes `signal` (an `AbortSignal`), `onProgress`, and
 `limits`.
 

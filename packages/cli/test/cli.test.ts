@@ -20,6 +20,7 @@ import { join } from 'node:path';
 
 import {
   ProducerError,
+  segmentKeys,
   type AudioRequest,
   type AudioResult,
   type ExportRequest,
@@ -28,6 +29,8 @@ import {
   type JoinResult,
   type RenderRequest,
   type RenderResult,
+  type SegmentKeysGrid,
+  type SegmentKeysSettings,
   type SegmentsRequest,
   type SegmentsResult,
   type StillRequest,
@@ -36,6 +39,7 @@ import {
 import type { VideoInspection } from '@kadrion/player';
 import {
   cornersComposition,
+  generateProportionalFontAsset,
   generateReferenceAssets,
   referenceComposition,
 } from '@kadrion/test-fixtures';
@@ -1124,6 +1128,151 @@ describe('kadrion estimate (D48.5)', () => {
         env: FFMPEG_ENV,
       }),
     ).resolves.toBe(EXIT_PRODUCER_ERROR);
+  });
+});
+
+describe('kadrion segment-keys (D92.1)', () => {
+  function keysArgs(dir: string, ...extra: string[]): string[] {
+    return [
+      'segment-keys',
+      '--composition',
+      join(dir, 'composition.json'),
+      '--assets',
+      join(dir, 'assets.json'),
+      '--preset',
+      '1080p',
+      ...extra,
+    ];
+  }
+
+  it('prints the keys of the Producer in one line before its done, and writes nothing', async () => {
+    const { dir } = workspace();
+    const { out, err, io: streams } = io();
+    await expect(runCli(keysArgs(dir), streams)).resolves.toBe(EXIT_OK);
+    const expected = segmentKeys(referenceComposition, {}, { preset: '1080p', fonts: new Map() });
+    expect(lines(out)).toEqual([
+      { event: 'segment-keys', keyVersion: 1, segments: expected.segments },
+      done(null),
+    ]);
+    expect(expected.segments).toHaveLength(5);
+    expect(expected.segments[0]?.customHtmlNodeIds).toEqual(['node-custom-html']);
+    expect(err).toEqual([]);
+    expect(readdirSync(dir).sort()).toEqual([
+      'asset-audio.bin',
+      'asset-font.bin',
+      'asset-image.bin',
+      'assets.json',
+      'composition.json',
+    ]);
+    expect(JOB_COMMANDS).toContain('segment-keys');
+  });
+
+  it('reads the fonts of the measured nodes and no other asset', async () => {
+    const dir = scratchDirectory('kadrion-cli-keys-');
+    // The fixture of corners on a canvas of 1280 × 720, which the preset 720p renders.
+    const document = { ...(cornersComposition as object), width: 1280, height: 720 };
+    writeFileSync(join(dir, 'composition.json'), JSON.stringify(document));
+    const font = generateProportionalFontAsset();
+    writeFileSync(join(dir, 'font.ttf'), font.bytes);
+    // The image is no file at all: a command that read it would fail.
+    writeFileSync(
+      join(dir, 'assets.json'),
+      JSON.stringify({
+        'asset-image': { path: 'missing.png', mediaType: 'image/png' },
+        [font.id]: { path: 'font.ttf', mediaType: 'font/ttf' },
+      }),
+    );
+    const { out, io: streams } = io();
+    const args = keysArgs(dir).map((arg) => (arg === '1080p' ? '720p' : arg));
+    await expect(runCli(args, streams)).resolves.toBe(EXIT_OK);
+    const [line] = lines(out) as { event: string; segments: unknown[] }[];
+    expect(line?.event).toBe('segment-keys');
+    expect(line?.segments).toHaveLength(1);
+    // Without the font, the font is missing.
+    writeFileSync(join(dir, 'assets.json'), JSON.stringify({}));
+    const missing = io();
+    await expect(runCli(args, missing.io)).resolves.toBe(EXIT_PRODUCER_ERROR);
+    expect(lines(missing.out)).toEqual([
+      { event: 'error', code: 'asset-missing', exitCode: EXIT_PRODUCER_ERROR },
+    ]);
+  });
+
+  it('passes the segment length, the grid, its spans, and the limits through', async () => {
+    const { dir } = workspace();
+    const seen: { grid: SegmentKeysGrid; settings: SegmentKeysSettings }[] = [];
+    const { out, io: streams } = io();
+    const flags = [
+      ...['--segment-frames', '30', '--min-segment-frames', '15'],
+      ...['--grid-from-us', '233333', '--grid-to-us', '2466666'],
+      ...['--spans-us', '233333,1000000', '--max-frames', '300'],
+    ];
+    await expect(
+      runCli(keysArgs(dir, ...flags), streams, {
+        segmentKeys: (_, grid, settings) => {
+          seen.push({ grid, settings });
+          return { keyVersion: 1, segments: [] };
+        },
+      }),
+    ).resolves.toBe(EXIT_OK);
+    expect(seen[0]?.grid).toEqual({
+      range: { fromUs: 233_333, toUs: 2_466_666 },
+      minSegmentFrames: 15,
+      spans: [233_333, 1_000_000],
+    });
+    expect(seen[0]?.settings).toEqual({
+      preset: '1080p',
+      segmentFrames: 30,
+      fonts: new Map(),
+      limits: { maxFrames: 300 },
+    });
+    expect(lines(out)).toEqual([
+      { event: 'segment-keys', keyVersion: 1, segments: [] },
+      done(null),
+    ]);
+    // Without the flags, the grid of D47.1 and the settings alone.
+    await runCli(keysArgs(dir), io().io, {
+      segmentKeys: (_, grid, settings) => {
+        seen.push({ grid, settings });
+        return { keyVersion: 1, segments: [] };
+      },
+    });
+    expect(seen[1]).toEqual({ grid: {}, settings: { preset: '1080p', fonts: new Map() } });
+  });
+
+  it('refuses a usage error with exit 2 and a refusal of the Producer with its exit code', async () => {
+    const { dir } = workspace();
+    const never = () => {
+      throw new Error('not reached');
+    };
+    for (const args of [
+      ['segment-keys', '--composition', join(dir, 'composition.json')],
+      keysArgs(dir, '--spans-us', '0,x'),
+      keysArgs(dir, '--spans-us', ''),
+      keysArgs(dir, '--grid-from-us', '0'),
+      keysArgs(dir, '--out', dir),
+      keysArgs(dir, '--preset', '1080p/'),
+    ]) {
+      const { out, io: streams } = io();
+      await expect(runCli(args, streams, { segmentKeys: never })).resolves.toBe(EXIT_USAGE);
+      expect(lines(out)).toEqual([{ event: 'error', code: 'usage', exitCode: EXIT_USAGE }]);
+    }
+    for (const [extra, code, exitCode] of [
+      [['--spans-us', '33333'], 'range-invalid', EXIT_PRODUCER_ERROR],
+      [['--spans-us', '0,5000000,4000000'], 'range-invalid', EXIT_PRODUCER_ERROR],
+      [['--max-frames', '299'], 'limit-exceeded', EXIT_LIMIT_EXCEEDED],
+      [['--preset', '4k'], 'preset-unsupported', EXIT_PRODUCER_ERROR],
+    ] as const) {
+      const { out, io: streams } = io();
+      await expect(runCli(keysArgs(dir, ...extra), streams)).resolves.toBe(exitCode);
+      expect(lines(out)).toEqual([{ event: 'error', code, exitCode }]);
+    }
+    const controller = new AbortController();
+    controller.abort();
+    const { out, io: streams } = io();
+    await expect(
+      runCli(keysArgs(dir), streams, { segmentKeys: never, signal: controller.signal }),
+    ).resolves.toBe(EXIT_CANCELLED);
+    expect(lines(out)).toEqual([{ event: 'error', code: 'cancelled', exitCode: EXIT_CANCELLED }]);
   });
 });
 

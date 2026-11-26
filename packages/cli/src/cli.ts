@@ -17,6 +17,9 @@
  *   kadrion estimate --composition <file> --assets <file> --preset <1080p|720p>
  *                  [--samples <n>] [--segment-frames <n>] [--budget-ms <ms>] [--ffmpeg …] [--ffprobe …]
  *                  [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>]
+ *   kadrion segment-keys --composition <file> --assets <file> --preset <1080p|720p>
+ *                  [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>]
+ *                  [--min-segment-frames <n>] [--spans-us <t,…>]
  *   kadrion migrate <file> (--out <file> | --check)
  *   kadrion fetch-ffmpeg --dir <dir>
  *   kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]
@@ -51,6 +54,10 @@
  * under which a last segment is merged into the one before it (D80).
  * `estimate` renders and encodes a few frames into a temporary directory and
  * reports the time per frame and how many segments fit into a budget (D48.5).
+ * `segment-keys` prints the key of every segment of a grid, its span, and the
+ * Custom HTML nodes active in it, computed without a browser from the document
+ * and the fonts of its measured nodes, the only assets it reads (D92.1);
+ * `--spans-us` divides the grid into spans at those start times (D92.2).
  * `migrate` reads one saved document, reports the versions it passed through,
  * and writes it in the current version to `--out`, or with `--check` writes
  * nothing and exits 6 when the document is not current (D43, amended by PR-41).
@@ -79,12 +86,14 @@ import {
   FFPROBE_SHA256,
   JOB_LIMITS,
   joinSegments,
+  measuredFontMetrics,
   PARTIAL_SUFFIX,
   ProducerError,
   renderAudio,
   renderFrames,
   renderSegments,
   renderStill,
+  segmentKeys,
   STILL_FORMATS,
   type AudioManifest,
   type AudioRequest,
@@ -101,6 +110,10 @@ import {
   type ProgressEvent,
   type RenderRequest,
   type RenderResult,
+  type SegmentKey,
+  type SegmentKeys,
+  type SegmentKeysGrid,
+  type SegmentKeysSettings,
   type SegmentsManifest,
   type SegmentsRequest,
   type SegmentsResult,
@@ -148,13 +161,15 @@ export const JOB_COMMANDS = [
   'join',
   'render-still',
   'estimate',
+  'segment-keys',
   'migrate',
 ] as const;
 
 /**
  * A line of a job's standard output (D48.1): the Producer's progress, then a
  * `file` per file written under its final name, then exactly one `done` or
- * `error`. `estimate` reports its measurement before its `done`.
+ * `error`. `estimate` reports its measurement before its `done`, and
+ * `segment-keys` its keys (D92.1).
  */
 export type JobLine =
   | ProgressEvent
@@ -169,6 +184,11 @@ export type JobLine =
       readonly segments: number;
       readonly segmentsInBudget: number | null;
     }
+  | {
+      readonly event: 'segment-keys';
+      readonly keyVersion: number;
+      readonly segments: readonly SegmentKey[];
+    }
   | MigrateLine
   | { readonly event: 'done'; readonly manifest: string | null }
   | { readonly event: 'error'; readonly code: string; readonly exitCode: number };
@@ -181,6 +201,7 @@ export const USAGE = [
   '       kadrion join --in <dir> [--in <dir> ...] --out <dir> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion render-still --composition <file> --assets <file> --out <dir> --time-us <t> --format <png|jpeg|webp> [--ffmpeg <path>] [--ffprobe <path>]',
   '       kadrion estimate --composition <file> --assets <file> --preset <1080p|720p> [--samples <n>] [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--budget-ms <ms>] [--ffmpeg <path>] [--ffprobe <path>]',
+  '       kadrion segment-keys --composition <file> --assets <file> --preset <1080p|720p> [--segment-frames <n>] [--grid-from-us <t> --grid-to-us <t>] [--min-segment-frames <n>] [--spans-us <t,...>]',
   '       kadrion migrate <file> (--out <file> | --check)',
   '       kadrion fetch-ffmpeg --dir <dir>',
   '       kadrion doctor [--ffmpeg <path>] [--ffprobe <path>]',
@@ -205,6 +226,18 @@ export type Join = (request: JoinRequest) => Promise<JoinResult>;
 export type RenderStill = (request: StillRequest) => Promise<StillResult>;
 export type FetchFfmpeg = (options: FetchFfmpegOptions) => Promise<Installed>;
 export type Doctor = (ffmpeg: Partial<FfmpegPaths>) => Promise<DoctorReport>;
+/** The keys of the segments of a grid (D92.1); `segmentKeys` of `@kadrion/producer`. */
+export type SegmentKeysHost = (
+  document: unknown,
+  grid: SegmentKeysGrid,
+  settings: SegmentKeysSettings,
+) => SegmentKeys;
+/** The metrics of the fonts of measured nodes (D83.7); `measuredFontMetrics` of `@kadrion/producer`. */
+export type MeasureFonts = (
+  document: unknown,
+  resolveAsset: RenderRequest['resolveAsset'],
+  limits?: JobLimits,
+) => Promise<SegmentKeysSettings['fonts']>;
 /** The Player's verdict on a file (D79.4); `inspectVideo` of `@kadrion/player`. */
 export type Inspect = (file: Blob) => Promise<VideoInspection>;
 
@@ -219,6 +252,8 @@ export interface CliHosts {
   readonly renderAudio: RenderAudio;
   readonly join: Join;
   readonly renderStill: RenderStill;
+  readonly segmentKeys: SegmentKeysHost;
+  readonly measureFonts: MeasureFonts;
   readonly fetchFfmpeg: FetchFfmpeg;
   readonly doctor: Doctor;
   readonly inspect: Inspect;
@@ -322,10 +357,12 @@ export function parseAssetMap(text: string): ReadonlyMap<string, AssetEntry> {
 }
 
 /** Times as written: comma-separated non-negative integers, in the order given. */
-export function parseTimes(text: string): number[] {
+export function parseTimes(text: string, flag = 'times'): number[] {
   const parts = text.split(',');
   if (parts.some((part) => !/^\d+$/.test(part))) {
-    throw new UsageError('--times takes comma-separated integer microseconds, such as 0,2500000.');
+    throw new UsageError(
+      `--${flag} takes comma-separated integer microseconds, such as 0,2500000.`,
+    );
   }
   return parts.map(Number);
 }
@@ -871,6 +908,65 @@ async function estimateCommand(args: readonly string[], job: Job): Promise<numbe
   return EXIT_OK;
 }
 
+/** Throws the error of a cancelled job when the signal has aborted (D48.2). */
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted === true) {
+    throw signal.reason instanceof ProducerError
+      ? signal.reason
+      : new ProducerError('cancelled', 'The job was cancelled.');
+  }
+}
+
+/**
+ * `kadrion segment-keys` (D92.1): the key of every segment of the grid the
+ * flags name, without a browser, FFmpeg, or a file of output. It reads the
+ * composition, the asset file, and the fonts of the measured nodes, nothing
+ * else, and prints one `segment-keys` line before its `done`.
+ */
+async function segmentKeysCommand(args: readonly string[], job: Job): Promise<number> {
+  const { values } = parseArgs({
+    args: [...args],
+    options: {
+      composition: { type: 'string' },
+      assets: { type: 'string' },
+      preset: { type: 'string' },
+      'segment-frames': { type: 'string' },
+      ...GRID_OPTIONS,
+      'spans-us': { type: 'string' },
+      ...LIMIT_OPTIONS,
+    },
+    strict: true,
+    allowPositionals: false,
+  });
+  const { composition, assets, preset } = values;
+  if (composition === undefined || assets === undefined || preset === undefined) {
+    throw new UsageError('--composition, --assets, and --preset are required.');
+  }
+  if (!/^[0-9a-z]+$/.test(preset)) throw new UsageError('--preset takes a name such as 1080p.');
+  const segmentFrames = integerFlag('segment-frames', values['segment-frames']);
+  const grid = gridFlags(values);
+  const spans =
+    values['spans-us'] === undefined ? undefined : parseTimes(values['spans-us'], 'spans-us');
+  const limits = limitsOf(values);
+  const inputs = await readInputs(composition, assets);
+  throwIfAborted(job.signal);
+  const fonts = await job.hosts.measureFonts(inputs.document, inputs.resolveAsset, limits);
+  throwIfAborted(job.signal);
+  const keys = job.hosts.segmentKeys(
+    inputs.document,
+    { ...grid, ...(spans === undefined ? {} : { spans }) },
+    {
+      preset,
+      ...(segmentFrames === undefined ? {} : { segmentFrames }),
+      fonts,
+      ...(limits === undefined ? {} : { limits }),
+    },
+  );
+  job.emit({ event: 'segment-keys', keyVersion: keys.keyVersion, segments: keys.segments });
+  job.emit({ event: 'done', manifest: null });
+  return EXIT_OK;
+}
+
 /**
  * `kadrion migrate` (D43, amended by PR-41): `parseComposition` of the input
  * text, then `serializeComposition` of the result to `--out`, written under a
@@ -915,11 +1011,7 @@ async function migrateCommand(args: readonly string[], job: Job): Promise<number
       );
     }
   } else if (out !== undefined) {
-    if (job.signal?.aborted === true) {
-      throw job.signal.reason instanceof ProducerError
-        ? job.signal.reason
-        : new ProducerError('cancelled', 'The job was cancelled.');
-    }
+    throwIfAborted(job.signal);
     await mkdir(dirname(resolve(out)), { recursive: true });
     await writeComplete(out, outcome.text);
     job.emit({ event: 'file', file: out });
@@ -1113,6 +1205,7 @@ const JOBS: Readonly<
   join: joinCommand,
   'render-still': renderStillCommand,
   estimate: estimateCommand,
+  'segment-keys': segmentKeysCommand,
   migrate: migrateCommand,
 };
 
@@ -1203,6 +1296,8 @@ export async function runCli(
     renderAudio: hosts.renderAudio ?? renderAudio,
     join: hosts.join ?? joinSegments,
     renderStill: hosts.renderStill ?? renderStill,
+    segmentKeys: hosts.segmentKeys ?? segmentKeys,
+    measureFonts: hosts.measureFonts ?? measuredFontMetrics,
     fetchFfmpeg: hosts.fetchFfmpeg ?? fetchFfmpeg,
     doctor: hosts.doctor ?? ((ffmpeg) => runDoctor(ffmpeg)),
     inspect: hosts.inspect ?? inspectVideo,

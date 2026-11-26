@@ -220,6 +220,13 @@ export interface FfmpegPaths {
     readonly ffprobePath: string;
 }
 
+---- FontMetrics (type only)
+export interface FontMetrics {
+    readonly unitsPerEm: number;
+    readonly notdefAdvance: number;
+    readonly advances: ReadonlyMap<number, number>;
+}
+
 ---- FrameCapture (type only)
 export type FrameCapture = 'reference' | 'fast';
 
@@ -493,7 +500,7 @@ export declare class ProducerError extends Error {
 }
 
 ---- ProducerErrorCode (type only)
-export type ProducerErrorCode = 'invalid-document' | 'frame-out-of-range' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-changed' | 'runtime-hash-mismatch' | 'runtime-unsafe' | 'chromium-missing' | 'chromium-mismatch' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'font-load-failed' | 'asset-decode-failed' | 'readiness-unsupported' | 'image-invalid' | 'svg-refused' | 'image-size-mismatch' | 'custom-html-timeout' | 'custom-html-navigated' | 'page-timeout' | 'presentation-timeout' | 'network-request' | 'ffmpeg-missing' | 'ffmpeg-mismatch' | 'encode-failed' | 'audio-invalid' | 'preset-unsupported' | 'segment-length-invalid' | 'range-invalid' | 'join-invalid' | 'still-format-unsupported' | 'limit-exceeded' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'cancelled' | 'page-error';
+export type ProducerErrorCode = 'invalid-document' | 'frame-out-of-range' | 'asset-missing' | 'asset-hash-mismatch' | 'asset-invalid' | 'asset-changed' | 'runtime-hash-mismatch' | 'runtime-unsafe' | 'chromium-missing' | 'chromium-mismatch' | 'asset-url-missing' | 'asset-url-unknown' | 'asset-url-invalid' | 'font-load-failed' | 'asset-decode-failed' | 'readiness-unsupported' | 'image-invalid' | 'svg-refused' | 'image-size-mismatch' | 'custom-html-timeout' | 'custom-html-navigated' | 'page-timeout' | 'presentation-timeout' | 'network-request' | 'ffmpeg-missing' | 'ffmpeg-mismatch' | 'encode-failed' | 'audio-invalid' | 'preset-unsupported' | 'segment-length-invalid' | 'range-invalid' | 'join-invalid' | 'still-format-unsupported' | 'limit-exceeded' | 'video-undecodable' | 'source-range-exceeded' | 'video-frames-invalid' | 'cancelled' | 'font-metrics-missing' | 'font-invalid' | 'font-unmeasurable' | 'page-error';
 
 ---- ProgressEvent (type only)
 export type ProgressEvent = {
@@ -639,6 +646,9 @@ export interface RuntimeBuild {
     readonly compiler: string;
 }
 
+---- SEGMENT_KEY_VERSION
+export declare const SEGMENT_KEY_VERSION = 1;
+
 ---- STILL_FORMATS
 export declare const STILL_FORMATS: Readonly<{
     readonly png: {
@@ -668,6 +678,36 @@ export interface SegmentGrid {
     readonly frameCount: number;
     readonly segmentFrames: number;
     readonly minSegmentFrames: number;
+}
+
+---- SegmentKey (type only)
+export interface SegmentKey {
+    readonly index: number;
+    readonly span: number;
+    readonly firstFrame: number;
+    readonly frameCount: number;
+    readonly key: string;
+    readonly customHtmlNodeIds: readonly string[];
+}
+
+---- SegmentKeys (type only)
+export interface SegmentKeys {
+    readonly keyVersion: number;
+    readonly segments: readonly SegmentKey[];
+}
+
+---- SegmentKeysGrid (type only)
+export interface SegmentKeysGrid extends GridRequest {
+    readonly spans?: readonly number[];
+}
+
+---- SegmentKeysSettings (type only)
+export interface SegmentKeysSettings {
+    readonly preset: string;
+    readonly segmentFrames?: number;
+    readonly fonts: ReadonlyMap<string, FontMetrics>;
+    readonly runtime?: Pick<RuntimeBuild, 'contentHash'>;
+    readonly limits?: JobLimits;
 }
 
 ---- SegmentsManifest (type only)
@@ -847,6 +887,9 @@ export declare function launchChromium(options?: LaunchOptions): Promise<Launche
 ---- loadRuntimeBuild
 export declare function loadRuntimeBuild(): RuntimeBuild;
 
+---- measuredFontMetrics
+export declare function measuredFontMetrics(document: unknown, resolveAsset: ProducerAssetResolver, limits?: JobLimits): Promise<ReadonlyMap<string, FontMetrics>>;
+
 ---- networkFacts
 export declare function networkFacts(interfaces: readonly string[]): NetworkFacts;
 
@@ -876,6 +919,9 @@ export declare function segmentFileName(index: number): string;
 
 ---- segmentGrid
 export declare function segmentGrid(composition: ValidatedComposition, segmentFrames: number, request?: GridRequest): SegmentGrid;
+
+---- segmentKeys
+export declare function segmentKeys(document: unknown, grid: SegmentKeysGrid, settings: SegmentKeysSettings): SegmentKeys;
 
 ---- segmentsOf
 export declare function segmentsOf(composition: ValidatedComposition, segmentFrames: number): Segment[];
