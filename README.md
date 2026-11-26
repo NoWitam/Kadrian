@@ -34,7 +34,10 @@ patch release `v0.12.1` (before it, a frame with a turned or animated mask,
 shape, or SVG asset could differ after another frame from the same frame
 rendered alone), and whose steps PR-95 to PR-97 move the four corners of a
 node in schema `0.30` and show a number in a text in schema `0.31` (D91), for
-the release `v0.13.0`.
+the release `v0.13.0`, and whose steps PR-99 to PR-101 give every segment a
+key, divide a render's grid into spans, join stored segments of earlier
+renders by their keys (D92), and check Custom HTML from the command line
+(D93), for the release `v0.14.0`.
 Schema `0.31` with its forward migrations from `0.1` to `0.30`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
@@ -56,8 +59,8 @@ are those of the spike and may still change.
 
 - [`AGENTS.md`](AGENTS.md) — binding project instructions: decisions, invariants,
   package boundaries, workflow
-- [`docs/adr`](docs/adr/README.md) — decision log (D01–D91; all accepted except D10, superseded by
-  D37, and D79 to D81, proposed)
+- [`docs/adr`](docs/adr/README.md) — decision log (D01–D93; all accepted except D10, superseded by
+  D37, and D79 and D81, proposed)
 - [`docs/spike/vertical-spike.md`](docs/spike/vertical-spike.md) — what the
   vertical spike has to prove, acceptance criteria, open questions, PR sequence
 - [`docs/spike/report.md`](docs/spike/report.md) — what the spike proved, with
@@ -1364,13 +1367,25 @@ node packages/cli/dist/bin.js render-still --composition composition.json \
   and `--min-segment-frames` merges a shorter last segment into the one before
   it, so a fragment on any frames renders in segments of at least that length;
   every job of the fragment gives the same grid, and the join checks it
-  (proposed in D80).
+  (D80). `--spans-us` divides the grid into spans at those frame times, the
+  same grid inside each span; the manifest then records the span and the key of
+  every segment (D92.2).
 - **`render-audio`:** writes `audio.wav` and `audio.manifest.json`. Its range is
   the range the join must cover, so a preview of a range is that range at
   `720p`, its audio, and a join.
 - **`join`:** reads the manifests of the `--in` directories, exactly one of them
   an audio manifest, refuses parts that are not one render, and writes
-  `video-<preset>.mp4` and its render manifest.
+  `video-<preset>.mp4` and its render manifest. Given `--composition`,
+  `--assets`, and the grid of its render with `--spans-us`, it joins for that
+  target document: the target's own parts fill their slots, and a segment of a
+  render of another document fills every other slot whose key is its own, so
+  only the segments whose keys changed are rendered again (D92.3):
+
+  ```bash
+  node packages/cli/dist/bin.js join --in stored --in changed --in audio --out video \
+    --composition composition.json --assets assets.json --spans-us 0,4000000
+  ```
+
 - **`render-still`:** writes `still-NNNNNN.<png|jpg|webp>` and its manifest; PNG
   needs no FFmpeg unless the document has video nodes, and neither does
   `render-frames`.
@@ -1400,7 +1415,8 @@ Each of these commands is a job a host's queue can run (D48):
   `--max-assets`, `--max-canvas-pixels` (width × height of the composition and
   of each definition), `--max-asset-bytes`, and `--max-total-asset-bytes` are
   checked before rendering; `--max-wall-ms` cancels the job when its time is up.
-  `join` takes only `--max-wall-ms`.
+  `join` takes only `--max-wall-ms`, and the document limits with
+  `--composition`.
 - **Exit codes:** 0 for success, 1 for an error of the Producer or of the FFmpeg
   installation, 2 for a usage error, 4 for an exceeded limit, 5 for a
   cancelled job, and 6 for a document `migrate --check` finds not current.
@@ -1422,6 +1438,17 @@ Each of these commands is a job a host's queue can run (D48):
   ```bash
   node packages/cli/dist/bin.js segment-keys --composition composition.json \
     --assets assets.json --preset 1080p --spans-us 0,4000000
+  ```
+
+- **`check-custom-html`:** runs the check of D78.6 on one Custom HTML node in
+  the pinned Chromium, which it launches itself, and prints the report of the
+  tool `check_custom_html` in one `check` line: the `findings` of its html,
+  the `render` check, and `ok`. It writes no file and exits 0 whether `ok` is
+  true or false; a browser other than the pinned one exits 1 (D93):
+
+  ```bash
+  node packages/cli/dist/bin.js check-custom-html --composition composition.json \
+    --assets assets.json --node-id node-custom-html
   ```
 
 In the library, every job takes `signal` (an `AbortSignal`), `onProgress`, and
@@ -1507,12 +1534,12 @@ example from a vendored directory:
 ```json
 {
   "dependencies": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.13.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.13.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.14.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.14.0.tgz"
   },
   "overrides": {
-    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.13.0.tgz",
-    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.13.0.tgz"
+    "@kadrion/schema": "file:vendor/kadrion/kadrion-schema-0.14.0.tgz",
+    "@kadrion/editor-sdk": "file:vendor/kadrion/kadrion-editor-sdk-0.14.0.tgz"
   }
 }
 ```

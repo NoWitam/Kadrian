@@ -8,6 +8,13 @@
 - Supersedes: —
 - Extends: D47 (47.1 the grid, 47.2 a range, 47.5 the join, 47.8 the CLI) and
   D48 (48.5 the estimate), each with an `Amended by: K-range (D80)` line
+- Amended by: PR-98 (D92) on 2026-11-26, in force from PR-100: 80.1 to 80.4
+  and 80.6: a grid may be divided into spans that start on frame times, with
+  the grid of 80.1 inside each span and the boundaries of every span in 80.3;
+  a grid of spans is always named, with `spans`, even when it is the
+  composition's, and its segments name `span` and `key`; the join checks the
+  spans as it checks the grid, and `render-range`, `estimate`, and `join` take
+  `--spans-us` (D92.2, D92.3)
 - Related: D04, D12, D13, D14, D29, D34, D52,
   [roadmap of phase three](../roadmap/phase-3.md) PR-25a and PR-25b
 

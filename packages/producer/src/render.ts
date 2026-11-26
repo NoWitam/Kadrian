@@ -62,7 +62,13 @@ import {
   type JobLimits,
   type JobOptions,
 } from './job.js';
-import { canonicalJson, MANIFEST_VERSION, sha256, type RenderManifest } from './manifest.js';
+import {
+  canonicalJson,
+  MANIFEST_VERSION,
+  sha256,
+  type ManifestAsset,
+  type RenderManifest,
+} from './manifest.js';
 import {
   isBytesAsset,
   resolveProducerAsset,
@@ -692,6 +698,17 @@ export function chromiumSequence(
  * (D28.7). `networkInterfaces` are the host's (`hostNetworkInterfaces`) in a
  * render or an export, and a fixed list in their unit tests (D28.9).
  */
+/** The assets of a document as a manifest records them (D28.7), a font with its family (D22.6). */
+export function manifestAssets(assets: readonly ProducerAsset[]): ManifestAsset[] {
+  return assets.map(({ id, type, mediaType, contentHash }) => ({
+    id,
+    type,
+    mediaType,
+    contentHash,
+    ...(type === 'font' ? { family: fontFamily(id) } : {}),
+  }));
+}
+
 export function manifestBase(
   prepared: PreparedRender,
   chromium: LaunchedChromium,
@@ -716,13 +733,7 @@ export function manifestBase(
       args: CHROMIUM_ARGS,
     },
     environment: environmentManifest(chromium.reportedVersion, composition, { networkInterfaces }),
-    assets: assets.map(({ id, type, mediaType, contentHash }) => ({
-      id,
-      type,
-      mediaType,
-      contentHash,
-      ...(type === 'font' ? { family: fontFamily(id) } : {}),
-    })),
+    assets: manifestAssets(assets),
     durationUs: composition.durationUs,
     frameCount: frameCount(composition.durationUs, composition.fps),
     video: prepared.videos?.manifest ?? null,

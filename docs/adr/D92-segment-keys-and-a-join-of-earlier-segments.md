@@ -397,3 +397,137 @@ segmentFrames }`, hashed frame by frame without holding the segment's text.
   golden, parity, or pinned file changes, so the pinned suite does not run
   again; `mp4Preset` and `EXPORT_CAPTURE` moved from `export.ts` to
   `encode.ts` unchanged, so the manifests keep their bytes.
+
+## Implementation notes (PR-100)
+
+PR-100 brings the grid of spans of D92.2 into render jobs, their manifests,
+the estimate, and the join, and the join by keys of D92.3.
+
+- **The grid.** `GridRequest.spans` (start times) and `SegmentGrid.spans`
+  (`GridSpan`, `{ fromUs, firstFrame }`) are optional; `segmentGrid` checks the
+  spans by `gridSpans` and names them only when the request does, so a grid of
+  D80 keeps its value. `gridSegments` of a grid of spans gives the segments of
+  every span, indexed over the grid and each with its span; `gridRange`,
+  `gridRangeSegments`, and `estimatePlan` read it, so the boundaries of a range
+  and the segments an estimate counts are those of every span.
+  `SegmentKeysGrid` is now `GridRequest`.
+- **The keys of a job.** A range job on spans computes the keys of the
+  segments of its range before a page opens: `segmentKeyer` (the function of
+  `segmentKeys`, for any segment of the grid) with the preset and segment
+  length of the job, the runtime build it runs (`contentHash`), and the fonts
+  of measured nodes measured from the assets it verified (`measuredFonts`,
+  which `measuredFontMetrics` now shares). The keys are those `segment-keys`
+  prints; the pinned run compares them.
+- **The manifests.** `ManifestGrid.spans` (`ManifestSpan`) and
+  `ManifestSegment.span` and `key`, written only on a grid of spans and always
+  named there (`isCompositionGrid` is false for a grid of spans). A segment's
+  fields are `index`, `span`, `firstFrame`, `frameCount`, `key`, then `file`
+  and `sha256`, in the segments manifest and, without `file`, in the export
+  manifest. `EXPORT_MANIFEST_VERSION` stays 7.
+- **The join without a target** (D47.5, D80.4) checks a grid of spans as
+  D92.2 says: a list of spans, each a frame time of the composition inside the
+  grid's span, increasing, the first at the grid's start; each segment the
+  segment of its index on the spans, naming its span, with a key. A grid of
+  spans that is the composition's grid is accepted; without spans it is still
+  refused. Its export manifest carries the spans and the keys.
+- **The join by keys.** `JoinRequest.target` (`JoinTarget`: `document`,
+  `resolveAsset`, `grid`, and optional `segmentFrames` and `limits`) runs
+  `keyedJoinPlan` instead of `joinPlan`. It validates the target, lays its
+  grid, verifies its assets within the limits, measures the fonts of its
+  measured nodes, reads its videos as a job reads them (`prepareVideos`), and
+  computes the keys of the slots the audio pass covers, each once, with the
+  pins of this build of the Producer and the runtime build the parts name.
+  The export manifest takes from the target its `compositionHash`,
+  `schemaVersion`, `assets` (as a job records them), `durationUs`,
+  `frameCount`, `grid`, and the decode and sources of its videos; the rest of
+  it from the parts, as in D47.5. `JoinPlan` gains `document`, what the export
+  says of its document, the parts' own without a target.
+- **Readings closest to the ADR**, where D92.3 leaves a choice:
+  - A join by keys requires the spans of the target's grid (`join-invalid`
+    without them, exit 2 for `kadrion join --composition` without
+    `--spans-us`): only a render on spans records keys (question 6), and the
+    export of the target on its grid names them.
+  - A part of the target fills its own slot only with the key of the target
+    there, so a part rendered with other pins, which every other part would
+    match on no key, is `join-invalid` rather than joined.
+  - The decode of video is compared between the parts that decoded one, and
+    with the target's, without sources and `seekArgs`: a part of a document
+    without video nodes (`video: null`) joins with parts that have them, since
+    the decoder is the FFmpeg every part names and the arguments are those of
+    this build.
+  - Every part given is compared with the others in the pins of the run, also
+    a part whose segments fill no slot; a host passes the manifests of the
+    current worker (D92.4).
+  - The first segment given with a key, in the order of the parts and of their
+    segments, fills the free slots of that key; the export lists, for each slot,
+    its file, the hash of that file, and the frame hashes of that segment
+    numbered as the slot's frames (question 8).
+  - `blockedRequests` and `video.seekArgs` are those of the parts that fill a
+    slot.
+  - `kadrion join` takes its segment length and preset from the parts, and the
+    limits of D48.4 only with `--composition`.
+- **The measurement** (`tests/pinned/export.pinned.test.ts`, in the container
+  of D26.2, `--network none`, Node 24.20.0): the scenes fixture (three scenes
+  of 30, 45, and 21 frames) rendered by `render-range` on spans at its scenes
+  in segments of 15 frames; a second document with its first scene 6 frames
+  longer (so the other two start 6 frames later) and the text of its last
+  scene changed. Of its 8 segments, `segment-keys` finds 5 among the keys of
+  the first render (the first scene's two, and the moved scene's three:
+  question 4) and 3 new (the 6 frames the first scene gained and the changed
+  scene's two); `render-range` rendered only those, 27 of 102 frames, in two
+  jobs. `join --composition --assets --spans-us`, given every manifest of
+  the first render (its last scene's two segments fill no slot and are left
+  out), the two jobs, and the audio pass of the second document, wrote the
+  MP4 of a fresh render of the second document on the same grid joined
+  without a target, byte for byte
+  (`sha256:5593fde6dad20949db96317d19d74e64412bae82d834054737f80e95a752923a`,
+  109 053 bytes), with every frame hash and the export manifest equal, here
+  byte for byte too (the document has no video, so no `seekArgs`). The keys
+  the jobs record are those `segment-keys` prints. A grid of one span over the
+  whole document writes the segment files of the grid without spans byte for
+  byte, and a manifest that differs only by `grid` and each segment's `span`
+  and `key`.
+- **The bytes of `737be15`.** `tests/pinned/export.pinned.test.ts` ran in the
+  pinned container on the tree of PR-99 (`1a3bfaf`, which writes the bytes of
+  `737be15`) and on this one: the 36 manifests, MP4 files, and WAV files of
+  the one-pass exports, the jobs, the stills, and the grid of D80 that both
+  write are identical, byte for byte. The memory report of the export (D29.3), a
+  report only, timed out at its 600 s in both trees, alone too, while other
+  work held the host's four cores at a load of about 10, and in the full
+  pinned run of this tree (371 of 372 tests passed); run alone at a load of
+  about 5 it passed in 197 s on this tree, as in 198 s on PR-99's.
+- **Unchanged.** No schema, runtime build
+  (`sha256:22b773177561b753b4f2924e6d7edb2b1410420c82d2b9234b683c957bb5d09d`),
+  renderer, Player dist tree, golden frame, parity record, or pinned file
+  list changes; the measurement is a `describe` of an existing pinned file,
+  so `REQUIRED_PINNED_FILES` and the Q14 artifact list keep their entries.
+  The API report of the Producer grows by `GridSpan`, `JoinDocument`,
+  `JoinTarget`, `ManifestSpan`, and the fields above; that of the CLI keeps
+  its bytes. The host guide of the keys and the join by keys is PR-101's.
+
+## Implementation notes (PR-101)
+
+- **The host guide** carries what D92 leaves to it. Section 13: the key of
+  a segment by `kadrion segment-keys` and `segmentKeys`, its fields and
+  `keyVersion`, what it reads and does not read, the font errors, and the
+  time of ten minutes measured in PR-99; storing segments under their keys
+  with their manifests, and the keys an upgrade of the runtime build, a pin,
+  or `keyVersion` changes; the grid of spans of `--spans-us` and its
+  manifests; the steps of a join by keys (`segment-keys` on the edited
+  document, `render-range` of the missing keys, `render-audio`, and
+  `join --composition --assets --spans-us`), its result, and its refusals;
+  the manifests of the current worker only, since every part given is
+  compared in the pins of the run, and a segment that fills no slot left
+  out (D92.3, D92.4); and reuse of a segment whose `customHtmlNodeIds` are
+  not empty only while `kadrion check-custom-html` of each is `ok`
+  (question 9). Section 12 counts the segments of spans; sections 12 and 13
+  link D80, accepted with PR-98, instead of naming it proposed. The README
+  states the release.
+- **The release.** Every package is `0.14.0` for `v0.14.0`, after `v0.13.0`
+  of D91. The runtime build
+  (`sha256:22b773177561b753b4f2924e6d7edb2b1410420c82d2b9234b683c957bb5d09d`)
+  and the Player's dist tree
+  (`sha256:50c7eb3436470071bfca0783930a12124c2ff0a4594a49d3c4bb46fa112de7f4`)
+  are those of PR-96 and of `v0.13.0`; no golden file, parity record, or
+  pinned file changes. A job without spans writes the bytes of `v0.13.0`,
+  and its manifests carry no key.

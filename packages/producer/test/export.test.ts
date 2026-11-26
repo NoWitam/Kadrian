@@ -17,6 +17,7 @@ import { volumeEnvelope } from '@kadrion/runtime/volume';
 import {
   generateReferenceAssets,
   referenceComposition,
+  scenesComposition,
   templateComposition,
 } from '@kadrion/test-fixtures';
 import { frameToTimeUs, validateComposition, type ValidatedComposition } from '@kadrion/schema';
@@ -42,6 +43,7 @@ import {
   exportWith,
   joinPlan,
   joinSegmentsWith,
+  keyedJoinPlan,
   renderAudioWith,
   renderSegmentsWith,
   type AudioRequest,
@@ -49,6 +51,8 @@ import {
   type ExportLoop,
   type ExportRequest,
   type JoinPart,
+  type JoinRequest,
+  type KeyedTarget,
   type SegmentsRequest,
 } from '../src/export.js';
 import {
@@ -75,6 +79,8 @@ import { ProducerError } from '../src/errors.js';
 import { estimatePlan } from '../src/estimate.js';
 import type { ProgressEvent } from '../src/job.js';
 import { customHtmlNodes, type FrameSequence } from '../src/render.js';
+import { loadRuntimeBuild } from '../src/runtime.js';
+import { measuredFontMetrics, segmentKeys, type SegmentKey } from '../src/segment-keys.js';
 import {
   audioPassArgs,
   audioPassGraph,
@@ -3229,5 +3235,755 @@ describe('a volume curve in the audio pass (D85.5)', () => {
     expect(Object.keys(sound ?? {})).not.toContain('volumeKeys');
     expect(Object.keys(sound ?? {})).not.toContain('envelopeSha256');
     expect(manifest.ffmpeg.audioArgs).not.toContain('f32le');
+  });
+});
+
+/** A copy of an object without the given fields. */
+function omit<T extends object>(value: T, ...fields: string[]): Partial<T> {
+  const copy = { ...value };
+  for (const field of fields) Reflect.deleteProperty(copy, field);
+  return copy;
+}
+
+/** The scenes fixture: three scenes of 30, 45, and 21 frames, a clip, a font, and an image. */
+const SCENES_SPANS = [0, 1_000_000, 2_500_000];
+const ON_SPANS = { segmentFrames: 15, grid: { spans: SCENES_SPANS } } as const;
+
+/** The scenes fixture with its first scene 6 frames longer and the text of its last scene changed. */
+const scenesEdited = (() => {
+  const draft = structuredClone(scenesComposition) as {
+    durationUs: number;
+    scenes: { durationUs: number; nodes: { id: string; text?: string }[] }[];
+  };
+  draft.durationUs += 200_000;
+  const [intro, , outro] = draft.scenes;
+  if (intro === undefined || outro === undefined) throw new Error('three scenes expected');
+  intro.durationUs += 200_000;
+  const title = outro.nodes.find(({ id }) => id === 'outro-title');
+  if (title === undefined) throw new Error('outro-title expected');
+  title.text = 'Fin';
+  return draft as unknown;
+})();
+const EDITED_SPANS = [0, 1_200_000, 2_700_000];
+
+const scenesResolver: SegmentsRequest['resolveAsset'] = ({ id }) => ASSETS[id] ?? null;
+
+async function keysOfDocument(document: unknown, spans: readonly number[]): Promise<SegmentKey[]> {
+  const fonts = await measuredFontMetrics(document, scenesResolver);
+  return [
+    ...segmentKeys(
+      document,
+      { spans },
+      { preset: '1080p', segmentFrames: 15, fonts, runtime: loadRuntimeBuild() },
+    ).segments,
+  ];
+}
+
+/** A range of whole segments of a grid, from the first frame of `from` to the end of `to`. */
+const rangeOf = (keys: readonly SegmentKey[], fps: number, from: number, to: number) => {
+  const first = keys[from];
+  const last = keys[to];
+  if (first === undefined || last === undefined) throw new Error('no such segment');
+  return {
+    fromUs: frameToTimeUs(first.firstFrame, fps),
+    toUs: frameToTimeUs(last.firstFrame + last.frameCount, fps),
+  };
+};
+
+describe('jobs on a grid of spans (D92.2)', () => {
+  it('record the span and key of every segment, and the spans of the grid', async () => {
+    const run = fakeRun();
+    const part = await segmentsJob(run, undefined, '/k/a', {
+      document: scenesComposition,
+      ...ON_SPANS,
+    });
+    const keys = await keysOfDocument(scenesComposition, SCENES_SPANS);
+    expect(part.manifest.grid).toEqual({
+      fromUs: 0,
+      toUs: 3_200_000,
+      firstFrame: 0,
+      frameCount: 96,
+      minSegmentFrames: 1,
+      spans: [
+        { fromUs: 0, firstFrame: 0 },
+        { fromUs: 1_000_000, firstFrame: 30 },
+        { fromUs: 2_500_000, firstFrame: 75 },
+      ],
+    });
+    expect(
+      part.manifest.segments.map(({ index, span, firstFrame, frameCount, key }) => ({
+        index,
+        span,
+        firstFrame,
+        frameCount,
+        key,
+      })),
+    ).toEqual(
+      keys.map(({ index, span, firstFrame, frameCount, key }) => ({
+        index,
+        span,
+        firstFrame,
+        frameCount,
+        key,
+      })),
+    );
+    // Spans 0, 1, 2: 15 + 15, 15 × 3, 15 + 6; the key's fields in the order of D92.2.
+    expect(part.manifest.segments.map(({ frameCount }) => frameCount)).toEqual([
+      15, 15, 15, 15, 15, 15, 6,
+    ]);
+    expect(Object.keys(part.manifest.segments[0] ?? {})).toEqual([
+      'index',
+      'span',
+      'firstFrame',
+      'frameCount',
+      'key',
+      'file',
+      'sha256',
+    ]);
+    expect(part.manifest.manifestVersion).toBe(7);
+  });
+
+  it('take ranges whose ends are boundaries of segments of any span, and refuse others before a browser opens', async () => {
+    const run = fakeRun();
+    // Frames 30 to 74, span 1 whole: boundaries of the spans, not of a grid from frame 0.
+    const middle = await segmentsJob(run, { fromUs: 1_000_000, toUs: 2_500_000 }, '/k/m', {
+      document: scenesComposition,
+      ...ON_SPANS,
+    });
+    expect(middle.manifest.segments.map(({ index, span }) => [index, span])).toEqual([
+      [2, 1],
+      [3, 1],
+      [4, 1],
+    ]);
+    expect(middle.manifest.range).toEqual({
+      fromUs: 1_000_000,
+      toUs: 2_500_000,
+      firstFrame: 30,
+      frameCount: 45,
+    });
+    for (const [range, grid] of [
+      [{ fromUs: 0, toUs: 1_200_000 }, { spans: SCENES_SPANS }],
+      [undefined, { spans: [0, 1_000_001] }],
+      [undefined, { spans: [33_333] }],
+      [undefined, { spans: [0, 2_500_000, 1_000_000] }],
+    ] as const) {
+      const refused = fakeRun();
+      await expect(
+        segmentsJob(refused, range, '/k/x', {
+          document: scenesComposition,
+          segmentFrames: 15,
+          grid,
+        }),
+      ).rejects.toMatchObject({ code: 'range-invalid' });
+      expect(refused.log).not.toContain('browser');
+    }
+  });
+
+  it('write the segment files of a grid without spans, and a manifest that only adds the spans and keys', async () => {
+    const run = fakeRun();
+    const plain = await segmentsJob(run, undefined, '/k/plain', { document: scenesComposition });
+    const spanned = await segmentsJob(run, undefined, '/k/spans', {
+      document: scenesComposition,
+      grid: { spans: [0] },
+    });
+    for (const index of [0, 1]) {
+      const name = segmentFileName(index);
+      expect(run.files.get(`/k/spans/${name}`)).toEqual(run.files.get(`/k/plain/${name}`));
+    }
+    expect('grid' in plain.manifest).toBe(false);
+    expect(plain.manifest.segments.every((segment) => !('key' in segment))).toBe(true);
+    const { grid, segments, ...rest } = spanned.manifest;
+    expect(grid).toEqual({
+      fromUs: 0,
+      toUs: 3_200_000,
+      firstFrame: 0,
+      frameCount: 96,
+      minSegmentFrames: 1,
+      spans: [{ fromUs: 0, firstFrame: 0 }],
+    });
+    expect({
+      ...rest,
+      segments: segments.map(({ index, firstFrame, frameCount, file, sha256: hash }) => ({
+        index,
+        firstFrame,
+        frameCount,
+        file,
+        sha256: hash,
+      })),
+    }).toEqual(plain.manifest);
+    expect(segments.map(({ span }) => span)).toEqual([0, 0]);
+  });
+
+  it('join without a target into the export of the grid, with its spans and keys', async () => {
+    const run = fakeRun();
+    const late = await segmentsJob(run, { fromUs: 1_000_000, toUs: 3_200_000 }, '/k/b', {
+      document: scenesComposition,
+      ...ON_SPANS,
+    });
+    const early = await segmentsJob(run, { fromUs: 0, toUs: 1_000_000 }, '/k/a', {
+      document: scenesComposition,
+      ...ON_SPANS,
+    });
+    const audio = await audioJob(run, '/k/audio', { document: scenesComposition });
+    const { manifest } = await joinSegmentsWith(
+      { segments: [late, early], audio, outputPath: '/k/video.mp4', ffmpeg: PATHS },
+      run.dependencies,
+    );
+    expect(manifest.grid).toEqual(early.manifest.grid);
+    expect(manifest.segments).toEqual(
+      [...early.manifest.segments, ...late.manifest.segments].map(
+        ({ index, span, firstFrame, frameCount, key, sha256: hash }) => ({
+          index,
+          span,
+          firstFrame,
+          frameCount,
+          key,
+          sha256: hash,
+        }),
+      ),
+    );
+    expect(Object.keys(manifest.segments[0] ?? {})).toEqual([
+      'index',
+      'span',
+      'firstFrame',
+      'frameCount',
+      'key',
+      'sha256',
+    ]);
+  });
+
+  async function spannedParts(): Promise<{
+    run: FakeRun;
+    a: JoinPart<SegmentsManifest>;
+    b: JoinPart<SegmentsManifest>;
+    audio: JoinPart<AudioManifest>;
+  }> {
+    const run = fakeRun();
+    const a = await segmentsJob(run, { fromUs: 0, toUs: 1_000_000 }, '/s/a', {
+      document: scenesComposition,
+      ...ON_SPANS,
+    });
+    const b = await segmentsJob(run, { fromUs: 1_000_000, toUs: 3_200_000 }, '/s/b', {
+      document: scenesComposition,
+      ...ON_SPANS,
+    });
+    const audio = await audioJob(run, '/s/audio', { document: scenesComposition });
+    return { run, a, b, audio };
+  }
+  const edit = (
+    part: JoinPart<SegmentsManifest>,
+    change: (manifest: Record<string, unknown> & SegmentsManifest) => void,
+  ): JoinPart<SegmentsManifest> => {
+    const manifest = structuredClone(part.manifest) as Record<string, unknown> & SegmentsManifest;
+    change(manifest);
+    return { ...part, manifest };
+  };
+  const spansOf = (
+    change: (spans: { fromUs: number; firstFrame: number }[]) => unknown[],
+  ): ((given: Awaited<ReturnType<typeof spannedParts>>) => JoinPart<SegmentsManifest>[]) => {
+    const one = (part: JoinPart<SegmentsManifest>) =>
+      edit(part, (m) =>
+        Object.assign(m, { grid: { ...m.grid, spans: change([...(m.grid?.spans ?? [])]) } }),
+      );
+    return ({ a, b }) => [one(a), one(b)];
+  };
+
+  it.each([
+    [
+      'a segment in another span',
+      ({ a, b }: Awaited<ReturnType<typeof spannedParts>>) => [
+        a,
+        edit(b, (m) => Object.assign(m, { segments: m.segments.map((s) => ({ ...s, span: 0 })) })),
+      ],
+      /names span 0, not span 1/,
+    ],
+    [
+      'a segment without its key',
+      ({ a, b }: Awaited<ReturnType<typeof spannedParts>>) => [
+        edit(a, (m) =>
+          Object.assign(m, {
+            segments: m.segments.map((segment) => omit(segment, 'key')),
+          }),
+        ),
+        b,
+      ],
+      /has no key/,
+    ],
+    ['spans not in order', spansOf((spans) => [...spans].reverse()), /Span 0/],
+    [
+      'a span that is not a frame time',
+      spansOf((spans) =>
+        spans.map((span, at) => (at === 1 ? { ...span, fromUs: 1_000_001 } : span)),
+      ),
+      /Span 1/,
+    ],
+    ['a first span after the grid’s start', spansOf((spans) => spans.slice(1)), /Span 0/],
+    ['no span', spansOf(() => []), /names no span/],
+    [
+      'a span past the grid’s end',
+      spansOf((spans) => [...spans, { fromUs: 3_200_000, firstFrame: 96 }]),
+      /Span 3/,
+    ],
+    [
+      'a part without spans',
+      ({ a, b }: Awaited<ReturnType<typeof spannedParts>>) => [
+        a,
+        edit(b, (m) => {
+          const grid = { ...m.grid };
+          Reflect.deleteProperty(grid, 'spans');
+          Object.assign(m, { grid });
+        }),
+      ],
+      /differ in grid/,
+    ],
+  ])('refuse %s in a join without a target, with join-invalid', async (_, pick, message) => {
+    const given = await spannedParts();
+    await expect(
+      joinSegmentsWith(
+        { segments: pick(given), audio: given.audio, outputPath: '/s/v.mp4', ffmpeg: PATHS },
+        given.run.dependencies,
+      ),
+    ).rejects.toMatchObject({
+      code: 'join-invalid',
+      message: expect.stringMatching(message) as unknown,
+    });
+  });
+
+  it('count the segments of every span in an estimate', () => {
+    expect(estimatePlan(scenesComposition, 10, 15, { spans: SCENES_SPANS }).segments).toBe(7);
+    expect(estimatePlan(scenesComposition, 10, 15).segments).toBe(7);
+    // Spans of 3 and 93 frames: 1, and 6 of 15 and one of 3.
+    expect(estimatePlan(scenesComposition, 10, 15, { spans: [0, 100_000] }).segments).toBe(8);
+    expect(() => estimatePlan(scenesComposition, 10, 15, { spans: [1] })).toThrow(
+      expect.objectContaining({ code: 'range-invalid' }),
+    );
+  });
+});
+
+describe('the join by keys (D92.3)', () => {
+  /**
+   * The scenes fixture rendered on spans at its scenes, then the edited one
+   * with only the segments whose keys changed, joined against the edited one.
+   */
+  async function reuse(): Promise<{
+    run: FakeRun;
+    before: JoinPart<SegmentsManifest>;
+    changed: JoinPart<SegmentsManifest>[];
+    audio: JoinPart<AudioManifest>;
+    keysBefore: SegmentKey[];
+    keysAfter: SegmentKey[];
+    fresh: () => Promise<ExportManifest>;
+    join: (
+      segments: readonly JoinPart<SegmentsManifest>[],
+      change?: Partial<JoinRequest>,
+    ) => Promise<ExportManifest>;
+  }> {
+    const run = fakeRun();
+    const keysBefore = await keysOfDocument(scenesComposition, SCENES_SPANS);
+    const keysAfter = await keysOfDocument(scenesEdited, EDITED_SPANS);
+    const before = await segmentsJob(run, undefined, '/r/before', {
+      document: scenesComposition,
+      ...ON_SPANS,
+    });
+    const known = new Set(keysBefore.map(({ key }) => key));
+    const changedIndices = keysAfter.filter(({ key }) => !known.has(key)).map(({ index }) => index);
+    // Contiguous runs of changed segments, one range job each.
+    const runs: [number, number][] = [];
+    for (const index of changedIndices) {
+      const last = runs.at(-1);
+      if (last !== undefined && last[1] === index - 1) last[1] = index;
+      else runs.push([index, index]);
+    }
+    const changed: JoinPart<SegmentsManifest>[] = [];
+    for (const [from, to] of runs) {
+      changed.push(
+        await segmentsJob(run, rangeOf(keysAfter, 30, from, to), `/r/after-${String(from)}`, {
+          document: scenesEdited,
+          segmentFrames: 15,
+          grid: { spans: EDITED_SPANS },
+        }),
+      );
+    }
+    const audio = await audioJob(run, '/r/audio', { document: scenesEdited });
+    const target = {
+      document: scenesEdited,
+      resolveAsset: scenesResolver,
+      grid: { spans: EDITED_SPANS },
+    };
+    return {
+      run,
+      before,
+      changed,
+      audio,
+      keysBefore,
+      keysAfter,
+      async fresh() {
+        const whole = await segmentsJob(run, undefined, '/r/fresh', {
+          document: scenesEdited,
+          segmentFrames: 15,
+          grid: { spans: EDITED_SPANS },
+        });
+        return (
+          await joinSegmentsWith(
+            { segments: [whole], audio, outputPath: '/r/fresh.mp4', ffmpeg: PATHS },
+            run.dependencies,
+          )
+        ).manifest;
+      },
+      async join(segments, change = {}) {
+        return (
+          await joinSegmentsWith(
+            { segments, audio, outputPath: '/r/joined.mp4', ffmpeg: PATHS, target, ...change },
+            run.dependencies,
+          )
+        ).manifest;
+      },
+    };
+  }
+
+  /** A manifest without what a fake frame loop makes depend on the frame index. */
+  const withoutBytes = (manifest: ExportManifest) => ({
+    ...manifest,
+    segments: manifest.segments.map((segment) => omit(segment, 'sha256')),
+    frames: manifest.frames.map((frame) => omit(frame, 'sha256')),
+  });
+
+  it('premise: the longer first scene keeps the keys of its segments and of the moved scene, and the edit changes the rest', async () => {
+    const { keysBefore, keysAfter, changed } = await reuse();
+    const known = new Map(keysBefore.map(({ key, index }) => [key, index]));
+    expect(keysAfter.map(({ key }) => known.get(key) ?? null)).toEqual([
+      0,
+      1,
+      null, // frames 30 to 35, which the first scene gained
+      2,
+      3,
+      4, // the second scene, moved by 6 frames (D92, question 4)
+      null,
+      null, // the changed text
+    ]);
+    expect(changed.map(({ manifest }) => manifest.segments.map(({ index }) => index))).toEqual([
+      [2],
+      [6, 7],
+    ]);
+  });
+
+  it('joins reused and new segments into the export a fresh render of the target writes', async () => {
+    const { run, before, changed, keysAfter, join: joined, fresh } = await reuse();
+    const manifest = await joined([...changed, before]);
+    const expected = await fresh();
+    expect(withoutBytes(manifest)).toEqual(withoutBytes(expected));
+    expect(manifest.compositionHash).toBe(sha256(canonicalJson(validated(scenesEdited))));
+    expect(manifest.segments.map(({ key }) => key)).toEqual(keysAfter.map(({ key }) => key));
+    // Reused slots read the files and frame hashes of the first render, at the slots' indices.
+    const concat = run.inputs.filter(({ args }) => args.includes('concat')).at(-2)?.text ?? '';
+    expect(
+      concat
+        .split('\n')
+        .filter((line) => line.startsWith('file '))
+        .map((line) => line.replace(/^file 'file:(.*)'$/, '$1')),
+    ).toEqual([
+      '/r/before/segment-000000.mp4',
+      '/r/before/segment-000001.mp4',
+      '/r/after-2/segment-000002.mp4',
+      '/r/before/segment-000002.mp4',
+      '/r/before/segment-000003.mp4',
+      '/r/before/segment-000004.mp4',
+      '/r/after-6/segment-000006.mp4',
+      '/r/after-6/segment-000007.mp4',
+    ]);
+    const moved = manifest.frames.slice(36, 81);
+    expect(moved.map(({ sha256: hash }) => hash)).toEqual(
+      before.manifest.frames.slice(30, 75).map(({ sha256: hash }) => hash),
+    );
+    expect(moved.map(({ index, timeUs }) => [index, timeUs])).toEqual(
+      Array.from({ length: 45 }, (_, i) => [36 + i, frameToTimeUs(36 + i, 30)]),
+    );
+    expect(manifest.segments[3]?.sha256).toBe(before.manifest.segments[2]?.sha256);
+    // The parts of the first render that fill no slot (its last scene) are left out (D92, question 8).
+    expect(manifest.segments).toHaveLength(8);
+  });
+
+  it('fills every slot from the target’s own parts alone, as a join without a target does', async () => {
+    const { audio, join: joined, fresh, run } = await reuse();
+    const whole = await segmentsJob(run, undefined, '/r/own', {
+      document: scenesEdited,
+      segmentFrames: 15,
+      grid: { spans: EDITED_SPANS },
+    });
+    const plain = await joinSegmentsWith(
+      { segments: [whole], audio, outputPath: '/r/plain.mp4', ffmpeg: PATHS },
+      run.dependencies,
+    );
+    expect(await joined([whole])).toEqual(plain.manifest);
+    expect(withoutBytes(await fresh())).toEqual(withoutBytes(plain.manifest));
+  });
+
+  it('refuses a slot without a segment, and a target without spans, with join-invalid', async () => {
+    const { before, changed, join: joined } = await reuse();
+    await expect(joined([before])).rejects.toMatchObject({
+      code: 'join-invalid',
+      message: expect.stringMatching(/Segment 2 of the target .* has no part/) as unknown,
+    });
+    await expect(joined(changed)).rejects.toMatchObject({
+      code: 'join-invalid',
+      message: expect.stringMatching(/Segment 0 of the target/) as unknown,
+    });
+    await expect(
+      joined([...changed, before], {
+        target: { document: scenesEdited, resolveAsset: scenesResolver, grid: {} },
+      }),
+    ).rejects.toMatchObject({
+      code: 'join-invalid',
+      message: expect.stringMatching(/needs the spans/) as unknown,
+    });
+  });
+
+  it('refuses an audio pass of another document, and parts of another worker', async () => {
+    const { run, before, changed, join: joined } = await reuse();
+    const otherAudio = await audioJob(run, '/r/audio-before', { document: scenesComposition });
+    await expect(joined([...changed, before], { audio: otherAudio })).rejects.toMatchObject({
+      code: 'join-invalid',
+      message: expect.stringMatching(/audio manifest differs .* compositionHash/) as unknown,
+    });
+    const otherPin = {
+      ...before,
+      manifest: {
+        ...before.manifest,
+        chromium: { ...before.manifest.chromium, args: ['--other'] },
+      },
+    };
+    await expect(joined([...changed, otherPin])).rejects.toMatchObject({
+      code: 'join-invalid',
+      message: expect.stringMatching(/differ in chromium/) as unknown,
+    });
+  });
+
+  /** A target of the pure plan whose keys are given by slot, over the manifests of fake jobs. */
+  async function planned(keysBySlot: (slot: number) => string): Promise<{
+    target: KeyedTarget;
+    part: (
+      range: { fromUs: number; toUs: number } | undefined,
+      directory: string,
+      document?: unknown,
+      spans?: readonly number[],
+    ) => Promise<JoinPart<SegmentsManifest>>;
+    audio: JoinPart<AudioManifest>;
+  }> {
+    const run = fakeRun();
+    const composition = validated(scenesComposition);
+    const grid = segmentGrid(composition, 15, { spans: SCENES_SPANS });
+    const spans = grid.spans ?? [];
+    const audio = await audioJob(run, '/p/audio', { document: scenesComposition });
+    // What a render of the target on its grid records of it.
+    const { manifest: probe } = await segmentsJob(fakeRun(), { fromUs: 0, toUs: 500_000 }, '/p/x', {
+      document: scenesComposition,
+      ...ON_SPANS,
+    });
+    return {
+      target: {
+        fps: 30,
+        grid: { ...grid, spans },
+        document: {
+          compositionHash: sha256(canonicalJson(composition)),
+          schemaVersion: composition.schemaVersion,
+          assets: probe.assets,
+          durationUs: composition.durationUs,
+          frameCount: 96,
+          grid: {
+            fromUs: 0,
+            toUs: 3_200_000,
+            firstFrame: 0,
+            frameCount: 96,
+            minSegmentFrames: 1,
+            spans: spans.map(({ fromUs, firstFrame }) => ({ fromUs, firstFrame })),
+          },
+        },
+        preset: probe.preset,
+        segmentFrames: 15,
+        video: null,
+        keyOf: (segment) => ({
+          index: segment.index,
+          span: segment.span,
+          firstFrame: segment.firstFrame,
+          frameCount: segment.frameCount,
+          key: keysBySlot(segment.index),
+          customHtmlNodeIds: [],
+        }),
+      },
+      part: (range, directory, document = scenesComposition, given = SCENES_SPANS) =>
+        segmentsJob(run, range, directory, { document, segmentFrames: 15, grid: { spans: given } }),
+      audio,
+    };
+  }
+
+  /** A part of another document whose segments carry the given keys, as a host stored them. */
+  const rekeyed = (
+    part: JoinPart<SegmentsManifest>,
+    keys: Record<number, string>,
+  ): JoinPart<SegmentsManifest> => ({
+    ...part,
+    manifest: {
+      ...part.manifest,
+      compositionHash: `sha256:${'e'.repeat(64)}`,
+      segments: part.manifest.segments.map((segment) => ({
+        ...segment,
+        key: keys[segment.index] ?? segment.key ?? '',
+      })),
+    },
+  });
+  const key = (n: number): string => `sha256:${n.toString(16).padStart(64, '0')}`;
+
+  it('fills several slots with one segment of one key, and leaves out a segment that fills none', async () => {
+    // Slots 0 and 1 share a key, as two segments of one still scene could.
+    const { target, part, audio } = await planned((slot) => key(slot === 1 ? 0 : slot));
+    const other = rekeyed(await part(undefined, '/p/other'), {
+      0: key(0),
+      1: key(99),
+      2: key(2),
+      3: key(3),
+      4: key(4),
+      5: key(5),
+      6: key(6),
+    });
+    const plan = keyedJoinPlan([other], audio, target);
+    expect(plan.segments.map(({ index, path }) => [index, basename(path)])).toEqual([
+      [0, 'segment-000000.mp4'],
+      [1, 'segment-000000.mp4'],
+      [2, 'segment-000002.mp4'],
+      [3, 'segment-000003.mp4'],
+      [4, 'segment-000004.mp4'],
+      [5, 'segment-000005.mp4'],
+      [6, 'segment-000006.mp4'],
+    ]);
+    // The frames of slot 1 are those of segment 0, numbered as frames 15 to 29.
+    expect(plan.frames.slice(15, 30).map(({ index, sha256: hash }) => [index, hash])).toEqual(
+      other.manifest.frames.slice(0, 15).map(({ sha256: hash }, i) => [15 + i, hash]),
+    );
+    expect(plan.document).toBe(target.document);
+    expect(plan.segments.map(({ key: given }) => given)).toEqual(
+      [0, 0, 2, 3, 4, 5, 6].map((n) => key(n)),
+    );
+  });
+
+  it('prefers the target’s own part in its slot, and takes the first of two segments of one key', async () => {
+    const { target, part, audio } = await planned((slot) => key(slot));
+    const own = await part({ fromUs: 0, toUs: 500_000 }, '/p/own');
+    const ownKeyed = {
+      ...own,
+      manifest: {
+        ...own.manifest,
+        segments: own.manifest.segments.map((s) => ({ ...s, key: key(0) })),
+      },
+    };
+    const first = rekeyed(
+      await part(undefined, '/p/first'),
+      Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((n) => [n, key(n)])),
+    );
+    const second = rekeyed(
+      await part(undefined, '/p/second'),
+      Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((n) => [n, key(n)])),
+    );
+    const plan = keyedJoinPlan([second, ownKeyed, first], audio, target);
+    expect(plan.segments.map(({ path }) => path)).toEqual([
+      '/p/own/segment-000000.mp4',
+      ...[1, 2, 3, 4, 5, 6].map((n) => `/p/second/${segmentFileName(n)}`),
+    ]);
+  });
+
+  it.each([
+    [
+      'a gap',
+      async (p: Awaited<ReturnType<typeof planned>>) => [
+        rekeyed(await p.part({ fromUs: 0, toUs: 1_000_000 }, '/p/a'), { 0: key(0), 1: key(1) }),
+      ],
+      /Segment 2 of the target .* has no part/,
+    ],
+    [
+      'two segments of the target in one slot',
+      async (p: Awaited<ReturnType<typeof planned>>) => {
+        const own = await p.part(undefined, '/p/own');
+        const keyed = {
+          ...own,
+          manifest: {
+            ...own.manifest,
+            segments: own.manifest.segments.map((s) => ({ ...s, key: key(s.index) })),
+          },
+        };
+        return [keyed, keyed];
+      },
+      /given more than once/,
+    ],
+    [
+      'a part of the target with another key',
+      async (p: Awaited<ReturnType<typeof planned>>) => [await p.part(undefined, '/p/own')],
+      /another key than the target's/,
+    ],
+    [
+      'a segment without a key',
+      async (p: Awaited<ReturnType<typeof planned>>) =>
+        [rekeyed(await p.part(undefined, '/p/plain', scenesComposition, [0]), {})].map((part) => ({
+          ...part,
+          manifest: {
+            ...part.manifest,
+            grid: undefined,
+            segments: part.manifest.segments.map((segment) => omit(segment, 'key', 'span')),
+          } as unknown as SegmentsManifest,
+        })),
+      /has no key/,
+    ],
+    [
+      'a part of the target on another grid',
+      async (p: Awaited<ReturnType<typeof planned>>) => [
+        await p.part(undefined, '/p/other-grid', scenesComposition, [0, 1_000_000]),
+      ],
+      /part of the target differs from the target in grid/,
+    ],
+    [
+      'another pin',
+      async (p: Awaited<ReturnType<typeof planned>>) => {
+        const a = rekeyed(await p.part(undefined, '/p/a'), {});
+        return [
+          a,
+          {
+            ...a,
+            manifest: { ...a.manifest, identity: { ...a.manifest.identity, ffmpegVersion: 'x' } },
+          },
+        ];
+      },
+      /differ in identity/,
+    ],
+  ])('refuses %s with join-invalid', async (_, pick, message) => {
+    const given = await planned((slot) => key(slot));
+    const parts = await pick(given);
+    expect(() => keyedJoinPlan(parts, given.audio, given.target)).toThrow(
+      expect.objectContaining({
+        code: 'join-invalid',
+        message: expect.stringMatching(message) as unknown,
+      }),
+    );
+  });
+
+  it('refuses an audio pass of another range than whole slots of the target’s grid', async () => {
+    const given = await planned((slot) => key(slot));
+    const run = fakeRun();
+    const audio = await audioJob(run, '/p/short', {
+      document: scenesComposition,
+      range: { fromUs: 0, toUs: 600_000 },
+    });
+    const part = rekeyed(
+      await given.part(undefined, '/p/all'),
+      Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((n) => [n, key(n)])),
+    );
+    expect(() => keyedJoinPlan([part], audio, given.target)).toThrow(
+      expect.objectContaining({
+        code: 'join-invalid',
+        message: expect.stringMatching(/not whole segments of the target's grid/) as unknown,
+      }),
+    );
+    const firstSpan = await audioJob(run, '/p/first-span', {
+      document: scenesComposition,
+      range: { fromUs: 0, toUs: 1_000_000 },
+    });
+    expect(keyedJoinPlan([part], firstSpan, given.target).segments).toHaveLength(2);
   });
 });

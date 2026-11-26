@@ -9,7 +9,10 @@
  * expectations are written out from D29, not taken from the implementation.
  * The job contract of D48 is tested on the CLI in processes of its own:
  * progress lines, cancellation by signal, the wall time, and the estimate.
- * Last, a fragment on a grid anchored on its first frame (D80).
+ * Then a fragment on a grid anchored on its first frame (D80). Last, a film
+ * rendered on spans at its scenes, edited, rendered again only where the keys
+ * of its segments changed, and joined by keys against the edited document:
+ * the bytes of a fresh render of it (D92).
  */
 import { execFile, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -36,6 +39,7 @@ import {
   type ExportResult,
   type LaunchedChromium,
   type RenderResult,
+  type SegmentKey,
   type SegmentsManifest,
 } from '@kadrion/producer';
 import { resolveAssets } from '@kadrion/renderer-dom';
@@ -44,6 +48,7 @@ import {
   generateReferenceAssets,
   goldenTimestamps,
   referenceComposition,
+  scenesComposition,
 } from '@kadrion/test-fixtures';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -1469,5 +1474,238 @@ describe.skipIf(!available)('a fragment on a grid anchored on its first frame (D
       .map((line) => JSON.parse(line) as Record<string, unknown>);
     expect(lines.at(-2)).toMatchObject({ event: 'estimate', segmentFrames: 30, segments: 2 });
     expect(lines.at(-1)).toEqual({ event: 'done', manifest: null });
+  });
+});
+
+const KEYS_ROOT = join(OUTPUT_DIRECTORY, 'segment-keys');
+const KEYS_INPUTS = join(KEYS_ROOT, 'inputs');
+/** The scenes fixture: three scenes of 30, 45, and 21 frames at 30 fps, with a sound. */
+const BEFORE_SPANS = '0,1000000,2500000';
+/** The edited fixture: its first scene 6 frames longer, so the others start 6 frames later. */
+const AFTER_SPANS = '0,1200000,2700000';
+const KEYS_SEGMENT_FRAMES = ['--segment-frames', '15'];
+
+/** The scenes fixture with its first scene longer and the text of its last scene changed. */
+function editedScenes(): unknown {
+  const draft = structuredClone(scenesComposition) as {
+    durationUs: number;
+    scenes: { durationUs: number; nodes: { id: string; text?: string }[] }[];
+  };
+  draft.durationUs += 200_000;
+  const [intro, , outro] = draft.scenes;
+  if (intro === undefined || outro === undefined) throw new Error('three scenes expected');
+  intro.durationUs += 200_000;
+  const title = outro.nodes.find(({ id }) => id === 'outro-title');
+  if (title === undefined) throw new Error('outro-title expected');
+  title.text = 'Fin';
+  return draft;
+}
+
+const keysInputs = (name: 'before' | 'after'): string[] => [
+  ...['--composition', join(KEYS_INPUTS, `${name}.json`)],
+  ...['--assets', join(KEYS_INPUTS, 'assets.json')],
+];
+
+/** The `segment-keys` line of the command (D92.1). */
+async function keysOf(name: 'before' | 'after', spans: string): Promise<SegmentKey[]> {
+  const lines = (
+    await job([
+      'segment-keys',
+      ...keysInputs(name),
+      ...['--preset', '1080p', ...KEYS_SEGMENT_FRAMES, '--spans-us', spans],
+    ])
+  )
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line) as { event: string; segments?: SegmentKey[] });
+  const found = lines.find(({ event }) => event === 'segment-keys');
+  if (found?.segments === undefined) throw new Error('segment-keys printed no keys');
+  return found.segments;
+}
+
+describe.skipIf(!available)('a join of segments of an earlier render by their keys (D92)', () => {
+  const state: {
+    before: SegmentKey[];
+    after: SegmentKey[];
+    reused: number[];
+    rendered: number[];
+    joined?: GridJoined;
+    fresh?: GridJoined;
+  } = { before: [], after: [], reused: [], rendered: [] };
+  const report: Record<string, unknown> = {};
+  const out = (name: string): string[] => ['--out', join(KEYS_ROOT, name)];
+  const range = (keys: readonly SegmentKey[], from: number, to: number): string[] => {
+    const first = keys[from];
+    const last = keys[to];
+    if (first === undefined || last === undefined) throw new Error('no such segment');
+    return ['--from-us', at(first.firstFrame), '--to-us', at(last.firstFrame + last.frameCount)];
+  };
+
+  // A render of 96 frames, renders of 30 more, two audio passes, a fresh render
+  // of 102 frames, and two joins, each a process of its own: minutes, not seconds.
+  beforeAll(async () => {
+    rmSync(KEYS_ROOT, { recursive: true, force: true });
+    mkdirSync(KEYS_INPUTS, { recursive: true });
+    writeFileSync(join(KEYS_INPUTS, 'before.json'), JSON.stringify(scenesComposition));
+    writeFileSync(join(KEYS_INPUTS, 'after.json'), JSON.stringify(editedScenes()));
+    const map: Record<string, { path: string; mediaType: string }> = {};
+    for (const asset of generateReferenceAssets()) {
+      writeFileSync(join(KEYS_INPUTS, asset.id), asset.bytes);
+      map[asset.id] = { path: asset.id, mediaType: asset.mediaType };
+    }
+    writeFileSync(join(KEYS_INPUTS, 'assets.json'), JSON.stringify(map));
+    state.before = await keysOf('before', BEFORE_SPANS);
+    state.after = await keysOf('after', AFTER_SPANS);
+    const known = new Set(state.before.map(({ key }) => key));
+    for (const { index, key } of state.after) {
+      (known.has(key) ? state.reused : state.rendered).push(index);
+    }
+    // The first document, whole, on spans at its scenes.
+    await job(
+      ['render-range', ...keysInputs('before'), ...out('before'), '--preset', '1080p'].concat(
+        KEYS_SEGMENT_FRAMES,
+        ['--spans-us', BEFORE_SPANS],
+        gridFfmpegFlags,
+      ),
+    );
+    // The second: only its segments whose keys changed, one job per run of them.
+    const runs: [number, number][] = [];
+    for (const index of state.rendered) {
+      const last = runs.at(-1);
+      if (last !== undefined && last[1] === index - 1) last[1] = index;
+      else runs.push([index, index]);
+    }
+    for (const [from, to] of runs) {
+      await job(
+        [
+          'render-range',
+          ...keysInputs('after'),
+          ...out(`after-${String(from)}`),
+          '--preset',
+          '1080p',
+        ].concat(
+          KEYS_SEGMENT_FRAMES,
+          ['--spans-us', AFTER_SPANS],
+          range(state.after, from, to),
+          gridFfmpegFlags,
+        ),
+      );
+    }
+    await job(['render-audio', ...keysInputs('after'), ...out('audio')].concat(gridFfmpegFlags));
+    // Every manifest of the first render, its last scene included, which fills no slot.
+    await job(
+      [
+        'join',
+        ...['before', ...runs.map(([from]) => `after-${String(from)}`), 'audio'].flatMap((name) => [
+          '--in',
+          join(KEYS_ROOT, name),
+        ]),
+        ...out('joined'),
+        ...keysInputs('after'),
+        '--spans-us',
+        AFTER_SPANS,
+      ].concat(gridFfmpegFlags),
+    );
+    // A fresh render of the second document on the same grid, joined without a target.
+    await job(
+      ['render-range', ...keysInputs('after'), ...out('fresh'), '--preset', '1080p'].concat(
+        KEYS_SEGMENT_FRAMES,
+        ['--spans-us', AFTER_SPANS],
+        gridFfmpegFlags,
+      ),
+    );
+    await job(
+      [
+        'join',
+        ...['fresh', 'audio'].flatMap((name) => ['--in', join(KEYS_ROOT, name)]),
+        ...out('fresh-joined'),
+      ].concat(gridFfmpegFlags),
+    );
+    for (const name of ['joined', 'fresh'] as const) {
+      const directory = name === 'joined' ? 'joined' : 'fresh-joined';
+      state[name] = {
+        file: join(KEYS_ROOT, directory, 'video-1080p.mp4'),
+        manifest: readJson(
+          KEYS_ROOT,
+          directory,
+          'video-1080p.render-manifest.json',
+        ) as ExportManifest,
+      };
+    }
+  }, 1_800_000);
+
+  const joinedAndFresh = (): [GridJoined, GridJoined] => {
+    const { joined, fresh } = state;
+    if (joined === undefined || fresh === undefined) throw new Error('The jobs did not run.');
+    return [joined, fresh];
+  };
+
+  it('keeps the keys of the moved scene and of the unchanged frames, and changes the rest', () => {
+    // Slots of the second document: 0 and 1 of its first scene as before, 2 its 6 new frames,
+    // 3 to 5 the moved second scene (D92, question 4), 6 and 7 the changed text.
+    expect(state.reused).toEqual([0, 1, 3, 4, 5]);
+    expect(state.rendered).toEqual([2, 6, 7]);
+    expect(state.after.map(({ frameCount }) => frameCount)).toEqual([15, 15, 6, 15, 15, 15, 15, 6]);
+    // The keys the render jobs record are those of the command.
+    const before = readJson(
+      KEYS_ROOT,
+      'before',
+      'segments-000000-000006.manifest.json',
+    ) as SegmentsManifest;
+    expect(before.segments.map(({ key }) => key)).toEqual(state.before.map(({ key }) => key));
+  });
+
+  it('joins reused and new segments into the bytes of a fresh render of the edited document', () => {
+    const [joined, fresh] = joinedAndFresh();
+    report.files = {
+      joined: { sha256: fileHash(joined.file), bytes: readFileSync(joined.file).length },
+      fresh: { sha256: fileHash(fresh.file), bytes: readFileSync(fresh.file).length },
+    };
+    report.reused = state.reused;
+    report.rendered = state.rendered;
+    expect(fileHash(joined.file)).toBe(fileHash(fresh.file));
+    expect(joined.manifest.frames).toEqual(fresh.manifest.frames);
+    const withoutSeek = (manifest: ExportManifest): unknown => ({
+      ...manifest,
+      video: manifest.video === null ? null : { ...manifest.video, seekArgs: undefined },
+    });
+    expect(withoutSeek(joined.manifest)).toEqual(withoutSeek(fresh.manifest));
+    expect(joined.manifest.segments.map(({ key }) => key)).toEqual(
+      state.after.map(({ key }) => key),
+    );
+    writeReport('segment-keys-report.json', report);
+  });
+
+  it('writes the segment files of a grid without spans, and a manifest that only lacks the spans and keys', async () => {
+    const whole = ['--preset', '1080p', ...KEYS_SEGMENT_FRAMES];
+    await job(
+      ['render-range', ...keysInputs('before'), ...out('plain'), ...whole].concat(gridFfmpegFlags),
+    );
+    await job(
+      ['render-range', ...keysInputs('before'), ...out('one-span'), ...whole].concat(
+        ['--spans-us', '0'],
+        gridFfmpegFlags,
+      ),
+    );
+    const name = 'segments-000000-000006.manifest.json';
+    const plain = readJson(KEYS_ROOT, 'plain', name) as SegmentsManifest;
+    const spanned = readJson(KEYS_ROOT, 'one-span', name) as SegmentsManifest;
+    for (const { file } of plain.segments) {
+      expect(fileHash(join(KEYS_ROOT, 'one-span', file)), file).toBe(
+        fileHash(join(KEYS_ROOT, 'plain', file)),
+      );
+    }
+    expect('grid' in plain).toBe(false);
+    const { grid, segments, ...rest } = spanned;
+    expect(grid?.spans).toEqual([{ fromUs: 0, firstFrame: 0 }]);
+    expect({
+      ...rest,
+      segments: segments.map((segment) => {
+        const copy = { ...segment };
+        Reflect.deleteProperty(copy, 'span');
+        Reflect.deleteProperty(copy, 'key');
+        return copy;
+      }),
+    }).toEqual(plain);
   });
 });

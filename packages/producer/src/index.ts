@@ -14,6 +14,9 @@
  * checks the limits a host gives it before rendering (D48). `segmentKeys`
  * computes, without a browser, the key of every segment of a grid: what decides
  * the bytes of its file, so that a host can reuse a segment it stored (D92.1).
+ * A render on a grid of spans records the keys in its manifests, and a join
+ * given its target document places segments of earlier renders by them
+ * (D92.2, D92.3).
  */
 export { PRODUCER_AGENT_SCRIPT } from './agent.js';
 export { awaitPresented, captureFrame, presentationSessions } from './capture.js';
@@ -75,11 +78,13 @@ export type {
   ExportRequest,
   ExportResult,
   ExportStats,
+  JoinDocument,
   JoinPart,
   JoinPlan,
   JoinRequest,
   JoinResult,
   JoinSegment,
+  JoinTarget,
   RangeRequest,
   SegmentsRequest,
   SegmentsResult,
@@ -99,7 +104,14 @@ export {
   segmentsOf,
   STILL_FORMATS,
 } from './segments.js';
-export type { FrameRange, GridRequest, Segment, SegmentGrid, StillFormat } from './segments.js';
+export type {
+  FrameRange,
+  GridRequest,
+  GridSpan,
+  Segment,
+  SegmentGrid,
+  StillFormat,
+} from './segments.js';
 export type { ProducerAssetResolver, ResolvedPath } from './media-path.js';
 export { renderStill } from './still.js';
 export type { StillRequest, StillResult } from './still.js';
@@ -132,6 +144,7 @@ export type {
   ManifestMp4Preset,
   ManifestRange,
   ManifestSegment,
+  ManifestSpan,
   ManifestVideo,
   ManifestVideoSource,
   RenderIdentity,

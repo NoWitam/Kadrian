@@ -2,7 +2,8 @@
  * `kadrion render-frames` (D28.8), `kadrion export` (D29.10), and the jobs of a
  * segmented render and stills (D47) with injected
  * Producer functions: arguments, the asset map and its relative paths, the
- * files written, where FFmpeg comes from, and the exit codes; and `kadrion
+ * files written, where FFmpeg comes from, and the exit codes; `kadrion
+ * check-custom-html` (D93) with an injected check and browser; and `kadrion
  * inspect` (D79.6) with an injected verdict. That the default functions render
  * and encode, and inspect real files, is `tests/pinned`'s business.
  */
@@ -18,10 +19,14 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { checkCustomHtmlSource } from '@kadrion/editor-sdk';
 import {
   ProducerError,
   segmentKeys,
   type AudioRequest,
+  type CustomHtmlCheck,
+  type CustomHtmlCheckRequest,
+  type LaunchedChromium,
   type AudioResult,
   type ExportRequest,
   type ExportResult,
@@ -39,6 +44,7 @@ import {
 import type { VideoInspection } from '@kadrion/player';
 import {
   cornersComposition,
+  customHtmlComposition,
   generateProportionalFontAsset,
   generateReferenceAssets,
   referenceComposition,
@@ -480,6 +486,26 @@ describe('kadrion render-range (D47.3)', () => {
     ]);
   });
 
+  it('passes the spans of a grid through, alone or with its span (D92.2)', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    for (const extra of [
+      ['--spans-us', '0,5000000'],
+      ['--grid-from-us', '233333', '--grid-to-us', '2466666', '--spans-us', '233333,1000000'],
+    ]) {
+      await expect(
+        runCli(documentArgs('render-range', dir, '--preset', '1080p', ...extra), io().io, {
+          renderRange: fakeRange(seen),
+          env: FFMPEG_ENV,
+        }),
+      ).resolves.toBe(EXIT_OK);
+    }
+    expect(seen.map(({ grid }) => grid)).toEqual([
+      { spans: [0, 5_000_000] },
+      { range: { fromUs: 233_333, toUs: 2_466_666 }, spans: [233_333, 1_000_000] },
+    ]);
+  });
+
   it.each([
     ['one end of the range only', ['--preset', '720p', '--from-us', '0']],
     [
@@ -489,6 +515,8 @@ describe('kadrion render-range (D47.3)', () => {
     ['a segment length that is not an integer', ['--preset', '720p', '--segment-frames', '-1']],
     ['a preset that could name a path', ['--preset', '../x']],
     ['one end of the grid only', ['--preset', '720p', '--grid-from-us', '0']],
+    ['a span start that is not an integer', ['--preset', '720p', '--spans-us', '0,1e6']],
+    ['an empty list of spans', ['--preset', '720p', '--spans-us', '']],
     [
       'a shortest segment that is not an integer',
       ['--preset', '720p', '--min-segment-frames', '1.5'],
@@ -644,6 +672,69 @@ describe('kadrion join (D47.5)', () => {
       }),
     ).resolves.toBe(EXIT_PRODUCER_ERROR);
     expect(err.join('\n')).toMatch(/^error join-invalid/);
+  });
+
+  it('gives the join a target with --composition and --assets, its grid, its spans, and its limits (D92.3)', async () => {
+    const { dir, a, b, audio } = parts();
+    const { dir: inputs } = workspace();
+    const seen: JoinRequest[] = [];
+    await expect(
+      runCli(
+        [
+          ...['join', '--in', a, '--in', b, '--in', audio, '--out', join(dir, 'out')],
+          ...['--composition', join(inputs, 'composition.json')],
+          ...['--assets', join(inputs, 'assets.json')],
+          ...['--spans-us', '0,5000000', '--min-segment-frames', '30', '--max-frames', '300'],
+        ],
+        io().io,
+        { join: fakeJoin(seen), env: FFMPEG_ENV },
+      ),
+    ).resolves.toBe(EXIT_OK);
+    const target = seen[0]?.target;
+    expect(target?.document).toEqual(referenceComposition);
+    expect(target?.grid).toEqual({ minSegmentFrames: 30, spans: [0, 5_000_000] });
+    expect(target?.limits).toEqual({ maxFrames: 300 });
+    expect(target !== undefined && 'segmentFrames' in target).toBe(false);
+    const font = await target?.resolveAsset({
+      id: 'asset-font',
+      type: 'font',
+      mediaType: 'font/ttf',
+      contentHash: '',
+    } as Parameters<NonNullable<typeof target>['resolveAsset']>[0]);
+    expect(font).toMatchObject({ mediaType: 'font/ttf' });
+    // Without the flags, the join of D47.5: no target.
+    await runCli(
+      ['join', '--in', a, '--in', b, '--in', audio, '--out', join(dir, 'out2')],
+      io().io,
+      {
+        join: fakeJoin(seen),
+        env: FFMPEG_ENV,
+      },
+    );
+    expect(seen[1] !== undefined && 'target' in seen[1]).toBe(false);
+  });
+
+  it('exits 2 for a target without its assets or its spans, and for grid flags or limits without a target', async () => {
+    const { dir, a, b, audio } = parts();
+    const { dir: inputs } = workspace();
+    const base = ['join', '--in', a, '--in', b, '--in', audio, '--out', join(dir, 'out')];
+    const composition = ['--composition', join(inputs, 'composition.json')];
+    const assets = ['--assets', join(inputs, 'assets.json')];
+    for (const extra of [
+      [...composition, '--spans-us', '0'],
+      [...assets, '--spans-us', '0'],
+      [...composition, ...assets],
+      [...composition, ...assets, '--min-segment-frames', '30'],
+      ['--spans-us', '0'],
+      ['--grid-from-us', '0', '--grid-to-us', '5000000'],
+      [...composition, ...assets, '--spans-us', '0,x'],
+    ]) {
+      const { out, io: streams } = io();
+      await expect(
+        runCli([...base, ...extra], streams, { join: never, env: FFMPEG_ENV }),
+      ).resolves.toBe(EXIT_USAGE);
+      expect(lines(out)).toEqual([{ event: 'error', code: 'usage', exitCode: EXIT_USAGE }]);
+    }
   });
 
   it('exits 2 without --in, or with a directory it cannot read', async () => {
@@ -1120,6 +1211,21 @@ describe('kadrion estimate (D48.5)', () => {
     expect(seen[0] !== undefined && 'grid' in seen[0]).toBe(false);
   });
 
+  it('counts the segments of every span of a grid of spans (D92.2)', async () => {
+    const { dir } = workspace();
+    const seen: SegmentsRequest[] = [];
+    const clock = { now: 0 };
+    const { out, io: streams } = io();
+    await runCli(estimateArgs(dir, '--spans-us', '0,233333'), streams, {
+      renderRange: timedRange(seen, clock),
+      env: FFMPEG_ENV,
+      now: () => clock.now,
+    });
+    // Spans of 7 and 293 frames in segments of 60: 1, and 4 of 60 and one of 53.
+    expect(lines(out).at(-2)).toMatchObject({ segmentFrames: 60, segments: 6 });
+    expect(seen[0] !== undefined && 'grid' in seen[0]).toBe(false);
+  });
+
   it('refuses one sample with range-invalid before rendering', async () => {
     const { dir } = workspace();
     await expect(
@@ -1415,5 +1521,375 @@ describe('kadrion inspect (D79.6, D91.1)', () => {
     await expect(runCli(['inspect', missing], streams, {})).resolves.toBe(EXIT_PRODUCER_ERROR);
     expect(out).toEqual([]);
     expect(err[0]).toMatch(/^error file-unreadable: /);
+  });
+});
+
+describe('kadrion check-custom-html (D93)', () => {
+  /** The Custom HTML fixture, its font, and an asset map, in a scratch directory. */
+  function checkWorkspace(document: unknown = customHtmlComposition): string {
+    const dir = scratchDirectory('kadrion-cli-check-');
+    writeFileSync(join(dir, 'composition.json'), JSON.stringify(document));
+    const map: Record<string, { path: string; mediaType: string }> = {};
+    for (const asset of generateReferenceAssets()) {
+      writeFileSync(join(dir, `${asset.id}.bin`), asset.bytes);
+      map[asset.id] = { path: `${asset.id}.bin`, mediaType: asset.mediaType };
+    }
+    writeFileSync(join(dir, 'assets.json'), JSON.stringify(map));
+    return dir;
+  }
+
+  function checkArgs(dir: string, ...extra: string[]): string[] {
+    return [
+      'check-custom-html',
+      '--composition',
+      join(dir, 'composition.json'),
+      '--assets',
+      join(dir, 'assets.json'),
+      '--node-id',
+      'html-script',
+      ...extra,
+    ];
+  }
+
+  /** The fixture with the html of `nodeId` replaced. */
+  function withHtml(nodeId: string, html: string): unknown {
+    const draft = structuredClone(customHtmlComposition) as {
+      scenes: { nodes: { id: string; html?: string }[] }[];
+    };
+    const node = draft.scenes[0]?.nodes.find(({ id }) => id === nodeId);
+    if (node === undefined) throw new Error(`No node ${nodeId}.`);
+    node.html = html;
+    return draft;
+  }
+
+  function htmlOf(nodeId: string): string {
+    const draft = customHtmlComposition as {
+      scenes: { nodes: { id: string; html?: string }[] }[];
+    };
+    const html = draft.scenes[0]?.nodes.find(({ id }) => id === nodeId)?.html;
+    if (html === undefined) throw new Error(`No Custom HTML node ${nodeId}.`);
+    return html;
+  }
+
+  /** A browser that only counts how often it was closed. */
+  function fakeBrowser() {
+    const browser = { closed: 0 };
+    const chromium = {
+      browser: {
+        close: () => {
+          browser.closed += 1;
+          return Promise.resolve();
+        },
+      },
+      reportedVersion: 'fake',
+    } as unknown as LaunchedChromium;
+    return { browser, launchChromium: () => Promise.resolve(chromium), chromium };
+  }
+
+  /** A render check that records its request and finds `problems`. */
+  function fakeCheck(
+    seen: CustomHtmlCheckRequest[],
+    problems: CustomHtmlCheck['problems'] = [],
+  ): (request: CustomHtmlCheckRequest) => Promise<CustomHtmlCheck> {
+    return (request) => {
+      seen.push(request);
+      return Promise.resolve({ timesUs: [0, 2_233_333, 4_500_000], problems });
+    };
+  }
+
+  const never = (): never => {
+    throw new Error('not reached');
+  };
+
+  it('prints the findings, the render check, and ok in one line before its done', async () => {
+    const dir = checkWorkspace();
+    const seen: CustomHtmlCheckRequest[] = [];
+    const fake = fakeBrowser();
+    const { out, err, io: streams } = io();
+    await expect(
+      runCli(checkArgs(dir), streams, {
+        checkCustomHtml: fakeCheck(seen),
+        launchChromium: fake.launchChromium,
+      }),
+    ).resolves.toBe(EXIT_OK);
+    expect(checkCustomHtmlSource(htmlOf('html-script'))).toEqual([]);
+    expect(lines(out)).toEqual([
+      {
+        event: 'check',
+        nodeId: 'html-script',
+        findings: [],
+        render: { timesUs: [0, 2_233_333, 4_500_000], problems: [] },
+        ok: true,
+      },
+      done(null),
+    ]);
+    expect(err).toEqual([]);
+    // The command lends the browser it launched, and closes it.
+    expect(seen).toHaveLength(1);
+    const [request] = seen;
+    expect(request?.chromium).toBe(fake.chromium);
+    expect(request?.nodeId).toBe('html-script');
+    expect(request?.samples).toBe(5);
+    expect(request?.document).toEqual(customHtmlComposition);
+    expect(fake.browser.closed).toBeGreaterThan(0);
+    // The fonts of the element, read before the browser opened; nothing else.
+    const font = generateReferenceAssets().find(({ id }) => id === 'asset-font');
+    const resolved = await request?.resolveAsset({
+      id: 'asset-font',
+      type: 'font',
+      contentHash: 'sha256:any',
+    });
+    expect(resolved).toEqual({ bytes: font?.bytes, mediaType: font?.mediaType });
+    expect(
+      await request?.resolveAsset({ id: 'asset-image', type: 'image', contentHash: 'sha256:x' }),
+    ).toBeNull();
+    // It writes no file.
+    expect(readdirSync(dir).sort()).toEqual([
+      'asset-audio.bin',
+      'asset-font.bin',
+      'asset-image.bin',
+      'assets.json',
+      'composition.json',
+    ]);
+    expect(JOB_COMMANDS).toContain('check-custom-html');
+    expect(USAGE).toContain(
+      'kadrion check-custom-html --composition <file> --assets <file> --node-id <id> [--samples <n>]',
+    );
+  });
+
+  it('exits 0 with ok false for findings of the html alone, and for problems of the render alone', async () => {
+    const html = '<div></div><script>setTimeout(function () {}, 10)</script>';
+    const dir = checkWorkspace(withHtml('html-script', html));
+    const findings = checkCustomHtmlSource(html);
+    expect(findings.map(({ code }) => code)).toEqual(['timer']);
+    const { out, io: streams } = io();
+    await expect(
+      runCli(checkArgs(dir), streams, {
+        checkCustomHtml: fakeCheck([]),
+        launchChromium: fakeBrowser().launchChromium,
+      }),
+    ).resolves.toBe(EXIT_OK);
+    expect(lines(out)).toEqual([
+      {
+        event: 'check',
+        nodeId: 'html-script',
+        findings,
+        render: { timesUs: [0, 2_233_333, 4_500_000], problems: [] },
+        ok: false,
+      },
+      done(null),
+    ]);
+
+    const differ = {
+      code: 'frames-differ',
+      timeUs: 2_233_333,
+      message: 'The frame differs.',
+    } as const;
+    const rendered = io();
+    await expect(
+      runCli(checkArgs(checkWorkspace()), rendered.io, {
+        checkCustomHtml: fakeCheck([], [differ]),
+        launchChromium: fakeBrowser().launchChromium,
+      }),
+    ).resolves.toBe(EXIT_OK);
+    expect(lines(rendered.out)).toEqual([
+      {
+        event: 'check',
+        nodeId: 'html-script',
+        findings: [],
+        render: { timesUs: [0, 2_233_333, 4_500_000], problems: [differ] },
+        ok: false,
+      },
+      done(null),
+    ]);
+  });
+
+  it('passes --samples through, and checks the node it names', async () => {
+    const seen: CustomHtmlCheckRequest[] = [];
+    const hosts = {
+      checkCustomHtml: fakeCheck(seen),
+      launchChromium: fakeBrowser().launchChromium,
+    };
+    await expect(
+      runCli(checkArgs(checkWorkspace(), '--samples', '3'), io().io, hosts),
+    ).resolves.toBe(EXIT_OK);
+    expect(seen[0]?.samples).toBe(3);
+
+    // The Custom HTML node of another document: the reference composition.
+    const { out, io: streams } = io();
+    const args = checkArgs(checkWorkspace(referenceComposition)).map((arg) =>
+      arg === 'html-script' ? 'node-custom-html' : arg,
+    );
+    await expect(runCli(args, streams, hosts)).resolves.toBe(EXIT_OK);
+    expect(seen[1]?.nodeId).toBe('node-custom-html');
+    expect(seen[1]?.samples).toBe(5);
+    expect((lines(out)[0] as { nodeId: string }).nodeId).toBe('node-custom-html');
+  });
+
+  it('refuses a usage error with exit 2, before reading or launching anything', async () => {
+    const dir = checkWorkspace();
+    for (const args of [
+      checkArgs(dir).slice(0, 5),
+      checkArgs(dir).map((arg) => (arg === 'html-script' ? '' : arg)),
+      checkArgs(dir, '--samples', '0'),
+      checkArgs(dir, '--samples', 'x'),
+      checkArgs(dir, '--out', dir),
+      checkArgs(dir, '--max-frames', '-1'),
+      checkArgs(dir, 'extra'),
+    ]) {
+      const { out, io: streams } = io();
+      await expect(
+        runCli(args, streams, { checkCustomHtml: never, launchChromium: never }),
+      ).resolves.toBe(EXIT_USAGE);
+      expect(lines(out)).toEqual([{ event: 'error', code: 'usage', exitCode: EXIT_USAGE }]);
+    }
+  });
+
+  it('refuses an invalid document, an unknown node, and a node that is not Custom HTML with exit 1', async () => {
+    for (const [document, nodeId, message] of [
+      [{ schemaVersion: '0.1' }, 'html-script', /not valid/],
+      [customHtmlComposition, 'html-missing', /No Custom HTML node has the ID "html-missing"/],
+      [customHtmlComposition, 'html-background', /is a background node, not Custom HTML/],
+    ] as const) {
+      const dir = checkWorkspace(document);
+      const args = checkArgs(dir).map((arg) => (arg === 'html-script' ? nodeId : arg));
+      const { out, err, io: streams } = io();
+      await expect(
+        runCli(args, streams, { checkCustomHtml: never, launchChromium: never }),
+      ).resolves.toBe(EXIT_PRODUCER_ERROR);
+      expect(lines(out)).toEqual([
+        { event: 'error', code: 'invalid-document', exitCode: EXIT_PRODUCER_ERROR },
+      ]);
+      expect(err[0]).toMatch(message);
+    }
+  });
+
+  it('refuses a font the asset file lacks or misstates, and a browser other than the pinned one, with exit 1', async () => {
+    const missing = checkWorkspace();
+    writeFileSync(join(missing, 'assets.json'), JSON.stringify({}));
+    const changed = checkWorkspace();
+    writeFileSync(join(changed, 'asset-font.bin'), Uint8Array.of(1, 2, 3));
+    for (const [dir, code] of [
+      [missing, 'asset-missing'],
+      [changed, 'asset-hash-mismatch'],
+    ] as const) {
+      const { out, io: streams } = io();
+      await expect(
+        runCli(checkArgs(dir), streams, { checkCustomHtml: never, launchChromium: never }),
+      ).resolves.toBe(EXIT_PRODUCER_ERROR);
+      expect(lines(out)).toEqual([{ event: 'error', code, exitCode: EXIT_PRODUCER_ERROR }]);
+    }
+    const { out, io: streams } = io();
+    await expect(
+      runCli(checkArgs(checkWorkspace()), streams, {
+        checkCustomHtml: never,
+        launchChromium: () =>
+          Promise.reject(new ProducerError('chromium-mismatch', 'Not the pinned browser.')),
+      }),
+    ).resolves.toBe(EXIT_PRODUCER_ERROR);
+    expect(lines(out)).toEqual([
+      { event: 'error', code: 'chromium-mismatch', exitCode: EXIT_PRODUCER_ERROR },
+    ]);
+  });
+
+  it('checks the limits before the browser opens, each sampled time counted twice', async () => {
+    const dir = checkWorkspace();
+    const font = generateReferenceAssets().find(({ id }) => id === 'asset-font');
+    const fontBytes = font?.bytes.byteLength ?? 0;
+    for (const extra of [
+      ['--max-frames', '9'],
+      ['--samples', '2', '--max-frames', '3'],
+      ['--max-duration-us', '9999999'],
+      ['--max-assets', '0'],
+      ['--max-canvas-pixels', '100'],
+      ['--max-asset-bytes', String(fontBytes - 1)],
+      ['--max-total-asset-bytes', String(fontBytes - 1)],
+      ['--max-document-bytes', '10'],
+      ['--max-frames', '9007199254740993'],
+    ]) {
+      const { out, io: streams } = io();
+      await expect(
+        runCli(checkArgs(dir, ...extra), streams, {
+          checkCustomHtml: never,
+          launchChromium: never,
+        }),
+      ).resolves.toBe(EXIT_LIMIT_EXCEEDED);
+      expect(lines(out), extra.join(' ')).toEqual([
+        { event: 'error', code: 'limit-exceeded', exitCode: EXIT_LIMIT_EXCEEDED },
+      ]);
+    }
+    const { out, io: streams } = io();
+    await expect(
+      runCli(
+        checkArgs(dir, '--max-frames', '10', '--max-asset-bytes', String(fontBytes)),
+        streams,
+        { checkCustomHtml: fakeCheck([]), launchChromium: fakeBrowser().launchChromium },
+      ),
+    ).resolves.toBe(EXIT_OK);
+    expect(lines(out).at(-1)).toEqual(done(null));
+  });
+
+  it('ends as cancelled, or on its wall time, and closes the browser, whatever the check returned', async () => {
+    const dir = checkWorkspace();
+    const aborted = new AbortController();
+    aborted.abort();
+    const before = io();
+    await expect(
+      runCli(checkArgs(dir), before.io, {
+        checkCustomHtml: never,
+        launchChromium: never,
+        signal: aborted.signal,
+      }),
+    ).resolves.toBe(EXIT_CANCELLED);
+    expect(lines(before.out)).toEqual([
+      { event: 'error', code: 'cancelled', exitCode: EXIT_CANCELLED },
+    ]);
+
+    /** A check whose render fails once the browser closes, as the real one does. */
+    const failsWhenClosed = (fake: ReturnType<typeof fakeBrowser>, started: () => void) => () => {
+      started();
+      return new Promise<CustomHtmlCheck>((resolve) => {
+        const wait = (): void => {
+          if (fake.browser.closed > 0) {
+            resolve({
+              timesUs: [0],
+              problems: [{ code: 'render-failed', timeUs: null, message: 'closed' }],
+            });
+          } else setTimeout(wait, 1);
+        };
+        wait();
+      });
+    };
+    const controller = new AbortController();
+    const cancelled = fakeBrowser();
+    const during = io();
+    await expect(
+      runCli(checkArgs(dir), during.io, {
+        checkCustomHtml: failsWhenClosed(cancelled, () => {
+          controller.abort();
+        }),
+        launchChromium: cancelled.launchChromium,
+        signal: controller.signal,
+      }),
+    ).resolves.toBe(EXIT_CANCELLED);
+    expect(lines(during.out)).toEqual([
+      { event: 'error', code: 'cancelled', exitCode: EXIT_CANCELLED },
+    ]);
+    expect(cancelled.browser.closed).toBeGreaterThan(0);
+
+    const timer = manualTimer();
+    const walled = fakeBrowser();
+    const wall = io();
+    await expect(
+      runCli(checkArgs(dir, '--max-wall-ms', '60000'), wall.io, {
+        checkCustomHtml: failsWhenClosed(walled, () => timer.timers[0]?.fire()),
+        launchChromium: walled.launchChromium,
+        startTimer: timer.startTimer,
+      }),
+    ).resolves.toBe(EXIT_LIMIT_EXCEEDED);
+    expect(lines(wall.out)).toEqual([
+      { event: 'error', code: 'limit-exceeded', exitCode: EXIT_LIMIT_EXCEEDED },
+    ]);
+    expect(wall.err[0]).toMatch(/wall time of 60000 ms/);
   });
 });

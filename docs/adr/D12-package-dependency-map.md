@@ -38,6 +38,13 @@ gains its first entry, `mediabunny` (MPL-2.0, used by `@kadrion/player` without
 modification, D79.1), and `cli` may depend on `player` for `kadrion inspect`
 (D79.6). The table below includes the edge.
 
+Amended by PR-101 (D93) on 2026-11-26: `cli` may depend on `editor-sdk` for
+`kadrion check-custom-html`, whose report holds the findings of
+`checkCustomHtmlSource` beside the Producer's render check, as the tool
+`check_custom_html` joins them (D93.3). The edge was not needed before and is
+prohibited nowhere; `editor-sdk` depends on `schema` alone, so the graph stays
+acyclic. The table below includes it.
+
 The identifier D12 may collide with a decision defined in the missing
 `/bootstrap-kadrion` skill (see D11); the project owner should confirm it.
 
@@ -47,18 +54,18 @@ The allowed dependency edges between workspace packages are recorded in
 [`docs/architecture/package-boundaries.json`](../architecture/package-boundaries.json)
 and enforced by `tests/repo/package-boundaries.test.ts`.
 
-| Package          | May depend on (runtime)             |
-| ---------------- | ----------------------------------- |
-| `schema`         | —                                   |
-| `runtime`        | `schema`                            |
-| `editor-sdk`     | `schema`                            |
-| `ai-sdk`         | `editor-sdk`, `schema`              |
-| `editor-session` | `editor-sdk`, `player`, `schema`    |
-| `renderer-dom`   | `runtime`, `schema`                 |
-| `player`         | `renderer-dom`, `runtime`, `schema` |
-| `producer`       | `renderer-dom`, `runtime`, `schema` |
-| `cli`            | `player`, `producer`, `schema`      |
-| `test-fixtures`  | — (dev-only, pure data)             |
+| Package          | May depend on (runtime)                      |
+| ---------------- | -------------------------------------------- |
+| `schema`         | —                                            |
+| `runtime`        | `schema`                                     |
+| `editor-sdk`     | `schema`                                     |
+| `ai-sdk`         | `editor-sdk`, `schema`                       |
+| `editor-session` | `editor-sdk`, `player`, `schema`             |
+| `renderer-dom`   | `runtime`, `schema`                          |
+| `player`         | `renderer-dom`, `runtime`, `schema`          |
+| `producer`       | `renderer-dom`, `runtime`, `schema`          |
+| `cli`            | `editor-sdk`, `player`, `producer`, `schema` |
+| `test-fixtures`  | — (dev-only, pure data)                      |
 
 Every edge falls into one of three categories:
 

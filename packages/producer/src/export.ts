@@ -66,6 +66,7 @@ import {
   failure,
   onCancel,
   throwIfCancelled,
+  type JobLimits,
   type JobOptions,
 } from './job.js';
 import {
@@ -91,7 +92,9 @@ import {
   type ManifestFfmpegBuild,
   type ManifestFrame,
   type ManifestGrid,
+  type ManifestMp4Preset,
   type ManifestSound,
+  type ManifestSpan,
   type ManifestStretch,
   type ManifestSegment,
   type ManifestVideo,
@@ -100,6 +103,7 @@ import {
 } from './manifest.js';
 import {
   chromiumSequence,
+  manifestAssets,
   manifestBase,
   validated,
   verifiedAssets,
@@ -113,6 +117,7 @@ import {
 import type { ProducerAssetResolver } from './media-path.js';
 import type { FrameCapture } from './capture.js';
 import { loadRuntimeBuild, type RuntimeBuild } from './runtime.js';
+import { measuredFonts, pinnedKeyPins, segmentKeyer, type SegmentKey } from './segment-keys.js';
 import { stretchedAudio, type StretchedAudio } from './stretch.js';
 import { mediaFiles, prepareVideos, type MediaFiles } from './video.js';
 import {
@@ -140,9 +145,13 @@ import {
   segmentGrid,
   segmentArgs,
   segmentFileName,
+  spanSegments,
   type FrameRange,
   type GridRequest,
+  type GridSpan,
   type Segment,
+  type SegmentGrid,
+  type SpanSegment,
 } from './segments.js';
 
 /** A range of the composition in microseconds: `fromUs` included, `toUs` excluded (D47.2). */
@@ -171,8 +180,9 @@ export interface SegmentsRequest extends RenderTimeouts, EncoderSettings, JobOpt
   readonly range?: RangeRequest;
   /**
    * A grid anchored on a span of the composition, with a shortest last segment
-   * (D80.1); the composition's grid of D47.1 if not given. Every job of one
-   * render names the same grid.
+   * (D80.1) and its spans (D92.2); the composition's grid of D47.1 if not
+   * given. Every job of one render names the same grid. On spans, the
+   * manifest records each segment's span and key.
    */
   readonly grid?: GridRequest;
   /** An existing directory; each segment is written there as `segment-<index>.mp4`. */
@@ -218,13 +228,40 @@ export interface JoinPart<M> {
 }
 
 export interface JoinRequest extends EncoderSettings, Pick<JobOptions, 'signal'> {
-  /** The segments manifests of every job of the render, in any order. */
+  /**
+   * The segments manifests of every job of the render, in any order; with a
+   * target, also manifests of renders of other documents, whose segments fill
+   * the slots of the target by their keys (D92.3).
+   */
   readonly segments: readonly JoinPart<SegmentsManifest>[];
   /** The audio pass of the range; it states the range the segments must cover. */
   readonly audio: JoinPart<AudioManifest>;
   /** Where the MP4 is written; written under a temporary name first. */
   readonly outputPath: string;
   readonly ffmpeg: FfmpegPaths;
+  /**
+   * The document whose export the join writes, joined by the keys of its
+   * segments (D92.3); without it, the join of D47.5 and D80.4.
+   */
+  readonly target?: JoinTarget;
+}
+
+/**
+ * The document of a join by keys (D92.3): its asset resolver, which the keys
+ * read the fonts of measured nodes through and the manifest the facts of its
+ * videos, and the grid of its render, with its spans (D92.2), which a join by
+ * keys requires.
+ */
+export interface JoinTarget {
+  readonly document: unknown;
+  /** Bytes for every asset, or a path for a video or an audio asset (D14, D64.1). */
+  readonly resolveAsset: ProducerAssetResolver;
+  /** Frames per segment (D47.1); the parts' if not given. */
+  readonly segmentFrames?: number;
+  /** The grid of the render, with the start times of its spans (D80.1, D92.2). */
+  readonly grid: GridRequest;
+  /** The limits of D48.4 that the document and its assets are checked against. */
+  readonly limits?: JobLimits;
 }
 
 export interface JoinResult {
@@ -466,6 +503,26 @@ function ffmpegIdentityBlock(tools: FfmpegTools): FfmpegIdentityBlock {
 interface SegmentTarget {
   readonly segment: Segment;
   readonly path: string;
+  /** Its span and key, on a grid of spans only (D92.2). */
+  readonly key?: SegmentKey;
+}
+
+/**
+ * A segment as a manifest records it: on a grid of spans with its span and
+ * key (D92.2), and otherwise with the fields of D47.3 alone, so a manifest
+ * without spans keeps its bytes.
+ */
+function manifestSegment(
+  segment: Segment,
+  key: Pick<SegmentKey, 'span' | 'key'> | undefined,
+): Omit<ManifestSegment, 'file' | 'sha256'> {
+  return {
+    index: segment.index,
+    ...(key === undefined ? {} : { span: key.span }),
+    firstFrame: segment.firstFrame,
+    frameCount: segment.frameCount,
+    ...(key === undefined ? {} : { key: key.key }),
+  };
 }
 
 /**
@@ -559,9 +616,7 @@ async function encodeSegments(options: {
     framesWritten += sink.written;
     maxFramesInFlight = Math.max(maxFramesInFlight, sink.maxInFlight);
     segments.push({
-      index: target.segment.index,
-      firstFrame: target.segment.firstFrame,
-      frameCount: count,
+      ...manifestSegment(target.segment, target.key),
       file: basename(target.path),
       sha256: hash,
     });
@@ -670,6 +725,8 @@ async function preparedSegments(
   readonly grid: ManifestGrid | null;
   readonly frames: FrameRange;
   readonly segments: Segment[];
+  /** The key of each segment of the range by its index, on a grid of spans only (D92.2). */
+  readonly keys: ReadonlyMap<number, SegmentKey> | null;
   readonly tools: FfmpegTools;
 }> {
   throwIfCancelled(request.signal);
@@ -685,13 +742,30 @@ async function preparedSegments(
   checkDocumentLimits(request.limits, composition, frames.frameCount);
   const assets = await verifiedAssets(composition, request.resolveAsset, request.limits);
   checkAssetLimits(request.limits, assets);
+  const runtime = request.runtime ?? loadRuntimeBuild();
+  const segments =
+    grid === null
+      ? rangeSegmentsOf(composition, segmentFrames, frames)
+      : gridRangeSegments(grid, frames);
+  // On a grid of spans, the key of every segment of the range, before a page opens (D92.2).
+  let keys: Map<number, SegmentKey> | null = null;
+  if (grid?.spans !== undefined) {
+    const keyOf = segmentKeyer(
+      composition,
+      { preset: request.preset, segmentFrames, fonts: measuredFonts(composition, assets) },
+      pinnedKeyPins(runtime.contentHash),
+    );
+    keys = new Map(
+      segments.map((segment) => [segment.index, keyOf(segment as SpanSegment)] as const),
+    );
+  }
   const tools = await dependencies.tools(request.ffmpeg);
   throwIfCancelled(request.signal);
   return {
     prepared: {
       composition,
       assets,
-      runtime: request.runtime ?? loadRuntimeBuild(),
+      runtime,
       videos: await prepareVideos(composition, assets, tools),
     },
     size,
@@ -699,13 +773,25 @@ async function preparedSegments(
     grid:
       grid === null || isCompositionGrid(composition, grid)
         ? null
-        : { ...gridSpan(composition, grid), minSegmentFrames: grid.minSegmentFrames },
+        : manifestGrid(composition, grid),
     frames,
-    segments:
-      grid === null
-        ? rangeSegmentsOf(composition, segmentFrames, frames)
-        : gridRangeSegments(grid, frames),
+    segments,
+    keys,
     tools,
+  };
+}
+
+/**
+ * The grid a manifest names (D80.2): its span and its shortest last segment,
+ * and the spans of a grid of spans (D92.2).
+ */
+function manifestGrid(composition: ValidatedComposition, grid: SegmentGrid): ManifestGrid {
+  return {
+    ...gridSpan(composition, grid),
+    minSegmentFrames: grid.minSegmentFrames,
+    ...(grid.spans === undefined
+      ? {}
+      : { spans: grid.spans.map(({ fromUs, firstFrame }) => ({ fromUs, firstFrame })) }),
   };
 }
 
@@ -715,7 +801,7 @@ async function segmentsWith(
   given: Awaited<ReturnType<typeof preparedSegments>>,
   pathOf: (segment: Segment) => string,
 ): Promise<SegmentsResult> {
-  const { prepared, size, segmentFrames, grid, frames, segments, tools } = given;
+  const { prepared, size, segmentFrames, grid, frames, segments, keys, tools } = given;
   const timeoutMs = request.encoderTimeoutMs ?? DEFAULT_TIMEOUT_MS;
   // An export and a range job capture for speed; their frames go only to the encoder (D88.1).
   // A node's first decoder starts at the IDR picture before a late first frame (D88.3).
@@ -725,7 +811,10 @@ async function segmentsWith(
   });
   try {
     throwIfCancelled(request.signal);
-    const targets = segments.map((segment) => ({ segment, path: pathOf(segment) }));
+    const targets = segments.map((segment) => {
+      const key = keys?.get(segment.index);
+      return { segment, path: pathOf(segment), ...(key === undefined ? {} : { key }) };
+    });
     request.onProgress?.({
       event: 'start',
       frames: frames.frameCount,
@@ -999,25 +1088,165 @@ export interface JoinSegment extends ManifestSegment {
   readonly path: string;
 }
 
+/**
+ * What the export manifest of a join says of its document (D92.3): the parts'
+ * own in the join of D47.5, the target's in a join by keys.
+ */
+export type JoinDocument = Pick<
+  SegmentsManifest,
+  'compositionHash' | 'schemaVersion' | 'assets' | 'durationUs' | 'frameCount' | 'grid'
+>;
+
 /** What a join joins, once the manifests were found to make one render. */
 export interface JoinPlan {
   readonly first: SegmentsManifest;
+  /** The document the export is of: the parts', or the target of a join by keys (D92.3). */
+  readonly document: JoinDocument;
   /** The decode of the parts, with `seekArgs` when any part went back by a seek (D82.5). */
   readonly video: ManifestVideo | null;
   readonly range: AudioManifest['range'];
+  /** In the order of the grid; on a grid of spans with their spans and keys (D92.2). */
   readonly segments: readonly JoinSegment[];
   readonly frames: readonly ManifestFrame[];
   readonly blockedRequests: readonly string[];
   readonly audioPath: string | null;
 }
 
+/** A key as a manifest records it: `sha256:` and 64 lowercase hex digits (D92.1). */
+const KEY_PATTERN = /^sha256:[0-9a-f]{64}$/;
+
+/** A segments manifest of the version of this build, of a canvas a video job draws (D47.8, D89.1). */
+function checkSegmentsKind(manifest: SegmentsManifest): void {
+  if (
+    (manifest.kind as string) !== 'segments' ||
+    manifest.manifestVersion !== EXPORT_MANIFEST_VERSION
+  ) {
+    throw joinInvalid(
+      `A segments manifest of version ${String(EXPORT_MANIFEST_VERSION)} was expected, got ${JSON.stringify(manifest.kind)} of version ${String(manifest.manifestVersion)}.`,
+    );
+  }
+  // A video job draws a side of at most 1920 (D89.1); the range job refuses a
+  // larger canvas, and so does the join of segments that claim one.
+  const { sourceWidth, sourceHeight } = manifest.preset;
+  if (sourceWidth > MAX_VIDEO_SIDE || sourceHeight > MAX_VIDEO_SIDE) {
+    throw new ProducerError(
+      'preset-unsupported',
+      `A segments manifest names a composition of ${String(sourceWidth)}x${String(sourceHeight)}: a video job draws a side of at most ${String(MAX_VIDEO_SIDE)} (D89.1).`,
+    );
+  }
+}
+
+/** An audio manifest of the version of this build (D47.8). */
+function checkAudioKind(pass: AudioManifest): void {
+  if ((pass.kind as string) !== 'audio' || pass.manifestVersion !== EXPORT_MANIFEST_VERSION) {
+    throw joinInvalid(
+      `An audio manifest of version ${String(EXPORT_MANIFEST_VERSION)} was expected, got ${JSON.stringify(pass.kind)} of version ${String(pass.manifestVersion)}.`,
+    );
+  }
+}
+
+/** The FFmpeg of the audio pass against that of the segments (D47.5). */
+function audioFfmpegFields(
+  pass: AudioManifest,
+  first: SegmentsManifest,
+): [string, unknown, unknown][] {
+  return [
+    ...FFMPEG_BUILD_FIELDS.map(
+      (field) =>
+        [`ffmpeg.${field}`, pass.ffmpeg[field], first.ffmpeg[field]] as [string, unknown, unknown],
+    ),
+    ['identity.ffmpegSha256', pass.identity.ffmpegSha256, first.identity.ffmpegSha256],
+    ['identity.ffprobeSha256', pass.identity.ffprobeSha256, first.identity.ffprobeSha256],
+    ['identity.ffmpegVersion', pass.identity.ffmpegVersion, first.identity.ffmpegVersion],
+    [
+      'identity.ffmpegBuildConfiguration',
+      pass.identity.ffmpegBuildConfiguration,
+      first.identity.ffmpegBuildConfiguration,
+    ],
+  ];
+}
+
+function checkAudioFields(fields: readonly [string, unknown, unknown][]): void {
+  for (const [field, given, expected] of fields) {
+    if (canonicalJson(given) !== canonicalJson(expected)) {
+      throw joinInvalid(`The audio manifest differs from the segments in ${field}.`);
+    }
+  }
+}
+
+/**
+ * The segments of a manifest on the grid it names, by index (D47.1, D80.4):
+ * the grid of D47.1 without one; on a grid of spans, each in the span it
+ * names and with a key (D92.2). Anything else is `join-invalid`.
+ */
+function checkOnGrid(manifest: SegmentsManifest): void {
+  const { segmentFrames, frameCount: total } = manifest;
+  const onGrid = manifest.grid === undefined ? null : manifestGridSegments(manifest);
+  for (const segment of manifest.segments) {
+    if (onGrid !== null) {
+      // The segments of the grid the manifests name, by index (D80.4).
+      const expected = Number.isSafeInteger(segment.index) ? onGrid[segment.index] : undefined;
+      if (
+        expected === undefined ||
+        segment.firstFrame !== expected.firstFrame ||
+        segment.frameCount !== expected.frameCount
+      ) {
+        throw joinInvalid(`Segment ${String(segment.index)} does not lie on the segment grid.`);
+      }
+      const { span } = expected as Partial<SpanSegment>;
+      if (span !== undefined && segment.span !== span) {
+        throw joinInvalid(
+          `Segment ${String(segment.index)} names span ${String(segment.span)}, not span ${String(span)} of the grid, which it lies in.`,
+        );
+      }
+      if (
+        span !== undefined &&
+        (typeof segment.key !== 'string' || !KEY_PATTERN.test(segment.key))
+      ) {
+        throw joinInvalid(
+          `Segment ${String(segment.index)} of a grid of spans has no key, which every such segment has (D92.2).`,
+        );
+      }
+    } else {
+      const expectedFrames = Math.min(segmentFrames, total - segment.index * segmentFrames);
+      if (
+        !Number.isSafeInteger(segment.index) ||
+        segment.index < 0 ||
+        segment.firstFrame !== segment.index * segmentFrames ||
+        segment.frameCount !== expectedFrames ||
+        expectedFrames < 1
+      ) {
+        throw joinInvalid(`Segment ${String(segment.index)} does not lie on the segment grid.`);
+      }
+    }
+  }
+}
+
+/** The frames of a manifest are exactly those of its segments (D47.5). */
+function checkPartFrames(manifest: SegmentsManifest): void {
+  const own = new Set<number>();
+  for (const segment of manifest.segments) {
+    for (
+      let index = segment.firstFrame;
+      index < segment.firstFrame + segment.frameCount;
+      index += 1
+    ) {
+      own.add(index);
+    }
+  }
+  if (manifest.frames.length !== own.size || manifest.frames.some(({ index }) => !own.has(index))) {
+    throw joinInvalid('A segments manifest lists other frames than its segments hold.');
+  }
+}
+
 /**
  * Whether the manifests make one render (D47.5): the same document, runtime,
  * browser, environment, preset, segment length, grid, and FFmpeg; segments on
- * the grid (D47.1, or the one the manifests name, D80.4), each once, without a
- * gap, covering exactly the range of the audio pass; and frames that are the
- * segments' frames. Anything else is `join-invalid`, before FFmpeg runs. Pure:
- * the files are checked afterwards.
+ * the grid (D47.1, or the one the manifests name, D80.4, with its spans and
+ * the key of each segment, D92.2), each once, without a gap, covering exactly
+ * the range of the audio pass; and frames that are the segments' frames.
+ * Anything else is `join-invalid`, before FFmpeg runs. Pure: the files are
+ * checked afterwards.
  */
 export function joinPlan(
   parts: readonly JoinPart<SegmentsManifest>[],
@@ -1027,23 +1256,7 @@ export function joinPlan(
   if (head === undefined) throw joinInvalid('A join needs at least one segments manifest.');
   const first = head.manifest;
   for (const { manifest } of parts) {
-    if (
-      (manifest.kind as string) !== 'segments' ||
-      manifest.manifestVersion !== EXPORT_MANIFEST_VERSION
-    ) {
-      throw joinInvalid(
-        `A segments manifest of version ${String(EXPORT_MANIFEST_VERSION)} was expected, got ${JSON.stringify(manifest.kind)} of version ${String(manifest.manifestVersion)}.`,
-      );
-    }
-    // A video job draws a side of at most 1920 (D89.1); the range job refuses a
-    // larger canvas, and so does the join of segments that claim one.
-    const { sourceWidth, sourceHeight } = manifest.preset;
-    if (sourceWidth > MAX_VIDEO_SIDE || sourceHeight > MAX_VIDEO_SIDE) {
-      throw new ProducerError(
-        'preset-unsupported',
-        `A segments manifest names a composition of ${String(sourceWidth)}x${String(sourceHeight)}: a video job draws a side of at most ${String(MAX_VIDEO_SIDE)} (D89.1).`,
-      );
-    }
+    checkSegmentsKind(manifest);
     for (const field of SHARED_FIELDS) {
       // An absent grid is the grid of D47.1 (D80.2); every other field is required. Whether a
       // job went back by a seek is its own (D82.5): the decode is compared without it.
@@ -1061,79 +1274,23 @@ export function joinPlan(
     }
   }
   const pass = audio.manifest;
-  if ((pass.kind as string) !== 'audio' || pass.manifestVersion !== EXPORT_MANIFEST_VERSION) {
-    throw joinInvalid(
-      `An audio manifest of version ${String(EXPORT_MANIFEST_VERSION)} was expected, got ${JSON.stringify(pass.kind)} of version ${String(pass.manifestVersion)}.`,
-    );
-  }
-  const audioFields: readonly [string, unknown, unknown][] = [
+  checkAudioKind(pass);
+  checkAudioFields([
     ['compositionHash', pass.compositionHash, first.compositionHash],
     ['schemaVersion', pass.schemaVersion, first.schemaVersion],
     ['durationUs', pass.durationUs, first.durationUs],
     ['frameCount', pass.frameCount, first.frameCount],
     ['fps', pass.fps, first.preset.fps],
-    ...FFMPEG_BUILD_FIELDS.map(
-      (field) =>
-        [`ffmpeg.${field}`, pass.ffmpeg[field], first.ffmpeg[field]] as [string, unknown, unknown],
-    ),
-    ['identity.ffmpegSha256', pass.identity.ffmpegSha256, first.identity.ffmpegSha256],
-    ['identity.ffprobeSha256', pass.identity.ffprobeSha256, first.identity.ffprobeSha256],
-    ['identity.ffmpegVersion', pass.identity.ffmpegVersion, first.identity.ffmpegVersion],
-    [
-      'identity.ffmpegBuildConfiguration',
-      pass.identity.ffmpegBuildConfiguration,
-      first.identity.ffmpegBuildConfiguration,
-    ],
-  ];
-  for (const [field, given, expected] of audioFields) {
-    if (canonicalJson(given) !== canonicalJson(expected)) {
-      throw joinInvalid(`The audio manifest differs from the segments in ${field}.`);
-    }
-  }
-  const { segmentFrames, frameCount: total } = first;
-  const onGrid = first.grid === undefined ? null : manifestGridSegments(first);
+    ...audioFfmpegFields(pass, first),
+  ]);
   const all: JoinSegment[] = [];
   const frames: ManifestFrame[] = [];
   const blocked = new Set<string>();
   for (const { manifest, directory } of parts) {
-    const own = new Set<number>();
+    checkOnGrid(manifest);
+    checkPartFrames(manifest);
     for (const segment of manifest.segments) {
-      if (onGrid !== null) {
-        // The segments of the grid the manifests name, by index (D80.4).
-        const expected = Number.isSafeInteger(segment.index) ? onGrid[segment.index] : undefined;
-        if (
-          expected === undefined ||
-          segment.firstFrame !== expected.firstFrame ||
-          segment.frameCount !== expected.frameCount
-        ) {
-          throw joinInvalid(`Segment ${String(segment.index)} does not lie on the segment grid.`);
-        }
-      } else {
-        const expectedFrames = Math.min(segmentFrames, total - segment.index * segmentFrames);
-        if (
-          !Number.isSafeInteger(segment.index) ||
-          segment.index < 0 ||
-          segment.firstFrame !== segment.index * segmentFrames ||
-          segment.frameCount !== expectedFrames ||
-          expectedFrames < 1
-        ) {
-          throw joinInvalid(`Segment ${String(segment.index)} does not lie on the segment grid.`);
-        }
-      }
-      for (
-        let index = segment.firstFrame;
-        index < segment.firstFrame + segment.frameCount;
-        index += 1
-      ) {
-        own.add(index);
-      }
       all.push({ ...segment, path: join(resolve(directory), plainName(segment.file)) });
-    }
-    if (
-      manifest.frames.length !== own.size ||
-      manifest.frames.some(({ index }) => !own.has(index))
-    ) {
-      throw joinInvalid('A segments manifest lists other frames than its segments hold.');
     }
     frames.push(...manifest.frames);
     for (const url of manifest.blockedRequests) blocked.add(url);
@@ -1163,6 +1320,14 @@ export function joinPlan(
     .video?.seekArgs;
   return {
     first,
+    document: {
+      compositionHash: first.compositionHash,
+      schemaVersion: first.schemaVersion,
+      assets: first.assets,
+      durationUs: first.durationUs,
+      frameCount: first.frameCount,
+      ...(first.grid === undefined ? {} : { grid: first.grid }),
+    },
     video:
       first.video === null || seekArgs === undefined ? first.video : { ...first.video, seekArgs },
     range,
@@ -1178,8 +1343,10 @@ export function joinPlan(
  * The segments of the grid a segments manifest names (D80.4), once the grid
  * was found to be one: a span of whole frames inside the composition, its
  * times the frame times of its ends, a shortest last segment from 1 to the
- * segment length, and not the grid of D47.1, which a manifest never names.
- * Anything else is `join-invalid`.
+ * segment length, and not the grid of D47.1, which a manifest names only with
+ * spans. On a grid of spans (D92.2), its spans are frame times inside its
+ * span, increasing, the first at its start, and its segments are those of its
+ * spans, each with its span. Anything else is `join-invalid`.
  */
 function manifestGridSegments(manifest: SegmentsManifest): Segment[] {
   const { grid, segmentFrames, frameCount: total, durationUs } = manifest;
@@ -1208,12 +1375,261 @@ function manifestGridSegments(manifest: SegmentsManifest): Segment[] {
       `The grid's shortest last segment ${String(grid.minSegmentFrames)} is not in [1, ${String(segmentFrames)}].`,
     );
   }
-  const segments = gridSegments({ ...grid, segmentFrames });
+  const anchored = {
+    firstFrame: grid.firstFrame,
+    frameCount: grid.frameCount,
+    segmentFrames,
+    minSegmentFrames: grid.minSegmentFrames,
+  };
+  if (grid.spans !== undefined) {
+    // A manifest is read from JSON: anything but a list of spans names none.
+    const listed: unknown = grid.spans;
+    if (!Array.isArray(listed) || listed.length === 0) {
+      throw joinInvalid('The grid of the segments manifests names no span.');
+    }
+    const spans: readonly ManifestSpan[] = grid.spans;
+    spans.forEach(({ fromUs, firstFrame }, at) => {
+      const before = spans[at - 1]?.firstFrame;
+      if (
+        !whole(firstFrame) ||
+        firstFrame >= end ||
+        fromUs !== timeOf(firstFrame) ||
+        (before === undefined ? firstFrame !== grid.firstFrame : firstFrame <= before)
+      ) {
+        throw joinInvalid(
+          `Span ${String(at)} of the grid of the segments manifests is not a frame time inside the grid's span after the span before it.`,
+        );
+      }
+    });
+    return spanSegments(anchored, spans);
+  }
+  const segments = gridSegments(anchored);
   const canonical = Math.ceil(total / segmentFrames);
   if (grid.firstFrame === 0 && end === total && segments.length === canonical) {
     throw joinInvalid('The segments manifests name the grid of D47.1, which no manifest names.');
   }
   return segments;
+}
+
+/** The fields every part of a join by keys shares (D92.3), compared as canonical JSON. */
+const KEYED_SHARED_FIELDS = [
+  'manifestVersion',
+  'capture',
+  'clear',
+  'runtime',
+  'chromium',
+  'environment',
+  'preset',
+  'segmentFrames',
+  'ffmpeg',
+  'identity',
+] as const;
+
+/** The fields of a part of the target that it shares with the target (D92.3). */
+const TARGET_FIELDS = [
+  'compositionHash',
+  'schemaVersion',
+  'assets',
+  'durationUs',
+  'frameCount',
+  'grid',
+] as const;
+
+/** The decode of a manifest without its sources and its seek (D92.3). */
+function decodeOf(video: ManifestVideo | null): unknown {
+  return video === null ? null : { decoder: video.decoder, decodeArgs: video.decodeArgs };
+}
+
+/** What a join by keys knows of its target, once it was read and checked (D92.3). */
+export interface KeyedTarget {
+  readonly fps: number;
+  /** The target's grid of spans (D92.2). */
+  readonly grid: SegmentGrid & { readonly spans: readonly GridSpan[] };
+  readonly document: JoinDocument & { readonly grid: ManifestGrid };
+  readonly preset: ManifestMp4Preset;
+  readonly segmentFrames: number;
+  /** The decode of the target's videos as a job reads them (D50.5), or `null` without video nodes. */
+  readonly video: ManifestVideo | null;
+  /** The key of a segment of the target's grid (D92.1). */
+  readonly keyOf: (segment: SpanSegment) => SegmentKey;
+}
+
+/**
+ * The plan of a join by keys (D92.3): the parts agree with each other in the
+ * pins of the run, and with the target in its preset and segment length; a
+ * part of the target (its `compositionHash`) is a part of the target's render
+ * on the target's grid, and fills its own slots, each once, with the key of
+ * the target there; a part of another document is checked as a render of its
+ * own, and each of its segments fills every slot left free whose key is its
+ * key; one that fills none is left out. Every slot of the range of the audio
+ * pass, which is the target's, must be filled. Frames are numbered with the
+ * indices and times of the slots they fill. Anything else is `join-invalid`.
+ */
+export function keyedJoinPlan(
+  parts: readonly JoinPart<SegmentsManifest>[],
+  audio: JoinPart<AudioManifest>,
+  target: KeyedTarget,
+): JoinPlan {
+  const [head] = parts;
+  if (head === undefined) throw joinInvalid('A join needs at least one segments manifest.');
+  const first = head.manifest;
+  for (const { manifest } of parts) {
+    checkSegmentsKind(manifest);
+    for (const field of KEYED_SHARED_FIELDS) {
+      if (canonicalJson(manifest[field]) !== canonicalJson(first[field])) {
+        throw joinInvalid(`The segments manifests differ in ${field}; they are not of one worker.`);
+      }
+    }
+  }
+  if (canonicalJson(first.preset) !== canonicalJson(target.preset)) {
+    throw joinInvalid('The segments manifests differ from the target in preset.');
+  }
+  if (first.segmentFrames !== target.segmentFrames) {
+    throw joinInvalid('The segments manifests differ from the target in segmentFrames.');
+  }
+  // The decode of every part that decoded a video, and of the target, without sources or seek.
+  const decodes = [...parts.map(({ manifest }) => manifest.video), target.video].flatMap((video) =>
+    video === null ? [] : [canonicalJson(decodeOf(video))],
+  );
+  if (new Set(decodes).size > 1) {
+    throw joinInvalid(
+      'The segments manifests differ in the decode of video; they are not of one worker.',
+    );
+  }
+  const pass = audio.manifest;
+  checkAudioKind(pass);
+  const { document } = target;
+  checkAudioFields([
+    ['compositionHash', pass.compositionHash, document.compositionHash],
+    ['schemaVersion', pass.schemaVersion, document.schemaVersion],
+    ['durationUs', pass.durationUs, document.durationUs],
+    ['frameCount', pass.frameCount, document.frameCount],
+    ['fps', pass.fps, target.fps],
+    ...audioFfmpegFields(pass, first),
+  ]);
+  // The slots of the grid that the audio pass covers: whole segments of the target's grid.
+  const slots = spanSegments(target.grid, target.grid.spans);
+  const { range } = pass;
+  const end = range.firstFrame + range.frameCount;
+  const covered = slots.filter(
+    ({ firstFrame }) => firstFrame >= range.firstFrame && firstFrame < end,
+  );
+  const last = covered.at(-1);
+  if (
+    covered[0]?.firstFrame !== range.firstFrame ||
+    last === undefined ||
+    last.firstFrame + last.frameCount !== end
+  ) {
+    throw joinInvalid(
+      `The range ${String(range.firstFrame)}…${String(end - 1)} of the audio pass is not whole segments of the target's grid.`,
+    );
+  }
+  const keys = new Map<number, string>();
+  const keyOf = (slot: SpanSegment): string => {
+    let key = keys.get(slot.index);
+    if (key === undefined) {
+      key = target.keyOf(slot).key;
+      keys.set(slot.index, key);
+    }
+    return key;
+  };
+  interface Found {
+    readonly segment: ManifestSegment;
+    readonly part: JoinPart<SegmentsManifest>;
+  }
+  const own = new Map<number, Found>();
+  const byKey = new Map<string, Found>();
+  for (const part of parts) {
+    const { manifest } = part;
+    checkOnGrid(manifest);
+    checkPartFrames(manifest);
+    const ofTarget = manifest.compositionHash === document.compositionHash;
+    if (ofTarget) {
+      for (const field of TARGET_FIELDS) {
+        if (canonicalJson(manifest[field] ?? null) !== canonicalJson(document[field])) {
+          throw joinInvalid(`A part of the target differs from the target in ${field}.`);
+        }
+      }
+    }
+    for (const segment of manifest.segments) {
+      const name = `Segment ${String(segment.index)}`;
+      if (segment.key === undefined) {
+        throw joinInvalid(
+          `${name} has no key: a join by keys takes the parts of renders on spans (D92.2, D92.3).`,
+        );
+      }
+      if (!ofTarget) {
+        // The first segment given with a key fills the slots of that key (D92, question 8).
+        if (!byKey.has(segment.key)) byKey.set(segment.key, { segment, part });
+        continue;
+      }
+      // On the target's grid, as checkOnGrid found: the slot of its index.
+      const slot = slots[segment.index];
+      if (slot === undefined || !covered.includes(slot)) {
+        throw joinInvalid(`${name} of the target lies outside the range of the audio pass.`);
+      }
+      if (own.has(slot.index)) {
+        throw joinInvalid(`${name} of the target is given more than once.`);
+      }
+      if (segment.key !== keyOf(slot)) {
+        throw joinInvalid(
+          `${name} of the target has another key than the target's there: it was rendered with other pins (D92.1).`,
+        );
+      }
+      own.set(slot.index, { segment, part });
+    }
+  }
+  const segments: JoinSegment[] = [];
+  const frames: ManifestFrame[] = [];
+  const used = new Set<JoinPart<SegmentsManifest>>();
+  for (const slot of covered) {
+    const key = keyOf(slot);
+    const found = own.get(slot.index) ?? byKey.get(key);
+    if (found === undefined) {
+      throw joinInvalid(
+        `Segment ${String(slot.index)} of the target (frames ${String(slot.firstFrame)}…${String(slot.firstFrame + slot.frameCount - 1)}, span ${String(slot.span)}) has no part: no part of the target fills it and no segment given has its key.`,
+      );
+    }
+    const { segment, part } = found;
+    if (segment.frameCount !== slot.frameCount) {
+      // Unreachable: a key hashes every frame of its segment (D92.1).
+      throw joinInvalid(`Segment ${String(slot.index)} has a key of another number of frames.`);
+    }
+    used.add(part);
+    segments.push({
+      ...manifestSegment(slot, { span: slot.span, key }),
+      file: segment.file,
+      sha256: segment.sha256,
+      path: join(resolve(part.directory), plainName(segment.file)),
+    });
+    // The part's frames of the segment, numbered with the indices and times of the slot.
+    const held = part.manifest.frames
+      .filter(
+        ({ index }) =>
+          index >= segment.firstFrame && index < segment.firstFrame + segment.frameCount,
+      )
+      .sort((a, b) => a.index - b.index);
+    held.forEach(({ sha256: hash }, offset) => {
+      const index = slot.firstFrame + offset;
+      frames.push({ index, timeUs: frameToTimeUs(index, target.fps), sha256: hash });
+    });
+  }
+  const contributing = parts.filter((part) => used.has(part));
+  const blocked = new Set(contributing.flatMap(({ manifest }) => manifest.blockedRequests));
+  const seekArgs = contributing.find(({ manifest }) => manifest.video?.seekArgs !== undefined)
+    ?.manifest.video?.seekArgs;
+  const video = target.video === null ? null : withoutSeek(target.video);
+  return {
+    first,
+    document,
+    video: video === null || seekArgs === undefined ? video : { ...video, seekArgs },
+    range,
+    segments,
+    frames,
+    blockedRequests: [...blocked].sort(),
+    audioPath:
+      pass.audio === null ? null : join(resolve(audio.directory), plainName(pass.audio.file)),
+  };
 }
 
 async function joinWith(
@@ -1292,30 +1708,34 @@ async function joinWith(
           bitrate: AUDIO_BITRATE,
           intermediate: { codec: pass.codec, format: pass.format, sha256: pass.sha256 },
         };
+  const { document } = plan;
+  // A segment names its span and key on a grid of spans only, so an export without keeps its bytes (D92.2).
+  const keyed = document.grid?.spans !== undefined;
   return {
     manifestVersion: first.manifestVersion,
-    compositionHash: first.compositionHash,
-    schemaVersion: first.schemaVersion,
+    compositionHash: document.compositionHash,
+    schemaVersion: document.schemaVersion,
     runtime: first.runtime,
     chromium: first.chromium,
     environment: first.environment,
-    assets: first.assets,
-    durationUs: first.durationUs,
-    frameCount: first.frameCount,
+    assets: document.assets,
+    durationUs: document.durationUs,
+    frameCount: document.frameCount,
     preset: first.preset,
     segmentFrames: first.segmentFrames,
-    ...(first.grid === undefined ? {} : { grid: first.grid }),
+    ...(document.grid === undefined ? {} : { grid: document.grid }),
     video: plan.video,
     identity: first.identity,
     kind: 'export',
     capture: first.capture,
     clear: first.clear,
     range,
-    segments: plan.segments.map(({ index, firstFrame, frameCount, sha256: hash }) => ({
-      index,
-      firstFrame,
-      frameCount,
-      sha256: hash,
+    segments: plan.segments.map((segment) => ({
+      ...manifestSegment(
+        segment,
+        keyed ? { span: segment.span ?? 0, key: segment.key ?? '' } : undefined,
+      ),
+      sha256: segment.sha256,
     })),
     frames: plan.frames,
     blockedRequests: plan.blockedRequests,
@@ -1332,6 +1752,67 @@ async function joinWith(
   };
 }
 
+/**
+ * What a join by keys reads before its plan (D92.3): the target validated,
+ * its grid of spans, its assets resolved and verified within the limits, the
+ * metrics of the fonts of its measured nodes, and the facts of its videos as
+ * a job reads them (D50.5); its keys are computed on the pins of this build
+ * with the runtime build the parts name, for the slots the plan asks for.
+ */
+async function keyedJoin(
+  request: JoinRequest,
+  target: JoinTarget,
+  dependencies: ExportDependencies,
+): Promise<{ readonly plan: JoinPlan; readonly tools: FfmpegTools }> {
+  const { signal } = request;
+  const head = request.segments[0]?.manifest;
+  if (head === undefined) throw joinInvalid('A join needs at least one segments manifest.');
+  const composition = validated(target.document);
+  const preset = /^mp4-([0-9a-z]+)$/.exec(head.preset.name)?.[1];
+  if (preset === undefined) {
+    throw joinInvalid(`A segments manifest names the preset ${JSON.stringify(head.preset.name)}.`);
+  }
+  const size = presetSize(composition, preset);
+  const segmentFrames = checkedSegmentFrames(target.segmentFrames ?? head.segmentFrames);
+  if (target.grid.spans === undefined) {
+    throw joinInvalid(
+      'A join by keys needs the spans of the grid: only a render on spans records keys (D92.2, D92.3).',
+    );
+  }
+  const grid = segmentGrid(composition, segmentFrames, target.grid);
+  const { spans } = grid;
+  if (spans === undefined) throw joinInvalid('The grid of the target has no spans.');
+  checkDocumentLimits(target.limits, composition, grid.frameCount);
+  const assets = await verifiedAssets(composition, target.resolveAsset, target.limits);
+  checkAssetLimits(target.limits, assets);
+  const keyOf = segmentKeyer(
+    composition,
+    { preset, segmentFrames, fonts: measuredFonts(composition, assets) },
+    pinnedKeyPins(head.runtime.contentHash),
+  );
+  const tools = await dependencies.tools(request.ffmpeg);
+  throwIfCancelled(signal);
+  const videos = await prepareVideos(composition, assets, tools);
+  throwIfCancelled(signal);
+  const plan = keyedJoinPlan(request.segments, request.audio, {
+    fps: composition.fps,
+    grid: { ...grid, spans },
+    document: {
+      compositionHash: sha256(canonicalJson(composition)),
+      schemaVersion: composition.schemaVersion,
+      assets: manifestAssets(assets),
+      durationUs: composition.durationUs,
+      frameCount: frameCount(composition.durationUs, composition.fps),
+      grid: manifestGrid(composition, grid),
+    },
+    preset: mp4Preset(composition, size),
+    segmentFrames,
+    video: videos?.manifest ?? null,
+    keyOf,
+  });
+  return { plan, tools };
+}
+
 /** `joinSegments` on the given dependencies; tests pass fakes. */
 export async function joinSegmentsWith(
   request: JoinRequest,
@@ -1340,8 +1821,13 @@ export async function joinSegmentsWith(
   const { signal } = request;
   try {
     throwIfCancelled(signal);
-    const plan = joinPlan(request.segments, request.audio);
-    const tools = await dependencies.tools(request.ffmpeg);
+    const { plan, tools } =
+      request.target === undefined
+        ? {
+            plan: joinPlan(request.segments, request.audio),
+            tools: await dependencies.tools(request.ffmpeg),
+          }
+        : await keyedJoin(request, request.target, dependencies);
     const outputPath = resolve(request.outputPath);
     const manifest = await joinWith(
       plan,
@@ -1466,7 +1952,9 @@ export function renderAudio(request: AudioRequest): Promise<AudioResult> {
 
 /**
  * Joins the segments of one render and its audio into one MP4 at `outputPath`
- * (D47.5), after checking that the manifests make one render.
+ * (D47.5), after checking that the manifests make one render. With a target,
+ * joins segments of renders of other documents wherever their keys are the
+ * target's, and writes the export manifest of the target (D92.3).
  */
 export function joinSegments(request: JoinRequest): Promise<JoinResult> {
   return joinSegmentsWith(request, realDependencies());

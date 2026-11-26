@@ -114,3 +114,70 @@ prohibits nowhere; PR-101 adds it to
   (`ok`) and on the element that counts its frames (`frames-differ`), in the
   pinned container; no new pinned file.
 - `tests/repo/package-boundaries.test.ts`: the new edge in the map.
+
+## Implementation notes (PR-101)
+
+- **The command.** `checkCustomHtmlCommand` in `packages/cli/src/cli.ts`, a
+  job of `JOB_COMMANDS` with its usage line; `JobLine` gains `check`
+  (`nodeId`, `findings`, `render`, `ok`), and `CliHosts` gains
+  `checkCustomHtml` and `launchChromium`, which tests replace (types
+  `CheckCustomHtml` and `LaunchBrowser`). `checkCustomHtml`,
+  `checkCustomHtmlSource`, and the tool keep their API; the API report of
+  the CLI grows by these, and no other report changes.
+- **The edge.** `cli` → `editor-sdk` in `package-boundaries.json`, the
+  manifest, and the project references; D12 records it with an
+  `Amended by: PR-101 (D93)` paragraph. It is the only way to the findings
+  without a bus (question 1), and `editor-sdk` depends on `schema` alone, so
+  the graph stays acyclic.
+- **Readings closest to the ADR**, where the libraries give the command less
+  than D93.1 asks:
+  - _The browser._ `checkCustomHtml` turns every failed render into the
+    problem `render-failed`, a browser that `launchChromium` refuses
+    included. So the command launches the pinned Chromium itself with
+    `launchChromium` and lends it through `chromium`: a refused browser is
+    `chromium-mismatch` or `chromium-missing`, exit 1 (D93.1), not a problem
+    of the element. It closes the browser when the check ends.
+  - _Cancellation and the wall time._ `checkCustomHtml` takes no signal. A
+    job cancelled or out of wall time while the check runs closes the
+    browser, which fails the render in flight at once; the command then
+    ends with `cancelled` (exit 5) or `limit-exceeded` (exit 4), whatever the
+    check returned, and prints no `check` line (D48.2).
+  - _The limits._ `checkCustomHtml` takes no limits, so the command checks
+    those of D48.4 before the browser opens, in the Producer's words:
+    `maxDocumentBytes`, `maxDurationUs`, `maxAssets`, and `maxCanvasPixels`
+    on the document as given (the canvas of each definition too),
+    `maxFrames` on the frames the check renders, each sampled time twice
+    (10 by default), and `maxAssetBytes` and `maxTotalAssetBytes` on the
+    element's fonts.
+  - _The fonts._ The command reads the element's fonts once, before the
+    browser opens, and hands the check only those. A font the asset file
+    lacks, gives as no bytes, or gives with other bytes than its content
+    hash is `asset-missing`, `asset-invalid`, or `asset-hash-mismatch`, exit
+    1, as in every render job (D14), instead of a `render-failed` problem
+    of an element that may have no fault.
+  - _The node._ The command validates the document and finds the node as
+    the Producer does, of a scene, a group, or a definition, so that an
+    invalid document, no such node, or another node type is
+    `invalid-document` (exit 1) before the browser opens. Schema `0.31`
+    places Custom HTML only among the nodes of a scene; the search of groups
+    and definitions follows the Producer and the tool.
+  - _`--samples`._ A whole number from 1, else a usage error (exit 2); more
+    samples than the element has frames sample every frame, as
+    `checkCustomHtml` does.
+- **Verification.** `packages/cli/test/cli.test.ts` (a fake check and a fake
+  browser): the line and `done`, the request lent to the check, findings
+  alone and problems alone with `ok` false and exit 0, the usage errors,
+  `invalid-document` for the three cases, the fonts refused, a refused
+  browser, every limit, and cancellation before and during the check and
+  the wall time, each closing the browser.
+  `tests/pinned/custom-html-ai.pinned.test.ts` runs `dist/bin.js` in the
+  pinned container: `ok` on the fixture, `frames-differ` on the element that
+  counts its frames, both exit 0. No pinned file is added, so
+  `REQUIRED_PINNED_FILES` and the Q14 list do not change; no runtime build,
+  Player dist tree, golden file, or schema changes.
+- **The host guide and the release** (the last commit of PR-101): section 11
+  of the host guide gives the command, its line, its exit codes with `ok`
+  false at 0, and the limits it checks before the browser opens; section 6
+  points a host without a model to it, and section 13 asks a host to run it
+  before it reuses a segment with Custom HTML (question 9 of D92). Every
+  package is `0.14.0` for `v0.14.0` (D92, Implementation notes of PR-101).
