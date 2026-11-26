@@ -8,7 +8,7 @@
 - Amended by: PR-41 on 2026-11-04: 48.1 (the job `migrate` and its lines
   `versions` and `invalid`) and 48.3 (exit 6, `not-current`); the command is
   D43.7; in force since the owner merged PR-41 (PR #50) on 2026-11-04
-- Amended by: K-range (D80) on 2026-11-10, proposed: 48.5: `estimate` takes the
+- Amended by: K-range (D80) on 2026-11-10, accepted on 2026-11-26 with PR-98: 48.5: `estimate` takes the
   grid of D80.1, and `segments` counts its segments (D80.5)
 - Amended by: PR-91 (D89) on 2026-11-22: 48.4: the limit `maxCanvasPixels` (`--max-canvas-pixels`), width × height of the composition and of each definition, checked before a page opens, with no default (D89.1)
 - Related: D04, D06, D12, D26, D28, D29, D47,

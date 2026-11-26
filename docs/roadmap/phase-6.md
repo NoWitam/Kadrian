@@ -79,48 +79,52 @@ Added for this phase:
 The order puts the two pieces that can be measured without a schema change
 first, so that the schema step only wires what is already proven.
 
-| Order | PR    | Subject                                                   | Schema | Runtime build | Player dist | Q14 | Size |
-| ----: | ----- | --------------------------------------------------------- | ------ | ------------- | ----------- | --- | ---- |
-|     1 | PR-58 | D82 and this roadmap (documents only)                     | —      | —             | —           | —   | S    |
-|     2 | PR-59 | The time map and the stretch of sound (library only)      | —      | no (checked)  | —           | —   | M    |
-|     3 | PR-60 | Decoding backwards in the Player and the Producer         | —      | —             | yes         | yes | M    |
-|     4 | PR-61 | Schema `0.24`: speed, freeze, and reverse in both hosts   | `0.24` | yes           | yes         | yes | L    |
-|     5 | PR-62 | Commands and tools: speed, reverse, and a freeze frame    | —      | —             | —           | —   | M    |
-|     6 | PR-64 | D83 (documents only)                                      | —      | —             | —           | —   | S    |
-|     7 | PR-65 | Font metrics and measured lines (library only)            | —      | no (checked)  | —           | —   | M    |
-|     8 | PR-66 | Schema `0.25`: the frame, alignment, the width mode, W5   | `0.25` | yes           | yes         | yes | L    |
-|     9 | PR-67 | `SetNodeSize` on a text, descriptions, the budget of W6   | —      | —             | —           | —   | S    |
-|    10 | PR-63 | Showcases, the host guide, and the release                | —      | —             | —           | —   | S    |
-|    11 | PR-68 | The host guide and a showcase of D83 (with PR-63)         | —      | —             | —           | —   | S    |
-|    12 | PR-69 | D84 (documents only)                                      | —      | —             | —           | —   | S    |
-|    13 | PR-70 | Inflate and the WOFF container (library only)             | —      | no (checked)  | —           | —   | M    |
-|    14 | PR-71 | Brotli, the dictionary, and the WOFF2 container           | —      | no (checked)  | —           | —   | L    |
-|    15 | PR-72 | `fontMetrics` reads WOFF and WOFF2 in both hosts          | —      | yes           | yes         | yes | M    |
-|    16 | PR-73 | The host guide, the README, and the release               | —      | —             | —           | —   | S    |
-|    17 | PR-74 | D85 (documents only)                                      | —      | —             | —           | —   | S    |
-|    18 | PR-75 | The volume curve on the grid and the envelope (library)   | —      | no (checked)  | —           | —   | M    |
-|    19 | PR-76 | Schema `0.26`: a video's fades and volume curves, mixed   | `0.26` | yes           | yes         | yes | L    |
-|    20 | PR-77 | Commands and tools: fades of a video, a clip's animations | —      | —             | —           | —   | S    |
-|    21 | PR-78 | The host guide, ducking as keyframes, and the release     | —      | —             | —           | —   | S    |
-|    22 | PR-80 | D86 and D87 (documents only)                              | —      | —             | —           | —   | S    |
-|    23 | PR-79 | The reader of the decoder's output, one frame at a time   | —      | —             | —           | —   | S    |
-|    24 | PR-81 | D86: the mark of a frame, the test under load, `v0.9.1`   | —      | —             | —           | —\* | M    |
-|    25 | PR-82 | D87: the forward stream and the pool of workers           | —      | —             | yes         | —   | M    |
-|    26 | PR-83 | D87: protocol version 3 and the canvas of a video node    | —      | yes           | yes         | yes | M    |
-|    27 | PR-84 | D87: the host guide and the release                       | —      | —             | —           | —   | S    |
-|    28 | PR-85 | D88 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
-|    29 | PR-86 | D88: the fast capture of an export, manifest version 6    | —      | —             | —           | —   | M    |
-|    30 | PR-87 | D88: a first start that seeks in an export, host guide    | —      | —             | —           | —†  | M    |
-|    31 | PR-88 | D89 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
-|    32 | PR-89 | D89: schema `0.27`, the flip of a node and its command    | `0.27` | yes           | yes         | yes | M    |
-|    33 | PR-90 | D89: schema `0.28`, the clear and transparent stills      | `0.28` | yes           | yes         | yes | M    |
-|    34 | PR-91 | D89: schema `0.29`, a still canvas up to 8192             | `0.29` | yes           | yes         | yes | M    |
-|    35 | PR-92 | D89: the host guide and the release                       | —      | —             | —           | —   | S    |
-|    36 | PR-93 | D90: every changed tile rastered whole, `v0.12.1`         | —      | —             | —           | yes | S    |
-|    37 | PR-94 | D91 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
-|    38 | PR-95 | D91: schema `0.30`, four corners of a node and a command  | `0.30` | yes           | yes         | yes | M    |
-|    39 | PR-96 | D91: schema `0.31`, a number in a text and a command      | `0.31` | yes           | yes         | yes | L    |
-|    40 | PR-97 | D91: the host guide, a showcase, and `v0.13.0`            | —      | —             | —           | —   | S    |
+| Order | PR     | Subject                                                   | Schema | Runtime build | Player dist | Q14 | Size |
+| ----: | ------ | --------------------------------------------------------- | ------ | ------------- | ----------- | --- | ---- |
+|     1 | PR-58  | D82 and this roadmap (documents only)                     | —      | —             | —           | —   | S    |
+|     2 | PR-59  | The time map and the stretch of sound (library only)      | —      | no (checked)  | —           | —   | M    |
+|     3 | PR-60  | Decoding backwards in the Player and the Producer         | —      | —             | yes         | yes | M    |
+|     4 | PR-61  | Schema `0.24`: speed, freeze, and reverse in both hosts   | `0.24` | yes           | yes         | yes | L    |
+|     5 | PR-62  | Commands and tools: speed, reverse, and a freeze frame    | —      | —             | —           | —   | M    |
+|     6 | PR-64  | D83 (documents only)                                      | —      | —             | —           | —   | S    |
+|     7 | PR-65  | Font metrics and measured lines (library only)            | —      | no (checked)  | —           | —   | M    |
+|     8 | PR-66  | Schema `0.25`: the frame, alignment, the width mode, W5   | `0.25` | yes           | yes         | yes | L    |
+|     9 | PR-67  | `SetNodeSize` on a text, descriptions, the budget of W6   | —      | —             | —           | —   | S    |
+|    10 | PR-63  | Showcases, the host guide, and the release                | —      | —             | —           | —   | S    |
+|    11 | PR-68  | The host guide and a showcase of D83 (with PR-63)         | —      | —             | —           | —   | S    |
+|    12 | PR-69  | D84 (documents only)                                      | —      | —             | —           | —   | S    |
+|    13 | PR-70  | Inflate and the WOFF container (library only)             | —      | no (checked)  | —           | —   | M    |
+|    14 | PR-71  | Brotli, the dictionary, and the WOFF2 container           | —      | no (checked)  | —           | —   | L    |
+|    15 | PR-72  | `fontMetrics` reads WOFF and WOFF2 in both hosts          | —      | yes           | yes         | yes | M    |
+|    16 | PR-73  | The host guide, the README, and the release               | —      | —             | —           | —   | S    |
+|    17 | PR-74  | D85 (documents only)                                      | —      | —             | —           | —   | S    |
+|    18 | PR-75  | The volume curve on the grid and the envelope (library)   | —      | no (checked)  | —           | —   | M    |
+|    19 | PR-76  | Schema `0.26`: a video's fades and volume curves, mixed   | `0.26` | yes           | yes         | yes | L    |
+|    20 | PR-77  | Commands and tools: fades of a video, a clip's animations | —      | —             | —           | —   | S    |
+|    21 | PR-78  | The host guide, ducking as keyframes, and the release     | —      | —             | —           | —   | S    |
+|    22 | PR-80  | D86 and D87 (documents only)                              | —      | —             | —           | —   | S    |
+|    23 | PR-79  | The reader of the decoder's output, one frame at a time   | —      | —             | —           | —   | S    |
+|    24 | PR-81  | D86: the mark of a frame, the test under load, `v0.9.1`   | —      | —             | —           | —\* | M    |
+|    25 | PR-82  | D87: the forward stream and the pool of workers           | —      | —             | yes         | —   | M    |
+|    26 | PR-83  | D87: protocol version 3 and the canvas of a video node    | —      | yes           | yes         | yes | M    |
+|    27 | PR-84  | D87: the host guide and the release                       | —      | —             | —           | —   | S    |
+|    28 | PR-85  | D88 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
+|    29 | PR-86  | D88: the fast capture of an export, manifest version 6    | —      | —             | —           | —   | M    |
+|    30 | PR-87  | D88: a first start that seeks in an export, host guide    | —      | —             | —           | —†  | M    |
+|    31 | PR-88  | D89 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
+|    32 | PR-89  | D89: schema `0.27`, the flip of a node and its command    | `0.27` | yes           | yes         | yes | M    |
+|    33 | PR-90  | D89: schema `0.28`, the clear and transparent stills      | `0.28` | yes           | yes         | yes | M    |
+|    34 | PR-91  | D89: schema `0.29`, a still canvas up to 8192             | `0.29` | yes           | yes         | yes | M    |
+|    35 | PR-92  | D89: the host guide and the release                       | —      | —             | —           | —   | S    |
+|    36 | PR-93  | D90: every changed tile rastered whole, `v0.12.1`         | —      | —             | —           | yes | S    |
+|    37 | PR-94  | D91 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
+|    38 | PR-95  | D91: schema `0.30`, four corners of a node and a command  | `0.30` | yes           | yes         | yes | M    |
+|    39 | PR-96  | D91: schema `0.31`, a number in a text and a command      | `0.31` | yes           | yes         | yes | L    |
+|    40 | PR-97  | D91: the host guide, a showcase, and `v0.13.0`            | —      | —             | —           | —   | S    |
+|    41 | PR-98  | D92 and D93 and their roadmap rows (documents only)       | —      | —             | —           | —   | S    |
+|    42 | PR-99  | D92: the keys of segments and `segment-keys`              | —      | —             | —           | —   | M    |
+|    43 | PR-100 | D92: a grid of spans and the join by keys                 | —      | —             | —           | —   | L    |
+|    44 | PR-101 | D93: `check-custom-html`, the host guide, `v0.14.0`       | —      | —             | —           | —   | S    |
 
 Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 2 000 to 3 000 (most of it the step, the corpus, and fixtures).
@@ -851,6 +855,65 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   Player's dist tree keep the bytes of PR-96; no pinned file changes, and
   the pinned showcases test opens, plays, and edits the new showcase.
 
+### PR-98 to PR-101 — the keys of segments and a check from the command line: D92 and D93
+
+A host renders again only the segments of a film that changed and joins them
+with segments it stored from earlier renders, and checks Custom HTML from its
+worker. [D92](../adr/D92-segment-keys-and-a-join-of-earlier-segments.md)
+decides the key of a segment, a grid of spans, and the join by keys, and
+builds on the grid of a span of
+[D80](../adr/D80-a-segment-grid-anchored-on-a-span.md);
+[D93](../adr/D93-the-command-check-custom-html.md) decides the command
+`kadrion check-custom-html`. The owner approved the host's proposal with
+all its recommendations on 2026-11-26 at 10:50 and accepted D92 and D93,
+with the recommendations of their questions, and D80, as written and
+implemented (`cc66722`), on 2026-11-26 at 15:45 (Europe/Warsaw), together
+with PR-98 to PR-101 without a separate approval of each.
+
+- **PR-98** (D92, D93, documents only): the two ADRs, their rows in the
+  index of ADRs, the status line and the row of D80, and these entries. Acceptance: `node --run format:check`
+  and `tests/repo/adr.test.ts` pass. No code; no impact on Q14, the runtime
+  build, parity, or golden frames. D47 and D48 state in their `Amended by:
+K-range (D80)` lines that D80 is accepted.
+- **PR-99** (D92.1, the keys): `segmentKeys` and its types in
+  `packages/producer/src` (a module of its own, exported by `index.ts`), with
+  the spans of D92.2 accepted by the function only; `kadrion segment-keys` in
+  `packages/cli/src/cli.ts`, reading the fonts of measured nodes from
+  `--assets`. Acceptance: a key stable over runs; a change of a frame's
+  state, of a shown node's text, asset, html, parameters, or gradient, or of
+  a pin changes the keys of the segments that show it and of no other; a
+  scene moved in time keeps its keys; `font-metrics-missing` without a
+  font's metrics; the test that every field of the fixture documents reaches
+  the key or is listed with its reason; the time of the keys of a 10-minute
+  document at 30 fps measured in the pinned container and recorded in D92
+  (question 3). No render, manifest, runtime build, or Player dist tree
+  changes, and the API report of the Producer grows by the new exports.
+- **PR-100** (D92.2 and D92.3, the spans and the join): `spans` in the grid
+  of `packages/producer/src/segments.ts`, `span` and `key` in the manifests
+  of `manifest.ts` for a grid of spans, the join by keys in `export.ts`, the
+  spans in `estimate.ts`; `--spans-us` and `join --composition --assets` in
+  `packages/cli`. Acceptance: the unit tests of D92 (spans and their
+  refusals, a key in several slots, a segment left out, a gap, another pin,
+  another audio pass); and, measured in the pinned container in
+  `tests/pinned/export.pinned.test.ts`: a document rendered on spans, a
+  second with one scene changed and an earlier scene made longer, its
+  changed segments rendered and the others reused, joined with
+  `--composition`, gives the same bytes as a fresh render of the second on
+  the same grid (the MP4, every frame hash, and the manifest apart from
+  `video.seekArgs`); a job without spans writes the bytes of `737be15`. No
+  new pinned file, so `REQUIRED_PINNED_FILES` and the Q14 artifact list do
+  not change.
+- **PR-101** (D93, the command and the release): `kadrion check-custom-html`
+  in `packages/cli`, the edge `cli` → `editor-sdk` in
+  `docs/architecture/package-boundaries.json`, a run of the command in
+  `tests/pinned/custom-html-ai.pinned.test.ts`; the host guide: the keys and
+  their store, spans at scene starts, the join by keys, reuse of a segment
+  with Custom HTML only while its check is `ok` (question 9 of D92), the
+  command of D93, and the links to D80 that sections 12 and 13 promise once
+  it is accepted; every package at `0.14.0` for the release `v0.14.0`, whose
+  tag the owner pushes from `main`. No runtime build, Player dist tree, or
+  pinned file changes.
+
 ## Impact on Q14, parity, and golden frames
 
 - PR-60 and PR-61 change the Player's dist tree, so parity is measured again in
@@ -897,6 +960,11 @@ the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
   in the three fields of D42 alone. Each adds a pinned file with golden
   frames, so `REQUIRED_PINNED_FILES` and the Q14 artifact list grow in its
   diff.
+- PR-98 to PR-101 (D92, D93) change no schema, runtime build, renderer, or
+  Player dist tree, so Q14 does not reopen; golden frames and parity records
+  keep their bytes. PR-100 and PR-101 add measurements to existing pinned
+  files, whose pinned runs are their evidence; `REQUIRED_PINNED_FILES` does
+  not change.
 
 ## Debts carried into this phase
 
@@ -938,4 +1006,4 @@ plan:
    the phase after that; by question 5 of D86 PR-81 sets every package to
    `0.9.1`, and by question 6 of D87 PR-84 makes the next release. D90 joined the
    phase after `v0.12.0`; by its question 2 PR-93 sets every package to
-   `0.12.1`. D91 joined the phase after `v0.12.1`; PR-97 sets every package to `0.13.0`, and the owner pushes the tag `v0.13.0` from `main` after it.
+   `0.12.1`. D91 joined the phase after `v0.12.1`; PR-97 sets every package to `0.13.0`, and the owner pushes the tag `v0.13.0` from `main` after it. D92 and D93 joined the phase after `v0.13.0`; PR-101 sets every package to `0.14.0`, and the owner pushes the tag `v0.14.0` from `main` after it.
