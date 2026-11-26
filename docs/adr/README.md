@@ -98,6 +98,7 @@ propose a new ADR instead of silently bypassing it (see `AGENTS.md`).
 | [D88](D88-a-faster-export-with-the-same-pixels.md)            | A faster export with the same pixels: a fast capture and a first decode that seeks           | Accepted          |
 | [D89](D89-stills-a-larger-canvas-transparency-and-flip.md)    | Stills: a canvas up to 8192 pixels, transparency, and a mirror flip of nodes                 | Accepted          |
 | [D90](D90-every-changed-tile-is-rastered-whole.md)            | Every changed tile is rastered whole                                                         | Accepted          |
+| [D91](D91-four-corners-and-a-number-in-text.md)               | Four corners of a node and a number in a text: schema 0.30 and 0.31                          | Accepted          |
 
 ## Provenance of D01–D10
 
