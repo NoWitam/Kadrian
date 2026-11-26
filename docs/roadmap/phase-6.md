@@ -117,6 +117,10 @@ first, so that the schema step only wires what is already proven.
 |    34 | PR-91 | D89: schema `0.29`, a still canvas up to 8192             | `0.29` | yes           | yes         | yes | M    |
 |    35 | PR-92 | D89: the host guide and the release                       | —      | —             | —           | —   | S    |
 |    36 | PR-93 | D90: every changed tile rastered whole, `v0.12.1`         | —      | —             | —           | yes | S    |
+|    37 | PR-94 | D91 and its roadmap rows (documents only)                 | —      | —             | —           | —   | S    |
+|    38 | PR-95 | D91: schema `0.30`, four corners of a node and a command  | `0.30` | yes           | yes         | yes | M    |
+|    39 | PR-96 | D91: schema `0.31`, a number in a text and a command      | `0.31` | yes           | yes         | yes | L    |
+|    40 | PR-97 | D91: the host guide, a showcase, and `v0.13.0`            | —      | —             | —           | —   | S    |
 
 Sizes are rough, tests included: S under 500 changed lines, M 800 to 1 500, L
 2 000 to 3 000 (most of it the step, the corpus, and fixtures).
@@ -768,6 +772,44 @@ recommendations of all three questions.
   pushes from `main`. No schema, runtime build, or Player dist tree changes.
   Status: done; D90 accepted by the owner on 2026-11-24.
 
+### PR-94 to PR-97 — four corners and a number in a text: D91
+
+A host's editor pins a layer onto a quadrilateral and counts a number in a
+text. [D91](../adr/D91-four-corners-and-a-number-in-text.md) decides both;
+the owner accepted it on 2026-11-24 at 20:03 (Europe/Warsaw).
+
+- **PR-94** (D91, documents only): the ADR, its row in the index of ADRs,
+  and these entries. Acceptance: `node --run format:check` and
+  `tests/repo/adr.test.ts` pass. No code; no impact on Q14, the runtime
+  build, parity, or golden frames.
+- **PR-95** (D91.1, the corners): the probe of a matte with corners first
+  (question 2 of D91); schema `0.30` with `corners`, the step
+  `packages/schema/src/migration/step-0-29-to-0-30.ts`, the frozen
+  `packages/schema/src/v0-29`, the pair `migration-0-29-to-0-30`, the corpus
+  `compatibility/v0-30`, and invalid cases
+  (`packages/schema/src/{composition-schema,types,validate-semantics,migrate}.ts`);
+  the homography and the row `corners` in
+  `packages/runtime/src/{evaluate,state,keyframes}.ts`; `matrix3d` in
+  `packages/renderer-dom/src/css.ts` (and `masks.ts` if the probe passes);
+  `SetNodeCorners` and `set_node_corners` in
+  `packages/editor-sdk/src/{commands,registry,tools,describe}.ts`, which
+  `packages/ai-sdk` reads (D46); the warning of `inspect` in `packages/cli`;
+  `tests/pinned/corners.pinned.test.ts` with golden frames. Every document
+  of `0.29` writes the transform it wrote before.
+- **PR-96** (D91.2, the number): schema `0.31` with `number`, the step
+  `step-0-30-to-0-31.ts`, the frozen `v0-30`, the pair, the corpus
+  `compatibility/v0-31`, and invalid cases; the format, the widest text, the
+  cells of digits, and `measuredNodes` in
+  `packages/runtime/src/{text-frame,fragments,evaluate,state}.ts` and a module
+  of the format; the cells in the text of `packages/renderer-dom/src`;
+  `SetTextNumber` and `set_text_number`; `tests/pinned/number.pinned.test.ts`
+  with golden frames.
+- **PR-97** (D91, the host guide and the release): a frame before corners,
+  a quadrilateral that turns concave, corners from a host's tracking frame by
+  frame, the font of a number, and its separators; a showcase of both; every
+  package at `0.13.0` for the release `v0.13.0`, whose tag the owner pushes
+  from `main`. No runtime build, Player dist tree, or pinned file changes.
+
 ## Impact on Q14, parity, and golden frames
 
 - PR-60 and PR-61 change the Player's dist tree, so parity is measured again in
@@ -807,6 +849,12 @@ recommendations of all three questions.
   manifest and parity record is written again, and six golden PNG files of
   compositing, shapes, and svg change to the frames rendered alone, so Q14
   reopens. It adds a pinned file, so `REQUIRED_PINNED_FILES` grows in its
+  diff.
+- PR-95 and PR-96 (D91) each change the schema, the runtime build, and the
+  Player's dist tree, so Q14 reopens and parity is measured again in each.
+  Every existing golden PNG file keeps its bytes; the golden manifests change
+  in the three fields of D42 alone. Each adds a pinned file with golden
+  frames, so `REQUIRED_PINNED_FILES` and the Q14 artifact list grow in its
   diff.
 
 ## Debts carried into this phase
@@ -849,4 +897,4 @@ plan:
    the phase after that; by question 5 of D86 PR-81 sets every package to
    `0.9.1`, and by question 6 of D87 PR-84 makes the next release. D90 joined the
    phase after `v0.12.0`; by its question 2 PR-93 sets every package to
-   `0.12.1`.
+   `0.12.1`. D91 joined the phase after `v0.12.1`; PR-97 sets every package to `0.13.0`, and the owner pushes the tag `v0.13.0` from `main` after it.
