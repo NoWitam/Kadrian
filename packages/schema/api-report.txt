@@ -576,7 +576,7 @@ export declare const compositionSchema: {
     readonly type: "object";
     readonly description: string;
     readonly additionalProperties: false;
-    readonly required: readonly ("durationUs" | "width" | "height" | "schemaVersion" | "safeArea" | "clear" | "fps" | "assets" | "scenes" | "clips" | "transitions" | "definitions" | "template")[];
+    readonly required: readonly ("width" | "height" | "durationUs" | "clips" | "transitions" | "template" | "schemaVersion" | "safeArea" | "clear" | "fps" | "assets" | "scenes" | "definitions")[];
     readonly properties: {
         readonly schemaVersion: {
             readonly type: "string";
