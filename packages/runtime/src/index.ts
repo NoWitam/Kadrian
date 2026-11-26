@@ -19,7 +19,8 @@ export { EvaluationError } from './errors.js';
 export type { EvaluationErrorCode } from './errors.js';
 export { compositingAt, maskAt } from './compositing.js';
 export { effectsAt } from './effects.js';
-export { evaluateComposition } from './evaluate.js';
+export { cornersWarnings, evaluateComposition } from './evaluate.js';
+export type { CornersWarning } from './evaluate.js';
 export { fragmentSteps, textFragments } from './fragments.js';
 export { UNICODE_VERSION } from './grapheme-table.js';
 export { graphemes, isWhiteSpace, textLayout } from './graphemes.js';
@@ -72,6 +73,7 @@ export type {
   GlowEffectState,
   GroupNodeState,
   Hole,
+  Homography,
   HueRotateEffectState,
   ImageNodeState,
   InstanceNodeState,

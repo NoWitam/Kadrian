@@ -140,14 +140,14 @@ describe('runtime build artifact (D21)', () => {
     const modules = [...text.matchAll(/^ {2}\/\/ (\S+)$/gm)].map((match) => match[1] ?? '');
     // The premise: the schema is in the artifact, with its title as written.
     expect(modules).toContain('packages/schema/dist/composition-schema.js');
-    expect(text).toContain('Kadrion composition 0.29');
+    expect(text).toContain('Kadrion composition 0.30');
     // The page imports the main entry of `@kadrion/schema` only; the migration
     // entry and what only it reaches are no part of the runtime build.
     expect(
       modules.filter((path) => /migrat|v0-1|v0-2|v0-3|v0-4|v0-5|detached|step-/.test(path)),
     ).toEqual([]);
-    // 0.29 begins with the text of 0.2, so the titles of 0.1 and 0.2 are the ones not
-    // followed by a digit.
+    // 0.10 to 0.30 begin with the texts of 0.1, 0.2, and 0.3, so those three titles
+    // are the ones not followed by a digit.
     expect(text).not.toMatch(/Kadrion composition 0\.1(?!\d)/);
     expect(text).not.toMatch(/Kadrion composition 0\.2(?!\d)/);
     expect(text).not.toContain('Kadrion composition 0.19');
@@ -160,7 +160,8 @@ describe('runtime build artifact (D21)', () => {
     expect(text).not.toContain('Kadrion composition 0.26');
     expect(text).not.toContain('Kadrion composition 0.27');
     expect(text).not.toContain('Kadrion composition 0.28');
-    expect(text).not.toContain('Kadrion composition 0.3');
+    expect(text).not.toContain('Kadrion composition 0.29');
+    expect(text).not.toMatch(/Kadrion composition 0\.3(?!\d)/);
     expect(text).not.toContain('Kadrion composition 0.4');
     expect(text).not.toContain('Kadrion composition 0.5');
     expect(text).not.toContain('Kadrion composition 0.7');

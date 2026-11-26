@@ -58,7 +58,9 @@
  * paths; `doctor` prints a JSON report of whether this process is the reference
  * environment, and exits 3 when it is not (D45). `inspect` prints the verdict
  * of the Player's `inspectVideo` on one file: whether the Player shows it as it
- * is, every reason why not, and its facts (D79.6).
+ * is, every reason why not, and its facts (D79.6); on a composition, a file
+ * whose text starts with `{`, it lists a warning for every node whose animated
+ * corners turn concave, with the first such instant (D91.1).
  */
 import { openAsBlob } from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
@@ -69,6 +71,7 @@ import { parseArgs } from 'node:util';
 
 import {
   AUDIO_FILE_NAME,
+  cornersWarnings,
   DEFAULT_ESTIMATE_SAMPLES,
   estimatePlan,
   exportMp4,
@@ -86,6 +89,7 @@ import {
   type AudioManifest,
   type AudioRequest,
   type AudioResult,
+  type CornersWarning,
   type ExportRequest,
   type ExportResult,
   type FfmpegPaths,
@@ -105,6 +109,7 @@ import {
   type StillResult,
 } from '@kadrion/producer';
 import { inspectVideo, type VideoInspection } from '@kadrion/player';
+import { validateComposition } from '@kadrion/schema';
 
 import { runDoctor, type DoctorReport } from './doctor.js';
 import {
@@ -990,10 +995,52 @@ function inspectionLines(file: string, inspection: VideoInspection): string[] {
   return lines;
 }
 
+/** Whether a file is a composition: its text starts with `{`, which no video file does. */
+async function isComposition(blob: Blob): Promise<boolean> {
+  const head = await blob.slice(0, 64).text();
+  return head.trimStart().startsWith('{');
+}
+
+/**
+ * `kadrion inspect` on a composition (D91.1): one warning per node whose
+ * animated corners are not a convex quadrilateral at an instant of the frame
+ * grid, with the first such instant. A text that is no JSON, or a document the
+ * validator refuses, is an error, and exits 1.
+ */
+function inspectComposition(file: string, text: string, json: boolean, io: CliIo): number {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (reason) {
+    io.err(`error invalid-json: ${reason instanceof Error ? reason.message : String(reason)}`);
+    return EXIT_PRODUCER_ERROR;
+  }
+  const validation = validateComposition(parsed);
+  if (!validation.ok) {
+    io.err(`error ${INVALID_DOCUMENT}: ${file} is not a valid composition of this build.`);
+    for (const { code, path, message } of validation.errors) {
+      io.err(`  ${code} ${path}: ${message}`);
+    }
+    return EXIT_PRODUCER_ERROR;
+  }
+  const warnings: readonly CornersWarning[] = cornersWarnings(validation.composition);
+  if (json) {
+    io.out(JSON.stringify({ kind: 'composition', warnings }, null, 2));
+    return EXIT_OK;
+  }
+  const count = `${String(warnings.length)} warning${warnings.length === 1 ? '' : 's'}`;
+  io.out(`${file}: a composition of schema ${validation.composition.schemaVersion}, ${count}`);
+  for (const { code, nodeId, timeUs, message } of warnings) {
+    io.out(`  ${code} ${nodeId} at ${String(timeUs)} µs: ${message}`);
+  }
+  return EXIT_OK;
+}
+
 /**
  * `kadrion inspect [--json] <file>` (D79.6): the verdict of `inspectVideo` on
- * the file, read in slices and never whole. It exits 0 whatever the verdict
- * is, 1 when the file cannot be opened, and 2 on a usage error.
+ * the file, read in slices and never whole, or the warnings of a composition
+ * (D91.1). It exits 0 whatever the verdict is, 1 when the file cannot be
+ * opened or is no valid composition, and 2 on a usage error.
  */
 async function inspectCommand(
   args: readonly string[],
@@ -1016,6 +1063,9 @@ async function inspectCommand(
   } catch (reason) {
     io.err(`error file-unreadable: ${reason instanceof Error ? reason.message : String(reason)}`);
     return EXIT_PRODUCER_ERROR;
+  }
+  if (await isComposition(blob)) {
+    return inspectComposition(file, await blob.text(), values.json === true, io);
   }
   const inspection = await inspect(blob);
   if (values.json === true) io.out(JSON.stringify(inspection, null, 2));

@@ -58,8 +58,11 @@
  * the composition, white or transparent: what a pixel that no node covers is
  * (D89.2); 0.29 is 0.28 with a side of the canvas and a safe inset up to
  * 4224, the bound that the gate of D89.1 measured, for the composition and its
- * definitions, where a video job still stops at 1920 (D89.1). The schemas of
- * 0.1 to 0.28 are kept as data in `v0-1` to `v0-28` (D35.4).
+ * definitions, where a video job still stops at 1920 (D89.1); 0.30 is 0.29
+ * plus the four corners of every transformable node, offsets in composition
+ * pixels that move the corners of its box after its own transform, so that it
+ * draws onto a quadrilateral by a homography, and their animation (D91.1). The
+ * schemas of 0.1 to 0.29 are kept as data in `v0-1` to `v0-29` (D35.4).
  */
 import {
   closedObject,
@@ -72,7 +75,7 @@ import {
   type UnionSchema,
 } from './json-schema.js';
 
-export const SCHEMA_VERSION = '0.29';
+export const SCHEMA_VERSION = '0.30';
 
 const MAX_SAFE_INTEGER = 9_007_199_254_740_991;
 
@@ -221,6 +224,39 @@ const mirrored = (axis: string) =>
 const flip = closedObject(
   "A mirror of what the node draws in its own box, about the box's centre, before scale and rotation: its content, crop, corners, mask, and effects. The box, the position, and the origin do not move; a group's box is the canvas (D89.3).",
   { x: mirrored('left to right'), y: mirrored('top to bottom') },
+);
+
+/** One coordinate of the offset of a corner, in composition pixels; a JSON number (D15, D91.1). */
+const cornerCoordinate = {
+  type: 'number',
+  description:
+    'Composition pixels in the space of the parent, added to the coordinate of the corner after the transform of the node; x grows right, y grows down; fractions allowed (D15, D91.1).',
+  minimum: -1_000_000,
+  maximum: 1_000_000,
+} as const satisfies NumberSchema;
+
+/** The offset of one corner of a node's box (D91.1). */
+const cornerOffset = (corner: string) =>
+  closedObject(`The offset of the ${corner} corner of the box, in composition pixels (D91.1).`, {
+    x: cornerCoordinate,
+    y: cornerCoordinate,
+  });
+
+/** The four corners of a node's box, moved after its own transform (D91.1). */
+const cornersValue = (description: string) =>
+  closedObject(description, {
+    topLeft: cornerOffset('top-left'),
+    topRight: cornerOffset('top-right'),
+    bottomRight: cornerOffset('bottom-right'),
+    bottomLeft: cornerOffset('bottom-left'),
+  });
+
+/**
+ * The corners of a node (D91.1): four zero vectors are no quadrilateral; any
+ * other value draws the box onto the quadrilateral of its moved corners.
+ */
+const corners = cornersValue(
+  "Offsets of the four corners of the node's box, in composition pixels of its parent's space, after its own transform (position, scale, rotation about the origin, flip); the node draws its box onto the quadrilateral of the moved corners by a homography. Four zero vectors are no quadrilateral. The quadrilateral must be convex with a non-zero area, in the order top-left, top-right, bottom-right, bottom-left; a text needs a fixed frame (D91.1).",
 );
 
 /** The radius of the corners of an image or a video, in composition pixels (D68). */
@@ -383,6 +419,12 @@ export const originAnimationSchema = animation(
     x: originOffset,
     y: originOffset,
   }),
+);
+
+export const cornersAnimationSchema = animation(
+  'corners',
+  "Offsets added to the node's corners, corner by corner; an instant whose quadrilateral is not convex with a non-zero area draws nothing of the node (D65.1, D91.1).",
+  cornersValue('Offsets of the four corners, in composition pixels (D91.1).'),
 );
 
 export const sizeAnimationSchema = animation(
@@ -721,13 +763,14 @@ export const geometryAnimationSchema = animation(
  */
 export const animationSchema = {
   description:
-    'An animation of one property of the node that owns it: position, rotation, and origin are offsets added to the base value, scale, opacity, and the volume of a video factors multiplied with it, and size, color, crop, cornerRadius, and the fill, stroke/color, stroke/width, trim/start, trim/end, and geometry of a shape values that replace it (D16.6, D65.1, D68, D73).',
+    'An animation of one property of the node that owns it: position, rotation, origin, and corners are offsets added to the base value, scale, opacity, and the volume of a video factors multiplied with it, and size, color, crop, cornerRadius, and the fill, stroke/color, stroke/width, trim/start, trim/end, and geometry of a shape values that replace it (D16.6, D65.1, D68, D73, D91.1).',
   oneOf: [
     opacityAnimationSchema,
     positionAnimationSchema,
     scaleAnimationSchema,
     rotationAnimationSchema,
     originAnimationSchema,
+    cornersAnimationSchema,
     sizeAnimationSchema,
     colorAnimationSchema,
     cropAnimationSchema,
@@ -748,6 +791,7 @@ const TRANSFORM_ANIMATIONS = [
   scaleAnimationSchema,
   rotationAnimationSchema,
   originAnimationSchema,
+  cornersAnimationSchema,
 ] as const;
 
 /** The animations a node type may have: the rows of D65.1 that name it. */
@@ -767,6 +811,7 @@ function transform<const S extends readonly ObjectSchema[]>(rows: S) {
     rotation,
     origin,
     flip,
+    corners,
     opacity,
     animations: animations(rows),
   } as const;
@@ -3120,7 +3165,7 @@ function deepFreeze<T>(value: T): T {
 
 export const compositionSchema = deepFreeze({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
-  title: 'Kadrion composition 0.29',
+  title: 'Kadrion composition 0.30',
   ...closedObject('A video composition: the only source of rendering truth.', {
     schemaVersion: { type: 'string', const: SCHEMA_VERSION },
     width: canvasLength,

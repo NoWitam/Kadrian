@@ -9,6 +9,7 @@
   animated by the mask's own animations), each with an
   `Amended by: PR-54 (D75)` line
 - Amended by: PR-89 (D89) on 2026-11-22: 75.6: the transform of a matte inside its mask ends with the matte's own flip in pixels of its box, `translate(<width>px, 0px) scale(-1, 1)` and its pairs (D89.3)
+- Amended by: PR-95 (D91) on 2026-11-26: a node that is the matte of a sibling has no corners (`invalid-corners`), neither in its base nor in an animation: the pinned Chromium draws a perspective `matrix3d` on an SVG element inside a `<mask>` as the affine map without its perspective, which the matte probe of `tests/pinned/corners.pinned.test.ts` measures (question 2 of D91)
 - Related: D15, D16, D18, D22, D42, D49, D56, D59, D65, D67, D71, D72, D73,
   [phase five](../roadmap/phase-5.md) PR-54
 

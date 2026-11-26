@@ -1,8 +1,8 @@
 /**
  * @kadrion/schema — JSON Schema, TypeScript types, validation, migrations.
  *
- * Schema 0.29, as decided by D13–D17, D42, D50, D52, D54, D56, D57, D58, D59, D63, D66, D67,
- * D68, D69, D70, D71, D72, D73, D74, D75, D76, D77, D78, D82, D83, D85, and D89: the one version this build validates (D35.1). The schemas of 0.1 to 0.28 and the forward migration live behind
+ * Schema 0.30, as decided by D13–D17, D42, D50, D52, D54, D56, D57, D58, D59, D63, D66, D67,
+ * D68, D69, D70, D71, D72, D73, D74, D75, D76, D77, D78, D82, D83, D85, D89, and D91: the one version this build validates (D35.1). The schemas of 0.1 to 0.29 and the forward migration live behind
  * the entry point `@kadrion/schema/migrate`, so that the render page, which imports this entry
  * only, carries none of them (D21, D42.8). The instantiation of a template is exported by
  * `@kadrion/schema/template`; its core lies in this entry since elements are instantiated
@@ -13,6 +13,14 @@
 export { audioPlan, heardSourceRange } from './audio-plan.js';
 export type { AudioPlan, AudioPlanEntry, AudioPlanVolumeKey } from './audio-plan.js';
 export { BLEND_MODES, compositionSchema, SCHEMA_VERSION } from './composition-schema.js';
+export {
+  CORNER_KEYS,
+  cosSinOfDegrees,
+  hasCorners,
+  isConvexQuadrilateral,
+  movedCorners,
+} from './corners.js';
+export type { CornerOffsets, CornerPoint, CornerTransform, Quadrilateral } from './corners.js';
 export {
   definitionTimeUs,
   instanceDefinition,
@@ -84,6 +92,7 @@ export type {
   Composition,
   ClipTransition,
   ClipTransitionEffect,
+  Corners,
   Crop,
   CustomHtmlNode,
   CustomHtmlParameter,

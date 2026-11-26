@@ -5,6 +5,7 @@
 - Amended by: PR-48 (D68) on 2026-11-07: a node scales and turns about its origin point, in per mille of its box; a rotation in degrees, positive clockwise; the crop and the corner radius of a picture (D68.1, D68.2, D68.5)
 - Amended by: PR-89 (D89) on 2026-11-22: every transformable node has a flip, `x` and `y` booleans, that mirrors what it draws in its own box about the box's centre, before scale and rotation; the box, the position, and the origin do not move, and a group's box is the canvas (D89.3)
 - Amended by: PR-91 (D89) on 2026-11-22: the canvas row: a side of the composition or of a definition, and a safe inset, go up to 4224, the bound the gate of D89.1 measured; a video job refuses a side above 1920 (D89.1)
+- Amended by: PR-95 (D91) on 2026-11-26: every transformable node has `corners`, four offsets `{ x, y }` in composition pixels of its parent's space, fractions allowed, from −1 000 000 to 1 000 000, added to the corners of its box after its own transform; four zero vectors are none (D91.1)
 - Related: D03, D04, D07, D16, [specification](../spike/vertical-spike.md) open
   questions Q2 and Q10
 

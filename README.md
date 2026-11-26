@@ -32,7 +32,8 @@ transparent clear of a still in schema `0.28`, and a still canvas of up to
 step PR-93 rasters every tile a frame changes whole (D90) for the
 patch release `v0.12.1` (before it, a frame with a turned or animated mask,
 shape, or SVG asset could differ after another frame from the same frame
-rendered alone). Schema `0.29` with its forward migrations from `0.1` to `0.28`, the evaluation core, the DOM
+rendered alone), and whose step PR-95 moves the four corners of a node in
+schema `0.30` (D91). Schema `0.30` with its forward migrations from `0.1` to `0.29`, the evaluation core, the DOM
 renderer and its runtime build, the Custom HTML sandbox, the Player, the
 Producer with MP4 export, the command bus, and the AI tool contract exist. Each
 of the five proofs of the spike has evidence in the repository, and the parity
@@ -209,13 +210,13 @@ saved documents that must keep loading (D43). Tests read it; no package does.
 
 ### 1. Describe a composition
 
-A composition is a JSON document of schema `0.29`
+A composition is a JSON document of schema `0.30`
 ([`packages/schema/src/composition-schema.ts`](packages/schema/src/composition-schema.ts)).
 Unknown fields are errors. This one shows a text that fades in:
 
 ```json
 {
-  "schemaVersion": "0.29",
+  "schemaVersion": "0.30",
   "width": 1080,
   "height": 1920,
   "safeArea": { "fromTop": 0, "fromRight": 0, "fromBottom": 0, "fromLeft": 0 },
@@ -252,6 +253,12 @@ Unknown fields are errors. This one shows a text that fades in:
           "rotation": 0,
           "origin": { "x": 0, "y": 0 },
           "flip": { "x": false, "y": false },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [
             {
@@ -496,8 +503,8 @@ Only `validateComposition` produces a `ValidatedComposition`, and the other
 packages validate what they are given themselves. `frameToTimeUs`,
 `timeUsToFrame`, and `frameCount` convert between frames and microseconds.
 
-`validateComposition` accepts schema `0.29` only. The Player, the Producer, the
-CLI, and the command bus therefore require a `0.29` document, and none of them
+`validateComposition` accepts schema `0.30` only. The Player, the Producer, the
+CLI, and the command bus therefore require a `0.30` document, and none of them
 upgrades an older one. The validator's verdict on an older document is
 `unsupported-schema-version` at `/schemaVersion`; the command bus reports it as
 its own `invalid-document` error, with that verdict in the details. A host that
@@ -509,8 +516,8 @@ import { migrateComposition } from '@kadrion/schema/migrate';
 
 const migrated = migrateComposition(JSON.parse(text));
 if (migrated.ok) {
-  migrated.composition; // a new, validated 0.29 document; the input is untouched
-  migrated.versions; // ['0.1', …, '0.28', '0.29'], or ['0.29'] for a document that was current
+  migrated.composition; // a new, validated 0.30 document; the input is untouched
+  migrated.versions; // ['0.1', …, '0.29', '0.30'], or ['0.30'] for a document that was current
 } else {
   migrated.version; // the version the errors belong to, or null when none is known
   for (const error of migrated.errors) console.error(error.code, error.path, error.message);
@@ -584,6 +591,9 @@ if (migrated.ok) {
   `safeArea`, never a definition: the white it was drawn over (D89).
 - The step from `0.28` changes `schemaVersion` alone: `0.29` only raises the
   bound of a side of a canvas and of a safe inset to 4224 (D89).
+- The step from `0.29` gives every node but a background `corners` of four
+  zero vectors after its `flip`, in scenes, groups, and definitions: no
+  quadrilateral, the picture it had (D91).
 - The steps change nothing else: IDs, the order of arrays and of keys, and
   every other value stay as they are.
 - A document without a known `schemaVersion` is refused with
@@ -608,8 +618,8 @@ import {
 
 const loaded = parseComposition(text);
 if (loaded.ok) {
-  loaded.composition; // a new, validated 0.29 document that belongs to the caller
-  loaded.versions; // ['0.1', …, '0.28', '0.29'] from 0.1, ['0.29'] when it was current
+  loaded.composition; // a new, validated 0.30 document that belongs to the caller
+  loaded.versions; // ['0.1', …, '0.29', '0.30'] from 0.1, ['0.30'] when it was current
 } else if (loaded.stage === 'text') {
   loaded.error.code; // 'not-a-string' or 'invalid-json': no document was reached
 } else {
@@ -624,7 +634,7 @@ if (saved.ok) {
   saved.errors; // the validator's errors: an older document is refused, never migrated
 }
 
-SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23', '0.24', '0.25', '0.26', '0.27', '0.28', '0.29']: what this build can carry forward
+SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '0.10', '0.11', '0.12', '0.13', '0.14', '0.15', '0.16', '0.17', '0.18', '0.19', '0.20', '0.21', '0.22', '0.23', '0.24', '0.25', '0.26', '0.27', '0.28', '0.29', '0.30']: what this build can carry forward
 ```
 
 - The text follows the rules of JSON and no others: a byte order mark is
@@ -637,7 +647,7 @@ SUPPORTED_SCHEMA_VERSIONS; // ['0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', 
 - The list names what can be **migrated**, not what is **accepted**:
   `validateComposition`, and everything built on it, accepts its last version
   only. The validator's message for an earlier document, that this build
-  supports `"0.29"`, speaks of that.
+  supports `"0.30"`, speaks of that.
 
 Loading replaces the document, so a host creates a new command bus for it,
 with a fresh history, and publishes it only after the load succeeded:
@@ -1420,7 +1430,7 @@ node packages/cli/dist/bin.js migrate saved.json --check
   database is the host's loop.
 
   ```text
-  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23","0.24","0.25","0.26","0.27","0.28","0.29"]}
+  {"event":"versions","versions":["0.1","0.2","0.3","0.4","0.5","0.6","0.7","0.8","0.9","0.10","0.11","0.12","0.13","0.14","0.15","0.16","0.17","0.18","0.19","0.20","0.21","0.22","0.23","0.24","0.25","0.26","0.27","0.28","0.29","0.30"]}
   {"event":"file","file":"migrated.json"}
   {"event":"done","manifest":null}
   ```

@@ -34,9 +34,21 @@ export function cssPixels(value: number): string {
  * is the top-left corner, no rotation while it is 0, so a node of 0.12 is
  * written exactly as before. The flip ends the list, so it applies first, in
  * the node's own box and before scale and rotation (D89.3); without one
- * nothing is written, so a node of 0.26 is written exactly as before.
+ * nothing is written, so a node of 0.26 is written exactly as before. A node
+ * with corners writes its homography as one `matrix3d` instead of the whole
+ * list; four zero corners have none, so a node of 0.29 is written exactly as
+ * before (D91.1).
  */
-export function cssTransform({ position, scale, rotation, origin, flip }: TransformState): string {
+export function cssTransform({
+  position,
+  scale,
+  rotation,
+  origin,
+  flip,
+  homography,
+}: TransformState): string {
+  // With corners, the homography is the whole of the node's own transform (D91.1).
+  if (homography != null) return cssMatrix3d(homography);
   const parts = [`translate(${cssPixels(position.x)}, ${cssPixels(position.y)})`];
   const pivot = origin.x !== 0 || origin.y !== 0;
   if (pivot) parts.push(`translate(${cssPercent(origin.x)}, ${cssPercent(origin.y)})`);
@@ -45,6 +57,15 @@ export function cssTransform({ position, scale, rotation, origin, flip }: Transf
   if (pivot) parts.push(`translate(${cssPercent(-origin.x)}, ${cssPercent(-origin.y)})`);
   parts.push(...flipParts(flip, '100%', '100%'));
   return parts.join(' ');
+}
+
+/**
+ * A homography of D91.1 as CSS `matrix3d(…)`: its sixteen numbers, column by
+ * column, each by the one rule of D22, separated as the CSS Object Model
+ * serialises a list of numbers.
+ */
+export function cssMatrix3d(matrix: readonly number[]): string {
+  return `matrix3d(${matrix.map(cssNumber).join(', ')})`;
 }
 
 /**

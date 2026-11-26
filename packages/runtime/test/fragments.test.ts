@@ -25,6 +25,12 @@ function text(content: string, textAnimations: readonly TextAnimation[]): TextNo
     rotation: 0,
     origin: { x: 0, y: 0 },
     flip: { x: false, y: false },
+    corners: {
+      topLeft: { x: 0, y: 0 },
+      topRight: { x: 0, y: 0 },
+      bottomRight: { x: 0, y: 0 },
+      bottomLeft: { x: 0, y: 0 },
+    },
     opacity: 1,
     animations: [],
     text: content,

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.29",
+  "schemaVersion": "0.30",
   "width": 1080,
   "height": 1920,
   "safeArea": {
@@ -62,6 +62,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [
@@ -155,6 +161,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [
             {
@@ -220,6 +232,12 @@
             "x": false,
             "y": false
           },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
+          },
           "opacity": 1,
           "animations": [],
           "width": 900,
@@ -282,6 +300,12 @@
           "flip": {
             "x": false,
             "y": false
+          },
+          "corners": {
+            "topLeft": { "x": 0, "y": 0 },
+            "topRight": { "x": 0, "y": 0 },
+            "bottomRight": { "x": 0, "y": 0 },
+            "bottomLeft": { "x": 0, "y": 0 }
           },
           "opacity": 1,
           "animations": [],

@@ -23,6 +23,7 @@
 - Amended by: K3 (opacity history) on 2026-11-11 at the owner's request: 22.9: every node, and every scene, fragment, and caption piece whose opacity can fall below 1, carries `will-change: opacity` from the mount on, so that a frame does not depend on the frames rendered before it
 - Amended by: PR-89 (D89) on 2026-11-22: 22.2: the transform list of a node ends with its flip, `translate(100%, 0px) scale(-1, 1)`, `translate(0px, 100%) scale(1, -1)`, or `translate(100%, 100%) scale(-1, -1)`, and with nothing without one, so a document of `0.26` writes the string it wrote before; a zero length is written `0px`, as the CSS Object Model serialises it (D89.3)
 - Amended by: PR-90 (D89) on 2026-11-22: 22.3: the runtime writes the page's clear on `html`, outside the root: `background-color: transparent` for a transparent document, removed for a white one, so that the page's own white shows (D89.2)
+- Amended by: PR-95 (D91) on 2026-11-26: 22.2: a node with corners writes its own transform as one `matrix3d(…)` of the sixteen numbers of its homography, column by column, each by the rule of `Number::toString`, separated by `, `, after the transform of a clip transition; a node with four zero corners writes the list it wrote before, so a document of `0.29` writes the same strings (D91.1)
 - Related: D03, D05, D14, D15, D16, D18, D19, D20, D21,
   [specification](../spike/vertical-spike.md) §5 P1–P2, §6.1, and open
   question Q5
